@@ -27,6 +27,7 @@ Nobody can answer questions mid-run. If the brief doesn't settle something, take
 - Write automated tests where they make sense. Use Fabric game tests for game logic. Use Fabric client game tests for anything visual, and save their screenshots under `reviews/NN-slug/screenshots/` so they can be inspected.
 - Report exactly what you ran and what it printed. A test you didn't run is not evidence. If something can only be checked by a human playing, say so.
 - Watch for things that fail silently, where the tests pass but the result in the game is wrong. Those are the ones reviews exist for.
+- Before reporting green, run the full `build runClientGameTest` **twice**. A test that passes once and fails once is a failure: fix its cause, never the assertion. Package 04c passed for Codex and then failed in Claude's rerun with a non-deterministic world-generation search.
 
 ## Report format (`reviews/NN-slug/REPORT.md`)
 
