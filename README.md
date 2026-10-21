@@ -80,7 +80,10 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
 1. **Shell mod + OS base, in parallel.**
    - Mod: Nether hub, app items, sign doors, return-to-world on close. Developed in normal Minecraft on Windows for fast testing.
    - OS base: Linux defined as code in this repo, with NVIDIA drivers, Mojang boot logo, auto-login, and boot straight into the Nether world. Also auto-restart if Minecraft crashes, and a hidden escape key to a plain terminal.
-2. **Install on its own SSD.** The laptop (Lenovo LOQ 15IRH8) has a second M.2 2280 slot (PCIe 4.0). AresOS gets its own SSD there (or an external USB SSD until then). The Windows SSD is never touched. Pick the OS at startup with F12.
+2. **Dual boot on the existing SSD** (owner decision, 2026-10-21: free, and not very risky if done carefully).
+   - The owner shrinks Windows with Windows' own tools, and AresOS goes into the freed space with its own partitions.
+   - Existing Windows partitions and boot files are never modified. Pick the OS at startup.
+   - A second SSD stays an option for later.
 3. **Polish:** piglin app shops, respawn anchor = sleep, Save and Quit = shut down, more worlds via the portal (Overworld survival, BedWars).
 4. **Later, optional:** a Brawl Stars theme (custom app).
 
@@ -91,11 +94,11 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
 - Linux base: **decided, Bazzite** (needs a one-time key enrollment at install). Details in `docs/design/OS-BASE.md` once PR #2 merges.
 - Buy a 2280 NVMe SSD for the second slot (confirm the slot is empty first).
 - **Laptop facts (msinfo32, 2026-10-21):** UEFI mode, **Secure Boot is OFF**, and Windows device encryption is almost certainly off (it needs Secure Boot, and the Settings page "Geräteverschlüsselung" doesn't show). With Secure Boot off, AresOS needs no MOK enrollment and BitLocker prompts are unlikely. Turning Secure Boot on would be a separate owner decision.
-- **Hardware to buy (owner):** Crucial P310 500 GB M.2 2280 NVMe (CT500P310SSD801) plus a UGREEN 10 Gbps NVMe USB enclosure. External test drive first, moved into the free internal slot later.
+- **Hardware:** nothing to buy (same-drive dual boot). The installer needs a USB stick of at least 16 GB.
 - How app items get their icons.
 
 ## Safety rules
 
 - Mod development on Windows touches only Minecraft's mod folder and this project.
-- AresOS only ever installs to its own drive (second SSD or USB SSD). Never write to the Windows SSD (Micron 512 GB).
+- AresOS installs only into its own new partitions in the space freed from Windows. Never delete, format, move or resize existing Windows partitions, and never modify Windows' boot files. The owner backs up important files before installing.
 - Before changing any BIOS/boot settings: confirm the BitLocker recovery key is saved in the Microsoft account.

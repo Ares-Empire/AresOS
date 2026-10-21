@@ -33,7 +33,11 @@ I only build things myself when writing the brief would cost more than doing it 
 
 ## Hard rules
 
-1. Never partition, format, or change boot settings on the Windows SSD. AresOS installs only to its own drive.
+1. **Same-drive dual boot (owner decision, 2026-10-21).**
+   - AresOS lives in its own new partitions on the Windows SSD.
+   - Never delete, format, move or resize existing Windows partitions, and never modify Windows' boot files.
+   - Shrinking Windows is done by the owner with Windows' own Disk Management, following the install guide, after a backup.
+   - Agents never run disk or boot tools on the real laptop.
 2. Never commit Mojang or Supercell assets. Vanilla textures load from the game at runtime.
 3. Never touch the owner's real `.minecraft` folder or Lunar Client unless asked. Development uses the Gradle dev client (`runClient`).
 4. Agents never merge or push to `main`. Only I merge, after the checks in `docs/WORKFLOW.md`.
