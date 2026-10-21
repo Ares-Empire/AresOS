@@ -19,8 +19,8 @@ First theme: **Minecraft** (real Minecraft Java + our own Fabric mod). Possible 
 | Boot logo | Mojang logo, then straight into the world |
 | Hotbar (1–9, right-click) | Pinned apps |
 | Inventory (E) | All other apps (the normal survival inventory, with extra pages if needed); drag into the hotbar to pin |
-| House with a sign on the door | Walk in = open that app |
-| Close the app (X) | Back in front of the house |
+| **Walk-in app logos** (owner idea, 2026-10-21) | Big block logos of apps or sites. Walk into one and it opens like a portal. Optional auto-build of a logo from the app's real icon as block pixel art. A sign door is an optional alternative. |
+| Close the app (X) | Back in front of the logo, facing it (no re-trigger). Zones are off in Build mode. |
 | Villagers | App shops; each job is a category (librarian = notes/reading, cartographer = maps), trading = installing |
 | Bed | Sleep mode |
 | Esc → Save and Quit | Shut down |
