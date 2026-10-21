@@ -42,14 +42,23 @@ I only build things myself when writing the brief would cost more than doing it 
 
 Plain language, outcome first. Explain technical things through what they'll see in the game. Bring decisions with a recommendation, not a menu.
 
-## Codex settings (verified 2026-10-21, Codex CLI 0.163.0)
+## Codex models
 
-| Job | Model | Effort |
-|---|---|---|
-| Build a package | `gpt-6.1-sol` | `xhigh` |
-| Council member or chair, hard design questions | `gpt-6-astra` | `xhigh` (`max` before irreversible steps) |
-| Package review | `gpt-6.1-sol` | `high` |
+Pick models by job, not by name. Names change, so check the list before the first launch of a session:
 
-- Always pass `-m` and `-c model_reasoning_effort=...` explicitly. The config default (`gpt-5.6-sol`) is older.
+```powershell
+(Get-Content "$env:USERPROFILE\.codex\models_cache.json" -Raw | ConvertFrom-Json).models | Where-Object visibility -eq 'list' | Sort-Object priority | Format-Table slug, description
+```
+
+| Job | Which model | Effort | Pick on 2026-10-21 |
+|---|---|---|---|
+| Build a package (`BUILD_MODEL`) | the newest "workhorse" coding model | `xhigh` | `gpt-6.1-sol` |
+| Councils, hard design (`COUNCIL_MODEL`) | the "frontier" model | `xhigh` (`max` before irreversible steps) | `gpt-6-astra` |
+| Package review (`REVIEW_MODEL`) | same as the build model | `high` | `gpt-6.1-sol` |
+
+When the list shows a newer model for a job, use it and update the last column.
+
+- Always pass `-m` and `-c model_reasoning_effort=...` explicitly. The Codex config default is an older model.
+- Keep Codex current with `npm install -g @openai/codex@latest` (0.163.0 on 2026-10-21).
 - Never use Spark.
 - ChatGPT Pro runs until 2026-11-21. On a rate limit, back off; don't retry in a loop.

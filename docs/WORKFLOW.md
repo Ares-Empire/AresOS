@@ -15,11 +15,12 @@ Work one package at a time. Run up to about three at once only when they touch d
 3. **Launch (Claude).** Commit the brief to `main`, create the worktree, and start Codex in the background (`run_in_background`, so the harness reports when it exits):
    ```bash
    git -C /c/Users/pab/AresOS worktree add -b pkg/NN-slug ../AresOS-NN-slug main
-   cd /c/Users/pab/AresOS-NN-slug && codex exec -m gpt-6.1-sol -c model_reasoning_effort="xhigh" \
+   cd /c/Users/pab/AresOS-NN-slug && codex exec -m "$BUILD_MODEL" -c model_reasoning_effort="xhigh" \
      -s danger-full-access --json -o ../AresOS-NN-slug.last.md \
      "Read AGENTS.md and briefs/NN-slug.md, then execute the brief fully. Push the branch and open a PR. Do not merge." \
      > ../AresOS-NN-slug.log 2>&1
    ```
+   `$BUILD_MODEL` and the other model names are the current picks in `CLAUDE.md`.
 4. **Review (fresh Codex).** A reviewer that didn't write the code checks the PR against the brief. See "Package review" in `docs/REVIEW.md`.
 5. **Integrate (Claude).** This is not a second full review. Claude:
    - confirms the PR head is the commit that was reviewed
@@ -42,7 +43,7 @@ Work one package at a time. Run up to about three at once only when they touch d
 **Acceptance:** concrete checks, including which tests and screenshots.
 **Already decided:** design decisions and constraints Codex must follow.
 **If unsure:** the safe default to take.
-**Model:** gpt-6.1-sol, xhigh.
+**Model:** current build model (see CLAUDE.md), xhigh.
 ```
 
 ## Branches and files
@@ -56,5 +57,5 @@ Work one package at a time. Run up to about three at once only when they touch d
 ## Budget
 
 - ChatGPT Pro runs until 2026-11-21.
-- Builds use gpt-6.1-sol. gpt-6-astra is for councils and hard design questions.
+- Builds use the build model. The frontier model is for councils and hard design questions. Current names are in `CLAUDE.md`.
 - On a rate limit, wait and resume. Never retry in a loop.
