@@ -24,7 +24,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 - **PR #3** (briefs 03, 03b): the image builds and boots into our labwc session in a CI VM. 03b is fixing the last two checks (TTY sync, clean poweroff).
 - **Brief 07:** real installed apps in the inventory with generated icons, plus websites as apps.
-- **Next for the OS image:** switch to `bazzite-nvidia-open`, publish privately, and a tested "switch Bazzite to AresOS" step with an admin/recovery account. That's what unlocks the install guide.
+- **Next for the OS image:** switch to `bazzite-nvidia-open`, publish (public or private, owner decision), and a tested "switch Bazzite to AresOS" step with an admin/recovery account. That's what unlocks the install guide.
 
 ## Waiting on the owner
 
