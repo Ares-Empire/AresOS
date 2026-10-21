@@ -24,7 +24,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 ## Waiting on the owner
 
 - **Two USB sticks:** one becomes a Windows recovery stick (kept, never overwritten; 32 GB to be safe), one is wiped for the AresOS installer (16 GB+).
-- How the image reaches the laptop: public image or local build. Recommendation comes with 03/05.
+- Image delivery: likely the **private** GitHub registry, since container storage is currently free (found in 05). Confirm in the OS image follow-up, which also switches to `bazzite-nvidia-open` for the RTX 4060.
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
 - Disk space for AresOS: 96 GB proposed, not decided.
 
