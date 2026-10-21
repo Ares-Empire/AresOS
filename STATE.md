@@ -8,6 +8,10 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
   - Right-clicking an app item opens a real app exactly once, and you return to the game afterwards.
   - Live mode (survival, can't die) and Build mode (creative), switched with G.
   - Desktop rules apply only in worlds marked as AresOS.
+- **Nether home** (PR #4):
+  - The AresOS button opens a create screen with a seed field and a placeholder-hub toggle.
+  - `/aresos home set|home|home info`, and you always arrive at home.
+  - Existing worlds are never rebuilt, and saves are renamed, never deleted.
 - **OS design** (PR #2): Bazzite base, council-approved. See `docs/design/OS-BASE.md`.
 - **Install guide** (PR #5): same-drive dual boot, `docs/INSTALL.md` and a read-only inventory helper. Council: all 7 findings closed. **Don't start yet.** It's gated on the released AresOS image and a rehearsal on real USB sticks.
 - **Decisions:**
@@ -18,14 +22,14 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- **PR #3** (brief 03): the AresOS image builds and boots in a CI VM.
-- **PR #4** (briefs 04, 04b, 04c): Nether home. AresOS button, always spawn at home, placeholder hub, review fixes (04b done). 04c is running: choose the seed at creation and `/aresos home set`.
+- **PR #3** (briefs 03, 03b): the image builds and boots into our labwc session in a CI VM. 03b is fixing the last two checks (TTY sync, clean poweroff).
+- **Brief 07:** real installed apps in the inventory with generated icons, plus websites as apps.
 - **Next for the OS image:** switch to `bazzite-nvidia-open`, publish privately, and a tested "switch Bazzite to AresOS" step with an admin/recovery account. That's what unlocks the install guide.
 
 ## Waiting on the owner
 
 - **Two USB sticks:** one becomes a Windows recovery stick (kept, never overwritten; 32 GB to be safe), one is wiped for the AresOS installer (16 GB+).
-- Image delivery: likely the **private** GitHub registry, since container storage is currently free (found in 05). Confirm in the OS image follow-up, which also switches to `bazzite-nvidia-open` for the RTX 4060.
+- **Image public or private on GitHub?** Public recommended (no token on the laptop, the image holds no personal data, the repo stays private). Brief 06 (switch to `bazzite-nvidia-open`, publish, tested Bazzite → AresOS switch) waits on this and on PR #3.
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
 - Disk space for AresOS: 96 GB proposed, not decided.
 
