@@ -90,7 +90,8 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
 - Exact seed and hub spot in the Nether.
 - Linux base: **decided, Bazzite** (needs a one-time key enrollment at install). Details in `docs/design/OS-BASE.md` once PR #2 merges.
 - Buy a 2280 NVMe SSD for the second slot (confirm the slot is empty first).
-- BitLocker / device encryption status of the Windows SSD (couldn't read it without admin).
+- **Laptop facts (msinfo32, 2026-10-21):** UEFI mode, **Secure Boot is OFF**, and Windows device encryption is almost certainly off (it needs Secure Boot, and the Settings page "Geräteverschlüsselung" doesn't show). With Secure Boot off, AresOS needs no MOK enrollment and BitLocker prompts are unlikely. Turning Secure Boot on would be a separate owner decision.
+- **Hardware to buy (owner):** Crucial P310 500 GB M.2 2280 NVMe (CT500P310SSD801) plus a UGREEN 10 Gbps NVMe USB enclosure. External test drive first, moved into the free internal slot later.
 - How app items get their icons.
 
 ## Safety rules
