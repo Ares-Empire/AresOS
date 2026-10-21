@@ -1,0 +1,16 @@
+# Build output
+build/
+.gradle/
+out/
+bin/
+run/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Logs and local scratch
+*.log
+.env

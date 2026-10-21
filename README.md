@@ -17,7 +17,7 @@ First theme: **Minecraft** (real Minecraft Java + our own Fabric mod). Possible 
 |---|---|
 | Boot logo | Mojang logo, then straight into the world |
 | Hotbar (1–9, right-click) | Pinned apps |
-| Inventory (E) | Creative menu with an extra **Apps** tab; drag into the hotbar to pin |
+| Inventory (E) | All other apps (the normal survival inventory, with extra pages if needed); drag into the hotbar to pin |
 | House with a sign on the door | Walk in = open that app |
 | Close the app (X) | Back in front of the house |
 | Villagers | App shops; each job is a category (librarian = notes/reading, cartographer = maps), trading = installing |
@@ -44,19 +44,22 @@ Ares, god of war, lives in the Nether. Phase 1 is built here.
 - **Shops:** there are no villagers in the Nether. Piglins are the shopkeepers (they already trade for gold in the real game).
 - **Trash:** lava. Throw a file in to delete it.
 - **Nether portal:** the door to other worlds (Overworld survival desktop, BedWars) later.
-- **Safety:** handled by creative mode and world settings (see Game rules).
+- **Safety:** handled by Live mode and world settings (see Game rules).
 
 ## Game rules
 
-The home world uses **creative mode**: no damage, flying, unlimited blocks. On top of that:
-- No random mob spawning. Shopkeeper piglins are placed on purpose, and creative players aren't attacked anyway.
+The mod decides the rules. There are two modes:
+- **Build mode (creative):** for building the hub and houses. Flying, unlimited blocks.
+- **Live mode (survival, the everyday mode):** the normal survival look, but you can't die. The mod blocks all damage and death, and hunger never drains.
+- One key switches between them. Your app hotbar comes back when you return to Live mode.
+
+The survival bars can show system info (idea): hearts = battery, hunger = RAM use, XP bar = disk space.
+
+World settings:
+- No random mob spawning. Shopkeeper piglins are placed on purpose.
 - Fire doesn't spread, and mobs can't break blocks.
 - Bonus: crimson and warped wood can't burn.
-
-Three things the mod solves:
-- **Inventory:** in creative, E opens the block menu, not the inventory. The mod adds an **Apps** tab to it.
-- **Hotbar:** building needs blocks in the hotbar. A key switches between the **app hotbar** and a **build hotbar** (close to creative's built-in saved hotbars).
-- **Protection:** creative breaks blocks instantly, so app doors and signs are protected from accidental clicks unless you're sneaking.
+- App doors and signs are protected from accidental breaking.
 
 ## Shaders
 
