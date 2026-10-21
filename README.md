@@ -39,7 +39,10 @@ BedWars world extras:
 
 Ares, god of war, lives in the Nether. Phase 1 is built here.
 
-- **Spawn:** a fixed world seed (not random), picked for a good Nether spot, with a starter hub built there in blackstone and gold, bastion style. Every AresOS start puts you at the hub, like a home screen. You build the rest of the houses yourself.
+- **Spawn:** every AresOS start puts you at your home spot, like a home screen.
+  - **Seed and spot are not locked yet** (owner decision 2026-10-21). The owner explores seeds and picks a spot later, then sets it with `/aresos home set`.
+  - Until then, seed 49 and a placeholder glass hub are the default.
+  - The owner builds the hub and houses themselves.
 - **How:** vanilla Minecraft always spawns players in the Overworld, so the mod moves you to the hub when the world loads and sets a respawn anchor there.
 - **Sleep:** beds explode in the Nether, so sleep mode is the respawn anchor.
 - **Shops:** there are no villagers in the Nether. Piglins are the shopkeepers (they already trade for gold in the real game).
@@ -90,7 +93,7 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
 ## Open questions
 
 - Minecraft version: defaulting to 26.2 (Fabric API, Sodium and Iris all available, Fabric already installed locally).
-- Exact seed and hub spot in the Nether.
+- Seed and home spot: the owner picks them later by exploring (not locked).
 - Linux base: **decided, Bazzite** (needs a one-time key enrollment at install). Details in `docs/design/OS-BASE.md` once PR #2 merges.
 - Buy a 2280 NVMe SSD for the second slot (confirm the slot is empty first).
 - **Laptop facts (msinfo32, 2026-10-21):** UEFI mode, **Secure Boot is OFF**, and Windows device encryption is almost certainly off (it needs Secure Boot, and the Settings page "Geräteverschlüsselung" doesn't show). With Secure Boot off, AresOS needs no MOK enrollment and BitLocker prompts are unlikely. Turning Secure Boot on would be a separate owner decision.
