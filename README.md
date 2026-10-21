@@ -85,7 +85,8 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
    - OS base: Linux defined as code in this repo, with NVIDIA drivers, Mojang boot logo, auto-login, and boot straight into the Nether world. Also auto-restart if Minecraft crashes, and a hidden escape key to a plain terminal.
 2. **Dual boot on the existing SSD** (owner decision, 2026-10-21: free, and not very risky if done carefully).
    - The owner shrinks Windows with Windows' own tools, and AresOS goes into the freed space with its own partitions.
-   - Existing Windows partitions and boot files are never modified. Pick the OS at startup.
+   - The installer touches only the new space and AresOS's own EFI partition. Windows boot files stay untouched; F12 selects the OS.
+   - First test the plain AresOS terminal session on hardware, then add Minecraft. The [install guide](docs/INSTALL.md) records the checks and the image-release prerequisites before any disk changes.
    - A second SSD stays an option for later.
 3. **Polish:** piglin app shops, respawn anchor = sleep, Save and Quit = shut down, more worlds via the portal (Overworld survival, BedWars).
 4. **Later, optional:** a Brawl Stars theme (custom app).
@@ -94,14 +95,17 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
 
 - Minecraft version: defaulting to 26.2 (Fabric API, Sodium and Iris all available, Fabric already installed locally).
 - Seed and home spot: the owner picks them later by exploring (not locked).
-- Linux base: **decided, Bazzite** (needs a one-time key enrollment at install). Details in `docs/design/OS-BASE.md` once PR #2 merges.
-- Buy a 2280 NVMe SSD for the second slot (confirm the slot is empty first).
-- **Laptop facts (msinfo32, 2026-10-21):** UEFI mode, **Secure Boot is OFF**, and Windows device encryption is almost certainly off (it needs Secure Boot, and the Settings page "Geräteverschlüsselung" doesn't show). With Secure Boot off, AresOS needs no MOK enrollment and BitLocker prompts are unlikely. Turning Secure Boot on would be a separate owner decision.
-- **Hardware:** no SSD (same-drive dual boot). Two USB sticks: a Windows recovery stick that is kept, and an installer stick (dual-boot council, 2026-10-21).
+- Linux base: **decided, Bazzite**. Secure Boot stays off, so no MOK enrollment is needed. See [OS base design](docs/design/OS-BASE.md).
+- A second SSD is optional later. Confirm the slot is empty before buying one.
+- **Laptop facts (msinfo32, 2026-10-21):**
+  - UEFI mode, and **Secure Boot OFF**.
+  - Device encryption is very likely off, since it needs Secure Boot. A missing "Geräteverschlüsselung" page doesn't prove it, so confirm fully decrypted status before shrinking.
+  - Turning Secure Boot on later is a separate owner decision.
+- **Hardware:** no second SSD required. Keep **two separate labelled USB sticks**: Windows recovery (plan 32 GB, or more if its wizard requests it; never overwrite), and an expendable installer stick (at least 16 GB). Existing suitable sticks are fine. Boot-test recovery before shrinking; see the [install guide](docs/INSTALL.md).
 - App icons: **decided**, generated automatically from each app's real icon on the laptop, in a Minecraft pixel-art style. The owner doesn't draw them (owner decision 2026-10-21). Test and tune later.
 
 ## Safety rules
 
 - Mod development on Windows touches only Minecraft's mod folder and this project.
-- AresOS installs only into its own new partitions in the space freed from Windows. Never delete, format, move or resize existing Windows partitions, and never modify Windows' boot files. The owner backs up important files before installing.
-- Before changing any BIOS/boot settings: confirm the BitLocker recovery key is saved in the Microsoft account.
+- AresOS installs only into its own new partitions in the space freed from Windows. Never delete, format or move existing Windows partitions or modify Windows boot files. The only proposed resize exceptions are the owner's C: shrink and undo-extension using Windows Disk Management, as checked in the [install guide](docs/INSTALL.md). Agents never perform them. Back up first.
+- Before BIOS/boot changes, confirm encryption status and independently save the matching BitLocker recovery key if encryption exists. Unknown/encrypted status stops this install path for owner review; do not assume protection is off because Secure Boot is off.

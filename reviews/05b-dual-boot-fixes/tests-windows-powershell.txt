@@ -1,0 +1,27 @@
+PASS: Windows headroom is calculated and checked before shrinking
+PASS: pre-shrink insufficient headroom fails before any disk change
+PASS: 512-byte sectors: calculate donation, excluding other free gaps
+PASS: 4096-byte logical sectors: no hardcoded 512-byte conversion
+PASS: changed disk identity refuses donation
+PASS: moved recovery partition refuses donation
+PASS: missing MSR refuses donation
+PASS: wrong shrink size refuses donation
+PASS: insufficient Windows free space refuses donation
+PASS: renumbered Windows partition is still identified by GUID
+PASS: original Windows ESP passes with a second ESP present
+PASS: Windows Microsoft loader on AresOS ESP refuses deletion
+PASS: GRUB chainload refuses deletion despite Windows-looking label
+PASS: changed original ESP boundaries refuse deletion
+PASS: label and Boot number do not replace GUID identity
+PASS: EFI binary parser preserves GUID byte order, full path and inclusive endpoint
+PASS: two identical labels decode to different ESP identities
+PASS: truncated EFI variable fails closed
+PASS: missing end-of-path node fails closed
+PASS: MBR target fails closed
+PASS: multiple device-path instances fail closed
+PASS: unterminated loader fails closed
+PASS: Windows native reader compiles without invoking a native method
+PASS: complete inventory uses fixture commands and emits every partition
+PASS: unreadable BootCurrent aborts full inventory
+PASS: owner PowerShell command blocks parse without execution
+All 26 synthetic checks passed. No hardware queries or writes executed.
