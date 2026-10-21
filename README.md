@@ -9,7 +9,8 @@ First theme: **Minecraft** (real Minecraft Java + our own Fabric mod). Possible 
 - **The world is real Minecraft.** We don't rebuild the game. We write a Fabric mod that turns the game into an app launcher.
 - **The mod starts real programs.** Minecraft is a Java program, and Java can start any other program on the computer.
 - **Apps open on top of the game.** Closing one drops you back into the world where you were standing.
-- **Underneath (phase 2) is Linux.** It has no normal desktop and boots straight into a Minecraft world, the same way SteamOS is Linux with Steam on top.
+- **Underneath (phase 2) is Linux.** It has no normal desktop and boots straight into a Minecraft world, the same way SteamOS is Linux with Steam on top. The base is **Bazzite**, a gaming-focused Fedora with NVIDIA built in (owner decision, 2026-10-21). AresOS is a custom image built from this repo, and a bad update can be rolled back at startup.
+- **AresOS is just the operating system.** Only the AresOS world follows desktop rules. Playing normal Minecraft (survival, Hypixel BedWars, maybe Lunar Client) is an app you open from AresOS, and it plays completely normally.
 
 ## Minecraft design
 
@@ -25,7 +26,7 @@ First theme: **Minecraft** (real Minecraft Java + our own Fabric mod). Possible 
 | Esc → Save and Quit | Shut down |
 | World select screen | Pick your desktop: **Survival** world or **BedWars** world |
 
-Survival world (later, through the Nether portal): can be real survival gameplay, since it's the real game.
+Real survival play is not part of the desktop world. It's normal Minecraft opened as an app (see "How it works").
 
 BedWars world extras:
 - Islands = app groups (uni, work, gaming)
@@ -47,6 +48,8 @@ Ares, god of war, lives in the Nether. Phase 1 is built here.
 - **Safety:** handled by Live mode and world settings (see Game rules).
 
 ## Game rules
+
+These rules apply **only in the AresOS world** (a marker stored in the world save). Every other world plays like normal Minecraft.
 
 The mod decides the rules. There are two modes:
 - **Build mode (creative):** for building the hub and houses. Flying, unlimited blocks.
@@ -85,7 +88,7 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
 
 - Minecraft version: defaulting to 26.2 (Fabric API, Sodium and Iris all available, Fabric already installed locally).
 - Exact seed and hub spot in the Nether.
-- Linux base: must handle NVIDIA well, and ideally Secure Boot so no BIOS settings need changing.
+- Linux base: **decided, Bazzite** (needs a one-time key enrollment at install). Details in `docs/design/OS-BASE.md` once PR #2 merges.
 - Buy a 2280 NVMe SSD for the second slot (confirm the slot is empty first).
 - BitLocker / device encryption status of the Windows SSD (couldn't read it without admin).
 - How app items get their icons.
