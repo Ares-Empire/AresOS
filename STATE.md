@@ -9,6 +9,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
   - Live mode (survival, can't die) and Build mode (creative), switched with G.
   - Desktop rules apply only in worlds marked as AresOS.
 - **OS design** (PR #2): Bazzite base, council-approved. See `docs/design/OS-BASE.md`.
+- **Install guide** (PR #5): same-drive dual boot, `docs/INSTALL.md` and a read-only inventory helper. Council: all 7 findings closed. **Don't start yet.** It's gated on the released AresOS image and a rehearsal on real USB sticks.
 - **Decisions:**
   - Dual boot on the existing SSD (no second drive).
   - Secure Boot is off on the laptop, so no MOK step.
@@ -18,8 +19,8 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 ## In progress
 
 - **PR #3** (brief 03): the AresOS image builds and boots in a CI VM.
-- **PR #4** (briefs 04, 04b, then 04c): Nether home. AresOS button, always spawn at home, placeholder hub. Fixing review findings. Next comes 04c: choose the seed at creation and `/aresos home set`, because seed and spot aren't locked.
-- **PR #5** (briefs 05, 05b): dual-boot plan and `docs/INSTALL.md`. The council found 7 gaps (4 blocking), being fixed now.
+- **PR #4** (briefs 04, 04b, 04c): Nether home. AresOS button, always spawn at home, placeholder hub, review fixes (04b done). 04c is running: choose the seed at creation and `/aresos home set`.
+- **Next for the OS image:** switch to `bazzite-nvidia-open`, publish privately, and a tested "switch Bazzite to AresOS" step with an admin/recovery account. That's what unlocks the install guide.
 
 ## Waiting on the owner
 
