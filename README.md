@@ -95,7 +95,7 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
 - Buy a 2280 NVMe SSD for the second slot (confirm the slot is empty first).
 - **Laptop facts (msinfo32, 2026-10-21):** UEFI mode, **Secure Boot is OFF**, and Windows device encryption is almost certainly off (it needs Secure Boot, and the Settings page "Geräteverschlüsselung" doesn't show). With Secure Boot off, AresOS needs no MOK enrollment and BitLocker prompts are unlikely. Turning Secure Boot on would be a separate owner decision.
 - **Hardware:** nothing to buy (same-drive dual boot). The installer needs a USB stick of at least 16 GB.
-- How app items get their icons.
+- App icons: **decided**, generated automatically from each app's real icon on the laptop, in a Minecraft pixel-art style. The owner doesn't draw them (owner decision 2026-10-21). Test and tune later.
 
 ## Safety rules
 

@@ -19,9 +19,25 @@ I only build things myself when writing the brief would cost more than doing it 
 
 ## Orienting at session start
 
-1. **Live state first:** `git log --oneline -10`, `git worktree list`, `gh pr list`, and whether any Codex run I launched is still going.
-2. **Then the docs:** README phases, the latest `briefs/` and `reviews/` entries.
-3. **Treat docs as claims:** anything a doc says about the current state is unverified until the live check agrees.
+1. **Live state first:** `git log --oneline -10`, `git worktree list`, `gh pr list`, and whether any Codex run I launched is still going (each run logs to `../AresOS-<id>.log`; `turn.completed` in it means done).
+2. **Then `STATE.md`:** where we are and what comes next. Then only the docs the task touches (map below).
+3. **Treat docs as claims:** anything a doc says about the current state is unverified until the live check agrees. Update `STATE.md` when a PR merges or a decision lands.
+
+## Where things are
+
+| Path | What it is |
+|---|---|
+| `STATE.md` | Current state, open owner decisions, next steps. Short on purpose. |
+| `README.md` | What AresOS is: design, game rules, phases, safety rules. |
+| `AGENTS.md` | Rules for Codex in every run. |
+| `docs/WORKFLOW.md`, `docs/REVIEW.md` | How a package gets built, reviewed and merged, and how councils run. |
+| `docs/design/OS-BASE.md` | The Linux layer design (council-approved). Long, so read the section you need. |
+| `docs/INSTALL.md` | The owner's dual-boot install guide (from brief 05). |
+| `briefs/NN-slug.md` | One frozen task per package. Follow-ups are `NNb`, `NNc`. |
+| `reviews/NN-slug/` | Codex's `REPORT.md`, `REVIEW*.md` and screenshots per package. |
+| `reviews/councils/` | Council questions, member reports and verdicts. |
+| `mod/` | Fabric mod: Minecraft 26.2, Java 25. `.\gradlew.bat build runClientGameTest` (rewrites tracked screenshots, so `git checkout -- reviews/` afterwards). |
+| `os/` | The Bazzite-based AresOS image (from PR #3). |
 
 ## Owner decides (always ask, never assume)
 
