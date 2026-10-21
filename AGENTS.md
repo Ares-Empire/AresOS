@@ -17,7 +17,7 @@ You get one **brief** (`briefs/NN-slug.md`), your own worktree and your own bran
 3. Verify (see below) and fix until green.
 4. Commit in small logical commits. Push your branch and open a PR against `main` with `gh pr create`. Never merge, never push to `main`.
 5. Write `reviews/NN-slug/REPORT.md` (format below), then commit and push it on your branch.
-6. Stop.
+6. Stop every Gradle daemon you started (`./gradlew --stop`, and `gradle --stop` for any other Gradle version you ran). Then stop. A leftover daemon keeps your `codex exec` process alive after you finish (seen in package 01).
 
 Nobody can answer questions mid-run. If the brief doesn't settle something, take the safest reversible option and record it in the report.
 
