@@ -1,0 +1,20 @@
+
+> Configure project :
+Fabric Loom: 1.19.2
+
+> Task :compileJava
+Hinweis: Einige Eingabedateien verwenden oder überschreiben eine veraltete API.
+
+Hinweis: Wiederholen Sie die Kompilierung mit -Xlint:deprecation, um Details zu erhalten.
+> Task :processResources UP-TO-DATE
+> Task :classes
+> Task :compileClientJava
+> Task :processClientResources
+> Task :clientClasses
+> Task :compileGametestJava
+
+[Incubating] Problems report is available at: file:///C:/Users/pab/AresOS-04-nether-home/mod/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 3s
+5 actionable tasks: 4 executed, 1 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.8.0/userguide/configuration_cache_enabling.html

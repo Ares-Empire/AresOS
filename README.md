@@ -43,7 +43,7 @@ Ares, god of war, lives in the Nether. Phase 1 is built here.
   - **Seed and spot are not locked yet** (owner decision 2026-10-21). The owner explores seeds and picks a spot later, then sets it with `/aresos home set`.
   - Until then, seed 49 and a placeholder glass hub are the default.
   - The owner builds the hub and houses themselves.
-- **How:** vanilla Minecraft always spawns players in the Overworld, so the mod moves you to the hub when the world loads and sets a respawn anchor there.
+- **How:** vanilla Minecraft starts players in the Overworld, so the mod moves you to the saved home when the world loads and uses it for respawn. The default placeholder has an anchor; `/aresos home set` saves a new spot without placing or removing blocks.
 - **Sleep:** beds explode in the Nether, so sleep mode is the respawn anchor.
 - **Shops:** there are no villagers in the Nether. Piglins are the shopkeepers (they already trade for gold in the real game).
 - **Trash:** lava. Throw a file in to delete it.

@@ -1,0 +1,102 @@
+
+> Configure project :
+Fabric Loom: 1.19.2
+
+> Task :compileJava
+> Task :processResources
+> Task :classes
+> Task :compileClientJava
+> Task :processClientResources
+> Task :clientClasses
+
+> Task :compileGametestJava
+
+Hinweis: C:\Users\pab\AresOS-04-nether-home\mod\src\gametest\java\dev\aresos\test\NetherSeedSearch.java verwendet oder überschreibt eine veraltete API.
+> Task :processGametestResources
+Hinweis: Wiederholen Sie die Kompilierung mit -Xlint:deprecation, um Details zu erhalten.
+> Task :gametestClasses
+
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/pab/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+> Task :searchNetherSeeds
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[21:59:25] [main/INFO]: [STDOUT]: Surveyed seed 0
+[21:59:26] [main/INFO]: [STDOUT]: Surveyed seed 1
+[21:59:26] [main/INFO]: [STDOUT]: Surveyed seed 2
+[21:59:26] [main/INFO]: [STDOUT]: Surveyed seed 3
+[21:59:26] [main/INFO]: [STDOUT]: Surveyed seed 4
+[21:59:26] [main/INFO]: [STDOUT]: Surveyed seed 5
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 6
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 7
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 8
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 9
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 10
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 11
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 12
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 13
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 14
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 15
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 16
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 17
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 18
+[21:59:27] [main/INFO]: [STDOUT]: Surveyed seed 19
+[21:59:28] [main/INFO]: [STDOUT]: Surveyed seed 20
+[21:59:28] [main/INFO]: [STDOUT]: Surveyed seed 21
+[21:59:28] [main/INFO]: [STDOUT]: Surveyed seed 22
+[21:59:28] [main/INFO]: [STDOUT]: Surveyed seed 23
+[21:59:28] [main/INFO]: [STDOUT]: Surveyed seed 24
+[21:59:28] [main/INFO]: [STDOUT]: Surveyed seed 25
+[21:59:28] [main/INFO]: [STDOUT]: Surveyed seed 26
+[21:59:29] [main/INFO]: [STDOUT]: Surveyed seed 27
+[21:59:29] [main/INFO]: [STDOUT]: Surveyed seed 28
+[21:59:29] [main/INFO]: [STDOUT]: Surveyed seed 29
+[21:59:29] [main/INFO]: [STDOUT]: Surveyed seed 30
+[21:59:29] [main/INFO]: [STDOUT]: Surveyed seed 31
+[21:59:29] [main/INFO]: [STDOUT]: Surveyed seed 32
+[21:59:29] [main/INFO]: [STDOUT]: Surveyed seed 33
+[21:59:29] [main/INFO]: [STDOUT]: Surveyed seed 34
+[21:59:29] [main/INFO]: [STDOUT]: Surveyed seed 35
+[21:59:30] [main/INFO]: [STDOUT]: Surveyed seed 36
+[21:59:30] [main/INFO]: [STDOUT]: Surveyed seed 37
+[21:59:30] [main/INFO]: [STDOUT]: Surveyed seed 38
+[21:59:30] [main/INFO]: [STDOUT]: Surveyed seed 39
+[21:59:30] [main/INFO]: [STDOUT]: Surveyed seed 40
+[21:59:30] [main/INFO]: [STDOUT]: Surveyed seed 41
+[21:59:31] [main/INFO]: [STDOUT]: Surveyed seed 42
+[21:59:31] [main/INFO]: [STDOUT]: Surveyed seed 43
+[21:59:31] [main/INFO]: [STDOUT]: Surveyed seed 44
+[21:59:31] [main/INFO]: [STDOUT]: Surveyed seed 45
+[21:59:32] [main/INFO]: [STDOUT]: Surveyed seed 46
+[21:59:32] [main/INFO]: [STDOUT]: Surveyed seed 47
+[21:59:32] [main/INFO]: [STDOUT]: Surveyed seed 48
+[21:59:32] [main/INFO]: [STDOUT]: Surveyed seed 49
+[21:59:32] [main/INFO]: [STDOUT]: Surveyed seed 50
+[21:59:32] [main/INFO]: [STDOUT]: Surveyed seed 51
+[21:59:32] [main/INFO]: [STDOUT]: Surveyed seed 52
+[21:59:33] [main/INFO]: [STDOUT]: Surveyed seed 53
+[21:59:33] [main/INFO]: [STDOUT]: Surveyed seed 54
+[21:59:33] [main/INFO]: [STDOUT]: Surveyed seed 55
+[21:59:33] [main/INFO]: [STDOUT]: Surveyed seed 56
+[21:59:33] [main/INFO]: [STDOUT]: Surveyed seed 57
+[21:59:34] [main/INFO]: [STDOUT]: Surveyed seed 58
+[21:59:34] [main/INFO]: [STDOUT]: Surveyed seed 59
+[21:59:34] [main/INFO]: [STDOUT]: Surveyed seed 60
+[21:59:34] [main/INFO]: [STDOUT]: Surveyed seed 61
+[21:59:34] [main/INFO]: [STDOUT]: Surveyed seed 62
+[21:59:34] [main/INFO]: [STDOUT]: Surveyed seed 63
+[21:59:34] [main/INFO]: [STDOUT]: CANDIDATE 1 Site[seed=56, x=64, y=53, z=-32, yaw=180, biome=minecraft:crimson_forest, flat=25, air=200, lava=32, score=238.84458247200067]
+[21:59:34] [main/INFO]: [STDOUT]: CANDIDATE 2 Site[seed=26, x=64, y=43, z=96, yaw=0, biome=minecraft:nether_wastes, flat=24, air=199, lava=32, score=230.21223591851523]
+[21:59:34] [main/INFO]: [STDOUT]: CANDIDATE 3 Site[seed=58, x=64, y=58, z=96, yaw=0, biome=minecraft:nether_wastes, flat=24, air=199, lava=30, score=224.21223591851523]
+[21:59:34] [main/INFO]: [STDOUT]: Eligible sites: 74
+
+[Incubating] Problems report is available at: file:///C:/Users/pab/AresOS-04-nether-home/mod/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.8.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 20s
+7 actionable tasks: 7 executed

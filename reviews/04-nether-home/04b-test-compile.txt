@@ -1,0 +1,46 @@
+Starting a Gradle Daemon, 5 stopped Daemons could not be reused, use --status for details
+
+> Configure project :
+Fabric Loom: 1.19.2
+
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :compileClientJava UP-TO-DATE
+> Task :processClientResources UP-TO-DATE
+> Task :processIncludeJars UP-TO-DATE
+> Task :jar UP-TO-DATE
+> Task :sourcesJar UP-TO-DATE
+> Task :assemble UP-TO-DATE
+> Task :clientClasses UP-TO-DATE
+
+> Task :compileGametestJava FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/pab/AresOS-04-nether-home/mod/build/reports/problems/problems-report.html
+C:\Users\pab\AresOS-04-nether-home\mod\src\gametest\java\dev\aresos\test\NetherHomeClientGameTest.java:174: Fehler: Konstruktor ChunkPos in Datensatz ChunkPos kann nicht auf die angegebenen Typen angewendet werden.
+                source.waitForEntities(new net.minecraft.world.level.ChunkPos(BlockPos.containing(position)), 1);
+                                       ^
+  Erforderlich: int,int
+  Ermittelt:    BlockPos
+  Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+1 Fehler
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileGametestJava' (registered by plugin class 'org.gradle.api.plugins.JavaBasePlugin').
+> Compilation failed; see the compiler output below.
+  C:\Users\pab\AresOS-04-nether-home\mod\src\gametest\java\dev\aresos\test\NetherHomeClientGameTest.java:174: Fehler: Konstruktor ChunkPos in Datensatz ChunkPos kann nicht auf die angegebenen Typen angewendet werden.
+                  source.waitForEntities(new net.minecraft.world.level.ChunkPos(BlockPos.containing(position)), 1);
+                                         ^
+    Erforderlich: int,int
+    Ermittelt:    BlockPos
+    Grund: Liste der tatsächlichen Argumente hat eine andere Länge als die der formalen Argumente
+  1 Fehler
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 8s
+8 actionable tasks: 1 executed, 7 up-to-date

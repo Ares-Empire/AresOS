@@ -1,0 +1,125 @@
+
+> Configure project :
+Fabric Loom: 1.19.2
+
+> Task :compileJava
+> Task :processResources UP-TO-DATE
+> Task :classes
+> Task :compileClientJava UP-TO-DATE
+> Task :processClientResources UP-TO-DATE
+> Task :clientClasses UP-TO-DATE
+
+> Task :compileGametestJava
+
+> Task :processGametestResources UP-TO-DATE
+> Task :gametestClasses
+Hinweis: C:\Users\pab\AresOS-04-nether-home\mod\src\gametest\java\dev\aresos\test\NetherSeedSearch.java verwendet oder überschreibt eine veraltete API.
+Hinweis: Wiederholen Sie die Kompilierung mit -Xlint:deprecation, um Details zu erhalten.
+
+> Task :searchNetherSeeds
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/pab/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[22:09:07] [main/INFO]: [STDOUT]: Surveyed seed 0
+[22:09:08] [main/INFO]: [STDOUT]: Surveyed seed 1
+[22:09:08] [main/INFO]: [STDOUT]: Surveyed seed 2
+[22:09:08] [main/INFO]: [STDOUT]: Surveyed seed 3
+[22:09:08] [main/INFO]: [STDOUT]: Surveyed seed 4
+[22:09:08] [main/INFO]: [STDOUT]: Surveyed seed 5
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 6
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 7
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 8
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 9
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 10
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 11
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 12
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 13
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 14
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 15
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 16
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 17
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 18
+[22:09:09] [main/INFO]: [STDOUT]: Surveyed seed 19
+[22:09:10] [main/INFO]: [STDOUT]: Surveyed seed 20
+[22:09:10] [main/INFO]: [STDOUT]: Surveyed seed 21
+[22:09:10] [main/INFO]: [STDOUT]: Surveyed seed 22
+[22:09:10] [main/INFO]: [STDOUT]: Surveyed seed 23
+[22:09:10] [main/INFO]: [STDOUT]: Surveyed seed 24
+[22:09:10] [main/INFO]: [STDOUT]: Surveyed seed 25
+[22:09:11] [main/INFO]: [STDOUT]: Surveyed seed 26
+[22:09:11] [main/INFO]: [STDOUT]: Surveyed seed 27
+[22:09:11] [main/INFO]: [STDOUT]: Surveyed seed 28
+[22:09:11] [main/INFO]: [STDOUT]: Surveyed seed 29
+[22:09:11] [main/INFO]: [STDOUT]: Surveyed seed 30
+[22:09:11] [main/INFO]: [STDOUT]: Surveyed seed 31
+[22:09:11] [main/INFO]: [STDOUT]: Surveyed seed 32
+[22:09:11] [main/INFO]: [STDOUT]: Surveyed seed 33
+[22:09:11] [main/INFO]: [STDOUT]: Surveyed seed 34
+[22:09:12] [main/INFO]: [STDOUT]: Surveyed seed 35
+[22:09:12] [main/INFO]: [STDOUT]: Surveyed seed 36
+[22:09:12] [main/INFO]: [STDOUT]: Surveyed seed 37
+[22:09:12] [main/INFO]: [STDOUT]: Surveyed seed 38
+[22:09:12] [main/INFO]: [STDOUT]: Surveyed seed 39
+[22:09:13] [main/INFO]: [STDOUT]: Surveyed seed 40
+[22:09:13] [main/INFO]: [STDOUT]: Surveyed seed 41
+[22:09:13] [main/INFO]: [STDOUT]: Surveyed seed 42
+[22:09:13] [main/INFO]: [STDOUT]: Surveyed seed 43
+[22:09:13] [main/INFO]: [STDOUT]: Surveyed seed 44
+[22:09:14] [main/INFO]: [STDOUT]: Surveyed seed 45
+[22:09:14] [main/INFO]: [STDOUT]: Surveyed seed 46
+[22:09:14] [main/INFO]: [STDOUT]: Surveyed seed 47
+[22:09:14] [main/INFO]: [STDOUT]: Surveyed seed 48
+[22:09:14] [main/INFO]: [STDOUT]: Surveyed seed 49
+[22:09:15] [main/INFO]: [STDOUT]: Surveyed seed 50
+[22:09:15] [main/INFO]: [STDOUT]: Surveyed seed 51
+[22:09:15] [main/INFO]: [STDOUT]: Surveyed seed 52
+[22:09:15] [main/INFO]: [STDOUT]: Surveyed seed 53
+[22:09:15] [main/INFO]: [STDOUT]: Surveyed seed 54
+[22:09:15] [main/INFO]: [STDOUT]: Surveyed seed 55
+[22:09:16] [main/INFO]: [STDOUT]: Surveyed seed 56
+[22:09:16] [main/INFO]: [STDOUT]: Surveyed seed 57
+[22:09:16] [main/INFO]: [STDOUT]: Surveyed seed 58
+[22:09:16] [main/INFO]: [STDOUT]: Surveyed seed 59
+[22:09:16] [main/INFO]: [STDOUT]: Surveyed seed 60
+[22:09:16] [main/INFO]: [STDOUT]: Surveyed seed 61
+[22:09:16] [main/INFO]: [STDOUT]: Surveyed seed 62
+[22:09:16] [main/INFO]: [STDOUT]: Surveyed seed 63
+[22:09:16] [main/INFO]: [STDOUT]: VISIBLE seed=1 x=64 z=32 rays=13
+[22:09:16] [main/INFO]: [STDOUT]: VISIBLE seed=2 x=32 z=-96 rays=28
+[22:09:16] [main/INFO]: [STDOUT]: VISIBLE seed=4 x=32 z=-64 rays=17
+[22:09:16] [main/INFO]: [STDOUT]: VISIBLE seed=5 x=0 z=-32 rays=16
+[22:09:16] [main/INFO]: [STDOUT]: VISIBLE seed=12 x=-32 z=-64 rays=7
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=26 x=64 z=96 rays=24
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=27 x=64 z=0 rays=11
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=35 x=64 z=64 rays=16
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=36 x=96 z=32 rays=15
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=37 x=0 z=-32 rays=21
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=39 x=-32 z=32 rays=23
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=40 x=32 z=96 rays=24
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=46 x=-32 z=96 rays=12
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=49 x=-64 z=-64 rays=20
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=49 x=-64 z=32 rays=34
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=49 x=0 z=0 rays=8
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=50 x=-32 z=0 rays=33
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=53 x=-64 z=64 rays=8
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=55 x=64 z=-32 rays=21
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=56 x=64 z=-64 rays=5
+[22:09:17] [main/INFO]: [STDOUT]: VISIBLE seed=57 x=-32 z=64 rays=22
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 1 Site[seed=49, x=-64, y=56, z=32, yaw=0, biome=minecraft:nether_wastes, flat=17, air=200, lava=33, score=549.8445824720006]
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 2 Site[seed=50, x=-32, y=38, z=0, yaw=-90, biome=minecraft:nether_wastes, flat=18, air=197, lava=33, score=547.05]
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 3 Site[seed=26, x=64, y=43, z=96, yaw=0, biome=minecraft:nether_wastes, flat=24, air=199, lava=32, score=470.21223591851526]
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 4 Site[seed=2, x=32, y=37, z=-96, yaw=90, biome=minecraft:crimson_forest, flat=15, air=200, lava=26, score=457.8807114874612]
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 5 Site[seed=57, x=-32, y=36, z=64, yaw=-90, biome=minecraft:nether_wastes, flat=18, air=179, lava=31, score=422.59458247200064]
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 6 Site[seed=40, x=32, y=39, z=96, yaw=-90, biome=minecraft:crimson_forest, flat=15, air=175, lava=29, score=420.6307114874612]
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 7 Site[seed=39, x=-32, y=41, z=32, yaw=180, biome=minecraft:crimson_forest, flat=17, air=199, lava=24, score=415.2245166004061]
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 8 Site[seed=55, x=64, y=57, z=-32, yaw=180, biome=minecraft:crimson_forest, flat=19, air=197, lava=22, score=394.09458247200064]
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 9 Site[seed=37, x=0, y=40, z=-32, yaw=180, biome=minecraft:crimson_forest, flat=17, air=195, lava=23, score=392.55]
+[22:09:17] [main/INFO]: [STDOUT]: CANDIDATE 10 Site[seed=36, x=96, y=40, z=32, yaw=90, biome=minecraft:nether_wastes, flat=16, air=200, lava=35, score=358.8807114874612]
+[22:09:17] [main/INFO]: [STDOUT]: Eligible sites: 74
+
+[Incubating] Problems report is available at: file:///C:/Users/pab/AresOS-04-nether-home/mod/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 17s
+7 actionable tasks: 3 executed, 4 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.8.0/userguide/configuration_cache_enabling.html

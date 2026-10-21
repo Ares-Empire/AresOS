@@ -1,0 +1,10 @@
+Selected actual client log output from the first pre-fix run (stopped after a saved mount stalled the next case):
+[22:29:02] [Test thread/INFO] (aresos) 04 client checks passed: real title button creation and reload, Nether in first login packet, Live and pins on both joins, flags, safe hub, anchor respawn, edits persist, three generated seed screenshots, existing-save refusal
+[22:29:02] [Render thread/INFO] (fabric-client-gametest-api-v1) World loading finished: null screen: net.minecraft.client.gui.screens.GenericMessageScreen@24cf8b00
+[22:29:02] [Render thread/INFO] (Minecraft) Loaded 1585 recipes
+[22:29:10] [Test thread/ERROR] (aresos) 04b regression FAILED: mounted Nether rejoin
+java.lang.AssertionError: Saved minecraft:the_nether vehicle overrode hub arrival after 30 ticks: passenger=true, dimension=ResourceKey[minecraft:dimension / minecraft:the_nether], position=(128.5, 79.5875, 128.5)
+	at knot//dev.aresos.test.NetherHomeClientGameTest.check(NetherHomeClientGameTest.java:352)
+java.lang.AssertionError: Saved minecraft:the_nether vehicle overrode hub arrival after 30 ticks: passenger=true, dimension=ResourceKey[minecraft:dimension / minecraft:the_nether], position=(128.5, 79.5875, 128.5)
+	at knot//dev.aresos.test.NetherHomeClientGameTest.check(NetherHomeClientGameTest.java:352)
+	at knot//dev.aresos.test.NetherHomeClientGameTest.lambda$testMountedRejoin$2(NetherHomeClientGameTest.java:168)

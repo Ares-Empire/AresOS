@@ -1,0 +1,41 @@
+
+> Configure project :
+Fabric Loom: 1.19.2
+
+> Task :compileJava
+> Task :processResources UP-TO-DATE
+> Task :classes
+> Task :compileClientJava UP-TO-DATE
+> Task :processClientResources UP-TO-DATE
+> Task :processIncludeJars UP-TO-DATE
+> Task :jar
+> Task :sourcesJar
+> Task :assemble
+> Task :clientClasses UP-TO-DATE
+
+> Task :compileGametestJava FAILED
+C:\Users\pab\AresOS-04-nether-home\mod\src\gametest\java\dev\aresos\test\NetherHomeClientGameTest.java:65: Fehler: Inkompatible Typen: BlockPos kann nicht in Vec3 konvertiert werden
+                        new net.minecraft.world.phys.AABB(NetherHome.DEFAULT_SITE.floor().offset(-8, 0, -8),
+                                                                                                ^
+Hinweis: Einige Meldungen wurden vereinfacht. Wiederholen Sie die Kompilierung mit -Xdiags:verbose, um die vollständige Ausgabe abzurufen
+1 Fehler
+
+[Incubating] Problems report is available at: file:///C:/Users/pab/AresOS-04-nether-home/mod/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileGametestJava' (registered by plugin class 'org.gradle.api.plugins.JavaBasePlugin').
+> Compilation failed; see the compiler output below.
+  C:\Users\pab\AresOS-04-nether-home\mod\src\gametest\java\dev\aresos\test\NetherHomeClientGameTest.java:65: Fehler: Inkompatible Typen: BlockPos kann nicht in Vec3 konvertiert werden
+                          new net.minecraft.world.phys.AABB(NetherHome.DEFAULT_SITE.floor().offset(-8, 0, -8),
+                                                                                                  ^
+  Hinweis: Einige Meldungen wurden vereinfacht. Wiederholen Sie die Kompilierung mit -Xdiags:verbose, um die vollständige Ausgabe abzurufen
+  1 Fehler
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 2s
+8 actionable tasks: 4 executed, 4 up-to-date

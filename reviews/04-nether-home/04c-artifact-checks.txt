@@ -1,0 +1,3 @@
+Unit XML: {'tests': 13, 'failures': 0, 'errors': 0, 'skipped': 0}
+Production jar: no test/audit classes; only asset is assets/aresos/lang/en_us.json
+Report links: all 48 local links resolve

@@ -33,6 +33,7 @@ public final class AresOsClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        HomeButton.register();
         var category = KeyMapping.Category.register(AresOs.id("aresos"));
         var toggle = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.aresos.switch_mode",
                 InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, category));

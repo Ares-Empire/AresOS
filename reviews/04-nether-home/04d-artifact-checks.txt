@@ -1,0 +1,13 @@
+Run 1: exit 0; BUILD SUCCESSFUL in 5m 30s; 15 server tests; 9 fresh worlds + 3 rejoins; all client suites completed
+Run 2: exit 0; BUILD SUCCESSFUL in 5m 27s; 15 server tests; 9 fresh worlds + 3 rejoins; all client suites completed
+Run 3: exit 0; BUILD SUCCESSFUL in 5m 26s; 15 server tests; 9 fresh worlds + 3 rejoins; all client suites completed
+Run 4: exit 0; BUILD SUCCESSFUL in 5m 23s; 15 server tests; 9 fresh worlds + 3 rejoins; all client suites completed
+Run 5: exit 0; BUILD SUCCESSFUL in 5m 25s; 15 server tests; 9 fresh worlds + 3 rejoins; all client suites completed
+Across all five separate client processes: identical results in all 45 fresh worlds and 15 rejoins
+Site[seed=-812345678901234567, x=-80, y=57, z=-96, yaw=-90.0]
+Site[seed=50, x=-32, y=38, z=0, yaw=-90.0]
+Site[seed=26, x=32, y=44, z=16, yaw=0.0]
+All four source/resource SHA-256 hashes match the files recorded before run 1
+JUnit XML: {'tests': 13, 'failures': 0, 'errors': 0, 'skipped': 0}
+Run 1 --rerun-tasks printed all 13 JUnit tests PASSED; later unchanged unit tasks were UP-TO-DATE
+Production jar: no test/audit classes; only asset: assets/aresos/lang/en_us.json

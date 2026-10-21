@@ -7,6 +7,7 @@ import dev.aresos.item.AppItems;
 import dev.aresos.mode.LiveMode;
 import dev.aresos.mode.ToggleModePayload;
 import dev.aresos.world.DesktopWorld;
+import dev.aresos.world.NetherHome;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -55,6 +56,7 @@ public final class AresOs implements ModInitializer {
         }
         AppItems.register();
         LiveMode.register();
+        NetherHome.register();
         PayloadTypeRegistry.serverboundPlay().register(ToggleModePayload.TYPE, ToggleModePayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ToggleModePayload.TYPE,
                 (payload, context) -> LiveMode.toggleForHost(context.server(), context.player()));
@@ -63,6 +65,7 @@ public final class AresOs implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             if (!environment.includeIntegrated) return;
             dispatcher.register(Commands.literal("aresos")
+                        .then(dev.aresos.world.HomeCommands.command())
                         .then(Commands.literal("desktop")
                                 .then(Commands.literal("on").executes(context -> desktop(context.getSource(), true)))
                                 .then(Commands.literal("off").executes(context -> desktop(context.getSource(), false))))

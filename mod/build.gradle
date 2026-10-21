@@ -54,6 +54,17 @@ java {
 jar { from('LICENSE') { rename { "${it}_aresos" } } }
 
 tasks.named('runClientGameTest') {
-    systemProperty 'aresos.reviewDir', file('../reviews/01-first-app/screenshots').absolutePath
-    timeout = Duration.ofMinutes(5)
+    systemProperty 'aresos.reviewDir', file('build/review/01-first-app').absolutePath
+    systemProperty 'aresos.homeReviewDir', file('../reviews/04-nether-home/screenshots').absolutePath
+    systemProperty 'aresos.seedReviewDir', file('../reviews/04-nether-home/seeds').absolutePath
+    timeout = Duration.ofMinutes(10)
+}
+
+tasks.register('searchNetherSeeds', JavaExec) {
+    dependsOn tasks.named('gametestClasses')
+    classpath = sourceSets.gametest.runtimeClasspath
+    mainClass = 'dev.aresos.test.NetherSeedSearch'
+    workingDir = file('run')
+    doFirst { workingDir.mkdirs() }
+    maxHeapSize = '2G'
 }

@@ -5,8 +5,8 @@
   "name": "AresOS tests",
   "environment": "*",
   "entrypoints": {
-    "fabric-gametest": ["dev.aresos.test.AresOsGameTests"],
-    "fabric-client-gametest": ["dev.aresos.test.AresOsClientGameTest"]
+    "fabric-gametest": ["dev.aresos.test.AresOsGameTests", "dev.aresos.test.NetherHomeGameTests"],
+    "fabric-client-gametest": ["dev.aresos.test.HomeSitesClientGameTest", "dev.aresos.test.AresOsClientGameTest", "dev.aresos.test.NetherHomeClientGameTest", "dev.aresos.test.HomeChoiceClientGameTest"]
   },
   "mixins": [{"config": "aresos.test.client.mixins.json", "environment": "client"}]
 }

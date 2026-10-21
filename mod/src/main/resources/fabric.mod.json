@@ -10,7 +10,7 @@
     "main": ["dev.aresos.AresOs"],
     "client": ["dev.aresos.client.AresOsClient"]
   },
-  "mixins": [{"config": "aresos.client.mixins.json", "environment": "client"}],
+  "mixins": ["aresos.mixins.json", {"config": "aresos.client.mixins.json", "environment": "client"}],
   "depends": {
     "fabricloader": ">=0.19.5",
     "minecraft": "~26.2",
