@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "dev.aresos.client.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["MinecraftFocusMixin", "MinecraftAppInputMixin", "MouseAppInputMixin", "KeyboardAppInputMixin"],
+  "injectors": {"defaultRequire": 1}
+}

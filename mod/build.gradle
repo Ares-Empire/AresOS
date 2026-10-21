@@ -1,0 +1,59 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+repositories { mavenCentral() }
+
+loom {
+    splitEnvironmentSourceSets()
+    mods {
+        aresos {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = 'aresos-test'
+        enableGameTests = true
+        enableClientGameTests = true
+        eula = true
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    testImplementation platform('org.junit:junit-bom:5.14.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}
+
+tasks.withType(JavaCompile).configureEach { options.release = 25 }
+test {
+    useJUnitPlatform()
+    def tempDir = layout.buildDirectory.dir('tmp/unit-tests')
+    doFirst { tempDir.get().asFile.mkdirs() }
+    systemProperty 'java.io.tmpdir', tempDir.get().asFile.absolutePath
+    testLogging { events 'passed', 'skipped', 'failed' }
+}
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+jar { from('LICENSE') { rename { "${it}_aresos" } } }
+
+tasks.named('runClientGameTest') {
+    systemProperty 'aresos.reviewDir', file('../reviews/01-first-app/screenshots').absolutePath
+    timeout = Duration.ofMinutes(5)
+}

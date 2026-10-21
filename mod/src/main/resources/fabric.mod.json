@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "aresos",
+  "version": "${version}",
+  "name": "AresOS",
+  "description": "Minecraft as a personal desktop: app items and Build/Live modes.",
+  "license": "CC0-1.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.aresos.AresOs"],
+    "client": ["dev.aresos.client.AresOsClient"]
+  },
+  "mixins": [{"config": "aresos.client.mixins.json", "environment": "client"}],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": ">=0.161.0+26.2"
+  }
+}

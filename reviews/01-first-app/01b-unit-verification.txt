@@ -1,0 +1,46 @@
+
+> Configure project :
+Fabric Loom: 1.19.2
+
+> Task :compileJava
+> Task :processResources UP-TO-DATE
+> Task :classes
+> Task :compileClientJava
+> Task :processClientResources
+> Task :clientClasses
+> Task :compileGametestJava
+> Task :compileTestJava
+> Task :processTestResources NO-SOURCE
+> Task :testClasses
+
+> Task :test
+
+AppsConfigTest > firstStartWritesDefaults() PASSED
+
+AppsConfigTest > emptyListIsAnIntentionalConfig() PASSED
+
+AppsConfigTest > invalidFieldsAndDuplicateIdsRecoverWithoutDiscardingOriginal() PASSED
+
+AppsConfigTest > failedReadDoesNotReplaceOwnersPath() PASSED
+
+AppsConfigTest > brokenFileIsBackedUpByteForByteBeforeDefaults() PASSED
+
+AppsConfigTest > roundTripPreservesArgumentsUnicodeAndPinnedChoice() PASSED
+
+AppsConfigTest > repeatedFailuresKeepEveryBackup() PASSED
+
+FocusReturnTest > onlyClosesTheCapturedFocusLossScreen() PASSED
+
+FocusReturnTest > returnBeforeMenuExistsDoesNotCloseAnything() PASSED
+
+FocusReturnTest > focusLossIsAcceptedThroughThirtySecondsOnly() PASSED
+
+FocusReturnTest > failureCanOnlyCancelItsOwnLaunch() PASSED
+
+FocusReturnTest > unrelatedFocusLossAndFailedOrExpiredLaunchDoNotCloseMenus() PASSED
+
+FocusReturnTest > preservesEscMenuAndReplacementScreen() PASSED
+
+BUILD SUCCESSFUL in 5s
+7 actionable tasks: 6 executed, 1 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.8.0/userguide/configuration_cache_enabling.html

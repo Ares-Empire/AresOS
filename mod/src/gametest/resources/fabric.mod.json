@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "aresos-test",
+  "version": "1.0.0",
+  "name": "AresOS tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": ["dev.aresos.test.AresOsGameTests"],
+    "fabric-client-gametest": ["dev.aresos.test.AresOsClientGameTest"]
+  },
+  "mixins": [{"config": "aresos.test.client.mixins.json", "environment": "client"}]
+}
