@@ -19,11 +19,11 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 - **PR #3** (brief 03): the AresOS image builds and boots in a CI VM.
 - **PR #4** (briefs 04, 04b, then 04c): Nether home. AresOS button, always spawn at home, placeholder hub. Fixing review findings. Next comes 04c: choose the seed at creation and `/aresos home set`, because seed and spot aren't locked.
-- **PR #5** (brief 05): dual-boot plan and `docs/INSTALL.md`, in a safety council.
+- **PR #5** (briefs 05, 05b): dual-boot plan and `docs/INSTALL.md`. The council found 7 gaps (4 blocking), being fixed now.
 
 ## Waiting on the owner
 
-- A USB stick of at least 16 GB for the installer.
+- **Two USB sticks:** one becomes a Windows recovery stick (kept, never overwritten; 32 GB to be safe), one is wiped for the AresOS installer (16 GB+).
 - How the image reaches the laptop: public image or local build. Recommendation comes with 03/05.
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
 - Disk space for AresOS: 96 GB proposed, not decided.
