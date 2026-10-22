@@ -33,7 +33,7 @@ I only build things myself when writing the brief would cost more than doing it 
 | `AGENTS.md` | Rules for Codex in every run. |
 | `docs/WORKFLOW.md`, `docs/REVIEW.md` | How a package gets built, reviewed and merged, and how councils run. |
 | `docs/design/OS-BASE.md` | The Linux layer design (council-approved). Long, so read the section you need. |
-| `docs/INSTALL.md` | The owner's install guide for AresOS on its own SSD (briefs 10 and 10b). The same-drive fallback is `docs/INSTALL-SAME-DRIVE.md`. Physical install is NOT RELEASED until brief 06 lands. |
+| `docs/INSTALL.md` | The owner's install guide for AresOS on its own SSD (briefs 10 and 10b). The same-drive fallback is `docs/INSTALL-SAME-DRIVE.md`. Physical install stays NOT RELEASED until the remaining gates in its "Maintainer release gate" section pass (brief 06's image gate is done). |
 | `briefs/NN-slug.md` | One frozen task per package. Follow-ups are `NNb`, `NNc`. |
 | `reviews/NN-slug/` | Codex's `REPORT.md`, `REVIEW*.md` and screenshots per package. |
 | `reviews/councils/` | Council questions, member reports and verdicts. |

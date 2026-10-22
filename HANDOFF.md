@@ -2,14 +2,13 @@
 
 The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up.
 
-## Where things are (2026-10-22, about 22:45)
+## Where things are (2026-10-22, about 23:55)
 
-- **PR #10** (branch `pkg/06-image-release`, worktree `C:/Users/pab/AresOS-06-image-release`):
-  - 06c green. The review of `ef07dbc` came back CHANGES-NEEDED (`reviews/06-image-release/REVIEW.md`).
-  - **06d** implemented all six fixes and 82 regressions pass, but **no full VM run passed**. Codex's new greeter observer assumed SDDM, while the image uses **Plasma Login Manager**. The saved frame shows the greeter rendered. Both runs were used (one failed, one cancelled).
-  - **Brief 06e running since 22:40:** one green full VM run of the 06d sequence (switch-only reuse, max 2 full runs, no Gradle/Minecraft). Codex PID 17128, log `C:/Users/pab/AresOS-06e.log`, final message `../AresOS-06e.last.md`.
-- **When 06e is green:** the reviewer re-checks only the 06d/06e fixes (`docs/REVIEW.md`), then merge, once the owner has answered the judgment calls below. 06d adds one more: GRUB recovery uses an identity-checked `ostree admin set-default` (left untested, listed as a release gate).
-- **Owner judgment calls asked 2026-10-22, answer pending** (recommended: accept all): (1) installer admin = UID 1000, daily `ares` = 1001; (2) keyless signing with a public Sigstore record (repo/workflow identity + digest; image stays private); (3) a classic read-only `read:packages` GitHub token on the laptop for the private pull.
+- **PR #10 merged** as `2fa6641` (briefs 06–06e). The owner gave the merge OK in chat after accepting the judgment calls (recorded in `STATE.md` → Decisions). Branch `pkg/06-image-release` is deleted on GitHub; its worktree `C:/Users/pab/AresOS-06-image-release` is a leftover.
+- **Nothing is running.**
+- **Next:**
+  1. **Emergency card** (promised to the owner): a one-page "If something goes wrong" doc, linked from INSTALL.md. Docs only. Have a fresh Codex review it (read-only) before pushing. It should cover F12 → Windows Boot Manager (always works, the Micron is never written, Windows stays the boot default for the first trial), Super+Ctrl+Esc, Ctrl+Alt+F3 → `ares-recovery` → rollback, the GRUB backup entry plus the make-default step (UNTESTED), and, worst case, removing the AresOS SSD.
+  2. **Remaining install gates** (INSTALL.md "Maintainer release gate"): the two-disk VM rehearsal, GRUB recovery promotion, media pinning and rehearsal, then the safety and followability council. Hardware items wait for the laptop.
 
 ## Waiting on the owner
 
@@ -17,9 +16,10 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 
 ## Watch out
 
-- **Only one Minecraft client-test run at a time** on the laptop (focus stealing).
-- **Merging:** delete a branch only after `gh pr view N --json state` = MERGED. Never launch Codex into a worktree with unmerged files.
-- **Low memory** stops Claude's background wrappers, but `codex.exe` keeps running. Watch the process ID with Monitor instead.
-- **CI minutes:** about 1,150 of 2,000 used in October.
-- **Leftover worktrees** for merged branches 03, 04, 07, 08, 09 and 10. Remove them with `git worktree remove` from the main checkout. The safety check blocks deleting a folder the session is inside.
+- **Only one Minecraft client-test run at a time** on the laptop (focus stealing). If the owner is playing, keep Gradle and client tests out of packages.
+- **Merging:** delete a branch only after `gh pr view N --json state` = MERGED. Never launch Codex into a worktree with unmerged files. Claude Code's auto mode blocks `gh pr merge` without an explicit owner "merge" in chat.
+- **Low memory** stops Claude's background wrappers, but `codex.exe` keeps running. Check its PID and the `turn.completed` line in its log. The owner can start Claude Code with `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP=1` to prevent this.
+- **Codex assumptions:** before a full CI run, check every new check's assumptions against the image's retained package inventory (06d lost both runs assuming SDDM; Bazzite uses Plasma Login Manager).
+- **CI minutes:** about 1,320 of 2,000 used in October.
+- **Leftover worktrees** for merged branches 03, 04, 06, 07, 08, 09 and 10. Remove them with `git worktree remove` from the main checkout. The safety check blocks deleting a folder the session is inside.
 - **Deferred work:** `briefs/03-followup-activation-audit.md` (activation-graph updater audit).

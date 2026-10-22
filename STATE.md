@@ -16,18 +16,24 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
   - The AresOS button opens a create screen with a seed field and a placeholder-hub toggle.
   - `/aresos home set|home|home info`, and you always arrive at home.
   - Existing worlds are never rebuilt, and saves are renamed, never deleted.
+- **Image release + tested switch and rollback** (PR #10, briefs 06–06e, merged 2026-10-22): a private, signed AresOS image on `bazzite-nvidia-open` (`ghcr.io/carlsenares/aresos@sha256:362af9b7…c402`). CI switches stock Bazzite to it, then proves the full policy (inherited Homebrew blocked for `ares`), the tty3 recovery login, sudo and logout, unchanged partitions, a rollback to the exact stock copy with a rendered login screen, and a second stock boot (run 39851266266). Negative checks now really fail (the `! cmd`/`set -e` bug, which also affected PR #3, is fixed). The tested recipe is `docs/INSTALL.md` §6.
 - **OS design** (PR #2): Bazzite base, council-approved. See `docs/design/OS-BASE.md`.
-- **Install guide** (PR #9, rewritten from PR #5): AresOS on its own SSD, including fitting the drive (battery check, correct seating), clear drive identification, a whole-drive install, and a Windows-return check. Council says READY-TO-MERGE. **Don't start yet:** it's gated on brief 06 (image release and Bazzite → AresOS switch) and a media rehearsal. The same-drive fallback is archived.
+- **Install guide** (PR #9, rewritten from PR #5): AresOS on its own SSD, including fitting the drive (battery check, correct seating), clear drive identification, a whole-drive install, and a Windows-return check. Council says READY-TO-MERGE. The image/switch/rollback gate is now DONE (PR #10), but **physical install stays CLOSED** until the remaining gates in INSTALL.md's "Maintainer release gate" pass (see Next). The same-drive fallback is archived.
 - **Decisions:**
   - The AresOS image is **private** on GitHub (2026-10-22: the owner doesn't mind, so the safe default). The install needs a one-time GitHub read token. Public only on an explicit "make it public".
   - **AresOS gets its own 500 GB SSD** (owner decision 2026-10-22, replaces dual boot and the 96 GB partition). Crucial P310 in the free 2280 slot, so Windows keeps all its space and is never touched. **Ordered 2026-10-22** (see below).
+  - **Accounts** (owner OK 2026-10-22): the installer creates the admin `ares-recovery` first (UID 1000), and the locked daily `ares` is UID 1001. The name stays `ares-recovery` (a rename isn't worth a package).
+  - **Image seal** (owner OK 2026-10-22): keyless signing. Sigstore's public log shows the repo/workflow identity and the image digest; the image stays private.
+  - **Laptop pull token** (owner OK 2026-10-22): a classic, read-only `read:packages` GitHub token, created by the owner on install day.
+  - **GRUB recovery** (owner OK 2026-10-22): the identity-checked "make the backup Bazzite the default" step stays marked UNTESTED until a rehearsal proves it.
+  - **Emergency path:** Windows stays the boot default for the first trial, and F12 → Windows Boot Manager always works because the Micron is never written.
   - Secure Boot is off on the laptop, so no MOK step.
   - Normal Minecraft is a separate app with normal rules.
   - App icons are generated automatically from each app's real icon. The owner doesn't draw them.
 
 ## In progress
 
-- **PR #10** (briefs 06–06c, draft): private signed image on `bazzite-nvidia-open` published, and the switch from stock Bazzite to AresOS works. 06c (Homebrew neutralization, tty3 recovery, rollback) is **paused**; see `HANDOFF.md` to resume.
+- Nothing running. Next is the "If something goes wrong" emergency card (docs only), then the remaining install gates.
 
 ## Waiting on the owner
 
@@ -38,9 +44,10 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Next, in order
 
-1. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
-2. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
-3. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
-4. **Later:** piglin shops, owner-designed hub, shaders, controlled updates, boot splash, sleep, Brawl Stars theme.
+1. **Close the remaining install gates** (INSTALL.md "Maintainer release gate"). In CI: the two-disk VM rehearsal (prove the Windows-like disk is never written), GRUB recovery promotion, and pinned installer media. Then the safety and followability council. Hardware items (fitting/firmware screens, helper trials) happen on the laptop with the owner.
+2. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
+3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
+4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
+5. **Later:** a help button in AresOS that opens a terminal with Claude Code (owner idea 2026-10-22, after the first boot works), piglin shops, owner-designed hub, shaders, controlled updates, boot splash, sleep, Brawl Stars theme.
 
 Codex Pro runs until 2026-11-21.
