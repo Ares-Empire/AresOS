@@ -1,0 +1,57 @@
+#!/usr/bin/sh
+#
+# live: Late init script for live image
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+cmdline=$(cat /proc/cmdline)' '
+
+if [ "${cmdline##* rd.live.debug[= ]}" != "$cmdline" ] ||
+    [ "${cmdline##* rdlivedebug[= ]}" != "$cmdline" ]; then
+    exec > /run/initramfs/livesys-late.$$.out 2>&1
+    set -x
+    if [ "$BASH" ]; then
+        export \
+            PS4='+ (${BASH_SOURCE}@${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    else
+        export PS4='+ (${0##*/}@${LINENO}): '
+    fi
+fi
+
+{ [ "${cmdline##* rd.live.image[= ]}" = "$cmdline" ] &&
+    [ "${cmdline##* liveimg[= ]}" = "$cmdline" ]; } ||
+    [ -e /.liveimg-late-configured ] && exit 0
+
+: > /.liveimg-late-configured
+
+# read some variables out of /proc/cmdline
+cut=${cmdline##* ks=}
+[ ${#cut} -ne ${#cmdline} ] && ks=--kickstart="${cut%% *}"
+
+cut=${cmdline##* xdriver=}
+[ ${#cut} -ne ${#cmdline} ] && xdriver="${cut%% *}"
+
+# if liveinst or textinst is given, start anaconda
+if [ "${cmdline##* liveinst }" != "$cmdline" ]; then
+   plymouth --quit
+   /usr/sbin/liveinst "$ks"
+fi
+if [ "${cmdline##* textinst }" != "$cmdline" ]; then
+   plymouth --quit
+   /usr/sbin/liveinst --text "$ks"
+fi
+
+# configure X, allowing user to override xdriver
+if [ "$xdriver" ]; then
+   cat > /etc/X11/xorg.conf.d/00-xdriver.conf <<FOE
+Section "Device"
+	Identifier	"Videocard0"
+	Driver	"$xdriver"
+EndSection
+FOE
+fi
+
+# allow extra stuff to be defined for derived spins (e.g., fedora labs)
+if [ -f /var/lib/livesys/livesys-session-late-extra ]; then
+  . /var/lib/livesys/livesys-session-late-extra
+fi
+

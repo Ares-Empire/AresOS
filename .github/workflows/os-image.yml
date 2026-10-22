@@ -7,7 +7,7 @@ on:
       rehearsal:
         description: 'Package 11: inspect pinned ISO or rehearse installation; never build/publish'
         type: choice
-        options: ['', inspect, full]
+        options: ['', inspect, probe, full]
         default: ''
       checks_only:
         description: 'Run regressions and live host state query; no image build or VM'
@@ -302,6 +302,26 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools
           python3 os/ci/installer_inspect.py
+      - name: Prepare disposable file disks and qualify the real live environment
+        if: inputs.rehearsal != 'inspect'
+        timeout-minutes: 40
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          bash os/ci/install-tools.sh
+          sudo apt-get install -y --no-install-recommends gnu-efi ntfs-3g dosfstools gdisk mtools psmisc
+          dpkg-query -W > evidence/rehearsal-host-packages.txt
+          python3 -m unittest discover -s os/tests -v
+          cp os/manifest/release.json evidence/release.json
+          python3 os/ci/verify_release.py 39818554327
+          sudo python3 os/ci/prepare_two_disks.py
+          sudo -E python3 os/ci/two_disk_vm.py '${{ inputs.rehearsal }}'
+      - name: Bound retained evidence
+        if: always()
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" evidence
+          test "$(du -sb evidence | cut -f1)" -lt 180000000
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

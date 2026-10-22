@@ -1,0 +1,28 @@
+{
+  "cap_minutes": 450,
+  "runs": [
+    {
+      "id": "39864229155",
+      "label": "inspect-1",
+      "conclusion": "success",
+      "job_seconds": 569.0,
+      "rounded_minutes": 10
+    },
+    {
+      "id": "39865338296",
+      "label": "checks-1",
+      "conclusion": "success",
+      "job_seconds": 35.0,
+      "rounded_minutes": 1
+    },
+    {
+      "id": "39865512476",
+      "label": "inspect-2",
+      "conclusion": "success",
+      "job_seconds": 428.0,
+      "rounded_minutes": 8
+    }
+  ],
+  "rounded_minutes": 19,
+  "job_seconds": 1032.0
+}

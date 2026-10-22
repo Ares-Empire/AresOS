@@ -47,15 +47,15 @@ def inspect_transaction(status, target, stock_checksum, rollback=False, digest=N
         assert selected['ostree']['checksum'] == stock_checksum, selected
 
 
-def partition_identity(layout):
+def partition_identity(layout, disk_name='vda'):
     """Compare the sole attached file disk, including every partition identity.
 
     Zram is also reported as TYPE=disk, but its swap UUID changes at boot.
     It is not part of the attached vda file or its partition table.
     """
     devices = [item for item in layout['blockdevices']
-               if item['name'] == 'vda' or (item['type'] == 'part' and re.fullmatch(r'vda[0-9]+', item['name']))]
-    assert any(item['name'] == 'vda' and item['type'] == 'disk' for item in devices), 'Attached vda disk absent'
+               if item['name'] == disk_name or (item['type'] == 'part' and re.fullmatch(re.escape(disk_name) + r'[0-9]+', item['name']))]
+    assert any(item['name'] == disk_name and item['type'] == 'disk' for item in devices), 'Attached target disk absent'
     assert any(item['type'] == 'part' for item in devices), 'Attached disk has no partitions'
     return [(item['name'], item['type'], item.get('start'), item['size'],
              item.get('partuuid'), item.get('parttype'), item.get('uuid')) for item in devices]
@@ -131,17 +131,23 @@ class Guest:
             'qemu-system-x86_64', '-machine', 'q35', *accel, '-smp', str(min(4, len(os.sched_getaffinity(0)))), '-m', '6144',
             '-drive', 'if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd',
             '-drive', f'if=pflash,format=raw,file={WORK / "vars.fd"}',
-            '-drive', f'file={disk},format=raw,if=virtio',
+            *self.disk_args(disk),
             '-device', 'virtio-vga', '-device', 'qemu-xhci', '-device', 'usb-kbd',
             '-display', 'none', '-nic', 'user,model=virtio-net-pci',
             '-qmp', f'unix:{WORK / "qmp.sock"},server=on,wait=off',
-            '-serial', f'unix:{WORK / "serial.sock"},server=on,wait=off', '-no-reboot',
+            '-serial', f'unix:{WORK / "serial.sock"},server=on,wait=off', *self.boot_args(), '-no-reboot',
         ], stdout=open(EVIDENCE / 'qemu.txt', 'a'), stderr=subprocess.STDOUT)
         self.console = self.connect('serial.sock')
         self.console.settimeout(1)
         self.monitor_socket = self.connect('qmp.sock')
         self.monitor = QMP(self.monitor_socket)
         self.monitor.command('qmp_capabilities')
+
+    def disk_args(self, disk):
+        return ['-drive', f'file={disk},format=raw,if=virtio']
+
+    def boot_args(self):
+        return []
 
     def connect(self, name):
         deadline = time.monotonic() + 30
@@ -327,7 +333,7 @@ def start_guest(disk, password, secrets, stage):
     raise RuntimeError('Stock initialization did not reach an authenticated login')
 
 
-def main():
+def main(disk=None, preserve_vars=False, target_name='vda', shutdown_hook=None):
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     password = json.loads((WORK / 'credentials.json').read_text())['password']
     token = os.environ['GH_TOKEN']
@@ -339,9 +345,10 @@ def main():
     target = release['reference']
     upstream = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference']
     upstream_name, upstream_digest = upstream.split('@', 1)
-    disks = list((WORK / 'output').rglob('disk.raw'))
+    disks = [pathlib.Path(disk).resolve()] if disk else list((WORK / 'output').rglob('disk.raw'))
     assert len(disks) == 1 and disks[0].is_relative_to(WORK), disks
-    shutil.copyfile('/usr/share/OVMF/OVMF_VARS_4M.fd', WORK / 'vars.fd')
+    if not preserve_vars:
+        shutil.copyfile('/usr/share/OVMF/OVMF_VARS_4M.fd', WORK / 'vars.fd')
     before = None
     stock_commit = None
     stock_reference = None
@@ -353,9 +360,9 @@ def main():
             status = guest.capture_json(f'{stage}-status', framed('bootc status --json'))
             layout = guest.capture_json(f'{stage}-partitions', framed('lsblk --json --bytes --list --output NAME,TYPE,START,SIZE,PARTUUID,PARTTYPE,UUID'))
             if before is None:
-                before = partition_identity(layout)
+                before = partition_identity(layout, target_name)
             else:
-                assert partition_identity(layout) == before, f'Partition identity changed at {stage}'
+                assert partition_identity(layout, target_name) == before, f'Partition identity changed at {stage}'
             if stage == 'stock':
                 guest.command('stock-hardware-setup', 'set -e; systemctl is-active bazzite-hardware-setup.service; test "$(systemctl show bazzite-hardware-setup.service -p ExecMainStatus --value)" = 0; journalctl -b -u bazzite-hardware-setup.service --no-pager; rpm-ostree kargs')
                 stock_reference = booted_reference(status)
@@ -464,8 +471,12 @@ exit 1''')
                 print('Published-image switch, policy, tty3 login/logout, partition equality, rendered stock rollback and second default boot passed; GRUB recovery promotion UNTESTED', flush=True)
             if stage != 'persistent-stock':
                 guest.reboot(stage)
+            elif shutdown_hook:
+                guest.poweroff(stage)
         finally:
             guest.close(stage)
+            if shutdown_hook:
+                shutdown_hook(stage, guest)
 
 
 if __name__ == '__main__':
