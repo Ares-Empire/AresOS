@@ -2,13 +2,13 @@
 
 The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up.
 
-## Where things are (2026-10-22, about 21:45)
+## Where things are (2026-10-22, about 22:45)
 
 - **PR #10** (branch `pkg/06-image-release`, worktree `C:/Users/pab/AresOS-06-image-release`):
-  - **06c done:** CI run 2 (39833127717) passed switch, Homebrew policy, tty3 recovery, partitions and rollback.
-  - **Package review of `ef07dbc`: CHANGES-NEEDED** (`reviews/06-image-release/REVIEW.md`): 5 should-fix and 1 nit. The key one is `! cmd` checks being exempt from `set -e`, so negative assertions never failed (this includes PR #3's `guest.sh`).
-  - **Brief 06d** (all six fixes, no Gradle/Minecraft tests because the owner is playing, max 2 full runs) **running since about 21:45**. Codex log `C:/Users/pab/AresOS-06d.log` (`turn.completed` = done), final message `../AresOS-06d.last.md`.
-- **When 06d finishes:** the reviewer re-checks only the fixes (`docs/REVIEW.md`), then merge, once the owner has answered the judgment calls below.
+  - 06c green. The review of `ef07dbc` came back CHANGES-NEEDED (`reviews/06-image-release/REVIEW.md`).
+  - **06d** implemented all six fixes and 82 regressions pass, but **no full VM run passed**. Codex's new greeter observer assumed SDDM, while the image uses **Plasma Login Manager**. The saved frame shows the greeter rendered. Both runs were used (one failed, one cancelled).
+  - **Brief 06e running since 22:40:** one green full VM run of the 06d sequence (switch-only reuse, max 2 full runs, no Gradle/Minecraft). Codex PID 17128, log `C:/Users/pab/AresOS-06e.log`, final message `../AresOS-06e.last.md`.
+- **When 06e is green:** the reviewer re-checks only the 06d/06e fixes (`docs/REVIEW.md`), then merge, once the owner has answered the judgment calls below. 06d adds one more: GRUB recovery uses an identity-checked `ostree admin set-default` (left untested, listed as a release gate).
 - **Owner judgment calls asked 2026-10-22, answer pending** (recommended: accept all): (1) installer admin = UID 1000, daily `ares` = 1001; (2) keyless signing with a public Sigstore record (repo/workflow identity + digest; image stays private); (3) a classic read-only `read:packages` GitHub token on the laptop for the private pull.
 
 ## Waiting on the owner
