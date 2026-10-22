@@ -2,13 +2,14 @@
 
 The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up.
 
-## Where things are (2026-10-22, about 20:35)
+## Where things are (2026-10-22, about 21:45)
 
-- **Brief 06c resumed at 20:34** (PR #10, draft, branch `pkg/06-image-release`, worktree `C:/Users/pab/AresOS-06-image-release`). Codex gpt-6.1-sol xhigh, log `C:/Users/pab/AresOS-06c-resume.log` (`turn.completed` = done), final message `../AresOS-06c-resume.last.md`.
-  - Full run `39818554327` was **full run 1 of 2**: the image job passed, and the switch job failed in `os/ci/switch_vm.py` at guest command `tty-password-ready` (exit 1), after stock Bazzite's pre-login reboot. Codex decides whether that's a harness flaw (fix with a regression) or a product failure (stop and report).
-  - One full run is left in the 06c budget. About 1,230 of 2,000 CI minutes used in October.
-- **When it finishes:** read its REPORT 06c section, then do the confirm review and merge PR #10 per `docs/WORKFLOW.md`.
-- **Already proven before 06c:** the private signed image on `bazzite-nvidia-open`. Stock Bazzite switched to AresOS and booted, and the session, accounts and partitions passed. 06b's policy check caught inherited Homebrew, which 06c neutralizes reversibly.
+- **PR #10** (branch `pkg/06-image-release`, worktree `C:/Users/pab/AresOS-06-image-release`):
+  - **06c done:** CI run 2 (39833127717) passed switch, Homebrew policy, tty3 recovery, partitions and rollback.
+  - **Package review of `ef07dbc`: CHANGES-NEEDED** (`reviews/06-image-release/REVIEW.md`): 5 should-fix and 1 nit. The key one is `! cmd` checks being exempt from `set -e`, so negative assertions never failed (this includes PR #3's `guest.sh`).
+  - **Brief 06d** (all six fixes, no Gradle/Minecraft tests because the owner is playing, max 2 full runs) **running since about 21:45**. Codex log `C:/Users/pab/AresOS-06d.log` (`turn.completed` = done), final message `../AresOS-06d.last.md`.
+- **When 06d finishes:** the reviewer re-checks only the fixes (`docs/REVIEW.md`), then merge, once the owner has answered the judgment calls below.
+- **Owner judgment calls asked 2026-10-22, answer pending** (recommended: accept all): (1) installer admin = UID 1000, daily `ares` = 1001; (2) keyless signing with a public Sigstore record (repo/workflow identity + digest; image stays private); (3) a classic read-only `read:packages` GitHub token on the laptop for the private pull.
 
 ## Waiting on the owner
 
