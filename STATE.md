@@ -17,6 +17,8 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 - **OS design** (PR #2): Bazzite base, council-approved. See `docs/design/OS-BASE.md`.
 - **Install guide** (PR #5): same-drive dual boot, `docs/INSTALL.md` and a read-only inventory helper. Council: all 7 findings closed. **Don't start yet.** It's gated on the released AresOS image and a rehearsal on real USB sticks.
 - **Decisions:**
+  - The AresOS image is **private** on GitHub (2026-10-22: the owner doesn't mind, so the safe default). The install needs a one-time GitHub read token. Public only on an explicit "make it public".
+  - AresOS gets **96 GB** (accepted 2026-10-22). Changeable until install, and more only if big games go on AresOS.
   - Dual boot on the existing SSD (no second drive).
   - Secure Boot is off on the laptop, so no MOK step.
   - Normal Minecraft is a separate app with normal rules.
@@ -26,14 +28,12 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 - **PR #3** (briefs 03–03d): the image boots into our labwc session in a CI VM, and all checks pass except proof that the power key goes through logind (the clean poweroff itself is observed). 03d reads the guest's on-disk journal. If that's still unproven, it becomes a first-hardware-boot check.
 - **Brief 09:** separate Build/Live inventories, so the app hotbar comes back after building.
-- **Next for the OS image:** switch to `bazzite-nvidia-open`, publish (public or private, owner decision), and a tested "switch Bazzite to AresOS" step with an admin/recovery account. That's what unlocks the install guide.
+- **Next for the OS image:** switch to `bazzite-nvidia-open`, publish **privately** (brief 06), and a tested "switch Bazzite to AresOS" step with an admin/recovery account. That's what unlocks the install guide.
 
 ## Waiting on the owner
 
 - **Two USB sticks:** one becomes a Windows recovery stick (kept, never overwritten; 32 GB to be safe), one is wiped for the AresOS installer (16 GB+).
-- **Image public or private on GitHub?** Public recommended (no token on the laptop, the image holds no personal data, the repo stays private). Brief 06 (switch to `bazzite-nvidia-open`, publish, tested Bazzite → AresOS switch) waits on this and on PR #3.
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
-- Disk space for AresOS: 96 GB proposed, not decided.
 
 ## Next, in order
 
