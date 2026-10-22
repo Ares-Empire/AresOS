@@ -1,0 +1,12 @@
+image	Install tools on disposable runner	2026-10-22T08:39:38.7226431Z Ran 38 tests in 0.812s
+image	Build and audit the image (runner storage only)	2026-10-22T08:49:05.3568496Z Updater audit passed: 817 system/user units inspected
+image	Build and audit the image (runner storage only)	2026-10-22T08:49:15.1467740Z Checks passed: 10
+image	Build and audit the image (runner storage only)	2026-10-22T08:49:15.1468085Z Checks skipped: 1
+image	Build and audit the image (runner storage only)	2026-10-22T08:49:15.1468404Z Warnings: 4
+image	Build isolated test overlay and prove release excludes it	2026-10-22T08:51:39.7601864Z ^[[36;1m  echo "Release excludes CI service and credentials; both passwords locked"^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T08:51:40.1978908Z Release excludes CI service and credentials; both passwords locked
+image	Build isolated test overlay and prove release excludes it	2026-10-22T09:02:05.2603804Z Checks passed: 10
+image	Build isolated test overlay and prove release excludes it	2026-10-22T09:02:05.2604270Z Checks skipped: 1
+image	Build isolated test overlay and prove release excludes it	2026-10-22T09:02:05.2604588Z Warnings: 4
+image	Build file-backed UEFI VM disk	2026-10-22T09:20:19.9501022Z Build complete!
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T09:22:03.9004275Z Guest policy: 1

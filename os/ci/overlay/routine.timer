@@ -1,0 +1,7 @@
+[Unit]
+Description=CI innocently named timer canary
+[Timer]
+OnBootSec=1year
+Unit=aresos-ci-routine.service
+[Install]
+WantedBy=timers.target

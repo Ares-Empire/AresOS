@@ -1,0 +1,17 @@
+bazzite-user-setup.service
+bazzite-dynamic-fixes.service
+flatpak-update.service
+flatpak-update.timer
+brew-update.service
+brew-update.timer
+uupd.service
+uupd.timer
+plasma-powerdevil.service
+org.gnome.SettingsDaemon.Power.service
+brew-upgrade.service
+brew-upgrade.timer
+flatpak-oci-authenticator.service
+flatpak-portal.service
+flatpak-session-helper.service
+podman-auto-update.service
+podman-auto-update.timer

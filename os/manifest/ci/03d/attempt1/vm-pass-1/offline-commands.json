@@ -1,0 +1,70 @@
+[
+  {
+    "argv": [
+      "qemu-nbd",
+      "--read-only",
+      "--format=qcow2",
+      "--connect=/dev/nbd0",
+      "/home/runner/work/AresOS/AresOS/vm-work/pass-1.qcow2"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": null
+  },
+  {
+    "argv": [
+      "udevadm",
+      "settle"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": null
+  },
+  {
+    "argv": [
+      "lsblk",
+      "--json",
+      "--paths",
+      "--output",
+      "NAME,FSTYPE,RO",
+      "/dev/nbd0"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-disk-layout.json"
+  },
+  {
+    "argv": [
+      "blockdev",
+      "--getro",
+      "/dev/nbd0p4"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": null
+  },
+  {
+    "argv": [
+      "mount",
+      "-t",
+      "btrfs",
+      "-o",
+      "ro,nologreplay,subvolid=5",
+      "/dev/nbd0p4",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-root"
+    ],
+    "returncode": 32,
+    "stderr": "mount: /home/runner/work/AresOS/AresOS/vm-work/offline-root: wrong fs type, bad option, bad superblock on /dev/nbd0p4, missing codepage or helper program, or other error.\n       dmesg(1) may have more information after failed mount system call.\n",
+    "output": null
+  },
+  {
+    "argv": [
+      "qemu-nbd",
+      "--disconnect",
+      "/dev/nbd0"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": null
+  }
+]

@@ -1,0 +1,4 @@
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T09:24:04.4125854Z ERROR: test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask (test_audit.UpdaterAuditTest.test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask)
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T09:24:04.4141372Z subprocess.CalledProcessError: Command '['systemctl', '--root=/tmp/tmprlugdwop', '--no-pager', '--no-legend', '--global', 'list-unit-files']' returned non-zero exit status 1.
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T09:24:04.4144045Z Ran 39 tests in 0.842s
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T09:24:04.4145363Z FAILED (errors=1)

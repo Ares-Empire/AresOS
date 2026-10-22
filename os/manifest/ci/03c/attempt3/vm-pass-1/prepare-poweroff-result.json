@@ -1,0 +1,6 @@
+{
+  "id": 7,
+  "returncode": 0,
+  "journal_unit": "aresos-ci-journal.service",
+  "after_cursor": "s=7a9c734a5054478db875b7cfdb331f58;i=7ec;b=29683cd2da334916a1293e7350de59ee;m=5e95a8f;t=65e64a330a3f6;x=7a651d8cd3a52d31"
+}

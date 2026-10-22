@@ -1,0 +1,6 @@
+[Unit]
+Description=CI static service canary
+ConditionPathExists=/run/aresos-ci-never-run-updater
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/uupd

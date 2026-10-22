@@ -1,0 +1,14 @@
+image	Install tools on disposable runner	2026-10-21T23:02:24.7450231Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-21T23:02:24.7452067Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+image	Install tools on disposable runner	2026-10-21T23:02:24.7510053Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-21T23:02:24.7511775Z Ran 3 tests in 0.013s
+image	Install tools on disposable runner	2026-10-21T23:02:24.7512393Z OK
+image	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-21T23:02:28.8045952Z Verified OK
+image	Build and audit the image (runner storage only)	2026-10-21T23:11:18.6761528Z Updater audit passed: 815 system/user units inspected
+image	Build file-backed UEFI VM disk	2026-10-21T23:30:06.8662049Z Build complete!
+image	Boot QEMU and assert session, policy and recovery	2026-10-21T23:31:45.7028117Z Traceback (most recent call last):
+image	Boot QEMU and assert session, policy and recovery	2026-10-21T23:31:45.7028726Z   File "/home/runner/work/AresOS/AresOS/os/ci/vm.py", line 153, in <module>
+image	Boot QEMU and assert session, policy and recovery	2026-10-21T23:31:45.7030158Z     authenticate_serial()
+image	Boot QEMU and assert session, policy and recovery	2026-10-21T23:31:45.7030821Z   File "/home/runner/work/AresOS/AresOS/os/ci/vm.py", line 112, in authenticate_serial
+image	Boot QEMU and assert session, policy and recovery	2026-10-21T23:31:45.7031673Z     raise TimeoutError('Authenticated serial shell did not answer the marker challenge')
+image	Boot QEMU and assert session, policy and recovery	2026-10-21T23:31:45.7032453Z TimeoutError: Authenticated serial shell did not answer the marker challenge

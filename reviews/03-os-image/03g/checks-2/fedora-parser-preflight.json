@@ -1,0 +1,133 @@
+{
+  "status": "passed",
+  "scopes": {
+    "system": {
+      "unit_names": 799,
+      "probe": {
+        "scope": "system",
+        "name": "aresos-parser\\x2dprobe.service",
+        "state": "indirect",
+        "suspicious": false,
+        "commands": [
+          "ExecStart=/usr/bin/true",
+          "ExecStart=/usr/bin/true",
+          "ExecStart={ path=/usr/bin/true ; argv[]=/usr/bin/true ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }"
+        ],
+        "active_state": "inactive",
+        "load_state": "loaded",
+        "sources": [
+          "/run/systemd/system/aresos-parser\\x2dprobe.service",
+          "/usr/lib/systemd/system/service.d/10-timeout-abort.conf",
+          "/run/systemd/system/aresos-parser\\x2dprobe.service.d/with spaces.conf"
+        ],
+        "activation": {
+          "Triggers": [],
+          "Wants": [],
+          "Requires": [
+            "system.slice",
+            "sysinit.target"
+          ],
+          "Requisite": [],
+          "BindsTo": [],
+          "Upholds": []
+        },
+        "pulled_by": [
+          "aresos-parser-probe.target"
+        ]
+      },
+      "alias": {
+        "scope": "system",
+        "name": "aresos-parser-alias.service",
+        "state": "indirect",
+        "suspicious": false,
+        "commands": [
+          "ExecStart=/usr/bin/true",
+          "ExecStart={ path=/usr/bin/true ; argv[]=/usr/bin/true ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }"
+        ],
+        "active_state": "inactive",
+        "load_state": "loaded",
+        "sources": [
+          "/run/systemd/system/aresos-parser\\x2dprobe.service",
+          "/usr/lib/systemd/system/service.d/10-timeout-abort.conf",
+          "/run/systemd/system/aresos-parser\\x2dprobe.service.d/with spaces.conf"
+        ],
+        "activation": {
+          "Triggers": [],
+          "Wants": [],
+          "Requires": [
+            "system.slice",
+            "sysinit.target"
+          ],
+          "Requisite": [],
+          "BindsTo": [],
+          "Upholds": []
+        },
+        "pulled_by": []
+      }
+    },
+    "user": {
+      "unit_names": 276,
+      "probe": {
+        "scope": "user",
+        "name": "aresos-parser\\x2dprobe.service",
+        "state": "indirect",
+        "suspicious": false,
+        "commands": [
+          "ExecStart=/usr/bin/true",
+          "ExecStart=/usr/bin/true",
+          "ExecStart={ path=/usr/bin/true ; argv[]=/usr/bin/true ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }"
+        ],
+        "active_state": "inactive",
+        "load_state": "loaded",
+        "sources": [
+          "/run/systemd/user/aresos-parser\\x2dprobe.service",
+          "/usr/lib/systemd/user/service.d/10-timeout-abort.conf",
+          "/run/systemd/user/aresos-parser\\x2dprobe.service.d/with spaces.conf"
+        ],
+        "activation": {
+          "Triggers": [],
+          "Wants": [],
+          "Requires": [
+            "basic.target",
+            "app.slice"
+          ],
+          "Requisite": [],
+          "BindsTo": [],
+          "Upholds": []
+        },
+        "pulled_by": [
+          "aresos-parser-probe.target"
+        ]
+      },
+      "alias": {
+        "scope": "user",
+        "name": "aresos-parser-alias.service",
+        "state": "indirect",
+        "suspicious": false,
+        "commands": [
+          "ExecStart=/usr/bin/true",
+          "ExecStart={ path=/usr/bin/true ; argv[]=/usr/bin/true ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }"
+        ],
+        "active_state": "inactive",
+        "load_state": "loaded",
+        "sources": [
+          "/run/systemd/user/aresos-parser\\x2dprobe.service",
+          "/usr/lib/systemd/user/service.d/10-timeout-abort.conf",
+          "/run/systemd/user/aresos-parser\\x2dprobe.service.d/with spaces.conf"
+        ],
+        "activation": {
+          "Triggers": [],
+          "Wants": [],
+          "Requires": [
+            "basic.target",
+            "app.slice"
+          ],
+          "Requisite": [],
+          "BindsTo": [],
+          "Upholds": []
+        },
+        "pulled_by": []
+      }
+    }
+  }
+}

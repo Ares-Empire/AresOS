@@ -1,0 +1,13 @@
+{
+  "backend": "bootc",
+  "version": "1.16.13-1.fc44",
+  "storage": "OSTree",
+  "run": "https://github.com/carlsenares/AresOS/actions/runs/39685234531",
+  "checkout_commit": "ee9ee390031bfa2d20a32129aeb0715a6af700f3",
+  "command": "bootc status --json",
+  "guest_assertion": "status['status']['booted']['image'] is nonempty",
+  "observed_output": "Deployment backend: bootc (OSTree storage)",
+  "guest_checks_footer": "ARESOS_GUEST_CHECKS_PASSED",
+  "raw_status_exported": false,
+  "evidence_limit": "Recorded from the CI serial artifact; the later TTY prompt wait failed before raw status export. This is an observation record, not raw bootc JSON or a passing workflow claim."
+}

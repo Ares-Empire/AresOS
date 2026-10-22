@@ -1,0 +1,103 @@
+image	Install tools on disposable runner	2026-10-22T02:47:20.1585206Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1587150Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1654496Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1656141Z test_fragmented_and_coalesced_frames_at_every_boundary (test_channel.ChannelTest.test_fragmented_and_coalesced_frames_at_every_boundary) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1762283Z test_incomplete_and_oversized_frames_fail (test_channel.ChannelTest.test_incomplete_and_oversized_frames_fail) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1764191Z test_raw_exports_preserve_bytes_and_reject_corruption (test_channel.ChannelTest.test_raw_exports_preserve_bytes_and_reject_corruption) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1771946Z test_events_before_and_after_command_reply_are_retained (test_channel.QMPTest.test_events_before_and_after_command_reply_are_retained) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1773729Z test_host_exit_reset_suspend_and_missing_shutdown_are_rejected (test_channel.QMPTest.test_host_exit_reset_suspend_and_missing_shutdown_are_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1775825Z test_missing_records_and_other_boot_cannot_pass (test_offline_journal.OfflineJournalTest.test_missing_records_and_other_boot_cannot_pass) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1779731Z test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail (test_offline_journal.OfflineJournalTest.test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.1781335Z test_ordered_logind_and_manager_records_from_exact_boot_pass (test_offline_journal.OfflineJournalTest.test_ordered_logind_and_manager_records_from_exact_boot_pass) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.4034718Z test_guest_tty_reader_cannot_consume_completion_command (test_serial_console.SerialCommandTest.test_guest_tty_reader_cannot_consume_completion_command) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5029252Z test_long_script_survives_canonical_tty_line_limit (test_serial_console.SerialCommandTest.test_long_script_survives_canonical_tty_line_limit) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5086082Z test_nonzero_guest_exit_is_preserved (test_serial_console.SerialCommandTest.test_nonzero_guest_exit_is_preserved) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5094026Z test_corruption_and_incomplete_frames_are_rejected (test_serial_console.SerialExportTest.test_corruption_and_incomplete_frames_are_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5104531Z test_kernel_record_at_every_payload_boundary_preserves_bytes (test_serial_console.SerialExportTest.test_kernel_record_at_every_payload_boundary_preserves_bytes) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5106281Z test_wrapped_crlf_export_preserves_raw_json (test_serial_console.SerialExportTest.test_wrapped_crlf_export_preserves_raw_json) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5108024Z test_boot_log_retention_is_bounded_without_losing_partial_query (test_serial_console.SerialTerminalTest.test_boot_log_retention_is_bounded_without_losing_partial_query) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5110761Z test_queries_split_at_every_socket_boundary (test_serial_console.SerialTerminalTest.test_queries_split_at_every_socket_boundary) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5112580Z test_repeated_queries_answered_once_each (test_serial_console.SerialTerminalTest.test_repeated_queries_answered_once_each) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5114535Z test_shell_text_and_other_escape_sequences_do_not_receive_input (test_serial_console.SerialTerminalTest.test_shell_text_and_other_escape_sequences_do_not_receive_input) ... ok
+image	Install tools on disposable runner	2026-10-22T02:47:20.5116812Z Ran 21 tests in 0.365s
+image	Install tools on disposable runner	2026-10-22T02:47:20.5117419Z OK
+image	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T02:47:25.0489238Z Verified OK
+image	Build and audit the image (runner storage only)	2026-10-22T02:56:47.5408860Z Updater audit passed: 815 system/user units inspected
+image	Build and audit the image (runner storage only)	2026-10-22T02:57:03.0238491Z Checks passed: 10
+image	Build and audit the image (runner storage only)	2026-10-22T02:57:03.0238664Z Checks skipped: 1
+image	Build and audit the image (runner storage only)	2026-10-22T02:57:03.0238826Z Warnings: 4
+image	Build isolated test overlay and prove release excludes it	﻿2026-10-22T02:59:29.8703123Z ##[group]Run set -euo pipefail
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8705436Z ^[[36;1mset -euo pipefail^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8705966Z ^[[36;1msudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8706530Z ^[[36;1m  test ! -e /usr/libexec/aresos-ci^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8706991Z ^[[36;1m  test ! -e /usr/lib/systemd/system/aresos-ci.service^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8707640Z ^[[36;1m  test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-ci.service^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8708190Z ^[[36;1m  test ! -e /tmp/aresos^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8708727Z ^[[36;1m  test ! -e /etc/systemd/system/systemd-logind.service.d/90-aresos-ci.conf^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8709330Z ^[[36;1m  test ! -e /etc/systemd/journald.conf.d/99-aresos-ci.conf^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8710109Z ^[[36;1m  test "$(systemd-analyze cat-config systemd/journald.conf | sed -n "s/^Storage=//p" | tail -1)" = persistent^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8710813Z ^[[36;1m  for user in root ares; do^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8711173Z ^[[36;1m    case "$(getent shadow "$user" | cut -d: -f2)" in^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8711483Z ^[[36;1m      \!*|\**) ;;^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8711732Z ^[[36;1m      *) echo "Unlocked image account: $user"; exit 1 ;;^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8711989Z ^[[36;1m    esac^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8712156Z ^[[36;1m  done^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8712432Z ^[[36;1m  echo "Release excludes CI service and credentials; both passwords locked"^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8712789Z ^[[36;1m' | tee evidence/release-isolation.txt^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8713386Z ^[[36;1msudo podman build --format=oci --tag localhost/aresos:vm --file os/ci/overlay/Containerfile .^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8714164Z ^[[36;1msudo skopeo inspect --raw containers-storage:localhost/aresos:vm > evidence/vm-image-oci-manifest.json^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8714691Z ^[[36;1msha256sum evidence/vm-image-oci-manifest.json > evidence/vm-image-digest.txt^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.8715148Z ^[[36;1msudo podman image inspect localhost/aresos:vm > evidence/vm-image-inspect.json^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.9225567Z shell: /usr/bin/bash -e {0}
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:29.9225887Z ##[endgroup]
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:30.1532624Z Release excludes CI service and credentials; both passwords locked
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:30.4832824Z STEP 1/5: FROM localhost/aresos:ci
+image	Build isolated test overlay and prove release excludes it	2026-10-22T02:59:30.4943588Z STEP 2/5: COPY os/ci/channel.py os/ci/overlay/checks.py os/ci/overlay/pam_check.py /usr/libexec/aresos-ci/
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:02:07.8163601Z --> e0a64c62fef2
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:02:07.8615629Z STEP 3/5: COPY os/tests/guest.sh os/tests/power-events.py /usr/libexec/aresos-ci/
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:04:46.0783819Z --> 126de41b6e61
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:04:46.1556374Z STEP 4/5: COPY os/ci/overlay/aresos-ci.service os/ci/overlay/logind-debug.conf os/ci/overlay/journal-debug.conf /tmp/aresos-ci/
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:05.8092405Z --> ed56971d841f
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:05.8557143Z STEP 5/5: RUN install -Dm0644 /tmp/aresos-ci/aresos-ci.service /usr/lib/systemd/system/aresos-ci.service &&     install -Dm0644 /tmp/aresos-ci/logind-debug.conf /etc/systemd/system/systemd-logind.service.d/90-aresos-ci.conf &&     install -Dm0644 /tmp/aresos-ci/journal-debug.conf /etc/systemd/journald.conf.d/99-aresos-ci.conf &&     rm -rf /tmp/aresos-ci &&     mkdir -p /usr/lib/systemd/system/multi-user.target.wants &&     ln -s ../aresos-ci.service /usr/lib/systemd/system/multi-user.target.wants/aresos-ci.service &&     bootc container lint
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2131835Z Lint warning: nonempty-run-tmp: Found content in runtime-only directories (/run, /tmp):
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2132474Z   /run/dnf
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2132652Z   /run/selinux-policy
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2132910Z   /run/selinux-policy/extra_varrun.cil
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2133715Z   /run/selinux-policy/extra_varrun_entries.txt
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2134147Z   /run/selinux-policy/extra_varrun_entries_dup.txt
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2134523Z   ...and 1 more
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2134664Z
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2135002Z Lint warning: sysusers: Found /etc/passwd entry without corresponding systemd sysusers.d:
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2135535Z   ares
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2136401Z Found /etc/group entry without corresponding systemd sysusers.d:
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2136722Z   ares
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2136818Z
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2136931Z Lint warning: var-log: Found non-empty logfiles:
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2137278Z   /var/log/dnf5.log
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2137426Z
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2137717Z Lint warning: var-tmpfiles: Found content in /var missing systemd tmpfiles.d entries:
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2138256Z   L /var/lib/greetd/.config/systemd/user/xdg-desktop-portal.service - - - - /dev/null
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2138755Z   d /var/cache/libdnf5 0755 root root - -
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2138996Z   d /var/lib/dnf/repos 0755 root root - -
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2139347Z   d /var/lib/dnf/repos/fedora-cff72538bc9825a4 0755 root root - -
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2139835Z   d /var/lib/dnf/repos/updates-3cc07c89a20302f2 0755 root root - -
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2140187Z   ...and 3 more
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2140393Z Found non-directory/non-symlink files in /var:
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2140715Z   var/lib/dnf/repos/fedora-cff72538bc9825a4/countme
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2141046Z   var/lib/dnf/repos/updates-3cc07c89a20302f2/countme
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2141298Z   var/log/dnf5.log
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2141548Z   var/cache/ldconfig/aux-cache
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2141762Z
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2141861Z Checks passed: 10
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2142118Z Checks skipped: 1
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.2142357Z Warnings: 4
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:07:11.3001481Z COMMIT localhost/aresos:vm
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:09:39.5359647Z --> 8297cf68331a
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:09:39.5359982Z Successfully tagged localhost/aresos:vm
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:09:40.4761994Z 8297cf68331a9ec8800a80b3aa43305b9adfbfd60365e578fdb6b65934a94c1a
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:09:40.6258320Z time="2026-10-22T03:09:40Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+image	Build isolated test overlay and prove release excludes it	2026-10-22T03:09:40.6260841Z time="2026-10-22T03:09:40Z" level=info msg="[graphdriver] using prior storage driver: overlay"
+image	Build file-backed UEFI VM disk	2026-10-22T03:26:48.7797412Z Build complete!
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T03:28:07.6853986Z Updater audit passed: 828 system/user units inspected
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T03:28:29.3158004Z Traceback (most recent call last):
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T03:28:29.3165718Z AssertionError: {'argv': ['mount', '-t', 'btrfs', '-o', 'ro,nologreplay,subvolid=5', '/dev/nbd0p4', '/home/runner/work/AresOS/AresOS/vm-work/offline-root'], 'returncode': 32, 'stderr': 'mount: /home/runner/work/AresOS/AresOS/vm-work/offline-root: wrong fs type, bad option, bad superblock on /dev/nbd0p4, missing codepage or helper program, or other error.\n       dmesg(1) may have more information after failed mount system call.\n', 'output': None}

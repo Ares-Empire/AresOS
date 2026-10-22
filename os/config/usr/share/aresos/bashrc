@@ -1,0 +1,2 @@
+printf '\nAresOS\n\nSuper+Ctrl+Escape: recovery terminal\nCtrl+Alt+F3: separate TTY (provision a recovery password first)\n\n'
+PS1='aresos \w \$ '

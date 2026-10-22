@@ -1,0 +1,12 @@
+{
+  "id": 7,
+  "returncode": 0,
+  "journal_unit": "aresos-ci-journal.service",
+  "after_cursor": "s=3716d8091a10423d912ebf6ef479a05c;i=d15;b=4606ca97045944f79dfe9cb4470b1f3c;m=5d9caaa;t=65e665be7107b;x=80969b26d3297707",
+  "boot_id": "4606ca97045944f79dfe9cb4470b1f3c",
+  "persistent_files": [
+    "2e66539ce4f44db8b9d3f992e0e017fd/system.journal",
+    "2e66539ce4f44db8b9d3f992e0e017fd/user-1000.journal"
+  ],
+  "journald_config": "# /usr/lib/systemd/journald.conf\n#  This file is part of systemd.\n#\n#  systemd is free software; you can redistribute it and/or modify it under the\n#  terms of the GNU Lesser General Public License as published by the Free\n#  Software Foundation; either version 2.1 of the License, or (at your option)\n#  any later version.\n#\n# Entries in this file show the compile time defaults. Local configuration\n# should be created by either modifying this file (or a copy of it placed in\n# /etc/ if the original file is shipped in /usr/), or by creating \"drop-ins\" in\n# the /etc/systemd/journald.conf.d/ directory. The latter is generally\n# recommended. Defaults can be restored by simply deleting the main\n# configuration file and all drop-ins located in /etc/.\n#\n# Use 'systemd-analyze cat-config systemd/journald.conf' to display the full config.\n#\n# See journald.conf(5) for details.\n\n[Journal]\n#Storage=persistent\n#Compress=yes\n#Seal=yes\n#SplitMode=uid\n#SyncIntervalSec=5m\n#RateLimitIntervalSec=30s\n#RateLimitBurst=10000\n#SystemMaxUse=\n#SystemKeepFree=\n#SystemMaxFileSize=\n#SystemMaxFiles=100\n#RuntimeMaxUse=\n#RuntimeKeepFree=\n#RuntimeMaxFileSize=\n#RuntimeMaxFiles=100\n#MaxRetentionSec=0\n#MaxFileSec=1month\n#ForwardToSyslog=no\n#ForwardToKMsg=no\n#ForwardToConsole=no\n#ForwardToWall=yes\n#TTYPath=/dev/console\n#MaxLevelStore=debug\n#MaxLevelSyslog=debug\n#MaxLevelKMsg=notice\n#MaxLevelConsole=info\n#MaxLevelWall=emerg\n#MaxLevelSocket=debug\n#LineMax=48K\n#ReadKMsg=yes\n#Audit=yes\n\n# /usr/lib/systemd/journald.conf.d/10-persistent.conf\n[Journal]\nStorage=persistent\n\n# /etc/systemd/journald.conf.d/90-aresos.conf\n[Journal]\nStorage=persistent\n\n# /etc/systemd/journald.conf.d/99-aresos-ci.conf\n[Journal]\nMaxLevelStore=debug\n"
+}

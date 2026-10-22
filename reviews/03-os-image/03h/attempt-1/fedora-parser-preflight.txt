@@ -1,0 +1,5 @@
+4cf6de35edcedb8b209f885d2826071447f26e7faccc4231db4f7b566d2c1a78
+systemd 259 (259.9-1.fc44)
++PAM +AUDIT +SELINUX -APPARMOR +IMA +IPE +SMACK +SECCOMP -GCRYPT +GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK +BTF +XKBCOMMON +UTMP +SYSVINIT +LIBARCHIVE
+Fedora parser preflight passed: system: 801 unit names; escaped name, alias, dependency and spaced drop-in preserved
+Fedora parser preflight passed: user: 270 unit names; escaped name, alias, dependency and spaced drop-in preserved

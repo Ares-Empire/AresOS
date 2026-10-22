@@ -1,0 +1,93 @@
+2026-10-22T09:40:57.1301788Z test_live_dependencies_and_transient_commands_are_inspected (test_audit.ActivationAuditPrototypeTest.test_live_dependencies_and_transient_commands_are_inspected) ... ok
+2026-10-22T09:40:57.1306326Z test_live_root_units_are_arguments_and_aliases_are_preserved (test_audit.ActivationAuditPrototypeTest.test_live_root_units_are_arguments_and_aliases_are_preserved) ... ok
+2026-10-22T09:40:57.1350499Z test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail (test_audit.ActivationAuditPrototypeTest.test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail) ... ok
+2026-10-22T09:40:57.1383964Z test_quoted_escaped_manager_names_and_dependencies_are_round_tripped (test_audit.ActivationAuditPrototypeTest.test_quoted_escaped_manager_names_and_dependencies_are_round_tripped) ... ok
+2026-10-22T09:40:57.1401986Z test_quoted_live_dropin_path_is_inspected (test_audit.ActivationAuditPrototypeTest.test_quoted_live_dropin_path_is_inspected) ... ok
+2026-10-22T09:40:57.1491294Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+2026-10-22T09:40:57.1567463Z test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask (test_audit.UpdaterAuditTest.test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask) ... ok
+2026-10-22T09:40:57.1570233Z test_live_state_rows_are_validated (test_audit.UpdaterAuditTest.test_live_state_rows_are_validated) ... ok
+2026-10-22T09:40:57.1572230Z test_masked_but_running_updater_is_rejected_in_every_live_state (test_audit.UpdaterAuditTest.test_masked_but_running_updater_is_rejected_in_every_live_state) ... ok
+2026-10-22T09:40:57.1637785Z test_missing_live_user_manager_is_a_failure (test_audit.UpdaterAuditTest.test_missing_live_user_manager_is_a_failure) ... ok
+2026-10-22T09:40:57.1639902Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+2026-10-22T09:40:57.1670112Z test_static_live_inventory_reads_generated_files_and_both_manager_states (test_audit.UpdaterAuditTest.test_static_live_inventory_reads_generated_files_and_both_manager_states) ... ok
+2026-10-22T09:40:57.1672784Z test_suspicious_units_require_mask_or_review_in_every_state (test_audit.UpdaterAuditTest.test_suspicious_units_require_mask_or_review_in_every_state) ... ok
+2026-10-22T09:40:57.1745922Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+2026-10-22T09:40:57.1758423Z test_fragmented_and_coalesced_frames_at_every_boundary (test_channel.ChannelTest.test_fragmented_and_coalesced_frames_at_every_boundary) ... ok
+2026-10-22T09:40:57.1950833Z test_incomplete_and_oversized_frames_fail (test_channel.ChannelTest.test_incomplete_and_oversized_frames_fail) ... ok
+2026-10-22T09:40:57.1952955Z test_raw_exports_preserve_bytes_and_reject_corruption (test_channel.ChannelTest.test_raw_exports_preserve_bytes_and_reject_corruption) ... ok
+2026-10-22T09:40:57.1963654Z test_events_before_and_after_command_reply_are_retained (test_channel.QMPTest.test_events_before_and_after_command_reply_are_retained) ... ok
+2026-10-22T09:40:57.1965757Z test_host_exit_reset_suspend_and_missing_shutdown_are_rejected (test_channel.QMPTest.test_host_exit_reset_suspend_and_missing_shutdown_are_rejected) ... ok
+2026-10-22T09:40:57.1968372Z test_missing_records_and_other_boot_cannot_pass (test_offline_journal.OfflineJournalTest.test_missing_records_and_other_boot_cannot_pass) ... ok
+2026-10-22T09:40:57.1973902Z test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail (test_offline_journal.OfflineJournalTest.test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail) ... ok
+2026-10-22T09:40:57.1980517Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: reader failed
+2026-10-22T09:40:57.1984872Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T09:40:57.1999036Z test_only_unreadable_journal_is_reported_as_hardware_gate (test_offline_journal.OfflineJournalTest.test_only_unreadable_journal_is_reported_as_hardware_gate) ... ok
+2026-10-22T09:40:57.2001420Z test_ordered_logind_and_manager_records_from_exact_boot_pass (test_offline_journal.OfflineJournalTest.test_ordered_logind_and_manager_records_from_exact_boot_pass) ... ok
+2026-10-22T09:40:57.2004521Z test_restore_filter_descends_only_toward_persistent_journals (test_offline_journal.OfflineJournalTest.test_restore_filter_descends_only_toward_persistent_journals) ... ok
+2026-10-22T09:40:57.3694301Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T09:40:57.3785806Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T09:40:57.3802135Z test_every_reader_command_error_and_timeout_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_every_reader_command_error_and_timeout_is_blocking) ... ok
+2026-10-22T09:40:57.3878450Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T09:40:57.3883802Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T09:40:57.3896383Z test_fallback_verifies_before_selecting_exact_boot (test_offline_journal.OfflineReaderCommandsTest.test_fallback_verifies_before_selecting_exact_boot) ... ok
+2026-10-22T09:40:57.3931133Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--device', '/dev/nbd0p4:/dev/guest:r', '--volume', '/tmp/tmpdj_74al8/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/export:rw', '--entrypoint', '/usr/bin/btrfs', 'localhost/aresos:ci', 'version'], 'returncode': 1, 'stderr': 'stat /usr/bin/btrfs: no such file or directory', 'output': 'offline-btrfs-version.txt'}
+2026-10-22T09:40:57.4075077Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--volume', '/tmp/tmpv0r3h0ht/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/var/log/journal:/guest-journal:ro', '--entrypoint', '/usr/bin/journalctl', 'localhost/aresos:ci', '--directory=/guest-journal', '--no-pager', '--version'], 'returncode': 1, 'stderr': 'stat /usr/bin/journalctl: no such file or directory', 'output': 'offline-journalctl-version.txt'}
+2026-10-22T09:40:57.4243714Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; host Podman is absent
+2026-10-22T09:40:57.4289735Z test_gate_requires_both_explicit_host_limitations (test_offline_journal.OfflineReaderCommandsTest.test_gate_requires_both_explicit_host_limitations) ... ok
+2026-10-22T09:40:57.4936731Z test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking) ... ok
+2026-10-22T09:40:57.4998969Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T09:40:57.5008115Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T09:40:57.5115665Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T09:40:57.5410693Z test_mounted_reader_and_cleanup_failures_are_blocking (test_offline_journal.OfflineReaderCommandsTest.test_mounted_reader_and_cleanup_failures_are_blocking) ... ok
+2026-10-22T09:40:57.7714282Z test_guest_tty_reader_cannot_consume_completion_command (test_serial_console.SerialCommandTest.test_guest_tty_reader_cannot_consume_completion_command) ... ok
+2026-10-22T09:40:57.8818859Z test_long_script_survives_canonical_tty_line_limit (test_serial_console.SerialCommandTest.test_long_script_survives_canonical_tty_line_limit) ... ok
+2026-10-22T09:40:57.8888600Z test_nonzero_guest_exit_is_preserved (test_serial_console.SerialCommandTest.test_nonzero_guest_exit_is_preserved) ... ok
+2026-10-22T09:40:57.8898334Z test_corruption_and_incomplete_frames_are_rejected (test_serial_console.SerialExportTest.test_corruption_and_incomplete_frames_are_rejected) ... ok
+2026-10-22T09:40:57.8914019Z test_kernel_record_at_every_payload_boundary_preserves_bytes (test_serial_console.SerialExportTest.test_kernel_record_at_every_payload_boundary_preserves_bytes) ... ok
+2026-10-22T09:40:57.8916302Z test_wrapped_crlf_export_preserves_raw_json (test_serial_console.SerialExportTest.test_wrapped_crlf_export_preserves_raw_json) ... ok
+2026-10-22T09:40:57.8919517Z test_boot_log_retention_is_bounded_without_losing_partial_query (test_serial_console.SerialTerminalTest.test_boot_log_retention_is_bounded_without_losing_partial_query) ... ok
+2026-10-22T09:40:57.8921913Z test_queries_split_at_every_socket_boundary (test_serial_console.SerialTerminalTest.test_queries_split_at_every_socket_boundary) ... ok
+2026-10-22T09:40:57.8924191Z test_repeated_queries_answered_once_each (test_serial_console.SerialTerminalTest.test_repeated_queries_answered_once_each) ... ok
+2026-10-22T09:40:57.8926317Z test_shell_text_and_other_escape_sequences_do_not_receive_input (test_serial_console.SerialTerminalTest.test_shell_text_and_other_escape_sequences_do_not_receive_input) ... ok
+2026-10-22T09:40:57.8928881Z Ran 39 tests in 0.766s
+2026-10-22T09:40:57.8929607Z OK
+2026-10-22T09:40:58.0596861Z [36;1m  alias log_error="echo \"ERROR:\""[0m
+2026-10-22T09:41:00.7793490Z Verified OK
+2026-10-22T09:50:15.3927558Z Updater audit passed: 818 system/user units inspected
+2026-10-22T09:50:29.6807410Z Checks passed: 10
+2026-10-22T09:50:29.6807742Z Checks skipped: 1
+2026-10-22T09:50:29.6808058Z Warnings: 4
+2026-10-22T09:52:59.0365960Z [36;1m  echo "Release excludes CI service and credentials; both passwords locked"[0m
+2026-10-22T09:52:59.5102101Z Release excludes CI service and credentials; both passwords locked
+2026-10-22T10:03:27.9206482Z Checks passed: 10
+2026-10-22T10:03:27.9206817Z Checks skipped: 1
+2026-10-22T10:03:27.9207130Z Warnings: 4
+2026-10-22T10:21:17.2781851Z Build complete!
+2026-10-22T10:23:01.9512318Z Guest policy: 0
+2026-10-22T10:23:01.9534839Z Updater audit passed: 1088 system/user units inspected
+2026-10-22T10:23:01.9535806Z Deployment backend: bootc (OSTree storage)
+2026-10-22T10:23:01.9538265Z ARESOS_GUEST_CHECKS_PASSED
+2026-10-22T10:23:01.9615540Z Guest export: 0
+2026-10-22T10:23:16.3851668Z Guest power-events: 0
+2026-10-22T10:23:16.3853559Z ARESOS_POWER_EVENTS_PASSED: lid and sleep keys observed/ignored; direct sleep requests rejected
+2026-10-22T10:23:16.4059638Z Guest export: 0
+2026-10-22T10:23:17.6812074Z Guest shortcut: 0
+2026-10-22T10:23:19.9643743Z Guest recovery: 0
+2026-10-22T10:23:20.6523705Z Guest prepare-poweroff: 0
+2026-10-22T10:23:30.5906655Z Offline journal passed: boot b854391a357041369180be760f446df2, logind power key -> power-off -> orderly logind stop
+2026-10-22T10:23:30.6003846Z PASS: offline logind power-key path for boot b854391a357041369180be760f446df2
+2026-10-22T10:23:30.6014440Z UEFI VM checks passed: session, updater/sleep policy, recovery shortcut, tty3 getty, password authentication via login PAM, ignored lid/sleep events, clean ACPI poweroff
+2026-10-22T10:25:11.7142974Z Guest policy: 0
+2026-10-22T10:25:11.7152207Z Updater audit passed: 1088 system/user units inspected
+2026-10-22T10:25:11.7153743Z Deployment backend: bootc (OSTree storage)
+2026-10-22T10:25:11.7157229Z ARESOS_GUEST_CHECKS_PASSED
+2026-10-22T10:25:11.7293457Z Guest export: 0
+2026-10-22T10:25:26.3354455Z Guest power-events: 0
+2026-10-22T10:25:26.3356811Z ARESOS_POWER_EVENTS_PASSED: lid and sleep keys observed/ignored; direct sleep requests rejected
+2026-10-22T10:25:26.3532250Z Guest export: 0
+2026-10-22T10:25:27.4644757Z Guest shortcut: 0
+2026-10-22T10:25:29.3612268Z Guest recovery: 0
+2026-10-22T10:25:29.9099256Z Guest prepare-poweroff: 0
+2026-10-22T10:25:40.4605848Z Offline journal passed: boot 2c3026bde47b4cc9b1a33718c1fa546a, logind power key -> power-off -> orderly logind stop
+2026-10-22T10:25:40.4735354Z PASS: offline logind power-key path for boot 2c3026bde47b4cc9b1a33718c1fa546a
+2026-10-22T10:25:40.4744853Z UEFI VM checks passed: session, updater/sleep policy, recovery shortcut, tty3 getty, password authentication via login PAM, ignored lid/sleep events, clean ACPI poweroff

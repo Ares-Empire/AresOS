@@ -1,0 +1,28 @@
+{
+   "blockdevices": [
+      {
+         "name": "/dev/nbd0",
+         "fstype": null,
+         "ro": true,
+         "children": [
+            {
+               "name": "/dev/nbd0p1",
+               "fstype": null,
+               "ro": true
+            },{
+               "name": "/dev/nbd0p2",
+               "fstype": "vfat",
+               "ro": true
+            },{
+               "name": "/dev/nbd0p3",
+               "fstype": "ext4",
+               "ro": true
+            },{
+               "name": "/dev/nbd0p4",
+               "fstype": "btrfs",
+               "ro": true
+            }
+         ]
+      }
+   ]
+}

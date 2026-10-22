@@ -1,0 +1,83 @@
+{
+  "events": [
+    "lid closed: observed and ignored",
+    "lid opened: observed and ignored",
+    "Suspend key: observed and ignored",
+    "Hibernate key: observed and ignored"
+  ],
+  "requests": [
+    {
+      "method": "Suspend",
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "Call failed: Sleep verb 'suspend' is disabled by config\n"
+    },
+    {
+      "method": "Hibernate",
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "Call failed: Sleep verb 'hibernate' is disabled by config\n"
+    },
+    {
+      "method": "HybridSleep",
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "Call failed: Sleep verb 'hybrid-sleep' is disabled by config\n"
+    },
+    {
+      "method": "SuspendThenHibernate",
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "Call failed: Sleep verb 'suspend-then-hibernate' is disabled by config\n"
+    }
+  ],
+  "policy": {
+    "HandleLidSwitch": "s \"ignore\"",
+    "HandleLidSwitchExternalPower": "s \"ignore\"",
+    "HandleLidSwitchDocked": "s \"ignore\"",
+    "HandleSuspendKey": "s \"ignore\"",
+    "HandleHibernateKey": "s \"ignore\"",
+    "HandlePowerKey": "s \"poweroff\""
+  },
+  "inhibitors": "WHO            UID USER PID  COMM           WHAT  WHY                                       MODE\nModemManager   0   root 1058 ModemManager   sleep ModemManager needs to reset devices       delay\nNetworkManager 0   root 1056 NetworkManager sleep NetworkManager needs to turn off networks delay\nUPower         0   root 864  upowerd        sleep Pause device polling                      delay\n\n3 inhibitors listed.\n",
+  "session_before": {
+    "labwc": [
+      "1624"
+    ],
+    "foot": [
+      "2033"
+    ]
+  },
+  "sleep_before": {
+    "sleep.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "suspend.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "systemd-suspend.service": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "hibernate.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "systemd-hibernate.service": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "hybrid-sleep.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "systemd-hybrid-sleep.service": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "suspend-then-hibernate.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "systemd-suspend-then-hibernate.service": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n"
+  },
+  "session_after": {
+    "labwc": [
+      "1624"
+    ],
+    "foot": [
+      "2033"
+    ]
+  },
+  "sleep_after": {
+    "sleep.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "suspend.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "systemd-suspend.service": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "hibernate.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "systemd-hibernate.service": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "hybrid-sleep.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "systemd-hybrid-sleep.service": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "suspend-then-hibernate.target": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n",
+    "systemd-suspend-then-hibernate.service": "ActiveState=inactive\nActiveEnterTimestampMonotonic=0\n"
+  },
+  "passed": true,
+  "logind_journal": "Starting systemd-logind.service - User Login Management...\nNew seat seat0.\nWatching system buttons on /dev/input/event0 (Power Button)\nWatching system buttons on /dev/input/event4 (QEMU QEMU USB Keyboard)\nWatching system buttons on /dev/input/event1 (AT Translated Set 2 keyboard)\nFailed to open '/boot/loader/entries': Remote address changed\nStarted systemd-logind.service - User Login Management.\nNew session '1' of user 'ares' with class 'user' and type 'tty'.\nNew session '2' of user 'ares' with class 'manager' and type 'unspecified'.\nWatching system buttons on /dev/input/event7 (AresOS CI power events)\nLid closed.\nLid opened.\nSuspend key pressed short.\nHibernate key pressed short.\n"
+}

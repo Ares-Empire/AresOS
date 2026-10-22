@@ -1,0 +1,10 @@
+FROM ghcr.io/ublue-os/bazzite-nvidia@sha256:3d13e825932cfddf73c369db7e7397bf79e8bf8881a4276b9a958b37234899e1 AS packages
+
+COPY . /tmp/aresos/
+RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
+
+FROM packages AS aresos
+RUN cp -a /tmp/aresos/config/. / && \
+    cp -a /tmp/aresos/policy /usr/share/aresos/ && \
+    install -m 0755 /tmp/aresos/tests/audit.py /usr/libexec/aresos-audit && \
+    bash /tmp/aresos/build.sh configure && bootc container lint

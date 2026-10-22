@@ -1,0 +1,10 @@
+polkit.addRule(function(action, subject) {
+    if (subject.user == "ares" &&
+        (action.id.indexOf("org.projectatomic.rpmostree1.") == 0 ||
+         action.id.indexOf("org.freedesktop.Flatpak.") == 0 ||
+         action.id.indexOf("org.freedesktop.fwupd.") == 0 ||
+         action.id.indexOf("org.bazzite.") == 0 ||
+         action.id == "org.freedesktop.systemd1.manage-unit-files")) {
+        return polkit.Result.NO;
+    }
+});

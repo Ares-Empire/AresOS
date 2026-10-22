@@ -1,0 +1,6992 @@
+[
+  {
+    "scope": "system",
+    "name": "proc-sys-fs-binfmt_misc.automount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "-.mount",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "boot-efi.mount",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "boot.mount",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dev-binderfs.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dev-hugepages.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dev-hugepages1G.mount",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dev-mqueue.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "proc-fs-nfsd.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "proc-sys-fs-binfmt_misc.mount",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "run-vmblock\\x2dfuse.mount",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sys-fs-fuse-connections.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sys-kernel-config.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sys-kernel-debug.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sys-kernel-tracing.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "tmp.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "var-lib-machines.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "var-lib-nfs-rpc_pipefs.mount",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "var.mount",
+    "state": "generated",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "bootc-status-updated.path",
+    "state": "enabled-runtime",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "cups.path",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "lvm-devices-import.path",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "nvidia-cdi-refresh.path",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-ask-password-console.path",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-ask-password-plymouth.path",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-ask-password-wall.path",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "session-1.scope",
+    "state": "transient",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "accounts-daemon.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/accounts-daemon"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "acpid.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "alsa-card-wait@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/alsactl -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main wrestore %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "alsa-restore.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/sbin/alsactl -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main restore",
+      "ExecStop=/sbin/alsactl -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf store"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "alsa-state.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon",
+      "ExecStop=-/usr/sbin/alsactl -s kill save_and_quit"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "aresos-ci.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/python3 /usr/libexec/aresos-ci/checks.py"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "arp-ethers.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/sbin/arp -f /etc/ethers"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "audit-rules.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/augenrules --load"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "auditd.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/auditd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "auth-rpcgss-module.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/sbin/modprobe -q auth_rpcgss"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "authselect-apply-changes.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/authselect apply-changes --upgrade"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "autovt@.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "avahi-daemon.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/avahi-daemon -s",
+      "ExecReload=/usr/bin/avahi-daemon -r"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bazzite-autologin.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "bazzite-flatpak-manager.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/bazzite-flatpak-manager"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bazzite-hardware-setup.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/bazzite-hardware-setup"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bazzite-iwd-migration.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/bazzite-iwd-migration",
+      "ExecStartPost=/usr/bin/touch /var/lib/bazzite-iwd-migration.done"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bazzite-libvirtd-setup.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/bash -c \"systemctl enable --now libvirtd; restorecon -Rv /var/log/libvirt /var/lib/libvirt; systemctl disable %n\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "beesd@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/beesd --no-timestamps %i",
+      "ExecStart=",
+      "ExecStart=/usr/bin/timeout 30m /usr/bin/beesd --no-timestamps %i",
+      "ExecStart=",
+      "ExecStart=/usr/bin/timeout 30m /usr/bin/beesd --no-timestamps %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "blk-availability.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/true",
+      "ExecStop=/usr/bin/blkdeactivate -u -l wholevg -m disablequeueing -r wait"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bluetooth.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/bluetooth/bluetoothd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bolt.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/boltd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-destructive-cleanup.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/bootc/fedora-bootc-destructive-cleanup"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-fetch-apply-updates.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/bootc upgrade --apply --quiet"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-finalize-staged.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStop=/usr/bin/bootc composefs-finalize-staged"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-publish-rhsm-facts.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/bootc internals publish-rhsm-facts"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-root-setup.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/bootc/initramfs-setup setup-root"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-sysusers-shadow-sync.service",
+    "state": "enabled-runtime",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/bootc internals sysusers-sync"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-update.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "bootloader-update.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecCondition=/bin/bash -c '[[ ! $(findmnt -n -o FSTYPE /sysroot) =~ ^(erofs|squashfs)$ ]]'",
+      "ExecStart=/usr/bin/bootupctl update",
+      "ExecStart=/usr/bin/bootupctl migrate-static-grub-config"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bpftune.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/bpftune"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "breakpoint-pre-basic.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-plymouth --wait quit",
+      "ExecStart=-/bin/sh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "breakpoint-pre-mount.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-plymouth --wait quit",
+      "ExecStart=-/bin/sh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "breakpoint-pre-switch-root.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-plymouth --wait quit",
+      "ExecStart=-/bin/sh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "breakpoint-pre-udev.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-plymouth --wait quit",
+      "ExecStart=-/bin/sh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "brew-setup.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/mkdir -p /tmp/homebrew",
+      "ExecStart=/usr/bin/mkdir -p /home/linuxbrew",
+      "ExecStart=/usr/bin/tar --zstd -xf /usr/share/homebrew.tar.zst -C /tmp/homebrew",
+      "ExecStart=/usr/bin/cp -R -n /tmp/homebrew/home/linuxbrew/.linuxbrew /home/linuxbrew",
+      "ExecStart=/usr/bin/chown -R 1000:1000 /home/linuxbrew",
+      "ExecStart=/usr/bin/rm -rf /tmp/homebrew",
+      "ExecStart=/usr/bin/touch /etc/.linuxbrew"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "brew-update.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/bash -c \"/home/linuxbrew/.linuxbrew/bin/brew update\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "brew-upgrade.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/bash -c \"/home/linuxbrew/.linuxbrew/bin/brew upgrade\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "brltty.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/brltty"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "canberra-system-bootup.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/canberra-boot system-bootup"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "canberra-system-shutdown-reboot.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/canberra-boot system-shutdown-reboot"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "canberra-system-shutdown.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/canberra-boot system-shutdown"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "capsule@.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd --user --unit=capsule@%i.target"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cec-active-source.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/bin/echo 'on 0' | /usr/bin/cec-client -s",
+      "ExecStart=/bin/echo 'as' | /usr/bin/cec-client -s"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cec-onboot.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/cec-control onboot"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cec-onpoweroff.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/cec-control onpoweroff"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cec-onsleep.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/cec-control onsleep"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cec-poweroff-tv.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/bin/echo 'standby 0' | /usr/bin/cec-client -s",
+      "ExecStop=/bin/echo 'standby 0' | /usr/bin/cec-client -s"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "chrony-wait.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/chronyc -h 127.0.0.1,::1 waitsync 0 0.1 0.0 1"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "chronyd-restricted.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/chronyd -n -U $OPTIONS"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "chronyd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/chronyd -n $OPTIONS"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cockpit-container.service",
+    "state": "generated",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "cockpit.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/true"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "colord.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/colord"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "configure-printer@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/udev/udev-configure-printer add \"%i\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "console-getty.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/sbin/agetty --noreset --noclear --issue-file=/etc/issue:/etc/issue.d:/run/issue.d:/usr/lib/issue.d --keep-baud 115200,57600,38400,9600 - ${TERM}"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "container-getty@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/sbin/agetty --noreset --noclear --issue-file=/etc/issue:/etc/issue.d:/run/issue.d:/usr/lib/issue.d - ${TERM}"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cpupower.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/cpupower"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cups-browsed.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/cups-browsed"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cups.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/cupsd -l"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dbus-:1.4-org.fedoraproject.SetroubleshootPrivileged@0.service",
+    "state": "transient",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-broker.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/dbus-broker-launch --scope system --audit"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dbus-daemon.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only",
+      "ExecReload=/usr/bin/dbus-send --print-reply --system --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.bluez.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.fedoraproject.FirewallD1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.Avahi.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.home1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.hostname1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.import1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.locale1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.login1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.machine1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.ModemManager1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.nm-dispatcher.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.oom1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.portable1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.resolve1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.sysupdate1.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.thermald.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.timedate1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "debug-shell.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/bin/sh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "display-manager.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dm-event.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/dmeventd -f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dmemcg-booster-system.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/dmemcg-booster --use-system-bus"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dnf-automatic.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dnf-makecache.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/dnf5 makecache"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dnf5-automatic.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dnf5-makecache.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dnf5-offline-transaction-cleanup.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/rm -fv /system-update",
+      "ExecStart=/usr/bin/systemctl --no-block reboot"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dnf5-offline-transaction.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/dnf5 offline _execute"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dnsmasq.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/dnsmasq"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dracut-cmdline.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dracut-initqueue.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dracut-mount.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dracut-pre-mount.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dracut-pre-pivot.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dracut-pre-trigger.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dracut-pre-udev.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dracut-shutdown-onfailure.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dracut-shutdown.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "ds-inhibit.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ds-inhibit"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "emergency.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-plymouth --wait quit",
+      "ExecStart=-/usr/lib/systemd/systemd-sulogin-shell emergency"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fancontrol.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/fancontrol"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fedora-atomic-desktop-appstream-cache-refresh.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=appstreamcli refresh --force"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fedora-atomic-desktop-mandb-update.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=mandb -q"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fedora-kinoite-plasmalogin-workaround.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/fedora-kinoite-plasmalogin-workaround"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fips-crypto-policy-overlay.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/fips-crypto-policy-overlay"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "firewalld.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/firewalld --nofork --nopid $FIREWALLD_ARGS",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "flatpak-add-fedora-repos.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/flatpak remote-add --system --if-not-exists flathub /etc/flatpak/remotes.d/flathub.flatpakrepo",
+      "ExecStart=/usr/bin/flatpak remote-add --system --if-not-exists --disable --title \"Fedora Flatpaks\" fedora oci+https://registry.fedoraproject.org",
+      "ExecStart=/usr/bin/flatpak remote-add --system --if-not-exists --disable --title \"Fedora Flatpaks (testing)\" fedora-testing oci+https://registry.fedoraproject.org#testing",
+      "ExecStartPost=/usr/bin/touch /var/lib/flatpak/.ublue-initialized"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "flatpak-system-helper.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/flatpak-system-helper"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "flatpak-system-update.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "foomaticrip-upgrade.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=bash -c /usr/libexec/cups-filters/posttrans.sh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "force-wol.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/force-wol"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fprintd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/fprintd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "framework-ectool.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/framework-ectool"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fsidd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/fsidd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fstrim.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/fstrim --listed-in /etc/fstab:/proc/self/mountinfo --verbose --quiet-unsupported",
+      "ExecStart=/usr/bin/fstrim --listed-in /proc/self/mountinfo --verbose --quiet-unsupported"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fw-fanctrl-suspend.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=\"/usr/bin/fw-fanctrl\" pause",
+      "ExecStop=\"/usr/bin/fw-fanctrl\" resume"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fw-fanctrl.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=\"/usr/bin/fw-fanctrl\" --output-format \"JSON\" run --config \"/etc/fw-fanctrl/config.json\" --silent",
+      "ExecStopPost=/bin/sh -c \"framework_tool --autofanctrl\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fwupd-refresh.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/fwupdmgr refresh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fwupd.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/fwupd/fwupd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "gdm.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "geoclue.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/geoclue"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "getty@.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/sbin/agetty --noreset --noclear --issue-file=/etc/issue:/etc/issue.d:/run/issue.d:/usr/lib/issue.d - ${TERM}"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "greenboot-healthcheck.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/greenboot/greenboot health-check"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "greenboot-set-rollback-trigger.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStop=/usr/libexec/greenboot/greenboot set-rollback-trigger"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "greetd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=greetd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "grub-boot-indeterminate.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/grub2-editenv - incr boot_indeterminate"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "grub2-systemd-integration.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/grub2/systemd-integration.sh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "gssproxy.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/gssproxy -i",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "hypervfcopyd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/bin/sh -c '[ ! -d /sys/bus/vmbus/devices/eb765408-105f-49b6-b4aa-c123b64d17d4/uio ] && modprobe uio_hv_generic && echo 34d14be3-dee4-41c8-9ae7-6b174977c192 > /sys/bus/vmbus/drivers/uio_hv_generic/new_id ||:'",
+      "ExecStart=hv_fcopy_uio_daemon -n"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "hypervkvpd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=hv_kvp_daemon -n"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "hypervvssd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=hv_vss_daemon -n"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "iio-sensor-proxy.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/iio-sensor-proxy"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "incus-workaround.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/usr/bin/bash -c \"[ -x /usr/local/bin/.incus ] || /usr/bin/cp $(readlink /usr/bin/incus) /usr/local/bin/.incus\"",
+      "ExecStartPre=/usr/bin/bash -c \"[ -x /usr/local/bin/.incus-agent ] || /usr/bin/cp $(readlink /usr/bin/incus-agent) /usr/local/bin/.incus-agent\"",
+      "ExecStartPre=/usr/bin/bash -c \"[ -d /usr/local/lib/.incus ] || /usr/bin/cp -r /usr/lib/incus /usr/local/lib/.incus\"",
+      "ExecStartPre=/usr/bin/mount --bind /usr/local/bin/.incus /usr/bin/incus",
+      "ExecStartPre=/usr/bin/mount --bind /usr/local/bin/.incus-agent /usr/bin/incus-agent",
+      "ExecStartPre=/usr/bin/mount --bind /usr/local/lib/.incus /usr/lib/incus",
+      "ExecStart=/usr/sbin/restorecon -R /usr/bin/incus",
+      "ExecStart=/usr/sbin/restorecon -R /usr/bin/incus-agent",
+      "ExecStart=/usr/sbin/restorecon -R /usr/lib/incus",
+      "ExecStop=/usr/bin/umount /usr/bin/incus",
+      "ExecStop=/usr/bin/umount /usr/bin/incus-agent",
+      "ExecStop=/usr/bin/umount /usr/lib/incus",
+      "ExecStop=/usr/bin/rm -r /usr/local/bin/.incus",
+      "ExecStop=/usr/bin/rm -r /usr/local/bin/.incus-agent",
+      "ExecStop=/usr/bin/rm -r /usr/local/lib/.incus"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "initrd-cleanup.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemctl --no-block isolate initrd-switch-root.target"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "initrd-parse-etc.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sysroot-fstab-check"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "initrd-switch-root.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemctl --no-block switch-root"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "initrd-udevadm-cleanup-db.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-udevadm info --cleanup-db"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "input-remapper.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/input-remapper-service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "intel_lpmd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/intel_lpmd --systemd --dbus-enable"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ipp-usb.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/sbin/ipp-usb udev"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "iscsi.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "kmod-sleep-workaround@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/rmmod %i",
+      "ExecStop=-/usr/bin/modprobe %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "kmod-static-nodes.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/kmod static-nodes --format=tmpfiles --output=/run/tmpfiles.d/static-nodes.conf"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "kvm_stat.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/kvm_stat -dtcz -s 10 -L /var/log/kvm_stat.csv",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lastlog2-import.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/lastlog2 --import /var/log/lastlog",
+      "ExecStartPost=/usr/bin/mv /var/log/lastlog /var/log/lastlog.migrated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ldconfig.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=ldconfig -X"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lightdm.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "lm_sensors.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/libexec/lm_sensors/lm_sensors-modprobe-wrapper $BUS_MODULES $HWMON_MODULES",
+      "ExecStart=/usr/libexec/lm_sensors/lm_sensors-wrapper",
+      "ExecStop=-/usr/libexec/lm_sensors/lm_sensors-modprobe-r-wrapper $BUS_MODULES $HWMON_MODULES"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "logrotate.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/logrotate /etc/logrotate.conf"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lvm-devices-import.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/vgimportdevices --rootvg --auto"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lvm2-lvmpolld.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/lvmpolld -t 60 -f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lvm2-monitor.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/lvm vgchange --monitor y",
+      "ExecStop=/usr/bin/lvm vgchange --monitor n"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lxc-monitord.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/lxc/lxc-monitord --daemon"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lxc-net.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/lxc/lxc-net start",
+      "ExecStop=/usr/libexec/lxc/lxc-net stop"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lxc.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/usr/libexec/lxc/lxc-apparmor-load",
+      "ExecStart=/usr/libexec/lxc/lxc-containers start",
+      "ExecStop=/usr/libexec/lxc/lxc-containers stop",
+      "ExecReload=/usr/libexec/lxc/lxc-apparmor-load"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lxc@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/lxc-start -F -n %i",
+      "ExecStop=/usr/bin/lxc-stop -n %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "lxcfs.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/bin/mkdir -p /var/lib/lxcfs",
+      "ExecStart=/usr/bin/lxcfs /var/lib/lxcfs",
+      "ExecStopPost=-/bin/fusermount -u /var/lib/lxcfs",
+      "ExecReload=/bin/kill -USR1 $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "man-db-cache-update.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/bin/sh -c '[ \"$SERVICE\" != \"no\" ] && /usr/bin/mandb $OPTS || true'",
+      "ExecStopPost=/bin/sh -c '[ \"$SERVICE_RESULT\" == \"signal\" ] && /usr/bin/systemctl enable man-db-restart-cache-update.service || true'"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "man-db-restart-cache-update.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStartPre=/usr/bin/rm -rf /var/cache/man/*",
+      "ExecStart=/usr/bin/systemd-run /usr/bin/systemctl start man-db-cache-update.service",
+      "ExecStartPost=/usr/bin/systemctl disable man-db-restart-cache-update.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mariadb.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStartPre=/usr/libexec/mariadb-check-socket",
+      "ExecStartPre=/usr/libexec/mariadb-prepare-db-dir %n",
+      "ExecStartPre=/bin/sh -c \"[ ! -e /usr/bin/galera_recovery ] && VAR= || \\",
+      "ExecStart=/usr/libexec/mariadbd --basedir=/usr $MYSQLD_OPTS $_WSREP_NEW_CLUSTER $_WSREP_START_POSITION",
+      "ExecStartPost=/usr/libexec/mariadb-check-upgrade",
+      "ExecStartPost=/bin/rm -f /run/mariadb/wsrep-start-position"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mariadb@.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStartPre=/usr/libexec/mariadb-check-socket --defaults-group-suffix=.%I",
+      "ExecStartPre=/usr/libexec/mariadb-prepare-db-dir --defaults-group-suffix=.%I %n",
+      "ExecStartPre=/bin/sh -c \"[ ! -e /usr/bin/galera_recovery ] && VAR= || \\",
+      "ExecStart=/usr/libexec/mariadbd --defaults-group-suffix=.%I --basedir=/usr $MYSQLD_OPTS $_WSREP_NEW_CLUSTER $_WSREP_START_POSITION",
+      "ExecStartPost=/usr/libexec/mariadb-check-upgrade --defaults-group-suffix=.%I",
+      "ExecStartPost=/bin/rm -f /run/mariadb/wsrep-start-position"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mcelog.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/mcelog --daemon --foreground"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mdadm-grow-continue@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/mdadm --grow --continue /dev/%I"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mdadm-last-resort@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/mdadm --run /dev/%i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mdcheck_continue.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/share/mdadm/mdcheck --continue --duration ${MDADM_CHECK_DURATION}"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mdcheck_start.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/share/mdadm/mdcheck --duration ${MDADM_CHECK_DURATION}"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mdmon@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/mdmon --foreground --offroot --takeover %I"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mdmonitor-oneshot.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-/usr/lib/mdadm/mdadm_env.sh",
+      "ExecStart=/usr/bin/mdadm --monitor --oneshot $MDADM_MONITOR_ARGS"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mdmonitor.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/sbin/mdadm --monitor --scan --syslog -f --pid-file=/run/mdadm/mdadm.pid"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ModemManager.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ModemManager"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "modprobe@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-modprobe -abq %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mysql.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "mysqld.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "netavark-dhcp-proxy.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/podman/netavark dhcp-proxy -a 30"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "netavark-firewalld-reload.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/podman/netavark firewalld-reload"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "netavark-nftables-reload.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/podman/netavark firewall-reload"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "NetworkManager-dispatcher.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/nm-dispatcher"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "NetworkManager-wait-online.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/nm-online -s -q"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "NetworkManager.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecReload=/usr/bin/busctl call org.freedesktop.NetworkManager /org/freedesktop/NetworkManager org.freedesktop.NetworkManager Reload u 0",
+      "ExecStart=/usr/bin/NetworkManager --no-daemon"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nfs-idmapd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/rpc.idmapd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nfs-mountd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/rpc.mountd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nfs-server.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-/usr/sbin/exportfs -r",
+      "ExecStart=/bin/sh -c '/usr/sbin/nfsdctl autostart || /usr/sbin/rpc.nfsd'",
+      "ExecStart=-/bin/sh -c 'if systemctl -q is-active gssproxy; then systemctl reload gssproxy ; fi'",
+      "ExecStop=/bin/sh -c '/usr/sbin/nfsdctl threads 0 || /usr/sbin/rpc.nfsd 0'",
+      "ExecStopPost=/usr/sbin/exportfs -au",
+      "ExecStopPost=/usr/sbin/exportfs -f",
+      "ExecReload=-/usr/sbin/exportfs -r"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nfs-utils.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/bin/true"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nfsdcld.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/nfsdcld"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nftables.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/sbin/nft -f /etc/sysconfig/nftables.conf",
+      "ExecReload=/sbin/nft 'flush ruleset; include \"/etc/sysconfig/nftables.conf\";'",
+      "ExecStop=/sbin/nft flush ruleset"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nis-domainname.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/hostname/nis-domainname"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nm-priv-helper.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/nm-priv-helper"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nmb.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/nmbd --foreground --no-process-group $NMBDOPTIONS",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvidia-cdi-refresh.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecCondition=/bin/sh -c '/usr/bin/grep -qE \"/(nvidia|nvidia-current)[.]ko\" /lib/modules/%v/modules.dep || [ -e /dev/dxg ]'",
+      "ExecStart=/bin/sh -c '/usr/bin/nvidia-smi -L || /usr/sbin/nvidia-smi -L || /usr/lib/wsl/lib/nvidia-smi -L'",
+      "ExecStart=-/bin/sh -c '[ -e /dev/dxg ] || /usr/bin/grep -q \"^nvgpu \" /proc/modules || /usr/bin/nvidia-ctk system create-device-nodes --control-devices --load-kernel-modules || /usr/bin/nvidia-ctk system create-device-nodes --control-devices'",
+      "ExecStart=/usr/bin/nvidia-ctk cdi generate"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvidia-hibernate.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/logger -t hibernate -s \"nvidia-hibernate.service\"",
+      "ExecStart=/usr/bin/nvidia-sleep.sh \"hibernate\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvidia-persistenced.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/nvidia-persistenced"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvidia-powerd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/nvidia-powerd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvidia-resume.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/logger -t suspend -s \"nvidia-resume.service\"",
+      "ExecStart=/usr/bin/nvidia-sleep.sh \"resume\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvidia-suspend-then-hibernate.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/logger -t suspend -s \"nvidia-suspend-then-hibernate.service\"",
+      "ExecStart=/usr/bin/nvidia-sleep.sh \"is-suspend-then-hibernate-supported\"",
+      "ExecStart=/usr/bin/nvidia-sleep.sh \"suspend\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvidia-suspend.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/logger -t suspend -s \"nvidia-suspend.service\"",
+      "ExecStart=/usr/bin/nvidia-sleep.sh \"suspend\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvmefc-boot-connections.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/bin/sh -c \"echo add > /sys/class/fc/fc_udev_device/nvme_discovery\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvmf-autoconnect.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/nvme connect-all --context=autoconnect"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvmf-connect-nbft.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/nvme connect-all --nbft"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nvmf-connect@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/bin/sh -c \"/usr/bin/nvme connect-all --context=autoconnect --quiet `/bin/echo -e '${CONNECT_ARGS}'`\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "o2cb.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/sbin/o2cb.init enable",
+      "ExecStop=/sbin/o2cb.init disable"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ocfs2.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/sbin/ocfs2.init start",
+      "ExecStop=/sbin/ocfs2.init stop",
+      "ExecReload=/sbin/ocfs2.init restart"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "openvpn-client@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/openvpn --suppress-timestamps --nobind --config %i.conf"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "openvpn-server@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/openvpn --status %t/openvpn-server/status-%i.log --status-version 2 --suppress-timestamps --config %i.conf"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "org.freedesktop.intel_lpmd.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "ostree-boot-complete.service",
+    "state": "enabled-runtime",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ostree admin boot-complete"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ostree-finalize-staged-hold.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=+/usr/bin/ostree admin finalize-staged --hold"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ostree-finalize-staged.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStop=/usr/bin/ostree admin finalize-staged"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ostree-prepare-root.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/ostree/ostree-prepare-root /sysroot"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ostree-remount.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/ostree/ostree-remount"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ostree-state-overlay@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ostree admin state-overlay %i /%I"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "packagekit-offline-update.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "packagekit.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "pam_namespace.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/pam_namespace_helper"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "passim.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/passimd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "pcscd.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/pcscd --foreground --auto-exit $PCSCD_ARGS",
+      "ExecReload=/usr/bin/pcscd --hotplug"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plasmalogin.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-udevadm settle --timeout=10",
+      "ExecStart=/usr/bin/plasmalogin"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-halt.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/plymouthd --mode=shutdown --attach-to-session",
+      "ExecStartPost=-/usr/bin/plymouth show-splash"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-kexec.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/plymouthd --mode=shutdown --attach-to-session",
+      "ExecStartPost=-/usr/bin/plymouth show-splash"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-poweroff.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/plymouthd --mode=shutdown --attach-to-session",
+      "ExecStartPost=-/usr/bin/plymouth show-splash"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-quit-wait.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/plymouth --wait"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-quit.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/bin/plymouth quit"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-read-write.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/usr/bin/plymouth update-root-fs --read-write"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-reboot.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/plymouthd --mode=reboot --attach-to-session",
+      "ExecStartPost=-/usr/bin/plymouth show-splash"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-start.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/plymouthd --mode=boot --pid-file=/run/plymouth/pid --attach-to-session",
+      "ExecStartPost=-/usr/bin/plymouth show-splash"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-switch-root-initramfs.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/usr/bin/plymouth update-root-fs --new-root-dir=/run/initramfs"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-switch-root.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/usr/bin/plymouth update-root-fs --new-root-dir=/sysroot"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "podman-auto-update.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/podman auto-update",
+      "ExecStartPost=/usr/bin/podman image prune -f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "podman-clean-transient.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/podman system prune --external"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "podman-kube@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/podman kube play --replace --service-container=true %I",
+      "ExecStop=/usr/bin/podman kube down %I"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "podman-restart.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/podman $LOGGING start --all --filter should-start-on-boot=true",
+      "ExecStop=/usr/bin/podman  $LOGGING stop --service --all"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "podman.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/podman $LOGGING system service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "polkit-agent-helper@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/polkit-1/polkit-agent-helper-1 --socket-activated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "polkit.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/polkit-1/polkitd --no-debug --log-level=notice"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "pulse8-cec-inputattach@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/inputattach --pulse8-cec /dev/%I"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "qemu-guest-agent.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStartPre=/bin/sh -c \"if grep '^BLACKLIST_RPC' /etc/sysconfig/qemu-ga >/dev/null ; then sed -i 's/^BLACKLIST_RPC=/QEMU_GA_ARGS=--block-rpcs=/' /etc/sysconfig/qemu-ga ; fi\"",
+      "ExecStart=/usr/bin/qemu-ga \\"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "quotaon-root.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/quotaon -ug /"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "quotaon@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/quotaon -ug %f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "raid-check.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/raid-check"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rainshadow-cec-inputattach@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/inputattach --rainshadow-cec /dev/%I"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ratbagd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ratbagd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rc-local.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/etc/rc.d/rc.local start"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "realmd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/realmd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rescue.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-plymouth --wait quit",
+      "ExecStart=-/usr/lib/systemd/systemd-sulogin-shell rescue"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpc-gssd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/rpc.gssd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpc-statd-notify.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/sbin/sm-notify"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpc-statd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/rpc.statd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpcbind.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/rpcbind $RPCBIND_OPTIONS -w -f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostree-bootstatus.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=rpm-ostree status -b"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostree-countme.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=rpm-ostree countme"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostree-fix-shadow-mode.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=rpm-ostree fix-shadow-perms"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostreed-automatic.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=rpm-ostree upgrade --quiet --trigger-automatic-update-policy"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostreed.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=+rpm-ostree start-daemon",
+      "ExecReload=rpm-ostree reload"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpmdb-rebuild.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/rpmdb --rebuilddb",
+      "ExecStartPost=rm -f /usr/lib/sysimage/rpm/.rebuilddb"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rtkit-daemon.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/rtkit-daemon"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "samba-bgqd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/samba/samba-bgqd --foreground --no-process-group $SAMBAOPTIONS",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "scx_loader.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/scx_loader"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sddm.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "selinux-autorelabel-mark.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/bin/touch /.autorelabel"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "selinux-autorelabel.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/selinux/selinux-autorelabel"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "selinux-check-proper-disable.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecCondition=test \"$SELINUX\" = disabled",
+      "ExecStart=/usr/bin/echo 'SELINUX=disabled in /etc/selinux/config, but no selinux=0 on kernel command line - SELinux may not be fully disabled. Please update bootloader configuration to pass selinux=0 to kernel at boot.'"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "serial-getty@.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/sbin/agetty --noreset --noclear --issue-file=/etc/issue:/etc/issue.d:/run/issue.d:/usr/lib/issue.d --keep-baud 115200,57600,38400,9600 - ${TERM}"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "setroubleshootd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/setroubleshootd -f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "smartd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/smartd -n $smartd_opts",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "smb.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/smbd --foreground --no-process-group $SMBDOPTIONS",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "snapper-boot.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/snapper --config root create --cleanup-algorithm number --description \"boot\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "snapper-cleanup.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/snapper/systemd-helper --cleanup"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "snapper-timeline.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/snapper/systemd-helper --timeline"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "snapperd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/snapperd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "speech-dispatcherd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/speech-dispatcher -d -t 0",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "spice-vdagentd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/spice-vdagentd -x $SPICE_VDAGENTD_EXTRA_ARGS"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "spice-webdavd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/spice-webdavd -p 9843 $SPICE_WEBDAVD_EXTRA_ARGS"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ssh-host-keys-migration.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/usr/libexec/openssh/ssh-host-keys-migration.sh",
+      "ExecStart=touch /var/lib/.ssh-host-keys-migration"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sshd-keygen@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/openssh/sshd-keygen %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sshd-unix-local@.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sshd-vsock@.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sshd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/sshd -D $OPTIONS",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sshd@.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/sbin/sshd -i $OPTIONS -o \"AuthorizedKeysFile ${CREDENTIALS_DIRECTORY}/ssh.ephemeral-authorized_keys-all .ssh/authorized_keys\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-autofs.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/sssd/sssd_autofs ${DEBUG_LOGGER} --socket-activated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-kcm.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=+-/bin/chown -f -R -H root:sssd /etc/sssd",
+      "ExecStartPre=+-/bin/chmod -f -R g+r /etc/sssd",
+      "ExecStartPre=+-/bin/chmod -f g+x /etc/sssd",
+      "ExecStartPre=+-/bin/chmod -f g+x /etc/sssd/conf.d",
+      "ExecStartPre=+-/bin/chmod -f g+x /etc/sssd/pki",
+      "ExecStartPre=+-/bin/sh -c \"/bin/chown -f -h sssd:sssd /var/lib/sss/secrets/*.ldb\"",
+      "ExecStartPre=+-/bin/sh -c \"/bin/chown -f -h sssd:sssd /var/log/sssd/sssd_kcm.log*\"",
+      "ExecStart=/usr/libexec/sssd/sssd_kcm ${DEBUG_LOGGER}"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-nss.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/sssd/sssd_nss ${DEBUG_LOGGER} --socket-activated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-pac.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/sssd/sssd_pac ${DEBUG_LOGGER} --socket-activated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-pam.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/sssd/sssd_pam ${DEBUG_LOGGER} --socket-activated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-ssh.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/sssd/sssd_ssh ${DEBUG_LOGGER} --socket-activated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-sudo.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/sssd/sssd_sudo ${DEBUG_LOGGER} --socket-activated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=+-/bin/chown -f -R -H root:sssd /etc/sssd",
+      "ExecStartPre=+-/bin/chmod -f -R g+r /etc/sssd",
+      "ExecStartPre=+-/bin/chmod -f g+x /etc/sssd",
+      "ExecStartPre=+-/bin/chmod -f g+x /etc/sssd/conf.d",
+      "ExecStartPre=+-/bin/chmod -f g+x /etc/sssd/pki",
+      "ExecStartPre=+-/bin/sh -c \"/bin/chown -f -h sssd:sssd /var/lib/sss/db/*.ldb\"",
+      "ExecStartPre=+-/bin/chown -f -R -h sssd:sssd /var/lib/sss/gpo_cache",
+      "ExecStartPre=+-/bin/sh -c \"/bin/chown -f -h sssd:sssd /var/log/sssd/*.log*\"",
+      "ExecStart=/usr/bin/sssd -i ${DEBUG_LOGGER}"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "switcheroo-control.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/switcheroo-control"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "system-update-cleanup.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=rm -fv /system-update /etc/system-update"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-ask-password-console.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-tty-ask-password-agent --watch --console"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-ask-password-plymouth.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/systemd-tty-ask-password-agent --watch --plymouth"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-ask-password-wall.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-systemctl stop --no-block systemd-ask-password-console.path systemd-ask-password-console.service systemd-ask-password-plymouth.path systemd-ask-password-plymouth.service",
+      "ExecStart=systemd-tty-ask-password-agent --wall"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-ask-password@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-systemd-ask-password --system --no-tty"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-backlight@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-backlight load %i",
+      "ExecStop=/usr/lib/systemd/systemd-backlight save %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-battery-check.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-battery-check"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-binfmt.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-binfmt",
+      "ExecStop=/usr/lib/systemd/systemd-binfmt --unregister"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-bless-boot.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-bless-boot good"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-boot-check-no-failures.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-boot-check-no-failures"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-boot-clear-sysfail.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=bootctl --graceful set-sysfail \"\""
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-boot-random-seed.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=bootctl --graceful random-seed"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-boot-update.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=bootctl --variables=no --graceful update"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-bootctl@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=bootctl"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-bsod.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-bsod --continuous"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-confext-initrd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-confext refresh",
+      "ExecReload=systemd-confext refresh",
+      "ExecStop=systemd-confext unmerge"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-confext.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-confext refresh",
+      "ExecReload=systemd-confext refresh",
+      "ExecStop=systemd-confext unmerge"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-coredump@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/lib/systemd/systemd-coredump"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-creds@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-systemd-creds"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-exit.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-factory-reset-complete.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-factory-reset complete --retrigger"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-factory-reset-reboot.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-factory-reset-request.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-factory-reset request"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-factory-reset@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/lib/systemd/systemd-factory-reset"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-firstboot.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-firstboot --prompt-locale --prompt-keymap-auto --prompt-timezone --prompt-root-password --mute-console=yes"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-fsck-root.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-fsck"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-fsck@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-fsck %f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-growfs-root.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-growfs /"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-growfs@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-growfs %f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-halt.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-hibernate-clear.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-hibernate-resume --clear"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-hibernate-resume.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-hibernate-resume"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-hibernate.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sleep hibernate"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-homed-activate.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStop=homectl deactivate-all"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-homed-firstboot.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=homectl firstboot --prompt-new-user --prompt-shell=no --prompt-groups=no --mute-console=yes"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-homed.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-homed"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-hostnamed.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-hostnamed"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-hwdb-update.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=systemd-hwdb update"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-hybrid-sleep.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sleep hybrid-sleep"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-importd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-importd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journal-catalog-update.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=journalctl --update-catalog"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journal-flush.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=journalctl --flush",
+      "ExecStop=journalctl --smart-relinquish-var"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journald-sync@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStop=journalctl --namespace=%i --sync"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journald.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-journald"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journald@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-journald %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-kexec.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-localed.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-localed"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-logind.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-logind"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-loop@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-dissect --attach --loop-ref-auto --quiet %f",
+      "ExecStop=systemd-dissect --detach %f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-machine-id-commit.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-machine-id-setup --commit"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-machined.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-machined"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-modules-load.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-modules-load"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-mountfsd.service",
+    "state": "indirect",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-mountfsd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-mute-console@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-mute-console"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-network-generator.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-network-generator"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-networkd-persistent-storage.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=networkctl persistent-storage yes",
+      "ExecStop=networkctl persistent-storage no"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-networkd-wait-online.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-networkd-wait-online"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-networkd-wait-online@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-networkd-wait-online -i %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-networkd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-networkd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-nspawn@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-nspawn --quiet --keep-unit --boot --link-journal=try-guest --network-veth -U --settings=override --machine=%i",
+      "ExecStopPost=systemd-nspawn --cleanup --machine=%i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-nsresourced.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-nsresourced"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-oomd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-oomd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrextend@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/lib/systemd/systemd-pcrextend"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrfs-root.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful --file-system=/"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrfs@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful --file-system=%f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrlock-file-system.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrlock lock-file-system"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrlock-firmware-code.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrlock lock-firmware-code"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrlock-firmware-config.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrlock lock-firmware-config"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrlock-machine-id.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrlock lock-machine-id"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrlock-make-policy.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrlock make-policy --location=770"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrlock-secureboot-authority.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrlock lock-secureboot-authority"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrlock-secureboot-policy.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrlock lock-secureboot-policy"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrlock@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrlock --location=770"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrmachine.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful --machine-id"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrnvdone.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful --pcr=kernel-initrd --event-type=nvpcr-separator nvpcr-separator"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrphase-factory-reset.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful factory-reset"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrphase-initrd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful enter-initrd",
+      "ExecStop=/usr/lib/systemd/systemd-pcrextend --graceful leave-initrd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrphase-storage-target-mode.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful storage-target-mode-start",
+      "ExecStop=/usr/lib/systemd/systemd-pcrextend --graceful storage-target-mode-stop"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrphase-sysinit.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful sysinit",
+      "ExecStop=/usr/lib/systemd/systemd-pcrextend --graceful final"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrphase.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful ready",
+      "ExecStop=/usr/lib/systemd/systemd-pcrextend --graceful shutdown"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrproduct.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pcrextend --graceful --product-id"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-portabled.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-portabled"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-poweroff.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pstore.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-pstore"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-quotacheck-root.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-quotacheck /"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-quotacheck@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-quotacheck %f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-random-seed.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-random-seed load",
+      "ExecStop=/usr/lib/systemd/systemd-random-seed save"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-reboot.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-remount-fs.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-remount-fs"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-repart.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-repart --dry-run=no"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-repart@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-repart"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-resolved.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-resolved"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-rfkill.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-rfkill"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-soft-reboot.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-storagetm.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-storagetm --all"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-suspend-then-hibernate.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sleep suspend-then-hibernate"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-suspend.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sleep suspend"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysctl.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sysctl"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysext-initrd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-sysext refresh",
+      "ExecReload=systemd-sysext refresh",
+      "ExecStop=systemd-sysext unmerge"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysext.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-sysext refresh",
+      "ExecReload=systemd-sysext refresh",
+      "ExecStop=systemd-sysext unmerge"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysext@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-systemd-sysext"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdate-reboot.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sysupdate reboot"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdate.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sysupdate update"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdated.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sysupdated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysusers.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=systemd-sysusers"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-time-wait-sync.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-time-wait-sync"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-timedated.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-timedated"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-timesyncd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-timesyncd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-tmpfiles-clean.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-tmpfiles --clean"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-tmpfiles-setup-dev-early.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-tmpfiles --prefix=/dev --create --boot --graceful"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-tmpfiles-setup-dev.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-tmpfiles --prefix=/dev --create --boot"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-tmpfiles-setup.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-tpm2-clear.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-tpm2-clear --graceful"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-tpm2-setup-early.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-tpm2-setup --early=yes --graceful"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-tpm2-setup.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-tpm2-setup --graceful"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-udev-load-credentials.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=udevadm control --load-credentials"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-udev-settle.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=udevadm settle"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-udev-trigger.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-udevadm trigger --type=all --action=add --prioritized-subsystem=module,block,tpmrm,net,tty,input"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-udevd.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-udevd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-update-done.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-update-done"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-update-utmp.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-update-utmp reboot",
+      "ExecStop=/usr/lib/systemd/systemd-update-utmp shutdown"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-user-sessions.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-user-sessions start",
+      "ExecStop=/usr/lib/systemd/systemd-user-sessions stop"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-userdb-load-credentials.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=userdbctl load-credentials"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-userdbd.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-userdbd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-validatefs@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-validatefs --root=auto %f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-vconsole-setup.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-vconsole-setup"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-vmspawn@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-vmspawn --quiet --register=yes --keep-unit --network-tap --machine=%i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-volatile-root.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-volatile-root yes /sysroot"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-zram-setup@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/system-generators/zram-generator --setup-device '%i'",
+      "ExecStop=/usr/lib/systemd/system-generators/zram-generator --reset-device '%i'"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "tailscale-wait-online.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/tailscale wait"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "tailscaled.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=${PORT} $FLAGS",
+      "ExecStopPost=/usr/sbin/tailscaled --cleanup"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "thermald.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/thermald --systemd --dbus-enable --adaptive"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "tmux@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/tmux new-session -s %I -d",
+      "ExecStop=/usr/bin/tmux kill-session -t %I"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "tuned-ppd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/tuned-ppd -l"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "tuned.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/tuned -l -P"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ublue-nvctk-cdi.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ublue-nvidia-flatpak-runtime-sync.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecCondition=/usr/libexec/ublue-nvidia-flatpak-runtime-sync check",
+      "ExecStart=/usr/libexec/ublue-nvidia-flatpak-runtime-sync sync"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ublue-nvidia-flatpak-runtime-verify.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecCondition=/usr/libexec/ublue-nvidia-flatpak-runtime-sync check",
+      "ExecStartPre=/bin/sleep 5",
+      "ExecStart=/usr/libexec/ublue-nvidia-flatpak-runtime-notify"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ublue-os-media-automount.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/ublue-os-media-automount.py"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "udisks2.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/udisks2/udisksd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "unbound-anchor.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/bin/bash -c 'if [ \"$DISABLE_UNBOUND_ANCHOR\" = \"yes\" ] || [ -f /run/unbound/anchor-disable ]; then echo \"Updates of root keys with unbound-anchor is disabled\"; else /usr/sbin/unbound-anchor $UNBOUND_ANCHOR_OPTIONS; fi'"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "upower.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/upowerd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "uresourced.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/uresourced"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "usb_modeswitch@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/usb_modeswitch_dispatcher --switch-mode %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "usbip-client.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/sbin/modprobe -qab vhci-hcd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "usbip-server.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/sbin/modprobe -qab usbip_host",
+      "ExecStart=/usr/sbin/usbipd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "usbmuxd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/usbmuxd --user usbmuxd --systemd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "user-runtime-dir@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-user-runtime-dir start %i",
+      "ExecStop=/usr/lib/systemd/systemd-user-runtime-dir stop %i"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "user@.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd --user"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "uupd-manual.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/uupd --hw-check=false --json --log-level=debug"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "uupd.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/uupd --log-level=debug --json"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "vboxclient.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/VBoxDRMClient"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "vboxservice.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=-/usr/sbin/modprobe vboxguest",
+      "ExecStart=/usr/sbin/VBoxService -f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "vgauthd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/VGAuthService -s"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "vmtoolsd.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/vmtoolsd"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "vpnc@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/vpnc --pid-file=/run/vpnc@%i.pid /etc/vpnc/%i.conf",
+      "ExecStartPre=-/etc/vpnc/scripts.d/%i-preup.sh",
+      "ExecStartPost=-/etc/vpnc/scripts.d/%i-postup.sh",
+      "ExecStopPost=-/etc/vpnc/scripts.d/%i-postdown.sh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "waydroid-container.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/usr/bin/ln -sf /dev/binderfs/binder /dev/binderfs/vndbinder /dev/binderfs/hwbinder /dev/",
+      "ExecStart=/usr/bin/waydroid container start"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "wg-quick@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/wg-quick up %i",
+      "ExecStop=/usr/bin/wg-quick down %i",
+      "ExecReload=/bin/bash -c 'exec /usr/bin/wg syncconf %i <(exec /usr/bin/wg-quick strip %i)'"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "wpa_supplicant.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u $INTERFACES $DRIVERS $OTHER_ARGS"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "wsdd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/wsdd --shortlog --chroot=/run/wsdd $OPTIONS"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "xfs_healer@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecCondition=/usr/libexec/xfsprogs/xfs_healer --supported %f",
+      "ExecStart=/usr/libexec/xfsprogs/xfs_healer %f"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "xfs_healer_start.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecCondition=/usr/libexec/xfsprogs/xfs_healer_start --supported",
+      "ExecStart=/usr/libexec/xfsprogs/xfs_healer_start"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ydotool.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ydotoold",
+      "ExecReload=/usr/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "zvbid.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/zvbid"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "capsule.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "machine.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "system-cups.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "system-systemd\\x2dcryptsetup.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "system-systemd\\x2dmute\\x2dconsole.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "system-systemd\\x2dveritysetup.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "system-xfs_healer.slice",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "user.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "avahi-daemon.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "cups.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dbus.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dm-event.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "lvm2-lvmpolld.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "mariadb-extra.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "mariadb-extra@.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "mariadb.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "mariadb@.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "netavark-dhcp-proxy.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "pcscd.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "podman.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "polkit-agent-helper.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "rpcbind.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "spice-vdagentd.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sshd-unix-local.socket",
+    "state": "generated",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sshd-vsock.socket",
+    "state": "generated",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sshd.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sssd-autofs.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/usr/libexec/sssd/sssd_check_socket_activated_responders -r autofs"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-kcm.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sssd-nss.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/usr/libexec/sssd/sssd_check_socket_activated_responders -r nss"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-pac.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/usr/libexec/sssd/sssd_check_socket_activated_responders -r pac"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-pam.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/usr/libexec/sssd/sssd_check_socket_activated_responders -r pam"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-ssh.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/usr/libexec/sssd/sssd_check_socket_activated_responders -r ssh"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "sssd-sudo.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPre=/usr/libexec/sssd/sssd_check_socket_activated_responders -r sudo"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "syslog.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-ask-password.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-bootctl.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-coredump.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-creds.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-factory-reset.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-hostnamed.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-importd.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journald-audit.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journald-dev-log.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journald-varlink@.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journald.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journald@.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-logind-varlink.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-machined.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-mountfsd.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-mute-console.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-networkd-resolve-hook.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-networkd-varlink.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-networkd.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-nsresourced.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-oomd.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrextend.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-pcrlock.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-repart.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-resolved-monitor.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-resolved-varlink.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-rfkill.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysext.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-udevd-control.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-udevd-kernel.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-udevd-varlink.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-userdbd.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dev-zram0.swap",
+    "state": "generated",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "basic.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "blockdev@.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "bluetooth.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "boot-complete.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "bootc-status-updated-onboot.target",
+    "state": "enabled-runtime",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "bootc-status-updated.target",
+    "state": "static",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "cryptsetup-pre.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "cryptsetup.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "ctrl-alt-del.target",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "default.target",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "emergency.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "exit.target",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "factory-reset-now.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "factory-reset.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "final.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "first-boot-complete.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "getty-pre.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "getty.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "graphical.target",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "greenboot-success.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "halt.target",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "hibernate.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "hybrid-sleep.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "imports-pre.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "imports.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "initrd-fs.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "initrd-root-device.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "initrd-root-fs.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "initrd-switch-root.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "initrd-usr-fs.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "initrd.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "integritysetup-pre.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "integritysetup.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "kexec.target",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "local-fs-pre.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "local-fs.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "machines.target",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "multi-user.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "network-online.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "network-pre.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "network.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "nfs-client.target",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "nss-lookup.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "nss-user-lookup.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "nvmf-connect.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "paths.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "poweroff.target",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "printer.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "reboot.target",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "remote-cryptsetup.target",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "remote-fs-pre.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "remote-fs.target",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "remote-integritysetup.target",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "remote-veritysetup.target",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "rescue.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "rpc_pipefs.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "rpcbind.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "runlevel0.target",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "runlevel1.target",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "runlevel2.target",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "runlevel3.target",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "runlevel4.target",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "runlevel5.target",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "runlevel6.target",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "selinux-autorelabel.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "shutdown.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sigpwr.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sleep.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "slices.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "smartcard.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sockets.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "soft-reboot.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sound.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "ssh-access.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sshd-keygen.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "storage-target-mode.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "suspend-then-hibernate.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "suspend.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "swap.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "sysinit.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "system-update-pre.target",
+    "state": "static",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "system-update.target",
+    "state": "static",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "tailscale-online.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "time-set.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "time-sync.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "timers.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "tpm2.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "umount.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "usb-gadget.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "veritysetup-pre.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "veritysetup.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "wg-quick.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "beesd@.timer",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "bootc-fetch-apply-updates.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "bootc-update.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "brew-update.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "brew-upgrade.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "cec-active-source.timer",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dnf-automatic.timer",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dnf-makecache.timer",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dnf5-automatic.timer",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "dnf5-makecache.timer",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "flatpak-system-update.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "fstrim.timer",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "fwupd-refresh.timer",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "logrotate.timer",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "mdadm-last-resort@.timer",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "mdcheck_continue.timer",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "mdcheck_start.timer",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "mdmonitor-oneshot.timer",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "podman-auto-update.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "raid-check.timer",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostree-countme.timer",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostreed-automatic.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "snapper-boot.timer",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "snapper-cleanup.timer",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "snapper-timeline.timer",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdate-reboot.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdate.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "systemd-tmpfiles-clean.timer",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "unbound-anchor.timer",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "system",
+    "name": "uupd.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "akonadi_control.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/akonadi_control"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "app-org.kde.krdpserver.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/krdpserver"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "app-org.kde.spectacle.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/spectacle --dbus"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "at-spi-dbus-bus.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/at-spi-bus-launcher"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "bazzite-dynamic-fixes.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/bazzite-dynamic-fixes"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "bazzite-user-setup.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/bazzite-user-setup"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "brew-update.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "cecd.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/cecd -e"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "cgroupify@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/cgroupify %i"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "colord-session.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/colord-session"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "dbus-broker.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/dbus-broker-launch --scope user"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "dbus-daemon.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/dbus-daemon --session --address=systemd: --nofork --nopidfile --systemd-activation --syslog-only",
+      "ExecReload=/usr/bin/dbus-send --print-reply --session --type=method_call --dest=org.freedesktop.DBus / org.freedesktop.DBus.ReloadConfig"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "dbus-org.bluez.obex.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "dbus-org.freedesktop.import1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "dbus-org.freedesktop.machine1.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "dbus.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "dconf.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/dconf-service"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "dirmngr.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/dirmngr --supervised",
+      "ExecReload=/usr/bin/gpgconf --reload dirmngr"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "dmemcg-booster-user.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/dmemcg-booster"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "filter-chain.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/pipewire -c filter-chain.conf"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "flatpak-oci-authenticator.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/flatpak-oci-authenticator"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "flatpak-portal.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/flatpak-portal"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "flatpak-session-helper.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/flatpak-session-helper"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "flatpak-update.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "foot-server.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/foot --server=3"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "glib-pacrunner.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/glib-pacrunner"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "gpg-agent.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/gpg-agent --supervised",
+      "ExecReload=/usr/bin/gpgconf --reload gpg-agent"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "grub-boot-success.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/sbin/grub2-set-bootflag boot_success"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "gssuserproxy.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/gssproxy -i -u"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "gvfs-daemon.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/gvfsd"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "gvfs-metadata.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/gvfsd-metadata"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "gvfs-udisks2-volume-monitor.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/gvfs-udisks2-volume-monitor"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "io.github.kolunmi.Bazaar.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/bazaar-daemon --no-window"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "kde-baloo.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/kf6/baloo_file",
+      "ExecCondition=/usr/bin/kde-systemd-start-condition --condition \"baloofilerc:Basic Settings:Indexing-Enabled:true\""
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "keyboxd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/keyboxd --supervised",
+      "ExecReload=/usr/bin/gpgconf --reload keyboxd"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "kio-fuse.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/kio-fuse -f"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "kunifiedpush-distributor.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/kunifiedpush-distributor"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "mpris-proxy.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/mpris-proxy"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "ntfs-nag.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/ntfs-exfat-monitor-script"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "obex.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/bluetooth/obexd"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "orca.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=orca --replace"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "org.freedesktop.IBus.session.generic.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=sh -c 'exec /usr/bin/ibus-daemon $IBUS_DAEMON_ARGS'"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "org.freedesktop.IBus.session.GNOME.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=sh -c 'exec /usr/bin/ibus-daemon --panel disable $([ \"$XDG_SESSION_TYPE\" = \"x11\" ] && echo \"--xim\")'"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "org.gnome.SettingsDaemon.Power.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "p11-kit-server.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/p11-kit server -f -n %t/p11-kit/pkcs11 pkcs11:"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "pipewire-pulse.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/pipewire-pulse"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "pipewire-session-manager.service",
+    "state": "alias",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "pipewire.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/pipewire"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-baloorunner.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/baloorunner"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-dolphin.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/dolphin --daemon"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-foreground-booster.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/foreground_booster",
+      "ExecCondition=/usr/bin/kde-systemd-start-condition --condition \"kcgroupsrc:Foreground Booster:autostart:true\""
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-gmenudbusmenuproxy.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/gmenudbusmenuproxy"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kaccess.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/kaccess"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kactivitymanagerd.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/kactivitymanagerd"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kcminit-phase1.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib64/qt6/bin/qdbus org.kde.kcminit /kcminit org.kde.KCMInit.runPhase1"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kcminit.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/kcminit_startup"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kded6.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/kded6"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kglobalaccel.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/kglobalacceld"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-knighttimed.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/knighttimed"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-krunner.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/krunner --daemon"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kscreen-osd.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/kscreen_osd_service"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kscreen.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/kf6/kscreen_backend_launcher"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-ksmserver.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ksmserver"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-ksplash.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ksplashqml"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-ksystemstats.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ksystemstats"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kwallet-pam.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/pam_kwallet_init"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-kwin_wayland.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/kwin_wayland_wrapper --xwayland"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-login-kwin_wayland.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/kwin_wayland --no-lockscreen --no-global-shortcuts --no-kactivities --inputmethod plasma-keyboard --locale1"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-login.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/plasma-login-greeter"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-plasmashell.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/plasmashell --no-respawn"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-polkit-agent.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/kf6/polkit-kde-authentication-agent-1"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-powerdevil.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/org_kde_powerdevil"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-restoresession.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-/usr/lib64/qt6/bin/qdbus org.kde.ksmserver /KSMServer org.kde.KSMServerInterface.restoreSession"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-startupsound.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/plasma-startup-sound"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-wallpaper.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/plasma-login-wallpaper"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-xdg-desktop-portal-kde.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/xdg-desktop-portal-kde"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "plasma-xembedsniproxy.service",
+    "state": "masked",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/xembedsniproxy"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "podman-auto-update.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/podman auto-update",
+      "ExecStartPost=/usr/bin/podman image prune -f"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "podman-clean-transient.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/podman system prune --external"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "podman-kube@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/podman kube play --replace --service-container=true %I",
+      "ExecStop=/usr/bin/podman kube down %I"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "podman-restart.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/podman $LOGGING start --all --filter should-start-on-boot=true",
+      "ExecStop=/usr/bin/podman  $LOGGING stop --service --all"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "podman-user-wait-network-online.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/bin/sh -c 'until systemctl is-active network-online.target; do sleep 0.5; done'"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "podman.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/podman $LOGGING system service"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "speech-dispatcher.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/speech-dispatcher -s -t 0",
+      "ExecReload=/bin/kill -HUP $MAINPID"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "spice-vdagent.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/spice-vdagent -x"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "ssh-agent.service",
+    "state": "indirect",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ssh-agent -D"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "steam-icons-cleanup.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/ujust steam-icons remove"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "systemd-ask-password@.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=-systemd-ask-password --user --no-tty"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "systemd-exit.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "systemd-importd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-importd --user"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "systemd-machined.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-machined --user"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "systemd-nspawn@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-nspawn --quiet --keep-unit --register=yes --boot --network-veth -U --settings=override --machine=%i",
+      "ExecStopPost=systemd-nspawn --cleanup --machine=%i"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "systemd-tmpfiles-clean.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-tmpfiles --user --clean"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "systemd-tmpfiles-setup.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-tmpfiles --user --create --remove --boot"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "systemd-vmspawn@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=systemd-vmspawn --quiet --keep-unit --register=yes --network-tap --machine=%i"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "unity-gtk-module.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/bin/sh -ec '\\",
+      "ExecStopPost=/bin/sh -ec '\\"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "uresourced.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/uresourced --user"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "uupd.service",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "wd-venus.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/lib/waydroid-nvidia/virgl_test_server --venus --multi-clients --socket-path /run/waydroid-venus/venus.sock"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "wireplumber.service",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/wireplumber"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "wireplumber@.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/wireplumber -p %i"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-desktop-portal-gtk.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/xdg-desktop-portal-gtk"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-desktop-portal-rewrite-launchers.service",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/xdg-desktop-portal-rewrite-launchers"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-desktop-portal-wlr.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/xdg-desktop-portal-wlr"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-desktop-portal.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/xdg-desktop-portal"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-document-portal.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/xdg-document-portal"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-native-messaging-proxy.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/xdg-native-messaging-proxy"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-permission-store.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/libexec/xdg-permission-store"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-user-dirs.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/xdg-user-dirs-update"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xsettingsd.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=/usr/bin/xsettingsd"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "app.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "background.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "machine.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "session.slice",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "dbus.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": [
+      "ExecStartPost=-/usr/bin/systemctl --user set-environment DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "dirmngr.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "foot-server.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "gpg-agent-browser.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "gpg-agent-extra.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "gpg-agent-ssh.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "gpg-agent.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "gssuserproxy.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "keyboxd.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "p11-kit-server.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "pipewire-pulse.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "pipewire.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "podman.socket",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "speech-dispatcher.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "ssh-agent.socket",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "systemd-ask-password.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "systemd-importd.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "systemd-machined.socket",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "basic.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "bluetooth.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "capsule@.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "default.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "exit.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "graphical-session-pre.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "graphical-session.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "machines.target",
+    "state": "disabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "paths.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "plasma-core.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "plasma-login-wayland.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "plasma-workspace-wayland.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "plasma-workspace-x11.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "plasma-workspace.target",
+    "state": "masked",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "printer.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "shutdown.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "smartcard.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "sockets.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "sound.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "timers.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "xdg-desktop-autostart.target",
+    "state": "static",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "brew-update.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "flatpak-update.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "grub-boot-success.timer",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "podman-auto-update.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "systemd-tmpfiles-clean.timer",
+    "state": "enabled",
+    "suspicious": false,
+    "commands": []
+  },
+  {
+    "scope": "user",
+    "name": "uupd.timer",
+    "state": "masked",
+    "suspicious": true,
+    "commands": []
+  }
+]

@@ -1,0 +1,6 @@
+image	Install tools on disposable runner	2026-10-22T06:53:15.1235868Z Ran 34 tests in 0.767s
+image	Build and audit the image (runner storage only)	2026-10-22T07:02:46.6878773Z Updater audit passed: 817 system/user units inspected
+image	Build and audit the image (runner storage only)	2026-10-22T07:03:00.9309622Z Checks passed: 10
+image	Build and audit the image (runner storage only)	2026-10-22T07:03:00.9309997Z Checks skipped: 1
+image	Build and audit the image (runner storage only)	2026-10-22T07:03:00.9310356Z Warnings: 4
+image	Parse real Fedora system and user manager output before disk build	2026-10-22T07:05:36.5512081Z Error: crun: creating `/opt/parser_preflight.py`: openat2 `opt`: No such file or directory: OCI runtime attempted to invoke a command that was not found

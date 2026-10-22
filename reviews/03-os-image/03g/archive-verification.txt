@@ -1,0 +1,6 @@
+attempt-1: 31 original archive entries match the expanded gh download (SHA-256)
+attempt-1: original ZIP SHA-256 matches GitHub artifact metadata
+checks-2: 16 original archive entries match the expanded gh download (SHA-256)
+checks-2: original ZIP SHA-256 matches GitHub artifact metadata
+attempt-2: 31 original archive entries match the expanded gh download (SHA-256)
+attempt-2: original ZIP SHA-256 matches GitHub artifact metadata

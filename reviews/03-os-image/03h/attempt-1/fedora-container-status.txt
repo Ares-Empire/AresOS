@@ -1,0 +1,65 @@
+● dbus-broker.service - D-Bus System Message Bus
+     Loaded: loaded (/usr/lib/systemd/system/dbus-broker.service; enabled; preset: enabled)
+    Drop-In: /usr/lib/systemd/system/service.d
+             └─10-timeout-abort.conf
+     Active: active (running) since Thu 2026-10-22 07:58:34 UTC; 32s ago
+ Invocation: c91e880b7cac4ff8b28ab996619cb35e
+TriggeredBy: ● dbus.socket
+       Docs: man:dbus-broker-launch(1)
+   Main PID: 191 (dbus-broker-lau)
+      Tasks: 2 (limit: 307)
+     Memory: 4.9M (peak: 7.6M)
+        CPU: 179ms
+     CGroup: /system.slice/dbus-broker.service
+             ├─191 /usr/bin/dbus-broker-launch --scope system --audit
+             └─192 dbus-broker --log 10 --controller 9 --machine-id 4cf6de35edcedb8b209f885d28260714 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+
+Oct 22 07:58:34 4cf6de35edce dbus-broker-launch[191]: Looking up NSS user entry for 'systemd-oom'...
+Oct 22 07:58:34 4cf6de35edce dbus-broker-launch[191]: NSS returned NAME 'systemd-oom' and UID '964'
+Oct 22 07:58:34 4cf6de35edce dbus-broker-launch[191]: Looking up NSS user entry for 'systemd-resolve'...
+Oct 22 07:58:34 4cf6de35edce dbus-broker-launch[191]: NSS returned NAME 'systemd-resolve' and UID '990'
+Oct 22 07:58:34 4cf6de35edce dbus-broker-launch[191]: Looking up NSS user entry for 'systemd-timesync'...
+Oct 22 07:58:34 4cf6de35edce dbus-broker-launch[191]: NSS returned NAME 'systemd-timesync' and UID '993'
+Oct 22 07:58:34 4cf6de35edce dbus-broker-launch[191]: Looking up NSS user entry for 'setroubleshoot'...
+Oct 22 07:58:34 4cf6de35edce dbus-broker-launch[191]: NSS returned NAME 'setroubleshoot' and UID '960'
+Oct 22 07:58:34 4cf6de35edce systemd[1]: Started dbus-broker.service - D-Bus System Message Bus.
+Oct 22 07:58:34 4cf6de35edce dbus-broker-launch[191]: Ready
+
+● user@1000.service - User Manager for UID 1000
+     Loaded: loaded (/usr/lib/systemd/system/user@.service; static)
+    Drop-In: /usr/lib/systemd/system/user@.service.d
+             └─00-uresourced.conf, 10-login-barrier.conf
+             /usr/lib/systemd/system/service.d
+             └─10-timeout-abort.conf
+             /etc/systemd/system.control/user@1000.service.d
+             └─50-CPUWeight.conf, 50-IOWeight.conf, 50-MemoryLow.conf, 50-MemoryMin.conf
+     Active: active (running) since Thu 2026-10-22 07:58:35 UTC; 31s ago
+ Invocation: fc265b0cfa0e496d8c91c5339856c433
+       Docs: man:user@.service(5)
+   Main PID: 240 (systemd)
+     Status: "Ready."
+      Tasks: 5
+     Memory: 10.9M (peak: 11.9M)
+        CPU: 1.524s
+     CGroup: /user.slice/user-1000.slice/user@1000.service
+             ├─app.slice
+             │ └─mpris-proxy.service
+             │   └─262 /usr/bin/mpris-proxy
+             ├─init.scope
+             │ ├─240 /usr/lib/systemd/systemd --user
+             │ └─245 "(sd-pam)"
+             └─session.slice
+               └─dbus-broker.service
+                 ├─264 /usr/bin/dbus-broker-launch --scope user
+                 └─265 dbus-broker --log 11 --controller 10 --machine-id 4cf6de35edcedb8b209f885d28260714 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Started dbus-broker.service - D-Bus User Message Bus.
+Oct 22 07:58:35 4cf6de35edce dbus-broker-launch[264]: Ready
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Finished unity-gtk-module.service - Unity GTK Module Environment variables.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Reached target default.target - Main User Target.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Startup finished in 248ms.
+Oct 22 07:58:36 4cf6de35edce systemd[240]: Reload requested from client PID 327 ('systemctl')...
+Oct 22 07:58:36 4cf6de35edce systemd[240]: Reloading...
+Oct 22 07:58:36 4cf6de35edce systemd[330]: /usr/lib/systemd/user-environment-generators/60-flatpak: line 3: /usr/bin/flatpak: Permission denied
+Oct 22 07:58:36 4cf6de35edce (environment-generators)[328]: /usr/lib/systemd/user-environment-generators/60-flatpak failed with exit status 126, ignoring.
+Oct 22 07:58:36 4cf6de35edce systemd[240]: Reloading finished in 118 ms.

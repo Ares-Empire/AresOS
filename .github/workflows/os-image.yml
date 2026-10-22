@@ -1,0 +1,178 @@
+name: OS image
+run-name: ${{ inputs.checks_only && 'OS regressions only (no VM)' || 'OS image' }}
+
+on:
+  push:
+    branches: [pkg/**]
+    paths:
+      - os/Containerfile
+      - os/.containerignore
+      - os/build.sh
+      - os/packages.lock.json
+      - os/config/**
+      - os/policy/**
+      - os/tests/**
+      - os/ci/**
+      - os/keys/**
+      - os/manifest/base.json
+      - .github/workflows/os-image.yml
+  workflow_dispatch:
+    inputs:
+      checks_only:
+        description: 'Run regressions and live host state query; no image build or VM'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: os-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  regressions:
+    name: Regression checks only (no image build or VM)
+    if: github.event_name == 'workflow_dispatch' && inputs.checks_only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Run regression and syntax checks
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s os/tests -v
+          python3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/tests/audit.py os/tests/power-events.py
+          for script in os/ci/install-tools.sh os/ci/parser-preflight.sh os/ci/overlay/updater-generator os/build.sh os/tests/guest.sh os/config/usr/bin/aresos-session os/config/usr/bin/aresos-terminal; do
+            bash -n "$script"
+          done
+      - name: Query the real hosted system manager (no image or VM)
+        run: |
+          PYTHONPATH=os/tests python3 - <<'PY'
+          from audit import live_states
+          files, units = live_states(['systemctl', '--no-pager', '--no-legend'])
+          assert '-.mount' in units and units['-.mount']['load_state'] == 'loaded', units.get('-.mount')
+          print(f'Live hosted system manager passed: {len(files)} unit files, {len(units)} unit names')
+          PY
+  image:
+    if: github.event_name != 'workflow_dispatch' || !inputs.checks_only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Start quota measurements
+        run: |
+          mkdir -p evidence
+          date +%s > evidence/start-time.txt
+          python3 os/ci/metrics.py --sample &
+          echo "$!" > /tmp/aresos-metrics.pid
+      - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+        with:
+          extra-squeeze: 'true'
+      - name: Install tools on disposable runner
+        run: |
+          set -euo pipefail
+          bash os/ci/install-tools.sh
+          sudo modprobe nbd max_part=8
+          df -B1 / > evidence/post-cleanup-disk.txt
+          python3 -m unittest discover -s os/tests -v
+          python3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/tests/audit.py os/tests/power-events.py
+          for script in os/ci/install-tools.sh os/ci/parser-preflight.sh os/ci/overlay/updater-generator os/build.sh os/tests/guest.sh os/config/usr/bin/aresos-session os/config/usr/bin/aresos-terminal; do
+            bash -n "$script"
+          done
+          { podman --version; skopeo --version; qemu-system-x86_64 --version; dpkg-query -W ovmf; } > evidence/tool-versions.txt
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        with:
+          cosign-release: v2.6.1
+      - name: Verify pinned upstream image
+        run: |
+          set -euo pipefail
+          image=$(jq -r .reference os/manifest/base.json)
+          test "$(awk '/^FROM / {print $2; exit}' os/Containerfile)" = "$image"
+          printf '%s\n' "$image" | tee evidence/base-reference.txt
+          cosign verify --key os/keys/bazzite.pub "$image" > evidence/base-signature.json
+          openssl pkey -pubin -in os/keys/bazzite.pub -outform DER | sha256sum > evidence/base-key-sha256.txt
+          skopeo inspect "docker://$image" > evidence/base-inspect.json
+          skopeo inspect --raw "docker://$image" > evidence/base-oci-manifest.json
+          df -B1 / | tee evidence/runner-disk.txt
+      - name: Build and audit the image (runner storage only)
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          date +%s > evidence/build-start-time.txt
+          sudo podman build --layers --target packages --format=oci --tag localhost/aresos:packages --file os/Containerfile os
+          sudo podman run --rm --entrypoint /usr/bin/bash -v "$PWD/evidence:/evidence" localhost/aresos:packages \
+            -c 'cp /usr/share/aresos/manifest/* /evidence/'
+          sudo podman build --layers --format=oci --tag localhost/aresos:ci --file os/Containerfile os
+          sudo podman run --rm --entrypoint /usr/bin/bash -v "$PWD/evidence:/evidence" localhost/aresos:ci \
+            -c 'cp /usr/share/aresos/manifest/* /evidence/'
+          sudo skopeo inspect --raw containers-storage:localhost/aresos:ci > evidence/image-oci-manifest.json
+          sudo podman image inspect localhost/aresos:ci > evidence/image-inspect.json
+          sha256sum evidence/image-oci-manifest.json > evidence/image-digest.txt
+          jq -n --arg base "$(jq -r .reference os/manifest/base.json)" \
+            --arg image "sha256:$(cut -d' ' -f1 evidence/image-digest.txt)" \
+            --arg commit "$(git rev-parse HEAD)" --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{base:$base,image:$image,checkout_commit:$commit,run:$run}' > evidence/provenance.json
+      - name: Build isolated test overlay and prove release excludes it
+        run: |
+          set -euo pipefail
+          sudo podman run --rm --entrypoint /usr/bin/bash localhost/aresos:ci -ec '
+            test ! -e /usr/libexec/aresos-ci
+            test ! -e /usr/lib/systemd/system/aresos-ci.service
+            test ! -e /usr/lib/systemd/system-generators/aresos-ci-updater-regression
+            test ! -e /etc/systemd/system/aresos-ci-routine.service
+            test ! -e /etc/systemd/system/aresos-ci-routine.timer
+            test ! -e /etc/systemd/system/aresos-ci-static-canary.service
+            test ! -e /usr/lib/systemd/system/multi-user.target.wants/aresos-ci.service
+            test ! -e /tmp/aresos
+            test ! -e /etc/systemd/system/systemd-logind.service.d/90-aresos-ci.conf
+            test ! -e /etc/systemd/journald.conf.d/99-aresos-ci.conf
+            test "$(systemd-analyze cat-config systemd/journald.conf | sed -n "s/^Storage=//p" | tail -1)" = persistent
+            for user in root ares; do
+              case "$(getent shadow "$user" | cut -d: -f2)" in
+                \!*|\**) ;;
+                *) echo "Unlocked image account: $user"; exit 1 ;;
+              esac
+            done
+            echo "Release excludes CI service and credentials; both passwords locked"
+          ' | tee evidence/release-isolation.txt
+          sudo podman build --format=oci --tag localhost/aresos:vm --file os/ci/overlay/Containerfile .
+          sudo skopeo inspect --raw containers-storage:localhost/aresos:vm > evidence/vm-image-oci-manifest.json
+          sha256sum evidence/vm-image-oci-manifest.json > evidence/vm-image-digest.txt
+          sudo podman image inspect localhost/aresos:vm > evidence/vm-image-inspect.json
+      - name: Build file-backed UEFI VM disk
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          python3 os/ci/prepare-disk.py
+          mkdir -p vm-work/output
+          builder=$(jq -r .builder os/manifest/base.json)
+          sudo podman run --rm --privileged --security-opt label=type:unconfined_t \
+            -v "$PWD/vm-work/config.toml:/config.toml:ro" \
+            -v "$PWD/vm-work/output:/output" \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            "$builder" --type raw --rootfs btrfs --use-librepo=True localhost/aresos:vm
+          sudo chmod -R a+rX vm-work/output
+      - name: Boot QEMU and assert session, policy and recovery
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          for pass in 1 2; do
+            sudo -E env ARESOS_VM_PASS="$pass" python3 os/ci/vm.py
+          done
+      - name: Measure and bound evidence
+        id: evidence
+        if: always()
+        run: |
+          python3 os/ci/metrics.py
+          sudo chown -R "$(id -u):$(id -g)" evidence
+          test "$(du -sb evidence | cut -f1)" -lt 180000000
+          echo 'safe=true' >> "$GITHUB_OUTPUT"
+          cat evidence/metrics.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.evidence.outputs.safe == 'true'
+        with:
+          name: os-image-evidence
+          path: evidence/
+          retention-days: 3
+          if-no-files-found: error

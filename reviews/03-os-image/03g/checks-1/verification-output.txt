@@ -1,0 +1,2 @@
+Regression checks only (no image or VM)	Run regression and syntax checks	2026-10-22T06:49:38.0667014Z Ran 34 tests in 1.134s
+Regression checks only (no image or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T06:49:41.1253345Z Live hosted system manager passed: 437 unit files, 608 unit names

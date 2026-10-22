@@ -1,0 +1,62 @@
+[
+  {
+    "id": 39742496374,
+    "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39742496374",
+    "head_sha": "afbb80a16116295b85cd4e985d787e32c1fa2958",
+    "run_attempt": 1,
+    "conclusion": "failure",
+    "status": "completed",
+    "created_at": "2026-10-22T07:43:32Z",
+    "updated_at": "2026-10-22T08:30:12Z",
+    "elapsed_seconds": 2800.0,
+    "counted_full_attempt": true
+  },
+  {
+    "id": 39748939881,
+    "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39748939881",
+    "head_sha": "c5473259e537ef38621a34899e8d330e9a360e36",
+    "run_attempt": 1,
+    "conclusion": "success",
+    "status": "completed",
+    "created_at": "2026-10-22T08:35:58Z",
+    "updated_at": "2026-10-22T08:36:10Z",
+    "elapsed_seconds": 12.0,
+    "counted_full_attempt": false
+  },
+  {
+    "id": 39749001395,
+    "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39749001395",
+    "head_sha": "c5473259e537ef38621a34899e8d330e9a360e36",
+    "run_attempt": 1,
+    "conclusion": "failure",
+    "status": "completed",
+    "created_at": "2026-10-22T08:36:28Z",
+    "updated_at": "2026-10-22T09:22:10Z",
+    "elapsed_seconds": 2742.0,
+    "counted_full_attempt": true
+  },
+  {
+    "id": 39755103185,
+    "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39755103185",
+    "head_sha": "59253dfa45a488f2fe2a5e146aaf22f49bbb54e3",
+    "run_attempt": 1,
+    "conclusion": "failure",
+    "status": "completed",
+    "created_at": "2026-10-22T09:23:55Z",
+    "updated_at": "2026-10-22T09:24:07Z",
+    "elapsed_seconds": 12.0,
+    "counted_full_attempt": false
+  },
+  {
+    "id": 39755280120,
+    "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39755280120",
+    "head_sha": "9b29c0297aac6bb77dc9ed10a244f0a856e603ce",
+    "run_attempt": 1,
+    "conclusion": "success",
+    "status": "completed",
+    "created_at": "2026-10-22T09:25:16Z",
+    "updated_at": "2026-10-22T09:25:29Z",
+    "elapsed_seconds": 13.0,
+    "counted_full_attempt": false
+  }
+]

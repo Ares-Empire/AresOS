@@ -1,0 +1,55 @@
+"""Answer the terminal queries used by the inherited interactive login banner."""
+import base64
+import hashlib
+import re
+
+
+def encode_command(script):
+    encoded = base64.b64encode(script.encode()).decode()
+    lines = '\n'.join(encoded[n:n + 1024] for n in range(0, len(encoded), 1024))
+    # Parse completion printing before execution: a guest command may read from
+    # /dev/tty and consume anything queued after the heredoc delimiter.
+    header = "{ base64 -d <<'ARESOS_SCRIPT' | bash; printf '\\nARESOS_CMD_%s:%s\\n' DONE $?; }\n"
+    return header + lines + '\nARESOS_SCRIPT\n'
+
+
+def decode_export(transcript):
+    # Kernel printk shares the serial UART and can interrupt a base64 line.
+    # Remove only recognizable kernel records; the guest checksum guards every
+    # decoded byte against missing data or any other console interference.
+    clean = re.sub(r'\[\s*\d+\.\d+\][^\r\n]*(?:\r?\n|\r)', '', transcript)
+    frame = re.search(r'\r?\nARESOS_EXPORT_START\r?\n(.*?)\r?\nARESOS_EXPORT_END\r?\n'
+                      r'ARESOS_EXPORT_SHA256[ \t]+([0-9a-f]{64})[ \t]+[^\r\n]+\r?\n', clean, re.S)
+    if frame is None:
+        raise ValueError('Missing complete checksum-framed guest export')
+    raw = base64.b64decode(''.join(frame.group(1).split()), validate=True)
+    if hashlib.sha256(raw).hexdigest() != frame.group(2):
+        raise ValueError('Guest export checksum mismatch')
+    return raw
+
+
+class TerminalReplies:
+    # xterm DSR and OSC dynamic-color queries can span socket reads.
+    query = re.compile(rb'\x1b\[6n|\x1b\](10|11|12);\?(?:\x07|\x1b\\)')
+
+    def __init__(self):
+        self.pending = b''
+        self.counts = {}
+
+    def feed(self, data):
+        self.pending += data
+        replies = []
+        consumed = 0
+        for match in self.query.finditer(self.pending):
+            color = match.group(1)
+            if color is None:
+                name = 'cursor-position'
+                replies.append(b'\x1b[24;80R')
+            else:
+                name = f'color-{color.decode()}'
+                rgb = b'0000/0000/0000' if color == b'11' else b'ffff/ffff/ffff'
+                replies.append(b'\x1b]' + color + b';rgb:' + rgb + b'\x1b\\')
+            self.counts[name] = self.counts.get(name, 0) + 1
+            consumed = match.end()
+        self.pending = self.pending[consumed:][-64:]
+        return b''.join(replies)

@@ -1,0 +1,5 @@
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T07:08:01.6869221Z Ran 34 tests in 1.044s
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T07:08:04.0161443Z Live hosted system manager passed: 437 unit files, 598 unit names
+Regression checks only (no image build or VM)	Check the parser on the pinned Fedora base (no image build or VM)	2026-10-22T07:17:01.6704246Z systemd 259 (259.9-1.fc44)
+Regression checks only (no image build or VM)	Check the parser on the pinned Fedora base (no image build or VM)	2026-10-22T07:17:01.6708101Z Fedora parser preflight passed: system: 799 unit names; escaped name, alias, dependency and spaced drop-in preserved
+Regression checks only (no image build or VM)	Check the parser on the pinned Fedora base (no image build or VM)	2026-10-22T07:17:01.6709130Z Fedora parser preflight passed: user: 276 unit names; escaped name, alias, dependency and spaced drop-in preserved

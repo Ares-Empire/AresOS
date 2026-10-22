@@ -1,0 +1,8 @@
+#!/usr/bin/bash
+set -euo pipefail
+export XDG_SESSION_TYPE=wayland
+export XDG_CURRENT_DESKTOP=AresOS
+export XDG_SESSION_DESKTOP=aresos
+export HOMEBREW_NO_AUTO_UPDATE=1
+export HOMEBREW_NO_INSTALL_FROM_API=1
+exec dbus-run-session -- labwc --config-dir /usr/share/aresos/labwc

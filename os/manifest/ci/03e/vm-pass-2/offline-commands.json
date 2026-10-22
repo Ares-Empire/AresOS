@@ -1,0 +1,290 @@
+[
+  {
+    "argv": [
+      "qemu-nbd",
+      "--read-only",
+      "--format=qcow2",
+      "--connect=/dev/nbd0",
+      "/home/runner/work/AresOS/AresOS/vm-work/pass-2.qcow2"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": null
+  },
+  {
+    "argv": [
+      "udevadm",
+      "settle"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": null
+  },
+  {
+    "argv": [
+      "lsblk",
+      "--json",
+      "--paths",
+      "--output",
+      "NAME,FSTYPE,RO",
+      "/dev/nbd0"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-disk-layout.json"
+  },
+  {
+    "argv": [
+      "blockdev",
+      "--getro",
+      "/dev/nbd0p4"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": null
+  },
+  {
+    "argv": [
+      "mount",
+      "-t",
+      "btrfs",
+      "-o",
+      "ro,nologreplay,subvolid=5",
+      "/dev/nbd0p4",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-root"
+    ],
+    "returncode": 32,
+    "stderr": "mount: /home/runner/work/AresOS/AresOS/vm-work/offline-root: wrong fs type, bad option, bad superblock on /dev/nbd0p4, missing codepage or helper program, or other error.\n       dmesg(1) may have more information after failed mount system call.\n",
+    "output": null
+  },
+  {
+    "argv": [
+      "dmesg",
+      "--color=never"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-mount-dmesg.txt"
+  },
+  {
+    "argv": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--device",
+      "/dev/nbd0p4:/dev/guest:r",
+      "--volume",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c:/export:rw",
+      "--entrypoint",
+      "/usr/bin/btrfs",
+      "localhost/aresos:ci",
+      "version"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-btrfs-version.txt"
+  },
+  {
+    "argv": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--device",
+      "/dev/nbd0p4:/dev/guest:r",
+      "--volume",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c:/export:rw",
+      "--entrypoint",
+      "/usr/bin/btrfs",
+      "localhost/aresos:ci",
+      "check",
+      "--readonly",
+      "/dev/guest"
+    ],
+    "returncode": 0,
+    "stderr": "[1/8] checking log skipped (none written)\n[2/8] checking root items\n[3/8] checking extents\n[4/8] checking free space tree\n[5/8] checking fs roots\n[6/8] checking only csums items (without verifying data)\n[7/8] checking root refs\n[8/8] checking quota groups skipped (not enabled on this FS)\n",
+    "output": "offline-btrfs-check.txt"
+  },
+  {
+    "argv": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--device",
+      "/dev/nbd0p4:/dev/guest:r",
+      "--volume",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c:/export:rw",
+      "--entrypoint",
+      "/usr/bin/btrfs",
+      "localhost/aresos:ci",
+      "restore",
+      "--list-roots",
+      "/dev/guest"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-btrfs-roots.txt"
+  },
+  {
+    "argv": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--device",
+      "/dev/nbd0p4:/dev/guest:r",
+      "--volume",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c:/export:rw",
+      "--entrypoint",
+      "/usr/bin/btrfs",
+      "localhost/aresos:ci",
+      "restore",
+      "--root",
+      "256",
+      "--path-regex",
+      "^/(|var(|/log(|/journal(|/.*)))|ostree(|/deploy(|/[^/]+(|/var(|/log(|/journal(|/.*)))))))$",
+      "/dev/guest",
+      "/export"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-btrfs-restore.txt"
+  },
+  {
+    "argv": [
+      "find",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c",
+      "-type",
+      "d",
+      "-path",
+      "*/var/log/journal",
+      "-print"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": null
+  },
+  {
+    "argv": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--volume",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c/ostree/deploy/default/var/log/journal:/guest-journal:ro",
+      "--entrypoint",
+      "/usr/bin/journalctl",
+      "localhost/aresos:ci",
+      "--directory=/guest-journal",
+      "--no-pager",
+      "--list-boots"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-boots.txt"
+  },
+  {
+    "argv": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--volume",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c/ostree/deploy/default/var/log/journal:/guest-journal:ro",
+      "--entrypoint",
+      "/usr/bin/journalctl",
+      "localhost/aresos:ci",
+      "--directory=/guest-journal",
+      "--no-pager",
+      "--boot=4606ca97045944f79dfe9cb4470b1f3c",
+      "--all",
+      "--output=json"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-boot.jsonl"
+  },
+  {
+    "argv": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--volume",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c/ostree/deploy/default/var/log/journal:/guest-journal:ro",
+      "--entrypoint",
+      "/usr/bin/journalctl",
+      "localhost/aresos:ci",
+      "--directory=/guest-journal",
+      "--no-pager",
+      "--boot=4606ca97045944f79dfe9cb4470b1f3c",
+      "--all",
+      "--output=short-monotonic"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-boot.txt"
+  },
+  {
+    "argv": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--volume",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c/ostree/deploy/default/var/log/journal:/guest-journal:ro",
+      "--entrypoint",
+      "/usr/bin/journalctl",
+      "localhost/aresos:ci",
+      "--directory=/guest-journal",
+      "--no-pager",
+      "--boot=4606ca97045944f79dfe9cb4470b1f3c",
+      "--all",
+      "--unit=systemd-logind.service",
+      "--output=json"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": "offline-logind.jsonl"
+  },
+  {
+    "argv": [
+      "podman",
+      "run",
+      "--rm",
+      "--network=none",
+      "--read-only",
+      "--volume",
+      "/home/runner/work/AresOS/AresOS/vm-work/offline-restore-4606ca97045944f79dfe9cb4470b1f3c/ostree/deploy/default/var/log/journal:/guest-journal:ro",
+      "--entrypoint",
+      "/usr/bin/journalctl",
+      "localhost/aresos:ci",
+      "--directory=/guest-journal",
+      "--no-pager",
+      "--verify"
+    ],
+    "returncode": 0,
+    "stderr": "PASS: /guest-journal/2e66539ce4f44db8b9d3f992e0e017fd/user-1000.journal\nPASS: /guest-journal/2e66539ce4f44db8b9d3f992e0e017fd/system.journal\n",
+    "output": "offline-verify.txt"
+  },
+  {
+    "argv": [
+      "qemu-nbd",
+      "--disconnect",
+      "/dev/nbd0"
+    ],
+    "returncode": 0,
+    "stderr": "",
+    "output": null
+  }
+]

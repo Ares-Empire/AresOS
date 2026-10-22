@@ -1,0 +1,11 @@
+Opening filesystem to check...
+Checking filesystem on /dev/guest
+UUID: e93d7c17-141a-4616-ac88-6af70819bad9
+found 8718647296 bytes used, no error found
+total csum bytes: 8216312
+total tree bytes: 293978112
+total fs tree bytes: 262012928
+total extent tree bytes: 22085632
+btree space waste bytes: 38033998
+file data blocks allocated: 9331273728
+ referenced 13063503872

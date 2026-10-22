@@ -100,6 +100,15 @@ Retain authenticated recovery administration; keep all boot writes on Crucial an
 
 Expect **labwc with foot terminal** after the released switch. Stay on AC, lid open: battery-critical handling and suspend are unqualified. Using handoff controls, check RTX 4060 (`nvidia-smi`), display/brightness, Wi-Fi after reboot, audible sound, German keyboard and touchpad. Test Super+Ctrl+Escape, authenticated Ctrl+Alt+F3, return to session, safe shutdown and second boot. This is the proposed P1a acceptance list, not released functionality.
 
+**First-hardware-boot logind gate (03c procedure, authorized by brief 03e):** after the existing installation and recovery-account prerequisites, on AC with the plain terminal session, try an interactive Ctrl+Alt+F3 login with the independently provisioned recovery administrator. Return using the supplied session steps, then verify a short physical power-button press reaches logind and cleanly powers off. On the next boot, inspect the previous persistent journal with journal-reading privileges:
+
+```bash
+journalctl -b -1 -u systemd-logind.service --no-pager
+journalctl -b -1 --no-pager
+```
+
+Retain both outputs, the image digest and pass/fail privately. Require the button record and orderly shutdown; merely seeing the laptop turn off is insufficient to establish the logind path. Also repeat a fresh boot/session/recovery trial. Missing records or an unreadable journal leave this hardware gate unmet. CI may label its offline logind check **REPORTED, NOT BLOCKING: first hardware boot required** only when the kernel Btrfs mount is explicitly unsupported **and** its userspace reader tooling is explicitly absent (03f). That single path then remains a hardware gate; CI still requires QMP guest shutdown, `poweroff.target` and two fresh VM passes. Filesystem/extraction/verification errors, absent journals or expected boots, wrong boots and missing required logind records remain blocking CI failures.
+
 Boot Windows directly with USB absent and present (select Windows explicitly), check files/sound/network and repeat record B against the **original** baseline. On failure, return to Windows and report it. Minecraft/app/save/restore and daily battery use are later milestones.
 
 ## 8. Choose the OS at startup

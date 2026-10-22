@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<labwc_config>
+  <core><decoration>server</decoration></core>
+  <theme><name>Default</name></theme>
+  <keyboard>
+    <keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal" /></keybind>
+    <keybind key="A-F4"><action name="Close" /></keybind>
+    <keybind key="A-Tab"><action name="NextWindow" /></keybind>
+  </keyboard>
+  <windowRules>
+    <windowRule identifier="foot"><action name="Maximize" /></windowRule>
+  </windowRules>
+</labwc_config>

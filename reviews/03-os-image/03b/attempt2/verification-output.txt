@@ -1,0 +1,22 @@
+image	Install tools on disposable runner	2026-10-21T23:36:23.1530348Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-21T23:36:23.1532447Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+image	Install tools on disposable runner	2026-10-21T23:36:23.1602523Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-21T23:36:23.1603421Z test_boot_log_retention_is_bounded_without_losing_partial_query (test_serial_console.SerialTerminalTest.test_boot_log_retention_is_bounded_without_losing_partial_query) ... ok
+image	Install tools on disposable runner	2026-10-21T23:36:23.1604361Z test_queries_split_at_every_socket_boundary (test_serial_console.SerialTerminalTest.test_queries_split_at_every_socket_boundary) ... ok
+image	Install tools on disposable runner	2026-10-21T23:36:23.1605131Z test_repeated_queries_answered_once_each (test_serial_console.SerialTerminalTest.test_repeated_queries_answered_once_each) ... ok
+image	Install tools on disposable runner	2026-10-21T23:36:23.1605752Z test_shell_text_and_other_escape_sequences_do_not_receive_input (test_serial_console.SerialTerminalTest.test_shell_text_and_other_escape_sequences_do_not_receive_input) ... ok
+image	Install tools on disposable runner	2026-10-21T23:36:23.1606401Z Ran 7 tests in 0.012s
+image	Install tools on disposable runner	2026-10-21T23:36:23.1606532Z OK
+image	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-21T23:36:27.7733225Z Verified OK
+image	Build and audit the image (runner storage only)	2026-10-21T23:45:19.7792913Z Updater audit passed: 815 system/user units inspected
+image	Build file-backed UEFI VM disk	2026-10-22T00:04:21.2974379Z Build complete!
+ARESOS_SERIAL_READY:0
+Updater audit passed: 828 system/user units inspected
+Deployment backend: bootc (OSTree storage)
+ARESOS_GUEST_CHECKS_PASSED
+]3008;start=7931de4c-2a8b-4bc9-87cb-f4188b7babc2;type=command;machineid=1c163e28d481416893ee0c94088b7503;user=root;hostname=bazzite;bootid=17272192-c710-4c72-9350-2b460009d9b2;pid=2093;cwd=/root\-bash: intf: command not found
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:07:27.9107869Z Traceback (most recent call last):
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:07:27.9108432Z   File "/home/runner/work/AresOS/AresOS/os/ci/vm.py", line 165, in <module>
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:07:27.9113278Z   File "/home/runner/work/AresOS/AresOS/os/ci/vm.py", line 104, in command
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:07:27.9114345Z   File "/home/runner/work/AresOS/AresOS/os/ci/vm.py", line 93, in wait_for
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:07:27.9115307Z TimeoutError: Guest did not reach 'ARESOS_CMD_DONE:\\d+'

@@ -1,0 +1,10 @@
+image	Install tools on disposable runner	2026-10-22T07:21:27.5158276Z Ran 34 tests in 0.728s
+image	Build and audit the image (runner storage only)	2026-10-22T07:27:59.5111497Z >>> Failed to connect to audit log, ignoring: Invalid argument
+image	Build and audit the image (runner storage only)	2026-10-22T07:28:02.0922228Z >>> Failed to connect to audit log, ignoring: Invalid argument
+image	Build and audit the image (runner storage only)	2026-10-22T07:30:44.1721793Z Updater audit passed: 817 system/user units inspected
+image	Build and audit the image (runner storage only)	2026-10-22T07:30:53.8214405Z Checks passed: 10
+image	Build and audit the image (runner storage only)	2026-10-22T07:30:53.8214786Z Checks skipped: 1
+image	Build and audit the image (runner storage only)	2026-10-22T07:30:53.8215091Z Warnings: 4
+image	Parse real Fedora system and user manager output before disk build	2026-10-22T07:33:21.0983506Z Failed to connect to system scope bus via local transport: No such file or directory
+image	Parse real Fedora system and user manager output before disk build	2026-10-22T07:33:28.3572050Z Job for user@1000.service failed because the control process exited with error code.
+image	Parse real Fedora system and user manager output before disk build	2026-10-22T07:33:29.0325814Z ##[error]Process completed with exit code 1.

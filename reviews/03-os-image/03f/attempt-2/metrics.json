@@ -1,0 +1,12 @@
+{
+  "runner_peak_used_bytes": 70443487232,
+  "runner_min_free_bytes": 6426890240,
+  "runner_total_bytes": 76887154688,
+  "elapsed_seconds": 2762.4728710651398,
+  "build_peak_used_bytes": 70443487232,
+  "build_min_free_bytes": 6426890240,
+  "vm_disk_virtual_bytes": 31666995200,
+  "vm_disk_allocated_bytes": 9568727040,
+  "image_uncompressed_bytes": 13195091752,
+  "base_uncompressed_bytes": 13010242255
+}

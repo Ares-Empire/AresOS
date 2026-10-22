@@ -1,0 +1,33 @@
+SOURCE: .work/03f/attempt-1-workflow.txt
+image	Install tools on disposable runner	2026-10-22T04:55:15.5470593Z Ran 31 tests in 0.753s
+image	Install tools on disposable runner	2026-10-22T04:55:15.5470812Z OK
+image	Build and audit the image (runner storage only)	2026-10-22T05:04:49.7810826Z Updater audit passed: 817 system/user units inspected
+image	Build and audit the image (runner storage only)	2026-10-22T05:05:05.4467733Z Checks passed: 10
+image	Build and audit the image (runner storage only)	2026-10-22T05:05:05.4468088Z Checks skipped: 1
+image	Build and audit the image (runner storage only)	2026-10-22T05:05:05.4468446Z Warnings: 4
+image	Build isolated test overlay and prove release excludes it	2026-10-22T05:07:37.9787011Z ^[[36;1m  echo "Release excludes CI service and credentials; both passwords locked"^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T05:07:38.3615285Z Release excludes CI service and credentials; both passwords locked
+image	Build isolated test overlay and prove release excludes it	2026-10-22T05:18:25.8322469Z Checks passed: 10
+image	Build isolated test overlay and prove release excludes it	2026-10-22T05:18:25.8322772Z Checks skipped: 1
+image	Build isolated test overlay and prove release excludes it	2026-10-22T05:18:25.8323092Z Warnings: 4
+image	Build file-backed UEFI VM disk	2026-10-22T05:36:56.3297939Z Build complete!
+SOURCE: .work/03f/attempt-2-workflow.txt
+image	Install tools on disposable runner	2026-10-22T05:43:25.8835669Z Ran 32 tests in 0.773s
+image	Install tools on disposable runner	2026-10-22T05:43:25.8836373Z OK
+image	Build and audit the image (runner storage only)	2026-10-22T05:52:43.1090105Z Updater audit passed: 817 system/user units inspected
+image	Build and audit the image (runner storage only)	2026-10-22T05:52:57.0306613Z Checks passed: 10
+image	Build and audit the image (runner storage only)	2026-10-22T05:52:57.0306938Z Checks skipped: 1
+image	Build and audit the image (runner storage only)	2026-10-22T05:52:57.0307240Z Warnings: 4
+image	Build isolated test overlay and prove release excludes it	2026-10-22T05:55:22.8971618Z ^[[36;1m  echo "Release excludes CI service and credentials; both passwords locked"^[[0m
+image	Build isolated test overlay and prove release excludes it	2026-10-22T05:55:23.3721741Z Release excludes CI service and credentials; both passwords locked
+image	Build isolated test overlay and prove release excludes it	2026-10-22T06:06:23.4497404Z Checks passed: 10
+image	Build isolated test overlay and prove release excludes it	2026-10-22T06:06:23.4497751Z Checks skipped: 1
+image	Build isolated test overlay and prove release excludes it	2026-10-22T06:06:23.4498094Z Warnings: 4
+image	Build file-backed UEFI VM disk	2026-10-22T06:25:02.5103259Z Build complete!
+SOURCE: .work/03f/checks-1-failed.txt
+Regression checks only (no image or VM)	Run regression and syntax checks	2026-10-22T06:33:36.7182285Z Ran 34 tests in 0.799s
+Regression checks only (no image or VM)	Run regression and syntax checks	2026-10-22T06:33:36.7182704Z FAILED (failures=1)
+SOURCE: .work/03f/checks-2-workflow.txt
+Regression checks only (no image or VM)	Run regression and syntax checks	2026-10-22T06:34:35.0950483Z Ran 34 tests in 0.656s
+Regression checks only (no image or VM)	Run regression and syntax checks	2026-10-22T06:34:35.0951047Z OK
+Regression checks only (no image or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T06:34:37.0025928Z Live hosted system manager passed: 437 unit files, 596 unit names

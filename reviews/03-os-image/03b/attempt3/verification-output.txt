@@ -1,0 +1,24 @@
+image	Install tools on disposable runner	2026-10-22T00:12:17.6150926Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.6164721Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.6204167Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.8495850Z test_guest_tty_reader_cannot_consume_completion_command (test_serial_console.SerialCommandTest.test_guest_tty_reader_cannot_consume_completion_command) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.9240658Z test_long_script_survives_canonical_tty_line_limit (test_serial_console.SerialCommandTest.test_long_script_survives_canonical_tty_line_limit) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.9291471Z test_nonzero_guest_exit_is_preserved (test_serial_console.SerialCommandTest.test_nonzero_guest_exit_is_preserved) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.9294495Z test_boot_log_retention_is_bounded_without_losing_partial_query (test_serial_console.SerialTerminalTest.test_boot_log_retention_is_bounded_without_losing_partial_query) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.9297276Z test_queries_split_at_every_socket_boundary (test_serial_console.SerialTerminalTest.test_queries_split_at_every_socket_boundary) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.9298315Z test_repeated_queries_answered_once_each (test_serial_console.SerialTerminalTest.test_repeated_queries_answered_once_each) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.9299496Z test_shell_text_and_other_escape_sequences_do_not_receive_input (test_serial_console.SerialTerminalTest.test_shell_text_and_other_escape_sequences_do_not_receive_input) ... ok
+image	Install tools on disposable runner	2026-10-22T00:12:17.9300996Z Ran 10 tests in 0.322s
+image	Install tools on disposable runner	2026-10-22T00:12:17.9301472Z OK
+image	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T00:12:23.4714406Z Verified OK
+image	Build and audit the image (runner storage only)	2026-10-22T00:21:12.0494924Z Updater audit passed: 815 system/user units inspected
+image	Build file-backed UEFI VM disk	2026-10-22T00:40:07.2266338Z Build complete!
+ARESOS_SERIAL_READY:0
+Updater audit passed: 828 system/user units inspected
+Deployment backend: bootc (OSTree storage)
+ARESOS_GUEST_CHECKS_PASSED
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:41:20.1882760Z Traceback (most recent call last):
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:41:20.1883450Z   File "/home/runner/work/AresOS/AresOS/os/ci/vm.py", line 168, in <module>
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:41:20.1885682Z   File "/home/runner/work/AresOS/AresOS/os/ci/vm.py", line 151, in export_json
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:41:20.1886315Z     assert encoded, result
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T00:41:20.1888223Z AssertionError: { base64^[]3008;start=6aa736bb-88c6-49de-aa7e-fc6cc6bfcc59;type=shell;machineid=d2d2dee45baa4a98884266cbb005a783;user=root;hostname=bazzite;bootid=8eeb3f3f-b69a-4447-9aa7-f845294ea4f2;pid=2084;cwd=/root^[\ -d <<'ARESOS_SCRIPT' | bash; printf '\nARESOS_CMD_%s:%s\n' DONE $?; }

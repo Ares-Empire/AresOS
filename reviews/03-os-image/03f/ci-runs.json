@@ -1,0 +1,50 @@
+[
+  {
+    "id": 39724835851,
+    "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39724835851",
+    "head_sha": "65bda4dfe5442f177343d0d9149b13bf874403fe",
+    "run_attempt": 1,
+    "conclusion": "failure",
+    "status": "completed",
+    "created_at": "2026-10-22T04:52:52Z",
+    "updated_at": "2026-10-22T05:38:36Z",
+    "elapsed_seconds": 2744.0,
+    "counted_full_attempt": true
+  },
+  {
+    "id": 39729374555,
+    "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39729374555",
+    "head_sha": "cba88bb58c6bee08613fdac2ae0e7197b610a2e3",
+    "run_attempt": 1,
+    "conclusion": "failure",
+    "status": "completed",
+    "created_at": "2026-10-22T05:40:34Z",
+    "updated_at": "2026-10-22T06:26:46Z",
+    "elapsed_seconds": 2772.0,
+    "counted_full_attempt": true
+  },
+  {
+    "id": 39734679057,
+    "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39734679057",
+    "head_sha": "f3aaff1a18cd7cae80891d27c8525fb09d4a3fe9",
+    "run_attempt": 1,
+    "conclusion": "failure",
+    "status": "completed",
+    "created_at": "2026-10-22T06:33:26Z",
+    "updated_at": "2026-10-22T06:33:39Z",
+    "elapsed_seconds": 13.0,
+    "counted_full_attempt": false
+  },
+  {
+    "id": 39734786025,
+    "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39734786025",
+    "head_sha": "83b7c9dc3d188163b6912d0177d6986ffd53c17e",
+    "run_attempt": 1,
+    "conclusion": "success",
+    "status": "completed",
+    "created_at": "2026-10-22T06:34:27Z",
+    "updated_at": "2026-10-22T06:34:39Z",
+    "elapsed_seconds": 12.0,
+    "counted_full_attempt": false
+  }
+]

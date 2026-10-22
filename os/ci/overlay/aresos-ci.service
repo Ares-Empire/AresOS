@@ -1,0 +1,11 @@
+[Unit]
+Description=Disposable VM verification channel (CI overlay only)
+After=systemd-user-sessions.service systemd-logind.service getty@tty3.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/libexec/aresos-ci/checks.py
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

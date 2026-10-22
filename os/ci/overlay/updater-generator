@@ -1,0 +1,13 @@
+#!/usr/bin/bash
+set -euo pipefail
+[[ ! -e /run/aresos-ci-updater-regressions-done ]] || exit 0
+cat > "$1/aresos-ci-generated-canary.service" <<'UNIT'
+[Unit]
+Description=CI generated service canary
+ConditionPathExists=/run/aresos-ci-never-run-updater
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bootc upgrade
+UNIT
+mkdir -p "$1/multi-user.target.wants"
+ln -s ../aresos-ci-generated-canary.service "$1/multi-user.target.wants/aresos-ci-generated-canary.service"

@@ -1,0 +1,36 @@
+Selected output from run 39685234531, source ee9ee390031bfa2d20a32129aeb0715a6af700f3.
+This is an excerpt, with timestamps, ANSI formatting and intervening traces omitted.
+The complete run failed; see REPORT.md and the run link for context.
+https://github.com/carlsenares/AresOS/actions/runs/39685234531
+
+python3 -m unittest discover -s os/tests -v
+Ran 3 tests in 0.015s
+OK
+
+Build audit:
+Updater audit passed: 815 system/user units inspected
+
+Disk builder:
+Build complete!
+
+Guest policy checks:
+User ares is not allowed to run sudo on bazzite.
+Updater audit passed: 827 system/user units inspected
+Failed to start sleep.target: Unit sleep.target is masked.
+Failed to start suspend.target: Unit suspend.target is masked.
+Failed to start hibernate.target: Unit hibernate.target is masked.
+Failed to start hybrid-sleep.target: Unit hybrid-sleep.target is masked.
+Failed to start suspend-then-hibernate.target: Unit suspend-then-hibernate.target is masked.
++ test 's "no"' = 's "no"'
+s "Ignore"
+Deployment backend: bootc (OSTree storage)
+ARESOS_GUEST_CHECKS_PASSED
+
+The recovery-terminal process-count assertion returned:
+ARESOS_CMD_DONE:0
+
+The later bracketed-root-prompt wait on /dev/vcs3 returned:
+ARESOS_CMD_DONE:1
+
+The failure framebuffer visibly shows root@bazzite:~# on tty3.
+The proof-file command, raw backend export and power-key test were not reached.

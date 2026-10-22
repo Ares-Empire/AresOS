@@ -1,0 +1,6 @@
+{
+  "base": "ghcr.io/ublue-os/bazzite-nvidia@sha256:3d13e825932cfddf73c369db7e7397bf79e8bf8881a4276b9a958b37234899e1",
+  "image": "sha256:2570db23070b56a274a057373a5d57c2572e7240d874fb6c400008d633484cab",
+  "checkout_commit": "c5473259e537ef38621a34899e8d330e9a360e36",
+  "run": "https://github.com/carlsenares/AresOS/actions/runs/39749001395"
+}

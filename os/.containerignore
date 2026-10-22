@@ -1,0 +1,4 @@
+manifest/ci/
+README.md
+# The release build must never copy the CI service into any image layer.
+ci/

@@ -1,0 +1,41 @@
+image	Install tools on disposable runner	2026-10-22T01:03:29.1481681Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.1483999Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.1560899Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.1568737Z test_fragmented_and_coalesced_frames_at_every_boundary (test_channel.ChannelTest.test_fragmented_and_coalesced_frames_at_every_boundary) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.1776725Z test_incomplete_and_oversized_frames_fail (test_channel.ChannelTest.test_incomplete_and_oversized_frames_fail) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.1778544Z test_raw_exports_preserve_bytes_and_reject_corruption (test_channel.ChannelTest.test_raw_exports_preserve_bytes_and_reject_corruption) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.1787437Z test_events_before_and_after_command_reply_are_retained (test_channel.QMPTest.test_events_before_and_after_command_reply_are_retained) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.1789469Z test_host_exit_reset_suspend_and_missing_shutdown_are_rejected (test_channel.QMPTest.test_host_exit_reset_suspend_and_missing_shutdown_are_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.4079177Z test_guest_tty_reader_cannot_consume_completion_command (test_serial_console.SerialCommandTest.test_guest_tty_reader_cannot_consume_completion_command) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5341137Z test_long_script_survives_canonical_tty_line_limit (test_serial_console.SerialCommandTest.test_long_script_survives_canonical_tty_line_limit) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5407849Z test_nonzero_guest_exit_is_preserved (test_serial_console.SerialCommandTest.test_nonzero_guest_exit_is_preserved) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5416576Z test_corruption_and_incomplete_frames_are_rejected (test_serial_console.SerialExportTest.test_corruption_and_incomplete_frames_are_rejected) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5430107Z test_kernel_record_at_every_payload_boundary_preserves_bytes (test_serial_console.SerialExportTest.test_kernel_record_at_every_payload_boundary_preserves_bytes) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5432112Z test_wrapped_crlf_export_preserves_raw_json (test_serial_console.SerialExportTest.test_wrapped_crlf_export_preserves_raw_json) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5434206Z test_boot_log_retention_is_bounded_without_losing_partial_query (test_serial_console.SerialTerminalTest.test_boot_log_retention_is_bounded_without_losing_partial_query) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5437338Z test_queries_split_at_every_socket_boundary (test_serial_console.SerialTerminalTest.test_queries_split_at_every_socket_boundary) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5439010Z test_repeated_queries_answered_once_each (test_serial_console.SerialTerminalTest.test_repeated_queries_answered_once_each) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5441161Z test_shell_text_and_other_escape_sequences_do_not_receive_input (test_serial_console.SerialTerminalTest.test_shell_text_and_other_escape_sequences_do_not_receive_input) ... ok
+image	Install tools on disposable runner	2026-10-22T01:03:29.5443638Z Ran 18 tests in 0.404s
+image	Install tools on disposable runner	2026-10-22T01:03:29.5444268Z OK
+image	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T01:03:33.1620456Z Verified OK
+image	Build and audit the image (runner storage only)	2026-10-22T01:12:33.0171173Z Updater audit passed: 815 system/user units inspected
+image	Build and audit the image (runner storage only)	2026-10-22T01:12:43.7447204Z Checks passed: 10
+image	Build and audit the image (runner storage only)	2026-10-22T01:12:43.7447674Z Checks skipped: 1
+image	Build and audit the image (runner storage only)	2026-10-22T01:12:43.7449746Z Warnings: 4
+image	Build isolated test overlay and prove release excludes it	2026-10-22T01:23:23.4419034Z Checks passed: 10
+image	Build isolated test overlay and prove release excludes it	2026-10-22T01:23:23.4441985Z Checks skipped: 1
+image	Build isolated test overlay and prove release excludes it	2026-10-22T01:23:23.4442719Z Warnings: 4
+image	Build file-backed UEFI VM disk	2026-10-22T01:40:08.9395485Z Build complete!
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:37.0430310Z Guest policy: 0
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:37.0489901Z Updater audit passed: 828 system/user units inspected
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:37.0609934Z ARESOS_GUEST_CHECKS_PASSED
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:37.0630135Z Guest export: 0
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:51.8569587Z Guest power-events: 0
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:51.8570709Z ARESOS_POWER_EVENTS_PASSED: lid and sleep keys observed/ignored; direct sleep requests rejected
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:51.8610226Z Guest export: 0
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:52.9018958Z Guest shortcut: 0
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:55.6237144Z Guest recovery: 0
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:55.6238955Z {"wrong_password": {"service": "login", "tty": "/dev/tty3", "start": 0, "authenticate": 7, "password_prompts": 1}, "correct_password": {"service": "login", "tty": "/dev/tty3", "start": 0, "authenticate": 0, "password_prompts": 1, "account": 0, "user": "root", "uid": 0}}
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:55.6587728Z Guest prepare-poweroff: 0
+image	Boot QEMU and assert session, policy and recovery	2026-10-22T01:41:58.5470989Z AssertionError: logind did not receive the ACPI power button

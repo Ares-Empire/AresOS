@@ -1,0 +1,41 @@
+Oct 22 07:58:35 4cf6de35edce systemd[1]: Starting user@1000.service - User Manager for UID 1000...
+Oct 22 07:58:35 4cf6de35edce (systemd)[240]: pam_unix(systemd-user:session): session opened for user ares(uid=1000) by ares(uid=0)
+Oct 22 07:58:35 4cf6de35edce systemd[248]: /usr/lib/systemd/user-environment-generators/60-flatpak: line 3: /usr/bin/flatpak: Permission denied
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Queued start job for default target default.target.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Created slice app.slice - User Application Slice.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: grub-boot-success.timer - Mark boot as successful after the user session has run 2 minutes skipped, unmet condition check ConditionVirtualization=!container
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Started systemd-tmpfiles-clean.timer - Daily Cleanup of User's Temporary Directories.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Reached target paths.target - Paths.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Reached target timers.target - Timers.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Starting dbus.socket - D-Bus User Message Bus Socket...
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Listening on pipewire-pulse.socket - PipeWire PulseAudio.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Listening on pipewire.socket - PipeWire Multimedia System Sockets.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Listening on podman.socket - Podman API Socket.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Listening on systemd-ask-password.socket - Query the User Interactively for a Password.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Listening on systemd-importd.socket - Disk Image Download Service Socket.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Listening on systemd-machined.socket - Virtual Machine and Container Registration Service Socket.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Starting systemd-tmpfiles-setup.service - Create User Files and Directories...
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Listening on dbus.socket - D-Bus User Message Bus Socket.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Reached target sockets.target - Sockets.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Finished systemd-tmpfiles-setup.service - Create User Files and Directories.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Reached target basic.target - Basic System.
+Oct 22 07:58:35 4cf6de35edce systemd[1]: Started user@1000.service - User Manager for UID 1000.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Started mpris-proxy.service - Bluetooth mpris proxy.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Starting unity-gtk-module.service - Unity GTK Module Environment variables...
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Created slice session.slice - User Core Session Slice.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Starting dbus-broker.service - D-Bus User Message Bus...
+Oct 22 07:58:35 4cf6de35edce dbus-broker-launch[264]: Service file '/usr/share//dbus-1/services/org.kde.dolphin.FileManager1.service' is not named after the D-Bus name 'org.freedesktop.FileManager1'.
+Oct 22 07:58:35 4cf6de35edce dbus-broker-launch[264]: Service file '/usr/share//dbus-1/services/org.kde.kscreen.service' is not named after the D-Bus name 'org.kde.KScreen'.
+Oct 22 07:58:35 4cf6de35edce dbus-broker-launch[264]: Service file '/usr/share//dbus-1/services/org.kde.plasma.Notifications.service' is not named after the D-Bus name 'org.freedesktop.Notifications'.
+Oct 22 07:58:35 4cf6de35edce dbus-broker-launch[264]: Policy to allow eavesdropping in /usr/share/dbus-1/session.conf +31: Eavesdropping is deprecated and ignored
+Oct 22 07:58:35 4cf6de35edce dbus-broker-launch[264]: Policy to allow eavesdropping in /usr/share/dbus-1/session.conf +33: Eavesdropping is deprecated and ignored
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Started dbus-broker.service - D-Bus User Message Bus.
+Oct 22 07:58:35 4cf6de35edce dbus-broker-launch[264]: Ready
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Finished unity-gtk-module.service - Unity GTK Module Environment variables.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Reached target default.target - Main User Target.
+Oct 22 07:58:35 4cf6de35edce systemd[240]: Startup finished in 248ms.
+Oct 22 07:58:36 4cf6de35edce systemd[240]: Reload requested from client PID 327 ('systemctl')...
+Oct 22 07:58:36 4cf6de35edce systemd[240]: Reloading...
+Oct 22 07:58:36 4cf6de35edce systemd[330]: /usr/lib/systemd/user-environment-generators/60-flatpak: line 3: /usr/bin/flatpak: Permission denied
+Oct 22 07:58:36 4cf6de35edce (environment-generators)[328]: /usr/lib/systemd/user-environment-generators/60-flatpak failed with exit status 126, ignoring.
+Oct 22 07:58:36 4cf6de35edce systemd[240]: Reloading finished in 118 ms.
