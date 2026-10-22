@@ -1,9 +1,14 @@
 name: OS image
-run-name: ${{ inputs.checks_only && 'OS regressions only (no VM)' || inputs.switch_from_run && 'OS published-image switch only' || 'OS image' }}
+run-name: ${{ inputs.rehearsal && format('Two-disk rehearsal ({0})', inputs.rehearsal) || inputs.checks_only && 'OS regressions only (no VM)' || inputs.switch_from_run && 'OS published-image switch only' || 'OS image' }}
 
 on:
   workflow_dispatch:
     inputs:
+      rehearsal:
+        description: 'Package 11: inspect pinned ISO or rehearse installation; never build/publish'
+        type: choice
+        options: ['', inspect, full]
+        default: ''
       checks_only:
         description: 'Run regressions and live host state query; no image build or VM'
         type: boolean
@@ -23,7 +28,7 @@ concurrency:
 jobs:
   regressions:
     name: Regression checks only (no image build or VM)
-    if: github.event_name == 'workflow_dispatch' && inputs.checks_only
+    if: github.event_name == 'workflow_dispatch' && inputs.checks_only && !inputs.rehearsal
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -81,7 +86,7 @@ jobs:
           path: evidence/
           retention-days: 3
   image:
-    if: (github.event_name != 'workflow_dispatch' || !inputs.checks_only) && !inputs.switch_from_run
+    if: (github.event_name != 'workflow_dispatch' || !inputs.checks_only) && !inputs.switch_from_run && !inputs.rehearsal
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -213,7 +218,7 @@ jobs:
   switch:
     name: Published-image switch and rollback
     needs: image
-    if: always() && !cancelled() && !inputs.checks_only && (needs.image.result == 'success' || inputs.switch_from_run != '')
+    if: always() && !cancelled() && !inputs.checks_only && !inputs.rehearsal && (needs.image.result == 'success' || inputs.switch_from_run != '')
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     permissions:
@@ -272,6 +277,35 @@ jobs:
         if: always()
         with:
           name: os-switch-evidence
+          path: evidence/
+          retention-days: 3
+          if-no-files-found: error
+  rehearsal:
+    name: Pinned live ISO inspection and two-disk rehearsal
+    if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+        with:
+          extra-squeeze: 'true'
+      - name: Inspect the exact pinned live ISO before assuming an installer path
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/installer .work/installer
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools
+          python3 os/ci/installer_inspect.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: two-disk-evidence
           path: evidence/
           retention-days: 3
           if-no-files-found: error
