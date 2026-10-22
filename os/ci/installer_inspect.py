@@ -2,6 +2,7 @@
 import hashlib
 import json
 import pathlib
+import re
 import subprocess
 import urllib.request
 
@@ -50,8 +51,31 @@ def main():
             with squash.open('wb') as output:
                 subprocess.run(['bsdtar', '-xOf', str(disk), name], stdout=output, check=True)
             contents = subprocess.check_output(['unsquashfs', '-ll', str(squash)]).decode()
-            (EVIDENCE / 'squashfs-files.txt').write_text(contents)
+            retained = '\n'.join(line for line in contents.splitlines()
+                if 'squashfs-root/var/lib/flatpak/' not in line
+                and 'squashfs-root/var/lib/containers/storage/overlay/' not in line) + '\n'
+            (EVIDENCE / 'squashfs-files.txt').write_text(retained)
+            (EVIDENCE / 'squashfs-listing.json').write_text(json.dumps(dict(
+                full_listing_sha256=hashlib.sha256(contents.encode()).hexdigest(),
+                full_listing_lines=len(contents.splitlines()),
+                omitted='Flatpak runtime and container layer file lists; original ISO hash retained'), indent=2) + '\n')
             print(contents[:3000], flush=True)
+            paths = [line.split()[-1].removeprefix('squashfs-root/') for line in retained.splitlines()
+                     if 'squashfs-root/' in line and not line.startswith(('d', 'l'))]
+            selected = [path for path in paths if path in (
+                'usr/lib/os-release', 'usr/bin/liveinst', 'etc/sysconfig/livesys',
+                'etc/anaconda/profile.d/bazzite.conf', 'etc/anaconda/conf.d/anaconda.conf',
+                'usr/share/anaconda/interactive-defaults.ks',
+                'usr/share/anaconda/post-scripts/install-configure-upgrade.ks',
+                'usr/share/anaconda/post-scripts/secureboot-enroll-key.ks',
+                'usr/share/anaconda/post-scripts/secureboot-docs.ks',
+                'var/lib/containers/storage/overlay-images/images.json')
+                or re.fullmatch(r'usr/libexec/livesys/[^/]+', path)]
+            for path in selected:
+                raw = subprocess.check_output(['unsquashfs', '-cat', str(squash), path])
+                assert len(raw) < 2 * 1024 * 1024
+                (EVIDENCE / path.replace('/', '_')).write_bytes(raw)
+                print(path + '\n' + raw.decode(errors='replace'), flush=True)
 
 
 if __name__ == '__main__':
