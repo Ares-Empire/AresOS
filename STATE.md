@@ -27,7 +27,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- **Brief 06 (running):** switch to `bazzite-nvidia-open`, publish the image privately on GitHub, test the Bazzite → AresOS switch and rollback in CI, define accounts, and fill INSTALL §6. That unlocks the install guide.
+- **PR #10** (briefs 06–06c, draft): private signed image on `bazzite-nvidia-open` published, and the switch from stock Bazzite to AresOS works. 06c (Homebrew neutralization, tty3 recovery, rollback) is **paused**; see `HANDOFF.md` to resume.
 
 ## Waiting on the owner
 
