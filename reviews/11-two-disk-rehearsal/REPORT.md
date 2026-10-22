@@ -63,7 +63,7 @@ Commands dispatched (all on this branch):
 gh workflow run os-image.yml --ref pkg/11-two-disk-rehearsal -f rehearsal=inspect
   39864229155, 39865512476
 gh workflow run os-image.yml --ref pkg/11-two-disk-rehearsal -f checks_only=true
-  39865338296, 39869231221
+  39865338296, 39869231221, 39872316944
 gh workflow run os-image.yml --ref pkg/11-two-disk-rehearsal -f rehearsal=probe
   39866564466  # failed preparation; conservatively full allowance 1/2
 gh workflow run os-image.yml --ref pkg/11-two-disk-rehearsal -f rehearsal=fixture
@@ -154,6 +154,21 @@ also corrected BLS parsing so an `ostree=` option cannot consume the next line;
 malformed/ambiguous BLS data is rejected. None of this closes A/B, and no
 missing check was skipped to get a pass.
 
+**Final regression-only run:** [39872316944](https://github.com/carlsenares/AresOS/actions/runs/39872316944),
+checkout **`bf5c98d`**, passed **`Ran 98 tests in 3.137s`, `OK`**. The live host
+query printed **437 unit files / 475 names**, package visibility remained
+private, and Python/Bash syntax, release metadata and signature verification
+passed. [Exact output](logs/checks-3-workflow.txt). It built no image and started
+no VM. The final harness fixes are regression-qualified only; the failed full
+run remains failed. No runtime/mod source changed afterward.
+
+Final [file verification](logs/final-file-verification.txt) checked all archive
+hashes, screenshot/OVMF byte equality to the original ZIP, the four matching
+protected records, the original Windows entry, both final zero-write snapshots,
+all minute totals and document links. It explicitly reports installation and
+GRUB qualification as unmet. `git diff --check` and the runtime/mod Git
+comparisons passed. These are evidence checks, not another guest test.
+
 ### Media verification and automation differences
 
 The complete legacy ISO stream was **8,079,671,296 bytes**, hash
@@ -192,12 +207,23 @@ non-erasing undo. That fixture reset is not part of §9 undo.
 ### CI budget
 
 [Ledger](ci-ledger.json) records every dispatch, actual job timestamps and
-archive digests. Through the final full job: **3,217 job seconds = 53m37s**,
-**58 minutes** when each started job is rounded up separately, within the
-**450-minute package cap**. A final checks-only regression job is recorded
-below when complete; it starts no VM. This is a duration-based quota proxy,
-not an invoice. Both full allowances are spent, including failed preparation;
-the remaining quota does not authorize a third run.
+archive digests. Final total across **8 dispatches**: **3,247 job seconds =
+54m07s**, **59 minutes** when each started job is rounded up separately, within
+the **450-minute package cap**. The final checks-only job took 30 seconds and
+started no VM. This is a duration-based quota proxy, not an invoice. Both full
+allowances are spent, including failed preparation; the remaining quota does
+not authorize a third run.
+
+| Dispatch | Result | Job duration | Rounded minutes |
+|---|---|---:|---:|
+| inspect-1 | success | 9m29s | 10 |
+| checks-1 | success | 35s | 1 |
+| inspect-2 | success | 7m08s | 8 |
+| probe-1 (full allowance 1) | failed before VM | 9m18s | 10 |
+| fixture-1 | success, no VM | 9m24s | 10 |
+| checks-2 | success | 41s | 1 |
+| full-2 (full allowance 2) | failed before installation | 17m02s | 18 |
+| checks-3 | success, no VM | 30s | 1 |
 
 ## Not verified
 

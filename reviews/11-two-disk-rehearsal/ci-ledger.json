@@ -49,8 +49,15 @@
       "conclusion": "failure",
       "job_seconds": 1022.0,
       "rounded_minutes": 18
+    },
+    {
+      "id": "39872316944",
+      "label": "checks-3",
+      "conclusion": "success",
+      "job_seconds": 30.0,
+      "rounded_minutes": 1
     }
   ],
-  "rounded_minutes": 58,
-  "job_seconds": 3217.0
+  "rounded_minutes": 59,
+  "job_seconds": 3247.0
 }
