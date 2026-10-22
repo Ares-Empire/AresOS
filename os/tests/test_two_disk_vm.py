@@ -21,6 +21,23 @@ class TwoDiskHarnessTest(unittest.TestCase):
             guest.mode = mode
             self.assertEqual(guest.network_args(), 'user,model=virtio-net-pci')
 
+    def test_timed_out_public_command_preserves_only_its_redacted_partial_output(self):
+        guest = object.__new__(vm.sw.Guest)
+        guest.transcript = 'earlier private authentication\n'
+        guest.secrets = ['disposable-secret']
+        guest.send = Mock()
+        def wait(*args):
+            guest.transcript += 'server checkpoint disposable-secret\n'
+            raise TimeoutError('fixture deadline')
+        guest.wait = wait
+        with patch.object(vm.sw, 'EVIDENCE', self.directory):
+            with self.assertRaises(TimeoutError):
+                guest.command('public', 'fixture')
+            self.assertEqual((self.directory / 'public-incomplete.txt').read_text(), 'server checkpoint <redacted>\n')
+            with self.assertRaises(TimeoutError):
+                guest.command('private', 'fixture', private=True)
+            self.assertFalse((self.directory / 'private-incomplete.txt').exists())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=pathlib.Path(__file__).parent)
         self.addCleanup(self.temp.cleanup)

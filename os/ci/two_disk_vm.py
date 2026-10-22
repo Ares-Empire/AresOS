@@ -500,7 +500,10 @@ def live_probe(audit):
     finally:
         if guest.process.poll() is None:
             try:
-                guest.command('probe-failure-diagnostics', 'cat /tmp/rehearsal-webui-launch.log; journalctl -u webui-cockpit-ws --no-pager; ss -lntp', timeout=30)
+                guest.buffer = ''
+                guest.send('\x03')
+                guest.wait('ARESOS_ROOT> ', timeout=15)
+                guest.command('probe-failure-diagnostics', 'cat /tmp/rehearsal-webui-launch.log; journalctl -u webui-cockpit-ws --no-pager; ss -lntp; pgrep -a -f anaconda', timeout=30)
                 guest.poweroff('live-ui-probe')
             except Exception:
                 pass

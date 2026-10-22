@@ -214,8 +214,14 @@ class Guest:
         self.command('root-authentication', 'set -e; test "$(id -u)" = 0; echo PASSWORD_AUTHENTICATED_ADMIN_SUDO_PASSED')
 
     def command(self, name, script, timeout=900, private=False):
+        transcript_start = len(self.transcript)
         self.send(encode_command(script))
-        output = self.wait(r'\r?\nARESOS_CMD_DONE:(\d+)\r?\n', timeout)
+        try:
+            output = self.wait(r'\r?\nARESOS_CMD_DONE:(\d+)\r?\n', timeout)
+        except (TimeoutError, EOFError):
+            if not private:
+                (EVIDENCE / f'{name}-incomplete.txt').write_text(redact(self.transcript[transcript_start:], self.secrets))
+            raise
         code = int(re.search(r'ARESOS_CMD_DONE:(\d+)', output).group(1))
         clean = redact(output, self.secrets)
         if not private:

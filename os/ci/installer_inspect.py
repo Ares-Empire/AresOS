@@ -65,6 +65,7 @@ def main():
             selected = [path for path in paths if path in (
                 'usr/lib/os-release', 'usr/bin/liveinst', 'etc/sysconfig/livesys',
                 'usr/libexec/anaconda/webui-desktop',
+                'usr/libexec/anaconda/cockpit-coproc-wrapper.sh',
                 'usr/lib/systemd/system/webui-cockpit-ws.service',
                 'usr/share/cockpit/anaconda-webui/manifest.json',
                 'etc/anaconda/profile.d/bazzite.conf', 'etc/anaconda/conf.d/anaconda.conf',

@@ -57,18 +57,20 @@ echo LIVEUSER_LIVEINST_LAUNCHED
 ''')
     guest.command(stage + '-server', '''set -e
 for n in {1..180}; do
-    if test -e /run/anaconda/backend_ready && curl --fail --silent http://127.0.0.1/cockpit/@localhost/anaconda-webui/index.html > /tmp/rehearsal-index.html; then break; fi
+    if test -e /run/anaconda/backend_ready && curl --connect-timeout 1 --max-time 2 --fail --silent http://127.0.0.1/cockpit/@localhost/anaconda-webui/index.html > /tmp/rehearsal-index.html; then break; fi
     sleep 1
 done
 test -s /tmp/rehearsal-index.html
 test -e /run/anaconda/backend_ready
+echo PINNED_WEBUI_HTTP_READY
 cat /usr/libexec/anaconda/webui-desktop
-systemctl cat webui-cockpit-ws
+systemctl --no-pager cat webui-cockpit-ws
+cat /usr/libexec/anaconda/cockpit-coproc-wrapper.sh
 ss -lntp
 cat /tmp/rehearsal-webui-launch.log
-''', timeout=240)
+''', timeout=600)
     encoded = base64.b64encode(RELAY.encode()).decode()
-    guest.command(stage + '-relay', f"set -e; printf '%s' '{encoded}' | base64 -d > /tmp/rehearsal-relay.py\npython3 /tmp/rehearsal-relay.py > /tmp/rehearsal-relay.log 2>&1 < /dev/null &\nsleep 1\ncurl --fail --silent http://127.0.0.1:8080/cockpit/@localhost/anaconda-webui/index.html > /dev/null\nss -lntp")
+    guest.command(stage + '-relay', f"set -e; printf '%s' '{encoded}' | base64 -d > /tmp/rehearsal-relay.py\npython3 /tmp/rehearsal-relay.py > /tmp/rehearsal-relay.log 2>&1 < /dev/null &\nsleep 1\ncurl --connect-timeout 1 --max-time 5 --fail --silent http://127.0.0.1:8080/cockpit/@localhost/anaconda-webui/index.html > /dev/null\nss -lntp")
 
 
 class Pages:
