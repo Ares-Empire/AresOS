@@ -92,6 +92,12 @@ class UpdaterAuditTest(unittest.TestCase):
                               for name in ('routine.service', 'at-boot.service', 'uupd.service')})
             self.assertTrue(all(u['sources'] for u in rejected))
             self.assertTrue(any('runuser' in call.args[0] and '--user' in call.args[0] for call in calls.call_args_list))
+            user_calls = [call.args[0] for call in calls.call_args_list if 'runuser' in call.args[0]]
+            self.assertTrue(user_calls)
+            for command in user_calls:
+                self.assertIn('XDG_RUNTIME_DIR=/run/user/1001', command)
+                self.assertIn('DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus', command)
+                self.assertNotIn('XDG_RUNTIME_DIR=/run/user/1000', command)
 
     def test_missing_live_user_manager_is_a_failure(self):
         import subprocess

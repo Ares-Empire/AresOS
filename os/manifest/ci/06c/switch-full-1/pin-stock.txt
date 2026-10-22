@@ -1,0 +1,11 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[   48.123942] EXT4-fs (vda3): re-mounted 22de9869-824b-4990-9ad5-74058d0effdf.
+Deployment 0 is now pinned
+Pinned booted stock deployment: aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71
+
+ARESOS_CMD_DONE:0

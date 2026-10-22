@@ -1,0 +1,205 @@
+{
+  "runs": [
+    {
+      "label": "full-1",
+      "run_id": 39841946532,
+      "source": "aeacffe546c5c911522e8a0ad35d02e080cbe9f5",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "Published-image switch and rollback",
+          "conclusion": "failure",
+          "seconds": 2333.0
+        }
+      ],
+      "archives": [
+        {
+          "file": "06d-full-1-os-switch-evidence.zip",
+          "sha256": "sha256:6a68c1ee408d6258f8a9d1e304ebd840d65f3f2b43feb725c7f92a711319f0ea",
+          "bytes": 4065020
+        }
+      ]
+    },
+    {
+      "label": "full-2",
+      "run_id": 39848481044,
+      "source": "835125a24d65a5fb6051dd2aab866a25bc903263",
+      "conclusion": "cancelled",
+      "jobs": [
+        {
+          "name": "Published-image switch and rollback",
+          "conclusion": "cancelled",
+          "seconds": 242.0
+        }
+      ],
+      "archives": [
+        {
+          "file": "06d-full-2-os-switch-evidence.zip",
+          "sha256": "sha256:5f32a7513b586d0b2d8c80fec306e7bb69a8132ba98559afb1539a2b706384a8",
+          "bytes": 3155297
+        }
+      ]
+    },
+    {
+      "label": "preflight-1",
+      "run_id": 39841271340,
+      "source": "5cf14b89045ca58eea1bfaf93f690765c23eb71e",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "Regression checks only (no image build or VM)",
+          "conclusion": "failure",
+          "seconds": 11.0
+        }
+      ],
+      "archives": []
+    },
+    {
+      "label": "preflight-2",
+      "run_id": 39841596023,
+      "source": "cbf44a5928220f942273f70be0fbc10f8c556729",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Regression checks only (no image build or VM)",
+          "conclusion": "success",
+          "seconds": 68.0
+        }
+      ],
+      "archives": [
+        {
+          "file": "06d-preflight-2-release-inputs.zip",
+          "sha256": "sha256:0859688acf05f36f57b8cffb382bc39e41ef8f2a8e827d5a10bbfafcbebd4ce9",
+          "bytes": 31046
+        }
+      ]
+    },
+    {
+      "label": "preflight-3",
+      "run_id": 39841805145,
+      "source": "aeacffe546c5c911522e8a0ad35d02e080cbe9f5",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Regression checks only (no image build or VM)",
+          "conclusion": "success",
+          "seconds": 43.0
+        }
+      ],
+      "archives": [
+        {
+          "file": "06d-preflight-3-release-inputs.zip",
+          "sha256": "sha256:5a21d42519ed81583fb867aaf44a63b246354ae194509179532af0c8f54890c2",
+          "bytes": 31046
+        }
+      ]
+    },
+    {
+      "label": "preflight-4",
+      "run_id": 39843907393,
+      "source": "a4d1d248b88f9359528e6e4e80e8170a6ebdeda1",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Regression checks only (no image build or VM)",
+          "conclusion": "success",
+          "seconds": 41.0
+        }
+      ],
+      "archives": [
+        {
+          "file": "06d-preflight-4-release-inputs.zip",
+          "sha256": "sha256:0310b3aa8ca49c0b5b63aed67059716680c229af6341c555dbe3d6a706de3803",
+          "bytes": 31046
+        }
+      ]
+    },
+    {
+      "label": "preflight-5",
+      "run_id": 39848315296,
+      "source": "835125a24d65a5fb6051dd2aab866a25bc903263",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Regression checks only (no image build or VM)",
+          "conclusion": "success",
+          "seconds": 35.0
+        }
+      ],
+      "archives": [
+        {
+          "file": "06d-preflight-5-release-inputs.zip",
+          "sha256": "sha256:c50b92b4bded0f1026daf302e036a3a9b353fa62046b03a029dd8cc2ebd8ef8e",
+          "bytes": 31046
+        }
+      ]
+    },
+    {
+      "label": "preflight-6",
+      "run_id": 39849142582,
+      "source": "5cbcfeaace2951e7f4e8fcabf480079fa1c2bd9a",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Regression checks only (no image build or VM)",
+          "conclusion": "success",
+          "seconds": 72.0
+        }
+      ],
+      "archives": [
+        {
+          "file": "06d-preflight-6-release-inputs.zip",
+          "sha256": "sha256:a0994cd6cccecbd87d4c5286113c47a1e6e3cac45b86fbc3c0f79bf677b606a2",
+          "bytes": 31046
+        }
+      ]
+    }
+  ],
+  "non_skipped_job_seconds": 2845.0,
+  "rounded_job_minutes_proxy": 52,
+  "full_runs_used": 2,
+  "full_run_limit": 2,
+  "vm_acceptance": "not-met",
+  "raw_workflow_archives": [
+    {
+      "file": "06d-full-1-workflow-raw.txt.gz",
+      "sha256": "fcc1c9a7912ed82a422101f764ace2f2bdbf3a1a3209e4331f88eac6976d301c",
+      "size_bytes": 38126
+    },
+    {
+      "file": "06d-full-2-workflow-raw.txt.gz",
+      "sha256": "db79e124abc1811cd86ab00863cf1fa95bcb39f3ced8c9914a0be227df1cdb5d",
+      "size_bytes": 20128
+    },
+    {
+      "file": "06d-preflight-1-workflow-raw.txt.gz",
+      "sha256": "b8537ba02141706f47fea54008599bf003c327e06bfc3d95583af035c83b4900",
+      "size_bytes": 8259
+    },
+    {
+      "file": "06d-preflight-2-workflow-raw.txt.gz",
+      "sha256": "67a9a5ad08a9ef283af5bc3b64f9db8b59b404455055446a266fb76b4f8d5dbd",
+      "size_bytes": 15655
+    },
+    {
+      "file": "06d-preflight-3-workflow-raw.txt.gz",
+      "sha256": "23f5cc372d4d69faa4495df0fba35367215bc5c7d38fdd06cdc5de75bf6ae7f3",
+      "size_bytes": 15664
+    },
+    {
+      "file": "06d-preflight-4-workflow-raw.txt.gz",
+      "sha256": "d934cdcc166226b7fd75714c2d52903d8f143c6ab0c804e7f059323165cf49bd",
+      "size_bytes": 15658
+    },
+    {
+      "file": "06d-preflight-5-workflow-raw.txt.gz",
+      "sha256": "d0fa20dbe38050342d48c3f899b215c0d62c8483b2047423322284ea79579203",
+      "size_bytes": 15953
+    },
+    {
+      "file": "06d-preflight-6-workflow-raw.txt.gz",
+      "sha256": "d68dc443a636c055bc2c3bc228d3d0e731482cc687117c052877391b808145ba",
+      "size_bytes": 16041
+    }
+  ]
+}

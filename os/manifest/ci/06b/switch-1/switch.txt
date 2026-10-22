@@ -1,0 +1,676 @@
+[?2004hARESOS_ROOT> [?2004l
+[?2004h> [?2004l
+[?2004h> [?2004l
+��� Waiting for sysroot lock...
+[2K⠁ Waiting for sysroot lock...                                                   [   48.813721] EXT4-fs (vda3): re-mounted 26d45276-85ef-4bf5-b375-d1b8e279054c.
+
+[2K[   49.373313] evm: overlay not supported
+layers already present: 128; layers needed: 3 (67.2 MB)
+Fetching layers ����������������������░░░░░░░░░░░░ 0/3
+[2KFetching layers �������������������������������������������░░░ 0/3
+[2KFetching layers ░░░���������������������������������������������� 0/3                                        █������������������������█��███����������������███���█�����██������███������██��������████���████��������������������██████��██████���███ 0/0[1A
+[2K[1B
+[2K[1AFetching layers �������������������░������������������������������ 0/3                                         ��� Fetching �����������������������������������░�����░��������� 0 B/65.97 KiB (0 B/s)                          [1A
+[2K[1B
+[2K[1AFetching layers ������������░���░����������������░��������░ 0/3                                         �� Fetching ��������░������������������������░�������������░ 0 B/65.97 KiB (0 B/s) layer d83cbe3fc08b00db320[1A
+[2K[1B
+[2K[1AFetching layers ░░░░░░░░░░░░░░����������������� 0/3                                         └ Fetching ���������░░░░░░░░░░░░░░░░��� 0 B/65.97 KiB (0 B/s) layer d83cbe3fc08b00db320[1A
+[2K[1B
+[2K[1AFetching layers ░░░░░░░░░░░░░������������������░ 0/3                                         ��� Fetching ██░░░░░░░░░░░░░░������������ 8.00 KiB/65.97 KiB (3.31 KiB/s) layer d83cbe3fc[1A
+[2K[1B
+[2K[1AFetching layers ░░░░░������������������░░�������░░��� 0/3                                         ��� Fetching ������░░������������������������������░������� 8.00 KiB/65.97 KiB (3.31 KiB/s) layer d83cbe3fc[1A
+[2K[1B
+[2K[1AFetching layers ░░��������░���░�������������░░���░░░ 0/3                                         �� Fetching ����██░��░░������░�����░����░��░░ 16.00 KiB/65.97 KiB (3.36 KiB/s) layer d83cbe3f[1A
+[2K[1B
+[2K[1AFetching layers ��░░���░░������������░░���░�����░░��� 0/3                                         ��� Fetching █��██░����������░░���░�����░░��░░ 16.00 KiB/65.97 KiB (3.36 KiB/s) layer d83cbe3f[1A
+[2K[1B
+[2K[1AFetching layers ��░░���░░�����░����������░░����░��░ 0/3                                         �� Fetching █���██���██���█��██��█��░░░���░ 48.00 KiB/65.97 KiB (3.39 KiB/s) layer d83cbe3f[1A
+[2K[1B
+[2K[1AFetching layers ░��░��░���░����░░���░░░�����░���░ 0/3                                         └ Fetching █������█��█���█��█�������█░��░�����░ 48.00 KiB/65.97 KiB (3.39 KiB/s) layer d83cbe3f[1A
+[2K[1B
+[2K[1AFetching layers ��░�����░���░�����░������░░��░���░��░ 0/3                                         �� Fetching ��█���████���███��█�����██��██ 65.97 KiB/65.97 KiB (3.39 KiB/s) layer d83cbe3f[1A
+[2K[1B
+[2K[1AFetching layers ░░░░░░��������░░░░░░░░░░░ 0/3                                         �� Fetching █��█���██���█��█�������██��█���█�� 65.97 KiB/65.97 KiB (0 B/s) layer d83cbe3fc08b0[1A
+[2K[1B
+[2K[1AFetching layers ���█��█���█��░���░░�����░░����░����� 1/3                                         ��� Fetching ���███████����█���██�����██��█ 65.97 KiB/65.97 KiB (0 B/s) layer d83cbe3fc08b0[1A
+[2K[1B
+[2K[1AFetching layers ██����█���░░����░���░░░��░���░░ 1/3                                         ��� Fetching ������░���░░����░���░░░��░��░������░ 65.97 KiB/59.28 MiB (0 B/s) layer d83cbe3fc08b0[1A
+[2K[1B
+[2K[1AFetching layers ��██��██░░��░����░���░�����░░░ 1/3                                         �� Fetching ░░░░░��░��░������░���░������░░░░ 65.97 KiB/59.28 MiB (0 B/s) layer 3f705d8b39bd8[1A
+[2K[1B
+[2K[1AFetching layers ███���█���░�����░���░░░░░░░��░ 1/3                                         └ Fetching ░░░░░�����░��░���░░░░░░���░░ 65.97 KiB/59.28 MiB (0 B/s) layer 3f705d8b39bd8[1A
+[2K[1B
+[2K[1AFetching layers █��█��█��░░░░░░���░���░░���░��� 1/3                                         └ Fetching ░░░░░░░░░░��░��░����░░░░ 8.00 KiB/59.28 MiB (0 B/s) layer 3f705d8b39bd86[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░��░��░��� 1/3                                         ��� Fetching ░░░░░░░░░░░░░░░░░░░░ 8.00 KiB/59.28 MiB (0 B/s) layer 3f705d8b39bd86[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░░ 1/3                                         ��� Fetching ░��░░░���░░░░░░░░░░░░░░ 16.00 KiB/59.28 MiB (505.84 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ███�����█░░��░��░░░��░��░░░ 1/3                                         ��� Fetching ░���░��░░░���░��░░░���░��░���░░ 16.00 KiB/59.28 MiB (382.98 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ��████���░░░���░���░░░���░░░░ 1/3                                         └ Fetching ��░░░��░░░░���░░░���░░░���░��� 24.00 KiB/59.28 MiB (509.50 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ��███��█░░░░░░░░░░░░░░ 1/3                                         ��� Fetching ░���░��░░░��░░░░░░���░��░���░ 24.00 KiB/59.28 MiB (403.42 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ████���█���░��░░░░░░���░���░�� 1/3                                         └ Fetching ��░░░░░░░░░░░░░░░░░░��� 32.00 KiB/59.28 MiB (467.23 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers █���█���█��░░░░░░���░���░��░░��� 1/3                                         └ Fetching ░░░░░░░░���░░░��░░���░���░�� 32.00 KiB/59.28 MiB (463.61 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ██████░���░░���░���░��░░░░░ 1/3                                         └ Fetching ░░░���░��░░���░���░░░░░░��░░ 40.00 KiB/59.28 MiB (470.39 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers █���█���██░░��░░░░��░��░░���░ 1/3                                         └ Fetching ░░░░░░░░░░░��░��░░���░��░ 40.00 KiB/59.28 MiB (470.11 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ██████░��░░��░��░░��░��░░ 1/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░��� 48.00 KiB/59.28 MiB (483.60 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ���██���██░░░░░░░░░░░░░░ 1/3                                         └ Fetching ░��░░��░��░░��░░░░░░░░░░ 48.00 KiB/59.28 MiB (487.52 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░░ 1/3                                         ��� Fetching ░░░░░░���░░���░��░░��░░░░░ 56.00 KiB/59.28 MiB (493.99 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ████���█░���░��░░��░░░░░░░ 1/3                                         └ Fetching ░���░░���░��░░░░░���░░���░��░░ 56.00 KiB/59.28 MiB (498.27 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ��█████░░��░░���░░���░��░░�� 1/3                                         └ Fetching ░░░░░░���░░���░░░░��░░��░░ 64.00 KiB/59.28 MiB (501.51 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers █████���░░��░░░░░░░░░░��� 1/3                                         └ Fetching ░░░░░░░░░░░░░░���░░���░░ 64.00 KiB/59.28 MiB (511.98 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░���░░��░░���░░ 1/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░░ 72.00 KiB/59.28 MiB (517.16 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░��� 1/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░░ 72.00 KiB/59.28 MiB (520.88 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ���█████░░░░░░░░░░░░░░ 1/3                                         ��� Fetching ░░░░░░░░���░░░░░░░░░░░ 80.00 KiB/59.28 MiB (522.38 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ��██��██░░░░░░░░░░░░░░ 1/3                                         └ Fetching ��░░��░░��░░░░░��░░░���░░░ 80.00 KiB/59.28 MiB (534.49 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ���██���██���░░��░░���░░░░░░░ 1/3                                         └ Fetching ░░���░░���░░░���░░░░░░░░��░ 96.00 KiB/59.28 MiB (543.19 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ██���███░░░░░░░░░░��░░░ 1/3                                         └ Fetching ░░░░��░░░░░░░░░░���░░��░ 96.00 KiB/59.28 MiB (547.32 KiB/s) layer 3f705d[1A
+[2K[1B
+[2K[1AFetching layers ��███���█░░░░░���░░��░░░░░ 1/3                                         └ Fetching ���░░���░░��░░░���░░░��░░���░░ 200.00 KiB/59.28 MiB (727.15 KiB/s) layer 3f705[1A
+[2K[1B
+[2K[1AFetching layers ██���███░░��░░░��░░░���░░��� 1/3                                         └ Fetching ░���░░░��░░���░░░░░░░���░░░ 488.00 KiB/59.28 MiB (1.31 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░��░░░░���░░░░░░ 1/3                                         ��� Fetching ��░░░░░░░░░░░░░░░░░░░ 694.71 KiB/59.28 MiB (1.82 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████���������░░��░░░���░░░��� 1/3                                         └ Fetching ░��░░░��░░░░░░���░░░░░░░ 1.11 MiB/59.28 MiB (2.20 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ���██��██░░░░░���░░��░░░��░ 1/3                                         └ Fetching ░░░░░░░░��░░░░░░░���░░�� 1.69 MiB/59.28 MiB (2.65 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ���█████░░░░░���░░░░░░░░ 1/3                                         └ Fetching ░░░��░░░���░░░��░░░░░░���░ 2.20 MiB/59.28 MiB (3.13 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ���██��██░░░░░���░░░░░░░░ 1/3                                         └ Fetching ░��░░░░░░░��░░░░░░░���░░ 2.73 MiB/59.28 MiB (3.57 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers █���████░░��░░░░░░░░░░░ 1/3                                         └ Fetching █░��░░░��░░░��░░░░░░��░░ 3.40 MiB/59.28 MiB (3.96 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ████��█░░��░░░��░░░░░░░ 1/3                                         ��� Fetching █░░��░░░���░░░░░░░░░░░░ 4.02 MiB/59.28 MiB (4.35 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ███��██░░░░░░░░��░░░���░ 1/3                                         └ Fetching █░░░�����░��░░░░░░░░░░░�� 4.66 MiB/59.28 MiB (4.72 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░░ 1/3                                         └ Fetching █░░░░░░░░░░░░���░░��░░░ 5.33 MiB/59.28 MiB (5.06 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░���░░░��░░��░ 1/3                                         └ Fetching ██░░��░░���░░░░░░░░░░░��� 6.13 MiB/59.28 MiB (5.39 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░��░░░░░ 1/3                                         ��� Fetching ██░░░░░░░░░░░░���░░░���░ 6.80 MiB/59.28 MiB (5.73 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░���░░░░░░░ 1/3                                         └ Fetching ██░░░░���░░░░░░░░░░░░░ 7.43 MiB/59.28 MiB (6.01 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ██████░░��░░░░░���░░░░��� 1/3                                         └ Fetching ██░░��░░░░���░░░░���░░░░░ 8.08 MiB/59.28 MiB (6.27 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ████���█░░��░░░░░░░░░░��� 1/3                                         └ Fetching ██░░░░░░░���░░░░░░░░░░ 8.44 MiB/59.28 MiB (6.54 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ��█████░░░░░░░░���░░░░��� 1/3                                         └ Fetching █��█░░░��░░░░░░░░���░░░��� 9.07 MiB/59.28 MiB (6.71 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░��░░░░░░░��� 1/3                                         └ Fetching ███░░░░░░░���░░░░░░░░░ 9.77 MiB/59.28 MiB (6.91 MiB/s) layer 3f705d8b3[1A
+[2K[1B
+[2K[1AFetching layers ██████��░░░��░░░░░░░░░ 1/3                                         └ Fetching ███░░░░░░░░░░���░░░░░░ 10.44 MiB/59.28 MiB (7.10 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███���██░░░░░░░░░░░░���░ 1/3                                         └ Fetching ███░░░░░░���░░░░░░░░░░ 10.74 MiB/59.28 MiB (7.27 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███���██░░���░░░░░░░░��░░ 1/3                                         └ Fetching ███░░░░░��░░░░��░░░░���░ 11.45 MiB/59.28 MiB (7.43 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░���░░░░░░░░��░░░ 1/3                                         └ Fetching ████░░���░░░░░░░░░░░���░ 12.15 MiB/59.28 MiB (7.57 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░��░░░░���░░░░░���░ 1/3                                         └ Fetching ████░░░░░░░░░░��░░░░�� 12.41 MiB/59.28 MiB (7.71 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██���██��░░░��░░░���░░░░��░ 1/3                                         └ Fetching ███��░░░░░░░░░░░���░░░░ 12.60 MiB/59.28 MiB (7.82 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░��░░░░��░░░░��░ 1/3                                         └ Fetching ���███░���░░░░░���░░░░���░░░ 12.89 MiB/59.28 MiB (8.00 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░��░░░░░░░░░ 1/3                                         └ Fetching ████░░░░░░░░░░░░��░░��� 12.89 MiB/59.28 MiB (8.01 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██���███░���░░░░��░░░░��░░ 1/3                                         �� Fetching █��██░░░░░░░░░░░░░���░░ 12.93 MiB/59.28 MiB (8.03 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███��██░░��░░░░░░░░░��░ 1/3                                         └ Fetching ████░░░░░░░���░░░░���░░░ 13.40 MiB/59.28 MiB (8.07 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ████��█░░░��░░░░░░░░░░ 1/3                                         └ Fetching █��██░░░░░░░░���░░░░���░░ 14.18 MiB/59.28 MiB (8.12 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███���██░░░░░░░��░░░░░░ 1/3                                         └ Fetching █████��░░░░░░░░░���░░░░ 14.90 MiB/59.28 MiB (8.17 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███���█��░░░░░░���░░░░��░��� 1/3                                         �� Fetching █��███░░░░░░░░░░░░���░░ 15.59 MiB/59.28 MiB (8.22 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░���░░░░░░░░░░ 1/3                                         └ Fetching █████���░░░░░░░░░░░░░░ 16.37 MiB/59.28 MiB (8.27 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers █��████░░░░░░░░░░░░░░ 1/3                                         └ Fetching ��████░��░░░░░░░░░░░░��� 17.10 MiB/59.28 MiB (8.33 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░���░░░░░���░ 1/3                                         └ Fetching █���███░��░░░░░░░░░░��░░ 17.66 MiB/59.28 MiB (8.39 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░��░░░░░░░ 1/3                                         └ Fetching ████���█░░░░░░░░░░░���░░ 18.38 MiB/59.28 MiB (8.45 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers █���████░░��░░░░░���░░░░░ 1/3                                         �� Fetching ██████░░░░░░░░░░░░░░ 18.97 MiB/59.28 MiB (8.51 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ���█████░░░░░░░░░░░░��░ 1/3                                         └ Fetching █████���░░░░░���░░░░░░░░ 19.63 MiB/59.28 MiB (8.56 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ��█████��░░░░░░░░░░░░░ 1/3                                         ��� Fetching ██████░░░░░░░░░░░░░░ 20.43 MiB/59.28 MiB (8.62 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░���░░░░░░���░ 1/3                                         └ Fetching ██████��░░░░░░���░░░░░░ 21.19 MiB/59.28 MiB (8.67 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░���░░░░░░��░░ 1/3                                         └ Fetching ██████��░░░░░░���░░░���░░ 21.97 MiB/59.28 MiB (8.73 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░��░░░░░░��░░░░ 1/3                                         └ Fetching ███��███░░░��░░░░░░���░░ 22.62 MiB/59.28 MiB (8.79 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██��███░░░��░░░░░░░░░░ 1/3                                         └ Fetching █████���█░░░░░░░░░░░░░ 23.44 MiB/59.28 MiB (8.85 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░��░░░░░░░��� 1/3                                         └ Fetching █���█████��░░░░░░░░░░░░ 24.22 MiB/59.28 MiB (8.91 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░��░░░░░░░░░░ 1/3                                         └ Fetching ████████░░░░���░░░░���░░ 24.94 MiB/59.28 MiB (8.97 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███���██░░░░░░░░░░░��░░ 1/3                                         └ Fetching ██████��█░░░░░░░░░░░░ 25.69 MiB/59.28 MiB (9.03 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ���█████░░░░░░░░��░░░░░ 1/3                                         └ Fetching ████████░░░░░░░░░░░░ 26.14 MiB/59.28 MiB (9.09 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░��░░░░░░�� 1/3                                         └ Fetching ██��██████░░░░░░░░���░░ 26.77 MiB/59.28 MiB (9.15 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ���█████░░��░░░░░░░░░░░ 1/3                                         └ Fetching █████████░░░░░░░░░░░ 27.43 MiB/59.28 MiB (9.20 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers █��████░░��░░░░░░░���░░░ 1/3                                         └ Fetching ��██████��█░░░░░░��░░░░ 28.12 MiB/59.28 MiB (9.25 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers █���████░░░░░░░░░░░░░░ 1/3                                         └ Fetching █████████░░░░������░░░░░ 28.62 MiB/59.28 MiB (9.31 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███��██░░░░░��░░░░░░░��� 1/3                                         └ Fetching ██��██████░░░���░░░░░░░ 29.36 MiB/59.28 MiB (9.35 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers �����████░░░░░░░░░░░░░░ 1/3                                         └ Fetching ███��██████��░░░░░░���░░ 30.14 MiB/59.28 MiB (9.40 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██��███░░░░░░░░░░���░░░ 1/3                                         └ Fetching ████���█████░���░░░░░░░░ 30.86 MiB/59.28 MiB (9.45 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░��░░░░░░░░░░ 1/3                                         └ Fetching ██��███████░░░░░░░░���░ 31.65 MiB/59.28 MiB (9.50 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░���░░░░░░��░░░ 1/3                                         └ Fetching █████��████░░���░░░░░░�� 32.53 MiB/59.28 MiB (9.55 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████���░░░░░░��░░░░░░ 1/3                                         └ Fetching ███████████░░░░��░░░░ 33.16 MiB/59.28 MiB (9.60 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███���██░░░░���░░░░░░░░░ 1/3                                         └ Fetching ███████████░░░���░░░░░ 33.81 MiB/59.28 MiB (9.65 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███���██░░░░░░░░░░░��░░ 1/3                                         └ Fetching ██���████████░░░░░��░░░ 34.57 MiB/59.28 MiB (9.70 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░░ 1/3                                         └ Fetching ███████████░░░��░░░░░ 35.55 MiB/59.28 MiB (9.75 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░��░░░░░░�� 1/3                                         └ Fetching ██��███████���█░░░░░���░░ 36.33 MiB/59.28 MiB (9.79 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███���██░░░░���░░░░░░░░░ 1/3                                         └ Fetching ████████████���░░░░░░░ 37.09 MiB/59.28 MiB (9.84 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ███��██░░░░░��░░░░░░░��� 1/3                                         └ Fetching ██���█████████░░░░░���░░ 37.90 MiB/59.28 MiB (9.89 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░░ 1/3                                         └ Fetching ██████��██████░░░░░░░ 38.70 MiB/59.28 MiB (9.94 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░��� 1/3                                         ��� Fetching █████████████░░░░░���░ 39.46 MiB/59.28 MiB (9.99 MiB/s) layer 3f705d8b[1A
+[2K[1B
+[2K[1AFetching layers ��█████░░��░░░░░░░���░░░ 1/3                                         └ Fetching ���██████��█████░░���░░░░ 40.27 MiB/59.28 MiB (10.04 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ���█████░░░░░░░░░░░░░░ 1/3                                         └ Fetching ███�����████████░░░░░░░ 40.89 MiB/59.28 MiB (10.08 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ████��█░░░░░░░░░░░░░░ 1/3                                         └ Fetching ██���█████████���█░░░░░░ 41.51 MiB/59.28 MiB (10.13 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░��░░░ 1/3                                         └ Fetching ██████████████░��░░░░ 42.33 MiB/59.28 MiB (10.17 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░���░░░░░░ 1/3                                         └ Fetching ███████��██████░░░░░░ 43.11 MiB/59.28 MiB (10.22 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers █████��░░░░░░░░░░░░░░ 1/3                                         └ Fetching ███████���██████░░░░░░ 43.19 MiB/59.28 MiB (10.28 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░░ 1/3                                         └ Fetching ███████��██████░░░░░░ 43.57 MiB/59.28 MiB (10.30 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░��░░░░░░ 1/3                                         └ Fetching ██████��███████░���░░░░ 44.28 MiB/59.28 MiB (10.33 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░░ 1/3                                         └ Fetching ███��███████████░░░░░ 45.09 MiB/59.28 MiB (10.37 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers █████���░░░░░░░░░░░░░░ 1/3                                         └ Fetching ███████��███████░��░░░ 46.03 MiB/59.28 MiB (10.41 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers █████���░░░░░░░░░░░░░░ 1/3                                         └ Fetching ██████████��████░░░░░ 46.86 MiB/59.28 MiB (10.45 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ███���██░░░░░░░░░░░░░░ 1/3                                         └ Fetching ████████████████��░░░ 47.50 MiB/59.28 MiB (10.49 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░���░░░░░░░��░░░░ 1/3                                         └ Fetching ████████████████░░░��� 48.04 MiB/59.28 MiB (10.52 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░░░░░░░░░░░��� 1/3                                         └ Fetching ██████���█████████░░░░ 48.96 MiB/59.28 MiB (10.56 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████���░░░░░░░��░░░░░ 1/3                                         └ Fetching █��████████��█████░░░��� 49.70 MiB/59.28 MiB (10.59 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers █████���░░░░░░░░��░░░░░ 1/3                                         └ Fetching █��███████████████░░��� 50.52 MiB/59.28 MiB (10.63 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████��░░░░░░░░���░░░░ 1/3                                         └ Fetching ██���████████��█████░░░ 51.30 MiB/59.28 MiB (10.66 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████��░░░░░░░░���░░░░ 1/3                                         └ Fetching █████████████████░░░ 52.14 MiB/59.28 MiB (10.70 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░░��░░░░░░░░░░ 1/3                                         └ Fetching █████████████████░░░ 53.25 MiB/59.28 MiB (10.74 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██���███░░░░░░░░░░░░░░ 1/3                                         └ Fetching ██��█████████��█████░░ 54.25 MiB/59.28 MiB (10.78 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░��░░░░░░░░░░��� 1/3                                         └ Fetching ███████████���██████░░ 55.18 MiB/59.28 MiB (10.82 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░��░░░░░░░░░░�� 1/3                                         └ Fetching ██████████████████░░ 55.87 MiB/59.28 MiB (10.86 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers █████���░░░░░░░░���░░░░░ 1/3                                         └ Fetching ██��████████████████░ 56.60 MiB/59.28 MiB (10.89 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░��░░░░░░░░░░��� 1/3                                         └ Fetching █���█████████████████░ 57.50 MiB/59.28 MiB (10.93 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░���░░░░░░░░░���░ 1/3                                         └ Fetching ███████████████████░ 58.25 MiB/59.28 MiB (10.97 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ���███�����░░░░░░░░░░░░░░ 1/3                                         └ Fetching ██████████████████���░ 58.69 MiB/59.28 MiB (11.02 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ��█████░░░░��░░░░░░░░░ 1/3                                         └ Fetching █████████���████████��░ 58.71 MiB/59.28 MiB (11.03 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers █████��░░░░░░░░░░░░░░ 1/3                                         ��� Fetching ███████���█████████���█░ 58.83 MiB/59.28 MiB (11.06 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░��░░░░░░░░░░░ 1/3                                         └ Fetching ███████████████████░ 59.25 MiB/59.28 MiB (11.09 MiB/s) layer 3f705d8[1A
+[2K[1B
+[2K[1AFetching layers ██████░░���░░░░░░░░░���░ 1/3                                         └ Fetching ████████████████��███ 59.28 MiB/59.28 MiB (0 B/s) layer 3f705d8b39bd8[1A
+[2K[1B
+[2K[1AFetching layers ██���██████████░░░░░░░ 2/3                                         └ Fetching ████████████████████ 59.28 MiB/59.28 MiB (0 B/s) layer 3f705d8b39bd8[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░░░░ 2/3                                         └ Fetching █���██████████████████ 59.28 MiB/4.77 MiB (0 B/s) layer 3f705d8b39bd86[1A
+[2K[1B
+[2K[1AFetching layers ��████████████░░░░░░░ 2/3                                         └ Fetching █████���██████████████ 59.28 MiB/4.77 MiB (0 B/s) layer c9fbde3eb06e4a[1A
+[2K[1B
+[2K[1AFetching layers ███████��█████░░░░░░░ 2/3                                         └ Fetching ██████��█████████████ 59.28 MiB/4.77 MiB (0 B/s) layer c9fbde3eb06e4a[1A
+[2K[1B
+[2K[1AFetching layers ████████���████░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░░���░░░░░░░░░░ 8.00 KiB/4.77 MiB (0 B/s) layer c9fbde3eb06e4af[1A
+[2K[1B
+[2K[1AFetching layers ███�����████████░░░░░░░ 2/3                                         └ Fetching ░░░░���░░░░░░░░░░░░░░░ 8.00 KiB/4.77 MiB (0 B/s) layer c9fbde3eb06e4af[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░���░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░��� 16.00 KiB/4.77 MiB (170.98 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░��░░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░░ 16.00 KiB/4.77 MiB (144.66 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░��░░�� 2/3                                         └ Fetching ░░░░░░░░░░░░░��░░░░░░ 24.00 KiB/4.77 MiB (185.64 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ��████████████░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░���░░░░░░ 24.00 KiB/4.77 MiB (186.13 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ██████���██████░░░��░░░ 2/3                                         └ Fetching ░░░░░░░░░���░░░░░░░░░░ 32.00 KiB/4.77 MiB (193.81 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ██��██████████���░░░░░░ 2/3                                         └ Fetching ░░░░░��░░░░░░░░░░░░░░ 32.00 KiB/4.77 MiB (197.45 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers █████████��███░░░░░░░ 2/3                                         └ Fetching ░░���░░░░░░░░░��░░░░░░░ 40.00 KiB/4.77 MiB (201.71 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ██████��██████░░░░���░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░░ 40.00 KiB/4.77 MiB (202.49 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ████���████████░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░���░░░░░░░░░░░ 48.00 KiB/4.77 MiB (203.11 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░░░░ 2/3                                         ��� Fetching ░░░░░░��░░░░░░░░░░���░░ 48.00 KiB/4.77 MiB (218.02 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ███████��█████░░░░░��░ 2/3                                         └ Fetching ░���░░░░░░░░░░���░░░░░░░ 56.00 KiB/4.77 MiB (224.35 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░░░�� 2/3                                         └ Fetching ░░░░░░░░░░░░░░░��░░░░ 56.00 KiB/4.77 MiB (260.62 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ��████████████░░░░░░░ 2/3                                         └ Fetching ░░░░░���░░░░░░░░░░░░░░ 64.00 KiB/4.77 MiB (280.50 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ████████���████░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░░░��░░░░░░░░░ 64.00 KiB/4.77 MiB (280.70 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░░ 72.00 KiB/4.77 MiB (280.91 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ██████���██████░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░░░░░���░░ 72.00 KiB/4.77 MiB (281.47 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░░░░ 2/3                                         └ Fetching ░░░░░░░���░░░░░░░░░░░░ 80.00 KiB/4.77 MiB (281.83 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░░ 80.00 KiB/4.77 MiB (282.02 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ███████████���█░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░░ 88.00 KiB/4.77 MiB (282.16 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ████████���████░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░░░░░░░░ 88.00 KiB/4.77 MiB (282.54 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers ████████████���░░░░░░░ 2/3                                         └ Fetching ░░░░░░░░░░░░░����░░░░░ 96.00 KiB/4.77 MiB (282.80 KiB/s) layer c9fbde3[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░░░░ 2/3                                         └ Fetching ██░��░░░░░░░░░░░░░���░░ 688.00 KiB/4.77 MiB (623.72 KiB/s) layer c9fbde[1A
+[2K[1B
+[2K[1AFetching layers ███████████���█░░░░░░░ 2/3                                         └ Fetching █████░░░░░░░░░░░░░░░ 1.39 MiB/4.77 MiB (1.79 MiB/s) layer c9fbde3eb0[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░░░░ 2/3                                         └ Fetching ███████░░░░░░░░░░░░░ 1.84 MiB/4.77 MiB (2.47 MiB/s) layer c9fbde3eb0[1A
+[2K[1B
+[2K[1AFetching layers ██���██████████░░���░░░░ 2/3                                         └ Fetching ███████████░░░░░░░░░ 2.77 MiB/4.77 MiB (3.23 MiB/s) layer c9fbde3eb0[1A
+[2K[1B
+[2K[1AFetching layers █████████████��░░░░░░ 2/3                                         └ Fetching ███████████████░░���░░ 3.75 MiB/4.77 MiB (4.02 MiB/s) layer c9fbde3eb0[1A
+[2K[1B
+[2K[1AFetching layers █████████████░░░░░░░ 2/3                                         └ Fetching ███████████��███████░ 4.76 MiB/4.77 MiB (4.91 MiB/s) layer c9fbde3eb0[1A
+[2K[1B
+[2K[1AFetching layers ███���█████████░░░░��░░ 2/3                                         └ Fetching ████████████████████ 4.77 MiB/4.77 MiB (0 B/s) layer c9fbde3eb06e4af[1A
+[2K[1B
+[2K[1AFetching layers ██████���█████████████ 3/3                                         �� Fetching ██████████���█████████ 4.77 MiB/4.77 MiB (0 B/s) layer c9fbde3eb06e4af[1A
+[2K[1B
+[2K[1AFetching layers ██████████████���█████ 3/3
+[2KFetched layers: 64.11 MiB in 12 seconds (5.51 MiB/s)                            ⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K�� Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K�� Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K��� Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K��� Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K�� Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K⠚ Deploying
+[2K⠒ Deploying
+[2K⠂ Deploying
+[2K⠂ Deploying
+[2K⠒ Deploying
+[2K⠲ Deploying
+[2K⠴ Deploying
+[2K⠤ Deploying
+[2K⠄ Deploying
+[2K⠄ Deploying
+[2K⠤ Deploying
+[2K⠠ Deploying
+[2K⠠ Deploying
+[2K⠤ Deploying
+[2K⠦ Deploying
+[2K⠖ Deploying
+[2K⠒ Deploying
+[2K⠐ Deploying
+[2K⠐ Deploying
+[2K⠒ Deploying
+[2K⠓ Deploying
+[2K⠋ Deploying
+[2K⠉ Deploying
+[2K⠈ Deploying
+[2K⠈ Deploying
+[2K⠁ Deploying
+[2K⠁ Deploying
+[2K⠉ Deploying
+[2K⠙ Deploying
+[2K  Deploying: done (48 seconds)                                                  Queued for next boot: ghcr.io/carlsenares/aresos@sha256:25de68a75ef4534f903f7dd2d8ce1eb9e86c1b2d165c2631152fb1f1c711f91a
+  Version: 44.20261012.1
+  Digest: sha256:25de68a75ef4534f903f7dd2d8ce1eb9e86c1b2d165c2631152fb1f1c711f91a
+�� Waiting for sysroot lock...
+[2K⠁ Waiting for sysroot lock...                                                   [  184.909116] EXT4-fs (vda3): re-mounted 26d45276-85ef-4bf5-b375-d1b8e279054c.
+
+[2K{"apiVersion":"org.containers.bootc/v1","kind":"BootcHost","metadata":{"name":"host"},"spec":{"bootOrder":"default","image":{"image":"ghcr.io/carlsenares/aresos@sha256:25de68a75ef4534f903f7dd2d8ce1eb9e86c1b2d165c2631152fb1f1c711f91a","transport":"registry"}},"status":{"booted":{"cachedUpdate":null,"composefs":null,"downloadOnly":false,"image":{"architecture":"amd64","image":{"image":"ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","transport":"registry"},"imageDigest":"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","timestamp":"2026-10-13T00:06:38Z","version":"44.20261012.1"},"incompatible":false,"ostree":{"checksum":"aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71","deploySerial":1,"stateroot":"default"},"pinned":true,"softRebootCapable":true,"store":"ostreeContainer"},"readOnly":false,"rollback":{"cachedUpdate":null,"composefs":null,"downloadOnly":false,"image":{"architecture":"amd64","image":{"image":"ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","transport":"registry"},"imageDigest":"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","timestamp":"2026-10-13T00:06:38Z","version":"44.20261012.1"},"incompatible":false,"ostree":{"checksum":"aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71","deploySerial":0,"stateroot":"default"},"pinned":false,"softRebootCapable":false,"store":"ostreeContainer"},"rollbackQueued":false,"staged":{"cachedUpdate":null,"composefs":null,"downloadOnly":false,"image":{"architecture":"amd64","image":{"image":"ghcr.io/carlsenares/aresos@sha256:25de68a75ef4534f903f7dd2d8ce1eb9e86c1b2d165c2631152fb1f1c711f91a","transport":"registry"},"imageDigest":"sha256:25de68a75ef4534f903f7dd2d8ce1eb9e86c1b2d165c2631152fb1f1c711f91a","timestamp":"2026-10-13T00:06:38Z","version":"44.20261012.1"},"incompatible":false,"ostree":{"checksum":"3b5fd31f36adf3e2456c3a86b911898ade1992cd77ed716facfa6f0ec61387d6","deploySerial":0,"stateroot":"default"},"pinned":false,"softRebootCapable":false,"store":"ostreeContainer"},"type":"bootcHost","usrOverlay":null}}
+ARESOS_CMD_DONE:0

@@ -1,0 +1,556 @@
+Regression checks only (no image build or VM)	Set up job	﻿2026-10-22T16:57:40.1182580Z Current runner version: '2.338.0'
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1216324Z ##[group]Runner Image Provisioner
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1217490Z Hosted Compute Agent
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1218220Z Version: 20261021.618
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1219107Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1220012Z Build Date: 2026-10-21T00:45:21Z
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1220936Z Worker ID: {b22cf101-31c7-40a7-937f-924e019d6ac7}
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1221843Z Region: westus3
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1222558Z Cloud: Azure
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1223322Z ##[endgroup]
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1225052Z ##[group]Operating System
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1226237Z Ubuntu
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1227098Z 24.04.5
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1227771Z LTS
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1228501Z ##[endgroup]
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1229201Z ##[group]Runner Image
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1229916Z Image: ubuntu-24.04
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1230714Z Version: 20261021.345.10
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1232099Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261021.345/images/ubuntu/Ubuntu2404-Readme.md
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1234439Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261021.345
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1235641Z ##[endgroup]
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1237472Z ##[group]GITHUB_TOKEN Permissions
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1239575Z Contents: read
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1240427Z Metadata: read
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1241101Z Packages: read
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1241825Z ##[endgroup]
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1244342Z Secret source: Actions
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1246267Z Cache mode: write
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1247271Z Prepare workflow directory
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1639069Z Prepare all required actions
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.1695558Z Getting action download info
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.4750512Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.5779961Z Download action repository 'sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac' (SHA:398d4b0eeef1380460a10c8013a76f728fb906ac)
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:40.8257835Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Regression checks only (no image build or VM)	Set up job	2026-10-22T16:57:41.2159399Z Complete job name: Regression checks only (no image build or VM)
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	﻿2026-10-22T16:57:41.2885811Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2886989Z with:
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2887391Z   repository: carlsenares/AresOS
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2890730Z   token: ***
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2891108Z   ssh-strict: true
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2891482Z   ssh-user: git
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2891863Z   persist-credentials: true
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2892277Z   clean: true
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2892664Z   sparse-checkout-cone-mode: true
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2893114Z   fetch-depth: 1
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2893483Z   fetch-tags: false
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2893873Z   show-progress: true
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2894257Z   lfs: false
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2894623Z   submodules: false
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2895101Z   set-safe-directory: true
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2895547Z   allow-unsafe-pr-checkout: false
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.2896486Z ##[endgroup]
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4112748Z Syncing repository: carlsenares/AresOS
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4115175Z ##[group]Getting Git version info
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4116282Z Working directory is '/home/runner/work/AresOS/AresOS'
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4117806Z [command]/usr/bin/git version
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4252384Z git version 2.55.0
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4339364Z ##[endgroup]
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4352020Z Temporarily overriding HOME='/home/runner/work/_temp/aff63f11-eeaf-409d-b2e3-64372b3794a9' before making global git config changes
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4356072Z Adding repository directory to the temporary git global config as a safe directory
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4359362Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/AresOS/AresOS
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4361861Z Deleting the contents of '/home/runner/work/AresOS/AresOS'
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4363473Z ##[group]Initializing the repository
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4364974Z [command]/usr/bin/git init /home/runner/work/AresOS/AresOS
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4470081Z hint: Using 'master' as the name for the initial branch. This default branch name
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4472247Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4474184Z hint: to use in all of your new repositories, which will suppress this warning,
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4475581Z hint: call:
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4477051Z hint:
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4478316Z hint: 	git config --global init.defaultBranch <name>
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4479850Z hint:
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4481100Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4483066Z hint: 'development'. The just-created branch can be renamed via this command:
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4484427Z hint:
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4485574Z hint: 	git branch -m <name>
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4486811Z hint:
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4488282Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4490004Z Initialized empty Git repository in /home/runner/work/AresOS/AresOS/.git/
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4493640Z [command]/usr/bin/git remote add origin https://github.com/carlsenares/AresOS
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4559858Z ##[endgroup]
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4561069Z ##[group]Disabling automatic garbage collection
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4562004Z [command]/usr/bin/git config --local gc.auto 0
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4727383Z ##[endgroup]
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4728848Z ##[group]Setting up auth
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4730367Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.4733712Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.5098453Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.5138503Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.5366751Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.5412330Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.5637502Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.5685732Z ##[endgroup]
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.5687836Z ##[group]Fetching the repository
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:41.5696660Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +5578ab21b880091f26bfdc2eda22dd4f304a602b:refs/remotes/origin/pkg/06-image-release
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.1287904Z From https://github.com/carlsenares/AresOS
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.1289280Z  * [new ref]         5578ab21b880091f26bfdc2eda22dd4f304a602b -> origin/pkg/06-image-release
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.1291809Z ##[endgroup]
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.1292615Z ##[group]Determining the checkout info
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.1293487Z ##[endgroup]
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.1298665Z [command]/usr/bin/git sparse-checkout disable
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.1358599Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.1395736Z ##[group]Checking out the ref
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.1400306Z [command]/usr/bin/git checkout --progress --force -B pkg/06-image-release refs/remotes/origin/pkg/06-image-release
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.4485382Z Switched to a new branch 'pkg/06-image-release'
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.4507748Z branch 'pkg/06-image-release' set up to track 'origin/pkg/06-image-release'.
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.4537800Z ##[endgroup]
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.4602475Z [command]/usr/bin/git log -1 --format=%H
+Regression checks only (no image build or VM)	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:44.4641877Z 5578ab21b880091f26bfdc2eda22dd4f304a602b
+Regression checks only (no image build or VM)	Run regression and syntax checks	﻿2026-10-22T16:57:44.5265977Z ##[group]Run set -euo pipefail
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.5266385Z ^[[36;1mset -euo pipefail^[[0m
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.5266651Z ^[[36;1mpython3 -m unittest discover -s os/tests -v^[[0m
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.5267132Z ^[[36;1mpython3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/tests/audit.py os/tests/power-events.py^[[0m
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.5268162Z ^[[36;1mfor script in os/ci/*.sh os/release/*.sh os/ci/overlay/updater-generator os/build.sh os/tests/*.sh os/config/usr/bin/aresos-session os/config/usr/bin/aresos-terminal; do^[[0m
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.5269496Z ^[[36;1m  bash -n "$script"^[[0m
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.5269776Z ^[[36;1mdone^[[0m
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.6189270Z shell: /usr/bin/bash -e {0}
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.6189624Z ##[endgroup]
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8390706Z test_live_dependencies_and_transient_commands_are_inspected (test_audit.ActivationAuditPrototypeTest.test_live_dependencies_and_transient_commands_are_inspected) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8392077Z test_live_root_units_are_arguments_and_aliases_are_preserved (test_audit.ActivationAuditPrototypeTest.test_live_root_units_are_arguments_and_aliases_are_preserved) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8437056Z test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail (test_audit.ActivationAuditPrototypeTest.test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8450571Z test_quoted_escaped_manager_names_and_dependencies_are_round_tripped (test_audit.ActivationAuditPrototypeTest.test_quoted_escaped_manager_names_and_dependencies_are_round_tripped) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8465330Z test_quoted_live_dropin_path_is_inspected (test_audit.ActivationAuditPrototypeTest.test_quoted_live_dropin_path_is_inspected) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8545313Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8617605Z test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask (test_audit.UpdaterAuditTest.test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8619473Z test_live_state_rows_are_validated (test_audit.UpdaterAuditTest.test_live_state_rows_are_validated) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8622344Z test_masked_but_running_updater_is_rejected_in_every_live_state (test_audit.UpdaterAuditTest.test_masked_but_running_updater_is_rejected_in_every_live_state) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8857707Z test_missing_live_user_manager_is_a_failure (test_audit.UpdaterAuditTest.test_missing_live_user_manager_is_a_failure) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.8859088Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.9048606Z test_static_live_inventory_reads_generated_files_and_both_manager_states (test_audit.UpdaterAuditTest.test_static_live_inventory_reads_generated_files_and_both_manager_states) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.9050311Z test_suspicious_units_require_mask_or_review_in_every_state (test_audit.UpdaterAuditTest.test_suspicious_units_require_mask_or_review_in_every_state) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.9051553Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.9052760Z test_fragmented_and_coalesced_frames_at_every_boundary (test_channel.ChannelTest.test_fragmented_and_coalesced_frames_at_every_boundary) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.9053962Z test_incomplete_and_oversized_frames_fail (test_channel.ChannelTest.test_incomplete_and_oversized_frames_fail) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.9055141Z test_raw_exports_preserve_bytes_and_reject_corruption (test_channel.ChannelTest.test_raw_exports_preserve_bytes_and_reject_corruption) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.9088184Z test_events_before_and_after_command_reply_are_retained (test_channel.QMPTest.test_events_before_and_after_command_reply_are_retained) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.9106885Z test_host_exit_reset_suspend_and_missing_shutdown_are_rejected (test_channel.QMPTest.test_host_exit_reset_suspend_and_missing_shutdown_are_rejected) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:44.9407677Z test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.0953431Z test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.1465229Z test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.1467062Z test_missing_records_and_other_boot_cannot_pass (test_offline_journal.OfflineJournalTest.test_missing_records_and_other_boot_cannot_pass) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.1475322Z test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail (test_offline_journal.OfflineJournalTest.test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.1478817Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: reader failed
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.1480016Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.1485372Z test_only_unreadable_journal_is_reported_as_hardware_gate (test_offline_journal.OfflineJournalTest.test_only_unreadable_journal_is_reported_as_hardware_gate) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.1487377Z test_ordered_logind_and_manager_records_from_exact_boot_pass (test_offline_journal.OfflineJournalTest.test_ordered_logind_and_manager_records_from_exact_boot_pass) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.1489876Z test_restore_filter_descends_only_toward_persistent_journals (test_offline_journal.OfflineJournalTest.test_restore_filter_descends_only_toward_persistent_journals) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.3815649Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.3886308Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.3900369Z test_every_reader_command_error_and_timeout_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_every_reader_command_error_and_timeout_is_blocking) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.3971717Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.3980855Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.3985610Z test_fallback_verifies_before_selecting_exact_boot (test_offline_journal.OfflineReaderCommandsTest.test_fallback_verifies_before_selecting_exact_boot) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.4016391Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--device', '/dev/nbd0p4:/dev/guest:r', '--volume', '/tmp/tmp_worabg9/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/export:rw', '--entrypoint', '/usr/bin/btrfs', 'localhost/aresos:ci', 'version'], 'returncode': 1, 'stderr': 'stat /usr/bin/btrfs: no such file or directory', 'output': 'offline-btrfs-version.txt'}
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.4144133Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--volume', '/tmp/tmpkae2qvkr/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/var/log/journal:/guest-journal:ro', '--entrypoint', '/usr/bin/journalctl', 'localhost/aresos:ci', '--directory=/guest-journal', '--no-pager', '--version'], 'returncode': 1, 'stderr': 'stat /usr/bin/journalctl: no such file or directory', 'output': 'offline-journalctl-version.txt'}
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.4288616Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; host Podman is absent
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.4327488Z test_gate_requires_both_explicit_host_limitations (test_offline_journal.OfflineReaderCommandsTest.test_gate_requires_both_explicit_host_limitations) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.5494295Z test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.5544366Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.5551700Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.5646109Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.5977341Z test_mounted_reader_and_cleanup_failures_are_blocking (test_offline_journal.OfflineReaderCommandsTest.test_mounted_reader_and_cleanup_failures_are_blocking) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.8458107Z test_guest_tty_reader_cannot_consume_completion_command (test_serial_console.SerialCommandTest.test_guest_tty_reader_cannot_consume_completion_command) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9442743Z test_long_script_survives_canonical_tty_line_limit (test_serial_console.SerialCommandTest.test_long_script_survives_canonical_tty_line_limit) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9508538Z test_nonzero_guest_exit_is_preserved (test_serial_console.SerialCommandTest.test_nonzero_guest_exit_is_preserved) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9515819Z test_corruption_and_incomplete_frames_are_rejected (test_serial_console.SerialExportTest.test_corruption_and_incomplete_frames_are_rejected) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9526593Z test_kernel_record_at_every_payload_boundary_preserves_bytes (test_serial_console.SerialExportTest.test_kernel_record_at_every_payload_boundary_preserves_bytes) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9528341Z test_wrapped_crlf_export_preserves_raw_json (test_serial_console.SerialExportTest.test_wrapped_crlf_export_preserves_raw_json) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9547215Z test_boot_log_retention_is_bounded_without_losing_partial_query (test_serial_console.SerialTerminalTest.test_boot_log_retention_is_bounded_without_losing_partial_query) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9550311Z test_queries_split_at_every_socket_boundary (test_serial_console.SerialTerminalTest.test_queries_split_at_every_socket_boundary) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9566752Z test_repeated_queries_answered_once_each (test_serial_console.SerialTerminalTest.test_repeated_queries_answered_once_each) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9587022Z test_shell_text_and_other_escape_sequences_do_not_receive_input (test_serial_console.SerialTerminalTest.test_shell_text_and_other_escape_sequences_do_not_receive_input) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9588730Z test_absent_disk_or_partition_table_cannot_pass_comparison (test_switch.SwitchEvidenceTest.test_absent_disk_or_partition_table_cannot_pass_comparison) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9602541Z test_corrupt_status_export_cannot_be_accepted_as_state (test_switch.SwitchEvidenceTest.test_corrupt_status_export_cannot_be_accepted_as_state) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9604040Z test_credentials_and_encoded_variants_are_redacted (test_switch.SwitchEvidenceTest.test_credentials_and_encoded_variants_are_redacted) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9605571Z test_duplicate_or_missing_shutdown_cannot_hide_a_boot_loop (test_switch.SwitchEvidenceTest.test_duplicate_or_missing_shutdown_cannot_hide_a_boot_loop) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9607316Z test_only_orderly_guest_initialization_reset_is_accepted (test_switch.SwitchEvidenceTest.test_only_orderly_guest_initialization_reset_is_accepted) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9608896Z test_partition_changes_cannot_hide_behind_identical_mounts (test_switch.SwitchEvidenceTest.test_partition_changes_cannot_hide_behind_identical_mounts) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:45.9827172Z test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query (test_switch.SwitchEvidenceTest.test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.0847607Z test_reboot_reader_still_rejects_guest_that_does_not_exit_by_deadline (test_switch.SwitchEvidenceTest.test_reboot_reader_still_rejects_guest_that_does_not_exit_by_deadline) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.0849633Z test_recreated_ram_swap_is_not_a_partition_change (test_switch.SwitchEvidenceTest.test_recreated_ram_swap_is_not_a_partition_change) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.0851253Z test_serial_json_frame_is_parsed_independently_of_shell_prompt (test_switch.SwitchEvidenceTest.test_serial_json_frame_is_parsed_independently_of_shell_prompt) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.0852935Z test_staged_reference_cannot_be_mistaken_for_booted_release (test_switch.SwitchEvidenceTest.test_staged_reference_cannot_be_mistaken_for_booted_release) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.0856447Z test_status_spinner_and_interleaved_kernel_records_preserve_json_bytes (test_switch.SwitchEvidenceTest.test_status_spinner_and_interleaved_kernel_records_preserve_json_bytes) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.1336555Z test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently) ... ok
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.1337788Z
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.1338148Z ----------------------------------------------------------------------
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.1338770Z Ran 55 tests in 1.298s
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.1339078Z
+Regression checks only (no image build or VM)	Run regression and syntax checks	2026-10-22T16:57:46.1339283Z OK
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	﻿2026-10-22T16:57:46.2165603Z ##[group]Run PYTHONPATH=os/tests python3 - <<'PY'
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T16:57:46.2166166Z ^[[36;1mPYTHONPATH=os/tests python3 - <<'PY'^[[0m
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T16:57:46.2166416Z ^[[36;1mfrom audit import live_states^[[0m
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T16:57:46.2166726Z ^[[36;1mfiles, units = live_states(['systemctl', '--no-pager', '--no-legend'])^[[0m
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T16:57:46.2167167Z ^[[36;1massert '-.mount' in units and units['-.mount']['load_state'] == 'loaded', units.get('-.mount')^[[0m
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T16:57:46.2167668Z ^[[36;1mprint(f'Live hosted system manager passed: {len(files)} unit files, {len(units)} unit names')^[[0m
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T16:57:46.2168011Z ^[[36;1mPY^[[0m
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T16:57:46.2213406Z shell: /usr/bin/bash -e {0}
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T16:57:46.2213635Z ##[endgroup]
+Regression checks only (no image build or VM)	Query the real hosted system manager (no image or VM)	2026-10-22T16:57:47.1032680Z Live hosted system manager passed: 437 unit files, 464 unit names
+Regression checks only (no image build or VM)	Preflight private package metadata access	﻿2026-10-22T16:57:47.1126770Z ##[group]Run set -euo pipefail
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1127076Z ^[[36;1mset -euo pipefail^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1127281Z ^[[36;1mmkdir -p .work^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1127678Z ^[[36;1mif gh api users/carlsenares/packages/container/aresos > .work/package.json 2>.work/package-error.txt; then^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1128152Z ^[[36;1m  test "$(jq -r .visibility .work/package.json)" = private^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1128470Z ^[[36;1m  echo 'Existing release package is private'^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1128707Z ^[[36;1melse^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1128902Z ^[[36;1m  cat .work/package-error.txt^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1129152Z ^[[36;1m  grep -q '(HTTP 404)' .work/package-error.txt^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1129516Z ^[[36;1m  echo 'Release package does not exist yet; first publication will use private default'^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1129849Z ^[[36;1mfi^[[0m
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1175025Z shell: /usr/bin/bash -e {0}
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1175237Z env:
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1177770Z   GH_TOKEN: ***
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.1177958Z ##[endgroup]
+Regression checks only (no image build or VM)	Preflight private package metadata access	2026-10-22T16:57:47.6876195Z Existing release package is private
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	﻿2026-10-22T16:57:47.6925314Z ##[group]Run mkdir -p evidence
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:47.6925810Z ^[[36;1mmkdir -p evidence^[[0m
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:47.6926323Z ^[[36;1mpython3 os/ci/release-inputs.py^[[0m
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:47.6990236Z shell: /usr/bin/bash -e {0}
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:47.6990590Z ##[endgroup]
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:48.2880245Z Candidate base: ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2449799Z [
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2450350Z   {
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2450956Z     "kind": "legacy",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2451480Z     "filename": "bazzite-nvidia-open-stable-amd64.iso",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2452209Z     "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2452989Z     "sha256": "85e701c0f53189b0fa32797ffe8144202dcaa8db6c7692fd4677f615537b24b8",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2453859Z     "checksum_source": "https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso-CHECKSUM",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2454903Z     "picker_source": "https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js"
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2455780Z   },
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2456293Z   {
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2456632Z     "kind": "live",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2457100Z     "filename": "bazzite-nvidia-open-stable-live-amd64.iso",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2457831Z     "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2458626Z     "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2459468Z     "checksum_source": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM",
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2460502Z     "picker_source": "https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js"
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2461249Z   }
+Regression checks only (no image build or VM)	Resolve release inputs without pulling image layers	2026-10-22T16:57:49.2461578Z ]
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	﻿2026-10-22T16:57:49.2662088Z ##[group]Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2662457Z with:
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2662636Z   cosign-release: v2.6.1
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2662832Z   install-dir: $HOME/.cosign
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2663024Z   use-sudo: false
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2663197Z ##[endgroup]
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2739818Z ##[start-action display=Run #!/bin/bash;id=__sigstore_cosign-installer.__run]
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2764997Z ##[group]Run #!/bin/bash
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2765627Z ^[[36;1m#!/bin/bash^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2765998Z ^[[36;1m# cosign install script^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2766273Z ^[[36;1mshopt -s expand_aliases^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2766484Z ^[[36;1mif [ -z "$NO_COLOR" ]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2766744Z ^[[36;1m  alias log_info="echo -e \"\033[1;32mINFO\033[0m:\""^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2767060Z ^[[36;1m  alias log_error="echo -e \"\033[1;31mERROR\033[0m:\""^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2767319Z ^[[36;1melse^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2767509Z ^[[36;1m  alias log_info="echo \"INFO:\""^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2767784Z ^[[36;1m  alias log_error="echo \"ERROR:\""^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2768010Z ^[[36;1mfi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2768172Z ^[[36;1mset -e^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2768338Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2768508Z ^[[36;1mmkdir -p $HOME/.cosign^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2768711Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2768875Z ^[[36;1mif [[ v2.6.1 == "main" ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2769186Z ^[[36;1m  log_info "installing cosign via 'go install' from its main version"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2769495Z ^[[36;1m  GOBIN=$(go env GOPATH)/bin^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2769775Z ^[[36;1m  go install github.com/sigstore/cosign/v2/cmd/cosign@main^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2770079Z ^[[36;1m  ln -s $GOBIN/cosign $HOME/.cosign/cosign^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2770313Z ^[[36;1m  exit 0^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2770477Z ^[[36;1mfi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2770632Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2770793Z ^[[36;1mshaprog() {^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2770975Z ^[[36;1m  case Linux in^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2771162Z ^[[36;1m    Linux|linux)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2771364Z ^[[36;1m      sha256sum $1 | cut -d' ' -f1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2771580Z ^[[36;1m      ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2771743Z ^[[36;1m    macOS|macos)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2771942Z ^[[36;1m      shasum -a256 $1 | cut -d' ' -f1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2772165Z ^[[36;1m      ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2772335Z ^[[36;1m    Windows|windows)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2772728Z ^[[36;1m      powershell -command "(Get-FileHash $1 -Algorithm SHA256 | Select-Object -ExpandProperty Hash).ToLower()"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2773294Z ^[[36;1m      ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2773453Z ^[[36;1m    *)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2773638Z ^[[36;1m      log_error "unsupported OS Linux"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2773862Z ^[[36;1m      exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2774034Z ^[[36;1m      ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2774191Z ^[[36;1m  esac^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2774349Z ^[[36;1m}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2774587Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2774777Z ^[[36;1mbootstrap_version='v2.5.2'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2775161Z ^[[36;1mbootstrap_linux_amd64_sha='bcfeae05557a9f313ee4392d2f335d0ff69ebbfd232019e3736fb04999fe1734'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2775687Z ^[[36;1mbootstrap_linux_arm_sha='ecb5b9d8b6d7c8cec98363f0827456fa3207279e5f4690db6b4e6c77b10e45f9'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2776431Z ^[[36;1mbootstrap_linux_arm64_sha='2cbcea1873ad76274c3f241ef175d204654e3aac3e73e6ec4504e5227015cb0a'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2776968Z ^[[36;1mbootstrap_darwin_amd64_sha='0681abe20a482f4b9b3ed65b3debb8c6346591f2dc484b6bfa79609ff1318de4'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2777494Z ^[[36;1mbootstrap_darwin_arm64_sha='51fdc6d8da8310d72df10065a52247b6bebfe990d4c946dd9f71e17588256011'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2778013Z ^[[36;1mbootstrap_windows_amd64_sha='fef1c4731da9112d4cf2f6d93ae2a1551c73116a4f73fab7b0c15b38e95ff688'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2778394Z ^[[36;1mcosign_executable_name=cosign^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2778602Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2778774Z ^[[36;1mtrap "popd >/dev/null" EXIT^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2778977Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2779354Z ^[[36;1mpushd $HOME/.cosign > /dev/null^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2779571Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2779727Z ^[[36;1mcase Linux in^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2779924Z ^[[36;1m  Linux|linux)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2780108Z ^[[36;1m    case X64 in^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2780289Z ^[[36;1m      X64|amd64)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2780510Z ^[[36;1m        bootstrap_filename='cosign-linux-amd64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2780792Z ^[[36;1m        bootstrap_sha=${bootstrap_linux_amd64_sha}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2781083Z ^[[36;1m        desired_cosign_filename='cosign-linux-amd64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2781422Z ^[[36;1m        # v0.6.0 had different filename structures from all other releases^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2781739Z ^[[36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2782039Z ^[[36;1m          desired_cosign_filename='cosign_linux_amd64_0.6.0_linux_amd64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2782426Z ^[[36;1m          desired_cosign_v060_signature='cosign_linux_amd64_0.6.0_linux_amd64.sig'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2782739Z ^[[36;1m        fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2782905Z ^[[36;1m        ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2783067Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2783225Z ^[[36;1m      ARM|arm)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2783444Z ^[[36;1m        bootstrap_filename='cosign-linux-arm'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2783714Z ^[[36;1m        bootstrap_sha=${bootstrap_linux_arm_sha}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2784002Z ^[[36;1m        desired_cosign_filename='cosign-linux-arm'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2784259Z ^[[36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2784532Z ^[[36;1m          log_error "linux-arm build not available at v0.6.0"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2784798Z ^[[36;1m          exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2784977Z ^[[36;1m        fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2785138Z ^[[36;1m        ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2785296Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2785458Z ^[[36;1m      ARM64|arm64)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2785678Z ^[[36;1m        bootstrap_filename='cosign-linux-arm64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2786144Z ^[[36;1m        bootstrap_sha=${bootstrap_linux_arm64_sha}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2786428Z ^[[36;1m        desired_cosign_filename='cosign-linux-arm64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2786689Z ^[[36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2786958Z ^[[36;1m          log_error "linux-arm64 build not available at v0.6.0"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2787220Z ^[[36;1m          exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2787398Z ^[[36;1m        fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2787564Z ^[[36;1m        ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2806388Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2806863Z ^[[36;1m      *)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2807179Z ^[[36;1m        log_error "unsupported architecture X64"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2807531Z ^[[36;1m        exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2807748Z ^[[36;1m        ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2807911Z ^[[36;1m    esac^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2808070Z ^[[36;1m    ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2808229Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2808386Z ^[[36;1m  macOS|macos)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2808567Z ^[[36;1m    case X64 in^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2808755Z ^[[36;1m      X64|amd64)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2808973Z ^[[36;1m        bootstrap_filename='cosign-darwin-amd64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2809276Z ^[[36;1m        bootstrap_sha=${bootstrap_darwin_amd64_sha}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2809567Z ^[[36;1m        desired_cosign_filename='cosign-darwin-amd64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2809905Z ^[[36;1m        # v0.6.0 had different filename structures from all other releases^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2810225Z ^[[36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2810539Z ^[[36;1m          desired_cosign_filename='cosign_darwin_amd64_0.6.0_darwin_amd64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2810932Z ^[[36;1m          desired_cosign_v060_signature='cosign_darwin_amd64_0.6.0_darwin_amd64.sig'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2811241Z ^[[36;1m        fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2811428Z ^[[36;1m        ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2811588Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2811750Z ^[[36;1m      ARM64|arm64)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2811981Z ^[[36;1m        bootstrap_filename='cosign-darwin-arm64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2812403Z ^[[36;1m        bootstrap_sha=${bootstrap_darwin_arm64_sha}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2812694Z ^[[36;1m        desired_cosign_filename='cosign-darwin-arm64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2813021Z ^[[36;1m        # v0.6.0 had different filename structures from all other releases^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2813320Z ^[[36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2813606Z ^[[36;1m          desired_cosign_filename='cosign_darwin_arm64_0.6.0_darwin_arm64'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2814003Z ^[[36;1m          desired_cosign_v060_signature='cosign_darwin_arm64_0.6.0_darwin_arm64.sig'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2814305Z ^[[36;1m        fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2814467Z ^[[36;1m        ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2814625Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2814772Z ^[[36;1m      *)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2814971Z ^[[36;1m        log_error "unsupported architecture X64"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2815211Z ^[[36;1m        exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2815396Z ^[[36;1m        ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2815567Z ^[[36;1m    esac^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2815726Z ^[[36;1m    ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2816112Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2816347Z ^[[36;1m  Windows|windows)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2816541Z ^[[36;1m    case X64 in^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2816725Z ^[[36;1m      X64|amd64)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2816954Z ^[[36;1m        bootstrap_filename='cosign-windows-amd64.exe'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2817250Z ^[[36;1m        bootstrap_sha=${bootstrap_windows_amd64_sha}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2817558Z ^[[36;1m        desired_cosign_filename='cosign-windows-amd64.exe'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2817844Z ^[[36;1m        cosign_executable_name=cosign.exe^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2818147Z ^[[36;1m        # v0.6.0 had different filename structures from all other releases^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2818453Z ^[[36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2818755Z ^[[36;1m          desired_cosign_filename='cosign_windows_amd64_0.6.0_windows_amd64.exe'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2819183Z ^[[36;1m          desired_cosign_v060_signature='cosign_windows_amd64_0.6.0_windows_amd64.exe.sig'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2819506Z ^[[36;1m        fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2819669Z ^[[36;1m        ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2819826Z ^[[36;1m      *)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2820023Z ^[[36;1m        log_error "unsupported architecture X64"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2820256Z ^[[36;1m        exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2820435Z ^[[36;1m        ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2820591Z ^[[36;1m    esac^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2820878Z ^[[36;1m    ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2821030Z ^[[36;1m  *)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2821208Z ^[[36;1m    log_error "unsupported os Linux"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2821430Z ^[[36;1m    exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2821590Z ^[[36;1m    ;;^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2821744Z ^[[36;1mesac^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2821896Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2822048Z ^[[36;1mSUDO=^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2822277Z ^[[36;1mif [[ "false" == "true" ]] && command -v sudo >/dev/null; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2822560Z ^[[36;1m  SUDO=sudo^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2822724Z ^[[36;1mfi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2822877Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2823087Z ^[[36;1mexpected_bootstrap_version_digest=${bootstrap_sha}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2823792Z ^[[36;1mlog_info "Downloading bootstrap version '${bootstrap_version}' of cosign to verify version to be installed...\n      https://github.com/sigstore/cosign/releases/download/${bootstrap_version}/${bootstrap_filename}"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2824747Z ^[[36;1m$SUDO curl -fsL https://github.com/sigstore/cosign/releases/download/${bootstrap_version}/${bootstrap_filename} -o ${cosign_executable_name}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2825300Z ^[[36;1mshaBootstrap=$(shaprog ${cosign_executable_name});^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2825655Z ^[[36;1mif [[ $shaBootstrap != ${expected_bootstrap_version_digest} ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2826153Z ^[[36;1m  log_error "Unable to validate cosign version: 'v2.6.1'"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2826418Z ^[[36;1m  exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2826701Z ^[[36;1mfi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2826885Z ^[[36;1m$SUDO chmod +x ${cosign_executable_name}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2827109Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2827360Z ^[[36;1m# If the bootstrap and specified `cosign` releases are the same, we're done.^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2827702Z ^[[36;1mif [[ v2.6.1 == ${bootstrap_version} ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2828140Z ^[[36;1m  log_info "bootstrap version successfully verified and matches requested version so nothing else to do"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2828516Z ^[[36;1m  exit 0^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2828679Z ^[[36;1mfi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2828833Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2829037Z ^[[36;1msemver='^v([0-9]+\.){0,2}(\*|[0-9]+)(-?r?c?)(\.[0-9]+)$'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2829302Z ^[[36;1mif [[ v2.6.1 =~ $semver ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2829560Z ^[[36;1m  log_info "Custom cosign version 'v2.6.1' requested"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2829805Z ^[[36;1melse^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2830044Z ^[[36;1m  log_error "Unable to validate requested cosign version: 'v2.6.1'"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2830325Z ^[[36;1m  exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2830479Z ^[[36;1mfi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2830629Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2830788Z ^[[36;1m# Download custom cosign^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2831311Z ^[[36;1mlog_info "Downloading platform-specific version 'v2.6.1' of cosign...\n      https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_filename}"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2832046Z ^[[36;1m$SUDO curl -fsL https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_filename} -o cosign_v2.6.1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2832485Z ^[[36;1mshaCustom=$(shaprog cosign_v2.6.1);^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2832702Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2832871Z ^[[36;1m# same hash means it is the same release^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2833126Z ^[[36;1mif [[ $shaCustom != $shaBootstrap ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2833394Z ^[[36;1m  if [[ v2.6.1 == 'v0.6.0' && Linux == 'Linux' ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2833692Z ^[[36;1m    # v0.6.0's linux release has a dependency on `libpcsclite1`^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2834045Z ^[[36;1m    log_info "Installing libpcsclite1 package if necessary..."^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2834317Z ^[[36;1m    set +e^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2834500Z ^[[36;1m    sudo dpkg -s libpcsclite1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2834716Z ^[[36;1m    if [ $? -eq 0 ]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2834972Z ^[[36;1m        log_info "libpcsclite1 package is already installed"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2835227Z ^[[36;1m    else^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2835489Z ^[[36;1m         log_info "libpcsclite1 package is not installed, installing it now."^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2836160Z ^[[36;1m         sudo apt-get update -q -q^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2836430Z ^[[36;1m         sudo apt-get install -yq libpcsclite1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2836663Z ^[[36;1m    fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2836823Z ^[[36;1m    set -e^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2836993Z ^[[36;1m  fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2837150Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2837321Z ^[[36;1m  if [[ v2.6.1 == 'v0.6.0' ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2837917Z ^[[36;1m    log_info "Downloading detached signature for platform-specific 'v2.6.1' of cosign...\n      https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_v060_signature}"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2838743Z ^[[36;1m    $SUDO curl -fsL https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_v060_signature} -o ${desired_cosign_filename}.sig^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2839218Z ^[[36;1m  else^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2839722Z ^[[36;1m    log_info "Downloading detached signature for platform-specific 'v2.6.1' of cosign...\n      https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_filename}.sig"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2840465Z ^[[36;1m    $SUDO curl -fsLO https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_filename}.sig^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2840847Z ^[[36;1m  fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2841003Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2841168Z ^[[36;1m  if [[ v2.6.1 < 'v0.6.0' ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2841780Z ^[[36;1m    log_info "Downloading cosign public key 'v2.6.1' of cosign...\n    https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/.github/workflows/cosign.pub"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2842468Z ^[[36;1m    RELEASE_COSIGN_PUB_KEY=https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/.github/workflows/cosign.pub^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2843026Z ^[[36;1m    RELEASE_COSIGN_PUB_KEY_SHA='4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2843382Z ^[[36;1m  else^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2843827Z ^[[36;1m    log_info "Downloading cosign public key 'v2.6.1' of cosign...\n    https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/release/release-cosign.pub"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2844490Z ^[[36;1m    RELEASE_COSIGN_PUB_KEY=https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/release/release-cosign.pub^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2845039Z ^[[36;1m    RELEASE_COSIGN_PUB_KEY_SHA='f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126'^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2845398Z ^[[36;1m  fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2845553Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2845770Z ^[[36;1m  log_info "Verifying public key matches expected value"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2846287Z ^[[36;1m  $SUDO curl -fsL $RELEASE_COSIGN_PUB_KEY -o public.key^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2846571Z ^[[36;1m  sha_fetched_key=$(shaprog public.key)^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2846859Z ^[[36;1m  if [[ $sha_fetched_key != $RELEASE_COSIGN_PUB_KEY_SHA ]]; then^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2847218Z ^[[36;1m    log_error "Fetched public key does not match expected digest, exiting"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2847529Z ^[[36;1m    exit 1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2847692Z ^[[36;1m  fi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2847845Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2848110Z ^[[36;1m  log_info "Using bootstrap cosign to verify signature of desired cosign version"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2848575Z ^[[36;1m  ./cosign verify-blob --key public.key --signature ${desired_cosign_filename}.sig cosign_v2.6.1^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2848920Z ^[[36;1m^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2849084Z ^[[36;1m  $SUDO rm cosign^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2849312Z ^[[36;1m  $SUDO mv cosign_v2.6.1 ${cosign_executable_name}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2849579Z ^[[36;1m  $SUDO chmod +x ${cosign_executable_name}^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2849841Z ^[[36;1m  log_info "Installation complete!"^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2850059Z ^[[36;1mfi^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2897349Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2897716Z ##[endgroup]
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2979904Z ^[[1;32mINFO^[[0m: Downloading bootstrap version 'v2.5.2' of cosign to verify version to be installed...
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:49.2981125Z       https://github.com/sigstore/cosign/releases/download/v2.5.2/cosign-linux-amd64
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:50.0089165Z ^[[1;32mINFO^[[0m: Custom cosign version 'v2.6.1' requested
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:50.0090355Z ^[[1;32mINFO^[[0m: Downloading platform-specific version 'v2.6.1' of cosign...
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:50.0091277Z       https://github.com/sigstore/cosign/releases/download/v2.6.1/cosign-linux-amd64
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:50.6481666Z ^[[1;32mINFO^[[0m: Downloading detached signature for platform-specific 'v2.6.1' of cosign...
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:50.6482934Z       https://github.com/sigstore/cosign/releases/download/v2.6.1/cosign-linux-amd64.sig
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:50.8793569Z ^[[1;32mINFO^[[0m: Downloading cosign public key 'v2.6.1' of cosign...
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:50.8794827Z     https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/release/release-cosign.pub
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:50.8796018Z ^[[1;32mINFO^[[0m: Verifying public key matches expected value
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:51.2070175Z ^[[1;32mINFO^[[0m: Using bootstrap cosign to verify signature of desired cosign version
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.2857060Z Verified OK
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3180801Z ^[[1;32mINFO^[[0m: Installation complete!
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3194720Z ##[end-action id=__sigstore_cosign-installer.__run;outcome=success;conclusion=success;duration_ms=8045]
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3199958Z ##[start-action display=Run echo "$HOME/.cosign" >> $GITHUB_PATH;id=__sigstore_cosign-installer.__run_2]
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3231997Z ##[group]Run echo "$HOME/.cosign" >> $GITHUB_PATH
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3232300Z ^[[36;1mecho "$HOME/.cosign" >> $GITHUB_PATH^[[0m
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3278210Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3278507Z ##[endgroup]
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3350001Z ##[end-action id=__sigstore_cosign-installer.__run_2;outcome=success;conclusion=success;duration_ms=14]
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3353460Z ##[start-action display=Run echo "$HOME/.cosign" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append;id=__sigstore_cosign-installer.__run_3]
+Regression checks only (no image build or VM)	Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac	2026-10-22T16:57:57.3358588Z ##[end-action id=__sigstore_cosign-installer.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+Regression checks only (no image build or VM)	Verify candidate upstream signature	﻿2026-10-22T16:57:57.3387739Z ##[group]Run cosign verify --key os/keys/bazzite.pub "$(jq -r .reference evidence/base-candidate.json)" > evidence/base-candidate-signature.json
+Regression checks only (no image build or VM)	Verify candidate upstream signature	2026-10-22T16:57:57.3388490Z ^[[36;1mcosign verify --key os/keys/bazzite.pub "$(jq -r .reference evidence/base-candidate.json)" > evidence/base-candidate-signature.json^[[0m
+Regression checks only (no image build or VM)	Verify candidate upstream signature	2026-10-22T16:57:57.3434141Z shell: /usr/bin/bash -e {0}
+Regression checks only (no image build or VM)	Verify candidate upstream signature	2026-10-22T16:57:57.3434367Z ##[endgroup]
+Regression checks only (no image build or VM)	Verify candidate upstream signature	2026-10-22T16:57:57.9842655Z
+Regression checks only (no image build or VM)	Verify candidate upstream signature	2026-10-22T16:57:57.9857240Z Verification for ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 --
+Regression checks only (no image build or VM)	Verify candidate upstream signature	2026-10-22T16:57:57.9858365Z The following checks were performed on each of these signatures:
+Regression checks only (no image build or VM)	Verify candidate upstream signature	2026-10-22T16:57:57.9859094Z   - The cosign claims were validated
+Regression checks only (no image build or VM)	Verify candidate upstream signature	2026-10-22T16:57:57.9859678Z   - Existence of the claims in the transparency log was verified offline
+Regression checks only (no image build or VM)	Verify candidate upstream signature	2026-10-22T16:57:57.9860513Z   - The signatures were verified against the specified public key
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	﻿2026-10-22T16:57:57.9936612Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:57.9936980Z with:
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:57.9937159Z   name: release-inputs
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:57.9937353Z   path: evidence/
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:57.9937526Z   retention-days: 3
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:57.9937705Z   if-no-files-found: warn
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:57.9937901Z   compression-level: 6
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:57.9938081Z   overwrite: false
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:57.9938257Z   include-hidden-files: false
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:57.9938453Z ##[endgroup]
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.1390372Z (node:2098) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.1391563Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.1604148Z With the provided path, there will be 7 files uploaded
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.1647425Z Artifact name is valid!
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.1658121Z Root directory input is valid!
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.4956818Z Beginning upload of artifact content to blob storage
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.5237034Z (node:2098) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.7884090Z Uploaded bytes 31046
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.8503094Z Finished uploading artifact content to blob storage!
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.8504348Z SHA256 digest of uploaded artifact zip is 31defe01f2871366ddd6666ca70f7dec01ad66e898c08881836ec41d62f0b6ff
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:58.8507364Z Finalizing artifact upload
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:59.3609103Z Artifact release-inputs.zip successfully finalized. Artifact ID 12442907948
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:59.3610191Z Artifact release-inputs has been successfully uploaded! Final size is 31046 bytes. Artifact ID is 12442907948
+Regression checks only (no image build or VM)	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-22T16:57:59.3616067Z Artifact download URL: https://github.com/carlsenares/AresOS/actions/runs/39818451208/artifacts/12442907948
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	﻿2026-10-22T16:57:59.3805286Z Post job cleanup.
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.4616370Z [command]/usr/bin/git version
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.4686853Z git version 2.55.0
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.4721630Z Temporarily overriding HOME='/home/runner/work/_temp/f807609c-5e11-42fc-adac-a03c9a2f7b62' before making global git config changes
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.4737279Z Adding repository directory to the temporary git global config as a safe directory
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.4767435Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/AresOS/AresOS
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.4827143Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.4886474Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.5270001Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.5318510Z http.https://github.com/.extraheader
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.5337077Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.5404688Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.5726195Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Regression checks only (no image build or VM)	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-22T16:57:59.5775543Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Regression checks only (no image build or VM)	Complete job	﻿2026-10-22T16:57:59.6289373Z Cleaning up orphan processes
+Regression checks only (no image build or VM)	Complete job	2026-10-22T16:57:59.6544497Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

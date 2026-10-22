@@ -29,6 +29,9 @@ if __name__ == '__main__':
         for disk in pathlib.Path('vm-work/output').rglob('disk.raw'):
             metrics['vm_disk_virtual_bytes'] = disk.stat().st_size
             metrics['vm_disk_allocated_bytes'] = disk.stat().st_blocks * 512
+        for disk in pathlib.Path('switch-work/output').rglob('disk.raw'):
+            metrics['stock_disk_virtual_bytes'] = disk.stat().st_size
+            metrics['stock_disk_allocated_bytes'] = disk.stat().st_blocks * 512
         result = subprocess.run(['sudo', 'podman', 'image', 'inspect', 'localhost/aresos:ci'], capture_output=True, text=True)
         if result.returncode == 0:
             metrics['image_uncompressed_bytes'] = json.loads(result.stdout)[0]['Size']

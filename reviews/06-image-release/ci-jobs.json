@@ -1,0 +1,4125 @@
+[
+  {
+    "run_id": 39809324095,
+    "jobs": [
+      {
+        "id": 119930962654,
+        "run_id": 39809324095,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39809324095",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb7HFC3g",
+        "head_sha": "1745f55e4fb549e8b9110711e426f97c56f16515",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119930962654",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39809324095/job/119930962654",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T15:55:13Z",
+        "started_at": "2026-10-22T15:55:15Z",
+        "completed_at": "2026-10-22T15:55:35Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T15:55:16Z",
+            "completed_at": "2026-10-22T15:55:17Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T15:55:17Z",
+            "completed_at": "2026-10-22T15:55:20Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T15:55:20Z",
+            "completed_at": "2026-10-22T15:55:22Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T15:55:22Z",
+            "completed_at": "2026-10-22T15:55:23Z"
+          },
+          {
+            "name": "Preflight private package metadata access",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T15:55:23Z",
+            "completed_at": "2026-10-22T15:55:24Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T15:55:24Z",
+            "completed_at": "2026-10-22T15:55:26Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T15:55:26Z",
+            "completed_at": "2026-10-22T15:55:30Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T15:55:30Z",
+            "completed_at": "2026-10-22T15:55:31Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T15:55:31Z",
+            "completed_at": "2026-10-22T15:55:32Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18,
+            "started_at": "2026-10-22T15:55:32Z",
+            "completed_at": "2026-10-22T15:55:33Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-22T15:55:33Z",
+            "completed_at": "2026-10-22T15:55:33Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119930962654",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000122,
+        "runner_name": "GitHub Actions 1000000122",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119930965083,
+        "run_id": 39809324095,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39809324095",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb7HFMWw",
+        "head_sha": "1745f55e4fb549e8b9110711e426f97c56f16515",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119930965083",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39809324095/job/119930965083",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T15:55:13Z",
+        "started_at": "2026-10-22T15:55:13Z",
+        "completed_at": "2026-10-22T15:55:13Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119930965083",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119930966353,
+        "run_id": 39809324095,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39809324095",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb7HFRUQ",
+        "head_sha": "1745f55e4fb549e8b9110711e426f97c56f16515",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119930966353",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39809324095/job/119930966353",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T15:55:13Z",
+        "started_at": "2026-10-22T15:55:13Z",
+        "completed_at": "2026-10-22T15:55:13Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119930966353",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39796347427,
+    "jobs": [
+      {
+        "id": 119884387150,
+        "run_id": 39796347427,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39796347427",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb6aqTTg",
+        "head_sha": "01aae1e38ec11356677f526692783c14b89a1d4d",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119884387150",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39796347427/job/119884387150",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T14:31:17Z",
+        "started_at": "2026-10-22T14:31:19Z",
+        "completed_at": "2026-10-22T15:20:30Z",
+        "name": "image",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T14:31:20Z",
+            "completed_at": "2026-10-22T14:31:21Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T14:31:21Z",
+            "completed_at": "2026-10-22T14:31:22Z"
+          },
+          {
+            "name": "Start quota measurements",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T14:31:22Z",
+            "completed_at": "2026-10-22T14:31:28Z"
+          },
+          {
+            "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T14:31:28Z",
+            "completed_at": "2026-10-22T14:33:01Z"
+          },
+          {
+            "name": "Install tools on disposable runner",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T14:33:01Z",
+            "completed_at": "2026-10-22T14:34:50Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T14:34:50Z",
+            "completed_at": "2026-10-22T14:34:52Z"
+          },
+          {
+            "name": "Verify pinned upstream image",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T14:34:52Z",
+            "completed_at": "2026-10-22T14:34:54Z"
+          },
+          {
+            "name": "Build and audit the image (runner storage only)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T14:34:54Z",
+            "completed_at": "2026-10-22T14:46:55Z"
+          },
+          {
+            "name": "Build isolated test overlay and prove release excludes it",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T14:46:55Z",
+            "completed_at": "2026-10-22T15:00:28Z"
+          },
+          {
+            "name": "Build file-backed UEFI VM disk",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-22T15:00:28Z",
+            "completed_at": "2026-10-22T15:16:03Z"
+          },
+          {
+            "name": "Boot QEMU and assert session, policy and recovery",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11,
+            "started_at": "2026-10-22T15:16:03Z",
+            "completed_at": "2026-10-22T15:20:04Z"
+          },
+          {
+            "name": "Publish the tested private release and sign with GitHub OIDC",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12,
+            "started_at": "2026-10-22T15:20:04Z",
+            "completed_at": "2026-10-22T15:20:26Z"
+          },
+          {
+            "name": "Measure and bound evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13,
+            "started_at": "2026-10-22T15:20:26Z",
+            "completed_at": "2026-10-22T15:20:26Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14,
+            "started_at": "2026-10-22T15:20:26Z",
+            "completed_at": "2026-10-22T15:20:28Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 28,
+            "started_at": "2026-10-22T15:20:28Z",
+            "completed_at": "2026-10-22T15:20:29Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 29,
+            "started_at": "2026-10-22T15:20:29Z",
+            "completed_at": "2026-10-22T15:20:29Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119884387150",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000120,
+        "runner_name": "GitHub Actions 1000000120",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119886582835,
+        "run_id": 39796347427,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39796347427",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb6cwUMw",
+        "head_sha": "01aae1e38ec11356677f526692783c14b89a1d4d",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119886582835",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39796347427/job/119886582835",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T14:35:24Z",
+        "started_at": "2026-10-22T14:35:24Z",
+        "completed_at": "2026-10-22T14:31:17Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119886582835",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119911886761,
+        "run_id": 39796347427,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39796347427",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb604vqQ",
+        "head_sha": "01aae1e38ec11356677f526692783c14b89a1d4d",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119911886761",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39796347427/job/119911886761",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-22T15:20:31Z",
+        "started_at": "2026-10-22T15:20:33Z",
+        "completed_at": "2026-10-22T15:52:12Z",
+        "name": "Published-image switch and rollback",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T15:20:34Z",
+            "completed_at": "2026-10-22T15:20:36Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T15:20:36Z",
+            "completed_at": "2026-10-22T15:20:38Z"
+          },
+          {
+            "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T15:20:38Z",
+            "completed_at": "2026-10-22T15:20:40Z"
+          },
+          {
+            "name": "Require qualified release and unchanged runtime payload",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T15:20:40Z",
+            "completed_at": "2026-10-22T15:20:43Z"
+          },
+          {
+            "name": "Start switch quota measurements",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T15:20:43Z",
+            "completed_at": "2026-10-22T15:20:48Z"
+          },
+          {
+            "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T15:20:48Z",
+            "completed_at": "2026-10-22T15:21:37Z"
+          },
+          {
+            "name": "Install tools and construct stock upstream disk",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T15:21:37Z",
+            "completed_at": "2026-10-22T15:43:17Z"
+          },
+          {
+            "name": "Switch to published digest, reboot, authenticate on tty3 and roll back",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 8,
+            "started_at": "2026-10-22T15:43:17Z",
+            "completed_at": "2026-10-22T15:52:06Z"
+          },
+          {
+            "name": "Measure switch evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T15:52:06Z",
+            "completed_at": "2026-10-22T15:52:06Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-22T15:52:06Z",
+            "completed_at": "2026-10-22T15:52:09Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20,
+            "started_at": "2026-10-22T15:52:09Z",
+            "completed_at": "2026-10-22T15:52:10Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21,
+            "started_at": "2026-10-22T15:52:10Z",
+            "completed_at": "2026-10-22T15:52:10Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119911886761",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000121,
+        "runner_name": "GitHub Actions 1000000121",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      }
+    ]
+  },
+  {
+    "run_id": 39794494112,
+    "jobs": [
+      {
+        "id": 119878318250,
+        "run_id": 39794494112,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39794494112",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb6U34qg",
+        "head_sha": "01aae1e38ec11356677f526692783c14b89a1d4d",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119878318250",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39794494112/job/119878318250",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T14:18:09Z",
+        "started_at": "2026-10-22T14:18:11Z",
+        "completed_at": "2026-10-22T14:18:33Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T14:18:12Z",
+            "completed_at": "2026-10-22T14:18:14Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T14:18:14Z",
+            "completed_at": "2026-10-22T14:18:15Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T14:18:15Z",
+            "completed_at": "2026-10-22T14:18:16Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T14:18:16Z",
+            "completed_at": "2026-10-22T14:18:17Z"
+          },
+          {
+            "name": "Preflight private package metadata access",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T14:18:17Z",
+            "completed_at": "2026-10-22T14:18:18Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T14:18:18Z",
+            "completed_at": "2026-10-22T14:18:19Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T14:18:19Z",
+            "completed_at": "2026-10-22T14:18:29Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T14:18:29Z",
+            "completed_at": "2026-10-22T14:18:30Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T14:18:30Z",
+            "completed_at": "2026-10-22T14:18:31Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18,
+            "started_at": "2026-10-22T14:18:31Z",
+            "completed_at": "2026-10-22T14:18:31Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-22T14:18:31Z",
+            "completed_at": "2026-10-22T14:18:31Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119878318250",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000119,
+        "runner_name": "GitHub Actions 1000000119",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119881509471,
+        "run_id": 39794494112,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39794494112",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb6X6qXw",
+        "head_sha": "01aae1e38ec11356677f526692783c14b89a1d4d",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119881509471",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39794494112/job/119881509471",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T14:24:46Z",
+        "started_at": "2026-10-22T14:24:46Z",
+        "completed_at": "2026-10-22T14:18:09Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119881509471",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119882071331,
+        "run_id": 39794494112,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39794494112",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb6Yc9Iw",
+        "head_sha": "01aae1e38ec11356677f526692783c14b89a1d4d",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119882071331",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39794494112/job/119882071331",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T14:25:56Z",
+        "started_at": "2026-10-22T14:25:56Z",
+        "completed_at": "2026-10-22T14:18:09Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119882071331",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39793589444,
+    "jobs": [
+      {
+        "id": 119875359560,
+        "run_id": 39793589444,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39793589444",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb6SDTSA",
+        "head_sha": "fc5e2f11ad64f1e5937c4b21215ebb93d3f35bfb",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119875359560",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39793589444/job/119875359560",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T14:11:45Z",
+        "started_at": "2026-10-22T14:11:47Z",
+        "completed_at": "2026-10-22T14:12:01Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T14:11:48Z",
+            "completed_at": "2026-10-22T14:11:49Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T14:11:49Z",
+            "completed_at": "2026-10-22T14:11:51Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T14:11:51Z",
+            "completed_at": "2026-10-22T14:11:52Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T14:11:52Z",
+            "completed_at": "2026-10-22T14:11:53Z"
+          },
+          {
+            "name": "Preflight private package metadata access",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T14:11:53Z",
+            "completed_at": "2026-10-22T14:11:54Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T14:11:54Z",
+            "completed_at": "2026-10-22T14:11:55Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T14:11:55Z",
+            "completed_at": "2026-10-22T14:11:58Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T14:11:58Z",
+            "completed_at": "2026-10-22T14:11:58Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T14:11:58Z",
+            "completed_at": "2026-10-22T14:11:59Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18,
+            "started_at": "2026-10-22T14:11:59Z",
+            "completed_at": "2026-10-22T14:12:00Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-22T14:12:00Z",
+            "completed_at": "2026-10-22T14:12:00Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119875359560",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000118,
+        "runner_name": "GitHub Actions 1000000118",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119876662910,
+        "run_id": 39793589444,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39793589444",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb6TS2fg",
+        "head_sha": "fc5e2f11ad64f1e5937c4b21215ebb93d3f35bfb",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119876662910",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39793589444/job/119876662910",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T14:14:34Z",
+        "started_at": "2026-10-22T14:14:34Z",
+        "completed_at": "2026-10-22T14:11:45Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119876662910",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119878178222,
+        "run_id": 39793589444,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39793589444",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb6UvVrg",
+        "head_sha": "fc5e2f11ad64f1e5937c4b21215ebb93d3f35bfb",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119878178222",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39793589444/job/119878178222",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T14:17:50Z",
+        "started_at": "2026-10-22T14:17:50Z",
+        "completed_at": "2026-10-22T14:11:45Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119878178222",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39786345222,
+    "jobs": [
+      {
+        "id": 119850483757,
+        "run_id": 39786345222,
+        "workflow_name": "OS published-image switch only",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39786345222",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb56VALQ",
+        "head_sha": "12f4a720630e16aa1926411c00f01b366cd1bafb",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119850483757",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39786345222/job/119850483757",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-22T13:23:10Z",
+        "started_at": "2026-10-22T13:23:12Z",
+        "completed_at": "2026-10-22T14:01:14Z",
+        "name": "Published-image switch and rollback",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T13:23:13Z",
+            "completed_at": "2026-10-22T13:23:18Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T13:23:18Z",
+            "completed_at": "2026-10-22T13:23:24Z"
+          },
+          {
+            "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T13:23:24Z",
+            "completed_at": "2026-10-22T13:23:25Z"
+          },
+          {
+            "name": "Require qualified release and unchanged runtime payload",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T13:23:25Z",
+            "completed_at": "2026-10-22T13:23:39Z"
+          },
+          {
+            "name": "Start switch quota measurements",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T13:23:39Z",
+            "completed_at": "2026-10-22T13:23:45Z"
+          },
+          {
+            "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T13:23:45Z",
+            "completed_at": "2026-10-22T13:30:27Z"
+          },
+          {
+            "name": "Install tools and construct stock upstream disk",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T13:30:27Z",
+            "completed_at": "2026-10-22T13:58:12Z"
+          },
+          {
+            "name": "Switch to published digest, reboot, authenticate on tty3 and roll back",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 8,
+            "started_at": "2026-10-22T13:58:12Z",
+            "completed_at": "2026-10-22T14:01:09Z"
+          },
+          {
+            "name": "Measure switch evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T14:01:09Z",
+            "completed_at": "2026-10-22T14:01:09Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-22T14:01:09Z",
+            "completed_at": "2026-10-22T14:01:12Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20,
+            "started_at": "2026-10-22T14:01:12Z",
+            "completed_at": "2026-10-22T14:01:12Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21,
+            "started_at": "2026-10-22T14:01:12Z",
+            "completed_at": "2026-10-22T14:01:12Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119850483757",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000117,
+        "runner_name": "GitHub Actions 1000000117",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119850486113,
+        "run_id": 39786345222,
+        "workflow_name": "OS published-image switch only",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39786345222",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb56VJYQ",
+        "head_sha": "12f4a720630e16aa1926411c00f01b366cd1bafb",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119850486113",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39786345222/job/119850486113",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T13:23:10Z",
+        "started_at": "2026-10-22T13:23:10Z",
+        "completed_at": "2026-10-22T13:23:10Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119850486113",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119850542875,
+        "run_id": 39786345222,
+        "workflow_name": "OS published-image switch only",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39786345222",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb56YnGw",
+        "head_sha": "12f4a720630e16aa1926411c00f01b366cd1bafb",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119850542875",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39786345222/job/119850542875",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T13:23:16Z",
+        "started_at": "2026-10-22T13:23:16Z",
+        "completed_at": "2026-10-22T13:23:10Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119850542875",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39786082544,
+    "jobs": [
+      {
+        "id": 119849551727,
+        "run_id": 39786082544,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39786082544",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb55cHbw",
+        "head_sha": "12f4a720630e16aa1926411c00f01b366cd1bafb",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119849551727",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39786082544/job/119849551727",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T13:21:19Z",
+        "started_at": "2026-10-22T13:21:21Z",
+        "completed_at": "2026-10-22T13:21:36Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T13:21:22Z",
+            "completed_at": "2026-10-22T13:21:23Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T13:21:23Z",
+            "completed_at": "2026-10-22T13:21:25Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T13:21:25Z",
+            "completed_at": "2026-10-22T13:21:26Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T13:21:26Z",
+            "completed_at": "2026-10-22T13:21:27Z"
+          },
+          {
+            "name": "Preflight private package metadata access",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T13:21:27Z",
+            "completed_at": "2026-10-22T13:21:28Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T13:21:28Z",
+            "completed_at": "2026-10-22T13:21:29Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T13:21:29Z",
+            "completed_at": "2026-10-22T13:21:32Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T13:21:32Z",
+            "completed_at": "2026-10-22T13:21:33Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T13:21:33Z",
+            "completed_at": "2026-10-22T13:21:34Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18,
+            "started_at": "2026-10-22T13:21:34Z",
+            "completed_at": "2026-10-22T13:21:34Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-22T13:21:34Z",
+            "completed_at": "2026-10-22T13:21:34Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119849551727",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000116,
+        "runner_name": "GitHub Actions 1000000116",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119849555449,
+        "run_id": 39786082544,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39786082544",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb55cV-Q",
+        "head_sha": "12f4a720630e16aa1926411c00f01b366cd1bafb",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119849555449",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39786082544/job/119849555449",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T13:21:19Z",
+        "started_at": "2026-10-22T13:21:19Z",
+        "completed_at": "2026-10-22T13:21:19Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119849555449",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119849556434,
+        "run_id": 39786082544,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39786082544",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb55cZ0g",
+        "head_sha": "12f4a720630e16aa1926411c00f01b366cd1bafb",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119849556434",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39786082544/job/119849556434",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T13:21:19Z",
+        "started_at": "2026-10-22T13:21:19Z",
+        "completed_at": "2026-10-22T13:21:19Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119849556434",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39774351695,
+    "jobs": [
+      {
+        "id": 119809437054,
+        "run_id": 39774351695,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39774351695",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5TLtfg",
+        "head_sha": "3cc9df51bc528c9683696098023486d49a5832c1",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119809437054",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39774351695/job/119809437054",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T11:56:18Z",
+        "started_at": "2026-10-22T11:56:21Z",
+        "completed_at": "2026-10-22T12:49:07Z",
+        "name": "image",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T11:56:22Z",
+            "completed_at": "2026-10-22T11:56:27Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T11:56:27Z",
+            "completed_at": "2026-10-22T11:56:29Z"
+          },
+          {
+            "name": "Start quota measurements",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T11:56:29Z",
+            "completed_at": "2026-10-22T11:56:35Z"
+          },
+          {
+            "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T11:56:35Z",
+            "completed_at": "2026-10-22T11:58:44Z"
+          },
+          {
+            "name": "Install tools on disposable runner",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T11:58:44Z",
+            "completed_at": "2026-10-22T12:00:36Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T12:00:36Z",
+            "completed_at": "2026-10-22T12:00:40Z"
+          },
+          {
+            "name": "Verify pinned upstream image",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T12:00:40Z",
+            "completed_at": "2026-10-22T12:01:07Z"
+          },
+          {
+            "name": "Build and audit the image (runner storage only)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T12:01:07Z",
+            "completed_at": "2026-10-22T12:13:32Z"
+          },
+          {
+            "name": "Build isolated test overlay and prove release excludes it",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T12:13:32Z",
+            "completed_at": "2026-10-22T12:26:14Z"
+          },
+          {
+            "name": "Build file-backed UEFI VM disk",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-22T12:26:14Z",
+            "completed_at": "2026-10-22T12:44:54Z"
+          },
+          {
+            "name": "Boot QEMU and assert session, policy and recovery",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11,
+            "started_at": "2026-10-22T12:44:54Z",
+            "completed_at": "2026-10-22T12:48:26Z"
+          },
+          {
+            "name": "Publish the tested private release and sign with GitHub OIDC",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12,
+            "started_at": "2026-10-22T12:48:26Z",
+            "completed_at": "2026-10-22T12:49:02Z"
+          },
+          {
+            "name": "Measure and bound evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13,
+            "started_at": "2026-10-22T12:49:02Z",
+            "completed_at": "2026-10-22T12:49:02Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14,
+            "started_at": "2026-10-22T12:49:02Z",
+            "completed_at": "2026-10-22T12:49:04Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 28,
+            "started_at": "2026-10-22T12:49:04Z",
+            "completed_at": "2026-10-22T12:49:04Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 29,
+            "started_at": "2026-10-22T12:49:04Z",
+            "completed_at": "2026-10-22T12:49:05Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119809437054",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000112,
+        "runner_name": "GitHub Actions 1000000112",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119809438819,
+        "run_id": 39774351695,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39774351695",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5TL0Yw",
+        "head_sha": "3cc9df51bc528c9683696098023486d49a5832c1",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119809438819",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39774351695/job/119809438819",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T11:56:18Z",
+        "started_at": "2026-10-22T11:56:18Z",
+        "completed_at": "2026-10-22T11:56:18Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119809438819",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119833602268,
+        "run_id": 39774351695,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39774351695",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5qOo3A",
+        "head_sha": "3cc9df51bc528c9683696098023486d49a5832c1",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119833602268",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39774351695/job/119833602268",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-22T12:49:07Z",
+        "started_at": "2026-10-22T12:49:10Z",
+        "completed_at": "2026-10-22T13:14:05Z",
+        "name": "Published-image switch and rollback",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T12:49:11Z",
+            "completed_at": "2026-10-22T12:49:13Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T12:49:13Z",
+            "completed_at": "2026-10-22T12:49:15Z"
+          },
+          {
+            "name": "Run actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T12:49:15Z",
+            "completed_at": "2026-10-22T12:49:16Z"
+          },
+          {
+            "name": "Require qualified release and unchanged runtime payload",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T12:49:16Z",
+            "completed_at": "2026-10-22T12:49:18Z"
+          },
+          {
+            "name": "Start switch quota measurements",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T12:49:18Z",
+            "completed_at": "2026-10-22T12:49:23Z"
+          },
+          {
+            "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T12:49:23Z",
+            "completed_at": "2026-10-22T12:50:13Z"
+          },
+          {
+            "name": "Install tools and construct stock upstream disk",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T12:50:13Z",
+            "completed_at": "2026-10-22T13:11:21Z"
+          },
+          {
+            "name": "Switch to published digest, reboot, authenticate on tty3 and roll back",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 8,
+            "started_at": "2026-10-22T13:11:21Z",
+            "completed_at": "2026-10-22T13:14:00Z"
+          },
+          {
+            "name": "Measure switch evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T13:14:00Z",
+            "completed_at": "2026-10-22T13:14:00Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-22T13:14:00Z",
+            "completed_at": "2026-10-22T13:14:03Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 20,
+            "started_at": "2026-10-22T13:14:03Z",
+            "completed_at": "2026-10-22T13:14:03Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 21,
+            "started_at": "2026-10-22T13:14:03Z",
+            "completed_at": "2026-10-22T13:14:03Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119833602268",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000115,
+        "runner_name": "GitHub Actions 1000000115",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      }
+    ]
+  },
+  {
+    "run_id": 39774265074,
+    "jobs": [
+      {
+        "id": 119809149623,
+        "run_id": 39774265074,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39774265074",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5S6Ktw",
+        "head_sha": "3cc9df51bc528c9683696098023486d49a5832c1",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119809149623",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39774265074/job/119809149623",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T11:55:37Z",
+        "started_at": "2026-10-22T11:55:39Z",
+        "completed_at": "2026-10-22T11:55:54Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T11:55:40Z",
+            "completed_at": "2026-10-22T11:55:41Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T11:55:41Z",
+            "completed_at": "2026-10-22T11:55:43Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T11:55:43Z",
+            "completed_at": "2026-10-22T11:55:44Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T11:55:44Z",
+            "completed_at": "2026-10-22T11:55:45Z"
+          },
+          {
+            "name": "Preflight private package metadata access",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T11:55:45Z",
+            "completed_at": "2026-10-22T11:55:45Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T11:55:45Z",
+            "completed_at": "2026-10-22T11:55:46Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T11:55:46Z",
+            "completed_at": "2026-10-22T11:55:50Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T11:55:50Z",
+            "completed_at": "2026-10-22T11:55:51Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T11:55:51Z",
+            "completed_at": "2026-10-22T11:55:52Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18,
+            "started_at": "2026-10-22T11:55:52Z",
+            "completed_at": "2026-10-22T11:55:52Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-22T11:55:52Z",
+            "completed_at": "2026-10-22T11:55:52Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119809149623",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000111,
+        "runner_name": "GitHub Actions 1000000111",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119809151901,
+        "run_id": 39774265074,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39774265074",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5S6TnQ",
+        "head_sha": "3cc9df51bc528c9683696098023486d49a5832c1",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119809151901",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39774265074/job/119809151901",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T11:55:37Z",
+        "started_at": "2026-10-22T11:55:37Z",
+        "completed_at": "2026-10-22T11:55:37Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119809151901",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119809154622,
+        "run_id": 39774265074,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39774265074",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5S6ePg",
+        "head_sha": "3cc9df51bc528c9683696098023486d49a5832c1",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119809154622",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39774265074/job/119809154622",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T11:55:38Z",
+        "started_at": "2026-10-22T11:55:38Z",
+        "completed_at": "2026-10-22T11:55:37Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119809154622",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39774047111,
+    "jobs": [
+      {
+        "id": 119808416808,
+        "run_id": 39774047111,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39774047111",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5SNcKA",
+        "head_sha": "0156818725d0ca6c2d651da0d54ffbda7cc470b4",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119808416808",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39774047111/job/119808416808",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T11:53:54Z",
+        "started_at": "2026-10-22T11:53:56Z",
+        "completed_at": "2026-10-22T11:54:14Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T11:53:56Z",
+            "completed_at": "2026-10-22T11:53:57Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T11:53:57Z",
+            "completed_at": "2026-10-22T11:53:59Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T11:53:59Z",
+            "completed_at": "2026-10-22T11:54:00Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T11:54:00Z",
+            "completed_at": "2026-10-22T11:54:01Z"
+          },
+          {
+            "name": "Preflight private package metadata access",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T11:54:01Z",
+            "completed_at": "2026-10-22T11:54:03Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T11:54:03Z",
+            "completed_at": "2026-10-22T11:54:04Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T11:54:04Z",
+            "completed_at": "2026-10-22T11:54:11Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T11:54:11Z",
+            "completed_at": "2026-10-22T11:54:11Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T11:54:11Z",
+            "completed_at": "2026-10-22T11:54:12Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18,
+            "started_at": "2026-10-22T11:54:12Z",
+            "completed_at": "2026-10-22T11:54:13Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-22T11:54:13Z",
+            "completed_at": "2026-10-22T11:54:13Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119808416808",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000110,
+        "runner_name": "GitHub Actions 1000000110",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119808418782,
+        "run_id": 39774047111,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39774047111",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5SNj3g",
+        "head_sha": "0156818725d0ca6c2d651da0d54ffbda7cc470b4",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119808418782",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39774047111/job/119808418782",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T11:53:54Z",
+        "started_at": "2026-10-22T11:53:54Z",
+        "completed_at": "2026-10-22T11:53:53Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119808418782",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119808419086,
+        "run_id": 39774047111,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39774047111",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5SNlDg",
+        "head_sha": "0156818725d0ca6c2d651da0d54ffbda7cc470b4",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119808419086",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39774047111/job/119808419086",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T11:53:54Z",
+        "started_at": "2026-10-22T11:53:54Z",
+        "completed_at": "2026-10-22T11:53:54Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119808419086",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39771864773,
+    "jobs": [
+      {
+        "id": 119807147789,
+        "run_id": 39771864773,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39771864773",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5Q__DQ",
+        "head_sha": "60c31a767f3ea747042be58f2c7a935a45fa54a8",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119807147789",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39771864773/job/119807147789",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T11:50:53Z",
+        "started_at": "2026-10-22T11:50:56Z",
+        "completed_at": "2026-10-22T11:51:11Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T11:50:56Z",
+            "completed_at": "2026-10-22T11:50:58Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T11:50:58Z",
+            "completed_at": "2026-10-22T11:50:59Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T11:50:59Z",
+            "completed_at": "2026-10-22T11:51:00Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T11:51:00Z",
+            "completed_at": "2026-10-22T11:51:01Z"
+          },
+          {
+            "name": "Preflight private package metadata access",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T11:51:01Z",
+            "completed_at": "2026-10-22T11:51:01Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T11:51:01Z",
+            "completed_at": "2026-10-22T11:51:02Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T11:51:02Z",
+            "completed_at": "2026-10-22T11:51:06Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T11:51:06Z",
+            "completed_at": "2026-10-22T11:51:07Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T11:51:07Z",
+            "completed_at": "2026-10-22T11:51:08Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18,
+            "started_at": "2026-10-22T11:51:08Z",
+            "completed_at": "2026-10-22T11:51:08Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-22T11:51:08Z",
+            "completed_at": "2026-10-22T11:51:08Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119807147789",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000109,
+        "runner_name": "GitHub Actions 1000000109",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119807149570,
+        "run_id": 39771864773,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39771864773",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5RAGAg",
+        "head_sha": "60c31a767f3ea747042be58f2c7a935a45fa54a8",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119807149570",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39771864773/job/119807149570",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T11:50:54Z",
+        "started_at": "2026-10-22T11:50:54Z",
+        "completed_at": "2026-10-22T11:50:53Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119807149570",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119807151031,
+        "run_id": 39771864773,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39771864773",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5RALtw",
+        "head_sha": "60c31a767f3ea747042be58f2c7a935a45fa54a8",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119807151031",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39771864773/job/119807151031",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T11:50:54Z",
+        "started_at": "2026-10-22T11:50:54Z",
+        "completed_at": "2026-10-22T11:50:53Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119807151031",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39771276370,
+    "jobs": []
+  },
+  {
+    "run_id": 39767276468,
+    "jobs": [
+      {
+        "id": 119785764358,
+        "run_id": 39767276468,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39767276468",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb48m2Bg",
+        "head_sha": "06dfb13d72f26651f22e3bb8dbb389b55d16dff3",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119785764358",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39767276468/job/119785764358",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-22T11:00:07Z",
+        "started_at": "2026-10-22T11:00:09Z",
+        "completed_at": "2026-10-22T11:50:53Z",
+        "name": "image",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T11:00:10Z",
+            "completed_at": "2026-10-22T11:00:11Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T11:00:11Z",
+            "completed_at": "2026-10-22T11:00:14Z"
+          },
+          {
+            "name": "Start quota measurements",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T11:00:14Z",
+            "completed_at": "2026-10-22T11:00:20Z"
+          },
+          {
+            "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T11:00:20Z",
+            "completed_at": "2026-10-22T11:02:22Z"
+          },
+          {
+            "name": "Install tools on disposable runner",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T11:02:22Z",
+            "completed_at": "2026-10-22T11:04:16Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T11:04:16Z",
+            "completed_at": "2026-10-22T11:04:18Z"
+          },
+          {
+            "name": "Verify pinned upstream image",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T11:04:18Z",
+            "completed_at": "2026-10-22T11:04:23Z"
+          },
+          {
+            "name": "Build and audit the image (runner storage only)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T11:04:23Z",
+            "completed_at": "2026-10-22T11:17:29Z"
+          },
+          {
+            "name": "Build isolated test overlay and prove release excludes it",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T11:17:29Z",
+            "completed_at": "2026-10-22T11:30:44Z"
+          },
+          {
+            "name": "Build file-backed UEFI VM disk",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 10,
+            "started_at": "2026-10-22T11:30:44Z",
+            "completed_at": "2026-10-22T11:50:48Z"
+          },
+          {
+            "name": "Boot QEMU and assert session, policy and recovery",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 11,
+            "started_at": "2026-10-22T11:50:48Z",
+            "completed_at": "2026-10-22T11:50:48Z"
+          },
+          {
+            "name": "Publish the tested private release and sign with GitHub OIDC",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 12,
+            "started_at": "2026-10-22T11:50:48Z",
+            "completed_at": "2026-10-22T11:50:48Z"
+          },
+          {
+            "name": "Measure and bound evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13,
+            "started_at": "2026-10-22T11:50:48Z",
+            "completed_at": "2026-10-22T11:50:49Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14,
+            "started_at": "2026-10-22T11:50:49Z",
+            "completed_at": "2026-10-22T11:50:51Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 28,
+            "started_at": "2026-10-22T11:50:51Z",
+            "completed_at": "2026-10-22T11:50:51Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 29,
+            "started_at": "2026-10-22T11:50:51Z",
+            "completed_at": "2026-10-22T11:50:51Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119785764358",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000108,
+        "runner_name": "GitHub Actions 1000000108",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119785766529,
+        "run_id": 39767276468,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39767276468",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb48m-gQ",
+        "head_sha": "06dfb13d72f26651f22e3bb8dbb389b55d16dff3",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119785766529",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39767276468/job/119785766529",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T11:00:07Z",
+        "started_at": "2026-10-22T11:00:07Z",
+        "completed_at": "2026-10-22T11:00:06Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119785766529",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119807147714,
+        "run_id": 39767276468,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39767276468",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb5Q_-wg",
+        "head_sha": "06dfb13d72f26651f22e3bb8dbb389b55d16dff3",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119807147714",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39767276468/job/119807147714",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T11:50:53Z",
+        "started_at": "2026-10-22T11:50:53Z",
+        "completed_at": "2026-10-22T11:50:53Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119807147714",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39767212841,
+    "jobs": [
+      {
+        "id": 119785549984,
+        "run_id": 39767212841,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39767212841",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb48ZwoA",
+        "head_sha": "06dfb13d72f26651f22e3bb8dbb389b55d16dff3",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119785549984",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39767212841/job/119785549984",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T10:59:35Z",
+        "started_at": "2026-10-22T10:59:37Z",
+        "completed_at": "2026-10-22T10:59:55Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:59:38Z",
+            "completed_at": "2026-10-22T10:59:40Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:59:40Z",
+            "completed_at": "2026-10-22T10:59:42Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:59:42Z",
+            "completed_at": "2026-10-22T10:59:43Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:59:43Z",
+            "completed_at": "2026-10-22T10:59:43Z"
+          },
+          {
+            "name": "Preflight private package metadata access",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T10:59:43Z",
+            "completed_at": "2026-10-22T10:59:44Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T10:59:44Z",
+            "completed_at": "2026-10-22T10:59:45Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T10:59:45Z",
+            "completed_at": "2026-10-22T10:59:51Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T10:59:51Z",
+            "completed_at": "2026-10-22T10:59:52Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T10:59:52Z",
+            "completed_at": "2026-10-22T10:59:53Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18,
+            "started_at": "2026-10-22T10:59:53Z",
+            "completed_at": "2026-10-22T10:59:54Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-22T10:59:54Z",
+            "completed_at": "2026-10-22T10:59:54Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119785549984",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000107,
+        "runner_name": "GitHub Actions 1000000107",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119785551292,
+        "run_id": 39767212841,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39767212841",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb48Z1vA",
+        "head_sha": "06dfb13d72f26651f22e3bb8dbb389b55d16dff3",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119785551292",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39767212841/job/119785551292",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:59:36Z",
+        "started_at": "2026-10-22T10:59:36Z",
+        "completed_at": "2026-10-22T10:59:35Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119785551292",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119785552089,
+        "run_id": 39767212841,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39767212841",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb48Z42Q",
+        "head_sha": "06dfb13d72f26651f22e3bb8dbb389b55d16dff3",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119785552089",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39767212841/job/119785552089",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:59:36Z",
+        "started_at": "2026-10-22T10:59:36Z",
+        "completed_at": "2026-10-22T10:59:35Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119785552089",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39767030738,
+    "jobs": [
+      {
+        "id": 119785020822,
+        "run_id": 39767030738,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39767030738",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb475dlg",
+        "head_sha": "0e0f19150ea274d9a6a9b50ab8e5e1be6acd6298",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119785020822",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39767030738/job/119785020822",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T10:58:17Z",
+        "started_at": "2026-10-22T10:58:19Z",
+        "completed_at": "2026-10-22T10:58:36Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:58:20Z",
+            "completed_at": "2026-10-22T10:58:21Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:58:21Z",
+            "completed_at": "2026-10-22T10:58:22Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:58:22Z",
+            "completed_at": "2026-10-22T10:58:23Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:58:23Z",
+            "completed_at": "2026-10-22T10:58:24Z"
+          },
+          {
+            "name": "Preflight private package metadata access",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T10:58:24Z",
+            "completed_at": "2026-10-22T10:58:27Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T10:58:27Z",
+            "completed_at": "2026-10-22T10:58:28Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T10:58:28Z",
+            "completed_at": "2026-10-22T10:58:32Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T10:58:32Z",
+            "completed_at": "2026-10-22T10:58:33Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9,
+            "started_at": "2026-10-22T10:58:33Z",
+            "completed_at": "2026-10-22T10:58:34Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 18,
+            "started_at": "2026-10-22T10:58:34Z",
+            "completed_at": "2026-10-22T10:58:34Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 19,
+            "started_at": "2026-10-22T10:58:34Z",
+            "completed_at": "2026-10-22T10:58:34Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119785020822",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000106,
+        "runner_name": "GitHub Actions 1000000106",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119785022168,
+        "run_id": 39767030738,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39767030738",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb475i2A",
+        "head_sha": "0e0f19150ea274d9a6a9b50ab8e5e1be6acd6298",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119785022168",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39767030738/job/119785022168",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:58:17Z",
+        "started_at": "2026-10-22T10:58:17Z",
+        "completed_at": "2026-10-22T10:58:17Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119785022168",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119785022821,
+        "run_id": 39767030738,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39767030738",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb475lZQ",
+        "head_sha": "0e0f19150ea274d9a6a9b50ab8e5e1be6acd6298",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119785022821",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39767030738/job/119785022821",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:58:17Z",
+        "started_at": "2026-10-22T10:58:17Z",
+        "completed_at": "2026-10-22T10:58:17Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119785022821",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39766919973,
+    "jobs": []
+  },
+  {
+    "run_id": 39766382296,
+    "jobs": [
+      {
+        "id": 119782764755,
+        "run_id": 39766382296,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39766382296",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb45vw0w",
+        "head_sha": "3e593b8d96f539a1fcd18fbd0e0b15fd817cf8b6",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119782764755",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39766382296/job/119782764755",
+        "status": "completed",
+        "conclusion": "cancelled",
+        "created_at": "2026-10-22T10:52:46Z",
+        "started_at": "2026-10-22T10:52:48Z",
+        "completed_at": "2026-10-22T10:58:16Z",
+        "name": "image",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:52:49Z",
+            "completed_at": "2026-10-22T10:52:50Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:52:50Z",
+            "completed_at": "2026-10-22T10:52:52Z"
+          },
+          {
+            "name": "Start quota measurements",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:52:52Z",
+            "completed_at": "2026-10-22T10:52:57Z"
+          },
+          {
+            "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:52:57Z",
+            "completed_at": "2026-10-22T10:54:32Z"
+          },
+          {
+            "name": "Install tools on disposable runner",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T10:54:32Z",
+            "completed_at": "2026-10-22T10:56:05Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T10:56:05Z",
+            "completed_at": "2026-10-22T10:56:13Z"
+          },
+          {
+            "name": "Verify pinned upstream image",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T10:56:13Z",
+            "completed_at": "2026-10-22T10:56:18Z"
+          },
+          {
+            "name": "Build and audit the image (runner storage only)",
+            "status": "completed",
+            "conclusion": "cancelled",
+            "number": 8,
+            "started_at": "2026-10-22T10:56:18Z",
+            "completed_at": "2026-10-22T10:58:03Z"
+          },
+          {
+            "name": "Build isolated test overlay and prove release excludes it",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 9,
+            "started_at": "2026-10-22T10:58:03Z",
+            "completed_at": "2026-10-22T10:58:03Z"
+          },
+          {
+            "name": "Build file-backed UEFI VM disk",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 10,
+            "started_at": "2026-10-22T10:58:03Z",
+            "completed_at": "2026-10-22T10:58:03Z"
+          },
+          {
+            "name": "Boot QEMU and assert session, policy and recovery",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 11,
+            "started_at": "2026-10-22T10:58:03Z",
+            "completed_at": "2026-10-22T10:58:03Z"
+          },
+          {
+            "name": "Publish the tested private release and sign with GitHub OIDC",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 12,
+            "started_at": "2026-10-22T10:58:03Z",
+            "completed_at": "2026-10-22T10:58:03Z"
+          },
+          {
+            "name": "Measure and bound evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13,
+            "started_at": "2026-10-22T10:58:03Z",
+            "completed_at": "2026-10-22T10:58:06Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14,
+            "started_at": "2026-10-22T10:58:06Z",
+            "completed_at": "2026-10-22T10:58:14Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 28,
+            "started_at": "2026-10-22T10:58:14Z",
+            "completed_at": "2026-10-22T10:58:15Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 29,
+            "started_at": "2026-10-22T10:58:15Z",
+            "completed_at": "2026-10-22T10:58:15Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119782764755",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000105,
+        "runner_name": "GitHub Actions 1000000105",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119782766700,
+        "run_id": 39766382296,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39766382296",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb45v4bA",
+        "head_sha": "3e593b8d96f539a1fcd18fbd0e0b15fd817cf8b6",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119782766700",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39766382296/job/119782766700",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:52:47Z",
+        "started_at": "2026-10-22T10:52:47Z",
+        "completed_at": "2026-10-22T10:52:46Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119782766700",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119785019212,
+        "run_id": 39766382296,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39766382296",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb475XTA",
+        "head_sha": "3e593b8d96f539a1fcd18fbd0e0b15fd817cf8b6",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119785019212",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39766382296/job/119785019212",
+        "status": "completed",
+        "conclusion": "cancelled",
+        "created_at": "2026-10-22T10:58:17Z",
+        "started_at": "2026-10-22T10:58:17Z",
+        "completed_at": "2026-10-22T10:58:17Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119785019212",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39766306494,
+    "jobs": [
+      {
+        "id": 119782513963,
+        "run_id": 39766306494,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39766306494",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb45gdKw",
+        "head_sha": "3e593b8d96f539a1fcd18fbd0e0b15fd817cf8b6",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119782513963",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39766306494/job/119782513963",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T10:52:10Z",
+        "started_at": "2026-10-22T10:52:11Z",
+        "completed_at": "2026-10-22T10:52:29Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:52:12Z",
+            "completed_at": "2026-10-22T10:52:14Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:52:14Z",
+            "completed_at": "2026-10-22T10:52:16Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:52:16Z",
+            "completed_at": "2026-10-22T10:52:17Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:52:17Z",
+            "completed_at": "2026-10-22T10:52:17Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T10:52:17Z",
+            "completed_at": "2026-10-22T10:52:18Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T10:52:18Z",
+            "completed_at": "2026-10-22T10:52:23Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T10:52:23Z",
+            "completed_at": "2026-10-22T10:52:25Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T10:52:25Z",
+            "completed_at": "2026-10-22T10:52:27Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16,
+            "started_at": "2026-10-22T10:52:27Z",
+            "completed_at": "2026-10-22T10:52:27Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17,
+            "started_at": "2026-10-22T10:52:27Z",
+            "completed_at": "2026-10-22T10:52:27Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119782513963",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000104,
+        "runner_name": "GitHub Actions 1000000104",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119782515695,
+        "run_id": 39766306494,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39766306494",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb45gj7w",
+        "head_sha": "3e593b8d96f539a1fcd18fbd0e0b15fd817cf8b6",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119782515695",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39766306494/job/119782515695",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:52:10Z",
+        "started_at": "2026-10-22T10:52:10Z",
+        "completed_at": "2026-10-22T10:52:09Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119782515695",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119782515969,
+        "run_id": 39766306494,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39766306494",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb45glAQ",
+        "head_sha": "3e593b8d96f539a1fcd18fbd0e0b15fd817cf8b6",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119782515969",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39766306494/job/119782515969",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:52:10Z",
+        "started_at": "2026-10-22T10:52:10Z",
+        "completed_at": "2026-10-22T10:52:09Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119782515969",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39765996811,
+    "jobs": [
+      {
+        "id": 119781720179,
+        "run_id": 39765996811,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765996811",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb44wAcw",
+        "head_sha": "47c3c9d5867aa9b0d1d3886015391bd181c5fd3c",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119781720179",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765996811/job/119781720179",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T10:50:15Z",
+        "started_at": "2026-10-22T10:50:18Z",
+        "completed_at": "2026-10-22T10:50:34Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:50:19Z",
+            "completed_at": "2026-10-22T10:50:20Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:50:20Z",
+            "completed_at": "2026-10-22T10:50:22Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:50:22Z",
+            "completed_at": "2026-10-22T10:50:23Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:50:23Z",
+            "completed_at": "2026-10-22T10:50:24Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T10:50:24Z",
+            "completed_at": "2026-10-22T10:50:25Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T10:50:25Z",
+            "completed_at": "2026-10-22T10:50:30Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T10:50:30Z",
+            "completed_at": "2026-10-22T10:50:30Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T10:50:30Z",
+            "completed_at": "2026-10-22T10:50:32Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16,
+            "started_at": "2026-10-22T10:50:32Z",
+            "completed_at": "2026-10-22T10:50:33Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17,
+            "started_at": "2026-10-22T10:50:33Z",
+            "completed_at": "2026-10-22T10:50:33Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119781720179",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000103,
+        "runner_name": "GitHub Actions 1000000103",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119781721216,
+        "run_id": 39765996811,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765996811",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb44wEgA",
+        "head_sha": "47c3c9d5867aa9b0d1d3886015391bd181c5fd3c",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119781721216",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765996811/job/119781721216",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:50:15Z",
+        "started_at": "2026-10-22T10:50:15Z",
+        "completed_at": "2026-10-22T10:50:15Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119781721216",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119781721993,
+        "run_id": 39765996811,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765996811",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb44wHiQ",
+        "head_sha": "47c3c9d5867aa9b0d1d3886015391bd181c5fd3c",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119781721993",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765996811/job/119781721993",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:50:15Z",
+        "started_at": "2026-10-22T10:50:15Z",
+        "completed_at": "2026-10-22T10:50:15Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119781721993",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39765871220,
+    "jobs": [
+      {
+        "id": 119781051874,
+        "run_id": 39765871220,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765871220",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb44HN4g",
+        "head_sha": "ddc082d5140b495c1a4ccebddd1b12abb01c8b23",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119781051874",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765871220/job/119781051874",
+        "status": "completed",
+        "conclusion": "cancelled",
+        "created_at": "2026-10-22T10:48:39Z",
+        "started_at": "2026-10-22T10:48:42Z",
+        "completed_at": "2026-10-22T10:50:14Z",
+        "name": "image",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:48:43Z",
+            "completed_at": "2026-10-22T10:48:44Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:48:44Z",
+            "completed_at": "2026-10-22T10:48:45Z"
+          },
+          {
+            "name": "Start quota measurements",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:48:45Z",
+            "completed_at": "2026-10-22T10:48:50Z"
+          },
+          {
+            "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+            "status": "completed",
+            "conclusion": "cancelled",
+            "number": 4,
+            "started_at": "2026-10-22T10:48:50Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Install tools on disposable runner",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 5,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 6,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Verify pinned upstream image",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 7,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Build and audit the image (runner storage only)",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 8,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Build isolated test overlay and prove release excludes it",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 9,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Build file-backed UEFI VM disk",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 10,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Boot QEMU and assert session, policy and recovery",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 11,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Measure and bound evidence",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Publish the tested private release and sign with GitHub OIDC",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 13,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:10Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14,
+            "started_at": "2026-10-22T10:50:10Z",
+            "completed_at": "2026-10-22T10:50:12Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 28,
+            "started_at": "2026-10-22T10:50:12Z",
+            "completed_at": "2026-10-22T10:50:12Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 29,
+            "started_at": "2026-10-22T10:50:12Z",
+            "completed_at": "2026-10-22T10:50:12Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119781051874",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000102,
+        "runner_name": "GitHub Actions 1000000102",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119781054133,
+        "run_id": 39765871220,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765871220",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb44HWtQ",
+        "head_sha": "ddc082d5140b495c1a4ccebddd1b12abb01c8b23",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119781054133",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765871220/job/119781054133",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:48:39Z",
+        "started_at": "2026-10-22T10:48:39Z",
+        "completed_at": "2026-10-22T10:48:39Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119781054133",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119781719557,
+        "run_id": 39765871220,
+        "workflow_name": "OS image",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765871220",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb44v-BQ",
+        "head_sha": "ddc082d5140b495c1a4ccebddd1b12abb01c8b23",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119781719557",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765871220/job/119781719557",
+        "status": "completed",
+        "conclusion": "cancelled",
+        "created_at": "2026-10-22T10:50:15Z",
+        "started_at": "2026-10-22T10:50:15Z",
+        "completed_at": "2026-10-22T10:50:15Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119781719557",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39765807621,
+    "jobs": [
+      {
+        "id": 119780843735,
+        "run_id": 39765807621,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765807621",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb436g1w",
+        "head_sha": "ddc082d5140b495c1a4ccebddd1b12abb01c8b23",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119780843735",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765807621/job/119780843735",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T10:48:09Z",
+        "started_at": "2026-10-22T10:48:11Z",
+        "completed_at": "2026-10-22T10:48:27Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:48:12Z",
+            "completed_at": "2026-10-22T10:48:13Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:48:13Z",
+            "completed_at": "2026-10-22T10:48:15Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:48:15Z",
+            "completed_at": "2026-10-22T10:48:16Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:48:16Z",
+            "completed_at": "2026-10-22T10:48:17Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T10:48:17Z",
+            "completed_at": "2026-10-22T10:48:18Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T10:48:18Z",
+            "completed_at": "2026-10-22T10:48:22Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T10:48:22Z",
+            "completed_at": "2026-10-22T10:48:23Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T10:48:23Z",
+            "completed_at": "2026-10-22T10:48:25Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16,
+            "started_at": "2026-10-22T10:48:25Z",
+            "completed_at": "2026-10-22T10:48:25Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17,
+            "started_at": "2026-10-22T10:48:25Z",
+            "completed_at": "2026-10-22T10:48:25Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119780843735",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000101,
+        "runner_name": "GitHub Actions 1000000101",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119780846009,
+        "run_id": 39765807621,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765807621",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb436puQ",
+        "head_sha": "ddc082d5140b495c1a4ccebddd1b12abb01c8b23",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119780846009",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765807621/job/119780846009",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:48:09Z",
+        "started_at": "2026-10-22T10:48:09Z",
+        "completed_at": "2026-10-22T10:48:09Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119780846009",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119780846364,
+        "run_id": 39765807621,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765807621",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb436rHA",
+        "head_sha": "ddc082d5140b495c1a4ccebddd1b12abb01c8b23",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119780846364",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765807621/job/119780846364",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:48:09Z",
+        "started_at": "2026-10-22T10:48:09Z",
+        "completed_at": "2026-10-22T10:48:09Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119780846364",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39765697692,
+    "jobs": [
+      {
+        "id": 119780472944,
+        "run_id": 39765697692,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765697692",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb43j4cA",
+        "head_sha": "3a93329d9cf6de49c8f57ea9b8de62708174bb4c",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119780472944",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765697692/job/119780472944",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T10:47:14Z",
+        "started_at": "2026-10-22T10:47:16Z",
+        "completed_at": "2026-10-22T10:47:29Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:47:17Z",
+            "completed_at": "2026-10-22T10:47:17Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:47:17Z",
+            "completed_at": "2026-10-22T10:47:19Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:47:19Z",
+            "completed_at": "2026-10-22T10:47:20Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:47:20Z",
+            "completed_at": "2026-10-22T10:47:21Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T10:47:21Z",
+            "completed_at": "2026-10-22T10:47:21Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T10:47:21Z",
+            "completed_at": "2026-10-22T10:47:26Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T10:47:26Z",
+            "completed_at": "2026-10-22T10:47:27Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T10:47:27Z",
+            "completed_at": "2026-10-22T10:47:28Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16,
+            "started_at": "2026-10-22T10:47:28Z",
+            "completed_at": "2026-10-22T10:47:28Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17,
+            "started_at": "2026-10-22T10:47:28Z",
+            "completed_at": "2026-10-22T10:47:28Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119780472944",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000100,
+        "runner_name": "GitHub Actions 1000000100",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119780474769,
+        "run_id": 39765697692,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765697692",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb43j_kQ",
+        "head_sha": "3a93329d9cf6de49c8f57ea9b8de62708174bb4c",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119780474769",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765697692/job/119780474769",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:47:14Z",
+        "started_at": "2026-10-22T10:47:14Z",
+        "completed_at": "2026-10-22T10:47:14Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119780474769",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      },
+      {
+        "id": 119780475766,
+        "run_id": 39765697692,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765697692",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb43kDdg",
+        "head_sha": "3a93329d9cf6de49c8f57ea9b8de62708174bb4c",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119780475766",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765697692/job/119780475766",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:47:14Z",
+        "started_at": "2026-10-22T10:47:14Z",
+        "completed_at": "2026-10-22T10:47:14Z",
+        "name": "Published-image switch and rollback",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119780475766",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39765142144,
+    "jobs": [
+      {
+        "id": 119778617811,
+        "run_id": 39765142144,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765142144",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb41yp0w",
+        "head_sha": "f8e4561da4832fbcfd5ea9687f8be226e660363c",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119778617811",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765142144/job/119778617811",
+        "status": "completed",
+        "conclusion": "success",
+        "created_at": "2026-10-22T10:42:44Z",
+        "started_at": "2026-10-22T10:42:46Z",
+        "completed_at": "2026-10-22T10:43:05Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:42:47Z",
+            "completed_at": "2026-10-22T10:42:50Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:42:50Z",
+            "completed_at": "2026-10-22T10:42:52Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:42:52Z",
+            "completed_at": "2026-10-22T10:42:53Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:42:53Z",
+            "completed_at": "2026-10-22T10:42:54Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-22T10:42:54Z",
+            "completed_at": "2026-10-22T10:42:55Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-10-22T10:42:55Z",
+            "completed_at": "2026-10-22T10:43:00Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-10-22T10:43:00Z",
+            "completed_at": "2026-10-22T10:43:01Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T10:43:01Z",
+            "completed_at": "2026-10-22T10:43:02Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16,
+            "started_at": "2026-10-22T10:43:02Z",
+            "completed_at": "2026-10-22T10:43:03Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17,
+            "started_at": "2026-10-22T10:43:03Z",
+            "completed_at": "2026-10-22T10:43:03Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119778617811",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000099,
+        "runner_name": "GitHub Actions 1000000099",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119778620072,
+        "run_id": 39765142144,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39765142144",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb41yyqA",
+        "head_sha": "f8e4561da4832fbcfd5ea9687f8be226e660363c",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119778620072",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39765142144/job/119778620072",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:42:44Z",
+        "started_at": "2026-10-22T10:42:44Z",
+        "completed_at": "2026-10-22T10:42:44Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119778620072",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39764996739,
+    "jobs": [
+      {
+        "id": 119778136407,
+        "run_id": 39764996739,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39764996739",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb41VRVw",
+        "head_sha": "2ed7a08c7dd0ba693d754fc73d6bbaae308c93aa",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119778136407",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39764996739/job/119778136407",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-22T10:41:34Z",
+        "started_at": "2026-10-22T10:41:36Z",
+        "completed_at": "2026-10-22T10:41:46Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:41:37Z",
+            "completed_at": "2026-10-22T10:41:39Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:41:39Z",
+            "completed_at": "2026-10-22T10:41:40Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:41:40Z",
+            "completed_at": "2026-10-22T10:41:41Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:41:41Z",
+            "completed_at": "2026-10-22T10:41:42Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 5,
+            "started_at": "2026-10-22T10:41:42Z",
+            "completed_at": "2026-10-22T10:41:43Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 6,
+            "started_at": "2026-10-22T10:41:43Z",
+            "completed_at": "2026-10-22T10:41:43Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 7,
+            "started_at": "2026-10-22T10:41:43Z",
+            "completed_at": "2026-10-22T10:41:43Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T10:41:43Z",
+            "completed_at": "2026-10-22T10:41:44Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16,
+            "started_at": "2026-10-22T10:41:44Z",
+            "completed_at": "2026-10-22T10:41:44Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17,
+            "started_at": "2026-10-22T10:41:44Z",
+            "completed_at": "2026-10-22T10:41:44Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119778136407",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000098,
+        "runner_name": "GitHub Actions 1000000098",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119778138287,
+        "run_id": 39764996739,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39764996739",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb41VYrw",
+        "head_sha": "2ed7a08c7dd0ba693d754fc73d6bbaae308c93aa",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119778138287",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39764996739/job/119778138287",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:41:35Z",
+        "started_at": "2026-10-22T10:41:35Z",
+        "completed_at": "2026-10-22T10:41:34Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119778138287",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  },
+  {
+    "run_id": 39764804695,
+    "jobs": [
+      {
+        "id": 119777504113,
+        "run_id": 39764804695,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39764804695",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb40urcQ",
+        "head_sha": "3ba33a25e89949b88590a11b84622b8f8239beb1",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119777504113",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39764804695/job/119777504113",
+        "status": "completed",
+        "conclusion": "failure",
+        "created_at": "2026-10-22T10:40:04Z",
+        "started_at": "2026-10-22T10:40:07Z",
+        "completed_at": "2026-10-22T10:40:21Z",
+        "name": "Regression checks only (no image build or VM)",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-22T10:40:08Z",
+            "completed_at": "2026-10-22T10:40:09Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-22T10:40:09Z",
+            "completed_at": "2026-10-22T10:40:11Z"
+          },
+          {
+            "name": "Run regression and syntax checks",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-22T10:40:11Z",
+            "completed_at": "2026-10-22T10:40:16Z"
+          },
+          {
+            "name": "Query the real hosted system manager (no image or VM)",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-22T10:40:16Z",
+            "completed_at": "2026-10-22T10:40:17Z"
+          },
+          {
+            "name": "Resolve release inputs without pulling image layers",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 5,
+            "started_at": "2026-10-22T10:40:17Z",
+            "completed_at": "2026-10-22T10:40:18Z"
+          },
+          {
+            "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 6,
+            "started_at": "2026-10-22T10:40:18Z",
+            "completed_at": "2026-10-22T10:40:18Z"
+          },
+          {
+            "name": "Verify candidate upstream signature",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 7,
+            "started_at": "2026-10-22T10:40:18Z",
+            "completed_at": "2026-10-22T10:40:18Z"
+          },
+          {
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-10-22T10:40:18Z",
+            "completed_at": "2026-10-22T10:40:19Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16,
+            "started_at": "2026-10-22T10:40:19Z",
+            "completed_at": "2026-10-22T10:40:19Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17,
+            "started_at": "2026-10-22T10:40:19Z",
+            "completed_at": "2026-10-22T10:40:19Z"
+          }
+        ],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119777504113",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": 1000000097,
+        "runner_name": "GitHub Actions 1000000097",
+        "runner_group_id": 0,
+        "runner_group_name": "GitHub Actions"
+      },
+      {
+        "id": 119777506117,
+        "run_id": 39764804695,
+        "workflow_name": "OS regressions only (no VM)",
+        "head_branch": "pkg/06-image-release",
+        "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39764804695",
+        "run_attempt": 1,
+        "node_id": "CR_kwDOVSkw388AAAAb40uzRQ",
+        "head_sha": "3ba33a25e89949b88590a11b84622b8f8239beb1",
+        "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/119777506117",
+        "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39764804695/job/119777506117",
+        "status": "completed",
+        "conclusion": "skipped",
+        "created_at": "2026-10-22T10:40:05Z",
+        "started_at": "2026-10-22T10:40:05Z",
+        "completed_at": "2026-10-22T10:40:04Z",
+        "name": "image",
+        "steps": [],
+        "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/119777506117",
+        "labels": [
+          "ubuntu-24.04"
+        ],
+        "runner_id": null,
+        "runner_name": null,
+        "runner_group_id": null,
+        "runner_group_name": null
+      }
+    ]
+  }
+]

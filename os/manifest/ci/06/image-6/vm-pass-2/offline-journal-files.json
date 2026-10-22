@@ -1,0 +1,12 @@
+[
+  {
+    "path": "ostree/deploy/default/var/log/journal/57065a95d9514b5c87651830471fab84/system.journal",
+    "bytes": 16777216,
+    "sha256": "1f1a59f3bd10aeb8a7cb8ebb375e295cd329bef7d7c655905a414a861a7e4aec"
+  },
+  {
+    "path": "ostree/deploy/default/var/log/journal/57065a95d9514b5c87651830471fab84/user-1001.journal",
+    "bytes": 8388608,
+    "sha256": "1642bbada93e5de571402ef07f1bcd3c3c3474b4a7ad43a5b805c2602ac9e171"
+  }
+]

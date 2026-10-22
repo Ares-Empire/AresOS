@@ -1,0 +1,11 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+Stock graphical greeter never became ready
+
+ARESOS_CMD_DONE:1

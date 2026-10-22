@@ -1,0 +1,40 @@
+Package files:
+ 100 /var/lib/dpkg/status
+     release a=now
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/multiverse amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble-security,n=noble,l=Ubuntu,c=multiverse,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/restricted amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble-security,n=noble,l=Ubuntu,c=restricted,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/universe amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble-security,n=noble,l=Ubuntu,c=universe,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/main amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble-security,n=noble,l=Ubuntu,c=main,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/multiverse amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble-updates,n=noble,l=Ubuntu,c=multiverse,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/restricted amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble-updates,n=noble,l=Ubuntu,c=restricted,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/universe amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble-updates,n=noble,l=Ubuntu,c=universe,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble-updates,n=noble,l=Ubuntu,c=main,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/multiverse amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble,n=noble,l=Ubuntu,c=multiverse,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/restricted amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble,n=noble,l=Ubuntu,c=restricted,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/universe amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble,n=noble,l=Ubuntu,c=universe,b=amd64
+     origin snapshot.ubuntu.com
+1001 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 Packages
+     release v=24.04,o=Ubuntu,a=noble,n=noble,l=Ubuntu,c=main,b=amd64
+     origin snapshot.ubuntu.com
+Pinned packages:

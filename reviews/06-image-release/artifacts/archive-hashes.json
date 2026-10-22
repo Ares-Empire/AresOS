@@ -1,0 +1,162 @@
+[
+  {
+    "file": "06b-preflight-evidence.zip",
+    "sha256": "f142b466f0411922c2d8fe43cd9e26093c4a26f2f2fa0e10cead9896987723bc",
+    "size_bytes": 31046
+  },
+  {
+    "file": "06b-switch-1-evidence.zip",
+    "sha256": "363159b6544932bc519d4497f864bf2288ff195764d2c7da10a8ebba6e8c3f3d",
+    "size_bytes": 3368702
+  },
+  {
+    "file": "06b-switch-1-workflow-logs.zip",
+    "sha256": "fe5380c3257c752e4c542d7e842a0a9ecdd3afd840457047d13a2de0196c8212",
+    "size_bytes": 77601
+  },
+  {
+    "file": "06c-full-1-image-evidence.zip",
+    "sha256": "bca52d9ee0cbcb674bdb9598ddd288af2b113a99db31e3210badffbc128f389e",
+    "size_bytes": 3160132
+  },
+  {
+    "file": "06c-full-1-switch-evidence.zip",
+    "sha256": "9e48ffc176413b8de03e04a1d33b3b75f565089d219ecd2b35e44c55c9bc1ec4",
+    "size_bytes": 3314878
+  },
+  {
+    "file": "06c-full-1-workflow-logs.zip",
+    "sha256": "ff1aa15d887aa438527cfbf7785f09cc0c1df161c5c54b5c420c8120587c19ef",
+    "size_bytes": 195210
+  },
+  {
+    "file": "06c-full-2-switch-evidence.zip",
+    "sha256": "8fadf6b2c87f6b5e316a61d1338c7156c9be23924de3554f545dccde855cbe4f",
+    "size_bytes": 3647901
+  },
+  {
+    "file": "06c-full-2-workflow-logs.zip",
+    "sha256": "9a2bfea6d895e5724db3d171a3c63bcbc43654fa4319694a3d9560c017696867",
+    "size_bytes": 76697
+  },
+  {
+    "file": "06c-preflight-failed-1-workflow-logs.zip",
+    "sha256": "5e7c96ae4077404be1ec187523313ee1d2b4bd2cbcc7fa022c92fed434049763",
+    "size_bytes": 16914
+  },
+  {
+    "file": "06c-preflight-failed-2-workflow-logs.zip",
+    "sha256": "7375af0dc1f6ce2e5a9aa5981dd741d47e560d54daa0dfec894d5dcc3ded13d8",
+    "size_bytes": 16625
+  },
+  {
+    "file": "06c-preflight-preflight-evidence.zip",
+    "sha256": "31defe01f2871366ddd6666ca70f7dec01ad66e898c08881836ec41d62f0b6ff",
+    "size_bytes": 31046
+  },
+  {
+    "file": "06c-preflight-workflow-logs.zip",
+    "sha256": "b4e1591dcdfac50d2a803844ff4876a8da9530d979d923b3cdbfe7ea22985bbe",
+    "size_bytes": 30365
+  },
+  {
+    "file": "06c-tty-preflight-preflight-evidence.zip",
+    "sha256": "2556db4b73b98b101a933744cd44542f443bd9dd8a5a02e0cf65787b6a3c72c8",
+    "size_bytes": 31046
+  },
+  {
+    "file": "06c-tty-preflight-workflow-logs.zip",
+    "sha256": "c40c50bd8fe9d83249373637356fc8f6ca72057488e8bc10cadcc79af186b227",
+    "size_bytes": 30911
+  },
+  {
+    "file": "final-image-evidence.zip",
+    "sha256": "30cd14942f93f6fbcddba2ba03852bb661de1c209b0fdbfb98075e04a1d0b3c4",
+    "size_bytes": 3216498
+  },
+  {
+    "file": "final-switch-evidence.zip",
+    "sha256": "f6fac3db55af7bb0c2e3692b45ae0b80a682bdd73acc11189121462bf59c6ee8",
+    "size_bytes": 3360526
+  },
+  {
+    "file": "final-workflow-logs.zip",
+    "sha256": "558c7e4e1c1b4a7799bc960ec2a4c5726f5b39552014cf07c655547849654d1c",
+    "size_bytes": 195717
+  },
+  {
+    "file": "06d-full-1-os-switch-evidence.zip",
+    "sha256": "6a68c1ee408d6258f8a9d1e304ebd840d65f3f2b43feb725c7f92a711319f0ea",
+    "size_bytes": 4065020
+  },
+  {
+    "file": "06d-full-2-os-switch-evidence.zip",
+    "sha256": "5f32a7513b586d0b2d8c80fec306e7bb69a8132ba98559afb1539a2b706384a8",
+    "size_bytes": 3155297
+  },
+  {
+    "file": "06d-preflight-2-release-inputs.zip",
+    "sha256": "0859688acf05f36f57b8cffb382bc39e41ef8f2a8e827d5a10bbfafcbebd4ce9",
+    "size_bytes": 31046
+  },
+  {
+    "file": "06d-preflight-3-release-inputs.zip",
+    "sha256": "5a21d42519ed81583fb867aaf44a63b246354ae194509179532af0c8f54890c2",
+    "size_bytes": 31046
+  },
+  {
+    "file": "06d-preflight-4-release-inputs.zip",
+    "sha256": "0310b3aa8ca49c0b5b63aed67059716680c229af6341c555dbe3d6a706de3803",
+    "size_bytes": 31046
+  },
+  {
+    "file": "06d-preflight-5-release-inputs.zip",
+    "sha256": "c50b92b4bded0f1026daf302e036a3a9b353fa62046b03a029dd8cc2ebd8ef8e",
+    "size_bytes": 31046
+  },
+  {
+    "file": "06d-preflight-6-release-inputs.zip",
+    "sha256": "a0994cd6cccecbd87d4c5286113c47a1e6e3cac45b86fbc3c0f79bf677b606a2",
+    "size_bytes": 31046
+  },
+  {
+    "file": "06d-full-1-workflow-raw.txt.gz",
+    "sha256": "fcc1c9a7912ed82a422101f764ace2f2bdbf3a1a3209e4331f88eac6976d301c",
+    "size_bytes": 38126
+  },
+  {
+    "file": "06d-full-2-workflow-raw.txt.gz",
+    "sha256": "db79e124abc1811cd86ab00863cf1fa95bcb39f3ced8c9914a0be227df1cdb5d",
+    "size_bytes": 20128
+  },
+  {
+    "file": "06d-preflight-1-workflow-raw.txt.gz",
+    "sha256": "b8537ba02141706f47fea54008599bf003c327e06bfc3d95583af035c83b4900",
+    "size_bytes": 8259
+  },
+  {
+    "file": "06d-preflight-2-workflow-raw.txt.gz",
+    "sha256": "67a9a5ad08a9ef283af5bc3b64f9db8b59b404455055446a266fb76b4f8d5dbd",
+    "size_bytes": 15655
+  },
+  {
+    "file": "06d-preflight-3-workflow-raw.txt.gz",
+    "sha256": "23f5cc372d4d69faa4495df0fba35367215bc5c7d38fdd06cdc5de75bf6ae7f3",
+    "size_bytes": 15664
+  },
+  {
+    "file": "06d-preflight-4-workflow-raw.txt.gz",
+    "sha256": "d934cdcc166226b7fd75714c2d52903d8f143c6ab0c804e7f059323165cf49bd",
+    "size_bytes": 15658
+  },
+  {
+    "file": "06d-preflight-5-workflow-raw.txt.gz",
+    "sha256": "d0fa20dbe38050342d48c3f899b215c0d62c8483b2047423322284ea79579203",
+    "size_bytes": 15953
+  },
+  {
+    "file": "06d-preflight-6-workflow-raw.txt.gz",
+    "sha256": "d68dc443a636c055bc2c3bc228d3d0e731482cc687117c052877391b808145ba",
+    "size_bytes": 16041
+  }
+]

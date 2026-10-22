@@ -5,8 +5,18 @@ systemctl is-active --quiet greetd.service
 test "$(systemctl get-default)" = graphical.target
 pgrep -u ares -x labwc
 pgrep -u ares -x foot
-test "$(id -u ares)" = 1000
-! id -nG ares | grep -qw wheel
+test "$(id -u ares)" = 1001
+test "$(id -g ares)" = 1001
+python3 - <<'PY'
+import subprocess
+password = subprocess.check_output(['getent', 'shadow', 'ares'], text=True).split(':')[1]
+assert password.startswith(('!', '*')), 'Daily account password is not locked'
+print('ARESOS_DAILY_ACCOUNT_LOCKED')
+PY
+if id -nG ares | grep -qw wheel; then
+    echo 'Daily account belongs to wheel'
+    exit 1
+fi
 # Root can successfully list an empty policy; that exit status is not a grant.
 sudo_policy=$(LC_ALL=C sudo -l -U ares 2>&1 || true)
 printf '%s\n' "$sudo_policy"
@@ -16,9 +26,15 @@ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plas
     [[ -z $path ]] || runuser -u ares -- test ! -x "$path"
 done
 for unit in sddm gdm lightdm; do
-    ! systemctl is-active --quiet "$unit.service"
+    if systemctl is-active --quiet "$unit.service"; then
+        echo "Competing display manager is active: $unit"
+        exit 1
+    fi
 done
-! pgrep -x 'kwin_wayland|plasmashell|gnome-shell|powerdevil|gsd-power'
+if pgrep -x 'kwin_wayland|plasmashell|gnome-shell|powerdevil|gsd-power'; then
+    echo 'Competing desktop or power process is running'
+    exit 1
+fi
 while read -r unit; do
     test "$(systemctl is-enabled "$unit" 2>/dev/null || true)" = masked
 done < /usr/share/aresos/policy/masked-system-units.txt

@@ -1,0 +1,17 @@
+2026-10-22T16:31:43.9805821Z ##[group]Run sudo -E python3 os/ci/switch_vm.py
+2026-10-22T16:31:43.9806566Z [36;1msudo -E python3 os/ci/switch_vm.py[0m
+2026-10-22T16:31:44.0274108Z shell: /usr/bin/bash -e {0}
+2026-10-22T16:31:44.0274378Z env:
+2026-10-22T16:31:44.0277241Z   GH_TOKEN: ***
+2026-10-22T16:31:44.0277468Z ##[endgroup]
+2026-10-22T16:34:18.4068094Z Stock Bazzite completed an orderly pre-login initialization reboot; booting the same disk again
+2026-10-22T16:38:33.7321510Z Traceback (most recent call last):
+2026-10-22T16:38:33.7323176Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 430, in <module>
+2026-10-22T16:38:33.7323849Z     main()
+2026-10-22T16:38:33.7324935Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 360, in main
+2026-10-22T16:38:33.7326827Z     guest.command('aresos-policy', "set -e; for n in {1..120}; do pgrep -u ares -x foot && break; sleep 1; done\nbash /run/aresos-guest-check.sh".replace('bash /run/aresos-guest-check.sh', pathlib.Path('os/tests/guest.sh').read_text()))
+2026-10-22T16:38:33.7328564Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 196, in command
+2026-10-22T16:38:33.7329073Z     assert code == 0, f'Guest command failed: {name}, exit {code}'
+2026-10-22T16:38:33.7336344Z            ^^^^^^^^^
+2026-10-22T16:38:33.7336903Z AssertionError: Guest command failed: aresos-policy, exit 1
+2026-10-22T16:38:33.7377854Z ##[error]Process completed with exit code 1.

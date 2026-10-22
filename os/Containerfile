@@ -1,9 +1,12 @@
-FROM ghcr.io/ublue-os/bazzite-nvidia@sha256:3d13e825932cfddf73c369db7e7397bf79e8bf8881a4276b9a958b37234899e1 AS packages
+FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS packages
 
 COPY . /tmp/aresos/
 RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
 
 FROM packages AS aresos
+ARG ARESOS_SOURCE_REVISION=unrecorded
+LABEL org.opencontainers.image.source="https://github.com/carlsenares/AresOS" \
+      org.opencontainers.image.revision="${ARESOS_SOURCE_REVISION}"
 RUN cp -a /tmp/aresos/config/. / && \
     cp -a /tmp/aresos/policy /usr/share/aresos/ && \
     install -m 0755 /tmp/aresos/tests/audit.py /usr/libexec/aresos-audit && \

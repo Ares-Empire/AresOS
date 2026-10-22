@@ -66,8 +66,8 @@ def inventory(root=pathlib.Path('/'), live=False):
             if scope == 'user':
                 # Ares is the only desktop account. Missing manager/bus is a
                 # failed check, never a reason to silently skip the user audit.
-                command = ['runuser', '-u', 'ares', '--', 'env', 'XDG_RUNTIME_DIR=/run/user/1000',
-                           'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus', *command, '--user']
+                command = ['runuser', '-u', 'ares', '--', 'env', 'XDG_RUNTIME_DIR=/run/user/1001',
+                           'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus', *command, '--user']
             live_states, properties = live_manager(scope, command)
             states.update(live_states)
             for name, values in properties.items():

@@ -1,0 +1,20 @@
+{
+  "id": 12439091565,
+  "node_id": "MDg6QXJ0aWZhY3QxMjQzOTA5MTU2NQ==",
+  "name": "os-switch-evidence",
+  "size_in_bytes": 3360526,
+  "url": "https://api.github.com/repos/carlsenares/AresOS/actions/artifacts/12439091565",
+  "archive_download_url": "https://api.github.com/repos/carlsenares/AresOS/actions/artifacts/12439091565/zip",
+  "expired": false,
+  "digest": "sha256:f6fac3db55af7bb0c2e3692b45ae0b80a682bdd73acc11189121462bf59c6ee8",
+  "created_at": "2026-10-22T15:52:09Z",
+  "updated_at": "2026-10-22T15:52:09Z",
+  "expires_at": "2026-10-25T15:52:07Z",
+  "workflow_run": {
+    "id": 39796347427,
+    "repository_id": 1428762847,
+    "head_repository_id": 1428762847,
+    "head_branch": "pkg/06-image-release",
+    "head_sha": "01aae1e38ec11356677f526692783c14b89a1d4d"
+  }
+}

@@ -1,22 +1,44 @@
-# Disposable AresOS image prototype
+# AresOS image and private release
 
-This package derives Bazzite's signed NVIDIA desktop image and replaces its
-session with greetd → labwc → foot. It contains no Minecraft, installer, image
-publishing, release signing or hardware setup. Do not use the CI VM disk as an
+This package derives Bazzite's signed `bazzite-nvidia-open` KDE desktop image
+and replaces its session with greetd → labwc → foot. The workflow publishes
+private GHCR releases and signs their digests with GitHub OIDC. It contains no
+Minecraft, Prism, installer or hardware setup. Do not use the CI VM disk as an
 installer or as a system containing valuable data.
 
-**03h acceptance is not met; its 2/2 full-run budget is exhausted.** Full attempt 1 passed the now-diagnostic
-Fedora container probe and booted labwc, then the activation-graph audit tried to
-read an already-removed transient unit file. The brief's pre-decided fallback
-is implemented: strict static/generated-unit inspection plus live state checks
-in both managers. Full attempt 2 on `c547325` correctly rejected generated
-`cockpit-container.service`, whose privileged container command carries an
-auto-update label and mutable image reference. Its exact mask is now added;
-[final checks-only CI](https://github.com/carlsenares/AresOS/actions/runs/39755280120)
-passed all 39 regressions, syntax checks and the hosted manager query on
-`9b29c02`. **That final correction has not been rebuilt or booted.** Neither
-full run completed normal policy, recovery/power/offline proof or VM 2. No
-third full run was started; a new brief/budget is needed for VM qualification.
+**Package 06c image handoff is qualified in CI.** The private signed release
+`ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402`
+passed [two fresh VM boots and publication](https://github.com/carlsenares/AresOS/actions/runs/39818554327).
+The [final switch-only run](https://github.com/carlsenares/AresOS/actions/runs/39833127717)
+reused that unchanged image and passed stock → AresOS → retained stock.
+Labwc/foot, locked daily UID/GID 1001, full updater policy, inherited Homebrew
+denial for `ares`, owner Homebrew access at all stages, real tty3 administrator
+password login/sudo and all three partition snapshots passed. Full run 1
+found a TTY-observer hangup race; six regressions and the second full run
+verify the harness correction. Both authorized 06c full runs are used.
+See the [06c report](../reviews/06-image-release/REPORT.md#06c-inherited-homebrew-qualification-2026-10-22)
+and [tested recipe](../docs/INSTALL.md#6-switch-to-aresos). Physical installation
+remains closed pending ISO, protected-Windows two-disk and hardware gates.
+
+**06e qualifies the revised 06d sequence.** [Full switch-only run
+39851266266](https://github.com/carlsenares/AresOS/actions/runs/39851266266)
+passed with the unchanged signed image and harness: the actual Plasma Login
+greeter, both transaction identity inspections before reboot, strengthened
+policy assertions, real tty3 password login/sudo/logout with the getty prompt
+confirmed, identical partitions across all four states, exact-stock rollback
+and another stock default boot. The rendered rollback greeter and second stock
+greeter screenshots were visually inspected. One of two authorized full runs
+was used; no rebuild or extra checks-only run was needed. **GRUB recovery
+promotion remains untested**, and physical installation stays gated. See the
+[06e report](../reviews/06-image-release/REPORT.md#06e-vm-qualification-2026-10-22).
+
+Package 03's final
+[03i run](https://github.com/carlsenares/AresOS/actions/runs/39756953602) passed
+both fresh VM boots, strict static/generated auditing with the Cockpit mask,
+recovery/power checks and actual offline logind proof. Package 06 reruns those
+checks on the RTX open-driver base before publishing, then tests the published
+digest from an unmodified-upstream stock stand-in through switch and rollback.
+The [install guide](../docs/INSTALL.md) remains closed to physical installation.
 The activation graph, timer canaries and container preflight are deferred to
 [a separate follow-up](../briefs/03-followup-activation-audit.md).
 The hardware contingency requires **both** an explicitly unsupported kernel
@@ -26,8 +48,8 @@ Filesystem checks, journal extraction and verification, absent journals or
 expected boots, wrong boots, and missing power-key/shutdown records all fail CI.
 Journals are verified before boot selection. Disk isolation, clean QMP/console
 shutdown and both fresh VM passes remain blocking.
-See the [report](../reviews/03-os-image/REPORT.md) for the current result
-and [INSTALL section 7](../docs/INSTALL.md#7-early-hardware-first-boot-no-minecraft-yet)
+See the [package 06 report](../reviews/06-image-release/REPORT.md) for the current result
+and [INSTALL section 7](../docs/INSTALL.md#7-first-aresos-check-plain-terminal-no-minecraft-yet)
 for the hardware procedure. Historical 03d runs did not read any journal.
 
 `Containerfile` pins the base digest. `keys/bazzite.pub` is Universal Blue's public
@@ -35,7 +57,8 @@ verification key, copied from the upstream revision recorded in
 `manifest/base.json`. CI runs the upstream
 [documented verification method](https://github.com/ublue-os/bazzite#verification)
 against that digest before building. This authenticates the base container;
-it does not authenticate our unsigned derivative or qualify hardware Secure Boot.
+the derivative has a separate workflow-identity signature. Neither signature
+qualifies hardware Secure Boot.
 
 `packages.lock.json` records the NEVRAs and SHA-256 hashes of added RPMs. A
 resolution or content mismatch fails the build. The complete installed RPM list
@@ -44,18 +67,34 @@ and unchanged kernel/NVIDIA package subset are generated inside the image under
 checking remains enabled. The lock was generated by the first successful CI
 package resolution; missing pinned RPMs or different content fail the build.
 
-The `ares` account is UID 1000, has a locked password, and is outside `wheel`.
+The `ares` account is UID 1001, has a locked password, and is outside `wheel`.
+Its image-owned `sysusers.d` declaration also creates it during boot when the
+installer's locally modified passwd/group files survive the rebase. The
+installer administrator is preserved at UID 1000; neither account is renumbered.
 greetd auto-login starts it on VT1. Super+Ctrl+Escape opens another terminal.
 Ctrl+Alt+F3 uses labwc's built-in VT switch to an independent getty. A deployment
-must provision an authenticated recovery account/password before use; the next
-installer package owns that provisioning. CI alone sets a random root password
-in its file-backed disk and tests recovery authentication through the unchanged
+must provision password-protected administrator `ares-recovery`, UID 1000 and
+member of `wheel`, in Bazzite's account creation before switching. The exact
+account and private-pull procedure belongs in INSTALL §6; real installer UI
+qualification remains a separate gate. The two original VM passes alone set a
+random root password in their file-backed disks and test authentication through the unchanged
 `login` PAM stack, with both wrong-password rejection and correct-password
 acceptance/account validation. It separately asserts a running tty3 getty on
 `/dev/tty3` and the recovery VT switch. The current
-[verification report](../reviews/03-os-image/REPORT.md) records the exact CI
+[verification report](../reviews/06-image-release/REPORT.md) records the exact CI
 results and remaining qualification limits. This credential
-and the VM disk are never uploaded or committed.
+and the VM disk are never uploaded or committed. The separate switch harness
+authenticates the recovery administrator over the stock serial TTY. It also
+requires QMP keyboard login on the real tty3 and password-authenticated sudo
+after rebase; 06c's final switch-only run passed both assertions on real tty3.
+06d adds logout/getty confirmation, deployment inspection before each reboot,
+and a bounded rendered-stock-greeter check. The GRUB recovery promotion path
+remains explicitly untested in INSTALL's open release gates; a normal rollback
+and another stock default boot would not qualify one-time GRUB selection.
+06e's full run passed this revised sequence, including the rendered rollback
+greeter and another unattended stock boot; it does not qualify GRUB recovery
+promotion.
+Disposable passwords and hashes are masked before builder output is logged.
 
 The base's desktop packages remain installed to preserve its graphics dependency
 set. Display managers, desktop sessions, power agents, XDG autostarts, updater
@@ -65,6 +104,24 @@ through polkit. This is a disposable prototype with manual image maintenance;
 it does not attempt to restrict a recovery administrator deliberately repairing
 the system or a user downloading their own programs.
 
+Stock Homebrew lives in shared `/var/home/linuxbrew`, so image-build executable
+permissions alone do not cover a switch. The image-owned
+`aresos-inherited-homebrew.conf` tmpfiles rule adds a deny ACL for reserved daily
+UID 1001 to that directory on boot. It preserves existing ACL entries, ownership
+and contents; the stock UID 1000 owner can still use Homebrew. The daily session
+uses the system PATH, and upstream Bash Homebrew initialization/completion is
+guarded for UID 1001. Existing setup/update/upgrade unit masks remain in force.
+The switch regression executes the real inherited `brew --version` as its owner
+on stock, AresOS and rolled-back stock, rejects direct/interpreter access as
+`ares`, and checks the daily session and login-shell PATH. It also compares the
+inherited brew script's hash across those boots. No install/update is requested.
+
+The named UID 1001 deny entry remains in shared home state after rollback; it
+does not restrict UID 1000. After returning to stock, an administrator can remove
+it with `sudo setfacl -x u:1001 /var/home/linuxbrew` if another stock account needs
+that UID. AresOS reapplies the rule on its next boot. No recursive chmod/chown,
+Homebrew deletion, credential change or user renumbering is part of this policy.
+
 Power defaults are explicit in `config/etc/systemd/`: all lid cases, idle,
 suspend/hibernate keys, reboot key and software long-press actions are ignored.
 A short power press requests clean system poweroff. Sleep targets and their
@@ -73,9 +130,9 @@ critical action is `Ignore`, with its required opt-in enabled. There is no game
 or power coordinator yet; critical-battery handling must be implemented and
 qualified before hardware/battery use.
 
-The workflow uses a standard Ubuntu hosted runner on package-branch source/config
-pushes or manual dispatch, with a 60-minute
-timeout. `ci/toolchain.json` selects an immutable Ubuntu archive snapshot;
+The workflow uses standard Ubuntu hosted runners and manual dispatch only.
+The image job has a 90-minute limit; its dependent stock switch/rollback job
+has a 75-minute limit. `ci/toolchain.json` selects an immutable Ubuntu archive snapshot;
 `ci/install-tools.sh` isolates APT from the runner's mutable repositories,
 selects exact snapshot package versions, and reinstalls Podman, Skopeo, QEMU
 and OVMF/SeaBIOS/iPXE firmware from that signed archive. Evidence records exact
@@ -85,26 +142,34 @@ remain mutable host inputs: hosted runners do not support digest selection or
 our own kernel boot. Their image version, kernel/modules and full dpkg inventory
 are recorded, with these exceptions explicitly listed in the toolchain manifest.
 All container/disk/VM operations run there. It uses rootful Podman
-storage directly with the template's pinned bootc-image-builder, without a
-registry, registry credentials or an image archive. Only evidence smaller than
+storage directly with the template's pinned bootc-image-builder. Only the tested
+release is pushed to private GHCR, using temporary `GITHUB_TOKEN` credentials;
+no image archive is uploaded. Only evidence smaller than
 180 MB is retained, for three days. No automatic scheduled builds run. The
-original package budget was six full attempts / 400 minutes; briefs 03b and 03c
-each permit at most three additional full runs; 03d permits at most two and 03e
-exactly one final full run; 03f permits at most two review-fix runs; 03g permits
-at most two further verification runs, each preceded by checks-only CI; 03h
-permits at most two full convergence runs with a diagnostic release-container
-preflight and a pre-decided static-audit fallback if the VM activation audit
-fails. Inspect the report
-before manually rerunning it. A disk/time capacity failure is a stop condition.
+original package-06 budget was six full dispatches or about 400 runner minutes.
+Follow-up 06c permits at most two full runs, rebuilding/publishing only when
+the image changes, with checks-only preflight before full runs. Earlier budgets
+and results are historical in their reports. Inspect the report
+before manually rerunning it. Exhausting the declared run/minute budget or
+runner disk capacity is a stop condition; a failed step remains a failed run.
 Evidence/report-only commits do not rebuild the large image. The report records
 the exact source commit and green run that produced its committed evidence.
 For regression work without another image build, manually dispatch
-`gh workflow run os-image.yml --ref pkg/03-os-image -f checks_only=true`.
+`gh workflow run os-image.yml --ref pkg/06-image-release -f checks_only=true`.
 That mode is labelled **OS regressions only (no VM)** and skips the image job;
 it runs regressions/syntax checks and queries the real hosted system manager's
-unit-file and live unit states. No image, container, disk or VM is built.
+unit-file and live unit states. It also verifies package privacy/access and
+resolves signed base/official ISO metadata. No image layer, disk or VM is built.
 Its green result does not qualify the VM acceptance gate. Ordinary image runs
 still require both fresh VM passes.
+
+For a harness-only switch retry, dispatch with
+`-f checks_only=false -f switch_from_run=<qualified-run-id>` after checks-only CI.
+That mode downloads the earlier release evidence and requires its image job
+(including both VM passes and publication) to have succeeded. It checks the
+source SHA and refuses any change to runtime configuration, policy, packages,
+base, audit or verification key before booting the same published digest.
+It cannot qualify a changed release image or overwrite an immutable tag.
 
 The graph audit (`ci/activation_audit.py`), activation-canary prototype and Fedora
 container preflight are preserved for the follow-up and are not run by either
@@ -168,7 +233,7 @@ boots using disposable disk overlays and reset firmware variables, saving each
 pass separately. Screenshots are QEMU framebuffer captures. The VM has only its
 CI-created file disk and ephemeral firmware variables.
 
-Review generated `os-image-evidence` before promoting a build. Download its
-small manifests into `os/manifest/` and its session/TTY PNGs into
-`reviews/03-os-image/screenshots/` using `gh run download`. Never upload the
+Review generated `os-image-evidence` and `os-switch-evidence` before promoting
+a build. Download their manifests into `os/manifest/` and session/TTY PNGs into
+`reviews/06-image-release/screenshots/` using `gh run download`. Never upload the
 image, VM disk, credentials, builder configuration or container storage.

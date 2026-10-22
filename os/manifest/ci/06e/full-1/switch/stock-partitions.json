@@ -1,0 +1,67 @@
+{
+  "blockdevices": [
+    {
+      "name": "sr0",
+      "type": "rom",
+      "start": null,
+      "size": 1073741312,
+      "partuuid": null,
+      "parttype": null,
+      "uuid": null
+    },
+    {
+      "name": "zram0",
+      "type": "disk",
+      "start": null,
+      "size": 3093823488,
+      "partuuid": null,
+      "parttype": null,
+      "uuid": "7b4fee1e-0134-436a-b5c1-610e5e1b53cc"
+    },
+    {
+      "name": "vda",
+      "type": "disk",
+      "start": null,
+      "size": 53141831680,
+      "partuuid": null,
+      "parttype": null,
+      "uuid": null
+    },
+    {
+      "name": "vda1",
+      "type": "part",
+      "start": 2048,
+      "size": 1048576,
+      "partuuid": "df49b9a6-2b93-42f1-b474-14c049ddde6e",
+      "parttype": "21686148-6449-6e6f-744e-656564454649",
+      "uuid": null
+    },
+    {
+      "name": "vda2",
+      "type": "part",
+      "start": 4096,
+      "size": 525336576,
+      "partuuid": "d9c61c8e-af8b-453e-8901-890d2a4cd9ab",
+      "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+      "uuid": "F4B6-8929"
+    },
+    {
+      "name": "vda3",
+      "type": "part",
+      "start": 1030144,
+      "size": 1073741824,
+      "partuuid": "20a9bb53-cc96-4856-b3dd-6599b551ceb2",
+      "parttype": "bc13c2ff-59e6-4262-a352-b275fd6f7172",
+      "uuid": "bc4213a6-e1ad-45e3-a7e9-3b2d5cea1555"
+    },
+    {
+      "name": "vda4",
+      "type": "part",
+      "start": 3127296,
+      "size": 51539607552,
+      "partuuid": "4ca78ab4-8da3-4979-a3e5-f51305d9ffd8",
+      "parttype": "4f68bce3-e8cd-4db1-96e7-fbcaf984b709",
+      "uuid": "c03101c2-dead-4c62-be5a-0938b7997a6d"
+    }
+  ]
+}

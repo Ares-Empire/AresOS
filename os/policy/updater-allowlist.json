@@ -37,7 +37,8 @@
   "systemd-sysusers.service": "systemd v259.9 systemd-sysusers initializes local accounts from installed definitions; no software installation.",
   "systemd-udevd.service": "systemd v259.9 hardware-event daemon, not a package/driver installer; update matches are unit comments or ordering.",
   "user@.service": "systemd v259.9 units/user@.service.in starts a user service manager; upgrade appears in a reload comment. No software installation.",
-  "user@1000.service": "The live ares instance of the reviewed systemd v259.9 user@.service manager template; no software installation.",
+  "user@1000.service": "The recovery administrator instance of the reviewed systemd v259.9 user@.service manager template; no software installation.",
+  "user@1001.service": "The daily ares instance of the same reviewed systemd v259.9 user@.service manager template; no software installation.",
   "unity-gtk-module.service": "Sets local GTK module environment in the user manager; no software installation.",
   "xdg-document-portal.service": "xdg-document-portal exposes selected local documents to sandboxed applications; no package/Flatpak installation."
 }

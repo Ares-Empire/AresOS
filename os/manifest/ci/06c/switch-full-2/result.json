@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "release": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
+  "stock": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "retained_stock_checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+  "recovery_admin_tty": "/dev/tty3",
+  "recovery_admin_uid": 1000,
+  "daily_user_uid": 1001,
+  "partition_identity_unchanged": true,
+  "inherited_homebrew_daily_denied": true,
+  "inherited_homebrew_owner_working_all_stages": true
+}

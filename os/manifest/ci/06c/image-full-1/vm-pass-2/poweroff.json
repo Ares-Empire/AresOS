@@ -1,0 +1,21 @@
+{
+  "qemu_exit": 0,
+  "journal_ready": true,
+  "boot_id": "c7268f54f1ce48ec8eedc4c483ac0471",
+  "offline_journal": {
+    "status": "passed",
+    "boot_id": "c7268f54f1ce48ec8eedc4c483ac0471",
+    "evidence": "offline-poweroff.json"
+  },
+  "shutdown": {
+    "timestamp": {
+      "seconds": 1792691081,
+      "microseconds": 849862
+    },
+    "event": "SHUTDOWN",
+    "data": {
+      "guest": true,
+      "reason": "guest-shutdown"
+    }
+  }
+}

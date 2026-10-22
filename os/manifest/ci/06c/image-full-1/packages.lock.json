@@ -1,0 +1,44 @@
+{
+  "packages": [
+    {
+      "nevra": "fcft-3.3.3-2.fc44.x86_64",
+      "sha256": "3a7657802b0f7a7d3311ff1d568db5124dc5f3bde0e7dc62340c17bd70f5c8e7"
+    },
+    {
+      "nevra": "foot-1.27.0-1.fc44.x86_64",
+      "sha256": "72a73c1a5241765b7a7944ffe676626db8d7848cfa983e2e10f46ef8bb03d019"
+    },
+    {
+      "nevra": "greetd-0.10.3-6.fc44.x86_64",
+      "sha256": "d6f3ab7263462e40f96dff09f17a7246fa1e0c0776ad0f4cab728cf62d3145a8"
+    },
+    {
+      "nevra": "greetd-selinux-0.10.3-6.fc44.noarch",
+      "sha256": "7feb07dfad123449fc05622fec614bf7d0a1b46017f249530769bc548d20019b"
+    },
+    {
+      "nevra": "grim-1.5.0-3.fc44.x86_64",
+      "sha256": "5e7bbe7da1a270a17fd5af19b436206414a2e9772e03b947aecd3addd5c8c43a"
+    },
+    {
+      "nevra": "labwc-0.9.6-1.fc44.x86_64",
+      "sha256": "9438b595a52653540f6d95c83453284c0d99b3f9f6c4df13320b21253916f60b"
+    },
+    {
+      "nevra": "libsfdo-0.1.3-5.fc44.x86_64",
+      "sha256": "cd379ee0341741a074585ad8c56395781d74003d685f5ce40e68d3e5847d3ca0"
+    },
+    {
+      "nevra": "utf8proc-2.11.3-2.fc44.x86_64",
+      "sha256": "419aaf827c994a0a243bbe79f99dfe80a3c387eb0e9bee529871d64641a70a15"
+    },
+    {
+      "nevra": "wlroots0.19-0.19.3-1.fc44.x86_64",
+      "sha256": "815bb4a0419c0c27d71dfe64b1928f9943fbe9a3bc176c98a989fdf0f8b18f62"
+    },
+    {
+      "nevra": "xdg-desktop-portal-wlr-0.8.4-1.fc44.x86_64",
+      "sha256": "13e41f0d7e23462efd148c69834f32a53b69054bf0e0e445eeb8c303f6da13c1"
+    }
+  ]
+}

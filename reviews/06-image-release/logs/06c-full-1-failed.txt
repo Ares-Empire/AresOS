@@ -1,0 +1,17 @@
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	﻿2026-10-22T18:09:10.4960036Z ##[group]Run sudo -E python3 os/ci/switch_vm.py
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:09:10.4960711Z ^[[36;1msudo -E python3 os/ci/switch_vm.py^[[0m
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:09:10.5532677Z shell: /usr/bin/bash -e {0}
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:09:10.5533036Z env:
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:09:10.5536288Z   GH_TOKEN: ***
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:09:10.5536579Z ##[endgroup]
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:11:48.8184210Z Stock Bazzite completed an orderly pre-login initialization reboot; booting the same disk again
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.8901235Z Traceback (most recent call last):
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.8902137Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 441, in <module>
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.8907230Z     main()
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.8908375Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 377, in main
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.8909728Z     guest.command('tty-password-ready', '''python3 - <<'PY'
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.8910642Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 196, in command
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.8911303Z     assert code == 0, f'Guest command failed: {name}, exit {code}'
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.8912909Z            ^^^^^^^^^
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.8913718Z AssertionError: Guest command failed: tty-password-ready, exit 1
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T18:16:22.9240030Z ##[error]Process completed with exit code 1.

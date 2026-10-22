@@ -1,0 +1,2 @@
+06e evidence passed: successful switch-only workflow; unchanged runtime/mod/harness; exact artifact/log hashes; all four deployment/partition/Homebrew identities; both transaction checkpoints; policy, tty3 sudo/logout, rendered stock/rollback/second-default frames
+Document links passed: 174; GRUB recovery promotion remains UNTESTED; visual inspection must be recorded separately

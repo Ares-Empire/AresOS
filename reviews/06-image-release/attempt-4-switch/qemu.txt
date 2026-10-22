@@ -1,0 +1,2 @@
+qemu-system-x86_64: -accel kvm: warning: Number of SMP cpus requested (4) exceeds the recommended cpus supported by KVM (2)
+qemu-system-x86_64: -accel kvm: warning: Number of hotpluggable cpus requested (4) exceeds the recommended cpus supported by KVM (2)

@@ -1,0 +1,13 @@
+{
+  "reference": "ghcr.io/carlsenares/aresos@sha256:25de68a75ef4534f903f7dd2d8ce1eb9e86c1b2d165c2631152fb1f1c711f91a",
+  "tag": "06-01aae1e38ec11356677f526692783c14b89a1d4d",
+  "source_commit": "01aae1e38ec11356677f526692783c14b89a1d4d",
+  "base": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "visibility": "private",
+  "signature": {
+    "method": "cosign keyless",
+    "identity": "https://github.com/carlsenares/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/06-image-release",
+    "issuer": "https://token.actions.githubusercontent.com"
+  },
+  "run": "https://github.com/carlsenares/AresOS/actions/runs/39796347427"
+}

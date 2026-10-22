@@ -37,7 +37,9 @@ PY
     exit 0
 fi
 
-useradd --uid 1000 --user-group --no-create-home --home-dir /var/home/ares --shell /bin/bash ares
+# Use the same declaration at build and boot: local /etc/passwd changes from
+# the installer otherwise hide new accounts in the image's /usr/etc/passwd.
+systemd-sysusers /usr/lib/sysusers.d/aresos.conf
 passwd --lock ares
 passwd --lock root
 chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/libexec/aresos-audit
@@ -91,6 +93,11 @@ PY
 for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew; do
     path=$(command -v "$command" || true)
     [[ -z $path ]] || chmod 0700 "$(readlink -f "$path")"
+done
+# Upstream's interactive setup appends brew to PATH even when shellenv fails.
+# Keep it for the recovery owner, but never evaluate it as the daily account.
+for script in /etc/profile.d/brew.sh /etc/profile.d/brew-bash-completion.sh; do
+    sed -i '1a if [ "$(id -u)" = 1001 ]; then return 0; fi' "$script"
 done
 for entry in /usr/share/applications/*.desktop; do
     if grep -Eiq '(^Exec=.*(uupd|ujust|topgrade|bazzite-(updater|portal)|bazaar|plasma-discover|gnome-software)|update|upgrade|rebase)' "$entry"; then

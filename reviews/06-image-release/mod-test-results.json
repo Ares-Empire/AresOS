@@ -1,0 +1,14 @@
+{
+  "command": "gradlew.bat --no-daemon build runClientGameTest",
+  "invocations": 2,
+  "first_build": "BUILD SUCCESSFUL in 7m 37s; 19 actionable tasks: 18 executed, 1 up-to-date",
+  "second_build": "BUILD SUCCESSFUL in 7m 6s; 19 actionable tasks: 4 executed, 15 up-to-date",
+  "unit_results": {
+    "tests": 45,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "second_unit_task": "UP-TO-DATE",
+  "stop": "gradlew.bat --stop: No Gradle daemons are running."
+}

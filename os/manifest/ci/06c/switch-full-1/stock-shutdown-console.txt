@@ -1,0 +1,36 @@
+[?2004hARESOS_ROOT> [?2004l
+
+
+Broadcast message from root@bazzite on pts/0 (Thu 2026-10-22 18:15:07 UTC):
+
+The system will reboot now!
+
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h]3008;end=3e5207b5b9da4659bd6870288a3fbed2\]3008;end=ffb2b169f6e2417caafcb3c9b9023cec\[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H]3008;end=16a7238e5b2b454785172925add612ae\[  212.633762] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[  212.640221] systemd-shutdown[1]: Unmounting file systems.
+[  212.644841] (sd-remount)[3083]: Remounting '/var' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  212.668924] (sd-umount)[3084]: Unmounting '/var'.
+[  212.671536] (sd-umount)[3085]: Unmounting '/run/credentials/systemd-journald.service'.
+[  212.675465] (sd-remount)[3086]: Remounting '/sysroot' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  212.681109] (sd-umount)[3087]: Unmounting '/sysroot'.
+[  212.683844] (sd-remount)[3088]: Remounting '/etc' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  212.689381] (sd-umount)[3089]: Unmounting '/etc'.
+[  212.693297] systemd-shutdown[1]: All filesystems unmounted.
+[  212.695527] systemd-shutdown[1]: Deactivating swaps.
+[  212.697599] systemd-shutdown[1]: All swaps deactivated.
+[  212.699718] systemd-shutdown[1]: Detaching loop devices.
+[  212.701927] systemd-shutdown[1]: All loop devices detached.
+[  212.704099] systemd-shutdown[1]: Stopping MD devices.
+[  212.706179] systemd-shutdown[1]: All MD devices stopped.
+[  212.708245] systemd-shutdown[1]: Detaching DM devices.
+[  212.710350] systemd-shutdown[1]: All DM devices detached.
+[  212.712623] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[  212.717941] watchdog: watchdog0: watchdog did not stop!
+[  212.736759] systemd-shutdown[1]: Syncing filesystems and block devices.
+[  212.738725] systemd-shutdown[1]: Rebooting.
+[  212.755611] Console: switching to colour dummy device 80x25
+[  212.794006] ACPI: PM: Preparing to enter system sleep state S5
+[  212.796149] kvm: exiting hardware virtualization
+[  212.797800] reboot: Restarting system
+[  212.799060] reboot: machine restart

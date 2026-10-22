@@ -80,7 +80,7 @@ Use AC, lid open, backups/recovery stick disconnected. F12-boot the installer in
 1. **Set the live desktop's German keyboard before opening Konsole:** open **System Settings**, search **Keyboard → Layouts → Configure layouts → Add → German**. Make German the first/active layout, choose **Global** switching if offered, and **Apply**. In a text editor (not a terminal), type `y z / - " $ ä ö ü` using the physical keys; every character must match. Otherwise stop and correct the layout. Repeat this after each live boot. [K1] Then open **Konsole** and collect [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): fill the live identity/path columns and require PASS for identity, Micron unchanged and Crucial empty. Fill its installer columns/check when reaching steps 3 and 5 below.
 2. Start installer: **English (United States)** interface, **German** keyboard (test again), **Europe/Berlin**. This keyboard setting is for the **installed system**; it does not replace the live-desktop check. [B1]
 3. **Installation method → Change destination**: use record C's **same-session whole-disk path** to find the exact Crucial entry; copy/photograph its full text in the mapping. Deselect every other drive. **Destination** must show only this entry; choose **Use entire disk**. This erases the selected disk. [B3] A missing/ambiguous device name means stop. Do not choose alongside Windows, reclaim or manual partitioning.
-4. Follow the handoff's encryption choice and exact recovery-administrator recipe. **Account/UID recipe NOT RELEASED — stop if absent.** Do not invent an `ares` account. The proposal is a disposable, unencrypted first trial; personal-data encryption needs a separate decision.
+4. The candidate account rules are in [§6](#accounts-before-switching): `ares-recovery`, first ordinary UID 1000, password protected and an administrator; the image supplies locked `ares` UID/GID 1001. **Installer account-screen/encryption qualification remains OPEN; do not install yet.** Do not create `ares` manually. The proposal is a disposable, unencrypted first trial; personal-data encryption needs a separate decision.
 5. At **Review and install**, before **Erase data and install**, complete record C's **installer plan** check: require **only Crucial storage rows**, including a **new EFI partition at `/boot/efi`**, boot and system/data storage. [B4] Resolve every path through the same-session mapping, not example `vda` or a remembered `nvme0n1`. Photograph the whole summary privately. **Any Micron write/mount/EFI reuse, shared Windows EFI, missing new EFI or unclear target means FAIL — Quit.** Never dismiss Windows EFI wording as harmless. Every check must be PASS before continuing.
 6. After all checks, install. On error, stop; do not retry with wider erase options. Reboot, remove USB and F12-select the new Linux entry. Unexpected enrollment/signature screens stop the trial; Secure Boot stays off. [B1]
 
@@ -90,11 +90,191 @@ The current live installer supports this whole-drive route; **its exact two-driv
 
 Finish [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): save Crucial's new GUIDs and Linux firmware entry; prove `/boot/efi` resolves to Crucial. Then **F12 → Windows Boot Manager**, run [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage). A mismatch or Windows repair/recovery prompt stops the trial. Keep records independently.
 
-## 6. Switch to AresOS — NOT RELEASED
+## 6. Switch to AresOS
 
-**[Brief 06: image release](../briefs/06-image-release.md) must supply the immutable digest, trust/private-pull steps, account/UID recipe, tested Bazzite → AresOS commands and previous-deployment rollback.** No executable rebase command is supplied here. Publishing an image alone does not open the other gates.
+**06e VM qualification passed for the revised 06d recipe.** [Full switch-only run 39851266266](https://github.com/carlsenares/AresOS/actions/runs/39851266266) reused the unchanged signed image and verified the rendered stock greeter, transaction identity inspections before reboot, daily session/account, strengthened updater policy, inherited Homebrew restrictions, real tty3 administrator password login/sudo/logout with the getty prompt confirmed, unchanged attached-disk partitions across four states, exact-stock rollback with a visually inspected rendered greeter, and another stock default boot. The [image job](https://github.com/carlsenares/AresOS/actions/runs/39818554327) passed two fresh AresOS boots before private publication/signing. See the [06e report](../reviews/06-image-release/REPORT.md#06e-vm-qualification-2026-10-22). **GRUB recovery promotion remains UNTESTED.** Physical installation remains NOT RELEASED until every [maintainer gate](#maintainer-release-gate) is closed, including the real ISO and protected-Windows two-disk rehearsals. This changes an existing Bazzite deployment; it does not install or partition a disk. The image contains labwc and a terminal, without Minecraft or Prism.
 
-Retain authenticated recovery administration; keep all boot writes on Crucial and repartition neither disk. Brief 06's legacy-ISO assumption must be reconciled with this current-live-ISO route. Never flash its raw VM disk to an SSD.
+Release: **`ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402`**, private GHCR, immutable tag **`06-5578ab21b880091f26bfdc2eda22dd4f304a602b`**. [Release manifest](../os/manifest/release.json), [verification and screenshots](../reviews/06-image-release/REPORT.md). Base: signed `bazzite-nvidia-open` KDE **44.20261012.1**, digest `ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151`; no Steam Gaming Mode. CI constructs its stock starting disk directly from this upstream image. An actual installer/ISO walkthrough and the two-drive safety rehearsal remain separate open gates.
+
+Official ISO metadata, checked **2026-10-22** (the `stable` download names can change; a different hash means stop):
+
+| Role | Official ISO | Official SHA-256 |
+|---|---|---|
+| Current live route retained by this guide | [bazzite-nvidia-open-stable-live-amd64.iso](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso) | `776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6` |
+| Legacy ISO identified as requested by brief 06; not substituted for §2–§4 | [bazzite-nvidia-open-stable-amd64.iso](https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso) | `85e701c0f53189b0fa32797ffe8144202dcaa8db6c7692fd4677f615537b24b8` |
+
+The [live checksum](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM), [legacy checksum](https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso-CHECKSUM) and official picker sources are recorded in [installer-isos.json](../os/manifest/installer-isos.json). Neither ISO was downloaded or booted by this package. The installer qualification must confirm the live ISO actually installs the tested upstream version; any difference needs another image-switch qualification before release. Raw CI disks are never installation media.
+
+### Accounts, before switching
+
+In Bazzite's account creation, use **`ares-recovery`**, a strong unique password held independently of AresOS, and the administrator option. It must be the first ordinary account: **UID 1000**, member of **`wheel`**. Do not name it `ares`, enable passwordless administrator login, or reuse a game/Windows password. The live installer's exact account screen is still part of the installer rehearsal; the CI stand-in provisions this same password-protected account with the image builder and verifies its actual UID. Finish stock Bazzite's first-boot hardware setup before proceeding; upstream can reboot once to apply kernel arguments before allowing login.
+
+The image supplies **`ares`, UID/GID 1001**, a locked password and no `wheel`/sudo rights. Its `sysusers.d` declaration creates this account at boot even when the installer's local passwd/group files survive the rebase. greetd automatically starts its labwc session on tty1. It is the daily account; keep it out of administrative groups. UID 1001 must be unused on stock Bazzite before switching. If the expected account/UID/group checks fail, stop rather than renumbering existing users or files.
+
+Finish §5 and its Windows comparison first. In installed Bazzite, sign into `ares-recovery`, open Konsole and check:
+
+```bash
+id -u ares-recovery
+id -nG ares-recovery
+getent passwd ares
+getent passwd 1001
+sudo -v
+```
+
+Require `1000`, a group list containing `wheel`, **no output from either `getent`**, and successful sudo authentication with the recovery password. To perform the following maintenance, open a root shell with **`sudo -i`**. Root's direct login remains locked. Run each block separately and stop on any error. Keep AC connected, lid open, and all boot writes on Crucial; repartition neither disk.
+
+### Retain stock Bazzite and authenticate the private pull
+
+First identify and pin the actually booted stock deployment. This is the same checksum/index selection used by CI; it refuses a pending staged deployment:
+
+```bash
+python3 - <<'PY'
+import json, subprocess
+status = json.loads(subprocess.check_output(['rpm-ostree', 'status', '--json']))
+booted = [(i, d) for i, d in enumerate(status['deployments']) if d.get('booted')]
+assert len(booted) == 1 and not any(d.get('staged') for d in status['deployments']), status
+index, deployment = booted[0]
+assert 'bazzite-nvidia-open' in deployment.get('container-image-reference', ''), deployment
+subprocess.run(['ostree', 'admin', 'pin', str(index)], check=True)
+print('Pinned booted stock deployment:', deployment['checksum'])
+PY
+bootc status --json
+```
+
+Record the printed stock checksum, its image reference and current GRUB entry privately with record C. Require **`status.booted.image.imageDigest`** to equal the upstream SHA-256 above, with no layered packages or local OS modifications. Its origin reference may end in `:stable`; the payload digest, rather than that mutable tag, identifies the tested stock contents. An older/newer ISO deployment is outside this tested recipe. Do not discard the pinned deployment after this switch.
+
+GitHub currently supports **personal access tokens (classic)** for private GHCR pulls; a fine-grained PAT cannot do this. Create a **classic token with only `read:packages`**, an expiry and no `repo`, write or delete scope, from [GitHub's token settings](https://github.com/settings/tokens/new?scopes=read:packages). This classic scope is not restricted to this one package. The account must have read access to this private package; the owner is `carlsenares`. Keep the token in the owner's password manager, never Git, the install record, screenshots or shell command arguments. CI uses only its temporary built-in `GITHUB_TOKEN`.
+
+In the root shell:
+
+```bash
+install -d -m 0700 /etc/ostree
+podman login --authfile /etc/ostree/auth.json --username carlsenares ghcr.io
+chmod 0600 /etc/ostree/auth.json
+```
+
+Paste the read-only token only at the hidden **Password** prompt; require **Login Succeeded**. `/etc/ostree/auth.json` is root-owned mode 0600 and contains reusable, base64-encoded credentials, not encrypted storage. Bootc reads this persistent file across reboots. Exclude it from shared evidence and world backups; reissue the token during recovery. To rotate, repeat the login with the replacement token and then revoke the old token in GitHub. An expired/revoked token blocks new pulls; the installed and retained deployments remain bootable.
+
+Verify the exact release using Bazzite's installed cosign and this workflow certificate identity:
+
+```bash
+install -d -m 0700 /run/aresos-registry
+ln -sfn /etc/ostree/auth.json /run/aresos-registry/config.json
+DOCKER_CONFIG=/run/aresos-registry cosign verify \
+  --certificate-identity 'https://github.com/carlsenares/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/06-image-release' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  'ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402'
+```
+
+Require successful verification and the exact release digest in the signed payload. A failure stops the switch. The signature uses GitHub OIDC and an ephemeral certificate, with no stored signing key. Sigstore's public transparency log exposes the signing repository/workflow identity and image digest; image layers remain private. Signature trust is separate from firmware Secure Boot, which stays off.
+
+### Switch, reboot, and check recovery
+
+Run the transaction in its own block. The subshell stops on failure and returns to your root prompt:
+
+```bash
+(
+set -euo pipefail
+bootc switch --retain ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402
+)
+```
+
+**If the transaction prints an error, stop and don't reboot.** After success, run the inspection separately:
+
+```bash
+bootc status --json
+```
+
+Read the output before continuing: require **`status.staged.image.image.image`** to equal the full release reference above and **`status.staged.image.imageDigest`** to equal its `sha256:362a…c402` digest. The booted deployment must still have your recorded stock checksum; `status.rollbackQueued` must be false. Stop on missing/mismatched identity or pull, authentication, signature, disk-space or staging errors; do not try a mutable tag, change signature policy, remove the pinned stock deployment or alter partitions. CI uses this same transaction → identity inspection → reboot order.
+
+Only after reading and accepting that checkpoint, reboot as its own step:
+
+```bash
+systemctl reboot
+```
+
+After reboot, expect **labwc with foot**, automatically running as `ares`. In that terminal, `id -u` must print **1001**. CI verified labwc/foot, GID 1001, the locked password and absence of wheel/sudo rights. **Super+Ctrl+Escape** opens another recovery terminal as the same daily user. **Ctrl+Alt+F3** opens an independent TTY: log in as **`ares-recovery`** with its password, then run **`sudo -v`** to test password-authenticated administration. CI performed an actual QMP-keyboard login on tty3 and password-authenticated sudo there. Maintenance happens from that account with `sudo`, or `sudo -i` when a root shell is required. When finished, **exit any root shell** with `exit`, then run `sudo -k` as `ares-recovery` and **log out of `ares-recovery`** with `exit`. Confirm tty3 shows the **login prompt** again. Only then press **Ctrl+Alt+F1** to return to labwc. Do not unlock `ares` or add it to `wheel`. Physical keyboard and hardware TTY behavior remain laptop checks.
+
+In the administrator TTY, `sudo bootc status --json` must show the release digest under **`status.booted.image`**, the recorded stock deployment under **`status.rollback`**, and no unexpected pending update. CI verified these deployment identities and compared the attached Linux disk before switch, after switch and after rollback. That comparison covers one file-backed Linux disk; protection of a real Windows disk remains the two-disk/hardware gate. Continue with §7 only after those release gates permit the trial, then repeat record B in Windows.
+
+The daily account cannot execute or read inherited Homebrew in `/var/home/linuxbrew`, write its prefix, or find brew on its session/login PATH. Boot tmpfiles applies a deny ACL only to reserved UID 1001 on that parent; existing owner UID 1000, files and other ACL entries are preserved. Brew setup/update/upgrade services remain masked alongside the other inherited updaters. CI ran the unchanged full updater audit and verified the original owner could run `brew --version` and write the prefix in all three deployments; it requested no install/update.
+
+### Roll back to the retained stock deployment
+
+If AresOS is usable enough for tty3, log in as `ares-recovery`, run `sudo -i`, and inspect `bootc status --json`. Require the rollback deployment to have the recorded stock checksum and Bazzite reference, with **`status.rollback.image.imageDigest`** equal to `sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151`. A `:stable` origin still rolls back to the retained local deployment; it does not fetch the tag again. If already booted into stock, use the identity-checked default step below instead of blindly running `bootc rollback`, which could select AresOS. Otherwise run the rollback transaction alone:
+
+```bash
+(
+set -euo pipefail
+bootc rollback
+)
+```
+
+**If the transaction prints an error, stop and don't reboot.** After success, inspect separately:
+
+```bash
+bootc status --json
+```
+
+Read the output: require **`status.rollbackQueued: true`**, no staged deployment, and the same recorded stock checksum/reference/digest under `status.rollback`. AresOS remains booted until the restart. If any identity differs, stop. Only then reboot in a separate step:
+
+```bash
+systemctl reboot
+```
+
+06c booted the exact retained stock checksum again, verified its display manager and password-protected administrator, and compared every attached-disk partition identity/boundary across stock, AresOS and rollback. The original owner still ran Homebrew 7.0.9 with the same brew script hash. Rollback restores that deployment's `/etc`; shared `/var` and home data are not rolled back or erased. The UID 1001 deny ACL remains on `/var/home/linuxbrew` without restricting owner UID 1000. To reverse it on stock if that UID later needs Homebrew, an administrator runs `sudo setfacl -x u:1001 /var/home/linuxbrew`; AresOS reapplies its rule on its next boot. Stock Bazzite's normal updater policy returns too. This OS rollback does not replace a data backup.
+
+If the new deployment cannot reach a TTY, use Bazzite's [GRUB previous-deployment recovery](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rolling_back_system_updates/): select the recorded stock/backup entry, normally `ostree:1` immediately after this single switch. Bazzite documents **Esc once, then ↓** if the menu is hidden. Match the recorded deployment, rather than assuming an index after further transactions. **Selecting stock in GRUB recovers that boot only. Complete the default step below before another unattended boot.** Do not format, repair Windows boot files or delete deployments to recover. F12 → Windows Boot Manager remains the everyday Windows return path.
+
+### Keep recovered stock as the default
+
+**GRUB recovery promotion: UNTESTED; open release gate.** 06e passed this command after normal `bootc rollback`, where stock was already first, followed by another default boot. That CI path does not select the previous GRUB entry once with AresOS still first; neither the index-changing recovery transaction nor physical menu interaction is qualified. The fixture regressions are not a boot rehearsal.
+
+After booting the recorded stock entry from GRUB, **or if already booted into stock**, sign into `ares-recovery` and run `sudo -i`. Substitute your privately recorded stock checksum for `REPLACE_WITH_RECORDED_STOCK_CHECKSUM` below; do not copy one from CI. This transaction checks the booted stock reference/digest/checksum, resolves its current index, refuses a staged update, and makes that deployment first. An already-default stock deployment is handled safely:
+
+```bash
+(
+set -euo pipefail
+python3 - <<'PY'
+import json, re, subprocess
+expected = 'REPLACE_WITH_RECORDED_STOCK_CHECKSUM'
+assert re.fullmatch(r'[0-9a-f]{64}', expected), 'Supply the privately recorded stock checksum'
+status = json.loads(subprocess.check_output(['bootc', 'status', '--json']))['status']
+stock = status['booted']
+assert stock['ostree']['checksum'] == expected, stock
+assert stock['image']['imageDigest'] == 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151', stock
+assert stock['image']['image']['image'].startswith(('ghcr.io/ublue-os/bazzite-nvidia-open@sha256:', 'ghcr.io/ublue-os/bazzite-nvidia-open:')), stock
+deployments = json.loads(subprocess.check_output(['rpm-ostree', 'status', '--json']))['deployments']
+assert not any(d.get('staged') for d in deployments), deployments
+booted = [(i, d) for i, d in enumerate(deployments) if d.get('booted')]
+assert len(booted) == 1 and booted[0][1]['checksum'] == expected, deployments
+index, deployment = booted[0]
+subprocess.run(['ostree', 'admin', 'set-default', str(index)], check=True)
+after = json.loads(subprocess.check_output(['rpm-ostree', 'status', '--json']))['deployments']
+assert after[0]['booted'] and after[0]['checksum'] == expected, after
+print('Default is the identity-checked booted stock deployment:', expected)
+PY
+)
+```
+
+**If the transaction prints an error, stop and don't reboot.** Inspect in a separate block:
+
+```bash
+rpm-ostree status --json
+bootc status --json
+```
+
+Read both outputs. Require the **first `deployments` entry** to be booted stock with your recorded checksum, the expected stock digest under `status.booted.image.imageDigest`, no staged deployment and `status.rollbackQueued: false`. Only then perform a **second reboot with no GRUB selection**:
+
+```bash
+systemctl reboot
+```
+
+Require the stock greeter again, then sign in and repeat the two status commands (using `sudo` for bootc if needed). Require the recorded stock identity to remain booted and first. Stop if AresOS returns or the identity differs. Stock's normal automatic updates return after recovery; a later stock update can intentionally change its checksum.
+
+Semantics checked against the [bootc rollback manual](https://bootc.dev/bootc/man/bootc-rollback.8.html), [OSTree set-default manual](https://github.com/ostreedev/ostree/blob/main/man/ostree-admin-set-default.xml) and [implementation](https://github.com/ostreedev/ostree/blob/main/src/ostree/ot-admin-builtin-set-default.c): rollback queues the rollback slot; set-default persistently moves the selected deployment to the front and writes the deployment list. This is why a blind rollback after booting stock from GRUB is not this recipe.
+
+**If the owner later chooses public visibility:** no such change is made here. Public pulls can omit the token/login/auth-file steps; the digest, signature check, account rules, switch and rollback stay the same. Remove local registry credentials and revoke the private-pull token only after verifying anonymous access. Changing visibility exposes every published image layer and remains an owner decision. [Current GHCR authentication/visibility docs](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry), [free container-storage/bandwidth policy checked 2026-10-22](https://docs.github.com/en/billing/concepts/product-billing/github-packages).
 
 ## 7. First AresOS check: plain terminal, no Minecraft yet
 
@@ -130,14 +310,18 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
 
 ## Maintainer release gate
 
-**Closed: work still to do, not results of this package.** Before allowing physical installation:
+- **DONE — 06e revised recipe and graphical rollback qualification:** [run 39851266266](https://github.com/carlsenares/AresOS/actions/runs/39851266266) passed the corrected Plasma Login observer, switch/rollback identity checkpoints, explicit negative assertions, real tty3 login/sudo/logout with the getty prompt confirmed, partition equality across four states, a visually inspected rendered rollback greeter and another stock default boot. The unchanged signed image and harness were used; one of two 06e full-run allowances was consumed. [Evidence](../reviews/06-image-release/REPORT.md#06e-vm-qualification-2026-10-22).
 
-- **Brief 06:** immutable accessible RTX image, verification, current-live-ISO name/hash, account/UID, switch/rollback and recovery controls. Explicitly reconcile its frozen legacy-ISO instruction; qualify legacy only if the current selected-drive automatic route fails safety requirements.
-- **Two-disk rehearsal:** file-backed VM with protected Windows-like EFI/MSR/NTFS/recovery disk and empty Linux disk; repeat with reordered, near-equal drives. Capture full destination/review/EFI screens. Compare **whole protected-disk hashes offline**, GUIDs, boundaries and boot files through install, rebase, rollback and undo. Reject every protected-disk write/mount/swap/shared EFI, including fallback files. Allow only separate Linux NVRAM addition/order changes, preserve Windows entry; test Windows with Linux disk absent. No physical passthrough.
-- **Media and followability:** pin writer/Bazzite/GParted versions/hashes, rehearse one ISO-file workflow and UEFI boots/record commands on expendable media. Unaided novice must set/test German before Konsole from an initially English session; map Crucial after renumbering; reject unexpected Crucial partitions and Micron EFI writes; start record B after reboot; and complete default undo without opening/erasing. Owner later boot-tests their preserved recovery stick.
-- **Helper:** live Windows/UEFI trials for original-ESP boot, disk renumbering, partition changes, unavailable BootCurrent and Windows booting from Crucial (must refuse undo). Confirm German power-state messages. Synthetic tests are insufficient.
-- **Fitting/firmware:** have Lenovo/service support qualify the fitting/thermal-parts instructions and supply a model-confirmed seating close-up, the applicable firmware storage-information screen and boot-order controls. In the novice trial, show a damaged-battery photo: the reader must stop before touching connectors/reconnecting power. On expendable hardware, require identification of fully/partly inserted and incorrectly supported SSDs **before touching the screw**. No guessed BIOS battery-disable or pad thickness. After release permits opening, the owner still must confirm actual slot vacancy, parts and both-drive detection in §3 **before installing the OS**.
-- **Safety + followability council:** review this draft and [OS-BASE §8 / Appendix C](design/OS-BASE.md#8-install-targets-image-delivery-and-choosing-an-os), with uncertainties/rehearsals visible.
+- **OPEN — GRUB recovery promotion (06d, UNTESTED):** boot the recorded previous stock entry once while AresOS remains the default, run the identity-checked `ostree admin set-default` step in §6, then reboot with no selection and prove stock stays first and booted. CI's normal rollback/default-stock repetition does not qualify this path. Physical menu/keyboard interaction also remains open.
+
+**Physical installation remains CLOSED.** The image switch/recovery/rollback gate is complete; every other gate below remains OPEN:
+
+- **DONE — Brief 06/06c image handoff:** §6 records the private signed RTX image, both official ISO hashes and the tested account/switch/rollback recipe. Two fresh AresOS boots, the full switched updater policy, inherited Homebrew denial for `ares` with owner access preserved, real tty3 administrator password/sudo and rollback to the retained stock checksum passed. Attached-disk partitions matched at all three stages; see the [06c report](../reviews/06-image-release/REPORT.md#06c-inherited-homebrew-qualification-2026-10-22). Legacy is identified only. The current-live ISO/selected-drive walkthrough and protected-Windows write audit are still required below.
+- **OPEN — Two-disk rehearsal:** file-backed VM with protected Windows-like EFI/MSR/NTFS/recovery disk and empty Linux disk; repeat with reordered, near-equal drives. Capture full destination/review/EFI screens. Compare **whole protected-disk hashes offline**, GUIDs, boundaries and boot files through install, rebase, rollback and undo. Reject every protected-disk write/mount/swap/shared EFI, including fallback files. Allow only separate Linux NVRAM addition/order changes, preserve Windows entry; test Windows with Linux disk absent. No physical passthrough.
+- **OPEN — Media and followability:** pin writer/Bazzite/GParted versions/hashes, rehearse one ISO-file workflow and UEFI boots/record commands on expendable media. Unaided novice must set/test German before Konsole from an initially English session; map Crucial after renumbering; reject unexpected Crucial partitions and Micron EFI writes; start record B after reboot; and complete default undo without opening/erasing. Owner later boot-tests their preserved recovery stick.
+- **OPEN — Helper:** live Windows/UEFI trials for original-ESP boot, disk renumbering, partition changes, unavailable BootCurrent and Windows booting from Crucial (must refuse undo). Confirm German power-state messages. Synthetic tests are insufficient.
+- **OPEN — Fitting/firmware:** have Lenovo/service support qualify the fitting/thermal-parts instructions and supply a model-confirmed seating close-up, the applicable firmware storage-information screen and boot-order controls. In the novice trial, show a damaged-battery photo: the reader must stop before touching connectors/reconnecting power. On expendable hardware, require identification of fully/partly inserted and incorrectly supported SSDs **before touching the screw**. No guessed BIOS battery-disable or pad thickness. After release permits opening, the owner still must confirm actual slot vacancy, parts and both-drive detection in §3 **before installing the OS**.
+- **OPEN — Safety + followability council:** review this draft and [OS-BASE §8 / Appendix C](design/OS-BASE.md#8-install-targets-image-delivery-and-choosing-an-os), with uncertainties/rehearsals visible.
 
 ## Dated sources and limits
 

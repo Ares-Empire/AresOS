@@ -1,0 +1,36 @@
+{
+  "brief": "06e",
+  "vm_acceptance": "met",
+  "full_runs_used": 1,
+  "full_runs_allowed": 2,
+  "checks_only_runs": 0,
+  "run": "https://github.com/carlsenares/AresOS/actions/runs/39851266266",
+  "tested_source": "613b826777836d59f15be96547654d725e1984de",
+  "harness_source": "5cbcfeaace2951e7f4e8fcabf480079fa1c2bd9a",
+  "release_from_run": 39818554327,
+  "payload_unchanged": true,
+  "job_seconds": 1854.0,
+  "rounded_job_minutes": 31,
+  "visually_inspected": [
+    "stock-bazzite",
+    "aresos-labwc",
+    "recovery-admin-tty3",
+    "recovery-tty3-logged-out",
+    "rollback-bazzite",
+    "persistent-stock-bazzite"
+  ],
+  "grub_recovery_promotion": "untested",
+  "physical_install": "gated",
+  "archives": [
+    {
+      "file": "06e-full-1-os-switch-evidence.zip",
+      "sha256": "sha256:ffe55c371a294c89ed1bebf536d5117aeabb5a583c1643b5be470d5c4a63ab1d",
+      "bytes": 5823826
+    }
+  ],
+  "raw_workflow": {
+    "file": "06e-full-1-workflow-raw.txt.gz",
+    "sha256": "ae3e6617ead4f94dc633d0035d515a7e29545ab2082409340921414a832bca3e",
+    "bytes": 37778
+  }
+}

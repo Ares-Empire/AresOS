@@ -1,0 +1,3 @@
+Original workflow preservation passed: 8 gzip hashes, decompression and normalized display-copy equality
+VM ACCEPTANCE NOT MET: first run failed before switch, second cancelled before guest; final 82-test checks-only success verified; original stock screenshot preserved unchanged
+Files passed: 39 JSON files, 131 local document links, 7 artifact hashes; unchanged runtime and tested harness

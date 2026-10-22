@@ -1,0 +1,20 @@
+{
+  "id": 12437390504,
+  "node_id": "MDg6QXJ0aWZhY3QxMjQzNzM5MDUwNA==",
+  "name": "os-image-evidence",
+  "size_in_bytes": 3216498,
+  "url": "https://api.github.com/repos/carlsenares/AresOS/actions/artifacts/12437390504",
+  "archive_download_url": "https://api.github.com/repos/carlsenares/AresOS/actions/artifacts/12437390504/zip",
+  "expired": false,
+  "digest": "sha256:30cd14942f93f6fbcddba2ba03852bb661de1c209b0fdbfb98075e04a1d0b3c4",
+  "created_at": "2026-10-22T15:20:28Z",
+  "updated_at": "2026-10-22T15:20:28Z",
+  "expires_at": "2026-10-25T15:20:27Z",
+  "workflow_run": {
+    "id": 39796347427,
+    "repository_id": 1428762847,
+    "head_repository_id": 1428762847,
+    "head_branch": "pkg/06-image-release",
+    "head_sha": "01aae1e38ec11356677f526692783c14b89a1d4d"
+  }
+}

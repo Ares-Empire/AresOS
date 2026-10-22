@@ -1,0 +1,9 @@
+ tree key (EXTENT_TREE ROOT_ITEM 0) 76578816 level 2
+ tree key (DEV_TREE ROOT_ITEM 0) 31260672 level 0
+ tree key (FS_TREE ROOT_ITEM 0) 30670848 level 0
+ tree key (CSUM_TREE ROOT_ITEM 0) 76742656 level 2
+ tree key (UUID_TREE ROOT_ITEM 0) 30507008 level 0
+ tree key (FREE_SPACE_TREE ROOT_ITEM 0) 76627968 level 1
+ tree key (BLOCK_GROUP_TREE ROOT_ITEM 0) 76873728 level 0
+ tree key (256 ROOT_ITEM 0) 76906496 level 2
+ tree key (DATA_RELOC_TREE ROOT_ITEM 0) 30556160 level 0

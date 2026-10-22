@@ -1,0 +1,34 @@
+[?2004hARESOS_ROOT> [?2004l
+
+
+Broadcast message from root@bazzite on pts/1 (Thu 2026-10-22 19:11:41 UTC):
+
+The system will reboot now!
+
+[?2004hARESOS_ROOT> ]3008;end=0b55453050c3497b9ee2bdda142d3a78\]3008;end=6309b82da4fb4ecab96c66ea4435544f\[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H]3008;end=f2504ab5bd7f4d2b94586[   77.539636] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[   77.545312] systemd-shutdown[1]: Unmounting file systems.
+[   77.548068] (sd-remount)[2370]: Remounting '/var' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   77.565430] (sd-umount)[2372]: Unmounting '/var'.
+[   77.567779] (sd-umount)[2373]: Unmounting '/run/credentials/systemd-journald.service'.
+[   77.570350] (sd-remount)[2374]: Remounting '/sysroot' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   77.573925] (sd-umount)[2375]: Unmounting '/sysroot'.
+[   77.575767] (sd-remount)[2376]: Remounting '/etc' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   77.579455] (sd-umount)[2377]: Unmounting '/etc'.
+[   77.581155] systemd-shutdown[1]: All filesystems unmounted.
+[   77.582118] systemd-shutdown[1]: Deactivating swaps.
+[   77.583442] systemd-shutdown[1]: All swaps deactivated.
+[   77.584719] systemd-shutdown[1]: Detaching loop devices.
+[   77.586244] systemd-shutdown[1]: All loop devices detached.
+[   77.587640] systemd-shutdown[1]: Stopping MD devices.
+[   77.589070] systemd-shutdown[1]: All MD devices stopped.
+[   77.590387] systemd-shutdown[1]: Detaching DM devices.
+[   77.591776] systemd-shutdown[1]: All DM devices detached.
+[   77.593215] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[   77.596035] watchdog: watchdog0: watchdog did not stop!
+[   77.607639] systemd-shutdown[1]: Syncing filesystems and block devices.
+[   77.608921] systemd-shutdown[1]: Rebooting.
+[   77.624110] Console: switching to colour dummy device 80x25
+[   77.648316] ACPI: PM: Preparing to enter system sleep state S5
+[   77.649682] kvm: exiting hardware virtualization
+[   77.650877] reboot: Restarting system
+[   77.651783] reboot: machine restart

@@ -1,0 +1,15 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+
+User=1000[m
+Name=ares-recovery[m
+TTY=tty3[m
+Type=tty[m
+Active=yes[m
+
+[K
+ARESOS_CMD_DONE:0

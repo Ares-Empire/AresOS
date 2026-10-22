@@ -1,0 +1,20 @@
+{
+  "id": 12442907948,
+  "node_id": "MDg6QXJ0aWZhY3QxMjQ0MjkwNzk0OA==",
+  "name": "release-inputs",
+  "size_in_bytes": 31046,
+  "url": "https://api.github.com/repos/carlsenares/AresOS/actions/artifacts/12442907948",
+  "archive_download_url": "https://api.github.com/repos/carlsenares/AresOS/actions/artifacts/12442907948/zip",
+  "expired": false,
+  "digest": "sha256:31defe01f2871366ddd6666ca70f7dec01ad66e898c08881836ec41d62f0b6ff",
+  "created_at": "2026-10-22T16:57:59Z",
+  "updated_at": "2026-10-22T16:57:59Z",
+  "expires_at": "2026-10-25T16:57:58Z",
+  "workflow_run": {
+    "id": 39818451208,
+    "repository_id": 1428762847,
+    "head_repository_id": 1428762847,
+    "head_branch": "pkg/06-image-release",
+    "head_sha": "5578ab21b880091f26bfdc2eda22dd4f304a602b"
+  }
+}

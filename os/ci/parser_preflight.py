@@ -20,8 +20,8 @@ def main():
     escaped = r'aresos-parser\x2dprobe.service'
     alias = 'aresos-parser-alias.service'
     target = 'aresos-parser-probe.target'
-    user = ['runuser', '-u', 'ares', '--', 'env', 'XDG_RUNTIME_DIR=/run/user/1000',
-            'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus', 'systemctl', '--user']
+    user = ['runuser', '-u', 'ares', '--', 'env', 'XDG_RUNTIME_DIR=/run/user/1001',
+            'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus', 'systemctl', '--user']
     for scope, command in (('system', ['systemctl']), ('user', user)):
         directory = pathlib.Path('/run/systemd') / scope
         directory.mkdir(parents=True, exist_ok=True)

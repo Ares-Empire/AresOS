@@ -1,0 +1,43 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
++ stage=rollback
++ prefix=/var/home/linuxbrew/.linuxbrew
++ brew=/var/home/linuxbrew/.linuxbrew/bin/brew
++ test -f /var/home/linuxbrew/.linuxbrew/bin/brew
+++ stat -c %u /var/home/linuxbrew/.linuxbrew
++ test 1000 = 1000
+++ readlink -f /var/home/linuxbrew/.linuxbrew/bin/brew
++ stat -c '%n owner=%u:%g mode=%a' /var/home/linuxbrew /var/home/linuxbrew/.linuxbrew /var/home/linuxbrew/.linuxbrew/Homebrew/bin/brew
+/var/home/linuxbrew owner=1000:1000 mode=755
+/var/home/linuxbrew/.linuxbrew owner=1000:1000 mode=755
+/var/home/linuxbrew/.linuxbrew/Homebrew/bin/brew owner=1000:1000 mode=755
++ getfacl -n /var/home/linuxbrew
+getfacl: Removing leading '/' from absolute path names
+# file: var/home/linuxbrew
+# owner: 1000
+# group: 1000
+user::rwx
+user:1001:---
+group::r-x
+mask::r-x
+other::r-x
+
+++ readlink -f /var/home/linuxbrew/.linuxbrew/bin/brew
++ sha256sum /var/home/linuxbrew/.linuxbrew/Homebrew/bin/brew
+c9a27029eb72dab04f4595041f7670bb03b4cb467297abba817883afb23e0bf3  /var/home/linuxbrew/.linuxbrew/Homebrew/bin/brew
++ runuser -u ares-recovery -- test -w /var/home/linuxbrew/.linuxbrew
++ runuser -u ares-recovery -- env HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ANALYTICS=1 /var/home/linuxbrew/.linuxbrew/bin/brew --version
+Homebrew 7.0.9
++ [[ rollback == aresos ]]
++ echo INHERITED_HOMEBREW_STOCK_OWNER_WORKING
+INHERITED_HOMEBREW_STOCK_OWNER_WORKING
+
+ARESOS_CMD_DONE:0

@@ -10,8 +10,8 @@ if [[ ${1:-} == --base ]]; then
 fi
 cleanup() {
     # Preserve the failing manager's diagnostics before removing the container.
-    sudo podman exec "$container" systemctl status dbus.service user@1000.service --no-pager > evidence/fedora-container-status.txt 2>&1 || true
-    sudo podman exec "$container" journalctl --no-pager -b -u user@1000.service > evidence/fedora-container-user-journal.txt 2>&1 || true
+    sudo podman exec "$container" systemctl status dbus.service user@1001.service --no-pager > evidence/fedora-container-status.txt 2>&1 || true
+    sudo podman exec "$container" journalctl --no-pager -b -u user@1001.service > evidence/fedora-container-user-journal.txt 2>&1 || true
     sudo podman logs "$container" > evidence/fedora-container-console.txt 2>&1
     sudo podman rm --force "$container" > /dev/null
 }
@@ -28,7 +28,7 @@ for attempt in {1..60}; do
 done
 test "$(sudo podman exec "$container" systemctl show basic.target --property=ActiveState --value)" = active
 if [[ ${1:-} == --base ]]; then
-    sudo podman exec "$container" useradd --uid 1000 --user-group --no-create-home --home-dir /var/home/ares --shell /bin/bash ares
+    sudo podman exec "$container" useradd --uid 1001 --user-group --no-create-home --home-dir /var/home/ares --shell /bin/bash ares
 fi
-sudo podman exec "$container" systemctl start dbus.service user@1000.service
+sudo podman exec "$container" systemctl start dbus.service user@1001.service
 sudo podman exec "$container" python3 /usr/libexec/aresos-parser-preflight.py

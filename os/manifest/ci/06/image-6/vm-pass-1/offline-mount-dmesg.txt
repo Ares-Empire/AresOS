@@ -1,0 +1,863 @@
+[    0.000000] Linux version 7.0.0-1017-azure (buildd@lcy02-amd64-066) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 (Ubuntu 7.0.0-1017.17~24.04.1-azure 7.0.14)
+[    0.000000] Command line: BOOT_IMAGE=/vmlinuz-7.0.0-1017-azure root=PARTUUID=bf2112e8-55c1-4004-bfdb-226a5c9579d1 ro console=tty1 console=ttyS0 earlyprintk=ttyS0 nvme_core.io_timeout=240 rootflags=nobarrier,data=writeback,journal_async_commit,commit=30 panic=-1
+[    0.000000] KERNEL supported cpus:
+[    0.000000]   Intel GenuineIntel
+[    0.000000]   AMD AuthenticAMD
+[    0.000000]   Hygon HygonGenuine
+[    0.000000]   Centaur CentaurHauls
+[    0.000000]   zhaoxin   Shanghai
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009ffff]  System RAM
+[    0.000000] BIOS-e820: [gap 0x00000000000a0000-0x00000000000bffff]
+[    0.000000] BIOS-e820: [mem 0x00000000000c0000-0x00000000000fffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x00000000044fdfff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x00000000044fe000-0x00000000048fdfff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x00000000048fe000-0x000000003ff1efff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000003ff1f000-0x000000003ffc8fff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x000000003ffc9000-0x000000003fffafff]  ACPI data
+[    0.000000] BIOS-e820: [mem 0x000000003fffb000-0x000000003fffefff]  ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x000000003ffff000-0x000000003fffffff]  System RAM
+[    0.000000] BIOS-e820: [gap 0x0000000040000000-0x00000000ffffffff]
+[    0.000000] BIOS-e820: [mem 0x0000000100000000-0x00000002bfffffff]  System RAM
+[    0.000000] printk: legacy bootconsole [earlyser0] enabled
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] efi: EFI v2.7 by Microsoft
+[    0.000000] efi: ACPI=0x3fffa000 ACPI 2.0=0x3fffa014 SMBIOS=0x3ff88000 SMBIOS 3.0=0x3ff86000 MEMATTR=0x3efae018 MOKvar=0x3ff83000 RNG=0x3ffd2018
+[    0.000000] random: crng init done
+[    0.000000] SMBIOS 3.1.0 present.
+[    0.000000] DMI: Microsoft Corporation Virtual Machine/Virtual Machine, BIOS Hyper-V UEFI Release v4.1 04/22/2026
+[    0.000000] DMI: Memory slots populated: 2/2
+[    0.000000] secureboot: Secure boot disabled
+[    0.000000] Hypervisor detected: Microsoft Hyper-V
+[    0.000000] Hyper-V: privilege flags low 0xae7f, high 0x3b8030, ext 0x22, hints 0x140c2c, misc 0xc0bed7b2
+[    0.000000] Hyper-V: HV timer won't be used due to unstable TSC
+[    0.000000] Hyper-V: Nested features: 0x4a0000
+[    0.000000] Hyper-V: LAPIC Timer Frequency: 0x30d40
+[    0.000000] Hyper-V: Using hypercall for remote TLB flush
+[    0.000000] clocksource: hyperv_clocksource_tsc_page: mask: 0xffffffffffffffff max_cycles: 0x24e6a1710, max_idle_ns: 440795202120 ns
+[    0.000000] clocksource: hyperv_clocksource_msr: mask: 0xffffffffffffffff max_cycles: 0x24e6a1710, max_idle_ns: 440795202120 ns
+[    0.000000] tsc: Detected 2445.430 MHz processor
+[    0.000008] e820: update [mem 0x00000000-0x00000fff] System RAM ==> device reserved
+[    0.000012] e820: remove [mem 0x000a0000-0x000fffff] System RAM
+[    0.000018] last_pfn = 0x2c0000 max_arch_pfn = 0x400000000
+[    0.002551] MTRR map: 4 entries (2 fixed + 2 variable; max 18), built from 8 variable MTRRs
+[    0.010563] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT
+[    0.013741] e820: update [mem 0x40000000-0xffffffff] System RAM ==> device reserved
+[    0.015150] last_pfn = 0x40000 max_arch_pfn = 0x400000000
+[    0.021353] Using GB pages for direct mapping
+[    0.023673] secureboot: Secure boot disabled
+[    0.025628] ACPI: Early table checksum verification disabled
+[    0.028222] ACPI: RSDP 0x000000003FFFA014 000024 (v02 VRTUAL)
+[    0.030855] ACPI: XSDT 0x000000003FFF90E8 00005C (v01 VRTUAL MICROSFT 00000001 MSFT 00000001)
+[    0.035260] ACPI: FACP 0x000000003FFF8000 000114 (v06 VRTUAL MICROSFT 00000001 MSFT 00000001)
+[    0.039217] ACPI: DSDT 0x000000003FFD6000 01E22B (v02 MSFTVM DSDT01   00000001 INTL 20230628)
+[    0.043099] ACPI: FACS 0x000000003FFFE000 000040
+[    0.045166] ACPI: OEM0 0x000000003FFF7000 000064 (v01 VRTUAL MICROSFT 00000001 MSFT 00000001)
+[    0.049072] ACPI: SPCR 0x000000003FFF6000 000050 (v02 VRTUAL MICROSFT 00000001 MSFT 00000001)
+[    0.053347] ACPI: WAET 0x000000003FFF5000 000028 (v01 VRTUAL MICROSFT 00000001 MSFT 00000001)
+[    0.057324] ACPI: APIC 0x000000003FFD5000 000058 (v04 VRTUAL MICROSFT 00000001 MSFT 00000001)
+[    0.061225] ACPI: SRAT 0x000000003FFD4000 000230 (v02 VRTUAL MICROSFT 00000001 MSFT 00000001)
+[    0.065074] ACPI: BGRT 0x000000003FFD3000 000038 (v01 VRTUAL MICROSFT 00000001 MSFT 00000001)
+[    0.069460] ACPI: Reserving FACP table memory at [mem 0x3fff8000-0x3fff8113]
+[    0.072702] ACPI: Reserving DSDT table memory at [mem 0x3ffd6000-0x3fff422a]
+[    0.075906] ACPI: Reserving FACS table memory at [mem 0x3fffe000-0x3fffe03f]
+[    0.079104] ACPI: Reserving OEM0 table memory at [mem 0x3fff7000-0x3fff7063]
+[    0.082649] ACPI: Reserving SPCR table memory at [mem 0x3fff6000-0x3fff604f]
+[    0.086154] ACPI: Reserving WAET table memory at [mem 0x3fff5000-0x3fff5027]
+[    0.089387] ACPI: Reserving APIC table memory at [mem 0x3ffd5000-0x3ffd5057]
+[    0.092643] ACPI: Reserving SRAT table memory at [mem 0x3ffd4000-0x3ffd422f]
+[    0.095882] ACPI: Reserving BGRT table memory at [mem 0x3ffd3000-0x3ffd3037]
+[    0.099737] ACPI: SRAT: Node 0 PXM 0 [mem 0x00000000-0x3fffffff] hotplug
+[    0.102820] ACPI: SRAT: Node 0 PXM 0 [mem 0x100000000-0x2bfffffff] hotplug
+[    0.106066] ACPI: SRAT: Node 0 PXM 0 [mem 0x2c0000000-0xfbfffffff] hotplug
+[    0.109195] ACPI: SRAT: Node 0 PXM 0 [mem 0x1000000000-0xfcffffffff] hotplug
+[    0.112397] ACPI: SRAT: Node 0 PXM 0 [mem 0x10000000000-0x1ffffffffff] hotplug
+[    0.118962] ACPI: SRAT: Node 0 PXM 0 [mem 0x20000000000-0x3ffffffffff] hotplug
+[    0.122280] ACPI: SRAT: Node 0 PXM 0 [mem 0x40000000000-0x7ffffffffff] hotplug
+[    0.125521] ACPI: SRAT: Node 0 PXM 0 [mem 0x80000000000-0xfffffffffff] hotplug
+[    0.128792] ACPI: SRAT: Node 0 PXM 0 [mem 0x100000000000-0x1fffffffffff] hotplug
+[    0.132486] ACPI: SRAT: Node 0 PXM 0 [mem 0x200000000000-0x3fffffffffff] hotplug
+[    0.135844] ACPI: SRAT: Node 0 PXM 0 [mem 0x400000000000-0x7fffffffffff] hotplug
+[    0.139181] ACPI: SRAT: Node 0 PXM 0 [mem 0x800000000000-0xffffffffffff] hotplug
+[    0.142537] NUMA: Node 0 [mem 0x00001000-0x3fffffff] + [mem 0x100000000-0x2bfffffff] -> [mem 0x00001000-0x2bfffffff]
+[    0.147971] NODE_DATA(0) allocated [mem 0x2bffd5280-0x2bfffffff]
+[    0.151241] ACPI: PM-Timer IO Port: 0x408
+[    0.153318] ACPI: LAPIC_NMI (acpi_id[0x01] dfl dfl lint[0x1])
+[    0.156610] IOAPIC[0]: apic_id 2, version 17, address 0xfec00000, GSI 0-23
+[    0.159955] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.163534] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.166878] e820: update [mem 0x3efbe000-0x3efc4fff] System RAM ==> device reserved
+[    0.166886] ACPI: SPCR: console: uart,io,0x3f8,115200
+[    0.169550] CPU topo: Max. logical packages:   1
+[    0.172052] CPU topo: Max. logical nodes:      1
+[    0.174569] CPU topo: Num. nodes per package:  1
+[    0.177140] CPU topo: Max. logical dies:       1
+[    0.179617] CPU topo: Max. dies per package:   1
+[    0.182131] CPU topo: Max. threads per core:   2
+[    0.184714] CPU topo: Num. cores per package:     1
+[    0.187407] CPU topo: Num. threads per package:   2
+[    0.190139] CPU topo: Allowing 2 present CPUs plus 0 hotplug CPUs
+[    0.193457] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.197254] PM: hibernation: Registered nosave memory: [mem 0x000a0000-0x000fffff]
+[    0.201589] PM: hibernation: Registered nosave memory: [mem 0x044fe000-0x048fdfff]
+[    0.205851] PM: hibernation: Registered nosave memory: [mem 0x3efbe000-0x3efc4fff]
+[    0.210614] PM: hibernation: Registered nosave memory: [mem 0x3ff1f000-0x3fffefff]
+[    0.214371] PM: hibernation: Registered nosave memory: [mem 0x40000000-0xffffffff]
+[    0.218454] [gap 0x40000000-0xffffffff] available for PCI devices
+[    0.221255] Booting paravirtualized kernel on Hyper-V
+[    0.223565] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    0.230349] Zone ranges:
+[    0.231521]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.234307]   DMA32    [mem 0x0000000001000000-0x00000000ffffffff]
+[    0.237068]   Normal   [mem 0x0000000100000000-0x00000002bfffffff]
+[    0.240270]   Device   empty
+[    0.241648] Movable zone start for each node
+[    0.243754] Early memory node ranges
+[    0.245413]   node   0: [mem 0x0000000000001000-0x000000000009ffff]
+[    0.248242]   node   0: [mem 0x0000000000100000-0x00000000044fdfff]
+[    0.251536]   node   0: [mem 0x00000000048fe000-0x000000003ff1efff]
+[    0.254369]   node   0: [mem 0x000000003ffff000-0x000000003fffffff]
+[    0.257524]   node   0: [mem 0x0000000100000000-0x00000002bfffffff]
+[    0.260473] Initmem setup node 0 [mem 0x0000000000001000-0x00000002bfffffff]
+[    0.263702] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.266330] On node 0, zone DMA: 96 pages in unavailable ranges
+[    0.270878] On node 0, zone DMA32: 1024 pages in unavailable ranges
+[    0.273798] On node 0, zone DMA32: 224 pages in unavailable ranges
+[    0.283042] setup_percpu: NR_CPUS:8192 nr_cpumask_bits:2 nr_cpu_ids:2 nr_node_ids:1
+[    0.286928] percpu: Embedded 85 pages/cpu s225280 r8192 d114688 u1048576
+[    0.289965] pcpu-alloc: s225280 r8192 d114688 u1048576 alloc=1*2097152
+[    0.289968] pcpu-alloc: [0] 0 1
+[    0.289983] Hyper-V: PV spinlocks enabled
+[    0.291896] PV qspinlock hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.295220] Kernel command line: BOOT_IMAGE=/vmlinuz-7.0.0-1017-azure root=PARTUUID=bf2112e8-55c1-4004-bfdb-226a5c9579d1 ro console=tty1 console=ttyS0 earlyprintk=ttyS0 nvme_core.io_timeout=240 rootflags=nobarrier,data=writeback,journal_async_commit,commit=30 panic=-1
+[    0.306371] printk: log buffer data + meta data: 262144 + 1114112 = 1376256 bytes
+[    0.310212] Dentry cache hash table entries: 1048576 (order: 11, 8388608 bytes, linear)
+[    0.314095] Inode-cache hash table entries: 524288 (order: 10, 4194304 bytes, linear)
+[    0.318061] software IO TLB: area num 2.
+[    0.327158] Fallback order for Node 0: 0
+[    0.327163] Built 1 zonelists, mobility grouping on.  Total pages: 2095807
+[    0.332135] Policy zone: Normal
+[    0.335183] mem auto-init: stack:all(zero), heap alloc:on, heap free:off
+[    0.350432] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+[    0.368444] ftrace: allocating 64706 entries in 256 pages
+[    0.370926] ftrace: allocated 256 pages with 1 groups
+[    0.373329] rcu: Hierarchical RCU implementation.
+[    0.375421] rcu: 	RCU restricting CPUs from NR_CPUS=8192 to nr_cpu_ids=2.
+[    0.378460] 	Trampoline variant of Tasks RCU enabled.
+[    0.380737] 	Rude variant of Tasks RCU enabled.
+[    0.383100] 	Tracing variant of Tasks RCU enabled.
+[    0.385253] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    0.388729] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+[    0.391720] RCU Tasks: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.395617] RCU Tasks Rude: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.403455] Using NULL legacy PIC
+[    0.405110] NR_IRQS: 524544, nr_irqs: 440, preallocated irqs: 0
+[    0.407853] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.411467] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    0.416164] Console: colour dummy device 80x25
+[    0.418164] printk: legacy console [tty1] enabled
+[    0.420620] printk: console [ttyS0] enabled
+[    0.424462] printk: legacy bootconsole [earlyser0] disabled
+[    0.429968] ACPI: Core revision 20251212
+[    0.431960] Failed to register legacy timer interrupt
+[    0.434321] APIC: Switch to symmetric I/O mode setup
+[    0.436655] Hyper-V: Hypervisor Build 10.0.26102.3704-3-0
+[    0.439179] Hyper-V: enabling crash_kexec_post_notifiers
+[    0.441692] Hyper-V: Using IPI hypercalls
+[    0.443571] APIC: send_IPI() replaced with hv_send_ipi()
+[    0.447924] APIC: send_IPI_mask() replaced with hv_send_ipi_mask()
+[    0.450840] APIC: send_IPI_mask_allbutself() replaced with hv_send_ipi_mask_allbutself()
+[    0.454708] APIC: send_IPI_allbutself() replaced with hv_send_ipi_allbutself()
+[    0.458322] APIC: send_IPI_all() replaced with hv_send_ipi_all()
+[    0.461366] APIC: send_IPI_self() replaced with hv_send_ipi_self()
+[    0.464260] Hyper-V: Using enlightened APIC (xapic mode)
+[    0.464270] APIC: eoi() replaced with hv_apic_eoi_write()
+[    0.469351] APIC: read() replaced with hv_apic_read()
+[    0.471765] APIC: write() replaced with hv_apic_write()
+[    0.474205] APIC: icr_write() replaced with hv_apic_icr_write()
+[    0.477300] APIC: icr_read() replaced with hv_apic_icr_read()
+[    0.480137] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x233fdbaba77, max_idle_ns: 440795254155 ns
+[    0.485032] Calibrating delay loop (skipped), value calculated using timer frequency.. 4890.86 BogoMIPS (lpj=2445430)
+[    0.486029] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.486029] Last level iTLB entries: 4KB 512, 2MB 512, 4MB 256
+[    0.486029] Last level dTLB entries: 4KB 2048, 2MB 2048, 4MB 1024, 1GB 0
+[    0.486029] mitigations: Enabled attack vectors: user_kernel, user_user, guest_host, guest_guest, SMT mitigations: auto
+[    0.486029] Speculative Store Bypass: Vulnerable
+[    0.486029] Speculative Return Stack Overflow: IBPB-extending microcode not applied!
+[    0.486029] Speculative Return Stack Overflow: WARNING: See https://kernel.org/doc/html/latest/admin-guide/hw-vuln/srso.html for mitigation options.
+[    0.486029] Transient Scheduler Attacks: Vulnerable: No microcode
+[    0.486029] Spectre V2 : Mitigation: Retpolines
+[    0.486029] Speculative Return Stack Overflow: Vulnerable: Safe RET, no microcode
+[    0.486029] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.486029] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    0.486029] active return thunk: srso_alias_return_thunk
+[    0.486029] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.486029] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.486029] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.486029] x86/fpu: Supporting XSAVE feature 0x800: 'Control-flow User registers'
+[    0.486029] x86/fpu: Supporting XSAVE feature 0x1000: 'Control-flow Kernel registers (KVM only)'
+[    0.486029] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.486029] x86/fpu: xstate_offset[11]:  832, xstate_sizes[11]:   16
+[    0.486029] x86/fpu: xstate_offset[12]:  848, xstate_sizes[12]:   24
+[    0.486029] x86/fpu: Enabled xstate features 0x1807, context size is 872 bytes, using 'compacted' format.
+[    0.486029] Freeing SMP alternatives memory: 56K
+[    0.486029] pid_max: default: 32768 minimum: 301
+[    0.486029] landlock: Up and running.
+[    0.486029] Yama: becoming mindful.
+[    0.486029] AppArmor: AppArmor initialized
+[    0.486029] AppArmor: AppArmor secmark mediation reserved: ready to be enabled
+[    0.486029] Mount-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.486029] Mountpoint-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.486029] VFS: Finished mounting rootfs on nullfs
+[    0.486029] smpboot: CPU0: AMD EPYC 7763 64-Core Processor (family: 0x19, model: 0x1, stepping: 0x1)
+[    0.486319] Performance Events: PMU not available due to virtualization, using software events only.
+[    0.487050] signal: max sigframe size: 1776
+[    0.488108] rcu: Hierarchical SRCU implementation.
+[    0.488113] rcu: 	Max phase no-delay instances is 400.
+[    0.490099] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.497088] NMI watchdog: Perf NMI watchdog permanently disabled
+[    0.498098] smp: Bringing up secondary CPUs ...
+[    0.499215] smpboot: x86: Booting SMP configuration:
+[    0.499229] .... node  #0, CPUs:      #1
+[    0.502056] smp: Brought up 1 node, 2 CPUs
+[    0.502075] smpboot: Total of 2 processors activated (9781.72 BogoMIPS)
+[    0.505142] Memory: 7158484K/8383228K available (23395K kernel code, 5003K rwdata, 16684K rodata, 5460K init, 5636K bss, 1216368K reserved, 0K cma-reserved)
+[    0.512616] devtmpfs: initialized
+[    0.512616] x86/mm: Memory block size: 128MB
+[    0.515152] ACPI: PM: Registering ACPI NVS region [mem 0x3fffb000-0x3fffefff] (16384 bytes)
+[    0.517051] posixtimers hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    0.517064] futex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).
+[    0.517852] PM: RTC time: 14:30:45, date: 2026-10-22
+[    0.528861] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.529227] DMA: preallocated 1024 KiB GFP_KERNEL pool for atomic allocations
+[    0.529305] DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    0.529381] DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    0.529402] audit: initializing netlink subsys (disabled)
+[    0.530292] thermal_sys: Registered thermal governor 'fair_share'
+[    0.530295] thermal_sys: Registered thermal governor 'bang_bang'
+[    0.530302] thermal_sys: Registered thermal governor 'step_wise'
+[    0.530310] thermal_sys: Registered thermal governor 'user_space'
+[    0.530316] thermal_sys: Registered thermal governor 'power_allocator'
+[    0.530335] audit: type=2000 audit(1792679445.045:1): state=initialized audit_enabled=0 res=1
+[    0.531038] cpuidle: using governor ladder
+[    0.534038] cpuidle: using governor menu
+[    0.541959] efi: Freeing EFI boot services memory: 20012K
+[    0.541968] acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+[    0.541968] e820: register RAM buffer resource [mem 0x044fe000-0x07ffffff]
+[    0.541968] e820: register RAM buffer resource [mem 0x3efbe000-0x3fffffff]
+[    0.541968] e820: register RAM buffer resource [mem 0x3ff1f000-0x3fffffff]
+[    0.542120] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    0.548776] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    0.548784] HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    0.548790] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.548795] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.563670] fbcon: Taking over console
+[    0.563721] ACPI: Added _OSI(Module Device)
+[    0.563733] ACPI: Added _OSI(Processor Device)
+[    0.563744] ACPI: Added _OSI(Processor Aggregator Device)
+[    0.593203] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    0.596068] ACPI: \_SB_: platform _OSC: OS support mask [006e7eff]
+[    0.596361] ACPI: Interpreter enabled
+[    0.596385] ACPI: PM: (supports S0 S5)
+[    0.596392] ACPI: Using IOAPIC for interrupt routing
+[    0.596504] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    0.596510] PCI: Ignoring E820 reservations for host bridge windows
+[    0.597186] ACPI: Enabled 1 GPEs in block 00 to 0F
+[    0.599201] iommu: Default domain type: Translated
+[    0.599208] iommu: DMA domain TLB invalidation policy: lazy mode
+[    0.602169] SCSI subsystem initialized
+[    0.602238] libata version 3.00 loaded.
+[    0.602276] ACPI: bus type USB registered
+[    0.602312] usbcore: registered new interface driver usbfs
+[    0.602330] usbcore: registered new interface driver hub
+[    0.602341] usbcore: registered new device driver usb
+[    0.602382] pps_core: LinuxPPS API ver. 1 registered
+[    0.602390] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.602399] PTP clock support registered
+[    0.602570] EDAC MC: Ver: 3.0.0
+[    0.602819] efivars: Registered efivars operations
+[    0.602955] hv_vmbus: hv_mmio=[mem 0x40000000-0xfed3ffff],[mem 0xfc0000000-0xfffffffff] fb=[mem 0x40000000-0x47ffffff]
+[    0.604069] hv_vmbus: Vmbus version:5.3
+[    0.606487] NetLabel: Initializing
+[    0.606493] NetLabel:  domain hash size = 128
+[    0.606501] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    0.606545] NetLabel:  unlabeled traffic allowed by default
+[    0.608101] mctp: management component transport protocol core
+[    0.608108] NET: Registered PF_MCTP protocol family
+[    0.608134] PCI: Using ACPI for IRQ routing
+[    0.608139] PCI: System does not support PCI
+[    0.608220] vgaarb: loaded
+[    0.610996] clocksource: Switched to clocksource tsc-early
+[    0.617532] VFS: Disk quotas dquot_6.6.0
+[    0.617558] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    0.624862] AppArmor: AppArmor Filesystem Enabled
+[    0.624900] pnp: PnP ACPI init
+[    0.625127] pnp: PnP ACPI: found 3 devices
+[    0.632524] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    0.632653] NET: Registered PF_INET protocol family
+[    0.632754] IP idents hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.657874] tcp_listen_portaddr_hash hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.657899] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.657936] TCP established hash table entries: 65536 (order: 7, 524288 bytes, linear)
+[    0.658084] TCP bind hash table entries: 65536 (order: 9, 2097152 bytes, linear)
+[    0.658242] TCP: Hash tables configured (established 65536 bind 65536)
+[    0.658320] MPTCP token hash table entries: 8192 (order: 6, 196608 bytes, linear)
+[    0.658363] UDP hash table entries: 4096 (order: 6, 262144 bytes, linear)
+[    0.658405] UDP-Lite hash table entries: 4096 (order: 6, 262144 bytes, linear)
+[    0.658504] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.658517] NET: Registered PF_XDP protocol family
+[    0.658532] PCI: CLS 0 bytes, default 64
+[    0.658549] PCI-DMA: Using software bounce buffering for IO (SWIOTLB)
+[    0.658555] software IO TLB: mapped [mem 0x000000003a878000-0x000000003e878000] (64MB)
+[    0.658765] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x233fdbaba77, max_idle_ns: 440795254155 ns
+[    0.659459] clocksource: Switched to clocksource tsc
+[    0.660162] Initialise system trusted keyrings
+[    0.660181] Key type blacklist registered
+[    0.660625] workingset: timestamp_bits=36 max_order=21 bucket_order=0
+[    0.661191] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.661379] fuse: init (API version 7.45)
+[    0.678339] integrity: Platform Keyring initialized
+[    0.678351] integrity: Machine keyring initialized
+[    0.695654] Key type asymmetric registered
+[    0.695660] Asymmetric key parser 'x509' registered
+[    0.695712] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 242)
+[    0.696624] io scheduler mq-deadline registered
+[    0.701595] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.701759] hv_vmbus: registering driver hv_pci
+[    0.704803] Serial: 8250/16550 driver, 32 ports, IRQ sharing enabled
+[    0.738989] 00:00: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    0.775353] 00:01: ttyS1 at I/O 0x2f8 (irq = 3, base_baud = 115200) is a 16550A
+[    0.779154] Linux agpgart interface v0.103
+[    0.789132] loop: module loaded
+[    0.789397] hv_vmbus: registering driver hv_storvsc
+[    0.789484] Key type psk registered
+[    0.790011] ACPI: bus type drm_connector registered
+[    0.790261] tun: Universal TUN/TAP device driver, 1.6
+[    0.790499] PPP generic driver version 2.4.2
+[    0.790598] hv_vmbus: registering driver hv_netvsc
+[    0.792602] scsi host1: storvsc_host_t
+[    0.797680] i8042: PNP: No PS/2 controller found.
+[    0.798179] mousedev: PS/2 mouse device common for all mice
+[    0.801685] rtc_cmos 00:02: registered as rtc0
+[    0.802142] rtc_cmos 00:02: setting system clock to 2026-10-22T14:30:45 UTC (1792679445)
+[    0.802370] rtc_cmos 00:02: alarms up to one month, 114 bytes nvram
+[    0.802421] device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+[    0.802446] device-mapper: uevent: version 1.0.3
+[    0.802499] scsi host0: storvsc_host_t
+[    0.802828] device-mapper: ioctl: 4.50.0-ioctl (2025-04-28) initialised: dm-devel@lists.linux.dev
+[    0.802839] amd_pstate: the _CPC object is not present in SBIOS or ACPI disabled
+[    0.803106] simple-framebuffer simple-framebuffer.0: [drm] Registered 1 planes with drm panic
+[    0.805681] scsi 0:0:0:0: Direct-Access     Msft     Virtual Disk     1.0  PQ: 0 ANSI: 5
+[    0.805708] [drm] Initialized simpledrm 1.0.0 for simple-framebuffer.0 on minor 0
+[    0.808414] Console: switching to colour frame buffer device 128x48
+[    0.809123] simple-framebuffer simple-framebuffer.0: [drm] fb0: simpledrmdrmfb frame buffer device
+[    0.809201] hv_utils: Registering HyperV Utility Driver
+[    0.809215] hv_vmbus: registering driver hv_utils
+[    0.809250] hv_vmbus: registering driver hv_balloon
+[    0.809306] drop_monitor: Initializing network drop monitor service
+[    0.809602] hv_utils: Heartbeat IC version 3.0
+[    0.810120] hv_utils: Shutdown IC version 3.2
+[    0.810275] hv_balloon: Using Dynamic Memory protocol version 2.0
+[    0.810387] hv_utils: TimeSync IC version 4.0
+[    0.827762] sd 0:0:0:0: [sda] 157286400 512-byte logical blocks: (80.5 GB/75.0 GiB)
+[    0.827791] sd 0:0:0:0: [sda] 4096-byte physical blocks
+[    0.827861] sd 0:0:0:0: [sda] Write Protect is off
+[    0.827880] sd 0:0:0:0: [sda] Mode Sense: 0f 00 10 00
+[    0.827963] sd 0:0:0:0: [sda] Write cache: disabled, read cache: enabled, supports DPO and FUA
+[    0.828859] sd 0:0:0:0: Attached scsi generic sg0 type 0
+[    0.942870]  sda: sda1 sda14 sda15 sda16
+[    0.943243] sd 0:0:0:0: [sda] Attached SCSI disk
+[    1.034405] NET: Registered PF_INET6 protocol family
+[    1.034890] Segment Routing with IPv6
+[    1.034918] In-situ OAM (IOAM) with IPv6
+[    1.034957] NET: Registered PF_PACKET protocol family
+[    1.035151] Key type dns_resolver registered
+[    1.040824] IPI shorthand broadcast: enabled
+[    1.044842] sched_clock: Marking stable (971007916, 73562797)->(1266357918, -221787205)
+[    1.053642] registered taskstats version 1
+[    1.057743] Loading compiled-in X.509 certificates
+[    1.059273] Loaded X.509 cert 'Build time autogenerated kernel key: 65b2e9bd5ac26f2053f40083e8a88fb72734af4a'
+[    1.060153] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing 2025 Kmod: d541cef61dc7e793b7eb7e899970a2eef0b5dc8c'
+[    1.061049] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing: 14df34d1a87cf37625abec039ef2bf521249b969'
+[    1.062151] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing 2025 Kmod: 4627603d2357a2a3f81006370894c221175893e9'
+[    1.063260] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing: 88f752e560a1e0737e31163a466ad7b70a850c19'
+[    1.063829] blacklist: Loading compiled-in revocation X.509 certificates
+[    1.064161] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing: 61482aa2830d0ab2ad5af10b7250da9033ddcef0'
+[    1.064489] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2017): 242ade75ac4a15e50d50c84b0d45ff3eae707a03'
+[    1.065051] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (ESM 2018): 365188c1d374d6b07c3c8f240f8ef722433d6a8b'
+[    1.065386] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2019): c0746fd6c5da3ae827864651ad66ae47fe24b3e8'
+[    1.065956] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v1): a8d54bbb3825cfb94fa13c9f8a594a195c107b8d'
+[    1.066275] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v2): 4cf046892d6fd3c9a5b03f98d845f90851dc6a8c'
+[    1.066842] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v3): 100437bb6de6e469b581e61cd66bce3ef4ed53af'
+[    1.067170] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (Ubuntu Core 2019): c1d57b8f6b743f23ee41f4f7ee292f06eecadfb9'
+[    1.081072] Demotion targets for Node 0: null
+[    1.082619] Key type .fscrypt registered
+[    1.082910] Key type fscrypt-provisioning registered
+[    1.083323] Key type big_key registered
+[    1.088663] Key type encrypted registered
+[    1.088949] AppArmor: AppArmor sha256 policy hashing enabled
+[    1.089215] ima: No TPM chip found, activating TPM-bypass!
+[    1.089488] Loading compiled-in module X.509 certificates
+[    1.090592] Loaded X.509 cert 'Build time autogenerated kernel key: 65b2e9bd5ac26f2053f40083e8a88fb72734af4a'
+[    1.090875] ima: Allocated hash algorithm: sha256
+[    1.091163] ima: No architecture policies found
+[    1.091461] evm: Initialising EVM extended attributes:
+[    1.091974] evm: security.selinux
+[    1.092245] evm: security.SMACK64
+[    1.092520] evm: security.SMACK64EXEC
+[    1.093017] evm: security.SMACK64TRANSMUTE
+[    1.093274] evm: security.SMACK64MMAP
+[    1.093529] evm: security.apparmor
+[    1.094033] evm: security.ima
+[    1.094286] evm: security.capability
+[    1.094532] evm: HMAC attrs: 0x1
+[    1.095474] integrity: Loading X.509 certificate: UEFI:db
+[    1.095995] integrity: Loaded X.509 cert 'Microsoft Windows Production PCA 2011: a92902398e16c49778cd90f99e4f9ae17c55af53'
+[    1.096249] integrity: Loading X.509 certificate: UEFI:db
+[    1.096527] integrity: Loaded X.509 cert 'Microsoft Corporation: Windows UEFI CA 2023: aefc5fbbbe055d8f8daa585473499417ab5a5272'
+[    1.099986] PM:   Magic number: 14:640:536
+[    1.100283] tty ttyS16: hash matches
+[    1.100542] port serial8250:0.15: hash matches
+[    1.101814] RAS: Correctable Errors collector initialized.
+[    1.102425] clk: Disabling unused clocks
+[    1.102827] PM: genpd: Disabling unused power domains
+[    1.136814] md: Waiting for all devices to be available before autodetect
+[    1.137100] md: If you don't use raid, use raid=noautodetect
+[    1.137360] md: Autodetecting RAID arrays.
+[    1.138626] md: autorun ...
+[    1.138885] md: ... autorun DONE.
+[    1.139717] EXT4-fs: Mount option(s) incompatible with ext3
+[    1.141473] EXT4-fs: Mount option(s) incompatible with ext2
+[    1.143411] EXT4-fs (sda1): barriers disabled
+[    1.147861] EXT4-fs (sda1): mounted filesystem 33a4613a-8e38-41e9-8f49-b335056a2a5f ro with writeback data mode. Quota mode: none.
+[    1.148360] VFS: Mounted root (ext4 filesystem) readonly on device 8:1.
+[    1.149107] devtmpfs: mounted
+[    1.150496] VFS: Pivoted into new rootfs
+[    1.155414] Freeing unused decrypted memory: 2028K
+[    1.157944] Freeing unused kernel image (initmem) memory: 5460K
+[    1.158209] Write protecting the kernel read-only data: 43008k
+[    1.164007] Freeing unused kernel image (text/rodata gap) memory: 1180K
+[    1.170135] Freeing unused kernel image (rodata/data gap) memory: 1748K
+[    1.241780] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    1.242041] Run /sbin/init as init process
+[    1.242265]   with arguments:
+[    1.242268]     /sbin/init
+[    1.242270]   with environment:
+[    1.242272]     HOME=/
+[    1.242274]     TERM=linux
+[    1.294833] systemd[1]: Inserted module 'autofs4'
+[    1.320173] systemd[1]: systemd 255.4-1ubuntu8.18 running in system mode (+PAM +AUDIT +SELINUX +APPARMOR +IMA +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBFDISK +PCRE2 -PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD -BPF_FRAMEWORK -XKBCOMMON +UTMP +SYSVINIT default-hierarchy=unified)
+[    1.321250] systemd[1]: Detected virtualization microsoft.
+[    1.321747] systemd[1]: Detected architecture x86-64.
+[    1.337174] systemd[1]: Hostname set to <runnervmxehtw>.
+[    1.595720] systemd[1]: Queued start job for default target graphical.target.
+[    1.604508] systemd[1]: Unnecessary job was removed for sys-devices-virtual-misc-vmbus\x21hv_vss.device - /sys/devices/virtual/misc/vmbus!hv_vss.
+[    1.605307] systemd[1]: Unnecessary job was removed for sys-devices-virtual-misc-vmbus\x21hv_fcopy.device - /sys/devices/virtual/misc/vmbus!hv_fcopy.
+[    1.606564] systemd[1]: Created slice azure.slice - Slice for Azure VM Agent and Extensions.
+[    1.622298] systemd[1]: Created slice system-modprobe.slice - Slice /system/modprobe.
+[    1.629038] systemd[1]: Created slice system-serial\x2dgetty.slice - Slice /system/serial-getty.
+[    1.635268] systemd[1]: Created slice system-systemd\x2dfsck.slice - Slice /system/systemd-fsck.
+[    1.642365] systemd[1]: Created slice user.slice - User and Session Slice.
+[    1.647299] systemd[1]: Started systemd-ask-password-wall.path - Forward Password Requests to Wall Directory Watch.
+[    1.653983] systemd[1]: Set up automount proc-sys-fs-binfmt_misc.automount - Arbitrary Executable File Formats File System Automount Point.
+[    1.665013] systemd[1]: Expecting device dev-disk-by\x2dlabel-BOOT.device - /dev/disk/by-label/BOOT...
+[    1.671537] systemd[1]: Expecting device dev-disk-by\x2duuid-5374\x2dBAC4.device - /dev/disk/by-uuid/5374-BAC4...
+[    1.677460] systemd[1]: Expecting device dev-ttyS0.device - /dev/ttyS0...
+[    1.683133] systemd[1]: Expecting device sys-devices-virtual-misc-vmbus\x21hv_kvp.device - /sys/devices/virtual/misc/vmbus!hv_kvp...
+[    1.689614] systemd[1]: Reached target integritysetup.target - Local Integrity Protected Volumes.
+[    1.695509] systemd[1]: Reached target slices.target - Slice Units.
+[    1.699739] systemd[1]: Reached target snapd.mounts-pre.target - Mounting snaps.
+[    1.704984] systemd[1]: Reached target snapd.mounts.target - Mounted snaps.
+[    1.709654] systemd[1]: Reached target swap.target - Swaps.
+[    1.713431] systemd[1]: Reached target time-set.target - System Time Set.
+[    1.718203] systemd[1]: Reached target veritysetup.target - Local Verity Protected Volumes.
+[    1.723681] systemd[1]: Listening on dm-event.socket - Device-mapper event daemon FIFOs.
+[    1.729134] systemd[1]: Listening on lvm2-lvmpolld.socket - LVM2 poll daemon socket.
+[    1.734686] systemd[1]: Listening on multipathd.socket - multipathd control socket.
+[    1.740078] systemd[1]: Listening on syslog.socket - Syslog Socket.
+[    1.748182] systemd[1]: Listening on systemd-coredump.socket - Process Core Dump Socket.
+[    1.754210] systemd[1]: Listening on systemd-fsckd.socket - fsck to fsckd communication Socket.
+[    1.760017] systemd[1]: Listening on systemd-initctl.socket - initctl Compatibility Named Pipe.
+[    1.772341] systemd[1]: Listening on systemd-journald-dev-log.socket - Journal Socket (/dev/log).
+[    1.778282] systemd[1]: Listening on systemd-journald.socket - Journal Socket.
+[    1.784224] systemd[1]: Listening on systemd-networkd.socket - Network Service Netlink Socket.
+[    1.790324] systemd[1]: systemd-pcrextend.socket - TPM2 PCR Extension (Varlink) was skipped because of an unmet condition check (ConditionSecurity=measured-uki).
+[    1.791539] systemd[1]: Listening on systemd-udevd-control.socket - udev Control Socket.
+[    1.801767] systemd[1]: Listening on systemd-udevd-kernel.socket - udev Kernel Socket.
+[    1.812684] systemd[1]: Mounting dev-hugepages.mount - Huge Pages File System...
+[    1.820642] systemd[1]: Mounting dev-mqueue.mount - POSIX Message Queue File System...
+[    1.828338] systemd[1]: Mounting sys-kernel-debug.mount - Kernel Debug File System...
+[    1.836833] systemd[1]: Mounting sys-kernel-tracing.mount - Kernel Trace File System...
+[    1.845992] systemd[1]: Starting systemd-journald.service - Journal Service...
+[    1.857670] systemd[1]: Starting keyboard-setup.service - Set the console keyboard layout...
+[    1.867762] systemd[1]: Starting kmod-static-nodes.service - Create List of Static Device Nodes...
+[    1.877524] systemd-journald[148]: Collecting audit messages is disabled.
+[    1.884088] systemd[1]: Starting lvm2-monitor.service - Monitoring of LVM2 mirrors, snapshots etc. using dmeventd or progress polling...
+[    1.898698] systemd[1]: Starting modprobe@configfs.service - Load Kernel Module configfs...
+[    1.909103] systemd[1]: Starting modprobe@dm_mod.service - Load Kernel Module dm_mod...
+[    1.927753] systemd[1]: Starting modprobe@drm.service - Load Kernel Module drm...
+[    1.956668] systemd[1]: Starting modprobe@efi_pstore.service - Load Kernel Module efi_pstore...
+[    1.963315] pstore: Using crash dump compression: deflate
+[    1.968234] systemd[1]: Starting modprobe@fuse.service - Load Kernel Module fuse...
+[    1.973597] pstore: Registered efi_pstore as persistent store backend
+[    1.978378] systemd[1]: Starting modprobe@loop.service - Load Kernel Module loop...
+[    1.987693] systemd[1]: Starting modprobe@nvme_fabrics.service - Load Kernel Module nvme_fabrics...
+[    1.995831] systemd[1]: netplan-ovs-cleanup.service - OpenVSwitch configuration for cleanup was skipped because of an unmet condition check (ConditionFileIsExecutable=/usr/bin/ovs-vsctl).
+[    2.003800] systemd[1]: Starting systemd-fsck-root.service - File System Check on Root Device...
+[    2.019065] systemd[1]: Starting systemd-modules-load.service - Load Kernel Modules...
+[    2.025632] systemd[1]: systemd-pcrmachine.service - TPM2 PCR Machine ID Measurement was skipped because of an unmet condition check (ConditionSecurity=measured-uki).
+[    2.026676] systemd[1]: systemd-tpm2-setup-early.service - TPM2 SRK Setup (Early) was skipped because of an unmet condition check (ConditionSecurity=measured-uki).
+[    2.035697] systemd[1]: Starting systemd-udev-trigger.service - Coldplug All udev Devices...
+[    2.041441] i2c_dev: i2c /dev entries driver
+[    2.050278] systemd[1]: Started systemd-journald.service - Journal Service.
+[    2.231416] EXT4-fs (sda1): re-mounted 33a4613a-8e38-41e9-8f49-b335056a2a5f r/w.
+[    2.266707] systemd-journald[148]: Received client request to flush runtime journal.
+[    2.273936] systemd-journald[148]: /var/log/journal/6b80cb66c24c4cf8ba62e40236d3cfda/system.journal: Journal file uses a different sequence number ID, rotating.
+[    2.274258] systemd-journald[148]: Rotating system journal.
+[    2.745051] hv_vmbus: registering driver hyperv_keyboard
+[    2.745961] input: AT Translated Set 2 keyboard as /devices/LNXSYSTM:00/LNXSYBUS:00/ACPI0004:00/MSFT1000:00/d34b2567-b9b6-42b9-8778-0a4ec0b955bf/serio0/input/input0
+[    2.746566] hv_vmbus: registering driver hyperv_drm
+[    2.752609] hyperv_drm 5620e0c7-8062-4dce-aeb7-520c7ef76171: [drm] Synthvid Version major 3, minor 5
+[    2.770697] Console: switching to colour dummy device 80x25
+[    2.776227] hyperv_drm 5620e0c7-8062-4dce-aeb7-520c7ef76171: [drm] Registered 1 planes with drm panic
+[    2.779635] [drm] Initialized hyperv_drm 1.0.0 for 5620e0c7-8062-4dce-aeb7-520c7ef76171 on minor 1
+[    2.785672] hid: raw HID events driver (C) Jiri Kosina
+[    2.907366] Console: switching to colour frame buffer device 128x48
+[    3.007519] hyperv_drm 5620e0c7-8062-4dce-aeb7-520c7ef76171: [drm] fb0: hyperv_drmdrmfb frame buffer device
+[    3.018910] hv_vmbus: registering driver hid_hyperv
+[    3.020298] input: Microsoft Vmbus HID-compliant Mouse as /devices/0006:045E:0621.0001/input/input1
+[    3.023899] hid-hyperv 0006:045E:0621.0001: input: VIRTUAL HID v0.01 Mouse [Microsoft Vmbus HID-compliant Mouse] on
+[    3.232648] kvm_amd: TSC scaling supported
+[    3.232670] kvm_amd: Nested Virtualization enabled
+[    3.232688] kvm_amd: Nested Paging enabled
+[    3.232706] kvm_amd: kvm_amd: Hyper-V enlightened NPT TLB flush enabled
+[    3.232716] kvm_amd: kvm_amd: Hyper-V Direct TLB Flush enabled
+[    3.232725] kvm_amd: Virtual VMLOAD VMSAVE supported
+[    3.232733] kvm_amd: PMU virtualization is disabled
+[    3.634575] workqueue: drm_fb_helper_damage_work hogged CPU for >10000us 4 times, consider switching to WQ_UNBOUND
+[    3.836292] EXT4-fs (sda16): mounted filesystem f47201a8-98fb-41f8-8a58-4a3db424effb r/w with ordered data mode. Quota mode: none.
+[    3.850586] workqueue: drm_fb_helper_damage_work hogged CPU for >10000us 5 times, consider switching to WQ_UNBOUND
+[    3.859128] hv_utils: KVP IC version 4.0
+[    4.251575] workqueue: drm_fb_helper_damage_work hogged CPU for >10000us 7 times, consider switching to WQ_UNBOUND
+[    4.352706] audit: type=1400 audit(1792679452.100:2): apparmor="STATUS" operation="profile_load" profile="unconfined" name="Discord" pid=439 comm="apparmor_parser"
+[    4.352728] audit: type=1400 audit(1792679452.100:3): apparmor="STATUS" operation="profile_load" profile="unconfined" name="1password" pid=438 comm="apparmor_parser"
+[    4.354888] audit: type=1400 audit(1792679452.103:4): apparmor="STATUS" operation="profile_load" profile="unconfined" name="QtWebEngineProcess" pid=444 comm="apparmor_parser"
+[    4.357056] audit: type=1400 audit(1792679452.105:5): apparmor="STATUS" operation="profile_load" profile="unconfined" name=4D6F6E676F444220436F6D70617373 pid=443 comm="apparmor_parser"
+[    4.367453] audit: type=1400 audit(1792679452.114:6): apparmor="STATUS" operation="profile_load" profile="unconfined" name="balena-etcher" pid=445 comm="apparmor_parser"
+[    4.367475] audit: type=1400 audit(1792679452.115:7): apparmor="STATUS" operation="profile_load" profile="unconfined" name="brave" pid=446 comm="apparmor_parser"
+[    4.372171] audit: type=1400 audit(1792679452.120:8): apparmor="STATUS" operation="profile_load" profile="unconfined" name="buildah" pid=447 comm="apparmor_parser"
+[    4.373416] audit: type=1400 audit(1792679452.121:9): apparmor="STATUS" operation="profile_load" profile="unconfined" name="cam" pid=448 comm="apparmor_parser"
+[    4.377363] audit: type=1400 audit(1792679452.124:10): apparmor="STATUS" operation="profile_load" profile="unconfined" name="ch-checkns" pid=449 comm="apparmor_parser"
+[    5.272452] /dev/sr0: Can't lookup blockdev
+[    5.354981] 8021q: 802.1Q VLAN Support v1.8
+[    5.417012] cfg80211: Loading compiled-in X.509 certificates for regulatory database
+[    5.417332] Loaded X.509 cert 'sforshee: 00b28ddf47aef9cea7'
+[    5.417537] Loaded X.509 cert 'wens: 61c038651aabdcf94bd0ac7ff06c7248db18c600'
+[    5.417641] faux_driver regulatory: Direct firmware load for regulatory.db failed with error -2
+[    5.417658] cfg80211: failed to load regulatory.db
+[   10.247849] ephemeral0: Can't lookup blockdev
+[   10.310331] systemd-fstab-generator[781]: Checking was requested for "ephemeral0", but it is not a device.
+[   10.310366] systemd-fstab-generator[781]: x-systemd.device-timeout ignored for ephemeral0
+[   11.711305] ephemeral0: Can't lookup blockdev
+[   12.083251] evm: overlay not supported
+[   12.734226] hv_netvsc 000d3a53-76f1-000d-3a53-76f1000d3a53 eth0: VF slot 1 added
+[   12.736985] hv_pci 9f341d86-f026-461e-ab19-2ccbbdd451c9: PCI VMBus probing: Using version 0x10004
+[   12.739942] hv_pci 9f341d86-f026-461e-ab19-2ccbbdd451c9: PCI host bridge to bus f026:00
+[   12.739963] pci_bus f026:00: root bus resource [mem 0xfc0000000-0xfc00fffff window]
+[   12.739977] pci_bus f026:00: No busn resource found for root bus, will use [bus 00-ff]
+[   12.742957] pci f026:00:02.0: [15b3:1016] type 00 class 0x020000 PCIe Endpoint
+[   12.749817] pci f026:00:02.0: BAR 0 [mem 0xfc0000000-0xfc00fffff 64bit pref]
+[   12.751047] pci f026:00:02.0: enabling Extended Tags
+[   12.763052] pci f026:00:02.0: 0.000 Gb/s available PCIe bandwidth, limited by Unknown x0 link at f026:00:02.0 (capable of 63.008 Gb/s with 8.0 GT/s PCIe x8 link)
+[   12.771609] pci_bus f026:00: busn_res: [bus 00-ff] end is updated to 00
+[   12.771634] pci f026:00:02.0: BAR 0 [mem 0xfc0000000-0xfc00fffff 64bit pref]: assigned
+[   12.896167] systemd-journald[148]: /var/log/journal/6b80cb66c24c4cf8ba62e40236d3cfda/user-1001.journal: Journal file uses a different sequence number ID, rotating.
+[   12.922031] kauditd_printk_skb: 113 callbacks suppressed
+[   12.922057] audit: type=1400 audit(1792679460.670:124): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="rsyslogd" pid=926 comm="apparmor_parser"
+[   13.409160] loop0: detected capacity change from 0 to 8
+[   13.494460] Adding 3145724k swap on /swapfile.  Priority:-1 extents:69 across:65077244k
+[   14.282625] audit: type=1400 audit(1792679462.030:125): apparmor="STATUS" operation="profile_replace" info="same as current profile, skipping" profile="unconfined" name="/usr/lib/snapd/snap-confine" pid=1189 comm="apparmor_parser"
+[   14.425218] audit: type=1400 audit(1792679462.173:126): apparmor="STATUS" operation="profile_load" profile="unconfined" name="docker-default" pid=1250 comm="apparmor_parser"
+[   14.877409] NET: Registered PF_QIPCRTR protocol family
+[   14.898135] mlx5_core f026:00:02.0: enabling device (0000 -> 0002)
+[   14.901107] mlx5_core f026:00:02.0: firmware version: 14.30.5034
+[   15.007130] Initializing XFRM netlink socket
+[   15.047301] mlx5_core f026:00:02.0: Flow counters bulk query buffer size increased, bulk_query_len(8)
+[   15.133568] hv_netvsc 000d3a53-76f1-000d-3a53-76f1000d3a53 eth0: VF registering: eth1
+[   15.133672] mlx5_core f026:00:02.0 eth1: joined to eth0
+[   15.134015] mlx5_core f026:00:02.0 eth1: Disabling LRO, not supported in legacy RQ
+[   15.134630] mlx5_core f026:00:02.0 eth1: Disabling LRO, not supported in legacy RQ
+[   15.134727] mlx5_core f026:00:02.0 eth1: Disabling LRO, not supported in legacy RQ
+[   15.134746] mlx5_core f026:00:02.0: MLX5E: StrdRq(0) RqSz(1024) StrdSz(256) RxCqeCmprss(0 basic)
+[   15.190848] mlx5_core f026:00:02.0 enP61478s1: renamed from eth1
+[   15.327082] mlx5_core f026:00:02.0 enP61478s1: Link up
+[   15.352420] hv_netvsc 000d3a53-76f1-000d-3a53-76f1000d3a53 eth0: Data path switched to VF: enP61478s1
+[   15.392120] MACsec IEEE 802.1AE
+[   15.392184] bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+[   15.632231] systemd-fstab-generator[1553]: Checking was requested for "ephemeral0", but it is not a device.
+[   15.632271] systemd-fstab-generator[1553]: x-systemd.device-timeout ignored for ephemeral0
+[   29.047014] systemd-fstab-generator[1805]: Checking was requested for "ephemeral0", but it is not a device.
+[   29.047045] systemd-fstab-generator[1805]: x-systemd.device-timeout ignored for ephemeral0
+[   29.327199] systemd-fstab-generator[1866]: Checking was requested for "ephemeral0", but it is not a device.
+[   29.327235] systemd-fstab-generator[1866]: x-systemd.device-timeout ignored for ephemeral0
+[   48.945939] hv_balloon: Max. dynamic memory size: 8192 MB
+[  211.388241] systemd-fstab-generator[3392]: Checking was requested for "ephemeral0", but it is not a device.
+[  211.388274] systemd-fstab-generator[3392]: x-systemd.device-timeout ignored for ephemeral0
+[  211.734314] systemd-fstab-generator[3456]: Checking was requested for "ephemeral0", but it is not a device.
+[  211.734347] systemd-fstab-generator[3456]: x-systemd.device-timeout ignored for ephemeral0
+[  212.037831] systemd-fstab-generator[3515]: Checking was requested for "ephemeral0", but it is not a device.
+[  212.037867] systemd-fstab-generator[3515]: x-systemd.device-timeout ignored for ephemeral0
+[  212.488816] systemd-fstab-generator[3575]: Checking was requested for "ephemeral0", but it is not a device.
+[  212.494931] systemd-fstab-generator[3575]: x-systemd.device-timeout ignored for ephemeral0
+[  224.445099] systemd-fstab-generator[3910]: Checking was requested for "ephemeral0", but it is not a device.
+[  224.446748] systemd-fstab-generator[3910]: x-systemd.device-timeout ignored for ephemeral0
+[  225.419100] systemd-fstab-generator[4002]: Checking was requested for "ephemeral0", but it is not a device.
+[  225.419136] systemd-fstab-generator[4002]: x-systemd.device-timeout ignored for ephemeral0
+[  226.198560] systemd-fstab-generator[4141]: Checking was requested for "ephemeral0", but it is not a device.
+[  226.198595] systemd-fstab-generator[4141]: x-systemd.device-timeout ignored for ephemeral0
+[  226.713746] systemd-fstab-generator[4229]: Checking was requested for "ephemeral0", but it is not a device.
+[  226.713779] systemd-fstab-generator[4229]: x-systemd.device-timeout ignored for ephemeral0
+[  227.529269] systemd-fstab-generator[4322]: Checking was requested for "ephemeral0", but it is not a device.
+[  227.530980] systemd-fstab-generator[4322]: x-systemd.device-timeout ignored for ephemeral0
+[  227.861312] systemd-fstab-generator[4396]: Checking was requested for "ephemeral0", but it is not a device.
+[  227.861345] systemd-fstab-generator[4396]: x-systemd.device-timeout ignored for ephemeral0
+[  603.207313] podman0: port 1(veth0) entered blocking state
+[  603.207339] podman0: port 1(veth0) entered disabled state
+[  603.207365] veth0: entered allmulticast mode
+[  603.207456] veth0: entered promiscuous mode
+[  603.209843] podman0: port 1(veth0) entered blocking state
+[  603.209866] podman0: port 1(veth0) entered forwarding state
+[  603.209973] podman0: port 1(veth0) entered disabled state
+[  603.210191] podman0: port 1(veth0) entered blocking state
+[  603.210220] podman0: port 1(veth0) entered forwarding state
+[  636.417202] podman0: port 1(veth0) entered disabled state
+[  636.418165] veth0 (unregistering): left allmulticast mode
+[  636.418188] veth0 (unregistering): left promiscuous mode
+[  636.418202] podman0: port 1(veth0) entered disabled state
+[  799.514318] podman0: port 1(veth0) entered blocking state
+[  799.514342] podman0: port 1(veth0) entered disabled state
+[  799.514368] veth0: entered allmulticast mode
+[  799.514449] veth0: entered promiscuous mode
+[  799.518699] podman0: port 1(veth0) entered blocking state
+[  799.518718] podman0: port 1(veth0) entered forwarding state
+[  799.652845] audit: type=1400 audit(1792680247.398:127): apparmor="STATUS" operation="profile_load" profile="podman" name="containers-default-0.57.4-apparmor1" pid=6976 comm="apparmor_parser"
+[  799.774221] podman0: port 1(veth0) entered disabled state
+[  799.774964] veth0 (unregistering): left allmulticast mode
+[  799.775706] veth0 (unregistering): left promiscuous mode
+[  799.775733] podman0: port 1(veth0) entered disabled state
+[  800.544272] podman0: port 1(veth0) entered blocking state
+[  800.544297] podman0: port 1(veth0) entered disabled state
+[  800.544320] veth0: entered allmulticast mode
+[  800.544397] veth0: entered promiscuous mode
+[  800.544852] podman0: port 1(veth0) entered blocking state
+[  800.544875] podman0: port 1(veth0) entered forwarding state
+[  818.201893] podman0: port 1(veth0) entered disabled state
+[  818.204218] veth0 (unregistering): left allmulticast mode
+[  818.204252] veth0 (unregistering): left promiscuous mode
+[  818.204273] podman0: port 1(veth0) entered disabled state
+[  967.523873] podman0: port 1(veth0) entered blocking state
+[  967.523900] podman0: port 1(veth0) entered disabled state
+[  967.523923] veth0: entered allmulticast mode
+[  967.524002] veth0: entered promiscuous mode
+[  967.526944] podman0: port 1(veth0) entered blocking state
+[  967.526965] podman0: port 1(veth0) entered forwarding state
+[  967.711993] podman0: port 1(veth0) entered disabled state
+[  967.712622] veth0 (unregistering): left allmulticast mode
+[  967.712644] veth0 (unregistering): left promiscuous mode
+[  967.712663] podman0: port 1(veth0) entered disabled state
+[  968.169051] podman0: port 1(veth0) entered blocking state
+[  968.169073] podman0: port 1(veth0) entered disabled state
+[  968.169099] veth0: entered allmulticast mode
+[  968.169178] veth0: entered promiscuous mode
+[  968.172798] podman0: port 1(veth0) entered blocking state
+[  968.172816] podman0: port 1(veth0) entered forwarding state
+[  968.361364] podman0: port 1(veth0) entered disabled state
+[  968.362605] veth0 (unregistering): left allmulticast mode
+[  968.362627] veth0 (unregistering): left promiscuous mode
+[  968.362642] podman0: port 1(veth0) entered disabled state
+[ 1611.913339] podman0: port 1(veth0) entered blocking state
+[ 1611.913362] podman0: port 1(veth0) entered disabled state
+[ 1611.913384] veth0: entered allmulticast mode
+[ 1611.913462] veth0: entered promiscuous mode
+[ 1611.917055] podman0: port 1(veth0) entered blocking state
+[ 1611.917081] podman0: port 1(veth0) entered forwarding state
+[ 1620.030464] podman0: port 1(veth0) entered disabled state
+[ 1620.031110] veth0 (unregistering): left allmulticast mode
+[ 1620.031150] veth0 (unregistering): left promiscuous mode
+[ 1620.031174] podman0: port 1(veth0) entered disabled state
+[ 1789.600406] podman0: port 1(veth0) entered blocking state
+[ 1789.600434] podman0: port 1(veth0) entered disabled state
+[ 1789.600459] veth0: entered allmulticast mode
+[ 1789.600547] veth0: entered promiscuous mode
+[ 1789.602549] podman0: port 1(veth0) entered blocking state
+[ 1789.602573] podman0: port 1(veth0) entered forwarding state
+[ 2081.158690] loop0: detected capacity change from 0 to 61849600
+[ 2081.631462] loop0: detected capacity change from 0 to 1026048
+[ 2082.070849] loop0: detected capacity change from 0 to 2097152
+[ 2082.526362] loop0: detected capacity change from 0 to 58720256
+[ 2083.033700] loop0: detected capacity change from 0 to 58720256
+[ 2083.178263] raid6: avx2x4   gen() 21648 MB/s
+[ 2083.195357] raid6: avx2x2   gen() 21247 MB/s
+[ 2083.212407] raid6: avx2x1   gen() 13636 MB/s
+[ 2083.212426] raid6: using algorithm avx2x4 gen() 21648 MB/s
+[ 2083.229405] raid6: .... xor() 5187 MB/s, rmw enabled
+[ 2083.229430] raid6: using avx2x2 recovery algorithm
+[ 2083.273051] xor: automatically using best checksumming function   avx
+[ 2083.509420] Btrfs loaded, zoned=yes, fsverity=yes
+[ 2083.511274] BTRFS: device label root devid 1 transid 8 /dev/loop0 (7:0) scanned by mount (9435)
+[ 2083.512460] BTRFS info (device loop0): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2083.512481] BTRFS info (device loop0): using crc32c checksum algorithm
+[ 2083.552634] BTRFS info (device loop0): checking UUID tree
+[ 2083.552708] BTRFS info (device loop0): turning on async discard
+[ 2083.552732] BTRFS info (device loop0): enabling free space tree
+[ 2083.885091] BTRFS info (device loop0): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2084.019450] loop0: detected capacity change from 0 to 61849600
+[ 2084.020036]  loop0: p1 p2 p3 p4
+[ 2084.159030] BTRFS: device label root devid 1 transid 9 /dev/loop0p4 (259:4) scanned by mount (9496)
+[ 2084.160312] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2084.160331] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2084.173575] BTRFS info (device loop0p4): turning on async discard
+[ 2084.173597] BTRFS info (device loop0p4): enabling free space tree
+[ 2084.173616] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2084.511747] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2084.648369] loop0: detected capacity change from 0 to 61849600
+[ 2084.648949]  loop0: p1 p2 p3 p4
+[ 2084.787832] BTRFS: device label root devid 1 transid 10 /dev/loop0p4 (259:4) scanned by mount (9549)
+[ 2084.788850] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2084.788871] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2084.814327] BTRFS info (device loop0p4): turning on async discard
+[ 2084.814347] BTRFS info (device loop0p4): enabling free space tree
+[ 2084.814367] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2084.910964] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2085.228310] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2085.246025] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2085.482768] loop0: detected capacity change from 0 to 61849600
+[ 2085.483490]  loop0: p1 p2 p3 p4
+[ 2085.613675] BTRFS: device label root devid 1 transid 10 /dev/loop0p4 (259:4) scanned by mount (9611)
+[ 2085.614297] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2085.614316] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2085.634382] BTRFS info (device loop0p4): turning on async discard
+[ 2085.634404] BTRFS info (device loop0p4): enabling free space tree
+[ 2085.634424] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2085.976983] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2086.501682] loop0: detected capacity change from 0 to 61849600
+[ 2086.502398]  loop0: p1 p2 p3 p4
+[ 2086.628729] BTRFS: device label root devid 1 transid 11 /dev/loop0p4 (259:4) scanned by mount (9669)
+[ 2086.629752] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2086.629773] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2086.641630] BTRFS info (device loop0p4): turning on async discard
+[ 2086.641649] BTRFS info (device loop0p4): enabling free space tree
+[ 2086.641666] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2086.737149] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2087.065697] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2087.084134] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2087.333249] loop0: detected capacity change from 0 to 61849600
+[ 2087.335423]  loop0: p1 p2 p3 p4
+[ 2087.465958] BTRFS: device label root devid 1 transid 11 /dev/loop0p4 (259:4) scanned by mount (9733)
+[ 2087.466222] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2087.466251] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2087.472858] BTRFS info (device loop0p4): turning on async discard
+[ 2087.472877] BTRFS info (device loop0p4): enabling free space tree
+[ 2087.472893] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2087.571495] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2088.258650] overlayfs: "xino" feature enabled using 2 upper inode bits.
+[ 2558.764523] EXT4-fs (loop0p3): re-mounted 63616cdc-c669-4f92-9456-4427079b88a6 ro.
+[ 2558.961022] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2559.887535] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2560.191150] loop0: detected capacity change from 0 to 61849600
+[ 2560.191862]  loop0: p1 p2 p3 p4
+[ 2560.320301] BTRFS: device label root devid 1 transid 40 /dev/loop0p4 (259:4) scanned by mount (10049)
+[ 2560.321270] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2560.321292] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2560.326418] BTRFS info (device loop0p4): turning on async discard
+[ 2560.326438] BTRFS info (device loop0p4): enabling free space tree
+[ 2560.326461] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2560.410286] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2561.236019] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2561.237483] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2561.432664] loop0: detected capacity change from 0 to 61849600
+[ 2561.433077]  loop0: p1 p2 p3 p4
+[ 2561.561264] BTRFS: device label root devid 1 transid 41 /dev/loop0p4 (259:4) scanned by mount (10122)
+[ 2561.561504] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2561.561536] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2561.565757] BTRFS info (device loop0p4): turning on async discard
+[ 2561.565776] BTRFS info (device loop0p4): enabling free space tree
+[ 2561.565793] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2561.651076] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2562.294592] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2562.296052] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2562.493780] loop0: detected capacity change from 0 to 61849600
+[ 2562.494276]  loop0: p1 p2 p3 p4
+[ 2562.615413] BTRFS: device label root devid 1 transid 42 /dev/loop0p4 (259:4) scanned by mount (10193)
+[ 2562.615795] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2562.615817] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2562.621827] BTRFS info (device loop0p4): turning on async discard
+[ 2562.621847] BTRFS info (device loop0p4): enabling free space tree
+[ 2562.621863] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2562.706264] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2563.343241] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2563.344552] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2563.537167] loop0: detected capacity change from 0 to 61849600
+[ 2563.537865]  loop0: p1 p2 p3 p4
+[ 2563.656892] BTRFS: device label root devid 1 transid 43 /dev/loop0p4 (259:4) scanned by mount (10264)
+[ 2563.657126] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2563.657166] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2563.667067] BTRFS info (device loop0p4): turning on async discard
+[ 2563.667087] BTRFS info (device loop0p4): enabling free space tree
+[ 2563.667105] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2563.750557] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2564.418099] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2564.419385] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2564.620672] loop0: detected capacity change from 0 to 61849600
+[ 2564.621090]  loop0: p1 p2 p3 p4
+[ 2564.748896] BTRFS: device label root devid 1 transid 44 /dev/loop0p4 (259:4) scanned by mount (10338)
+[ 2564.749197] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2564.749227] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2564.753550] BTRFS info (device loop0p4): turning on async discard
+[ 2564.753570] BTRFS info (device loop0p4): enabling free space tree
+[ 2564.753587] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2564.837103] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2565.477840] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2565.479090] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2565.670996] loop0: detected capacity change from 0 to 61849600
+[ 2565.671409]  loop0: p1 p2 p3 p4
+[ 2565.796797] BTRFS: device label root devid 1 transid 45 /dev/loop0p4 (259:4) scanned by mount (10409)
+[ 2565.797038] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2565.797070] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2565.806882] BTRFS info (device loop0p4): turning on async discard
+[ 2565.806902] BTRFS info (device loop0p4): enabling free space tree
+[ 2565.806926] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2565.891036] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2566.546565] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2566.547929] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2566.741724] loop0: detected capacity change from 0 to 61849600
+[ 2566.742294]  loop0: p1 p2 p3 p4
+[ 2566.865662] BTRFS: device label root devid 1 transid 46 /dev/loop0p4 (259:4) scanned by mount (10482)
+[ 2566.865905] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2566.865934] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2566.875545] BTRFS info (device loop0p4): turning on async discard
+[ 2566.875566] BTRFS info (device loop0p4): enabling free space tree
+[ 2566.875589] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2566.958109] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2567.800317] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2567.814677] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2568.008048] loop0: detected capacity change from 0 to 61849600
+[ 2568.008455]  loop0: p1 p2 p3 p4
+[ 2568.140681] BTRFS: device label root devid 1 transid 47 /dev/loop0p4 (259:4) scanned by mount (10554)
+[ 2568.140933] BTRFS info (device loop0p4): first mount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2568.140965] BTRFS info (device loop0p4): using crc32c checksum algorithm
+[ 2568.152886] BTRFS info (device loop0p4): turning on async discard
+[ 2568.152908] BTRFS info (device loop0p4): enabling free space tree
+[ 2568.152928] BTRFS info (device loop0p4): use zstd compression, level 1
+[ 2568.237350] EXT4-fs (loop0p3): mounted filesystem 63616cdc-c669-4f92-9456-4427079b88a6 r/w with ordered data mode. Quota mode: none.
+[ 2568.891289] EXT4-fs (loop0p3): unmounting filesystem 63616cdc-c669-4f92-9456-4427079b88a6.
+[ 2568.892759] BTRFS info (device loop0p4): last unmount of filesystem 18a3140d-1f71-4ad3-bbce-81145c54d74a
+[ 2715.846593] podman0: port 1(veth0) entered disabled state
+[ 2715.847641] veth0 (unregistering): left allmulticast mode
+[ 2715.847666] veth0 (unregistering): left promiscuous mode
+[ 2715.847685] podman0: port 1(veth0) entered disabled state
+[ 2725.785681] kvm: kvm [10668]: vcpu0, guest rIP: 0xffffffff9aba8adf Unhandled WRMSR(0xc0010007) = 0xffff
+[ 2831.363347] nbd0: detected capacity change from 0 to 61849600
+[ 2831.370119]  nbd0: p1 p2 p3 p4
+[ 2831.455668] btrfs: Unknown parameter 'nologreplay'

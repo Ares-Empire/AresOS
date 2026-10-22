@@ -1,0 +1,15 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+⠁ Waiting for sysroot lock...
+[2K⠁ Waiting for sysroot lock...                                                   [   35.287440] EXT4-fs (vda3): re-mounted bc4213a6-e1ad-45e3-a7e9-3b2d5cea1555.
+
+[2K[   35.399253] EXT4-fs (vda3): re-mounted bc4213a6-e1ad-45e3-a7e9-3b2d5cea1555.
+Default is the identity-checked booted stock deployment: aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71
+
+ARESOS_CMD_DONE:0

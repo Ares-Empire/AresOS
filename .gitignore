@@ -17,6 +17,9 @@ run/
 
 # Local development research
 .work/
+vm-work/
+switch-work/
+evidence/
 
 # Machine-local app catalogue and generated proprietary icons
 aresos-runtime/

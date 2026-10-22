@@ -1,0 +1,23 @@
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	﻿2026-10-22T13:58:12.6266587Z ##[group]Run sudo -E python3 os/ci/switch_vm.py
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T13:58:12.6267342Z ^[[36;1msudo -E python3 os/ci/switch_vm.py^[[0m
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T13:58:12.6778440Z shell: /usr/bin/bash -e {0}
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T13:58:12.6778786Z env:
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T13:58:12.6781486Z   GH_TOKEN: ***
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T13:58:12.6781715Z ##[endgroup]
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:00:16.1072722Z Stock Bazzite completed an orderly pre-login initialization reboot; booting the same disk again
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1444886Z Traceback (most recent call last):
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1445849Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 377, in <module>
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1451379Z     main()
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1452066Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 281, in main
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1453131Z     status = guest.capture_json(f'{stage}-status', framed('bootc status --json'))
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1454000Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1454578Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 176, in capture_json
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1455197Z     value = json.loads(payload.group(1))
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1455566Z             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1456171Z   File "/usr/lib/python3.12/json/__init__.py", line 346, in loads
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1457497Z     return _default_decoder.decode(s)
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1458008Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1458560Z   File "/usr/lib/python3.12/json/decoder.py", line 340, in decode
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1460944Z     raise JSONDecodeError("Extra data", s, end)
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1462316Z json.decoder.JSONDecodeError: Extra data: line 1 column 16 (char 15)
+Published-image switch and rollback	Switch to published digest, reboot, authenticate on tty3 and roll back	2026-10-22T14:01:09.1708205Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,13 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+active
+Oct 22 19:07:41 bazzite systemd[1]: Starting bazzite-hardware-setup.service - Configure Bazzite for current hardware...
+Oct 22 19:07:41 bazzite bazzite-hardware-setup[1286]: Hardware setup already ran for version 83, skipping
+Oct 22 19:07:41 bazzite systemd[1]: Finished bazzite-hardware-setup.service - Configure Bazzite for current hardware.
+root=UUID=0221fcea-b1c2-448b-a55c-4d6d2b577cdb rootflags=subvol=/root rw boot=UUID=6ba42d24-7b47-40fe-afcd-718c0f825627 console=tty0 console=ttyS0 console=ttyS0,115200n8 systemd.show_status=yes ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 bluetooth.disable_ertm=1
+
+ARESOS_CMD_DONE:0

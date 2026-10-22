@@ -1,0 +1,81 @@
+[?2004hARESOS_ROOT> [?2004l
+[?2004h> [?2004l
+[?2004h> [?2004l
+[?2004h> [?2004l
+[?2004h> [?2004l
+[?2004h> [?2004l
+1392
++ test -d /sys/firmware/efi
++ systemctl is-active --quiet greetd.service
+++ systemctl get-default
++ test graphical.target = graphical.target
++ pgrep -u ares -x labwc
+1339
++ pgrep -u ares -x foot
+1392
+++ id -u ares
++ test 1001 = 1001
+++ id -g ares
++ test 1001 = 1001
++ python3 -
+ARESOS_DAILY_ACCOUNT_LOCKED
++ id -nG ares
++ grep -qw wheel
+++ LC_ALL=C
+++ sudo -l -U ares
++ sudo_policy='User ares is not allowed to run sudo on bazzite.'
++ printf '%s\n' 'User ares is not allowed to run sudo on bazzite.'
+User ares is not allowed to run sudo on bazzite.
++ grep -Eq '^User ares is not allowed to run sudo on .+\.$'
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v uupd
++ path=/usr/sbin/uupd
++ [[ -z /usr/sbin/uupd ]]
++ runuser -u ares -- test '!' -x /usr/sbin/uupd
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v ujust
++ path=/usr/sbin/ujust
++ [[ -z /usr/sbin/ujust ]]
++ runuser -u ares -- test '!' -x /usr/sbin/ujust
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v topgrade
+++ true
++ path=
++ [[ -z '' ]]
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v bazzite-updater
++ path=/usr/sbin/bazzite-updater
++ [[ -z /usr/sbin/bazzite-updater ]]
++ runuser -u ares -- test '!' -x /usr/sbin/bazzite-updater
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v bazzite-portal
+++ true
++ path=
++ [[ -z '' ]]
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v bazaar
++ path=/usr/sbin/bazaar
++ [[ -z /usr/sbin/bazaar ]]
++ runuser -u ares -- test '!' -x /usr/sbin/bazaar
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v plasma-discover
+++ true
++ path=
++ [[ -z '' ]]
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v gnome-software
+++ true
++ path=
++ [[ -z '' ]]
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v flatpak
++ path=/usr/sbin/flatpak
++ [[ -z /usr/sbin/flatpak ]]
++ runuser -u ares -- test '!' -x /usr/sbin/flatpak
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v brew
++ path=/home/linuxbrew/.linuxbrew/bin/brew
++ [[ -z /home/linuxbrew/.linuxbrew/bin/brew ]]
++ runuser -u ares -- test '!' -x /home/linuxbrew/.linuxbrew/bin/brew
+
+ARESOS_CMD_DONE:1

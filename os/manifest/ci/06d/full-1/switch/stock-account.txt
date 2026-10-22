@@ -1,0 +1,9 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+uid=1000(ares-recovery) gid=1000(ares-recovery) groups=1000(ares-recovery),10(wheel)
+
+ARESOS_CMD_DONE:0

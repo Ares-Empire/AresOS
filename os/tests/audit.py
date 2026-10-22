@@ -35,7 +35,7 @@ def live_states(command):
 
 def unit_directories(root, scope):
     directories = [root / prefix / 'systemd' / scope for prefix in ('usr/lib', 'usr/local/lib', 'etc', 'run')]
-    runtime = root / ('run/systemd' if scope == 'system' else 'run/user/1000/systemd')
+    runtime = root / ('run/systemd' if scope == 'system' else 'run/user/1001/systemd')
     directories.extend(runtime / name for name in ('generator.early', 'generator', 'generator.late'))
     return directories
 
@@ -56,8 +56,8 @@ def inventory(root=pathlib.Path('/'), live=False):
             if scope == 'user':
                 # Ares is the only desktop account. Missing manager/bus is a
                 # failed check, never a reason to silently skip the user audit.
-                command = ['runuser', '-u', 'ares', '--', 'env', 'XDG_RUNTIME_DIR=/run/user/1000',
-                           'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus', *command, '--user']
+                command = ['runuser', '-u', 'ares', '--', 'env', 'XDG_RUNTIME_DIR=/run/user/1001',
+                           'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus', *command, '--user']
             manager_states, running = live_states(command)
             states.update(manager_states)
             for name, values in running.items():
