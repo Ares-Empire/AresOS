@@ -323,10 +323,11 @@ jobs:
           bash os/ci/install-tools.sh
           sudo apt-get install -y --no-install-recommends gnu-efi ntfs-3g dosfstools gdisk mtools psmisc tesseract-ocr
           sudo apt-get install -y --no-install-recommends python3-venv
-          python3 -m venv .work/browser-env
+          python3 -m venv --system-site-packages .work/browser-env
           .work/browser-env/bin/pip install playwright==1.58.0
           export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
           .work/browser-env/bin/playwright install --with-deps chromium
+          .work/browser-env/bin/python -c 'import crypt, PIL, playwright.sync_api'
           dpkg-query -W > evidence/rehearsal-host-packages.txt
           python3 -m unittest discover -s os/tests -v
           cp os/manifest/release.json evidence/release.json
