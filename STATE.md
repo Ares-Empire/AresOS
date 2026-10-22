@@ -8,6 +8,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
   - Right-clicking an app item opens a real app exactly once, and you return to the game afterwards.
   - Live mode (survival, can't die) and Build mode (creative), switched with G.
   - Desktop rules apply only in worlds marked as AresOS.
+- **First AresOS image** (PR #3): a Bazzite derivative booting into our labwc session, with all inherited updaters masked (including Bazzite's self-updating Cockpit container) and safe power defaults. CI boots 2 fresh VMs and proves session, recovery login, power/input and the logind power-key → poweroff path from the guest journal. Activation-graph audit deferred (`briefs/03-followup-activation-audit.md`).
 - **Build/Live inventories** (PR #8): each mode keeps its own inventory and hotbar, and G swaps them atomically, so the app hotbar comes back exactly as left. Safe against `/gamemode`, stale input, lost acknowledgements and pickups during a switch.
 - **Walk-in app logos** (PR #7): walk into a block logo and the app or site opens once, then you return in front of it. `/aresos logo <app> wall|floor` auto-builds logos, and `/aresos zone ...` marks owner-built ones. The builder never destroys or obstructs blocks.
 - **Real apps** (PR #6): installed apps in the inventory with generated pixel icons, websites as apps, pins kept in the hotbar.
@@ -26,8 +27,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- **PR #3** (briefs 03–03f): the image boots in a CI VM, all checks green including the logind power-key proof. 03f fixes the review findings (contingency scope, updater activation audit, pinned toolchain).
-- **Next for the OS image:** switch to `bazzite-nvidia-open`, publish **privately** (brief 06), and a tested "switch Bazzite to AresOS" step with an admin/recovery account. That's what unlocks the install guide.
+- **Brief 06 (running):** switch to `bazzite-nvidia-open`, publish the image privately on GitHub, test the Bazzite → AresOS switch and rollback in CI, define accounts, and fill INSTALL §6. That unlocks the install guide.
 
 ## Waiting on the owner
 
