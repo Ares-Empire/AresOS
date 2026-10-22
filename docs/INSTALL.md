@@ -2,7 +2,7 @@
 
 **Draft checked 2026-10-22 — physical installation is NOT RELEASED.** For the Lenovo LOQ 15IRH8 (82XV), German Windows 11 Home and the ordered Crucial P310 500 GB (`CT500P310SSD801`). Read now; do not open the laptop, write installation media or install from this guide until the [release gate](#maintainer-release-gate) is complete. Agents do none of those actions.
 
-After release: **back up → prepare two USBs → fit Crucial → install Bazzite → switch to AresOS → check Windows**. Keep this guide and the private record on another device. Read undo first.
+After release: **back up → prepare two USBs → fit Crucial → install Bazzite → switch to AresOS → check Windows**. Keep this guide and the private record on another device. Read undo first. **Emergency card:** [If something goes wrong](EMERGENCY.md). Put it on your phone before you start.
 
 | Drive | Identification | Allowed action |
 |---|---|---|

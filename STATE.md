@@ -18,6 +18,7 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
   - Existing worlds are never rebuilt, and saves are renamed, never deleted.
 - **Image release + tested switch and rollback** (PR #10, briefs 06–06e, merged 2026-10-22): a private, signed AresOS image on `bazzite-nvidia-open` (`ghcr.io/carlsenares/aresos@sha256:362af9b7…c402`). CI switches stock Bazzite to it, then proves the full policy (inherited Homebrew blocked for `ares`), the tty3 recovery login, sudo and logout, unchanged partitions, a rollback to the exact stock copy with a rendered login screen, and a second stock boot (run 39851266266). Negative checks now really fail (the `! cmd`/`set -e` bug, which also affected PR #3, is fixed). The tested recipe is `docs/INSTALL.md` §6.
 - **OS design** (PR #2): Bazzite base, council-approved. See `docs/design/OS-BASE.md`.
+- **Emergency card** (`docs/EMERGENCY.md`, 2026-10-23): one page for the owner's phone covering F12 → Windows, the emergency terminal, the tty3 recovery login and rollback, a safe power-off, the GRUB backup entry (UNTESTED), and when to stop and get help. Reviewed by fresh Codex until SAFE (`reviews/emergency-card/`).
 - **Install guide** (PR #9, rewritten from PR #5): AresOS on its own SSD, including fitting the drive (battery check, correct seating), clear drive identification, a whole-drive install, and a Windows-return check. Council says READY-TO-MERGE. The image/switch/rollback gate is now DONE (PR #10), but **physical install stays CLOSED** until the remaining gates in INSTALL.md's "Maintainer release gate" pass (see Next). The same-drive fallback is archived.
 - **Decisions:**
   - The AresOS image is **private** on GitHub (2026-10-22: the owner doesn't mind, so the safe default). The install needs a one-time GitHub read token. Public only on an explicit "make it public".
@@ -26,14 +27,15 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
   - **Image seal** (owner OK 2026-10-22): keyless signing. Sigstore's public log shows the repo/workflow identity and the image digest; the image stays private.
   - **Laptop pull token** (owner OK 2026-10-22): a classic, read-only `read:packages` GitHub token, created by the owner on install day.
   - **GRUB recovery** (owner OK 2026-10-22): the identity-checked "make the backup Bazzite the default" step stays marked UNTESTED until a rehearsal proves it.
-  - **Emergency path:** Windows stays the boot default for the first trial, and F12 → Windows Boot Manager always works because the Micron is never written.
+  - **Emergency path:** Windows stays the boot default for the first trial. F12 → Windows Boot Manager is the intended way back (the Micron is never written), and `docs/EMERGENCY.md` covers the rest.
+  - **Windows encryption is OFF** (checked 2026-10-23 without admin). Install day still runs `manage-bde -status C:` in Terminal (Administrator).
   - Secure Boot is off on the laptop, so no MOK step.
   - Normal Minecraft is a separate app with normal rules.
   - App icons are generated automatically from each app's real icon. The owner doesn't draw them.
 
 ## In progress
 
-- Nothing running. Next is the "If something goes wrong" emergency card (docs only), then the remaining install gates.
+- Nothing running. Next are the remaining install gates (see Next).
 
 ## Waiting on the owner
 

@@ -7,7 +7,7 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 - **PR #10 merged** as `2fa6641` (briefs 06–06e). The owner gave the merge OK in chat after accepting the judgment calls (recorded in `STATE.md` → Decisions). Branch `pkg/06-image-release` is deleted on GitHub; its worktree `C:/Users/pab/AresOS-06-image-release` is a leftover.
 - **Nothing is running.**
 - **Next:**
-  1. **Emergency card** (promised to the owner): a one-page "If something goes wrong" doc, linked from INSTALL.md. Docs only. Have a fresh Codex review it (read-only) before pushing. It should cover F12 → Windows Boot Manager (always works, the Micron is never written, Windows stays the boot default for the first trial), Super+Ctrl+Esc, Ctrl+Alt+F3 → `ares-recovery` → rollback, the GRUB backup entry plus the make-default step (UNTESTED), and, worst case, removing the AresOS SSD.
+  1. ~~Emergency card~~: done 2026-10-23 (`docs/EMERGENCY.md`, reviews SAFE).
   2. **Remaining install gates** (INSTALL.md "Maintainer release gate"): the two-disk VM rehearsal, GRUB recovery promotion, media pinning and rehearsal, then the safety and followability council. Hardware items wait for the laptop.
 
 ## Waiting on the owner
