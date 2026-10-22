@@ -8,6 +8,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
   - Right-clicking an app item opens a real app exactly once, and you return to the game afterwards.
   - Live mode (survival, can't die) and Build mode (creative), switched with G.
   - Desktop rules apply only in worlds marked as AresOS.
+- **Walk-in app logos** (PR #7): walk into a block logo and the app or site opens once, then you return in front of it. `/aresos logo <app> wall|floor` auto-builds logos, and `/aresos zone ...` marks owner-built ones. The builder never destroys or obstructs blocks.
 - **Real apps** (PR #6): installed apps in the inventory with generated pixel icons, websites as apps, pins kept in the hotbar.
 - **Nether home** (PR #4):
   - The AresOS button opens a create screen with a seed field and a placeholder-hub toggle.
@@ -23,8 +24,8 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- **PR #3** (briefs 03–03c): the image builds and boots into our labwc session in a CI VM. The last checks (recovery login, power key) kept failing in the console-typing test harness, so 03c re-verifies them through robust channels.
-- **Brief 08:** walk-in app logos (zones plus auto-built block logos).
+- **PR #3** (briefs 03–03d): the image boots into our labwc session in a CI VM, and all checks pass except proof that the power key goes through logind (the clean poweroff itself is observed). 03d reads the guest's on-disk journal. If that's still unproven, it becomes a first-hardware-boot check.
+- **Brief 09:** separate Build/Live inventories, so the app hotbar comes back after building.
 - **Next for the OS image:** switch to `bazzite-nvidia-open`, publish (public or private, owner decision), and a tested "switch Bazzite to AresOS" step with an admin/recovery account. That's what unlocks the install guide.
 
 ## Waiting on the owner
@@ -37,9 +38,8 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 ## Next, in order
 
 1. **First boot:** install into the freed space and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
-2. **Walk-in app logos** (in progress): walk into a block logo and the app or site opens. Optional auto-built logos from real icons. Replaces sign doors as the main way in.
-3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
-4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
-5. **Later:** piglin shops, owner-designed hub, shaders, controlled updates, boot splash, sleep, Brawl Stars theme.
+2. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
+3. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
+4. **Later:** piglin shops, owner-designed hub, shaders, controlled updates, boot splash, sleep, Brawl Stars theme.
 
 Codex Pro runs until 2026-11-21.
