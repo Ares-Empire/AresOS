@@ -1,0 +1,23 @@
+08b repeated full verification
+
+Code under test: 601c19b
+
+Run 1, from mod/:
+.\gradlew.bat build runClientGameTest --rerun-tasks
+JUnit PASSED entries: 45; no skips or failures.
+[04:16:25] [Server thread/INFO] (Minecraft) All 22 required tests passed :)
+[04:16:57] [Test thread/INFO] (aresos) 08b seam regression passed
+[04:16:58] [Test thread/INFO] (aresos) 08b delayed-focus regression passed
+[04:17:25] [Test thread/INFO] (aresos) 08 client checks passed: host/no-cheats, program and URL entry edges, standing/rejoin/Build/normal gating, focus return with/without pause, stale return, overlap refusal, zone persistence/removal, atomic refusal, 32x32 wall/floor builds, actual Live/Build breaks and persisted protection; two fixture screenshots
+BUILD SUCCESSFUL in 6m 29s
+19 actionable tasks: 19 executed
+
+Run 2, from mod/:
+.\gradlew.bat build runClientGameTest --rerun-tasks
+JUnit PASSED entries: 45; no skips or failures.
+[04:22:59] [Server thread/INFO] (Minecraft) All 22 required tests passed :)
+[04:23:31] [Test thread/INFO] (aresos) 08b seam regression passed
+[04:23:32] [Test thread/INFO] (aresos) 08b delayed-focus regression passed
+[04:23:59] [Test thread/INFO] (aresos) 08 client checks passed: host/no-cheats, program and URL entry edges, standing/rejoin/Build/normal gating, focus return with/without pause, stale return, overlap refusal, zone persistence/removal, atomic refusal, 32x32 wall/floor builds, actual Live/Build breaks and persisted protection; two fixture screenshots
+BUILD SUCCESSFUL in 6m 28s
+19 actionable tasks: 19 executed

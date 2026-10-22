@@ -56,6 +56,7 @@ jar { from('LICENSE') { rename { "${it}_aresos" } } }
 tasks.named('runClientGameTest') {
     systemProperty 'aresos.disableDiscovery', 'true'
     systemProperty 'aresos.appsReviewDir', file('../reviews/07-real-apps/screenshots').absolutePath
+    systemProperty 'aresos.logoReviewDir', file('../reviews/08-walk-in-logos/screenshots').absolutePath
     systemProperty 'aresos.reviewDir', file('build/review/01-first-app').absolutePath
     systemProperty 'aresos.homeReviewDir', file('../reviews/04-nether-home/screenshots').absolutePath
     systemProperty 'aresos.seedReviewDir', file('../reviews/04-nether-home/seeds').absolutePath

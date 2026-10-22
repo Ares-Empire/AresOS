@@ -17,7 +17,7 @@ public abstract class MinecraftFocusMixin {
         if (client.player == null) {
             AresOsClient.FOCUS_RETURN.reset();
         } else if (client.getWindow().isFocused()
-                && AresOsClient.FOCUS_RETURN.regainedFocus(client.gui.screen())) {
+                && AresOsClient.regainedFocus(client.gui.screen())) {
             client.gui.setScreen(null);
         } else if (!client.getWindow().isFocused()) {
             AresOsClient.FOCUS_RETURN.focusLost(System.nanoTime(), client.gui.screen());

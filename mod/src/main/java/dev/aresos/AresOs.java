@@ -94,6 +94,7 @@ public final class AresOs implements ModInitializer {
         AppItems.register();
         LiveMode.register();
         NetherHome.register();
+        dev.aresos.zone.WalkInZones.register();
         PayloadTypeRegistry.serverboundPlay().register(ToggleModePayload.TYPE, ToggleModePayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ToggleModePayload.TYPE,
                 (payload, context) -> LiveMode.toggleForHost(context.server(), context.player()));
@@ -107,6 +108,8 @@ public final class AresOs implements ModInitializer {
             if (!environment.includeIntegrated) return;
             dispatcher.register(Commands.literal("aresos")
                         .then(dev.aresos.world.HomeCommands.command())
+                        .then(dev.aresos.zone.ZoneCommands.zone())
+                        .then(dev.aresos.zone.ZoneCommands.logo())
                         .then(Commands.literal("desktop")
                                 .then(Commands.literal("on").executes(context -> desktop(context.getSource(), true)))
                                 .then(Commands.literal("off").executes(context -> desktop(context.getSource(), false))))

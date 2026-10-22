@@ -201,3 +201,66 @@ On return, it closes only the pause screen created by that focus loss. An Esc
 menu, a replacement screen, and focus loss without a launch stay untouched.
 Each launch owns its focus tracking, so an older launch failing cannot cancel a
 newer launch's return.
+
+## Walk-in app logos
+
+In an AresOS world, the singleplayer host can bind an owner-built logo to an app
+without cheats. Stand at one corner of its walk-in space and run
+`/aresos zone pos1`, then stand at the opposite corner and run `/aresos zone pos2`.
+Both corners are inclusive **feet blocks** in the same dimension, up to 64 blocks
+per axis. Stand just outside on safe solid ground and run
+`/aresos zone set <app id>`. This saves your current position as the return exit,
+with facing aimed at the zone. Leave its feet space clear enough to walk into.
+
+`/aresos zone list` prints all zones, dimensions, bounds and exits.
+`/aresos zone remove here` removes the zone touching your player;
+`/aresos zone remove <app id>` removes **all** zones for that app across the save.
+Removing a zone leaves its logo blocks in place and removes their protection.
+Zones cannot overlap or cover each other's return exits. Multiple separate zones
+can launch the same app.
+
+For automatic pixel art, stand on safe ground, face the intended logo, and run
+`/aresos logo <app id> [wall|floor]` (default: `wall`). The nearest horizontal
+direction determines the orientation. The near edge starts four blocks ahead;
+the wall rises from your feet, while the floor is one block below your feet.
+The original source icon is fitted within 32×32 without upscaling, and visible
+pixels choose the nearest RGB color from a fixed 48-block concrete/wool/terracotta
+palette. Transparent pixels place nothing; mostly transparent downsampled cells
+also stay empty. Missing or unreadable source icons are refused with instructions
+to supply a local PNG in `apps.json`. No vendor icons or block textures are shipped.
+
+The whole face, including transparent holes, and its approach must be air.
+Occupied space, entities in placement cells, out-of-bounds placement and overlap
+are refused before building. Logo blocks must also clear every saved exit's full
+standing body. The builder conservatively refuses plants, circuits, fluids and
+blocks with special behavior within two face-adjacent steps of a pixel, including
+through a solid neighbor. Only air and plain inert full blocks are accepted in
+that margin; this avoids firing support updates, drops or redstone before a build
+can be refused. The error names the neighboring block and its position.
+**There is no overwrite command:** clear the required
+space yourself in Build mode and retry. A floor logo usually needs its footprint
+excavated one block deep first. The builder saves a matching zone: two blocks in
+front of a wall, or two blocks of feet space above a floor. It saves your standing
+position as the exit. Auto-built blocks resist player breaking in Live mode and
+explosions in both modes; press **G** for Build mode to mine and edit them.
+
+Only the singleplayer host in Live mode launches on entering from outside, once
+per entry, with portal particles and a short teleport sound. Entry uses the
+player's body touching the box, including over transparent floor pixels. Entry
+membership is tracked independently for each zone, so touching a
+neighboring zone cannot rearm one you still occupy. Simultaneous entry into two
+zones is refused with a message; step out and enter one at a time. Exits
+must leave the whole body clear of every zone. Standing inside,
+switching to Live inside, or rejoining inside never launches. Normal worlds stay
+inactive. Program and URL zones use the existing launcher and its 30-second
+focus-loss tracking. Returning focus teleports you to the saved exit and faces
+the logo, including when pause-on-focus-loss is disabled or a screen was opened
+before the app took focus. An already-open screen stays open. A failed launch does not
+retry while you stand inside. If an exit has since become unsafe, AresOS reports
+the obstruction and leaves you in place. Clear that exit in Build mode.
+
+Zones and exact auto-built block positions persist in `data/aresos/zones.dat`.
+Keep the whole world save with backups. Client tests use original geometric icons
+and save wall/floor evidence under `../reviews/08-walk-in-logos/screenshots/`.
+The lime glass frames in those screenshots are test fixtures around the saved
+trigger boxes; they are not placed by the logo command.

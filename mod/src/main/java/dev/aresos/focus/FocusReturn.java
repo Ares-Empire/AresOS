@@ -1,15 +1,16 @@
 package dev.aresos.focus;
 
-/** Tracks ownership of one focus-loss pause screen by object identity. */
+/** Tracks a launch's return token separately from its permission to close a focus-loss pause screen. */
 public final class FocusReturn {
     public static final long FOCUS_WINDOW_NANOS = 30_000_000_000L;
     private long nextToken;
     private long activeToken;
     private long armedUntil;
     private boolean lostFocus;
-    private boolean eligible;
+    private boolean mayCapturePause;
     private boolean attemptedPause;
     private Object ownedPause;
+    private long returnedToken;
 
     public long arm(long now) {
         reset();
@@ -24,7 +25,7 @@ public final class FocusReturn {
 
     public boolean beforeFocusPause(long now, Object currentScreen) {
         focusLost(now, currentScreen);
-        if (eligible && !attemptedPause && currentScreen == null) {
+        if (mayCapturePause && !attemptedPause && currentScreen == null) {
             attemptedPause = true;
             return true;
         }
@@ -34,7 +35,7 @@ public final class FocusReturn {
     public void focusLost(long now, Object currentScreen) {
         if (!lostFocus && armedUntil != 0 && now <= armedUntil) {
             lostFocus = true;
-            eligible = currentScreen == null;
+            mayCapturePause = currentScreen == null;
         }
     }
 
@@ -45,16 +46,26 @@ public final class FocusReturn {
     public boolean regainedFocus(Object currentScreen) {
         if (!lostFocus) return false;
         boolean close = ownedPause != null && ownedPause == currentScreen;
+        long returned = activeToken;
         reset();
+        returnedToken = returned;
         return close;
+    }
+
+    /** A return can happen with pause-on-focus-loss disabled, so it is separate from closing a menu. */
+    public long takeReturnedToken() {
+        long token = returnedToken;
+        returnedToken = 0;
+        return token;
     }
 
     public void reset() {
         activeToken = 0;
         armedUntil = 0;
         lostFocus = false;
-        eligible = false;
+        mayCapturePause = false;
         attemptedPause = false;
         ownedPause = null;
+        returnedToken = 0;
     }
 }

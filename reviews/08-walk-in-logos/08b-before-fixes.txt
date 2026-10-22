@@ -1,0 +1,26 @@
+08b regression failures before the fixes
+
+Production source baseline: 5afe747 (the branch before the 08b fix commit).
+Final regression fixtures were retained, including supported sand under the cactus
+and placements with the full safety margin inside the test chamber.
+Only the six changed production sources/configuration were temporarily restored
+from that commit; every fixed source was restored in a finally block afterward.
+No committed test assertion was disabled.
+
+Command, from mod/:
+.\gradlew.bat test runGameTest runClientGameTest --continue
+Exit: 1. All three tasks ran and failed as expected.
+
+Selected verbatim output from mod/build-08b-baseline.log:
+
+FocusReturnTest > returnTokenSurvivesAScreenOpenedBeforeFocusLoss() FAILED
+45 tests completed, 1 failed
+Caused by: net.minecraft.gametest.framework.GameTestAssertException: TNT explosion destroyed logo in CREATIVE on tick 0
+Caused by: java.lang.AssertionError: New wall obstructed a saved exit despite disjoint triggers
+Caused by: net.minecraft.gametest.framework.GameTestAssertException: TNT explosion destroyed logo in SURVIVAL on tick 0
+[04:15:30] [Server thread/ERROR] (Minecraft) aresos-test:zone_safety_game_tests_cactus_behind_wall_is_preserved_and_build_refused failed at -6932497, -59, 2999063! Builder accepted a wall that invalidates neighboring cactus on tick 5
+[04:15:31] [Server thread/INFO] (Minecraft) 4 required tests failed :(
+java.lang.AssertionError: Seam entry counts: A=2, B=3 (expected A=2, B=1)
+java.lang.AssertionError: Delayed focus return lost zone teleport while inventory was open
+BUILD FAILED in 48s
+16 actionable tasks: 10 executed, 6 up-to-date

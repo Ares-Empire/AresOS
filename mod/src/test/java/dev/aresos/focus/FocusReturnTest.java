@@ -74,4 +74,39 @@ class FocusReturnTest {
         assertFalse(tracker.regainedFocus(null));
         assertFalse(tracker.beforeFocusPause(3, null));
     }
+
+    @Test
+    void returnTokenWorksWithoutPauseAndOnlyOnce() {
+        var tracker = new FocusReturn();
+        long token = tracker.arm(1);
+        tracker.focusLost(2, null);
+        assertFalse(tracker.regainedFocus(null));
+        assertEquals(token, tracker.takeReturnedToken());
+        assertEquals(0, tracker.takeReturnedToken());
+    }
+
+    @Test
+    void returnTokenSurvivesAScreenOpenedBeforeFocusLoss() {
+        var tracker = new FocusReturn();
+        long token = tracker.arm(3);
+        var inventory = new Object();
+        assertFalse(tracker.beforeFocusPause(4, inventory));
+        assertFalse(tracker.regainedFocus(inventory));
+        assertEquals(token, tracker.takeReturnedToken());
+        assertEquals(0, tracker.takeReturnedToken());
+    }
+
+    @Test
+    void expiredOrCancelledLaunchCannotReturnThroughAnOpenScreen() {
+        var tracker = new FocusReturn();
+        long token = tracker.arm(3);
+        tracker.cancel(token);
+        tracker.focusLost(4, new Object());
+        tracker.regainedFocus(null);
+        assertEquals(0, tracker.takeReturnedToken());
+        tracker.arm(5);
+        tracker.focusLost(6 + FocusReturn.FOCUS_WINDOW_NANOS, new Object());
+        tracker.regainedFocus(null);
+        assertEquals(0, tracker.takeReturnedToken());
+    }
 }
