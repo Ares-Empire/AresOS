@@ -229,4 +229,81 @@ function Get-AresShrinkPlan {
     }
 }
 
-Export-ModuleMember -Function Get-AresInstallRecord, Get-AresDonation, Confirm-AresWindowsBoot, Get-AresShrinkPlan
+function Confirm-AresWindowsDiskUnchanged {
+    param($Before, $After)
+    # Compare saved records only. Windows disk/partition numbers and free space
+    # can change between normal boots; GUIDs and geometry must not.
+    foreach ($record in $Before, $After) {
+        if ($null -eq $record) { throw 'STOP: missing Windows disk record.' }
+        foreach ($field in 'Disk', 'Partitions', 'Boot') {
+            if (-not $record.PSObject.Properties[$field] -or $null -eq $record.$field) {
+                throw "STOP: missing record field $field."
+            }
+        }
+        foreach ($field in 'Model', 'Serial', 'Guid', 'SizeBytes', 'LogicalSectorBytes') {
+            if (-not $record.Disk.PSObject.Properties[$field] -or
+                [string]::IsNullOrWhiteSpace([string]$record.Disk.$field)) {
+                throw "STOP: missing disk field $field."
+            }
+        }
+        $diskGuid = [guid]::Empty
+        if (-not [guid]::TryParse([string]$record.Disk.Guid, [ref]$diskGuid) -or $diskGuid -eq [guid]::Empty -or
+            $record.Disk.LogicalSectorBytes -notin 512, 4096 -or $record.Disk.SizeBytes -le 0) {
+            throw 'STOP: invalid disk identity or geometry.'
+        }
+        $seen = @{}
+        $end = [decimal]0
+        foreach ($p in @($record.Partitions | Sort-Object StartByte)) {
+            foreach ($field in 'Guid', 'GptType', 'DriveLetter', 'StartByte', 'EndByteExclusive', 'SizeBytes', 'StartSector', 'EndSector') {
+                if (-not $p.PSObject.Properties[$field] -or $null -eq $p.$field) {
+                    throw "STOP: missing partition field $field."
+                }
+            }
+            $id = [guid]::Empty; $type = [guid]::Empty
+            if (-not [guid]::TryParse([string]$p.Guid, [ref]$id) -or $id -eq [guid]::Empty -or
+                -not [guid]::TryParse([string]$p.GptType, [ref]$type) -or $type -eq [guid]::Empty -or $seen.ContainsKey($id)) {
+                throw 'STOP: invalid or duplicate partition GUID/type.'
+            }
+            $seen[$id] = $true
+            $sector = [decimal]$record.Disk.LogicalSectorBytes
+            if ($p.SizeBytes -le 0 -or $p.StartByte -lt $end -or $p.StartByte % $sector -ne 0 -or
+                $p.SizeBytes % $sector -ne 0 -or $p.EndByteExclusive -gt $record.Disk.SizeBytes -or
+                $p.EndByteExclusive -ne ([decimal]$p.StartByte + $p.SizeBytes) -or
+                $p.StartSector -ne ([decimal]$p.StartByte / $sector) -or
+                $p.EndSector -ne ([decimal]$p.EndByteExclusive / $sector - 1)) {
+                throw 'STOP: inconsistent partition geometry.'
+            }
+            $end = [decimal]$p.EndByteExclusive
+        }
+        if (@($record.Partitions | Where-Object DriveLetter -eq C).Count -ne 1) {
+            throw 'STOP: require exactly one C: partition in the Windows record.'
+        }
+        foreach ($field in 'PartitionGuid', 'LoaderPath', 'StartSector', 'EndSector') {
+            if (-not $record.Boot.PSObject.Properties[$field] -or
+                [string]::IsNullOrWhiteSpace([string]$record.Boot.$field)) {
+                throw "STOP: missing boot field $field."
+            }
+        }
+        Confirm-AresWindowsBoot -Current $record -Original $record
+    }
+    foreach ($field in 'Model', 'Serial', 'Guid', 'SizeBytes', 'LogicalSectorBytes') {
+        if ($Before.Disk.$field -ne $After.Disk.$field) { throw "STOP: Windows disk $field changed." }
+    }
+    if (@($Before.Partitions).Count -ne @($After.Partitions).Count) {
+        throw 'STOP: Windows partition count changed.'
+    }
+    foreach ($old in $Before.Partitions) {
+        $match = @($After.Partitions | Where-Object Guid -eq $old.Guid)
+        if ($match.Count -ne 1) { throw 'STOP: Windows partition GUID changed.' }
+        foreach ($field in 'GptType', 'StartByte', 'EndByteExclusive', 'SizeBytes', 'StartSector', 'EndSector') {
+            if ($old.$field -ne $match[0].$field) { throw "STOP: Windows partition $($old.Guid) $field changed." }
+        }
+        if (($old.DriveLetter -eq 'C') -ne ($match[0].DriveLetter -eq 'C')) {
+            throw 'STOP: C: partition identity changed.'
+        }
+    }
+    Confirm-AresWindowsBoot -Current $After -Original $Before
+    'PASS: Windows disk identity, all partition GUIDs/types/boundaries and original Windows boot target match.'
+}
+
+Export-ModuleMember -Function Get-AresInstallRecord, Get-AresDonation, Confirm-AresWindowsBoot, Get-AresShrinkPlan, Confirm-AresWindowsDiskUnchanged

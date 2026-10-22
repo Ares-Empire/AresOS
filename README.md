@@ -95,10 +95,10 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
 - Minecraft version: defaulting to 26.2 (Fabric API, Sodium and Iris all available, Fabric already installed locally).
 - Seed and home spot: the owner picks them later by exploring (not locked).
 - Linux base: **decided, Bazzite**. Secure Boot stays off, so no MOK enrollment is needed. See [OS base design](docs/design/OS-BASE.md).
-- A second SSD is optional later. Confirm the slot is empty before buying one.
+- The ordered second SSD is the primary install target. Confirm the 2280 slot and fitting parts before installation; the [install guide](docs/INSTALL.md) remains gated.
 - **Laptop facts (msinfo32, 2026-10-21):**
   - UEFI mode, and **Secure Boot OFF**.
-  - Device encryption is very likely off, since it needs Secure Boot. A missing "Geräteverschlüsselung" page doesn't prove it, so confirm fully decrypted status before shrinking.
+  - Device encryption was believed off. A missing "Geräteverschlüsselung" page or Secure Boot off does not prove it; confirm fully decrypted status before hardware/firmware changes.
   - Turning Secure Boot on later is a separate owner decision.
 - **Hardware (ordered 2026-10-22):** Crucial P310 500 GB NVMe SSD for the free 2280 slot, plus a Kingston Exodia M 2×64 GB USB pack (one Windows recovery stick that's kept, one installer stick).
 - App icons: **decided**, generated automatically from each app's real icon on the laptop, in a Minecraft pixel-art style. The owner doesn't draw them (owner decision 2026-10-21). Test and tune later.

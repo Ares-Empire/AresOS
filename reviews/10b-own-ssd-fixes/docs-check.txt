@@ -1,0 +1,1 @@
+PASS: 9 Markdown files; 96 local links/anchors; reference labels and fences; 6 Linux blocks pass bash -n (not executed).

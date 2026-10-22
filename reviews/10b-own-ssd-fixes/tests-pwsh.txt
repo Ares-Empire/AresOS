@@ -1,0 +1,82 @@
+PASS: Windows headroom is calculated and checked before shrinking
+PASS: pre-shrink insufficient headroom fails before any disk change
+PASS: 512-byte sectors: calculate donation, excluding other free gaps
+PASS: 4096-byte logical sectors: no hardcoded 512-byte conversion
+PASS: changed disk identity refuses donation
+PASS: moved recovery partition refuses donation
+PASS: missing MSR refuses donation
+PASS: wrong shrink size refuses donation
+PASS: insufficient Windows free space refuses donation
+PASS: renumbered Windows partition is still identified by GUID
+PASS: original Windows ESP passes with a second ESP present
+PASS: Windows Microsoft loader on AresOS ESP refuses deletion
+PASS: GRUB chainload refuses deletion despite Windows-looking label
+PASS: changed original ESP boundaries refuse deletion
+PASS: label and Boot number do not replace GUID identity
+PASS: EFI binary parser preserves GUID byte order, full path and inclusive endpoint
+PASS: two identical labels decode to different ESP identities
+PASS: truncated EFI variable fails closed
+PASS: missing end-of-path node fails closed
+PASS: MBR target fails closed
+PASS: multiple device-path instances fail closed
+PASS: unterminated loader fails closed
+PASS: Windows native reader compiles without invoking a native method
+PASS: complete inventory uses fixture commands and emits every partition
+PASS: unreadable BootCurrent aborts full inventory
+PASS: owner PowerShell command blocks parse without execution
+All 26 synthetic checks passed. No hardware queries or writes executed.
+PASS: own SSD: unchanged Windows record passes after JSON round trip
+PASS: own SSD: reordered/renumbered disks and partitions still match
+PASS: own SSD: 4096-byte sectors are accepted with consistent geometry
+PASS: own SSD: Windows shrink is rejected (legacy allowance never applies)
+PASS: own SSD: changed disk Model rejected
+PASS: own SSD: changed disk Serial rejected
+PASS: own SSD: changed disk Guid rejected
+PASS: own SSD: changed disk SizeBytes rejected
+PASS: own SSD: changed disk LogicalSectorBytes rejected
+PASS: own SSD: partition 0 changed Guid rejected
+PASS: own SSD: partition 0 changed GptType rejected
+PASS: own SSD: partition 0 changed StartByte rejected
+PASS: own SSD: partition 0 changed EndByteExclusive rejected
+PASS: own SSD: partition 0 changed SizeBytes rejected
+PASS: own SSD: partition 0 changed StartSector rejected
+PASS: own SSD: partition 0 changed EndSector rejected
+PASS: own SSD: partition 1 changed Guid rejected
+PASS: own SSD: partition 1 changed GptType rejected
+PASS: own SSD: partition 1 changed StartByte rejected
+PASS: own SSD: partition 1 changed EndByteExclusive rejected
+PASS: own SSD: partition 1 changed SizeBytes rejected
+PASS: own SSD: partition 1 changed StartSector rejected
+PASS: own SSD: partition 1 changed EndSector rejected
+PASS: own SSD: partition 2 changed Guid rejected
+PASS: own SSD: partition 2 changed GptType rejected
+PASS: own SSD: partition 2 changed StartByte rejected
+PASS: own SSD: partition 2 changed EndByteExclusive rejected
+PASS: own SSD: partition 2 changed SizeBytes rejected
+PASS: own SSD: partition 2 changed StartSector rejected
+PASS: own SSD: partition 2 changed EndSector rejected
+PASS: own SSD: partition 3 changed Guid rejected
+PASS: own SSD: partition 3 changed GptType rejected
+PASS: own SSD: partition 3 changed StartByte rejected
+PASS: own SSD: partition 3 changed EndByteExclusive rejected
+PASS: own SSD: partition 3 changed SizeBytes rejected
+PASS: own SSD: partition 3 changed StartSector rejected
+PASS: own SSD: partition 3 changed EndSector rejected
+PASS: own SSD: removed MSR rejected
+PASS: own SSD: extra partition in old free space rejected
+PASS: own SSD: C letter moved to another partition rejected
+PASS: own SSD: Windows boot pointing to other disk rejected
+PASS: own SSD: misleading Windows label with GRUB loader rejected
+PASS: own SSD: relocated but internally consistent recovery partition rejected
+PASS: own SSD: missing Disk in both records never passes
+PASS: own SSD: missing Partitions in both records never passes
+PASS: own SSD: missing Boot in both records never passes
+PASS: own SSD: empty partition inventories never pass
+PASS: own SSD: duplicate GUIDs never pass even in both records
+PASS: own SSD: missing partition bounds fail closed
+PASS: own SSD: missing boot loader fails closed
+PASS: own SSD: empty disk GUID fails closed
+All 77 synthetic checks passed (including the 26 existing regression checks). No hardware queries or writes executed.
+PASS: record B refuses an unelevated terminal before collection
+All 78 checks passed (77 synthetic regression checks and 1 unelevated pre-check). No disk/firmware queries or configuration changes executed.
+PowerShell version: 7.6.7

@@ -1,121 +1,178 @@
-# The private installation record
+# Own-SSD installation record
 
-Use this page at INSTALL steps 4, 5 and 9. **The inventory is mandatory.** Keep its files and this comparison sheet on another device, outside Git. These commands read disk/firmware information; none partitions, mounts, repairs or changes boot entries. The helper only enables a Windows privilege temporarily in its own process to read firmware, then restores it. Errors mean **stop**, not permission to substitute disk numbers or labels.
+Mandatory companion to [INSTALL](INSTALL.md), checked **2026-10-22**. Keep all output and serial numbers **private, outside Git**, with a copy independent of both internal SSDs. The [archived same-drive record](INSTALL-RECORD-SAME-DRIVE.md) is not used here.
 
-## A. Windows: before and after shrinking
+These commands query layout/firmware; they do not partition, mount, repair, format or change boot entries. Saving JSON writes ordinary files; Windows PowerShell's native-code compilation may create temporary files. The helper temporarily enables a process privilege to read firmware and restores it. **Agents never run its hardware queries on this laptop.** Errors mean stop.
 
-Start Windows directly with **F12 → Windows Boot Manager**, with USBs removed. Open **Terminal (Administrator)** → **Windows PowerShell**. Paste this block; at its prompt enter the folder containing AresOS's `README.md`. Use the reviewed repository/release copy, not a downloaded replacement script. If Windows blocks the module, stop for maintainer review; do not change execution policy.
+## A. Save the Windows baseline
+
+After INSTALL §1, boot **F12 → Windows Boot Manager**, USBs absent. Open **Terminal (Administrator) → Windows PowerShell**. Use only the reviewed repository copy; if importing is blocked, stop rather than change execution policy.
 
 ```powershell
 $ErrorActionPreference = 'Stop'
 $aresRepo = Read-Host 'AresOS folder containing README.md'
 Import-Module (Join-Path $aresRepo 'docs\install-tools\InstallRecord.psm1') -Force
-$aresRecord = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'AresOS-record'
+$aresRecord = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'AresOS-own-ssd-record'
 New-Item -ItemType Directory -Path $aresRecord -Force | Out-Null
-if (Test-Path (Join-Path $aresRecord 'before.json')) { throw 'STOP: preserve the existing before.json; do not overwrite it.' }
+$aresBaseline = Join-Path $aresRecord 'windows-before.json'
+if (Test-Path $aresBaseline) { throw 'STOP: preserve the original baseline; do not overwrite it.' }
 $before = Get-AresInstallRecord
-$before | ConvertTo-Json -Depth 6 | Tee-Object -FilePath (Join-Path $aresRecord 'before.json')
-Get-AresShrinkPlan -Before $before | Format-List
+$before | ConvertTo-Json -Depth 6 | Tee-Object -FilePath $aresBaseline
 ```
 
-This prints disk model, serial, GPT disk GUID, bytes and logical sector size; **every** partition's GUID/type and byte/sector endpoints; C: free bytes; and the entry used for **this Windows boot**. The final block computes the proposed Windows size/free space in **GiB** and refuses insufficient headroom **before** shrinking. `Boot.PartitionGuid` must match an EFI partition in `Partitions`, and `LoaderPath` must be `\EFI\Microsoft\Boot\bootmgfw.efi`. The helper checks those conditions. Mark that row **original Windows ESP — KEEP**. Its GUID, not “partition 1”, is the permanent identity.
+Require the Micron model/serial, a GPT disk GUID, and every Windows partition with GUID/type/start/end. The helper follows C: to its disk and checks this Windows boot targets an EFI partition **on that disk** using `\EFI\Microsoft\Boot\bootmgfw.efi`. Mark that row **original Windows EFI — KEEP**. Blank IDs or a different disk means stop.
 
-Save a full Disk Management disk-row screenshot too. **The MSR is deliberately hidden by Disk Management**, so its absence in that screenshot is normal; the command inventory must still include it. `GptType` is a partition's *role*, while `Guid` is its *unique identity*. [Microsoft GPT FAQ](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-and-gpt-faq?view=windows-11) (checked 2026-10-21).
+Copy the folder off-device before fitting/installing. Disconnect that copy device before any writer/installer. Never regenerate the baseline after a change. A full **Datenträgerverwaltung** screenshot is useful, but its hidden MSR partition is included only in the command inventory. [W1]
 
-Copy the `AresOS-record` folder to the independent record device **before shrinking**; disconnect that device before any media writer or installer. Keep this PowerShell window open. After INSTALL step 4 shrinks C:, paste:
+## B. Compare Windows after each stage
 
-```powershell
-$after = Get-AresInstallRecord
-$donation = @(Get-AresDonation -Before $before -After $after)
-$after | ConvertTo-Json -Depth 6 | Tee-Object -FilePath (Join-Path $aresRecord 'after-shrink.json')
-$donation | ConvertTo-Json | Tee-Object -FilePath (Join-Path $aresRecord 'allowed-interval.json')
-```
+Run after SSD fitting, after Bazzite, after AresOS, immediately before undo and after undo. Always start by **direct F12 → Windows Boot Manager**, USBs absent; do not chainload Windows through Linux.
 
-The helper checks disk identity, all original partitions, exactly 96 GiB removed from C:'s **end**, Windows boot target and remaining free-space margins. It prints **already calculated inclusive start/end sectors**, both for the allowed interval and the three proposed new partitions. No sector arithmetic is needed. Copy the updated folder off the laptop before continuing.
-
-If the terminal was closed after shrinking, restore the saved baseline with this block, then run the **after** block above. Never recreate “before” after shrinking. If necessary, first restore the `AresOS-record` folder from the independent copy into Documents.
+After each reboot, **right-click Start → Terminal (Administrator)**, approve the prompt, then select **Windows PowerShell**. The previous elevated terminal did not survive the reboot. The pre-check below must print `PASS: Administrator terminal.` before any collection; otherwise reopen as instructed and rerun B. [W2]
 
 ```powershell
 $ErrorActionPreference = 'Stop'
+$aresIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$aresPrincipal = [Security.Principal.WindowsPrincipal]::new($aresIdentity)
+if (-not $aresPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'STOP: right-click Start -> Terminal (Administrator), approve the prompt, select Windows PowerShell, then rerun record B.'
+}
+'PASS: Administrator terminal.'
 $aresRepo = Read-Host 'AresOS folder containing README.md'
 Import-Module (Join-Path $aresRepo 'docs\install-tools\InstallRecord.psm1') -Force
-$aresRecord = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'AresOS-record'
-$before = Get-Content -Raw (Join-Path $aresRecord 'before.json') | ConvertFrom-Json
+$aresRecord = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'AresOS-own-ssd-record'
+$before = Get-Content -Raw (Join-Path $aresRecord 'windows-before.json') | ConvertFrom-Json
+$aresStage = Read-Host 'Stage: after-fit, after-bazzite, after-aresos, before-undo, after-undo'
+if ($aresStage -notin 'after-fit','after-bazzite','after-aresos','before-undo','after-undo') {
+    throw 'STOP: use one of the listed stage names.'
+}
+$current = Get-AresInstallRecord
+$aresOutput = Join-Path $aresRecord ($aresStage + '-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '.json')
+if (Test-Path $aresOutput) { throw 'STOP: preserve the existing stage record.' }
+$current | ConvertTo-Json -Depth 6 | Tee-Object -FilePath $aresOutput
+Confirm-AresWindowsDiskUnchanged -Before $before -After $current
 ```
 
-## B. Linux: identify the SSD, its partitions and the free interval
+Success prints:
 
-In the legacy installer, press **Ctrl+Alt+F1**, then **Ctrl+B**, release both keys, then **2** to reach the root shell; omit `sudo` there if it is unavailable. **Ctrl+Alt+F6** returns to the graphical installer. This uses the [Anaconda tmux console procedure](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/interactively_installing_rhel_from_installation_media/troubleshooting-at-the-start-of-the-installation_rhel-installer) (checked 2026-10-21), still requiring verification on the qualified ISO. If it does not work, stop. In installed Bazzite use **Konsole**; in GParted Live double-click **Terminal**. These commands do not mount Windows.
-
-```bash
-sudo lsblk --bytes --paths --pairs --output NAME,TYPE,SIZE,MODEL,SERIAL,LOG-SEC,PTUUID,PARTUUID,PARTTYPE,FSTYPE,UUID,MOUNTPOINTS
+```text
+PASS: Windows disk identity, all partition GUIDs/types/boundaries and original Windows boot target match.
 ```
 
-Each device is one record of `FIELD="value"` pairs, so long identifiers are not shortened into a screen-width table; lines may wrap. Find the disk whose **model + serial + size + GPT disk GUID (`PTUUID`) + logical sector size (`LOG-SEC`)** match the Windows record. Take its `NAME` (for example `/dev/nvme0n1`; never assume this example is yours). Then paste, typing that whole-disk path at the prompt:
+A comparison failure stops installation/undo: keep the output for review, never replace the baseline to obtain a pass. If collection itself fails, there may be no stage file; preserve the error privately. Copy successful records off-device.
+
+The comparison allows disk/partition numbers, labels, firmware entry number and C: free space to change. It rejects any disk identity/size/sector-size change, partition addition/deletion/type/GUID/boundary change, C: identity change or different Windows boot target. **It does not hash filesystem contents or prove no files changed.** The offline two-disk write audit remains a release requirement.
+
+## C. Identify both drives in live Linux
+
+**Before opening Konsole**, set/test the live KDE desktop's German layout as in [INSTALL §4](INSTALL.md#4-install-bazzite-on-crucial-only), including `y z / - " $` in a text editor. This is separate from the installer's target keyboard setting. Repeat after a live reboot; check it in installed KDE too. In GParted Live choose German at startup and test those characters in a text editor before **Terminal**. The release must verify the menus and commands exist. Never click/mount a Windows volume to find them.
+
+Keep the complete output below. The first command shows relationships; the second retains exact IDs with **PKNAME = parent device**. A narrow window may clip the tree; maximise it and use the complete pairs record for full model/serial/IDs. [L1]
 
 ```bash
-read -r -p 'Recorded SSD whole-disk path: ' aresDisk
-sudo sfdisk --list "$aresDisk"
-sudo sfdisk --list-free "$aresDisk"
+sudo lsblk --tree --paths --output NAME,TYPE,SIZE,MODEL,SERIAL,MOUNTPOINTS
+sudo lsblk --bytes --paths --pairs --output NAME,PKNAME,TYPE,SIZE,MODEL,SERIAL,LOG-SEC,PTUUID,PARTUUID,PARTTYPE,FSTYPE,UUID,MOUNTPOINTS
 sudo efibootmgr -v
 ```
 
-`sfdisk --list` prints each device's **Start, End and Sectors**, with the sector size in the header; `--list-free` does the same for gaps. These options are read-only; **never run bare `sfdisk`**. Match `PARTUUID` from `lsblk` to Windows `Guid` (ignore letter case and surrounding braces). Then use that same device path's `sfdisk` row for boundaries. The disk GUID is not a partition GUID. Filesystem `UUID`, including the **UUID in GParted Information**, is a third, different identifier and cannot replace `PARTUUID`.
+**Example only — invented serials, not this laptop's output.** A line marked `disk` is a whole drive; indented `part` lines belong to the disk above. `p1` means partition 1, not a different SSD. USB/loop devices also appear in real output.
 
-Before installation, every Windows row must match `after-shrink.json`. The free interval must match `allowed-interval.json` exactly, even if another gap exists. After installation, record the three new PARTUUIDs and their exact boundaries; require the planned tree from INSTALL §5. In Bazzite also run:
+```text
+NAME                   TYPE  SIZE  MODEL              SERIAL
+/dev/nvme0n1           disk  465G  CT500P310SSD8       EXAMPLE-CRUCIAL  <- new drive
+                                  (no child rows: empty layout)
+/dev/nvme1n1           disk  477G  MTFDKCD512TFK...    EXAMPLE-MICRON   <- KEEP
+├─/dev/nvme1n1p1        part  ...                                    <- Windows EFI: KEEP
+├─/dev/nvme1n1p2        part  ...                                    <- MSR: KEEP
+├─/dev/nvme1n1p3        part  ...                                    <- Windows: KEEP
+└─/dev/nvme1n1p4        part  ...                                    <- recovery: KEEP
+```
+
+Partition order/types above are illustrative: use the baseline's GUIDs/types to identify the **actual** EFI/MSR/Windows/recovery rows. No child rows alone does not prove a drive contains no data; stop for any filesystem/signature or known prior use as well.
+
+### Same-session mapping — fill again after every boot
+
+Identify **Micron by model + serial + size + GPT disk GUID (`PTUUID`)**, all matching `windows-before.json`. Identify Crucial by the model and serial in its private **physical-label photograph**, then match both to its live `disk` row and check size. Do not open/disturb Micron to read its label: use the original Windows baseline. Missing, truncated, different or ambiguous identity means **FAIL — STOP**; neither capacity nor a disk number substitutes for the serial.
+
+Fill this table from the **current** complete output, then the installer opened in **this same session**. Keep a full destination screenshot. Record a new table after reboot or any device change; never carry a device path over from Windows or a previous live boot.
+
+| Physical drive / trusted identity | Live model + serial (exact) | Whole-disk `NAME` where `TYPE="disk"` | Exact **Change destination** entry and device name shown | Result |
+|---|---|---|---|---|
+| Crucial: photographed model + serial | | | | PASS / FAIL |
+| Micron — KEEP: baseline model + serial | | | Must remain deselected | PASS / FAIL |
+
+The installer may omit the serial and `/dev/`: join its device name to the **same-session** `NAME` (e.g. `nvme0n1` → `/dev/nvme0n1`), then verify its model/size too. Copy the **actual full entry**, not this example. Require a unique match; if the UI hides the device name or disagrees, **Quit**. A partition path such as `/dev/nvme1n1p1` is never a whole-disk destination. [B1]
+
+If Crucial becomes `nvme1n1` next boot, its matching label/model/serial makes **that** the new target; all Micron children remain protected whichever number they get. In GParted, fill the entry column from its device selector instead; in installed KDE without a selector, mark that column **not applicable**, never reuse an old destination check.
+
+Read each whole-disk `NAME` from this output; paths and numbering can change on every boot. To display exact partition sector bounds, run this block once for Micron, and again for Crucial after installation:
+
+```bash
+read -r -p 'Identified whole-disk path (from lsblk): ' aresDisk
+sudo sfdisk --list "$aresDisk"
+```
+
+Only `sfdisk --list` is used; never bare `sfdisk`. Match Windows disk `Guid` to `PTUUID`, partition `Guid` to `PARTUUID`, and `GptType` to `PARTTYPE` (case/braces can differ). Match the helper's **StartSector / EndSector**, inclusive, against `sfdisk` **Start / End**, with the same sector size. The filesystem `UUID` is a different identifier. Use the private sheet below, including one row per Micron partition, and record each result. [L1]
+
+### PASS/FAIL checkpoints
+
+These are **manual results** from the saved output and visible plan; the automatic Windows comparison is in B. Mark PASS only after completing the check, otherwise **FAIL — STOP / Quit**, including unreadable or uncertain output. Preserve the detailed evidence. No PASS here proves the installer cannot write elsewhere; the two-disk release audit is still required.
+
+| When / check | PASS only when | FAIL examples — do not continue |
+|---|---|---|
+| Every Linux session: **identity** | Both mapping rows match their trusted identity; current whole-disk paths are recorded, even after renumbering. | Crucial chosen by 465 GiB alone; copied old path; serial mismatch. |
+| Every Linux session: **Micron unchanged** | Disk model/serial/byte-size/PTUUID/sector-size and **every** partition's GUID/type/start/end match the original baseline, with no extra/missing rows. All Micron `MOUNTPOINTS` are empty (including no `[SWAP]`). | Changed/missing MSR or recovery; a Micron partition mounted; any unreadable field. |
+| **Before first installation only: Crucial empty** | Matched Crucial has **zero partition children**, empty FSTYPE/UUID and no mounts, unknown data or prior use. A factory-empty drive may lack PTUUID. | Even one child partition, including a small EFI partition, or any filesystem signature: stop; do not erase to make this pass. |
+| **Before Erase data and install: installer plan** | Exact destination entry maps only to current Crucial; **every** proposed storage action is on Crucial, with its **own new EFI** at `/boot/efi`, boot and system. | Any proposed write, format, delete, resize, mount or EFI reuse on **Micron or any of its children**, even if Crucial is also selected; missing EFI or unclear path. |
+| After installation: **Linux on Crucial** | The mount sources and Linux EFI GUID checked below all resolve to the recorded Crucial partitions. | `/boot/efi` or any Linux storage resolves to Micron, or a mount/EFI identity is unclear. |
+
+In the example tree, a plan to use `nvme1n1p1` for `/boot/efi` is **FAIL — Micron EFI**, even if its label says Fedora. A plan using `nvme0n1` is only eligible for PASS after all other pre-install checks pass. After installation, expected Crucial partitions are checked against their saved record; the first-install **empty** test no longer applies.
+
+After installing, save Crucial's new PTUUID and **every** partition's PARTUUID/type/bounds in the sheet below. In installed Bazzite also run:
 
 ```bash
 findmnt --mountpoint /boot/efi --output SOURCE,TARGET,FSTYPE
 findmnt --mountpoint /boot --output SOURCE,TARGET,FSTYPE
 findmnt --mountpoint / --output SOURCE,TARGET,FSTYPE,OPTIONS
-findmnt --mountpoint /var --output SOURCE,TARGET,FSTYPE,OPTIONS
-findmnt --mountpoint /var/home --output SOURCE,TARGET,FSTYPE,OPTIONS
 ```
 
-The EFI source must be the **new** EFI row; root/var/home must use the new Btrfs parent with their respective subvolumes. Save all output privately. On GParted Live, all SSD mountpoint fields must be empty before deleting anything; a mounted SSD partition means stop. Missing commands, blank identifiers, read errors or inconsistent units also mean stop.
+Match sources back to `lsblk`: EFI, boot and system must all be on Crucial. In `efibootmgr -v`, require the Linux entry's `HD(...,GPT,<GUID>,...)` to name Crucial's new EFI PARTUUID. Save its Boot####, loader path and the Windows entry; do not alter them. Save complete output privately (photographs/full copied lines, not truncated tables). The live USB's **BootCurrent identifies the USB**, not the earlier Windows boot. [L1], [U1]
 
-## C. One comparison sheet
+### Private comparison sheet
 
-Copy this sheet into the private record. Add a row for **each** original OEM/recovery/other partition; do not force your machine into the illustration. Fill Linux paths only after matching GUIDs. Paths/partition numbers may change between boots; resolve them anew by GUID each time.
+Write **PASS** or **FAIL** beside each required comparison; any blank/FAIL blocks that stage. For newly created Crucial IDs, write **recorded after install** when first saved, then compare them at later checks. Keep the complete command output alongside this summary.
 
-Disk: Windows number ___; model ___; serial ___; size bytes ___; Windows disk `Guid` = Linux `PTUUID` ___; logical sector bytes ___; Linux whole-disk path ___ .
+| Record | Original / first saved | After / current | Result |
+|---|---|---|---|
+| Micron model, serial, size bytes, GPT GUID, logical sector bytes | | Must match | |
+| Each Micron partition: GUID, type, start/end sectors (**one row per partition**) | | Must match | |
+| Windows EFI GUID/bounds and Microsoft loader path | | Must match | |
+| Crucial label/model, serial, size bytes | | Must match | |
+| Crucial GPT GUID (blank permitted only before first install) | | | |
+| Every Crucial partition: PARTUUID, type, start/end sectors | | | |
+| Linux entry Boot####, EFI PARTUUID, loader path | — | | |
+| Direct Windows boot entry from latest before-undo JSON | — | | |
+| Recovery USB model/label/boot-test date | | | |
+| Installer USB model/label; writer/ISO versions and SHA-256 | | | |
 
-| Role / action | Windows partition / letter | Windows `Guid` = Linux `PARTUUID` | Current Linux device path | Start sector | End sector (inclusive) | Start byte / end byte (exclusive) |
-|---|---|---|---|---|---|---|
-| Original Windows ESP — KEEP | | | | | | |
-| MSR — KEEP | | | | | | |
-| C: before shrink — KEEP record | | | | | | |
-| C: after shrink — KEEP partition | | | | | | |
-| Every original recovery/OEM/other — KEEP | | | | | | |
-| Allowed donation (from helper) | — | — | free space before install | | | |
-| New AresOS EFI — remove only at undo | | | | | | |
-| New AresOS ext4 boot — remove only at undo | | | | | | |
-| New AresOS Btrfs — remove only at undo | | | | | | |
+## D. Before erasing Crucial from live media
 
-Original Windows boot: `Boot####` ___; ESP GUID ___; loader `\EFI\Microsoft\Boot\bootmgfw.efi`; sector bounds ___ . Linux boot: `Boot####` ___; **new** ESP GUID ___; loader path ___ . Recovery USB label/model/size/boot-test date ___; installer USB label/model/size ___ .
+First complete INSTALL §9's successful direct Windows boot and record B (**before-undo**); keep that exact timestamped JSON independently. In live GParted repeat C, requiring **both internal disks unmounted** and every recorded Crucial partition/boundary still accounted for. Unknown additional partitions/data mean stop.
 
-## D. Undo: prove the Windows boot you just tested uses the original ESP
+Find the **Boot.Entry saved by that Windows session** in current `efibootmgr -v`. Its GPT partition GUID and `File(...)` must still identify the original Micron EFI and `\EFI\Microsoft\Boot\bootmgfw.efi`. Locate that GUID's device with `lsblk`, then compare its `sfdisk` Start/End with the saved Boot.StartSector/EndSector. Do not mistake `HD(...)`'s hexadecimal start/size for decimal start/end; no conversion is required using the partition listing. The live USB's BootCurrent is not evidence about Windows. A missing/changed target, ambiguous path, Windows booting from Crucial, missing baseline or changed layout means **erase nothing**. Return to INSTALL §9 only when all checks pass.
 
-After **F12 → Windows Boot Manager** with USBs removed, open **Terminal (Administrator) → Windows PowerShell**. Import the same reviewed module and read the original record (adjust only the repository-folder prompt if it moved):
+## Sources and limits
 
-```powershell
-$ErrorActionPreference = 'Stop'
-$aresRepo = Read-Host 'AresOS folder containing README.md'
-Import-Module (Join-Path $aresRepo 'docs\install-tools\InstallRecord.psm1') -Force
-$aresRecord = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'AresOS-record'
-$before = Get-Content -Raw (Join-Path $aresRecord 'before.json') | ConvertFrom-Json
-$current = Get-AresInstallRecord
-Confirm-AresWindowsBoot -Current $current -Original $before
-$current | ConvertTo-Json -Depth 6 | Tee-Object -FilePath (Join-Path $aresRecord 'before-undo.json')
-'PASS: current Windows firmware entry targets the original ESP and Microsoft loader.'
-```
+Checked **2026-10-22** for this revision. No real disk/firmware query, installation or USB write was performed. Hardware and novice trials remain [release gates](INSTALL.md#maintainer-release-gate).
 
-This reads **BootCurrent while Windows is running**, then that exact `Boot####`'s device/file path. A Windows reinstall using the AresOS ESP fails even if Windows starts perfectly. Chainloading from GRUB, an unreadable variable, missing original record, non-GPT/ambiguous path or a different loader also stops undo. Do not replace this check with the entry's displayed name, `BootOrder`, a screenshot of a successful login or an old installation-time record.
+- **W1:** Microsoft [Get-Disk](https://learn.microsoft.com/en-us/powershell/module/storage/get-disk), [Get-Partition](https://learn.microsoft.com/en-us/powershell/module/storage/get-partition), [MSFT_Disk](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/msft-disk), [MSFT_Partition](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/msft-partition) and [GPT FAQ / hidden MSR](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-and-gpt-faq?view=windows-11).
+- **W2:** Microsoft [WindowsPrincipal.IsInRole](https://learn.microsoft.com/en-us/dotnet/api/system.security.principal.windowsprincipal.isinrole), checked 2026-10-22: Administrator role check uses the current token; an unelevated UAC token returns false without prompting for elevation.
+- **L1:** util-linux [lsblk](https://github.com/util-linux/util-linux/blob/master/lsblk-cmd/lsblk.8.adoc), [sfdisk](https://github.com/util-linux/util-linux/blob/master/disk-utils/sfdisk.8.adoc), [findmnt](https://github.com/util-linux/util-linux/blob/master/misc-utils/findmnt.8.adoc); [efibootmgr README](https://github.com/rhboot/efibootmgr/blob/main/README).
+- **B1:** Bazzite's upstream [destination](https://docs.bazzite.gg/img/live-installer-drive.png) and [review](https://docs.bazzite.gg/img/live-installer-partitions.png) examples, inspected 2026-10-22: model/device-name destination and partition rows. These show `vda` in a VM; the physical NVMe/two-drive mapping remains a release trial, not a claimed screenshot from this laptop.
+- **U1:** [UEFI BootCurrent/load options](https://uefi.org/specs/UEFI/2.9_A/03_Boot_Manager.html#load-options), [EDK II device paths](https://github.com/tianocore/edk2/blob/master/MdePkg/Include/Protocol/DevicePath.h); Microsoft [firmware read](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfirmwareenvironmentvariablew), [temporary process privilege](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges). The existing native reader is unchanged and imports no firmware setter.
 
-Copy `before-undo.json` off-device. Boot the installer USB into GParted Live and repeat B. In `efibootmgr -v`, locate the exact `Entry` saved in `before-undo.json`. Its `HD(...,GPT,<GUID>,...)` must match the **original Windows ESP's PARTUUID** and its `File(...)` must match the saved Microsoft loader path. Match the ESP's sector range using `sfdisk`. The live session's **BootCurrent now describes the USB**, not the Windows boot: use the saved Windows entry. If it disappeared, changed target, or points at **any** AresOS row, **delete nothing**. Only a matching current entry plus the saved successful Windows check permits proceeding to INSTALL §9's separate three-partition deletion review.
-
-## Sources and limits — checked 2026-10-21
-
-[Get-Disk](https://learn.microsoft.com/en-us/powershell/module/storage/get-disk), [Get-Partition](https://learn.microsoft.com/en-us/powershell/module/storage/get-partition), [MSFT_Disk](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/msft-disk) and [MSFT_Partition](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/msft-partition) define the Windows fields. [lsblk](https://man7.org/linux/man-pages/man8/lsblk.8.html), [sfdisk](https://man7.org/linux/man-pages/man8/sfdisk.8.html), [findmnt](https://man7.org/linux/man-pages/man8/findmnt.8.html) and [efibootmgr](https://github.com/rhboot/efibootmgr/blob/main/README) define the Linux queries. [UEFI load options / BootCurrent](https://uefi.org/specs/UEFI/2.9_A/03_Boot_Manager.html#load-options), [EDK II device-path definitions](https://github.com/tianocore/edk2/blob/master/MdePkg/Include/Protocol/DevicePath.h), Microsoft's [firmware-variable read](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfirmwareenvironmentvariablew) and [temporary privilege adjustment](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges) underpin the helper. It imports no firmware-write API.
-
-The helper checks records and the firmware-declared boot target; it does not certify filesystem contents or perform any disk action. Synthetic tests are not a Windows/UEFI or novice installer rehearsal. Those trials remain part of the pre-shrink release gate in [INSTALL](INSTALL.md#maintainer-release-gate).
+[W1]: https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-and-gpt-faq?view=windows-11
+[W2]: https://learn.microsoft.com/en-us/dotnet/api/system.security.principal.windowsprincipal.isinrole
+[L1]: https://github.com/util-linux/util-linux
+[B1]: https://docs.bazzite.gg/img/live-installer-drive.png
+[U1]: https://uefi.org/specs/UEFI/2.9_A/03_Boot_Manager.html#load-options
