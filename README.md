@@ -83,11 +83,10 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
 1. **Shell mod + OS base, in parallel.**
    - Mod: Nether hub, app items, sign doors, return-to-world on close. Developed in normal Minecraft on Windows for fast testing.
    - OS base: Linux defined as code in this repo, with NVIDIA drivers, Mojang boot logo, auto-login, and boot straight into the Nether world. Also auto-restart if Minecraft crashes, and a hidden escape key to a plain terminal.
-2. **Dual boot on the existing SSD** (owner decision, 2026-10-21: free, and not very risky if done carefully).
-   - The owner shrinks Windows with Windows' own tools, and AresOS goes into the freed space with its own partitions.
-   - The installer touches only the new space and AresOS's own EFI partition. Windows boot files stay untouched; F12 selects the OS.
-   - First test the plain AresOS terminal session on hardware, then add Minecraft. The [install guide](docs/INSTALL.md) records the checks and the image-release prerequisites before any disk changes.
-   - A second SSD stays an option for later.
+2. **AresOS on its own SSD** (owner decision, 2026-10-22; replaces same-drive dual boot).
+   - A second internal NVMe SSD (Crucial P310 500 GB) goes into the free M.2 2280 slot, and AresOS takes that whole drive.
+   - Windows keeps all its space and is never touched. Pick the OS at startup.
+   - Same-drive dual boot stays documented as a fallback.
 3. **Polish:** piglin app shops, respawn anchor = sleep, Save and Quit = shut down, more worlds via the portal (Overworld survival, BedWars).
 4. **Later, optional:** a Brawl Stars theme (custom app).
 
@@ -101,11 +100,11 @@ AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code o
   - UEFI mode, and **Secure Boot OFF**.
   - Device encryption is very likely off, since it needs Secure Boot. A missing "Geräteverschlüsselung" page doesn't prove it, so confirm fully decrypted status before shrinking.
   - Turning Secure Boot on later is a separate owner decision.
-- **Hardware:** no second SSD required. Keep **two separate labelled USB sticks**: Windows recovery (plan 32 GB, or more if its wizard requests it; never overwrite), and an expendable installer stick (at least 16 GB). Existing suitable sticks are fine. Boot-test recovery before shrinking; see the [install guide](docs/INSTALL.md).
+- **Hardware (ordered 2026-10-22):** Crucial P310 500 GB NVMe SSD for the free 2280 slot, plus a Kingston Exodia M 2×64 GB USB pack (one Windows recovery stick that's kept, one installer stick).
 - App icons: **decided**, generated automatically from each app's real icon on the laptop, in a Minecraft pixel-art style. The owner doesn't draw them (owner decision 2026-10-21). Test and tune later.
 
 ## Safety rules
 
 - Mod development on Windows touches only Minecraft's mod folder and this project.
-- AresOS installs only into its own new partitions in the space freed from Windows. Never delete, format or move existing Windows partitions or modify Windows boot files. The only proposed resize exceptions are the owner's C: shrink and undo-extension using Windows Disk Management, as checked in the [install guide](docs/INSTALL.md). Agents never perform them. Back up first.
+- AresOS installs only onto its own SSD. Never partition, format, resize or write to the Windows SSD, and never modify Windows boot files. Back up first anyway.
 - Before BIOS/boot changes, confirm encryption status and independently save the matching BitLocker recovery key if encryption exists. Unknown/encrypted status stops this install path for owner review; do not assume protection is off because Secure Boot is off.

@@ -49,10 +49,10 @@ I only build things myself when writing the brief would cost more than doing it 
 
 ## Hard rules
 
-1. **Same-drive dual boot (owner decision, 2026-10-21).**
-   - AresOS lives in its own new partitions on the Windows SSD.
-   - Never delete, format or move existing Windows partitions, and never modify Windows' boot files. No Linux-side Windows resizing.
-   - The only proposed resize exceptions are the owner's C: shrink and extension back into the same reclaimed space for undo, using Windows' own Disk Management after a backup and the install guide's checks. The brief-05 report brings these narrow exceptions to the owner before merge.
+1. **AresOS on its own SSD (owner decision, 2026-10-22; replaces the earlier same-drive dual-boot plan).**
+   - AresOS lives on a second internal NVMe SSD in the free M.2 2280 slot (Crucial P310 500 GB).
+   - The Windows SSD (Micron 512 GB) is never partitioned, formatted, resized or written to, and Windows' boot files are never modified.
+   - Same-drive dual boot stays documented only as a fallback.
    - Agents never run disk or boot tools on the real laptop.
 2. Never commit Mojang or Supercell assets. Vanilla textures load from the game at runtime.
 3. Never touch the owner's real `.minecraft` folder or Lunar Client unless asked. Development uses the Gradle dev client (`runClient`).
