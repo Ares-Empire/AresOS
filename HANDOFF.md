@@ -2,15 +2,12 @@
 
 The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up.
 
-## Where I stopped (2026-10-22, about 19:55)
+## Where things are (2026-10-22, about 20:35)
 
-- **Brief 06c is paused** (PR #10, draft, branch `pkg/06-image-release`, worktree `C:\Users\pab\AresOS-06-image-release`).
-  - Claude stopped the Codex process so the owner could shut down for the SSD-slot check. Its in-progress evidence was pushed as `cc5fc42` (WIP, `[skip ci]`).
-  - **GitHub full run `39818554327` ("OS image") was still running** and continues on GitHub. The image job had built the disk and was in the two VM boots. The switch job comes next: stock → AresOS → policy (including the Homebrew neutralization) → tty3 recovery → partitions → rollback.
-- **To resume:**
-  1. Check the run: `gh run view 39818554327`.
-  2. Relaunch Codex in that worktree (gpt-6.1-sol, xhigh) with: "Read AGENTS.md and briefs/06c-inherited-homebrew.md. You were stopped mid-run. Full run 39818554327 counts as full run 1 of 2. Read its result and evidence, then continue the brief."
-  3. Then do the confirm review and merge PR #10.
+- **Brief 06c resumed at 20:34** (PR #10, draft, branch `pkg/06-image-release`, worktree `C:/Users/pab/AresOS-06-image-release`). Codex gpt-6.1-sol xhigh, log `C:/Users/pab/AresOS-06c-resume.log` (`turn.completed` = done), final message `../AresOS-06c-resume.last.md`.
+  - Full run `39818554327` was **full run 1 of 2**: the image job passed, and the switch job failed in `os/ci/switch_vm.py` at guest command `tty-password-ready` (exit 1), after stock Bazzite's pre-login reboot. Codex decides whether that's a harness flaw (fix with a regression) or a product failure (stop and report).
+  - One full run is left in the 06c budget. About 1,230 of 2,000 CI minutes used in October.
+- **When it finishes:** read its REPORT 06c section, then do the confirm review and merge PR #10 per `docs/WORKFLOW.md`.
 - **Already proven before 06c:** the private signed image on `bazzite-nvidia-open`. Stock Bazzite switched to AresOS and booted, and the session, accounts and partitions passed. 06b's policy check caught inherited Homebrew, which 06c neutralizes reversibly.
 
 ## Waiting on the owner
