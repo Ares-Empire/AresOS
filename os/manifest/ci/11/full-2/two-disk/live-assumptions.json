@@ -1,0 +1,103 @@
+{
+  "order": "protected-first",
+  "layout": {
+    "blockdevices": [
+      {
+        "name": "loop0",
+        "type": "loop",
+        "size": 8649285632,
+        "serial": null,
+        "partuuid": null,
+        "fstype": "squashfs",
+        "mountpoints": [
+          "/run/rootfsbase"
+        ]
+      },
+      {
+        "name": "sr0",
+        "type": "rom",
+        "size": 9068650496,
+        "serial": "QM00001",
+        "partuuid": null,
+        "fstype": "iso9660",
+        "mountpoints": [
+          "/run/initramfs/live"
+        ]
+      },
+      {
+        "name": "sr1",
+        "type": "rom",
+        "size": 1073741312,
+        "serial": "QM00005",
+        "partuuid": null,
+        "fstype": null,
+        "mountpoints": []
+      },
+      {
+        "name": "zram0",
+        "type": "disk",
+        "size": 3095920640,
+        "serial": null,
+        "partuuid": null,
+        "fstype": "swap",
+        "mountpoints": [
+          "[SWAP]"
+        ]
+      },
+      {
+        "name": "vda",
+        "type": "disk",
+        "size": 53687091200,
+        "serial": "MICRON-KEEP",
+        "partuuid": null,
+        "fstype": null,
+        "mountpoints": []
+      },
+      {
+        "name": "vda1",
+        "type": "part",
+        "size": 272629760,
+        "serial": null,
+        "partuuid": "e6f6beec-8511-40c2-9af8-e3c746fb04ff",
+        "fstype": "vfat",
+        "mountpoints": []
+      },
+      {
+        "name": "vda2",
+        "type": "part",
+        "size": 16777216,
+        "serial": null,
+        "partuuid": "c232ba11-c2d8-4ac9-b1a5-6193856927df",
+        "fstype": null,
+        "mountpoints": []
+      },
+      {
+        "name": "vda3",
+        "type": "part",
+        "size": 52322876928,
+        "serial": null,
+        "partuuid": "ca296aa5-a8cf-46d9-9149-ccb02ba3f789",
+        "fstype": "ntfs",
+        "mountpoints": []
+      },
+      {
+        "name": "vda4",
+        "type": "part",
+        "size": 1073724928,
+        "serial": null,
+        "partuuid": "43214f3b-3cb6-4501-81fb-c952d9ff3f76",
+        "fstype": "ntfs",
+        "mountpoints": []
+      },
+      {
+        "name": "vdb",
+        "type": "disk",
+        "size": 52613349376,
+        "serial": "CRUCIAL-TARGET",
+        "partuuid": null,
+        "fstype": null,
+        "mountpoints": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,444 @@
+]3008;end=01883c11-1236-4390-9a15-3e0ebab14b81;exit=success\]3008;start=919fd1f2-3649-42c0-8482-3b0b35dc8dbb;type=shell;machineid=c44b1b9b6d334a80a9335a81e53d5506;user=root;hostname=localhost-live;bootid=9d113f90-e821-45a6-9fd9-d8fff52004bb;pid=2298;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=acf09b74-49c6-41a5-9baa-801f36b07933;type=command;machineid=c44b1b9b6d334a80a9335a81e53d5506;user=root;hostname=localhost-live;bootid=9d113f90-e821-45a6-9fd9-d8fff52004bb;pid=2298;cwd=/root\NAME="Bazzite"
+VERSION="44.20261012.0 (Kinoite)"
+RELEASE_TYPE=stable
+ID=bazzite
+ID_LIKE="fedora"
+VERSION_ID=44
+VERSION_CODENAME="Kinoite"
+PRETTY_NAME="Bazzite"
+ANSI_COLOR="0;38;2;138;43;226"
+LOGO=bazzite-logo
+CPE_NAME="cpe:/o:universal-blue:bazzite:44"
+DEFAULT_HOSTNAME="bazzite"
+HOME_URL="https://bazzite.gg"
+DOCUMENTATION_URL="https://docs.bazzite.gg"
+SUPPORT_URL="https://discord.bazzite.gg"
+BUG_REPORT_URL="https://github.com/ublue-os/bazzite/issues/"
+SUPPORT_END=2027-05-19
+VARIANT="Kinoite"
+VARIANT_ID=bazzite
+OSTREE_VERSION='44.20261012.0'
+BUILD_ID="Stable (F44.20261012)"
+BOOTLOADER_NAME="Bazzite Stable (F44.20261012)"
+IMAGE_ID="bazzite-44.20261012"
+# Anaconda configuration file for bazzite
+
+[Profile]
+# Define the profile.
+profile_id = bazzite
+
+[Profile Detection]
+# Match os-release values
+os_id = bazzite
+
+[Network]
+default_on_boot = FIRST_WIRED_WITH_LINK
+
+[Bootloader]
+efi_dir = fedora
+menu_auto_hide = True
+
+[Storage]
+default_scheme = BTRFS
+btrfs_compression = zstd:1
+default_partitioning =
+    /     (min 1 GiB, max 70 GiB)
+    /home (min 500 MiB, free 50 GiB)
+    /var  (btrfs)
+
+[User Interface]
+hidden_webui_pages =
+    network
+
+[Localization]
+use_geolocation = False
+# Kickstart defaults file for an interactive install.
+# This is not loaded if a kickstart file is provided on the command line.
+#
+# WARNING:
+#
+#   This file is deprecated and will be removed in in the future.
+#   Use the Anaconda configuration files instead.
+#
+
+# Create log directory
+%pre
+mkdir -p /tmp/anacoda_custom_logs
+%end
+
+# Check if there is a bitlocker partition and ask the user to disable it
+%pre --erroronfail --log=/tmp/anacoda_custom_logs/detect_bitlocker.log
+DOCS_QR=/tmp/detect_bitlocker_qr.png
+IS_BITLOCKER=$(lsblk -o FSTYPE --json | jq '.blockdevices | map(select(.fstype == "BitLocker")) | . != []')
+{ WARNING_MSG="$(</dev/stdin)"; } << 'WARNINGEOF'
+<span size="x-large">Windows Bitlocker partition detected</span>
+
+It might interrupt the installation process.
+In such case, please, do <b>one</b> of the following:
+    a) Disconnect its storage drive.
+    b) Disable Bitlocker in Windows.
+    c) Delete it in GNOME Disks.
+
+Do you wish to continue?
+WARNINGEOF
+
+if [[ $IS_BITLOCKER =~ true ]]; then
+    qrencode -o $DOCS_QR "https://www.wikihow.com/Turn-Off-BitLocker"
+    _EXITLOCK=1
+    _RETCODE=0
+    while [[ $_EXITLOCK -ne 0 ]]; do
+        run0 --user=liveuser yad             --on-top             --timeout=10             --image=$DOCS_QR             --text="$WARNING_MSG"             --button="Yes, I'm aware, continue":0 --button="Cancel installation":10
+        _RETCODE=$?
+        case $_RETCODE in
+            0) _EXITLOCK=0; ;;
+            10) _EXITLOCK=0; pkill liveinst; pkill firefox; exit 0 ;;
+        esac
+    done
+fi
+%end
+
+# Remove the efi dir, must match efi_dir from the profile config
+%pre-install --erroronfail
+rm -rf /mnt/sysroot/boot/efi/EFI/fedora
+%end
+
+# Relabel the boot partition for the
+%pre-install --erroronfail --log=/tmp/anacoda_custom_logs/repartitioning.log
+set -x
+xboot_dev=$(findmnt -o SOURCE --nofsroot --noheadings -f --target /mnt/sysroot/boot)
+if [[ -z $xboot_dev ]]; then
+  echo "ERROR: xboot_dev not found"
+  exit 1
+fi
+e2label "$xboot_dev" "bazzite_xboot"
+%end
+
+# Open a dialog with the installation logs
+%onerror
+run0 --user=liveuser yad     --timeout=0     --text-info     --no-buttons     --width=600     --height=400     --text="An error occurred during installation. Please report this issue to the developers."     < /tmp/anaconda.log
+%end
+
+ostreecontainer --url=ghcr.io/ublue-os/bazzite-nvidia-open:stable --transport=containers-storage --no-signature-verification
+%include /usr/share/anaconda/post-scripts/install-configure-upgrade.ks
+%include /usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks
+%include /usr/share/anaconda/post-scripts/install-flatpaks.ks
+%include /usr/share/anaconda/post-scripts/restore-selinux-labels.ks
+%include /usr/share/anaconda/post-scripts/secureboot-enroll-key.ks
+%include /usr/share/anaconda/post-scripts/secureboot-docs.ks
+
+#!/usr/bin/bash
+#
+# Simple script to kick off an install from a live CD
+#
+# Copyright (C) 2007  Red Hat, Inc.  All rights reserved.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+BACKEND_READY_FLAG=/run/anaconda/backend_ready
+
+WAYLAND_DISPLAY_SOCKET=/tmp/anaconda-wldisplay
+ATSPI_BUSADDR=/tmp/anaconda-atspibusaddr
+
+
+# Start locale1-x11-sync.service unit to enable Anaconda to control keyboard layouts
+# This needs to be started only on X11 based systems
+start_locale_sync_unit() {
+    if [ -z "${WAYLAND_DISPLAY}" ] && [ -n "${DISPLAY}" ] && [ -e "/usr/lib/systemd/user/locale1-x11-sync.service" ]; then
+        systemctl --user start locale1-x11-sync.service
+    fi
+}
+
+stop_locale_sync_unit() {
+    if [ -z "${WAYLAND_DISPLAY}" ] && [ -n "${DISPLAY}" ] && [ -e "/usr/lib/systemd/user/locale1-x11-sync.service" ]; then
+        systemctl --user stop locale1-x11-sync.service
+    fi
+}
+
+# Detect and save the wayland socket before re-exec
+if [ -n "$WAYLAND_DISPLAY" ]; then
+    if [ -e "$WAYLAND_DISPLAY_SOCKET" ]; then
+        rm -f "${WAYLAND_DISPLAY_SOCKET}"
+    fi
+    touch "${WAYLAND_DISPLAY_SOCKET}"
+    echo "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}" > ${WAYLAND_DISPLAY_SOCKET}
+fi
+
+# Detect and save the a11y bus path before re-exec
+if [ -n "$WAYLAND_DISPLAY" ] && [ -z "$AT_SPI_BUS_ADDRESS" ]; then
+    if [ -e "$ATSPI_BUSADDR" ]; then
+        rm -f "${ATSPI_BUSADDR}"
+    fi
+    _BUSCTL_OUTPUTREGEX='"([^"]+)"'
+    _ATSPIADDR="$( busctl call --user org.a11y.Bus /org/a11y/bus org.a11y.Bus GetAddress )"
+    # Check that the busctl call did not fail and grab expected output
+    # shellcheck disable=SC2181
+    if [ "$?" -eq 0 ] && [[ $_ATSPIADDR =~ $_BUSCTL_OUTPUTREGEX ]]; then
+        touch "${ATSPI_BUSADDR}"
+        echo "${BASH_REMATCH[1]}" > ${ATSPI_BUSADDR}
+    fi
+fi
+
+
+# The command needs to be run with root privileges, so if it was started
+# unprivileged, restart running as root.
+if [ "$(id -u)" -ne 0 ]; then
+    if [ -z "$WAYLAND_DISPLAY" ]; then
+        xhost +si:localuser:root
+    fi
+
+    start_locale_sync_unit
+    pkexec "$0" "$@"
+    ret=$?
+    stop_locale_sync_unit
+
+    exit $ret
+fi
+
+# pkexec clears the environment, so get it back
+if [ -n "${PKEXEC_UID}" ]; then
+    INSTALLER_USER=$(id -n -u "${PKEXEC_UID}")
+    readarray -t user_environment < <(pkexec --user "${INSTALLER_USER}" env XDG_RUNTIME_DIR="/run/user/${PKEXEC_UID}" systemctl --user show-environment)
+
+    for variable in "${user_environment[@]}"; do
+      export "${variable?}"
+    done
+fi
+
+# pkexec clears WAYLAND_DISPLAY from environment
+if [ -z "$WAYLAND_DISPLAY" ] && [ -e "$WAYLAND_DISPLAY_SOCKET" ]; then
+    WAYLAND_DISPLAY=$(cat "${WAYLAND_DISPLAY_SOCKET}")
+    export WAYLAND_DISPLAY
+fi
+
+# needed to enable a11y features on Wayland environments
+if [ -n "$WAYLAND_DISPLAY" ] && [ -z "$AT_SPI_BUS_ADDRESS" ]; then
+    AT_SPI_BUS_ADDRESS=$(cat "${ATSPI_BUSADDR}")
+    export AT_SPI_BUS_ADDRESS
+fi
+
+# use the correct home and config directories for system settings
+PKEXEC_USER=$(id -un "${PKEXEC_UID}")
+HOME=$(bash -c "cd ~${PKEXEC_USER} && pwd")
+export HOME
+XDG_CONFIG_HOME="${HOME}/.config"
+export XDG_CONFIG_HOME
+
+# Prevent multiple instances (rhbz#2440264): only one installer at a time
+LIVEINST_LOCK=/run/anaconda/liveinst.lock
+mkdir -p /run/anaconda
+exec 9>"${LIVEINST_LOCK}"
+if ! flock -n 9; then
+    title="Installer already running"
+    text="The installer is already running. Please use the existing installer window."
+    if which zenity &>/dev/null; then
+        zenity --info --no-markup --title="$title" --text="$text"
+    else
+        echo "$title: $text" >&2
+    fi
+    exit 0
+fi
+
+# Allow running another command in the place of anaconda, but in this same
+# environment.  This allows storage testing to make use of all the module
+# loading and lvm control in this file, too.
+ANACONDA="${LIVECMD:=anaconda --liveinst --graphical}"
+
+# load modules that would get loaded by the initramfs (#230945)
+for i in raid0 raid1 raid5 raid6 raid456 raid10 dm-mod dm-zero dm-mirror dm-snapshot dm-multipath dm-round-robin vfat dm-crypt cbc sha256 lrw xts iscsi_tcp iscsi_ibft; do /sbin/modprobe $i 2>/dev/null ; done
+
+if [ -f /etc/system-release ]; then
+    export ANACONDA_PRODUCTNAME
+    ANACONDA_PRODUCTNAME=$(sed -r -e 's/ *release.*//' /etc/system-release)
+    export ANACONDA_PRODUCTVERSION
+    ANACONDA_PRODUCTVERSION=$(sed -r -e 's/^.* ([0-9\.]+).*$/\1/' /etc/system-release)
+fi
+
+RELEASE=$(rpm -q --qf '%{Release}' --whatprovides system-release)
+if [ "${RELEASE:0:2}" = "0." ]; then
+    export ANACONDA_ISFINAL="false"
+else
+    export ANACONDA_ISFINAL="true"
+fi
+
+export PATH=/sbin:/usr/sbin:$PATH
+
+if [ -x /usr/sbin/getenforce ]; then
+    current=$(/usr/sbin/getenforce)
+    /usr/sbin/setenforce 0
+fi
+
+if (! sestatus | grep -q enabled) then
+    ANACONDA="$ANACONDA --noselinux"
+fi
+
+# Process cmdline args
+for opt in $(cat /proc/cmdline) "$@"; do
+    case $opt in
+    updates=*)
+        UPDATES="${opt#updates=}"
+        ;;
+    --updates=*)
+        UPDATES="${opt#--updates=}"
+        ;;
+    inst.updates=*)
+        UPDATES="${opt#inst.updates=}"
+        ;;
+    --inst.updates=*)
+        UPDATES="${opt#--inst.updates=}"
+        ;;
+    --updates)
+        title="updates error"
+        text="liveinst requires --updates=<url> instead of --updates <url>"
+        if which zenity &> /dev/null; then
+            zenity --error --no-markup --title="$title" --text="$text"
+        else
+            echo "$title" >&2
+            echo "$text" >&2
+        fi
+        exit 1
+        ;;
+    ks=*|kickstart=*|--ks=*|--kickstart=*|inst.ks=*|--inst.ks=*|inst.kickstart=*|--inst-kickstart=*)
+        title="Configuration not supported"
+        text="Kickstart is not supported on Live ISO installs, please use netinstall or standard ISO.  This installation will continue interactively."
+        if which zenity &> /dev/null; then
+            zenity --warning --title="$title" --text="$text"
+         else
+            echo "$title" >&2
+            echo "$text" >&2
+         fi
+        ;;
+    rescue|--rescue)
+        title="Configuration not supported"
+        text="Rescue mode is not supported on live media.  Please use the normal system tools to recover your system."
+        if which zenity &> /dev/null; then
+            zenity --warning --title="$title" --text="$text"
+         else
+            echo "$title" >&2
+            echo "$text" >&2
+         fi
+         exit 1
+        ;;
+    rdp|rdp.username|rdp.password|--rdp|--rdp.username|--rdp.password)
+        title="Configuration not supported"
+        text="RDP is not supported on live media."
+        if which zenity &> /dev/null; then
+            zenity --warning --title="$title" --text="$text"
+         else
+            echo "$title" >&2
+            echo "$text" >&2
+         fi
+         exit 1
+        ;;
+    esac
+done
+
+# unmount anything that shouldn't be mounted prior to install
+anaconda-cleanup "$ANACONDA" "$@"
+
+# Set up the updates, if provided.
+if [ -n "$UPDATES" ]; then
+    curl -o /tmp/updates.img "$UPDATES"
+
+    # We officially support two updates.img formats:  a filesystem image, and
+    # a compressed cpio blob.
+    if (file /tmp/updates.img | grep -q 'gzip compressed data'); then
+        ( cd / ; gzip -dc /tmp/updates.img | cpio -idu )
+    else
+        mkdir /tmp/updates.disk
+        mount -t auto /tmp/updates.img /tmp/updates.disk
+        cp -Rt / /tmp/updates.disk/*
+        umount /tmp/updates.disk
+        rmdir /tmp/updates.disk
+    fi
+
+fi
+
+start_anaconda_web_ui() {
+    # remove flag file about initialized backend it shouldn't exists
+    # if the file existed before it might be a broken cleanup
+    if [ -e "$BACKEND_READY_FLAG" ]; then
+        echo "Anaconda backend flag file still exists! Probably a problem with cleanup. Removing now!" >&2
+        rm -f "$BACKEND_READY_FLAG" 2>/dev/null
+    fi
+    # early execution of Firefox to reduce starting time
+    mkdir -p /run/anaconda
+    /usr/libexec/anaconda/webui-desktop -t live &
+    echo -n "$!" > /run/anaconda/webui_script.pid
+}
+
+start_anaconda() {
+    # start Firefox to use Anaconda Web UI if it is installed
+    if [ -e "/usr/share/cockpit/anaconda-webui" ]; then
+        start_anaconda_web_ui
+    fi
+    # start Anaconda main process
+    $ANACONDA "$@"
+}
+
+# If no wayland socket is set, force x11 so that it loads correctly
+if [ -z "$WAYLAND_DISPLAY" ]; then
+    export GDK_BACKEND=x11
+fi
+
+if [ -x /usr/bin/udisks ]; then
+    /usr/bin/udisks --inhibit -- start_anaconda "$@"
+else
+    start_anaconda "$@"
+fi
+
+if [ -e /tmp/updates.img ]; then rm /tmp/updates.img; fi
+
+rm -f /dev/.in_sysinit 2>/dev/null
+
+if [ -n "$current" ]; then
+    /usr/sbin/setenforce "$current"
+fi
+Timeout: 0 seconds
+BootOrder: 0000,0001,0002,0003,0004,0005,0006,0007,0008,0009
+Boot0000* Windows Boot Manager	HD(1,GPT,e6f6beec-8511-40c2-9af8-e3c746fb04ff,0x800,0x82000)/\EFI\Microsoft\Boot\bootmgfw.efi
+      dp: 04 01 2a 00 01 00 00 00 00 08 00 00 00 00 00 00 00 20 08 00 00 00 00 00 ec be f6 e6 11 85 c2 40 9a f8 e3 c7 46 fb 04 ff 02 02 / 04 04 46 00 5c 00 45 00 46 00 49 00 5c 00 4d 00 69 00 63 00 72 00 6f 00 73 00 6f 00 66 00 74 00 5c 00 42 00 6f 00 6f 00 74 00 5c 00 62 00 6f 00 6f 00 74 00 6d 00 67 00 66 00 77 00 2e 00 65 00 66 00 69 00 00 00 / 7f ff 04 00
+Boot0001* UiApp	FvVol(7cb8bdc9-f8eb-4f34-aaea-3ee4af6516a1)/FvFile(462caa21-7614-4503-836e-8ab6f4662331)
+      dp: 04 07 14 00 c9 bd b8 7c eb f8 34 4f aa ea 3e e4 af 65 16 a1 / 04 06 14 00 21 aa 2c 46 14 76 03 45 83 6e 8a b6 f4 66 23 31 / 7f ff 04 00
+Boot0002* UEFI QEMU DVD-ROM QM00001 	PciRoot(0x0)/Pci(0x1f,0x2)/Sata(0,65535,0){auto_created_boot_option}
+      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 02 1f / 03 12 0a 00 00 00 ff ff 00 00 / 7f ff 04 00
+    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2
+Boot0003* UEFI Misc Device	PciRoot(0x0)/Pci(0x2,0x0){auto_created_boot_option}
+      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 02 / 7f ff 04 00
+    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2
+Boot0004* UEFI Misc Device 2	PciRoot(0x0)/Pci(0x3,0x0){auto_created_boot_option}
+      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 03 / 7f ff 04 00
+    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2
+Boot0005* UEFI PXEv4 (MAC:525400123456)	PciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv4(0.0.0.0,0,DHCP,0.0.0.0,0.0.0.0,0.0.0.0){auto_created_boot_option}
+      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0c 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 7f ff 04 00
+    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2
+Boot0006* UEFI PXEv6 (MAC:525400123456)	PciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv6([::],0,Static,[::],[::],64){auto_created_boot_option}
+      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0d 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 7f ff 04 00
+    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2
+Boot0007* UEFI HTTPv4 (MAC:525400123456)	PciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv4(0.0.0.0,0,DHCP,0.0.0.0,0.0.0.0,0.0.0.0)/Uri(){auto_created_boot_option}
+      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0c 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 03 18 04 00 / 7f ff 04 00
+    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2
+Boot0008* UEFI HTTPv6 (MAC:525400123456)	PciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv6([::],0,Static,[::],[::],64)/Uri(){auto_created_boot_option}
+      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0d 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 03 18 04 00 / 7f ff 04 00
+    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2
+Boot0009* EFI Internal Shell	FvVol(7cb8bdc9-f8eb-4f34-aaea-3ee4af6516a1)/FvFile(7c04a583-9e3e-4f1c-ad65-e05268d0b4d1)
+      dp: 04 07 14 00 c9 bd b8 7c eb f8 34 4f aa ea 3e e4 af 65 16 a1 / 04 06 14 00 83 a5 04 7c 3e 9e 1c 4f ad 65 e0 52 68 d0 b4 d1 / 7f ff 04 00
+
+ARESOS_CMD_DONE:0

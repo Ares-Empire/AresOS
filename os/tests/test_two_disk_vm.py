@@ -3,6 +3,7 @@ import pathlib
 import sys
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
@@ -112,3 +113,26 @@ class TwoDiskHarnessTest(unittest.TestCase):
             self.assertNotIn('zerombr', recipe)
         with self.assertRaises(AssertionError):
             vm.kickstart('vda,vdb', '@HASH@')
+
+    def test_actual_iso_help_blocks_unsupported_live_kickstart_before_installation(self):
+        root = pathlib.Path(__file__).resolve().parents[2]
+        actual = (root / 'os/manifest/ci/11/full-2/two-disk/protected-first-install-cli.txt').read_text(encoding='utf-8')
+        with self.assertRaisesRegex(RuntimeError, 'does not support live kickstart'):
+            vm.require_supported_live_kickstart(actual)
+        with self.assertRaises(AssertionError):
+            vm.require_supported_live_kickstart('unrelated help')
+
+    def test_iso_contains_parser_modules_but_not_the_assumed_validator_executable(self):
+        root = pathlib.Path(__file__).resolve().parents[2]
+        with zipfile.ZipFile(root / 'reviews/11-two-disk-rehearsal/artifacts/inspect-2-two-disk-evidence.zip') as archive:
+            actual = archive.read('installer/squashfs-files.txt').decode()
+        self.assertIn('squashfs-root/usr/lib/python3.14/site-packages/pykickstart/parser.py\n', actual)
+        self.assertIn('squashfs-root/usr/lib/python3.14/site-packages/pykickstart/version.py\n', actual)
+        self.assertNotIn('squashfs-root/usr/bin/ksvalidator\n', actual)
+
+    def test_bls_ostree_option_never_consumes_the_next_line_or_accepts_ambiguity(self):
+        text = 'title Recorded stock\nversion 1\noptions quiet ostree=/ostree/boot.1/default/kernel/0\nlinux /kernel/vmlinuz\n'
+        self.assertEqual(vm.bls_identity(text), dict(title='Recorded stock', ostree='/ostree/boot.1/default/kernel/0'))
+        for wrong in (text.replace(' ostree=', ' omitted='), text.replace('quiet ', 'quiet ostree=/ostree/other '), text + 'title Duplicate\n'):
+            with self.assertRaises(AssertionError):
+                vm.bls_identity(wrong)

@@ -208,6 +208,23 @@ def german_keys(char):
             ' ': ['spc'], '\n': ['ret']}.get(char, [char])
 
 
+def require_supported_live_kickstart(help_text):
+    section = re.search(r'^  --kickstart[^\n]*\n(.*?)(?=^  --\S|\Z)', help_text, re.M | re.S)
+    assert section, 'Missing explicit local kickstart option documentation'
+    normalized = ' '.join(section[1].split()).lower()
+    if 'not supported for live installations' in normalized:
+        raise RuntimeError('BLOCKED: this ISO explicitly does not support live kickstart; qualify the real installer UI')
+
+
+def bls_identity(text):
+    titles = re.findall(r'^title (.+)$', text, re.M)
+    options = re.findall(r'^options (.+)$', text, re.M)
+    assert len(titles) == 1 and len(options) == 1, 'Ambiguous BLS title/options'
+    targets = re.findall(r'(?:^|\s)ostree=(\S+)', options[0])
+    assert len(targets) == 1 and targets[0].startswith('/ostree/'), 'Missing or ambiguous BLS deployment'
+    return dict(title=titles[0], ostree=targets[0])
+
+
 def disk_names(layout):
     devices = layout['blockdevices']
     protected, = [d for d in devices if d.get('serial') == 'MICRON-KEEP' and d['type'] == 'disk']
@@ -258,11 +275,19 @@ digest=$(podman image inspect ghcr.io/ublue-os/bazzite-nvidia-open:stable --form
 printf '%s\\n' "$digest"
 test "$digest" = '{digest}'
 ''')
-        guest.command(stage + '-cli', 'set -e; anaconda --help > /tmp/anaconda-help; cat /tmp/anaconda-help; grep -q -- --kickstart /tmp/anaconda-help; grep -q -- --cmdline /tmp/anaconda-help')
+        help_text = guest.command(stage + '-cli', 'set -e; anaconda --help > /tmp/anaconda-help; cat /tmp/anaconda-help; grep -q -- --kickstart /tmp/anaconda-help; grep -q -- --cmdline /tmp/anaconda-help')
+        require_supported_live_kickstart(help_text)
         recipe = kickstart(target, password_hash)
         (EVIDENCE / (stage + '-kickstart.ks')).write_text(recipe.replace(password_hash, '@VM_PASSWORD_HASH@'))
         encoded = base64.b64encode(recipe.encode()).decode()
-        guest.command(stage + '-prepare-kickstart', f"set -e; printf '%s' '{encoded}' | base64 -d > /tmp/rehearsal.ks; chmod 0600 /tmp/rehearsal.ks; ksvalidator /tmp/rehearsal.ks", private=True)
+        # The frozen live ISO contains python3-pykickstart, not ksvalidator.
+        # Preserve strict parsing, including fatal missing includes, if a future
+        # separately qualified ISO explicitly supports this fallback.
+        guest.command(stage + '-prepare-kickstart', f"set -e; printf '%s' '{encoded}' | base64 -d > /tmp/rehearsal.ks; chmod 0600 /tmp/rehearsal.ks\n" + '''python3 - <<'PY'
+from pykickstart.parser import KickstartParser
+from pykickstart.version import makeVersion
+KickstartParser(makeVersion(), errorsAreFatal=True, missingIncludeIsFatal=True).readKickstart('/tmp/rehearsal.ks')
+PY''', private=True)
         # liveinst itself warns that a --kickstart argument is unsupported.
         # Its documented LIVECMD storage-testing hook runs the same ISO's
         # Anaconda, preserving the launcher setup and all Bazzite defaults.
@@ -342,16 +367,16 @@ def grub_promotion(audit, password, password_hash):
         ordered = guest.capture_json('b-aresos-order', sw.framed('rpm-ostree status --json'))
         assert ordered['deployments'][0]['booted'] and ordered['deployments'][0]['checksum'] != stock
         # Resolve each actual BLS ostree= symlink to the deployment checksum.
+        identity_source = __import__('inspect').getsource(bls_identity)
         entries = guest.capture_json('b-bls-entries', sw.framed('''python3 - <<'PY'
 import json, pathlib, re
+''' + identity_source + '''
 entries=[]
 for file in pathlib.Path('/boot/loader/entries').glob('*.conf'):
     text=file.read_text()
-    match=re.search(r'(?:^| )ostree=([^ ]+)', text, re.M)
-    if match:
-        path=pathlib.Path('/sysroot' + match[1].strip()).resolve()
-        title=re.search(r'^title (.+)$', text, re.M)
-        entries.append(dict(id=file.stem, title=title[1], deployment=str(path), content=text))
+    identity=bls_identity(text)
+    path=pathlib.Path('/sysroot' + identity['ostree']).resolve()
+    entries.append(dict(id=file.stem, title=identity['title'], deployment=str(path), content=text))
 print(json.dumps(entries))
 PY'''))
         candidates = [entry for entry in entries if stock in entry['deployment']]

@@ -1,0 +1,166 @@
+#!/usr/bin/sh
+#
+# live: Init script for live image
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+. /usr/libexec/livesys/functions
+
+cmdline=$(cat /proc/cmdline)' '
+
+if [ "${cmdline##* rd.live.debug[= ]}" != "$cmdline" ] ||
+    [ "${cmdline##* rdlivedebug[= ]}" != "$cmdline" ]; then
+    exec > /run/initramfs/livesys-main.$$.out 2>&1
+    set -x
+    if [ "$BASH" ]; then
+        export \
+            PS4='+ (${BASH_SOURCE}@${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    else
+        export PS4='+ (${0##*/}@${LINENO}): '
+    fi
+fi
+
+{ [ "${cmdline##* rd.live.image[= ]}" = "$cmdline" ] &&
+    [ "${cmdline##* liveimg[= ]}" = "$cmdline" ]; } && exit 0
+
+autouser=1
+if [ -f /etc/sysconfig/livesys ]; then
+  . /etc/sysconfig/livesys
+
+  if [ "${livesys_session}" = "gnome" -a -d /var/lib/gnome-initial-setup/ ]; then
+      autouser=0
+  fi
+fi
+
+[ -e /.liveimg-configured ] && configdone=1
+
+livedir="LiveOS"
+cut=${cmdline##* rd.live.dir[= ]}
+[ ${#cut} -ne ${#cmdline} ] && livedir=${cut%% *}
+len=${#cut}
+cut=${cut##* live_dir[= ]}
+[ ${#cut} -ne $len ] && livedir=${cut%% *}
+
+# enable swapfile if it exists
+strstr "$cmdline" ' noswap ' || {
+  [ -f /run/initramfs/live/"${livedir}"/swap.img ] &&
+  action "Enabling swap file" swapon /run/initramfs/live/"${livedir}"/swap.img ;}
+
+mountPersistentHome() {
+  # support label/uuid
+  if [ "${homedev##LABEL=}" != "$homedev" ] ||
+    [ "${homedev##UUID=}" != "$homedev" ]; then
+    homedev=$(blkid -o device -t "$homedev")
+  fi
+
+  # if we're given a file rather than a blockdev, loop mount it
+  if [ "${homedev##mtd}" != "$homedev" ]; then
+    # mtd devs don't have a block device but get magic-mounted with -t jffs2
+    mountopts="-t jffs2"
+  elif [ ! -b "$homedev" ]; then
+    if [ "${homedev##/run/initramfs/live}" != "$homedev" ]; then
+      action "Remounting live store r/w" mount -o remount,rw /run/initramfs/live
+    fi
+    homedev=$(losetup -f --show "$homedev")
+  fi
+  homefs=$(blkid -s TYPE -o value "$homedev" 2>/dev/null)
+
+  # if it's encrypted, we need to unlock it
+  if [ "$homefs" = "crypto_LUKS" ]; then
+    echo
+    echo "Setting up encrypted /home device"
+    plymouth ask-for-password --command="cryptsetup luksOpen $homedev EncHome"
+    homedev=/dev/mapper/EncHome
+  fi
+  if [ "$homedev" ] && [ "${cmdline##* rd.skipfsck[= ]}" = "$cmdline" ]; then
+    action "Checking home filesystem" fscheck "$homefs" "$homedev"
+  fi
+
+  # and finally do the mount
+  mount ${mountopts:+$mountopts} "$homedev" /home
+  # if we have /home under what's passed for persistent home, then
+  # we should make that the real /home.  useful for mtd device on olpc
+  [ -d /home/home ] && mount --bind /home/home /home
+  [ -x /sbin/restorecon ] && /sbin/restorecon /home
+  [ -d /home/liveuser ] && USERADDARGS="-M"
+}
+
+cut=${cmdline##* persistenthome[= ]}
+if [ ${#cut} -ne ${#cmdline} ]; then
+  homedev=${cut%% *}
+elif [ -e /run/initramfs/live/"${livedir}"/home.img ]; then
+  homedev=/run/initramfs/live/"${livedir}"/home.img
+fi
+
+# if we have a persistent /home, then we want to go ahead and mount it
+{ ! strstr "$cmdline" nopersistenthome && [ "$homedev" ]; } &&
+  action "Mounting persistent /home" mountPersistentHome
+
+[ "$configdone" ] && exit 0
+
+###################  Code below runs only on first boot #####################
+
+# add liveuser user with no passwd
+if [ "${autouser}" -eq "1" ]; then
+  action "Adding live user" useradd ${USERADDARGS:+"$USERADDARGS"} -c "Live System User" liveuser
+  passwd -d liveuser > /dev/null
+  usermod -aG wheel liveuser > /dev/null
+fi
+
+# Remove root password lock
+passwd -d root > /dev/null
+
+# turn off firstboot for livecd boots
+systemctl --no-reload disable firstboot-text.service 2> /dev/null || :
+systemctl --no-reload disable firstboot-graphical.service 2> /dev/null || :
+systemctl stop firstboot-text.service 2> /dev/null || :
+systemctl stop firstboot-graphical.service 2> /dev/null || :
+
+# don't use prelink on a running live image
+sed -i 's/PRELINKING=yes/PRELINKING=no/' /etc/sysconfig/prelink >/dev/null 2>&1 || :
+
+# turn off mdmonitor by default
+systemctl --no-reload disable mdmonitor.service 2> /dev/null || :
+systemctl --no-reload disable mdmonitor-takeover.service 2> /dev/null || :
+systemctl stop mdmonitor.service 2> /dev/null || :
+systemctl stop mdmonitor-takeover.service 2> /dev/null || :
+
+# don't start cron/at as they tend to spawn things which are
+# disk intensive that are painful on a live image
+systemctl --no-reload disable crond.service 2> /dev/null || :
+systemctl --no-reload disable atd.service 2> /dev/null || :
+systemctl stop crond.service 2> /dev/null || :
+systemctl stop atd.service 2> /dev/null || :
+
+# turn off abrtd on a live image
+systemctl --no-reload disable abrtd.service 2> /dev/null || :
+systemctl stop abrtd.service 2> /dev/null || :
+
+# Don't sync the system clock when running live (RHBZ #1018162)
+sed -i 's/rtcsync//' /etc/chrony.conf
+
+# add static hostname to work around xauth bug
+# https://bugzilla.redhat.com/show_bug.cgi?id=679486
+# the hostname must be something else than 'localhost'
+# https://bugzilla.redhat.com/show_bug.cgi?id=1370222
+hostnamectl set-hostname "localhost-live"
+
+if [ "${livesys_session}" ]; then
+  if [ -f "/usr/libexec/livesys/sessions.d/livesys-${livesys_session}" ]; then
+    . /usr/libexec/livesys/sessions.d/"livesys-${livesys_session}"
+  fi
+fi
+
+# allow extra stuff to be defined for derived spins (e.g., fedora labs)
+if [ -f /var/lib/livesys/livesys-session-extra ]; then
+  . /var/lib/livesys/livesys-session-extra
+fi
+
+# make sure to set the right permissions and selinux contexts
+if [ -d /home/liveuser ]; then
+    chown -R liveuser:liveuser /home/liveuser/
+    restorecon -RF /home/liveuser/
+fi
+
+#>>>>> Mark things as configured and keep this at the end of this script. <<<<<
+: > /.liveimg-configured
+

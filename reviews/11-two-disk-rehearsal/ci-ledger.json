@@ -35,8 +35,22 @@
       "conclusion": "success",
       "job_seconds": 564.0,
       "rounded_minutes": 10
+    },
+    {
+      "id": "39869231221",
+      "label": "checks-2",
+      "conclusion": "success",
+      "job_seconds": 41.0,
+      "rounded_minutes": 1
+    },
+    {
+      "id": "39869390172",
+      "label": "full-2",
+      "conclusion": "failure",
+      "job_seconds": 1022.0,
+      "rounded_minutes": 18
     }
   ],
-  "rounded_minutes": 39,
-  "job_seconds": 2154.0
+  "rounded_minutes": 58,
+  "job_seconds": 3217.0
 }

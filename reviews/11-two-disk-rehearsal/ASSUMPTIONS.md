@@ -95,3 +95,29 @@ There will be no third full automation attempt.
   permits the brief's `grub2-reboot` fallback, with the actual recorded BLS ID.
   Stock must be booted at index 1 while AresOS remains first before promotion;
   another unattended stock boot and protected-disk audit are mandatory.
+
+## Final observed outcome: no third full run
+
+[Full attempt 2](https://github.com/carlsenares/AresOS/actions/runs/39869390172)
+passed 95 native regressions and disk preparation. The original Windows-like
+entry actually booted; live serial mapping was protected `vda`, target `vdb`.
+All four offline protected snapshots match, and Windows's entry/order did not
+change. The raw firmware/probe final write counters are zero.
+
+Two assumptions above were wrong or insufficient. The captured inventory has
+Pykickstart modules but **no `ksvalidator` executable**; I did not check that
+before dispatch. The CLI preparation returned 127 before the automatic
+installation command started. The actual `anaconda --help` explicitly calls
+kickstart unsupported for live installation; merely finding the option and
+the launcher's LIVECMD hook did not establish a qualified fallback. The UI
+screenshots show Portal while backend Anaconda processes exist, so process
+presence did not prove an installer page. No destination/review/EFI screen,
+installation, switch, rollback, undo, reverse order or GRUB recovery was reached.
+
+The post-run regression fix now rejects the actual unsupported-live help before
+installation preparation, uses the present Python parser rather than assuming
+the absent CLI utility for a future supported ISO, and rejects ambiguous BLS
+identities without consuming the following line. These are regression-only
+changes; no third VM/full run or live installation validation followed. The
+full run's tested source remains `f32f1da`. See the report for exact evidence,
+the limited counter coverage on the final failed-preflight VM, and budget.
