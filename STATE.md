@@ -8,6 +8,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
   - Right-clicking an app item opens a real app exactly once, and you return to the game afterwards.
   - Live mode (survival, can't die) and Build mode (creative), switched with G.
   - Desktop rules apply only in worlds marked as AresOS.
+- **Build/Live inventories** (PR #8): each mode keeps its own inventory and hotbar, and G swaps them atomically, so the app hotbar comes back exactly as left. Safe against `/gamemode`, stale input, lost acknowledgements and pickups during a switch.
 - **Walk-in app logos** (PR #7): walk into a block logo and the app or site opens once, then you return in front of it. `/aresos logo <app> wall|floor` auto-builds logos, and `/aresos zone ...` marks owner-built ones. The builder never destroys or obstructs blocks.
 - **Real apps** (PR #6): installed apps in the inventory with generated pixel icons, websites as apps, pins kept in the hotbar.
 - **Nether home** (PR #4):
@@ -25,8 +26,8 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- **PR #3** (briefs 03–03d): the image boots into our labwc session in a CI VM, and all checks pass except proof that the power key goes through logind (the clean poweroff itself is observed). 03d reads the guest's on-disk journal. If that's still unproven, it becomes a first-hardware-boot check.
-- **Brief 09:** separate Build/Live inventories, so the app hotbar comes back after building.
+- **PR #3** (briefs 03–03f): the image boots in a CI VM, all checks green including the logind power-key proof. 03f fixes the review findings (contingency scope, updater activation audit, pinned toolchain).
+- **Brief 10:** install guide rewritten for AresOS on its own SSD, including how to fit the drive. A council review follows.
 - **Next for the OS image:** switch to `bazzite-nvidia-open`, publish **privately** (brief 06), and a tested "switch Bazzite to AresOS" step with an admin/recovery account. That's what unlocks the install guide.
 
 ## Waiting on the owner
