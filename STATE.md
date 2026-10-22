@@ -32,7 +32,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Waiting on the owner
 
-- **Checkout:** the SSD plus 2 USB sticks are in the Amazon cart (€117.98). The owner checks out, or confirms the total with Claude.
+- **Hardware: do NOT order yet.** The SSD plus 2 USB sticks stay in the Amazon cart (€117.98) until the owner has opened the laptop and confirmed the 2280 slot is free (the current Micron 2242 drive should be in slot 1).
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
 
 ## Next, in order
