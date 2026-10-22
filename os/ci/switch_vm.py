@@ -316,9 +316,15 @@ def start_guest(disk, password, secrets, stage):
         except EOFError:
             guest.process.wait(timeout=15)
             guest.monitor.reader.join(timeout=5)
+            # A two-disk observer can hold QEMU after guest shutdown to collect
+            # final write counters, then explicitly quit it. Its separately
+            # verified guest-event snapshot excludes only that later host quit;
+            # the complete raw event stream is still retained by close().
+            initialization_events = (guest.stopped_events if getattr(guest, 'stopped_events_verified', False)
+                                     else guest.monitor.events)
             expected = (stage == 'stock' and attempt == 0 and not guest.authentication_started
                         and guest.process.returncode == 0
-                        and stock_initialization_reboot(guest.boot_transcript, guest.monitor.events))
+                        and stock_initialization_reboot(guest.boot_transcript, initialization_events))
             guest.close(f'{stage}-initialization-{attempt}')
             if not expected:
                 raise

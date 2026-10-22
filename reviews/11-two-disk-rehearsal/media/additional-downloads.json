@@ -1,0 +1,52 @@
+[
+  {
+    "filename": "bazzite-nvidia-open-stable-amd64.iso",
+    "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso",
+    "expected_sha256": "85e701c0f53189b0fa32797ffe8144202dcaa8db6c7692fd4677f615537b24b8",
+    "checked_at": "2026-10-22T22:42:48.753410+00:00",
+    "resolved_url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso",
+    "headers": {
+      "Date": "Thu, 22 Oct 2026 22:42:49 GMT",
+      "Content-Type": "application/vnd.efi.iso",
+      "Content-Length": "8079671296",
+      "ETag": "\"d06afb81176976194137e9931153f734-1542\"",
+      "Last-Modified": "Sat, 18 Oct 2025 22:48:31 GMT"
+    },
+    "sha256": "85e701c0f53189b0fa32797ffe8144202dcaa8db6c7692fd4677f615537b24b8",
+    "bytes": 8079671296,
+    "matched": true
+  },
+  {
+    "filename": "gparted-live-1.8.1-6-amd64.iso",
+    "url": "https://downloads.sourceforge.net/gparted/gparted-live-1.8.1-6-amd64.iso",
+    "expected_sha256": "d789c38779f0d6f7026c12f44c2c52a04f66e28a1aea7d51f3045ad1bbf28411",
+    "checked_at": "2026-10-22T22:53:42.082982+00:00",
+    "resolved_url": "https://sourceforge.net/projects/gparted/files/gparted-live-stable/1.8.1-6/gparted-live-1.8.1-6-amd64.iso/download",
+    "headers": {
+      "Date": "Thu, 22 Oct 2026 22:53:42 GMT",
+      "Content-Type": "text/html; charset=utf-8",
+      "Content-Length": "149897"
+    },
+    "sha256": "15b05f78057046f38b3c29705eb6a910d854c48e6ecc7a4a34a1ff01d5f66c29",
+    "bytes": 149897,
+    "matched": false,
+    "error": "Downloaded media differs from pin: STOP",
+    "result": "HTML download page received; not an ISO hash mismatch"
+  },
+  {
+    "filename": "gparted-live-1.8.1-6-amd64.iso",
+    "url": "https://downloads.sourceforge.net/project/gparted/gparted-live-stable/1.8.1-6/gparted-live-1.8.1-6-amd64.iso",
+    "resolved_url": "https://sf-eu-introserv-3.dl.sourceforge.net/project/gparted/gparted-live-stable/1.8.1-6/gparted-live-1.8.1-6-amd64.iso",
+    "checked_at": "2026-10-22T22:56:41.501095+00:00",
+    "headers": {
+      "Date": "Thu, 22 Oct 2026 22:56:41 GMT",
+      "Content-Type": "application/octet-stream",
+      "Content-Length": "720371712",
+      "last-modified": "Sun, 30 Aug 2026 12:33:24 GMT",
+      "etag": "\"6a942314-2af00000\""
+    },
+    "sha256": "d789c38779f0d6f7026c12f44c2c52a04f66e28a1aea7d51f3045ad1bbf28411",
+    "bytes": 720371712,
+    "matched": true
+  }
+]

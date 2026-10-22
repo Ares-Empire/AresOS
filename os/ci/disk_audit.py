@@ -76,19 +76,24 @@ def offline_disk(path, process=None):
     check = subprocess.run(['fuser', str(path)], capture_output=True)
     assert check.returncode == 1 and not check.stdout.strip(), 'Disk image still open'
     result = dict(sha256=sha256(path), gpt=gpt(path), offline=True)
-    esp, = [p for p in result['gpt']['partitions'] if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b']
+    files = efi_files(path, result['gpt'])
+    assert any(p.endswith('/microsoft/boot/bootmgfw.efi') for p in files), files
+    assert any(p.endswith('/boot/bootx64.efi') for p in files), files
+    result['efi_files'] = files
+    return result
+
+
+def efi_files(path, layout):
+    esp, = [p for p in layout['partitions'] if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b']
     location = f'{path}@@{esp["start_lba"] * 512}'
-    listing = subprocess.check_output(['mdir', '-i', location, '-b', '-s', '::/EFI']).decode()
+    listing = subprocess.check_output(['mdir', '-i', location, '-a', '-b', '-s', '::/EFI']).decode()
     files = {}
     for name in listing.splitlines():
         if name.endswith('/'):
             continue
         raw = subprocess.check_output(['mtype', '-i', location, name])
         files[name.replace('\\', '/').lower()] = dict(sha256=hashlib.sha256(raw).hexdigest(), bytes=len(raw))
-    assert any(p.endswith('/microsoft/boot/bootmgfw.efi') for p in files), files
-    assert any(p.endswith('/boot/bootx64.efi') for p in files), files
-    result['efi_files'] = files
-    return result
+    return files
 
 
 def compare_disk(before, after):
@@ -148,6 +153,34 @@ def boot_entry(partition, label='Windows Boot Manager', filename='\\EFI\\Microso
     file = (filename + '\0').encode('utf-16le')
     path = drive + struct.pack('<BBH', 4, 4, len(file) + 4) + file + b'\x7f\xff\x04\0'
     return struct.pack('<IH', 1, len(path)) + (label + '\0').encode('utf-16le') + path
+
+
+def entry_target(data):
+    _, length = struct.unpack_from('<IH', data)
+    position = 6
+    while data[position:position + 2] != b'\0\0':
+        assert position + 2 < len(data)
+        position += 2
+    description = data[6:position].decode('utf-16le')
+    position += 2
+    end = position + length
+    assert end <= len(data)
+    partitions = []
+    files = []
+    while position < end:
+        kind, subtype, size = struct.unpack_from('<BBH', data, position)
+        assert size >= 4 and position + size <= end
+        node = data[position:position + size]
+        if (kind, subtype) == (4, 1):
+            assert size == 42 and node[40:42] == b'\x02\x02', 'Not a GPT hard-drive node'
+            number, start, count = struct.unpack_from('<IQQ', node, 4)
+            partitions.append(dict(number=number, start_lba=start, sectors=count,
+                                   guid=str(uuid.UUID(bytes_le=node[24:40]))))
+        elif (kind, subtype) == (4, 4):
+            files.append(node[4:].decode('utf-16le').rstrip('\0'))
+        position += size
+    assert len(partitions) == 1 and files, 'Missing or ambiguous EFI boot target'
+    return dict(description=description, partition=partitions[0], file=''.join(files))
 
 
 def boot_variables(path):

@@ -18,14 +18,16 @@
     "platform": "amd64",
     "version": "1.8.1-6",
     "filename": "gparted-live-1.8.1-6-amd64.iso",
-    "url": "https://downloads.sourceforge.net/gparted/gparted-live-1.8.1-6-amd64.iso",
+    "url": "https://downloads.sourceforge.net/project/gparted/gparted-live-stable/1.8.1-6/gparted-live-1.8.1-6-amd64.iso",
     "release_directory": "https://sourceforge.net/projects/gparted/files/gparted-live-stable/1.8.1-6/",
     "sha256": "d789c38779f0d6f7026c12f44c2c52a04f66e28a1aea7d51f3045ad1bbf28411",
     "checksum_source": "https://gparted.org/gparted-live/stable/CHECKSUMS.TXT",
     "checksum_signature_source": "https://gparted.org/gparted-live/stable/CHECKSUMS.TXT.gpg",
     "checked_at": "2026-10-22T22:21:01.685158+00:00",
-    "downloaded": false,
-    "booted": false
+    "downloaded": true,
+    "booted": false,
+    "bytes_verified": 720371712,
+    "verified_at": "2026-10-22T22:56:41.501095+00:00"
   },
   "install_day_policy": "Compare full SHA-256 with both this manifest and a fresh official checksum. Stop on any mismatch, missing file or changed release; do not silently refresh a pin. Versioned URLs identify releases but are not cryptographic immutability guarantees.",
   "physical_media_rehearsal": "OPEN"

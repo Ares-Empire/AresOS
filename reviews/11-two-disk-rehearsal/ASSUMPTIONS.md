@@ -40,3 +40,58 @@ exercise the real corrected listing query, filesystem creation and offline
 GPT/EFI audit before the final full run. Completed job quota proxy: **29/450**
 minutes; fixture timeout reservation plus the final 110-minute job remain below
 the cap. No assertion is removed or weakened.
+
+## Before full attempt 2 (final)
+
+[Native fixture 39867994684](https://github.com/carlsenares/AresOS/actions/runs/39867994684)
+passed 94 Linux regressions and then the real file-backed disk preparation and
+offline audit. [Fixture result](../../os/manifest/ci/11/fixture-1/native-fixture.json)
+records both valid GPT copies, four correct partition types/boundaries/GUIDs,
+two identical 49,801-byte EFI marker files, and the exact original Windows
+entry targeting the protected ESP. It explicitly records `vm_started: false`.
+The corrected `losetup --list --json` query ran successfully; it is no longer
+an unchecked device-role assumption. Each actual run generates fresh GUIDs.
+
+All completed jobs total **39 rounded minutes** before the final checks-only
+preflight. Reserving that job's 15 minutes and the full job's entire 110-minute
+timeout gives **164/450**, so the cap cannot be reached by this dispatch. The
+full attempt is allowance **2/2**, even though attempt 1 never reached VM boot.
+There will be no third full automation attempt.
+
+- The full script first boots the Windows marker, then probes the actual live
+  graphical installer with QMP keys/screenshots, shutting down and auditing
+  before installing. This bounded probe is not permission to click Erase from
+  an unexamined destination/review page.
+- If the UI probe cannot be qualified, the fallback invokes this ISO's own
+  Anaconda via the launcher's documented `LIVECMD` hook, preserves its original
+  interactive defaults/post-scripts, supplies whole-drive Btrfs selection,
+  explicit only-use/clearpart/boot-drive target, German keyboard, Berlin time
+  and the existing recovery-account rules. `anaconda --help`, `ksvalidator`,
+  actual serial/device mapping and the embedded digest are checked before the
+  installer writes. A failure is reported; no legacy ISO or different payload
+  is substituted.
+- This fallback bypasses the unsupported ordinary `liveinst --kickstart`
+  argument, replaces the click/review/account pages with kickstart, adds serial
+  console boot arguments and automatically reboots. It cannot qualify those
+  UI pages or novice followability. Physical-media, keyboard and laptop gates
+  remain open even if the automated path passes.
+- Installed `/boot/efi` must be vfat on the serial-identified target. The actual
+  Linux NVRAM entry's GPT ESP GUID/start/size must match the new target ESP;
+  offline target EFI inventory is retained in addition to the protected audit.
+- The keyboard adapter uses German console keys, including Shift+7 for `/`,
+  the physical slash key for `-`, and swapped Y/Z. It checks the installed
+  keymap and retains `dumpkeys` before the real tty3 recovery login; it never
+  silently changes the installed system back to US.
+- A QEMU held after guest shutdown may emit a second host-QMP-quit event when
+  the observer closes it. The observer requires exactly one prior orderly
+  guest reset/poweroff, takes final write counters while stopped, retains the
+  complete raw event stream, and separately checks the later explicit host
+  quit. Only the verified pre-quit snapshot is used for the stock first-boot
+  initialization-reset predicate. Duplicate guest shutdowns/panics remain
+  failures; the original predicate and its regressions remain unchanged.
+- GRUB entries are learned from the installed target's actual BLS files and
+  resolved OSTree symlinks. The menu is attempted with QMP; no position is
+  selected unless the recorded entries are visible. Only an undrivable menu
+  permits the brief's `grub2-reboot` fallback, with the actual recorded BLS ID.
+  Stock must be booted at index 1 while AresOS remains first before promotion;
+  another unattended stock boot and protected-disk audit are mandatory.

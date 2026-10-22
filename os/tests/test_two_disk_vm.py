@@ -52,6 +52,9 @@ class TwoDiskHarnessTest(unittest.TestCase):
         guest.replies = Mock()
         guest.replies.feed.return_value = b''
         guest.secrets = []
+        guest.transcript = ''
+        guest.boot_transcript = ''
+        guest.authentication_started = False
         guest.console = Mock()
         sequence = []
         def receive(_):
@@ -60,11 +63,18 @@ class TwoDiskHarnessTest(unittest.TestCase):
             return b'reboot: Power down\n'
         guest.console.recv.side_effect = receive
         guest.writes = lambda stage: sequence.append('final-write-audit')
-        guest.monitor.command.side_effect = lambda command: sequence.append(command)
+        def command(name):
+            sequence.append(name)
+            guest.monitor.events.append(dict(event='SHUTDOWN', data=dict(guest=False, reason='host-qmp-quit')))
+        guest.monitor.command.side_effect = command
         guest.process.wait.side_effect = lambda **kwargs: sequence.append('process-exited')
         with patch.object(vm, 'EVIDENCE', self.directory):
             guest.finish_shutdown('fixture', 'guest-shutdown')
         self.assertEqual(sequence, ['guest-shutdown', 'final-write-audit', 'quit', 'process-exited'])
+        self.assertIn('Power down', guest.boot_transcript)
+        self.assertTrue(guest.stopped_events_verified)
+        self.assertEqual(len(guest.stopped_events), 1)
+        self.assertEqual(len(guest.monitor.events), 2)
 
     def test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown(self):
         guest = object.__new__(vm.Guest)

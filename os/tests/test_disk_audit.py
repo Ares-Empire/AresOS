@@ -9,7 +9,7 @@ import zlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
 from disk_audit import (AUTH_STORE, boot_entry, boot_variables, compare_disk,
-                        compare_nvram, gpt, protected_writes, set_variable, variables)
+                        compare_nvram, entry_target, gpt, protected_writes, set_variable, variables)
 
 
 class DiskAuditTest(unittest.TestCase):
@@ -69,6 +69,16 @@ class DiskAuditTest(unittest.TestCase):
         for changed in ([], stats + stats):
             with self.assertRaises(AssertionError):
                 protected_writes(changed)
+
+    def test_efi_entry_resolves_gpt_partition_guid_boundaries_and_actual_loader(self):
+        part = dict(number=1, start_lba=2048, end_lba=534527, guid=str(uuid.uuid4()))
+        parsed = entry_target(boot_entry(part))
+        self.assertEqual(parsed['partition'], dict(number=1, start_lba=2048, sectors=532480, guid=part['guid']))
+        self.assertEqual(parsed['file'], '\\EFI\\Microsoft\\Boot\\bootmgfw.efi')
+        raw = boot_entry(part)
+        for wrong in (raw[:10], raw[:-4]):
+            with self.assertRaises((AssertionError, UnicodeError, struct.error)):
+                entry_target(wrong)
 
     def disk(self):
         path = self.directory / 'protected.raw'

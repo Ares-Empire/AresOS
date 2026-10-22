@@ -1,6 +1,7 @@
 """Pinned ISO rehearsal on two writable file-backed disks, with offline gates."""
 import base64
 import json
+import os
 import pathlib
 import re
 import shutil
@@ -12,7 +13,7 @@ import time
 
 import switch_vm as sw
 from disk_audit import (all_variables, boot_variables, compare_disk, compare_nvram, offline_disk,
-                        protected_writes, set_variable)
+                        protected_writes, set_variable, gpt, efi_files, entry_target)
 
 WORK = pathlib.Path('.work/installer').resolve()
 EVIDENCE = pathlib.Path('evidence/two-disk').resolve()
@@ -26,8 +27,16 @@ def save(name, value):
 class Guest(sw.Guest):
     order = 'protected-first'
     mode = 'installed'
+    boot_count = 0
 
     def __init__(self, disk, password, secrets):
+        Guest.boot_count += 1
+        self.boot_number = Guest.boot_count
+        token = os.environ.get('GH_TOKEN', '')
+        if token:
+            auth = base64.b64encode(f'{os.environ["GITHUB_ACTOR"]}:{token}'.encode()).decode()
+            encoded = base64.b64encode(json.dumps({'auths': {'ghcr.io': {'auth': auth}}}).encode()).decode()
+            secrets = [*secrets, token, auth, encoded]
         if self.mode == 'installed':
             entries = boot_variables(WORK / 'vars.fd')
             linux = [name for name, value in entries.items() if re.fullmatch(r'Boot[0-9A-F]{4}', name)
@@ -68,6 +77,17 @@ class Guest(sw.Guest):
         self.send("stty -echo; export PS1='ARESOS_ROOT> '; printf '\\nARESOS_ROOT_READY\\n'\n")
         self.wait(r'\r?\nARESOS_ROOT_READY\r?\n')
         self.command('live-root', 'set -e; test "$(id -u)" = 0; echo ISO_LIVE_ROOT_READY')
+
+    def login(self):
+        super().login()
+        self.command(f'boot-{self.boot_number}-installed-efi-target', '''set -e
+esp=$(findmnt --nofsroot -n -o SOURCE /boot/efi)
+test "$(findmnt -n -o FSTYPE /boot/efi)" = vfat
+parent=$(lsblk -ndo PKNAME "$esp")
+test "$(lsblk -ndo SERIAL "/dev/$parent")" = CRUCIAL-TARGET
+findmnt /boot/efi
+lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOINTS
+''')
 
     def wait(self, pattern, timeout=300):
         deadline = time.monotonic() + timeout
@@ -114,12 +134,24 @@ class Guest(sw.Guest):
                 self.console.sendall(reply)
         shutdowns = [e for e in self.monitor.events if e.get('event') == 'SHUTDOWN']
         assert len(shutdowns) == 1 and shutdowns[0]['data'] == dict(guest=True, reason=reason), shutdowns
+        assert not any(e.get('event') == 'GUEST_PANICKED' for e in self.monitor.events)
         # -no-shutdown keeps QEMU alive with the guest stopped, so this final
         # counter includes shutdown/unmount writes too. Only then close it.
         self.writes(stage)
+        self.stopped_events = list(self.monitor.events)
         self.monitor.command('quit')
         self.process.wait(timeout=15)
-        (EVIDENCE / (stage + '-shutdown-console.txt')).write_text(sw.redact(output.decode(errors='replace'), self.secrets))
+        self.monitor.reader.join(timeout=5)
+        tail = self.monitor.events[len(self.stopped_events):]
+        closing = [e for e in tail if e.get('event') == 'SHUTDOWN']
+        assert len(closing) <= 1 and all(e['data'] == dict(guest=False, reason='host-qmp-quit') for e in closing), tail
+        assert not any(e.get('event') in ('GUEST_PANICKED', 'RESET') for e in tail), tail
+        self.stopped_events_verified = True
+        text = output.decode(errors='replace')
+        self.transcript += text
+        if not self.authentication_started:
+            self.boot_transcript += text
+        (EVIDENCE / (stage + '-shutdown-console.txt')).write_text(sw.redact(text, self.secrets))
         assert self.process.returncode == 0
 
     def poweroff(self, stage):
@@ -137,6 +169,7 @@ class Audit:
         save('protected-baseline', self.disk)
         self.nvram = None
         self.all_nvram = None
+        self.target_installed = False
 
     def check(self, stage, guest=None, establish_nvram=False):
         observed = offline_disk(WORK / 'protected.raw', guest.process if guest else None)
@@ -157,6 +190,16 @@ class Audit:
             save(stage + '-all-variables-diff', {name: dict(before=self.all_nvram.get(name), after=all_nvram.get(name))
                  for name in self.all_nvram.keys() | all_nvram.keys()
                  if self.all_nvram.get(name) != all_nvram.get(name)})
+        if self.target_installed:
+            layout = gpt(WORK / 'target.raw')
+            esp, = [p for p in layout['partitions'] if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b']
+            linux = [entry_target(bytes.fromhex(value['hex'])) for name, value in nvram.items()
+                     if re.fullmatch('Boot[0-9A-F]{4}', name) and name != 'Boot0000'
+                     and b'f\0e\0d\0o\0r\0a\0' in bytes.fromhex(value['hex']).lower()]
+            assert len(linux) == 1 and linux[0]['partition']['guid'] == esp['guid'], 'PRODUCT FAILURE: Linux EFI entry does not target the new target ESP'
+            assert linux[0]['partition']['start_lba'] == esp['start_lba']
+            assert linux[0]['partition']['sectors'] == esp['bytes'] // 512
+            save(stage + '-target-efi', dict(gpt=layout, efi_files=efi_files(WORK / 'target.raw', layout), entry=linux[0]))
         print(f'OFFLINE PROTECTED DISK UNCHANGED: {stage} {observed["sha256"]}', flush=True)
 
 
@@ -209,7 +252,12 @@ def install(audit, password, password_hash):
         layout = guest.capture_json(stage + '-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
         protected, target = disk_names(layout)
         save(stage + '-mapping', dict(protected=protected, target=target, protected_serial='MICRON-KEEP', target_serial='CRUCIAL-TARGET'))
-        guest.command(stage + '-payload', 'set -e; podman image inspect ghcr.io/ublue-os/bazzite-nvidia-open:stable --format "{{.Digest}}"')
+        digest = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference'].split('@', 1)[1]
+        guest.command(stage + '-payload', f'''set -e
+digest=$(podman image inspect ghcr.io/ublue-os/bazzite-nvidia-open:stable --format "{{{{.Digest}}}}")
+printf '%s\\n' "$digest"
+test "$digest" = '{digest}'
+''')
         guest.command(stage + '-cli', 'set -e; anaconda --help > /tmp/anaconda-help; cat /tmp/anaconda-help; grep -q -- --kickstart /tmp/anaconda-help; grep -q -- --cmdline /tmp/anaconda-help')
         recipe = kickstart(target, password_hash)
         (EVIDENCE / (stage + '-kickstart.ks')).write_text(recipe.replace(password_hash, '@VM_PASSWORD_HASH@'))
@@ -256,6 +304,7 @@ echo SAME_ISO_ANACONDA_STARTED
         (EVIDENCE / (stage + '-progress-console.txt')).write_text(text)
         save(stage + '-result', dict(status='installer-returned-or-requested-reboot', target=target,
              method='same-ISO Anaconda through liveinst LIVECMD with explicit kickstart', click_path_qualified=False))
+        audit.target_installed = True
         return target
     finally:
         guest.close(stage)
@@ -420,8 +469,22 @@ cat /usr/share/anaconda/interactive-defaults.ks
 cat /usr/bin/liveinst
 efibootmgr -v
 ''')
-        guest.command('launch-installer-ui', 'PKEXEC_UID=$(id -u liveuser) liveinst > /tmp/rehearsal-installer-ui.log 2>&1 < /dev/null &\nsleep 30\npgrep -a -f anaconda')
-        guest.keys(['ctrl', 'alt', 'f1'])
+        guest.command('launch-installer-ui', 'PKEXEC_UID=$(id -u liveuser) liveinst > /tmp/rehearsal-installer-ui.log 2>&1 < /dev/null &\nsleep 30\ncat /tmp/rehearsal-installer-ui.log\npgrep -a -f anaconda')
+        guest.command('live-graphical-session', '''set -e
+for n in {1..120}; do
+    sessions=$(loginctl list-sessions --no-legend | awk '$3 == "liveuser" {print $1}')
+    for session in $sessions; do
+        type=$(loginctl show-session "$session" -p Type --value)
+        if test "$type" = wayland || test "$type" = x11; then
+            loginctl show-session "$session" -p Name -p Type -p VTNr
+            loginctl activate "$session"
+            exit 0
+        fi
+    done
+    sleep 1
+done
+exit 1
+''')
         time.sleep(5)
         guest.screenshot('live-installer-ui')
         guest.keys(['tab'])
@@ -450,6 +513,7 @@ def main():
         save('probe-result', dict(status='inspection-only', installed=False))
         return
     assert sys.argv[1:] == ['full']
+    live_probe(audit)
     import crypt
     import secrets
     password = secrets.token_hex(24)
