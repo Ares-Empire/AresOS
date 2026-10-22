@@ -39,6 +39,8 @@ I only build things myself when writing the brief would cost more than doing it 
 | `mod/` | Fabric mod: Minecraft 26.2, Java 25. `.\gradlew.bat build runClientGameTest` (rewrites tracked screenshots, so `git checkout -- reviews/` afterwards). |
 | `os/` | The Bazzite-based AresOS image (from PR #3). |
 
+**Only one Minecraft client-test run at a time on the laptop.** Two test clients steal each other's window focus, which opens vanilla's pause menu and breaks click-driven tests. Seen 2026-10-22, when brief 10's run collided with my 09 integration gate. Don't start an integration gate while a Codex package is in its client-test phase, and vice versa.
+
 ## Owner decides (always ask, never assume)
 
 - Anything touching the laptop's disks, partitions or BIOS/boot settings, or installing AresOS onto a drive.
