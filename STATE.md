@@ -35,7 +35,7 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- Nothing running. Next are the remaining install gates (see Next).
+- **Package 11** (two-disk install rehearsal, GRUB recovery promotion, pinned media) is running since 2026-10-23 00:18. See `HANDOFF.md`.
 
 ## Waiting on the owner
 

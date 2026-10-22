@@ -2,13 +2,11 @@
 
 The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up.
 
-## Where things are (2026-10-22, about 23:55)
+## Where things are (2026-10-23, about 00:20)
 
-- **PR #10 merged** as `2fa6641` (briefs 06–06e). The owner gave the merge OK in chat after accepting the judgment calls (recorded in `STATE.md` → Decisions). Branch `pkg/06-image-release` is deleted on GitHub; its worktree `C:/Users/pab/AresOS-06-image-release` is a leftover.
-- **Nothing is running.**
-- **Next:**
-  1. ~~Emergency card~~: done 2026-10-23 (`docs/EMERGENCY.md`, reviews SAFE).
-  2. **Remaining install gates** (INSTALL.md "Maintainer release gate"): the two-disk VM rehearsal, GRUB recovery promotion, media pinning and rehearsal, then the safety and followability council. Hardware items wait for the laptop.
+- **Package 11 running** (two-disk install rehearsal + GRUB recovery promotion + pinned media), launched 00:18 with the owner's OK to run autonomously. Brief `briefs/11-two-disk-rehearsal.md`, worktree `C:/Users/pab/AresOS-11-two-disk-rehearsal`, branch `pkg/11-two-disk-rehearsal`. Codex gpt-6.1-sol xhigh, PID 15272, log `C:/Users/pab/AresOS-11-two-disk-rehearsal.log` (`turn.completed` = done), final message `../AresOS-11-two-disk-rehearsal.last.md`. CI cap: 450 minutes (about 680 left in October).
+- **When it finishes:** read its REPORT, run the package review (`docs/REVIEW.md`), fix loop, then ask the owner for an explicit "merge" (auto mode blocks `gh pr merge` otherwise). Bring any JUDGMENT-CALL to the owner in plain language.
+- **Done 2026-10-23:** PR #10 merged (`2fa6641`); emergency card `docs/EMERGENCY.md` (`d8359f2`).
 
 ## Waiting on the owner
 
