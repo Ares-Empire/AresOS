@@ -157,6 +157,13 @@ def boot_variables(path):
             if guid == EFI_GLOBAL and re.fullmatch(r'Boot(?:[0-9A-Fa-f]{4}|Order|Next)', name)}
 
 
+def all_variables(path):
+    values, *_ = variables(pathlib.Path(path).read_bytes())
+    return {f'{uuid.UUID(bytes_le=guid)}/{name}': dict(attributes=value['attributes'],
+                sha256=hashlib.sha256(value['data']).hexdigest(), bytes=len(value['data']))
+            for (guid, name), value in values.items()}
+
+
 def compare_nvram(before, after, windows='Boot0000'):
     assert windows in before and after.get(windows) == before[windows], 'PRODUCT FAILURE: Windows firmware entry lost or changed'
     changes = {name: dict(before=before.get(name), after=after.get(name))

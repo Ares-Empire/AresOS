@@ -23,3 +23,20 @@ minutes; even reserving the entire next job's 110-minute timeout stays below 450
 
 GRUB entry titles/indexes are not assumed in this probe. They must be recorded
 from the actually installed/switched target before any recovery selection.
+
+## After run 1, before native fixture and the final full allowance
+
+[Probe run 39866564466](https://github.com/carlsenares/AresOS/actions/runs/39866564466)
+passed 91 Linux regressions, re-verified the complete ISO and unchanged signed
+release source, and compiled the original EFI marker. Disk preparation then
+failed before filesystems/VM boot: `losetup --json DEVICE` returned non-JSON.
+The correct listing query is `losetup --list --json --output NAME,BACK-FILE DEVICE`.
+The new regression requires those arguments and refuses a mismatched backing
+file. The loop was detached by `finally`; there is no product-failure evidence
+and no running VM. This failed preparation still consumes allowance 1 of 2.
+
+The next dispatch is **native fixture only, no ISO download and no VM**. It must
+exercise the real corrected listing query, filesystem creation and offline
+GPT/EFI audit before the final full run. Completed job quota proxy: **29/450**
+minutes; fixture timeout reservation plus the final 110-minute job remain below
+the cap. No assertion is removed or weakened.

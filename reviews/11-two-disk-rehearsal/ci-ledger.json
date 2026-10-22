@@ -21,8 +21,15 @@
       "conclusion": "success",
       "job_seconds": 428.0,
       "rounded_minutes": 8
+    },
+    {
+      "id": "39866564466",
+      "label": "probe-1",
+      "conclusion": "failure",
+      "job_seconds": 558.0,
+      "rounded_minutes": 10
     }
   ],
-  "rounded_minutes": 19,
-  "job_seconds": 1032.0
+  "rounded_minutes": 29,
+  "job_seconds": 1590.0
 }

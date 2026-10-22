@@ -1,0 +1,2129 @@
+2026-10-22T22:39:50.5244149Z Current runner version: '2.338.0'
+2026-10-22T22:39:50.5293938Z ##[group]Runner Image Provisioner
+2026-10-22T22:39:50.5294790Z Hosted Compute Agent
+2026-10-22T22:39:50.5315776Z Version: 20261012.601
+2026-10-22T22:39:50.5316659Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-22T22:39:50.5317404Z Build Date: 2026-10-12T17:48:21Z
+2026-10-22T22:39:50.5318092Z Worker ID: {cc405a30-2ba9-4c5f-9f8b-2a25052e44b6}
+2026-10-22T22:39:50.5318744Z Region: centralus
+2026-10-22T22:39:50.5319225Z Cloud: Azure
+2026-10-22T22:39:50.5319738Z ##[endgroup]
+2026-10-22T22:39:50.5321367Z ##[group]Operating System
+2026-10-22T22:39:50.5322061Z Ubuntu
+2026-10-22T22:39:50.5322595Z 24.04.5
+2026-10-22T22:39:50.5323068Z LTS
+2026-10-22T22:39:50.5323570Z ##[endgroup]
+2026-10-22T22:39:50.5324091Z ##[group]Runner Image
+2026-10-22T22:39:50.5324695Z Image: ubuntu-24.04
+2026-10-22T22:39:50.5325463Z Version: 20261012.334.1
+2026-10-22T22:39:50.5326730Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-22T22:39:50.5328155Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-22T22:39:50.5329123Z ##[endgroup]
+2026-10-22T22:39:50.5330282Z ##[group]GITHUB_TOKEN Permissions
+2026-10-22T22:39:50.5333198Z Actions: read
+2026-10-22T22:39:50.5333838Z Contents: read
+2026-10-22T22:39:50.5334356Z Metadata: read
+2026-10-22T22:39:50.5334883Z Packages: read
+2026-10-22T22:39:50.5356087Z ##[endgroup]
+2026-10-22T22:39:50.5358346Z Secret source: Actions
+2026-10-22T22:39:50.5359252Z Cache mode: write
+2026-10-22T22:39:50.5360384Z Prepare workflow directory
+2026-10-22T22:39:50.6080952Z Prepare all required actions
+2026-10-22T22:39:50.6203125Z Getting action download info
+2026-10-22T22:39:50.9079467Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-22T22:39:51.0353856Z Download action repository 'ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6' (SHA:695eb75bc387dbcd9685a8e72d23439d8686cba6)
+2026-10-22T22:39:51.1832402Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-22T22:39:51.4444733Z Complete job name: Pinned live ISO inspection and two-disk rehearsal
+2026-10-22T22:39:51.4992227Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-10-22T22:39:51.4993007Z with:
+2026-10-22T22:39:51.4993406Z   repository: carlsenares/AresOS
+2026-10-22T22:39:51.4996227Z   token: ***
+2026-10-22T22:39:51.4996637Z   ssh-strict: true
+2026-10-22T22:39:51.4996997Z   ssh-user: git
+2026-10-22T22:39:51.4997370Z   persist-credentials: true
+2026-10-22T22:39:51.4997757Z   clean: true
+2026-10-22T22:39:51.4998155Z   sparse-checkout-cone-mode: true
+2026-10-22T22:39:51.4998590Z   fetch-depth: 1
+2026-10-22T22:39:51.4998945Z   fetch-tags: false
+2026-10-22T22:39:51.4999328Z   show-progress: true
+2026-10-22T22:39:51.4999685Z   lfs: false
+2026-10-22T22:39:51.5000051Z   submodules: false
+2026-10-22T22:39:51.5000472Z   set-safe-directory: true
+2026-10-22T22:39:51.5000871Z   allow-unsafe-pr-checkout: false
+2026-10-22T22:39:51.5001482Z ##[endgroup]
+2026-10-22T22:39:51.6901471Z Syncing repository: carlsenares/AresOS
+2026-10-22T22:39:51.6902897Z ##[group]Getting Git version info
+2026-10-22T22:39:51.6903645Z Working directory is '/home/runner/work/AresOS/AresOS'
+2026-10-22T22:39:51.6904422Z [command]/usr/bin/git version
+2026-10-22T22:39:51.6904838Z git version 2.55.0
+2026-10-22T22:39:51.6906903Z ##[endgroup]
+2026-10-22T22:39:51.6912026Z Temporarily overriding HOME='/home/runner/work/_temp/9a826f9f-2b5f-43f5-8bed-b6f7e0f9247d' before making global git config changes
+2026-10-22T22:39:51.6913238Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T22:39:51.6914318Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/AresOS/AresOS
+2026-10-22T22:39:51.6916186Z Deleting the contents of '/home/runner/work/AresOS/AresOS'
+2026-10-22T22:39:51.6917597Z ##[group]Initializing the repository
+2026-10-22T22:39:51.6918297Z [command]/usr/bin/git init /home/runner/work/AresOS/AresOS
+2026-10-22T22:39:51.6919184Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-22T22:39:51.6920105Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-22T22:39:51.6921028Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-22T22:39:51.6921766Z hint: call:
+2026-10-22T22:39:51.6922243Z hint:
+2026-10-22T22:39:51.6922800Z hint: 	git config --global init.defaultBranch <name>
+2026-10-22T22:39:51.6923512Z hint:
+2026-10-22T22:39:51.6924135Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-22T22:39:51.6925096Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-22T22:39:51.6926007Z hint:
+2026-10-22T22:39:51.6926485Z hint: 	git branch -m <name>
+2026-10-22T22:39:51.6926975Z hint:
+2026-10-22T22:39:51.6927653Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-22T22:39:51.6928640Z Initialized empty Git repository in /home/runner/work/AresOS/AresOS/.git/
+2026-10-22T22:39:51.6930359Z [command]/usr/bin/git remote add origin https://github.com/carlsenares/AresOS
+2026-10-22T22:39:51.6932242Z ##[endgroup]
+2026-10-22T22:39:51.6933110Z ##[group]Disabling automatic garbage collection
+2026-10-22T22:39:51.6933773Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-22T22:39:51.6935415Z ##[endgroup]
+2026-10-22T22:39:51.6936198Z ##[group]Setting up auth
+2026-10-22T22:39:51.6936915Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T22:39:51.6939020Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T22:39:51.7076716Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T22:39:51.7080206Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T22:39:51.7224241Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T22:39:51.7250277Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T22:39:51.7403029Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-22T22:39:51.7437998Z ##[endgroup]
+2026-10-22T22:39:51.7439308Z ##[group]Fetching the repository
+2026-10-22T22:39:51.7446585Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +bb186b307e5ac95d5e2bc919821a1ca4f61ead38:refs/remotes/origin/pkg/11-two-disk-rehearsal
+2026-10-22T22:39:55.1183801Z From https://github.com/carlsenares/AresOS
+2026-10-22T22:39:55.1187252Z  * [new ref]         bb186b307e5ac95d5e2bc919821a1ca4f61ead38 -> origin/pkg/11-two-disk-rehearsal
+2026-10-22T22:39:55.1192594Z ##[endgroup]
+2026-10-22T22:39:55.1194239Z ##[group]Determining the checkout info
+2026-10-22T22:39:55.1196636Z ##[endgroup]
+2026-10-22T22:39:55.1198239Z [command]/usr/bin/git sparse-checkout disable
+2026-10-22T22:39:55.1250537Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-22T22:39:55.1277774Z ##[group]Checking out the ref
+2026-10-22T22:39:55.1281372Z [command]/usr/bin/git checkout --progress --force -B pkg/11-two-disk-rehearsal refs/remotes/origin/pkg/11-two-disk-rehearsal
+2026-10-22T22:39:56.0295872Z Switched to a new branch 'pkg/11-two-disk-rehearsal'
+2026-10-22T22:39:56.0332258Z branch 'pkg/11-two-disk-rehearsal' set up to track 'origin/pkg/11-two-disk-rehearsal'.
+2026-10-22T22:39:56.0353509Z ##[endgroup]
+2026-10-22T22:39:56.0398993Z [command]/usr/bin/git log -1 --format=%H
+2026-10-22T22:39:56.0419817Z bb186b307e5ac95d5e2bc919821a1ca4f61ead38
+2026-10-22T22:39:56.3010006Z ##[group]Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+2026-10-22T22:39:56.3010552Z with:
+2026-10-22T22:39:56.3010844Z   extra-squeeze: true
+2026-10-22T22:39:56.3011086Z ##[endgroup]
+2026-10-22T22:39:56.3063045Z ##[start-action display=Disk space report before modification;id=__ublue-os_remove-unwanted-software.__run]
+2026-10-22T22:39:56.6011354Z ##[group]Run echo "==> Available space before cleanup"
+2026-10-22T22:39:56.6011880Z [36;1mecho "==> Available space before cleanup"[0m
+2026-10-22T22:39:56.6012236Z [36;1mdf -h[0m
+2026-10-22T22:39:56.6012463Z [36;1m# Remove swapfile (3gb)[0m
+2026-10-22T22:39:56.6012809Z [36;1m# swapoff is required for arm, but not for x64?[0m
+2026-10-22T22:39:56.6013161Z [36;1msudo swapoff -a || true; sudo rm -f /swapfile || true[0m
+2026-10-22T22:39:56.6013474Z [36;1m# Remove toolchains, browsers[0m
+2026-10-22T22:39:56.6013786Z [36;1mshopt -s nullglob[0m
+2026-10-22T22:39:56.6014027Z [36;1mEXTRAPKG=""[0m
+2026-10-22T22:39:56.6014414Z [36;1mif [ "true" = "true" ]; then[0m
+2026-10-22T22:39:56.6014759Z [36;1m  # These have a lot of small files and are a bit slower to remove[0m
+2026-10-22T22:39:56.6015169Z [36;1m  EXTRAPKG="/usr/share/miniconda /opt/hostedtoolcache"[0m
+2026-10-22T22:39:56.6015656Z [36;1mfi[0m
+2026-10-22T22:39:56.6015988Z [36;1mprintf '%s\0' /opt/PyPy /opt/az /opt/node/ /opt/pipx /opt/go /opt/Ruby \[0m
+2026-10-22T22:39:56.6016424Z [36;1m    /usr/lib/llvm-* /usr/local/julia* /usr/local/lib/android /usr/share/dotnet \[0m
+2026-10-22T22:39:56.6016853Z [36;1m    /usr/share/swift /usr/local/.ghcup /usr/lib/firefox /opt/google/chrome \[0m
+2026-10-22T22:39:56.6017219Z [36;1m    /opt/microsoft/msedge $EXTRAPKG \[0m
+2026-10-22T22:39:56.6017507Z [36;1m    | sudo xargs -0 -n1 -P4 rm -rf[0m
+2026-10-22T22:39:56.6017780Z [36;1mecho "==> Available space after cleanup"[0m
+2026-10-22T22:39:56.6018140Z [36;1mdf -h[0m
+2026-10-22T22:39:56.6454984Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-22T22:39:56.6455699Z ##[endgroup]
+2026-10-22T22:39:56.6815448Z ==> Available space before cleanup
+2026-10-22T22:39:56.7032603Z Filesystem       Size  Used Avail Use% Mounted on
+2026-10-22T22:39:56.7033511Z /dev/root         72G   59G   13G  83% /
+2026-10-22T22:39:56.7034022Z tmpfs            3.9G   84K  3.9G   1% /dev/shm
+2026-10-22T22:39:56.7034492Z tmpfs            1.6G 1016K  1.6G   1% /run
+2026-10-22T22:39:56.7035009Z tmpfs            5.0M     0  5.0M   0% /run/lock
+2026-10-22T22:39:56.7037508Z /dev/nvme1n1p16  881M   64M  756M   8% /boot
+2026-10-22T22:39:56.7038311Z /dev/nvme1n1p15  105M  6.2M   99M   6% /boot/efi
+2026-10-22T22:39:56.7038844Z tmpfs            794M   12K  794M   1% /run/user/1001
+2026-10-22T22:41:58.2137531Z ==> Available space after cleanup
+2026-10-22T22:41:58.2149113Z Filesystem       Size  Used Avail Use% Mounted on
+2026-10-22T22:41:58.2151948Z /dev/root         72G   21G   52G  29% /
+2026-10-22T22:41:58.2152647Z tmpfs            3.9G   84K  3.9G   1% /dev/shm
+2026-10-22T22:41:58.2153211Z tmpfs            1.6G 1008K  1.6G   1% /run
+2026-10-22T22:41:58.2153684Z tmpfs            5.0M     0  5.0M   0% /run/lock
+2026-10-22T22:41:58.2154111Z /dev/nvme1n1p16  881M   64M  756M   8% /boot
+2026-10-22T22:41:58.2154624Z /dev/nvme1n1p15  105M  6.2M   99M   6% /boot/efi
+2026-10-22T22:41:58.2155054Z tmpfs            794M   12K  794M   1% /run/user/1001
+2026-10-22T22:41:58.2191628Z ##[end-action id=__ublue-os_remove-unwanted-software.__run;outcome=success;conclusion=success;duration_ms=121912]
+2026-10-22T22:41:58.2243377Z ##[group]Run set -euo pipefail
+2026-10-22T22:41:58.2243814Z [36;1mset -euo pipefail[0m
+2026-10-22T22:41:58.2244197Z [36;1mmkdir -p evidence/installer .work/installer[0m
+2026-10-22T22:41:58.2244652Z [36;1msudo apt-get update -qq[0m
+2026-10-22T22:41:58.2245845Z [36;1msudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools[0m
+2026-10-22T22:41:58.2246681Z [36;1mpython3 os/ci/installer_inspect.py[0m
+2026-10-22T22:41:58.2293065Z shell: /usr/bin/bash -e {0}
+2026-10-22T22:41:58.2293430Z ##[endgroup]
+2026-10-22T22:42:05.1810881Z Reading package lists...
+2026-10-22T22:42:05.3798374Z Building dependency tree...
+2026-10-22T22:42:05.3804823Z Reading state information...
+2026-10-22T22:42:05.5520456Z squashfs-tools is already the newest version (1:4.6.1-1build1).
+2026-10-22T22:42:05.5521525Z squashfs-tools set to manually installed.
+2026-10-22T22:42:05.5522309Z The following NEW packages will be installed:
+2026-10-22T22:42:05.5528890Z   libarchive-tools
+2026-10-22T22:42:05.5685911Z 0 upgraded, 1 newly installed, 0 to remove and 99 not upgraded.
+2026-10-22T22:42:05.5686843Z Need to get 72.5 kB of archives.
+2026-10-22T22:42:05.5687475Z After this operation, 248 kB of additional disk space will be used.
+2026-10-22T22:42:05.5688034Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-22T22:42:05.6211738Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libarchive-tools amd64 3.7.2-2ubuntu0.9 [72.5 kB]
+2026-10-22T22:42:05.8312729Z Fetched 72.5 kB in 0s (1179 kB/s)
+2026-10-22T22:42:05.8487244Z Selecting previously unselected package libarchive-tools.
+2026-10-22T22:42:05.8665424Z (Reading database ...
+2026-10-22T22:42:05.8666098Z (Reading database ... 5%
+2026-10-22T22:42:05.8666707Z (Reading database ... 10%
+2026-10-22T22:42:05.8667591Z (Reading database ... 15%
+2026-10-22T22:42:05.8668129Z (Reading database ... 20%
+2026-10-22T22:42:05.8668416Z (Reading database ... 25%
+2026-10-22T22:42:05.8668840Z (Reading database ... 30%
+2026-10-22T22:42:05.8669155Z (Reading database ... 35%
+2026-10-22T22:42:05.8669441Z (Reading database ... 40%
+2026-10-22T22:42:05.8669731Z (Reading database ... 45%
+2026-10-22T22:42:05.8670027Z (Reading database ... 50%
+2026-10-22T22:42:05.8711567Z (Reading database ... 55%
+2026-10-22T22:42:06.0208469Z (Reading database ... 60%
+2026-10-22T22:42:06.2109159Z (Reading database ... 65%
+2026-10-22T22:42:06.4139965Z (Reading database ... 70%
+2026-10-22T22:42:06.6188879Z (Reading database ... 75%
+2026-10-22T22:42:06.7173738Z (Reading database ... 80%
+2026-10-22T22:42:06.8767202Z (Reading database ... 85%
+2026-10-22T22:42:07.0108499Z (Reading database ... 90%
+2026-10-22T22:42:07.1801924Z (Reading database ... 95%
+2026-10-22T22:42:07.1802874Z (Reading database ... 100%
+2026-10-22T22:42:07.1803865Z (Reading database ... 203540 files and directories currently installed.)
+2026-10-22T22:42:07.1868506Z Preparing to unpack .../libarchive-tools_3.7.2-2ubuntu0.9_amd64.deb ...
+2026-10-22T22:42:07.1943922Z Unpacking libarchive-tools (3.7.2-2ubuntu0.9) ...
+2026-10-22T22:42:07.2294212Z Setting up libarchive-tools (3.7.2-2ubuntu0.9) ...
+2026-10-22T22:42:07.2323455Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-22T22:42:07.2342643Z Not building database; man-db/auto-update is not 'true'.
+2026-10-22T22:42:07.6755873Z
+2026-10-22T22:42:07.6761560Z Running kernel seems to be up-to-date.
+2026-10-22T22:42:07.6762129Z
+2026-10-22T22:42:07.6762445Z No services need to be restarted.
+2026-10-22T22:42:07.6762725Z
+2026-10-22T22:42:07.6762962Z No containers need to be restarted.
+2026-10-22T22:42:07.6763299Z
+2026-10-22T22:42:07.6763529Z No user sessions are running outdated binaries.
+2026-10-22T22:42:07.6763874Z
+2026-10-22T22:42:07.6764165Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-22T22:45:18.4824736Z Pinned live ISO download verified: 776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6 (9068650496 bytes)
+2026-10-22T22:45:18.7236741Z .
+2026-10-22T22:45:18.7309844Z boot
+2026-10-22T22:45:18.7312601Z boot/grub2
+2026-10-22T22:45:18.7313147Z EFI
+2026-10-22T22:45:18.7313597Z EFI/BOOT
+2026-10-22T22:45:18.7313961Z EFI/fedora
+2026-10-22T22:45:18.7314307Z images
+2026-10-22T22:45:18.7314751Z images/pxeboot
+2026-10-22T22:45:18.7315165Z LiveOS
+2026-10-22T22:45:18.7315682Z boot.catalog
+2026-10-22T22:45:18.7316013Z boot/grub2/grub.cfg
+2026-10-22T22:45:18.7316386Z EFI/BOOT/BOOTIA32.EFI
+2026-10-22T22:45:18.7317079Z EFI/fedora/shimia32.efi
+2026-10-22T22:45:18.7317469Z EFI/BOOT/BOOTX64.EFI
+2026-10-22T22:45:18.7317823Z EFI/fedora/shim.efi
+2026-10-22T22:45:18.7318270Z EFI/fedora/shimx64.efi
+2026-10-22T22:45:18.7318671Z EFI/BOOT/fbia32.efi
+2026-10-22T22:45:18.7319066Z EFI/BOOT/fbx64.efi
+2026-10-22T22:45:18.7319436Z EFI/BOOT/grub.cfg
+2026-10-22T22:45:18.7319796Z EFI/fedora/BOOTIA32.CSV
+2026-10-22T22:45:18.7320233Z EFI/fedora/BOOTX64.CSV
+2026-10-22T22:45:18.7320628Z EFI/fedora/gcdx64.efi
+2026-10-22T22:45:18.7321006Z EFI/fedora/grub.cfg
+2026-10-22T22:45:18.7321426Z EFI/fedora/grubia32.efi
+2026-10-22T22:45:18.7322012Z EFI/fedora/grubx64.efi
+2026-10-22T22:45:18.7333225Z EFI/fedora/mmia32.efi
+2026-10-22T22:45:18.7333816Z EFI/fedora/mmx64.efi
+2026-10-22T22:45:18.7334259Z images/pxeboot/initrd.img
+2026-10-22T22:45:18.7334744Z images/pxeboot/vmlinuz
+2026-10-22T22:45:18.7335135Z LiveOS/squashfs.img
+2026-10-22T22:45:18.7335795Z
+2026-10-22T22:45:18.7336030Z boot/grub2/grub.cfg
+2026-10-22T22:45:18.7336329Z set timeout=3
+2026-10-22T22:45:18.7336863Z set default="0"
+2026-10-22T22:45:18.7337140Z set menu_auto_hide=false
+2026-10-22T22:45:18.7337434Z
+2026-10-22T22:45:18.7337573Z function load_video {
+2026-10-22T22:45:18.7337823Z   insmod all_video
+2026-10-22T22:45:18.7338062Z }
+2026-10-22T22:45:18.7338141Z
+2026-10-22T22:45:18.7338274Z load_video
+2026-10-22T22:45:18.7338479Z set gfxpayload=keep
+2026-10-22T22:45:18.7338678Z insmod gzio
+2026-10-22T22:45:18.7338908Z insmod part_gpt
+2026-10-22T22:45:18.7339132Z insmod chain
+2026-10-22T22:45:18.7339250Z
+2026-10-22T22:45:18.7339386Z search --no-floppy --set=root -l 'Bazzite-Live'
+2026-10-22T22:45:18.7339733Z menuentry 'Launch Bazzite Installer' {
+2026-10-22T22:45:18.7340300Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image
+2026-10-22T22:45:18.7340720Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:45:18.7340981Z }
+2026-10-22T22:45:18.7341231Z menuentry 'Launch Bazzite Installer (Basic Graphics Mode)' {
+2026-10-22T22:45:18.7341678Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image nomodeset
+2026-10-22T22:45:18.7342084Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:45:18.7342329Z }
+2026-10-22T22:45:18.7342446Z
+2026-10-22T22:45:18.7342544Z EFI/BOOT/grub.cfg
+2026-10-22T22:45:18.7343082Z set timeout=3
+2026-10-22T22:45:18.7343336Z set default="0"
+2026-10-22T22:45:18.7343598Z set menu_auto_hide=false
+2026-10-22T22:45:18.7508251Z
+2026-10-22T22:45:18.7508668Z function load_video {
+2026-10-22T22:45:18.7509057Z   insmod all_video
+2026-10-22T22:45:18.7509356Z }
+2026-10-22T22:45:18.7509665Z
+2026-10-22T22:45:18.7509865Z load_video
+2026-10-22T22:45:18.7510228Z set gfxpayload=keep
+2026-10-22T22:45:18.7510617Z insmod gzio
+2026-10-22T22:45:18.7510936Z insmod part_gpt
+2026-10-22T22:45:18.7511319Z insmod chain
+2026-10-22T22:45:18.7511540Z
+2026-10-22T22:45:18.7511719Z search --no-floppy --set=root -l 'Bazzite-Live'
+2026-10-22T22:45:18.7512149Z menuentry 'Launch Bazzite Installer' {
+2026-10-22T22:45:18.7512849Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image
+2026-10-22T22:45:18.7513560Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:45:18.7513901Z }
+2026-10-22T22:45:18.7514292Z menuentry 'Launch Bazzite Installer (Basic Graphics Mode)' {
+2026-10-22T22:45:18.7514953Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image nomodeset
+2026-10-22T22:45:18.7515857Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:45:18.7516179Z }
+2026-10-22T22:45:18.7516521Z
+2026-10-22T22:45:18.7516753Z EFI/fedora/grub.cfg
+2026-10-22T22:45:18.7517358Z set timeout=3
+2026-10-22T22:45:18.7517663Z set default="0"
+2026-10-22T22:45:18.7517992Z set menu_auto_hide=false
+2026-10-22T22:45:18.7518241Z
+2026-10-22T22:45:18.7518425Z function load_video {
+2026-10-22T22:45:18.7518729Z   insmod all_video
+2026-10-22T22:45:18.7519091Z }
+2026-10-22T22:45:18.7519250Z
+2026-10-22T22:45:18.7519423Z load_video
+2026-10-22T22:45:18.7519897Z set gfxpayload=keep
+2026-10-22T22:45:18.7523459Z insmod gzio
+2026-10-22T22:45:18.7523808Z insmod part_gpt
+2026-10-22T22:45:18.7524239Z insmod chain
+2026-10-22T22:45:18.7524423Z
+2026-10-22T22:45:18.7524668Z search --no-floppy --set=root -l 'Bazzite-Live'
+2026-10-22T22:45:18.7525169Z menuentry 'Launch Bazzite Installer' {
+2026-10-22T22:45:18.7526045Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image
+2026-10-22T22:45:18.7526693Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:45:18.7527130Z }
+2026-10-22T22:45:18.7527587Z menuentry 'Launch Bazzite Installer (Basic Graphics Mode)' {
+2026-10-22T22:45:18.7528398Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image nomodeset
+2026-10-22T22:45:18.7529670Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:45:18.7530110Z }
+2026-10-22T22:45:18.7530407Z
+2026-10-22T22:47:26.2381981Z dr-xr-xr-x root/root               269 2026-10-13 02:28 squashfs-root
+2026-10-22T22:47:26.2382941Z lrwxrwxrwx root/root                 7 1970-01-01 00:00 squashfs-root/bin -> usr/bin
+2026-10-22T22:47:26.2384374Z drwxr-xr-x root/root                39 2026-10-13 02:20 squashfs-root/boot
+2026-10-22T22:47:26.2384967Z drwxr-xr-x root/root                26 2026-10-13 02:20 squashfs-root/boot/efi
+2026-10-22T22:47:26.2385753Z drwxr-xr-x root/root                41 1970-01-01 00:00 squashfs-root/boot/efi/EFI
+2026-10-22T22:47:26.2386323Z drwxr-xr-x root/root                89 1970-01-01 00:00 squashfs-root/boot/efi/EFI/BOOT
+2026-10-22T22:47:26.2387121Z -rwx------ root/root            806195 1970-01-01 00:00 squashfs-root/boot/efi/EFI/BOOT/BOOTIA32.EFI
+2026-10-22T22:47:26.2387848Z -rwx------ root/root           1036008 1970-01-01 00:00 squashfs-root/boot/efi/EFI/BOOT/BOOTX64.EFI
+2026-10-22T22:47:26.2388504Z -rwx------ root/root             91584 1970-01-01 00:00 squashfs-root/boot/efi/EFI/BOOT/fbia32.efi
+2026-10-22T22:47:26.2389205Z -rwx------ root/root           4153768 2026-10-13 02:20 squashfs-root/boot/efi/EFI/BOOT/fbx64.efi
+2026-10-22T22:47:26.2389915Z drwxr-xr-x root/root               201 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora
+2026-10-22T22:47:26.2390558Z -rw------- root/root               112 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/BOOTIA32.CSV
+2026-10-22T22:47:26.2391200Z -rw------- root/root               110 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/BOOTX64.CSV
+2026-10-22T22:47:26.2391828Z -rwx------ root/root           4153768 2026-09-29 00:00 squashfs-root/boot/efi/EFI/fedora/gcdx64.efi
+2026-10-22T22:47:26.2392525Z -rwx------ root/root           3084712 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/grubia32.efi
+2026-10-22T22:47:26.2393191Z -rwx------ root/root           4153768 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/grubx64.efi
+2026-10-22T22:47:26.2393900Z -rwx------ root/root            695024 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/mmia32.efi
+2026-10-22T22:47:26.2394543Z -rwx------ root/root            874360 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/mmx64.efi
+2026-10-22T22:47:26.2395377Z -rwx------ root/root           1036008 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/shim.efi
+2026-10-22T22:47:26.2396106Z -rwx------ root/root            806195 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/shimia32.efi
+2026-10-22T22:47:26.2396771Z -rwx------ root/root           1036008 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/shimx64.efi
+2026-10-22T22:47:26.2397391Z drwxr-xr-x root/root                28 2026-10-13 02:20 squashfs-root/boot/grub2
+2026-10-22T22:47:26.2398286Z drwx------ root/root                34 2026-10-13 02:20 squashfs-root/boot/grub2/fonts
+2026-10-22T22:47:26.2398953Z -rwx------ root/root           2394108 2026-09-29 00:00 squashfs-root/boot/grub2/fonts/unicode.pf2
+2026-10-22T22:47:26.2399584Z drwxr-xr-x root/root                 3 1970-01-01 00:00 squashfs-root/dev
+2026-10-22T22:47:26.2400083Z drwxr-xr-x root/root              4712 2026-10-13 02:20 squashfs-root/etc
+2026-10-22T22:47:26.2400619Z -rw-r--r-- root/root              5977 1970-01-01 00:00 squashfs-root/etc/DIR_COLORS
+2026-10-22T22:47:26.2401353Z -rw-r--r-- root/root              6059 1970-01-01 00:00 squashfs-root/etc/DIR_COLORS.lightbgcolor
+2026-10-22T22:47:26.2401983Z drwxr-xr-x root/root                35 1970-01-01 00:00 squashfs-root/etc/GNUstep
+2026-10-22T22:47:26.2402588Z -rw-r--r-- root/root              6435 1970-01-01 00:00 squashfs-root/etc/GNUstep/GNUstep.conf
+2026-10-22T22:47:26.2403287Z -rw-r--r-- root/root                94 1970-01-01 00:00 squashfs-root/etc/GREP_COLORS
+2026-10-22T22:47:26.2403864Z drwxr-xr-x root/root               328 1970-01-01 00:00 squashfs-root/etc/ImageMagick-7
+2026-10-22T22:47:26.2404413Z -rw-r--r-- root/root              1383 1970-01-01 00:00 squashfs-ro
+2026-10-22T22:47:26.4187961Z etc/anaconda/conf.d/anaconda.conf
+2026-10-22T22:47:26.4193227Z [Payload]
+2026-10-22T22:47:26.4194021Z flatpak_remote = flathub https://dl.flathub.org/repo/
+2026-10-22T22:47:26.4194524Z
+2026-10-22T22:47:26.4214974Z etc/anaconda/profile.d/bazzite.conf
+2026-10-22T22:47:26.4226071Z # Anaconda configuration file for bazzite
+2026-10-22T22:47:26.4235580Z
+2026-10-22T22:47:26.4236212Z [Profile]
+2026-10-22T22:47:26.4236820Z # Define the profile.
+2026-10-22T22:47:26.4244849Z profile_id = bazzite
+2026-10-22T22:47:26.4245407Z
+2026-10-22T22:47:26.4245774Z [Profile Detection]
+2026-10-22T22:47:26.4246397Z # Match os-release values
+2026-10-22T22:47:26.4247600Z os_id = bazzite
+2026-10-22T22:47:26.4247788Z
+2026-10-22T22:47:26.4248047Z [Network]
+2026-10-22T22:47:26.4248308Z default_on_boot = FIRST_WIRED_WITH_LINK
+2026-10-22T22:47:26.4248529Z
+2026-10-22T22:47:26.4248653Z [Bootloader]
+2026-10-22T22:47:26.4254909Z efi_dir = fedora
+2026-10-22T22:47:26.4256012Z menu_auto_hide = True
+2026-10-22T22:47:26.4256499Z
+2026-10-22T22:47:26.4256827Z [Storage]
+2026-10-22T22:47:26.4257344Z default_scheme = BTRFS
+2026-10-22T22:47:26.4257770Z btrfs_compression = zstd:1
+2026-10-22T22:47:26.4258544Z default_partitioning =
+2026-10-22T22:47:26.4258934Z     /     (min 1 GiB, max 70 GiB)
+2026-10-22T22:47:26.4259591Z     /home (min 500 MiB, free 50 GiB)
+2026-10-22T22:47:26.4260017Z     /var  (btrfs)
+2026-10-22T22:47:26.4260624Z
+2026-10-22T22:47:26.4260855Z [User Interface]
+2026-10-22T22:47:26.4261455Z hidden_webui_pages =
+2026-10-22T22:47:26.4261828Z     network
+2026-10-22T22:47:26.4262200Z
+2026-10-22T22:47:26.4262477Z [Localization]
+2026-10-22T22:47:26.4263035Z use_geolocation = False
+2026-10-22T22:47:26.4263321Z
+2026-10-22T22:47:26.4263692Z etc/sysconfig/livesys
+2026-10-22T22:47:26.4264250Z # Session type for desktop environment livesys setup
+2026-10-22T22:47:26.4264949Z livesys_session=kde
+2026-10-22T22:47:26.4275677Z
+2026-10-22T22:47:26.4325628Z usr/bin/liveinst
+2026-10-22T22:47:26.4327371Z #!/usr/bin/bash
+2026-10-22T22:47:26.4327887Z #
+2026-10-22T22:47:26.4328324Z # Simple script to kick off an install from a live CD
+2026-10-22T22:47:26.4328729Z #
+2026-10-22T22:47:26.4329176Z # Copyright (C) 2007  Red Hat, Inc.  All rights reserved.
+2026-10-22T22:47:26.4329579Z #
+2026-10-22T22:47:26.4329988Z # This program is free software; you can redistribute it and/or modify
+2026-10-22T22:47:26.4330565Z # it under the terms of the GNU General Public License as published by
+2026-10-22T22:47:26.4331150Z # the Free Software Foundation; either version 2 of the License, or
+2026-10-22T22:47:26.4331635Z # (at your option) any later version.
+2026-10-22T22:47:26.4332054Z #
+2026-10-22T22:47:26.4332391Z # This program is distributed in the hope that it will be useful,
+2026-10-22T22:47:26.4332936Z # but WITHOUT ANY WARRANTY; without even the implied warranty of
+2026-10-22T22:47:26.4333720Z # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+2026-10-22T22:47:26.4334205Z # GNU General Public License for more details.
+2026-10-22T22:47:26.4334577Z #
+2026-10-22T22:47:26.4334959Z # You should have received a copy of the GNU General Public License
+2026-10-22T22:47:26.4335697Z # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+2026-10-22T22:47:26.4338696Z #
+2026-10-22T22:47:26.4339395Z
+2026-10-22T22:47:26.4340076Z BACKEND_READY_FLAG=/run/anaconda/backend_ready
+2026-10-22T22:47:26.4340490Z
+2026-10-22T22:47:26.4340903Z WAYLAND_DISPLAY_SOCKET=/tmp/anaconda-wldisplay
+2026-10-22T22:47:26.4341435Z ATSPI_BUSADDR=/tmp/anaconda-atspibusaddr
+2026-10-22T22:47:26.4342521Z
+2026-10-22T22:47:26.4342633Z
+2026-10-22T22:47:26.4343197Z # Start locale1-x11-sync.service unit to enable Anaconda to control keyboard layouts
+2026-10-22T22:47:26.4343831Z # This needs to be started only on X11 based systems
+2026-10-22T22:47:26.4344447Z start_locale_sync_unit() {
+2026-10-22T22:47:26.4345157Z     if [ -z "${WAYLAND_DISPLAY}" ] && [ -n "${DISPLAY}" ] && [ -e "/usr/lib/systemd/user/locale1-x11-sync.service" ]; then
+2026-10-22T22:47:26.4346235Z         systemctl --user start locale1-x11-sync.service
+2026-10-22T22:47:26.4346741Z     fi
+2026-10-22T22:47:26.4347250Z }
+2026-10-22T22:47:26.4347447Z
+2026-10-22T22:47:26.4347882Z stop_locale_sync_unit() {
+2026-10-22T22:47:26.4348487Z     if [ -z "${WAYLAND_DISPLAY}" ] && [ -n "${DISPLAY}" ] && [ -e "/usr/lib/systemd/user/locale1-x11-sync.service" ]; then
+2026-10-22T22:47:26.4349327Z         systemctl --user stop locale1-x11-sync.service
+2026-10-22T22:47:26.4349847Z     fi
+2026-10-22T22:47:26.4350350Z }
+2026-10-22T22:47:26.4350573Z
+2026-10-22T22:47:26.4351037Z # Detect and save the wayland socket before re-exec
+2026-10-22T22:47:26.4351555Z if [ -n "$WAYLAND_DISPLAY" ]; then
+2026-10-22T22:47:26.4352136Z     if [ -e "$WAYLAND_DISPLAY_SOCKET" ]; then
+2026-10-22T22:47:26.4352643Z         rm -f "${WAYLAND_DISPLAY_SOCKET}"
+2026-10-22T22:47:26.4353241Z     fi
+2026-10-22T22:47:26.4353632Z     touch "${WAYLAND_DISPLAY_SOCKET}"
+2026-10-22T22:47:26.4354402Z     echo "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}" > ${WAYLAND_DISPLAY_SOCKET}
+2026-10-22T22:47:26.4354905Z fi
+2026-10-22T22:47:26.4355723Z
+2026-10-22T22:47:26.4356033Z # Detect and save the a11y bus path before re-exec
+2026-10-22T22:47:26.4356723Z if [ -n "$WAYLAND_DISPLAY" ] && [ -z "$AT_SPI_BUS_ADDRESS" ]; then
+2026-10-22T22:47:26.4357260Z     if [ -e "$ATSPI_BUSADDR" ]; then
+2026-10-22T22:47:26.4357878Z         rm -f "${ATSPI_BUSADDR}"
+2026-10-22T22:47:26.4358278Z     fi
+2026-10-22T22:47:26.4358855Z     _BUSCTL_OUTPUTREGEX='"([^"]+)"'
+2026-10-22T22:47:26.4359452Z     _ATSPIADDR="$( busctl call --user org.a11y.Bus /org/a11y/bus org.a11y.Bus GetAddress )"
+2026-10-22T22:47:26.4360312Z     # Check that the busctl call did not fail and grab expected output
+2026-10-22T22:47:26.4360877Z     # shellcheck disable=SC2181
+2026-10-22T22:47:26.4361480Z     if [ "$?" -eq 0 ] && [[ $_ATSPIADDR =~ $_BUSCTL_OUTPUTREGEX ]]; then
+2026-10-22T22:47:26.4361997Z         touch "${ATSPI_BUSADDR}"
+2026-10-22T22:47:26.4362619Z         echo "${BASH_REMATCH[1]}" > ${ATSPI_BUSADDR}
+2026-10-22T22:47:26.4363087Z     fi
+2026-10-22T22:47:26.4363625Z fi
+2026-10-22T22:47:26.4363838Z
+2026-10-22T22:47:26.4364088Z
+2026-10-22T22:47:26.4364395Z # The command needs to be run with root privileges, so if it was started
+2026-10-22T22:47:26.4365155Z # unprivileged, restart running as root.
+2026-10-22T22:47:26.4365764Z if [ "$(id -u)" -ne 0 ]; then
+2026-10-22T22:47:26.4366413Z     if [ -z "$WAYLAND_DISPLAY" ]; then
+2026-10-22T22:47:26.4366856Z         xhost +si:localuser:root
+2026-10-22T22:47:26.4367430Z     fi
+2026-10-22T22:47:26.4367713Z
+2026-10-22T22:47:26.4368259Z     start_locale_sync_unit
+2026-10-22T22:47:26.4368723Z     pkexec "$0" "$@"
+2026-10-22T22:47:26.4369323Z     ret=$?
+2026-10-22T22:47:26.4369685Z     stop_locale_sync_unit
+2026-10-22T22:47:26.4370249Z
+2026-10-22T22:47:26.4370439Z     exit $ret
+2026-10-22T22:47:26.4380667Z fi
+2026-10-22T22:47:26.4381232Z
+2026-10-22T22:47:26.4381962Z # pkexec clears the environment, so get it back
+2026-10-22T22:47:26.4382500Z if [ -n "${PKEXEC_UID}" ]; then
+2026-10-22T22:47:26.4388468Z     INSTALLER_USER=$(id -n -u "${PKEXEC_UID}")
+2026-10-22T22:47:26.4389662Z     readarray -t user_environment < <(pkexec --user "${INSTALLER_USER}" env XDG_RUNTIME_DIR="/run/user/${PKEXEC_UID}" systemctl --user show-environment)
+2026-10-22T22:47:26.4391327Z
+2026-10-22T22:47:26.4391595Z     for variable in "${user_environment[@]}"; do
+2026-10-22T22:47:26.4392225Z       export "${variable?}"
+2026-10-22T22:47:26.4392774Z     done
+2026-10-22T22:47:26.4393285Z fi
+2026-10-22T22:47:26.4393468Z
+2026-10-22T22:47:26.4393690Z # pkexec clears WAYLAND_DISPLAY from environment
+2026-10-22T22:47:26.4394403Z if [ -z "$WAYLAND_DISPLAY" ] && [ -e "$WAYLAND_DISPLAY_SOCKET" ]; then
+2026-10-22T22:47:26.4394925Z     WAYLAND_DISPLAY=$(cat "${WAYLAND_DISPLAY_SOCKET}")
+2026-10-22T22:47:26.4395738Z     export WAYLAND_DISPLAY
+2026-10-22T22:47:26.4396129Z fi
+2026-10-22T22:47:26.4396286Z
+2026-10-22T22:47:26.4396540Z # needed to enable a11y features on Wayland environments
+2026-10-22T22:47:26.4397081Z if [ -n "$WAYLAND_DISPLAY" ] && [ -z "$AT_SPI_BUS_ADDRESS" ]; then
+2026-10-22T22:47:26.4432313Z     AT_SPI_BUS_ADDRESS=$(cat "${ATSPI_BUSADDR}")
+2026-10-22T22:47:26.4432942Z     export AT_SPI_BUS_ADDRESS
+2026-10-22T22:47:26.4433541Z fi
+2026-10-22T22:47:26.4433807Z
+2026-10-22T22:47:26.4434760Z # use the correct home and config directories for system settings
+2026-10-22T22:47:26.4435431Z PKEXEC_USER=$(id -un "${PKEXEC_UID}")
+2026-10-22T22:47:26.4441233Z HOME=$(bash -c "cd ~${PKEXEC_USER} && pwd")
+2026-10-22T22:47:26.4443459Z export HOME
+2026-10-22T22:47:26.4443819Z XDG_CONFIG_HOME="${HOME}/.config"
+2026-10-22T22:47:26.4444144Z export XDG_CONFIG_HOME
+2026-10-22T22:47:26.4444445Z
+2026-10-22T22:47:26.4444720Z # Prevent multiple instances (rhbz#2440264): only one installer at a time
+2026-10-22T22:47:26.4445673Z LIVEINST_LOCK=/run/anaconda/liveinst.lock
+2026-10-22T22:47:26.4466378Z mkdir -p /run/anaconda
+2026-10-22T22:47:26.4466746Z exec 9>"${LIVEINST_LOCK}"
+2026-10-22T22:47:26.4467121Z if ! flock -n 9; then
+2026-10-22T22:47:26.4467507Z     title="Installer already running"
+2026-10-22T22:47:26.4468028Z     text="The installer is already running. Please use the existing installer window."
+2026-10-22T22:47:26.4468543Z     if which zenity &>/dev/null; then
+2026-10-22T22:47:26.4468978Z         zenity --info --no-markup --title="$title" --text="$text"
+2026-10-22T22:47:26.4469394Z     else
+2026-10-22T22:47:26.4469753Z         echo "$title: $text" >&2
+2026-10-22T22:47:26.4470097Z     fi
+2026-10-22T22:47:26.4470347Z     exit 0
+2026-10-22T22:47:26.4470679Z fi
+2026-10-22T22:47:26.4470843Z
+2026-10-22T22:47:26.4475606Z # Allow running another command in the place of anaconda, but in this same
+2026-10-22T22:47:26.4482905Z # environment.  This allows storage testing to make use of all the module
+2026-10-22T22:47:26.4485782Z # loading and lvm control in this file, too.
+2026-10-22T22:47:26.4486375Z ANACONDA="${LIVECMD:=anaconda --liveinst --graphical}"
+2026-10-22T22:47:26.4488062Z
+2026-10-22T22:47:26.4488300Z # load modules that would get loaded by the initramfs (#230945)
+2026-10-22T22:47:26.4490770Z for i in raid0 raid1 raid5 raid6 raid456 raid10 dm-mod dm-zero dm-mirror dm-snapshot dm-multipath dm-round-robin vfat dm-crypt cbc sha256 lrw xts iscsi_tcp iscsi_ibft; do /sbin/modprobe $i 2>/dev/null ; done
+2026-10-22T22:47:26.4491435Z
+2026-10-22T22:47:26.4491582Z if [ -f /etc/system-release ]; then
+2026-10-22T22:47:26.4491894Z     export ANACONDA_PRODUCTNAME
+2026-10-22T22:47:26.4492343Z     ANACONDA_PRODUCTNAME=$(sed -r -e 's/ *release.*//' /etc/system-release)
+2026-10-22T22:47:26.4492780Z     export ANACONDA_PRODUCTVERSION
+2026-10-22T22:47:26.4493881Z     ANACONDA_PRODUCTVERSION=$(sed -r -e 's/^.* ([0-9\.]+).*$/\1/' /etc/system-release)
+2026-10-22T22:47:26.4494339Z fi
+2026-10-22T22:47:26.4494442Z
+2026-10-22T22:47:26.4498113Z RELEASE=$(rpm -q --qf '%{Release}' --whatprovides system-release)
+2026-10-22T22:47:26.4498744Z if [ "${RELEASE:0:2}" = "0." ]; then
+2026-10-22T22:47:26.4499103Z     export ANACONDA_ISFINAL="false"
+2026-10-22T22:47:26.4499370Z else
+2026-10-22T22:47:26.4499636Z     export ANACONDA_ISFINAL="true"
+2026-10-22T22:47:26.4499939Z fi
+2026-10-22T22:47:26.4500079Z
+2026-10-22T22:47:26.4500234Z export PATH=/sbin:/usr/sbin:$PATH
+2026-10-22T22:47:26.4500474Z
+2026-10-22T22:47:26.4500619Z if [ -x /usr/sbin/getenforce ]; then
+2026-10-22T22:47:26.4501022Z     current=$(/usr/sbin/getenforce)
+2026-10-22T22:47:26.4501367Z     /usr/sbin/setenforce 0
+2026-10-22T22:47:26.4501632Z fi
+2026-10-22T22:47:26.4501746Z
+2026-10-22T22:47:26.4501899Z if (! sestatus | grep -q enabled) then
+2026-10-22T22:47:26.4502248Z     ANACONDA="$ANACONDA --noselinux"
+2026-10-22T22:47:26.4502535Z fi
+2026-10-22T22:47:26.4502674Z
+2026-10-22T22:47:26.4502790Z # Process cmdline args
+2026-10-22T22:47:26.4503084Z for opt in $(cat /proc/cmdline) "$@"; do
+2026-10-22T22:47:26.4503434Z     case $opt in
+2026-10-22T22:47:26.4503721Z     updates=*)
+2026-10-22T22:47:26.4503991Z         UPDATES="${opt#updates=}"
+2026-10-22T22:47:26.4504285Z         ;;
+2026-10-22T22:47:26.4504541Z     --updates=*)
+2026-10-22T22:47:26.4504836Z         UPDATES="${opt#--updates=}"
+2026-10-22T22:47:26.4505169Z         ;;
+2026-10-22T22:47:26.4505578Z     inst.updates=*)
+2026-10-22T22:47:26.4505889Z         UPDATES="${opt#inst.updates=}"
+2026-10-22T22:47:26.4506215Z         ;;
+2026-10-22T22:47:26.4506473Z     --inst.updates=*)
+2026-10-22T22:47:26.4506840Z         UPDATES="${opt#--inst.updates=}"
+2026-10-22T22:47:26.4507161Z         ;;
+2026-10-22T22:47:26.4507409Z     --updates)
+2026-10-22T22:47:26.4507688Z         title="updates error"
+2026-10-22T22:47:26.4508102Z         text="liveinst requires --updates=<url> instead of --updates <url>"
+2026-10-22T22:47:26.4508589Z         if which zenity &> /dev/null; then
+2026-10-22T22:47:26.4509003Z             zenity --error --no-markup --title="$title" --text="$text"
+2026-10-22T22:47:26.4509392Z         else
+2026-10-22T22:47:26.4509694Z             echo "$title" >&2
+2026-10-22T22:47:26.4510059Z             echo "$text" >&2
+2026-10-22T22:47:26.4510366Z         fi
+2026-10-22T22:47:26.4510615Z         exit 1
+2026-10-22T22:47:26.4510849Z         ;;
+2026-10-22T22:47:26.4511314Z     ks=*|kickstart=*|--ks=*|--kickstart=*|inst.ks=*|--inst.ks=*|inst.kickstart=*|--inst-kickstart=*)
+2026-10-22T22:47:26.4511847Z         title="Configuration not supported"
+2026-10-22T22:47:26.4512575Z         text="Kickstart is not supported on Live ISO installs, please use netinstall or standard ISO.  This installation will continue interactively."
+2026-10-22T22:47:26.4513280Z         if which zenity &> /dev/null; then
+2026-10-22T22:47:26.4513664Z             zenity --warning --title="$title" --text="$text"
+2026-10-22T22:47:26.4514072Z          else
+2026-10-22T22:47:26.4514360Z             echo "$title" >&2
+2026-10-22T22:47:26.4514673Z             echo "$text" >&2
+2026-10-22T22:47:26.4514972Z          fi
+2026-10-22T22:47:26.4515828Z         ;;
+2026-10-22T22:47:26.4516116Z     rescue|--rescue)
+2026-10-22T22:47:26.4516435Z         title="Configuration not supported"
+2026-10-22T22:47:26.4517004Z         text="Rescue mode is not supported on live media.  Please use the normal system tools to recover your system."
+2026-10-22T22:47:26.4517603Z         if which zenity &> /dev/null; then
+2026-10-22T22:47:26.4518012Z             zenity --warning --title="$title" --text="$text"
+2026-10-22T22:47:26.4518420Z          else
+2026-10-22T22:47:26.4518684Z             echo "$title" >&2
+2026-10-22T22:47:26.4518975Z             echo "$text" >&2
+2026-10-22T22:47:26.4519291Z          fi
+2026-10-22T22:47:26.4519537Z          exit 1
+2026-10-22T22:47:26.4519804Z         ;;
+2026-10-22T22:47:26.4520208Z     rdp|rdp.username|rdp.password|--rdp|--rdp.username|--rdp.password)
+2026-10-22T22:47:26.4520670Z         title="Configuration not supported"
+2026-10-22T22:47:26.4521466Z         text="RDP is not supported on live media."
+2026-10-22T22:47:26.4521876Z         if which zenity &> /dev/null; then
+2026-10-22T22:47:26.4522437Z             zenity --warning --title="$title" --text="$text"
+2026-10-22T22:47:26.4522856Z          else
+2026-10-22T22:47:26.4523142Z             echo "$title" >&2
+2026-10-22T22:47:26.4523505Z             echo "$text" >&2
+2026-10-22T22:47:26.4523802Z          fi
+2026-10-22T22:47:26.4524092Z          exit 1
+2026-10-22T22:47:26.4524402Z         ;;
+2026-10-22T22:47:26.4524669Z     esac
+2026-10-22T22:47:26.4525328Z done
+2026-10-22T22:47:26.4525464Z
+2026-10-22T22:47:26.4526166Z # unmount anything that shouldn't be mounted prior to install
+2026-10-22T22:47:26.4526539Z anaconda-cleanup "$ANACONDA" "$@"
+2026-10-22T22:47:26.4526733Z
+2026-10-22T22:47:26.4526917Z # Set up the updates, if provided.
+2026-10-22T22:47:26.4527228Z if [ -n "$UPDATES" ]; then
+2026-10-22T22:47:26.4527526Z     curl -o /tmp/updates.img "$UPDATES"
+2026-10-22T22:47:26.4527729Z
+2026-10-22T22:47:26.4527895Z     # We officially support two updates.img formats:  a filesystem image, and
+2026-10-22T22:47:26.4528588Z     # a compressed cpio blob.
+2026-10-22T22:47:26.4529078Z     if (file /tmp/updates.img | grep -q 'gzip compressed data'); then
+2026-10-22T22:47:26.4529586Z         ( cd / ; gzip -dc /tmp/updates.img | cpio -idu )
+2026-10-22T22:47:26.4529956Z     else
+2026-10-22T22:47:26.4530242Z         mkdir /tmp/updates.disk
+2026-10-22T22:47:26.4530634Z         mount -t auto /tmp/updates.img /tmp/updates.disk
+2026-10-22T22:47:26.4531044Z         cp -Rt / /tmp/updates.disk/*
+2026-10-22T22:47:26.4531398Z         umount /tmp/updates.disk
+2026-10-22T22:47:26.4531717Z         rmdir /tmp/updates.disk
+2026-10-22T22:47:26.4532048Z     fi
+2026-10-22T22:47:26.4532210Z
+2026-10-22T22:47:26.4532361Z fi
+2026-10-22T22:47:26.4532459Z
+2026-10-22T22:47:26.4532629Z start_anaconda_web_ui() {
+2026-10-22T22:47:26.4533281Z     # remove flag file about initialized backend it shouldn't exists
+2026-10-22T22:47:26.4535311Z     # if the file existed before it might be a broken cleanup
+2026-10-22T22:47:26.4535731Z     if [ -e "$BACKEND_READY_FLAG" ]; then
+2026-10-22T22:47:26.4536256Z         echo "Anaconda backend flag file still exists! Probably a problem with cleanup. Removing now!" >&2
+2026-10-22T22:47:26.4536760Z         rm -f "$BACKEND_READY_FLAG" 2>/dev/null
+2026-10-22T22:47:26.4537077Z     fi
+2026-10-22T22:47:26.4537383Z     # early execution of Firefox to reduce starting time
+2026-10-22T22:47:26.4537761Z     mkdir -p /run/anaconda
+2026-10-22T22:47:26.4538036Z     /usr/libexec/anaconda/webui-desktop -t live &
+2026-10-22T22:47:26.4538335Z     echo -n "$!" > /run/anaconda/webui_script.pid
+2026-10-22T22:47:26.4538602Z }
+2026-10-22T22:47:26.4538716Z
+2026-10-22T22:47:26.4538794Z start_anaconda() {
+2026-10-22T22:47:26.4539046Z     # start Firefox to use Anaconda Web UI if it is installed
+2026-10-22T22:47:26.4539402Z     if [ -e "/usr/share/cockpit/anaconda-webui" ]; then
+2026-10-22T22:47:26.4539674Z         start_anaconda_web_ui
+2026-10-22T22:47:26.4539944Z     fi
+2026-10-22T22:47:26.4540149Z     # start Anaconda main process
+2026-10-22T22:47:26.4540390Z     $ANACONDA "$@"
+2026-10-22T22:47:26.4540611Z }
+2026-10-22T22:47:26.4540700Z
+2026-10-22T22:47:26.4540850Z # If no wayland socket is set, force x11 so that it loads correctly
+2026-10-22T22:47:26.4541166Z if [ -z "$WAYLAND_DISPLAY" ]; then
+2026-10-22T22:47:26.4541404Z     export GDK_BACKEND=x11
+2026-10-22T22:47:26.4541613Z fi
+2026-10-22T22:47:26.4541754Z
+2026-10-22T22:47:26.4541840Z if [ -x /usr/bin/udisks ]; then
+2026-10-22T22:47:26.4542101Z     /usr/bin/udisks --inhibit -- start_anaconda "$@"
+2026-10-22T22:47:26.4542391Z else
+2026-10-22T22:47:26.4542583Z     start_anaconda "$@"
+2026-10-22T22:47:26.4542780Z fi
+2026-10-22T22:47:26.4542877Z
+2026-10-22T22:47:26.4543034Z if [ -e /tmp/updates.img ]; then rm /tmp/updates.img; fi
+2026-10-22T22:47:26.4543233Z
+2026-10-22T22:47:26.4543319Z rm -f /dev/.in_sysinit 2>/dev/null
+2026-10-22T22:47:26.4543478Z
+2026-10-22T22:47:26.4543571Z if [ -n "$current" ]; then
+2026-10-22T22:47:26.4543803Z     /usr/sbin/setenforce "$current"
+2026-10-22T22:47:26.4544014Z fi
+2026-10-22T22:47:26.4544159Z
+2026-10-22T22:47:26.4544669Z usr/lib/os-release
+2026-10-22T22:47:26.4544898Z NAME="Bazzite"
+2026-10-22T22:47:26.4545117Z VERSION="44.20261012.0 (Kinoite)"
+2026-10-22T22:47:26.4546395Z RELEASE_TYPE=stable
+2026-10-22T22:47:26.4546632Z ID=bazzite
+2026-10-22T22:47:26.4546892Z ID_LIKE="fedora"
+2026-10-22T22:47:26.4547142Z VERSION_ID=44
+2026-10-22T22:47:26.4547408Z VERSION_CODENAME="Kinoite"
+2026-10-22T22:47:26.4547785Z PRETTY_NAME="Bazzite"
+2026-10-22T22:47:26.4548077Z ANSI_COLOR="0;38;2;138;43;226"
+2026-10-22T22:47:26.4548398Z LOGO=bazzite-logo
+2026-10-22T22:47:26.4548697Z CPE_NAME="cpe:/o:universal-blue:bazzite:44"
+2026-10-22T22:47:26.4549046Z DEFAULT_HOSTNAME="bazzite"
+2026-10-22T22:47:26.4549372Z HOME_URL="https://bazzite.gg"
+2026-10-22T22:47:26.4549737Z DOCUMENTATION_URL="https://docs.bazzite.gg"
+2026-10-22T22:47:26.4550142Z SUPPORT_URL="https://discord.bazzite.gg"
+2026-10-22T22:47:26.4550553Z BUG_REPORT_URL="https://github.com/ublue-os/bazzite/issues/"
+2026-10-22T22:47:26.4550926Z SUPPORT_END=2027-05-19
+2026-10-22T22:47:26.4551240Z VARIANT="Kinoite"
+2026-10-22T22:47:26.4551528Z VARIANT_ID=bazzite
+2026-10-22T22:47:26.4551848Z OSTREE_VERSION='44.20261012.0'
+2026-10-22T22:47:26.4552140Z BUILD_ID="Stable (F44.20261012)"
+2026-10-22T22:47:26.4552474Z BOOTLOADER_NAME="Bazzite Stable (F44.20261012)"
+2026-10-22T22:47:26.4552863Z IMAGE_ID="bazzite-44.20261012"
+2026-10-22T22:47:26.4553031Z
+2026-10-22T22:47:26.4553193Z usr/libexec/livesys/functions
+2026-10-22T22:47:26.4553478Z #!/bin/sh
+2026-10-22T22:47:26.4553767Z # Functions to be used with livesys-* scripts
+2026-10-22T22:47:26.4553993Z
+2026-10-22T22:47:26.4554098Z # Check if gettext exists
+2026-10-22T22:47:26.4554409Z if ! type gettext > /dev/null 2>&1; then
+2026-10-22T22:47:26.4554845Z   # If not, create a dummy function that returns the input verbatim
+2026-10-22T22:47:26.4555774Z   gettext() { printf '%s' "$1"; }
+2026-10-22T22:47:26.4556124Z fi
+2026-10-22T22:47:26.4556242Z
+2026-10-22T22:47:26.4556451Z # returns OK if $1 contains literal string $2 (and isn't empty)
+2026-10-22T22:47:26.4556838Z strstr() {
+2026-10-22T22:47:26.4557114Z     [ "${1##*"$2"*}" != "$1" ]
+2026-10-22T22:47:26.4557381Z }
+2026-10-22T22:47:26.4557564Z
+2026-10-22T22:47:26.4557685Z # Run some action. Log its output.
+2026-10-22T22:47:26.4558013Z action() {
+2026-10-22T22:47:26.4558312Z     local STRING rc
+2026-10-22T22:47:26.4558475Z
+2026-10-22T22:47:26.4558597Z     STRING=$1
+2026-10-22T22:47:26.4558867Z     printf '%s' "$(gettext "${STRING} ")"
+2026-10-22T22:47:26.4559229Z     shift
+2026-10-22T22:47:26.4559482Z     if "$@"; then
+2026-10-22T22:47:26.4559775Z         success "$(gettext "${STRING} ")"
+2026-10-22T22:47:26.4560137Z     else
+2026-10-22T22:47:26.4560409Z         failure "$(gettext "${STRING} ")"
+2026-10-22T22:47:26.4560749Z     fi
+2026-10-22T22:47:26.4561033Z     rc=$?
+2026-10-22T22:47:26.4561277Z     printf '\n'
+2026-10-22T22:47:26.4561579Z     return $rc
+2026-10-22T22:47:26.4561838Z }
+2026-10-22T22:47:26.4561944Z
+2026-10-22T22:47:26.4562201Z # verbose ->> very (very!) old bootup look (prior to RHL-6.0?)
+2026-10-22T22:47:26.4562626Z # color ->> default bootup look
+2026-10-22T22:47:26.4563019Z # other ->> default bootup look without ANSI colors or positioning
+2026-10-22T22:47:26.4563483Z BOOTUP=color
+2026-10-22T22:47:26.4563768Z # Column to start "[  OK  ]" label in:
+2026-10-22T22:47:26.4564092Z RES_COL=60
+2026-10-22T22:47:26.4564446Z # terminal sequence to move to that column:
+2026-10-22T22:47:26.4564804Z MOVE_TO_COL="printf \\033[${RES_COL}G"
+2026-10-22T22:47:26.4565479Z # Terminal sequence to set color to a 'success' (bright green):
+2026-10-22T22:47:26.4565925Z SETCOLOR_SUCCESS="printf \\033[1;32m"
+2026-10-22T22:47:26.4566330Z # Terminal sequence to set color to a 'failure' (bright red):
+2026-10-22T22:47:26.4566769Z SETCOLOR_FAILURE="printf \\033[1;31m"
+2026-10-22T22:47:26.4567182Z # Terminal sequence to set color to a 'warning' (bright yellow):
+2026-10-22T22:47:26.4567638Z SETCOLOR_WARNING="printf \\033[1;33m"
+2026-10-22T22:47:26.4568011Z # Terminal sequence to reset to the default color:
+2026-10-22T22:47:26.4568628Z SETCOLOR_NORMAL="printf \\033[0;39m"
+2026-10-22T22:47:26.4568843Z
+2026-10-22T22:47:26.4569000Z # NOTE: /dev/ttyS* is serial console.
+2026-10-22T22:47:26.4569436Z # 'not a tty' is reported when executed under systemd service units
+2026-10-22T22:47:26.4569913Z # where /dev/null is associated with standard input
+2026-10-22T22:47:26.4570186Z
+2026-10-22T22:47:26.4570301Z test_tty=$(LC_ALL=C tty)
+2026-10-22T22:47:26.4570657Z case "$test_tty" in
+2026-10-22T22:47:26.4570976Z     /dev/ttyS* | 'not a tty')
+2026-10-22T22:47:26.4571308Z         BOOTUP=serial
+2026-10-22T22:47:26.4571634Z         MOVE_TO_COL=
+2026-10-22T22:47:26.4571917Z         SETCOLOR_SUCCESS=
+2026-10-22T22:47:26.4572200Z         SETCOLOR_FAILURE=
+2026-10-22T22:47:26.4572619Z         SETCOLOR_WARNING=
+2026-10-22T22:47:26.4572958Z         SETCOLOR_NORMAL=
+2026-10-22T22:47:26.4573263Z         ;;
+2026-10-22T22:47:26.4573510Z esac
+2026-10-22T22:47:26.4573663Z
+2026-10-22T22:47:26.4573770Z # Log that something succeeded
+2026-10-22T22:47:26.4574106Z success() {
+2026-10-22T22:47:26.4574409Z     [ "$BOOTUP" != "verbose" ] && echo_success
+2026-10-22T22:47:26.4574798Z     return 0
+2026-10-22T22:47:26.4575051Z }
+2026-10-22T22:47:26.4575956Z
+2026-10-22T22:47:26.4576094Z # Log that something failed
+2026-10-22T22:47:26.4576498Z failure() {
+2026-10-22T22:47:26.4576787Z     local rc=$?
+2026-10-22T22:47:26.4577108Z     [ "$BOOTUP" != "verbose" ] && echo_failure
+2026-10-22T22:47:26.4577522Z     [ -x /bin/plymouth ] && /bin/plymouth --details
+2026-10-22T22:47:26.4577905Z     return $rc
+2026-10-22T22:47:26.4578226Z }
+2026-10-22T22:47:26.4578663Z
+2026-10-22T22:47:26.4578774Z echo_success() {
+2026-10-22T22:47:26.4579006Z     [ "$BOOTUP" = "color" ] && $MOVE_TO_COL
+2026-10-22T22:47:26.4579324Z     printf '%s' "["
+2026-10-22T22:47:26.4579553Z     [ "$BOOTUP" = "color" ] && $SETCOLOR_SUCCESS
+2026-10-22T22:47:26.4579827Z     printf '%s' "$(gettext "  OK  ")"
+2026-10-22T22:47:26.4580083Z     [ "$BOOTUP" = "color" ] && $SETCOLOR_NORMAL
+2026-10-22T22:47:26.4580325Z     printf '%s' "]"
+2026-10-22T22:47:26.4580555Z     printf '\r'
+2026-10-22T22:47:26.4580767Z     return 0
+2026-10-22T22:47:26.4581360Z }
+2026-10-22T22:47:26.4581528Z
+2026-10-22T22:47:26.4581670Z echo_failure() {
+2026-10-22T22:47:26.4581972Z     [ "$BOOTUP" = "color" ] && $MOVE_TO_COL
+2026-10-22T22:47:26.4582344Z     printf '%s' "["
+2026-10-22T22:47:26.4582650Z     [ "$BOOTUP" = "color" ] && $SETCOLOR_FAILURE
+2026-10-22T22:47:26.4583028Z     printf '%s' "$(gettext "FAILED")"
+2026-10-22T22:47:26.4583391Z     [ "$BOOTUP" = "color" ] && $SETCOLOR_NORMAL
+2026-10-22T22:47:26.4583769Z     printf '%s' "]"
+2026-10-22T22:47:26.4584063Z     printf '\r'
+2026-10-22T22:47:26.4584323Z     return 1
+2026-10-22T22:47:26.4584603Z }
+2026-10-22T22:47:26.4584727Z
+2026-10-22T22:47:26.4584859Z fscheck() {
+2026-10-22T22:47:26.4585571Z     local fstype="$1"
+2026-10-22T22:47:26.4585830Z     local fs="$2"
+2026-10-22T22:47:26.4586123Z     local d="${3:-$2}"
+2026-10-22T22:47:26.4586373Z     umount "$fs" >/dev/null 2>&1 || :
+2026-10-22T22:47:26.4588432Z     case "$fstype" in
+2026-10-22T22:47:26.4588721Z         ext[432])
+2026-10-22T22:47:26.4588957Z             printf '\n'
+2026-10-22T22:47:26.4589269Z             flock "$d" e2fsck -yfv "$fs" || :
+2026-10-22T22:47:26.4589607Z             ;;
+2026-10-22T22:47:26.4589884Z         vfat|msdos)
+2026-10-22T22:47:26.4590181Z             printf '\n'
+2026-10-22T22:47:26.4590466Z             flock "$d" fsck.fat -avVw "$fs"
+2026-10-22T22:47:26.4590731Z             ;;
+2026-10-22T22:47:26.4590924Z         btrfs)
+2026-10-22T22:47:26.4591169Z             printf '# btrfs check -p --repair --force'
+2026-10-22T22:47:26.4591486Z             flock "$d" btrfs check -p --repair --force "$fs"
+2026-10-22T22:47:26.4591742Z             ;;
+2026-10-22T22:47:26.4591963Z         xfs)
+2026-10-22T22:47:26.4592201Z             printf '\n# xfs_repair -v'
+2026-10-22T22:47:26.4592463Z             flock "$d" xfs_repair -v "$fs"
+2026-10-22T22:47:26.4592713Z             ;;
+2026-10-22T22:47:26.4592890Z         f2fs)
+2026-10-22T22:47:26.4593240Z             printf '# fsck.f2fs -afy'
+2026-10-22T22:47:26.4593492Z             flock "$d" fsck.f2fs -afy "$fs"
+2026-10-22T22:47:26.4593731Z             ;;
+2026-10-22T22:47:26.4593957Z         *)
+2026-10-22T22:47:26.4594206Z             printf "\n\tERROR:   Filesystem checking for '%s' is not\n \
+2026-10-22T22:47:26.4594515Z                 available.\n" "$fstype"
+2026-10-22T22:47:26.4594838Z     esac
+2026-10-22T22:47:26.4595026Z }
+2026-10-22T22:47:26.4595142Z
+2026-10-22T22:47:26.4595146Z
+2026-10-22T22:47:26.4596194Z usr/libexec/livesys/livesys-late
+2026-10-22T22:47:26.4596741Z #!/usr/bin/sh
+2026-10-22T22:47:26.4597248Z #
+2026-10-22T22:47:26.4597618Z # live: Late init script for live image
+2026-10-22T22:47:26.4598148Z # SPDX-License-Identifier: GPL-3.0-or-later
+2026-10-22T22:47:26.4598554Z
+2026-10-22T22:47:26.4598893Z cmdline=$(cat /proc/cmdline)' '
+2026-10-22T22:47:26.4600609Z
+2026-10-22T22:47:26.4600821Z if [ "${cmdline##* rd.live.debug[= ]}" != "$cmdline" ] ||
+2026-10-22T22:47:26.4601282Z     [ "${cmdline##* rdlivedebug[= ]}" != "$cmdline" ]; then
+2026-10-22T22:47:26.4601689Z     exec > /run/initramfs/livesys-late.$$.out 2>&1
+2026-10-22T22:47:26.4602026Z     set -x
+2026-10-22T22:47:26.4602305Z     if [ "$BASH" ]; then
+2026-10-22T22:47:26.4602637Z         export \
+2026-10-22T22:47:26.4603037Z             PS4='+ (${BASH_SOURCE}@${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+2026-10-22T22:47:26.4603440Z     else
+2026-10-22T22:47:26.4603717Z         export PS4='+ (${0##*/}@${LINENO}): '
+2026-10-22T22:47:26.4604047Z     fi
+2026-10-22T22:47:26.4604342Z fi
+2026-10-22T22:47:26.4604498Z
+2026-10-22T22:47:26.4604653Z { [ "${cmdline##* rd.live.image[= ]}" = "$cmdline" ] &&
+2026-10-22T22:47:26.4605025Z     [ "${cmdline##* liveimg[= ]}" = "$cmdline" ]; } ||
+2026-10-22T22:47:26.4605531Z     [ -e /.liveimg-late-configured ] && exit 0
+2026-10-22T22:47:26.4605795Z
+2026-10-22T22:47:26.4605951Z : > /.liveimg-late-configured
+2026-10-22T22:47:26.4606136Z
+2026-10-22T22:47:26.4606329Z # read some variables out of /proc/cmdline
+2026-10-22T22:47:26.4606669Z cut=${cmdline##* ks=}
+2026-10-22T22:47:26.4607019Z [ ${#cut} -ne ${#cmdline} ] && ks=--kickstart="${cut%% *}"
+2026-10-22T22:47:26.4607264Z
+2026-10-22T22:47:26.4607348Z cut=${cmdline##* xdriver=}
+2026-10-22T22:47:26.4607699Z [ ${#cut} -ne ${#cmdline} ] && xdriver="${cut%% *}"
+2026-10-22T22:47:26.4607966Z
+2026-10-22T22:47:26.4608149Z # if liveinst or textinst is given, start anaconda
+2026-10-22T22:47:26.4608580Z if [ "${cmdline##* liveinst }" != "$cmdline" ]; then
+2026-10-22T22:47:26.4608934Z    plymouth --quit
+2026-10-22T22:47:26.4609215Z    /usr/sbin/liveinst "$ks"
+2026-10-22T22:47:26.4609540Z fi
+2026-10-22T22:47:26.4609859Z if [ "${cmdline##* textinst }" != "$cmdline" ]; then
+2026-10-22T22:47:26.4610216Z    plymouth --quit
+2026-10-22T22:47:26.4610523Z    /usr/sbin/liveinst --text "$ks"
+2026-10-22T22:47:26.4610838Z fi
+2026-10-22T22:47:26.4610988Z
+2026-10-22T22:47:26.4611141Z # configure X, allowing user to override xdriver
+2026-10-22T22:47:26.4611544Z if [ "$xdriver" ]; then
+2026-10-22T22:47:26.4611913Z    cat > /etc/X11/xorg.conf.d/00-xdriver.conf <<FOE
+2026-10-22T22:47:26.4612285Z Section "Device"
+2026-10-22T22:47:26.4612575Z 	Identifier	"Videocard0"
+2026-10-22T22:47:26.4612888Z 	Driver	"$xdriver"
+2026-10-22T22:47:26.4613181Z EndSection
+2026-10-22T22:47:26.4613418Z FOE
+2026-10-22T22:47:26.4613688Z fi
+2026-10-22T22:47:26.4613833Z
+2026-10-22T22:47:26.4614044Z # allow extra stuff to be defined for derived spins (e.g., fedora labs)
+2026-10-22T22:47:26.4614559Z if [ -f /var/lib/livesys/livesys-session-late-extra ]; then
+2026-10-22T22:47:26.4615050Z   . /var/lib/livesys/livesys-session-late-extra
+2026-10-22T22:47:26.4616516Z fi
+2026-10-22T22:47:26.4616659Z
+2026-10-22T22:47:26.4616662Z
+2026-10-22T22:47:26.4616830Z usr/libexec/livesys/livesys-main
+2026-10-22T22:47:26.4617154Z #!/usr/bin/sh
+2026-10-22T22:47:26.4617435Z #
+2026-10-22T22:47:26.4617755Z # live: Init script for live image
+2026-10-22T22:47:26.4618124Z # SPDX-License-Identifier: GPL-3.0-or-later
+2026-10-22T22:47:26.4618540Z
+2026-10-22T22:47:26.4618670Z . /usr/libexec/livesys/functions
+2026-10-22T22:47:26.4618894Z
+2026-10-22T22:47:26.4619011Z cmdline=$(cat /proc/cmdline)' '
+2026-10-22T22:47:26.4619256Z
+2026-10-22T22:47:26.4619442Z if [ "${cmdline##* rd.live.debug[= ]}" != "$cmdline" ] ||
+2026-10-22T22:47:26.4619875Z     [ "${cmdline##* rdlivedebug[= ]}" != "$cmdline" ]; then
+2026-10-22T22:47:26.4620355Z     exec > /run/initramfs/livesys-main.$$.out 2>&1
+2026-10-22T22:47:26.4620724Z     set -x
+2026-10-22T22:47:26.4621007Z     if [ "$BASH" ]; then
+2026-10-22T22:47:26.4621287Z         export \
+2026-10-22T22:47:26.4621726Z             PS4='+ (${BASH_SOURCE}@${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+2026-10-22T22:47:26.4622147Z     else
+2026-10-22T22:47:26.4622486Z         export PS4='+ (${0##*/}@${LINENO}): '
+2026-10-22T22:47:26.4622836Z     fi
+2026-10-22T22:47:26.4623068Z fi
+2026-10-22T22:47:26.4623206Z
+2026-10-22T22:47:26.4623399Z { [ "${cmdline##* rd.live.image[= ]}" = "$cmdline" ] &&
+2026-10-22T22:47:26.4623819Z     [ "${cmdline##* liveimg[= ]}" = "$cmdline" ]; } && exit 0
+2026-10-22T22:47:26.4624064Z
+2026-10-22T22:47:26.4624220Z autouser=1
+2026-10-22T22:47:26.4624540Z if [ -f /etc/sysconfig/livesys ]; then
+2026-10-22T22:47:26.4624905Z   . /etc/sysconfig/livesys
+2026-10-22T22:47:26.4625137Z
+2026-10-22T22:47:26.4625571Z   if [ "${livesys_session}" = "gnome" -a -d /var/lib/gnome-initial-setup/ ]; then
+2026-10-22T22:47:26.4626082Z       autouser=0
+2026-10-22T22:47:26.4626376Z   fi
+2026-10-22T22:47:26.4626685Z fi
+2026-10-22T22:47:26.4626808Z
+2026-10-22T22:47:26.4626976Z [ -e /.liveimg-configured ] && configdone=1
+2026-10-22T22:47:26.4627229Z
+2026-10-22T22:47:26.4627343Z livedir="LiveOS"
+2026-10-22T22:47:26.4627663Z cut=${cmdline##* rd.live.dir[= ]}
+2026-10-22T22:47:26.4628027Z [ ${#cut} -ne ${#cmdline} ] && livedir=${cut%% *}
+2026-10-22T22:47:26.4628527Z len=${#cut}
+2026-10-22T22:47:26.4628818Z cut=${cut##* live_dir[= ]}
+2026-10-22T22:47:26.4629160Z [ ${#cut} -ne $len ] && livedir=${cut%% *}
+2026-10-22T22:47:26.4629305Z
+2026-10-22T22:47:26.4629422Z # enable swapfile if it exists
+2026-10-22T22:47:26.4629654Z strstr "$cmdline" ' noswap ' || {
+2026-10-22T22:47:26.4629959Z   [ -f /run/initramfs/live/"${livedir}"/swap.img ] &&
+2026-10-22T22:47:26.4630314Z   action "Enabling swap file" swapon /run/initramfs/live/"${livedir}"/swap.img ;}
+2026-10-22T22:47:26.4630553Z
+2026-10-22T22:47:26.4630651Z mountPersistentHome() {
+2026-10-22T22:47:26.4630890Z   # support label/uuid
+2026-10-22T22:47:26.4631213Z   if [ "${homedev##LABEL=}" != "$homedev" ] ||
+2026-10-22T22:47:26.4634709Z     [ "${homedev##UUID=}" != "$homedev" ]; then
+2026-10-22T22:47:26.4636954Z     homedev=$(blkid -o device -t "$homedev")
+2026-10-22T22:47:26.4637318Z   fi
+2026-10-22T22:47:26.4637439Z
+2026-10-22T22:47:26.4637626Z   # if we're given a file rather than a blockdev, loop mount it
+2026-10-22T22:47:26.4637994Z   if [ "${homedev##mtd}" != "$homedev" ]; then
+2026-10-22T22:47:26.4638437Z     # mtd devs don't have a block device but get magic-mounted with -t jffs2
+2026-10-22T22:47:26.4638839Z     mountopts="-t jffs2"
+2026-10-22T22:47:26.4639154Z   elif [ ! -b "$homedev" ]; then
+2026-10-22T22:47:26.4640298Z     if [ "${homedev##/run/initramfs/live}" != "$homedev" ]; then
+2026-10-22T22:47:26.4640776Z       action "Remounting live store r/w" mount -o remount,rw /run/initramfs/live
+2026-10-22T22:47:26.4641205Z     fi
+2026-10-22T22:47:26.4641481Z     homedev=$(losetup -f --show "$homedev")
+2026-10-22T22:47:26.4641816Z   fi
+2026-10-22T22:47:26.4642138Z   homefs=$(blkid -s TYPE -o value "$homedev" 2>/dev/null)
+2026-10-22T22:47:26.4642398Z
+2026-10-22T22:47:26.4642528Z   # if it's encrypted, we need to unlock it
+2026-10-22T22:47:26.4642880Z   if [ "$homefs" = "crypto_LUKS" ]; then
+2026-10-22T22:47:26.4643210Z     echo
+2026-10-22T22:47:26.4643510Z     echo "Setting up encrypted /home device"
+2026-10-22T22:47:26.4644027Z     plymouth ask-for-password --command="cryptsetup luksOpen $homedev EncHome"
+2026-10-22T22:47:26.4644492Z     homedev=/dev/mapper/EncHome
+2026-10-22T22:47:26.4644945Z   fi
+2026-10-22T22:47:26.4645513Z   if [ "$homedev" ] && [ "${cmdline##* rd.skipfsck[= ]}" = "$cmdline" ]; then
+2026-10-22T22:47:26.4646039Z     action "Checking home filesystem" fscheck "$homefs" "$homedev"
+2026-10-22T22:47:26.4646419Z   fi
+2026-10-22T22:47:26.4646560Z
+2026-10-22T22:47:26.4646683Z   # and finally do the mount
+2026-10-22T22:47:26.4647022Z   mount ${mountopts:+$mountopts} "$homedev" /home
+2026-10-22T22:47:26.4647614Z   # if we have /home under what's passed for persistent home, then
+2026-10-22T22:47:26.4648067Z   # we should make that the real /home.  useful for mtd device on olpc
+2026-10-22T22:47:26.4648501Z   [ -d /home/home ] && mount --bind /home/home /home
+2026-10-22T22:47:26.4648885Z   [ -x /sbin/restorecon ] && /sbin/restorecon /home
+2026-10-22T22:47:26.4649330Z   [ -d /home/liveuser ] && USERADDARGS="-M"
+2026-10-22T22:47:26.4649713Z }
+2026-10-22T22:47:26.4649860Z
+2026-10-22T22:47:26.4649983Z cut=${cmdline##* persistenthome[= ]}
+2026-10-22T22:47:26.4650314Z if [ ${#cut} -ne ${#cmdline} ]; then
+2026-10-22T22:47:26.4650645Z   homedev=${cut%% *}
+2026-10-22T22:47:26.4651007Z elif [ -e /run/initramfs/live/"${livedir}"/home.img ]; then
+2026-10-22T22:47:26.4651729Z   homedev=/run/initramfs/live/"${livedir}"/home.img
+2026-10-22T22:47:26.4652080Z fi
+2026-10-22T22:47:26.4652196Z
+2026-10-22T22:47:26.4652467Z # if we have a persistent /home, then we want to go ahead and mount it
+2026-10-22T22:47:26.4652973Z { ! strstr "$cmdline" nopersistenthome && [ "$homedev" ]; } &&
+2026-10-22T22:47:26.4653433Z   action "Mounting persistent /home" mountPersistentHome
+2026-10-22T22:47:26.4653756Z
+2026-10-22T22:47:26.4653880Z [ "$configdone" ] && exit 0
+2026-10-22T22:47:26.4654082Z
+2026-10-22T22:47:26.4654296Z ###################  Code below runs only on first boot #####################
+2026-10-22T22:47:26.4654577Z
+2026-10-22T22:47:26.4654739Z # add liveuser user with no passwd
+2026-10-22T22:47:26.4655092Z if [ "${autouser}" -eq "1" ]; then
+2026-10-22T22:47:26.4655761Z   action "Adding live user" useradd ${USERADDARGS:+"$USERADDARGS"} -c "Live System User" liveuser
+2026-10-22T22:47:26.4656331Z   passwd -d liveuser > /dev/null
+2026-10-22T22:47:26.4656679Z   usermod -aG wheel liveuser > /dev/null
+2026-10-22T22:47:26.4657000Z fi
+2026-10-22T22:47:26.4657184Z
+2026-10-22T22:47:26.4657301Z # Remove root password lock
+2026-10-22T22:47:26.4657650Z passwd -d root > /dev/null
+2026-10-22T22:47:26.4657832Z
+2026-10-22T22:47:26.4658014Z # turn off firstboot for livecd boots
+2026-10-22T22:47:26.4658470Z systemctl --no-reload disable firstboot-text.service 2> /dev/null || :
+2026-10-22T22:47:26.4659032Z systemctl --no-reload disable firstboot-graphical.service 2> /dev/null || :
+2026-10-22T22:47:26.4659594Z systemctl stop firstboot-text.service 2> /dev/null || :
+2026-10-22T22:47:26.4660069Z systemctl stop firstboot-graphical.service 2> /dev/null || :
+2026-10-22T22:47:26.4660386Z
+2026-10-22T22:47:26.4660538Z # don't use prelink on a running live image
+2026-10-22T22:47:26.4661046Z sed -i 's/PRELINKING=yes/PRELINKING=no/' /etc/sysconfig/prelink >/dev/null 2>&1 || :
+2026-10-22T22:47:26.4661426Z
+2026-10-22T22:47:26.4661567Z # turn off mdmonitor by default
+2026-10-22T22:47:26.4661992Z systemctl --no-reload disable mdmonitor.service 2> /dev/null || :
+2026-10-22T22:47:26.4662534Z systemctl --no-reload disable mdmonitor-takeover.service 2> /dev/null || :
+2026-10-22T22:47:26.4663058Z systemctl stop mdmonitor.service 2> /dev/null || :
+2026-10-22T22:47:26.4663524Z systemctl stop mdmonitor-takeover.service 2> /dev/null || :
+2026-10-22T22:47:26.4663831Z
+2026-10-22T22:47:26.4664007Z # don't start cron/at as they tend to spawn things which are
+2026-10-22T22:47:26.4664460Z # disk intensive that are painful on a live image
+2026-10-22T22:47:26.4664956Z systemctl --no-reload disable crond.service 2> /dev/null || :
+2026-10-22T22:47:26.4665558Z systemctl --no-reload disable atd.service 2> /dev/null || :
+2026-10-22T22:47:26.4666005Z systemctl stop crond.service 2> /dev/null || :
+2026-10-22T22:47:26.4666526Z systemctl stop atd.service 2> /dev/null || :
+2026-10-22T22:47:26.4666728Z
+2026-10-22T22:47:26.4666920Z # turn off abrtd on a live image
+2026-10-22T22:47:26.4667348Z systemctl --no-reload disable abrtd.service 2> /dev/null || :
+2026-10-22T22:47:26.4667770Z systemctl stop abrtd.service 2> /dev/null || :
+2026-10-22T22:47:26.4668063Z
+2026-10-22T22:47:26.4668242Z # Don't sync the system clock when running live (RHBZ #1018162)
+2026-10-22T22:47:26.4668885Z sed -i 's/rtcsync//' /etc/chrony.conf
+2026-10-22T22:47:26.4669082Z
+2026-10-22T22:47:26.4669313Z # add static hostname to work around xauth bug
+2026-10-22T22:47:26.4669785Z # https://bugzilla.redhat.com/show_bug.cgi?id=679486
+2026-10-22T22:47:26.4670227Z # the hostname must be something else than 'localhost'
+2026-10-22T22:47:26.4670731Z # https://bugzilla.redhat.com/show_bug.cgi?id=1370222
+2026-10-22T22:47:26.4671138Z hostnamectl set-hostname "localhost-live"
+2026-10-22T22:47:26.4671387Z
+2026-10-22T22:47:26.4671528Z if [ "${livesys_session}" ]; then
+2026-10-22T22:47:26.4672833Z   if [ -f "/usr/libexec/livesys/sessions.d/livesys-${livesys_session}" ]; then
+2026-10-22T22:47:26.4673439Z     . /usr/libexec/livesys/sessions.d/"livesys-${livesys_session}"
+2026-10-22T22:47:26.4673869Z   fi
+2026-10-22T22:47:26.4674113Z fi
+2026-10-22T22:47:26.4674230Z
+2026-10-22T22:47:26.4674479Z # allow extra stuff to be defined for derived spins (e.g., fedora labs)
+2026-10-22T22:47:26.4674976Z if [ -f /var/lib/livesys/livesys-session-extra ]; then
+2026-10-22T22:47:26.4675904Z   . /var/lib/livesys/livesys-session-extra
+2026-10-22T22:47:26.4676264Z fi
+2026-10-22T22:47:26.4676604Z
+2026-10-22T22:47:26.4678476Z # make sure to set the right permissions and selinux contexts
+2026-10-22T22:47:26.4678932Z if [ -d /home/liveuser ]; then
+2026-10-22T22:47:26.4679267Z     chown -R liveuser:liveuser /home/liveuser/
+2026-10-22T22:47:26.4679619Z     restorecon -RF /home/liveuser/
+2026-10-22T22:47:26.4679935Z fi
+2026-10-22T22:47:26.4680048Z
+2026-10-22T22:47:26.4680315Z #>>>>> Mark things as configured and keep this at the end of this script. <<<<<
+2026-10-22T22:47:26.4680706Z : > /.liveimg-configured
+2026-10-22T22:47:26.4680889Z
+2026-10-22T22:47:26.4680892Z
+2026-10-22T22:47:26.4680994Z usr/share/anaconda/interactive-defaults.ks
+2026-10-22T22:47:26.4681303Z # Kickstart defaults file for an interactive install.
+2026-10-22T22:47:26.4681679Z # This is not loaded if a kickstart file is provided on the command line.
+2026-10-22T22:47:26.4681980Z #
+2026-10-22T22:47:26.4682155Z # WARNING:
+2026-10-22T22:47:26.4682368Z #
+2026-10-22T22:47:26.4682625Z #   This file is deprecated and will be removed in in the future.
+2026-10-22T22:47:26.4682942Z #   Use the Anaconda configuration files instead.
+2026-10-22T22:47:26.4683201Z #
+2026-10-22T22:47:26.4683316Z
+2026-10-22T22:47:26.4683397Z # Create log directory
+2026-10-22T22:47:26.4683615Z %pre
+2026-10-22T22:47:26.4683836Z mkdir -p /tmp/anacoda_custom_logs
+2026-10-22T22:47:26.4684090Z %end
+2026-10-22T22:47:26.4684186Z
+2026-10-22T22:47:26.4684360Z # Check if there is a bitlocker partition and ask the user to disable it
+2026-10-22T22:47:26.4684732Z %pre --erroronfail --log=/tmp/anacoda_custom_logs/detect_bitlocker.log
+2026-10-22T22:47:26.4685066Z DOCS_QR=/tmp/detect_bitlocker_qr.png
+2026-10-22T22:47:26.4685686Z IS_BITLOCKER=$(lsblk -o FSTYPE --json | jq '.blockdevices | map(select(.fstype == "BitLocker")) | . != []')
+2026-10-22T22:47:26.4686207Z { WARNING_MSG="$(</dev/stdin)"; } << 'WARNINGEOF'
+2026-10-22T22:47:26.4686648Z <span size="x-large">Windows Bitlocker partition detected</span>
+2026-10-22T22:47:26.4686926Z
+2026-10-22T22:47:26.4687094Z It might interrupt the installation process.
+2026-10-22T22:47:26.4687504Z In such case, please, do <b>one</b> of the following:
+2026-10-22T22:47:26.4687879Z     a) Disconnect its storage drive.
+2026-10-22T22:47:26.4688186Z     b) Disable Bitlocker in Windows.
+2026-10-22T22:47:26.4688535Z     c) Delete it in GNOME Disks.
+2026-10-22T22:47:26.4688755Z
+2026-10-22T22:47:26.4688870Z Do you wish to continue?
+2026-10-22T22:47:26.4689171Z WARNINGEOF
+2026-10-22T22:47:26.4689523Z
+2026-10-22T22:47:26.4689638Z if [[ $IS_BITLOCKER =~ true ]]; then
+2026-10-22T22:47:26.4690088Z     qrencode -o $DOCS_QR "https://www.wikihow.com/Turn-Off-BitLocker"
+2026-10-22T22:47:26.4690567Z     _EXITLOCK=1
+2026-10-22T22:47:26.4690839Z     _RETCODE=0
+2026-10-22T22:47:26.4691124Z     while [[ $_EXITLOCK -ne 0 ]]; do
+2026-10-22T22:47:26.4691886Z         run0 --user=liveuser yad             --on-top             --timeout=10             --image=$DOCS_QR             --text="$WARNING_MSG"             --button="Yes, I'm aware, continue":0 --button="Cancel installation":10
+2026-10-22T22:47:26.4692706Z         _RETCODE=$?
+2026-10-22T22:47:26.4693005Z         case $_RETCODE in
+2026-10-22T22:47:26.4693303Z             0) _EXITLOCK=0; ;;
+2026-10-22T22:47:26.4693729Z             10) _EXITLOCK=0; pkill liveinst; pkill firefox; exit 0 ;;
+2026-10-22T22:47:26.4694098Z         esac
+2026-10-22T22:47:26.4694359Z     done
+2026-10-22T22:47:26.4694628Z fi
+2026-10-22T22:47:26.4694860Z %end
+2026-10-22T22:47:26.4695025Z
+2026-10-22T22:47:26.4695434Z # Remove the efi dir, must match efi_dir from the profile config
+2026-10-22T22:47:26.4695856Z %pre-install --erroronfail
+2026-10-22T22:47:26.4696186Z rm -rf /mnt/sysroot/boot/efi/EFI/fedora
+2026-10-22T22:47:26.4696493Z %end
+2026-10-22T22:47:26.4696653Z
+2026-10-22T22:47:26.4696804Z # Relabel the boot partition for the
+2026-10-22T22:47:26.4697235Z %pre-install --erroronfail --log=/tmp/anacoda_custom_logs/repartitioning.log
+2026-10-22T22:47:26.4697992Z set -x
+2026-10-22T22:47:26.4698380Z xboot_dev=$(findmnt -o SOURCE --nofsroot --noheadings -f --target /mnt/sysroot/boot)
+2026-10-22T22:47:26.4698911Z if [[ -z $xboot_dev ]]; then
+2026-10-22T22:47:26.4699248Z   echo "ERROR: xboot_dev not found"
+2026-10-22T22:47:26.4699588Z   exit 1
+2026-10-22T22:47:26.4699861Z fi
+2026-10-22T22:47:26.4700128Z e2label "$xboot_dev" "bazzite_xboot"
+2026-10-22T22:47:26.4700488Z %end
+2026-10-22T22:47:26.4700617Z
+2026-10-22T22:47:26.4700779Z # Open a dialog with the installation logs
+2026-10-22T22:47:26.4701145Z %onerror
+2026-10-22T22:47:26.4701997Z run0 --user=liveuser yad     --timeout=0     --text-info     --no-buttons     --width=600     --height=400     --text="An error occurred during installation. Please report this issue to the developers."     < /tmp/anaconda.log
+2026-10-22T22:47:26.4702906Z %end
+2026-10-22T22:47:26.4703055Z
+2026-10-22T22:47:26.4703473Z ostreecontainer --url=ghcr.io/ublue-os/bazzite-nvidia-open:stable --transport=containers-storage --no-signature-verification
+2026-10-22T22:47:26.4704274Z %include /usr/share/anaconda/post-scripts/install-configure-upgrade.ks
+2026-10-22T22:47:26.4704877Z %include /usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks
+2026-10-22T22:47:26.4706047Z %include /usr/share/anaconda/post-scripts/install-flatpaks.ks
+2026-10-22T22:47:26.4706568Z %include /usr/share/anaconda/post-scripts/restore-selinux-labels.ks
+2026-10-22T22:47:26.4707093Z %include /usr/share/anaconda/post-scripts/secureboot-enroll-key.ks
+2026-10-22T22:47:26.4707653Z %include /usr/share/anaconda/post-scripts/secureboot-docs.ks
+2026-10-22T22:47:26.4707955Z
+2026-10-22T22:47:26.4707959Z
+2026-10-22T22:47:26.4708707Z usr/share/anaconda/post-scripts/install-configure-upgrade.ks
+2026-10-22T22:47:26.4709494Z %post --erroronfail --log=/tmp/anacoda_custom_logs/bootc-switch.log
+2026-10-22T22:47:26.4710559Z bootc switch --mutate-in-place --enforce-container-sigpolicy --transport registry ghcr.io/ublue-os/bazzite-nvidia-open:stable
+2026-10-22T22:47:26.4711941Z %end
+2026-10-22T22:47:26.4712079Z
+2026-10-22T22:47:26.4712276Z usr/share/anaconda/post-scripts/secureboot-docs.ks
+2026-10-22T22:47:26.4712751Z %post --nochroot --log=/tmp/anacoda_custom_logs/secureboot-docs.log
+2026-10-22T22:47:26.4713231Z SECUREBOOT_KEY="/usr/share/ublue-os/sb_pubkey.der"
+2026-10-22T22:47:26.4713668Z SECUREBOOT_DOC_URL="https://docs.bazzite.gg/sb"
+2026-10-22T22:47:26.4714140Z SECUREBOOT_DOC_URL_QR="/usr/share/ublue-os/secure_boot_qr.png"
+2026-10-22T22:47:26.4714496Z
+2026-10-22T22:47:26.4715802Z LC_ALL=C mokutil -t "$SECUREBOOT_KEY" | grep -q "is already in the enrollment request" &&     run0 --user=liveuser yad --timeout=0 --on-top --button=Ok:0 --image="$SECUREBOOT_DOC_URL_QR" --text="<b>Secure Boot Key added:</b>\nPlease check the documentation to finish enrolling the key\n$SECUREBOOT_DOC_URL"
+2026-10-22T22:47:26.4717002Z %end
+2026-10-22T22:47:26.4717159Z
+2026-10-22T22:47:26.4725635Z usr/share/anaconda/post-scripts/secureboot-enroll-key.ks
+2026-10-22T22:47:26.4727048Z %post --erroronfail --nochroot --log=/tmp/anacoda_custom_logs/secureboot-enroll-key.log
+2026-10-22T22:47:26.4727751Z set -oue pipefail
+2026-10-22T22:47:26.4728063Z
+2026-10-22T22:47:26.4728478Z readonly ENROLLMENT_PASSWORD="universalblue"
+2026-10-22T22:47:26.4729011Z readonly SECUREBOOT_KEY="/usr/share/ublue-os/sb_pubkey.der"
+2026-10-22T22:47:26.4729466Z
+2026-10-22T22:47:26.4730523Z if [[ ! -d "/sys/firmware/efi" ]]; then
+2026-10-22T22:47:26.4730910Z 	echo "EFI mode not detected. Skipping key enrollment."
+2026-10-22T22:47:26.4731264Z 	exit 0
+2026-10-22T22:47:26.4731580Z fi
+2026-10-22T22:47:26.4731726Z
+2026-10-22T22:47:26.4731877Z if [[ ! -f "$SECUREBOOT_KEY" ]]; then
+2026-10-22T22:47:26.4732253Z 	echo "Secure boot key not provided: $SECUREBOOT_KEY"
+2026-10-22T22:47:26.4732613Z 	exit 0
+2026-10-22T22:47:26.4732848Z fi
+2026-10-22T22:47:26.4732985Z
+2026-10-22T22:47:26.4733218Z SYS_ID="$(cat /sys/devices/virtual/dmi/id/product_name)"
+2026-10-22T22:47:26.4733604Z if [[ ":Jupiter:Galileo:" =~ ":$SYS_ID:" ]]; then
+2026-10-22T22:47:26.4734031Z 	echo "Steam Deck hardware detected. Skipping key enrollment."
+2026-10-22T22:47:26.4734409Z 	exit 0
+2026-10-22T22:47:26.4734656Z fi
+2026-10-22T22:47:26.4734811Z
+2026-10-22T22:47:26.4735005Z mokutil --timeout -1 || :
+2026-10-22T22:47:26.4736021Z echo -e "$ENROLLMENT_PASSWORD\n$ENROLLMENT_PASSWORD" | mokutil --import "$SECUREBOOT_KEY" || :
+2026-10-22T22:47:26.4736477Z %end
+2026-10-22T22:47:26.4736607Z
+2026-10-22T22:47:26.4764564Z var/lib/containers/storage/overlay-images/images.json
+2026-10-22T22:47:26.4771173Z [{"id":"0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431","digest":"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","names":["ghcr.io/ublue-os/bazzite-nvidia-open:stable"],"names-history":["ghcr.io/ublue-os/bazzite-nvidia-open:stable"],"layer":"9d37c429380960079cd52a81d0a6244a24bfdca95d7c5573f25ec7b18cc4c0a3","metadata":"{\"signature-sizes\":[1643],\"signatures-sizes\":{\"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151\":[1643]}}","big-data-names":["sha256:0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431","manifest-sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","manifest","signatures","signature-ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"],"big-data-sizes":{"manifest":65199,"manifest-sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151":65199,"sha256:0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431":20795,"signature-ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151":1643,"signatures":1643},"big-data-digests":{"manifest":"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","manifest-sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151":"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","sha256:0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431":"sha256:0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431","signature-ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151":"sha256:1ca59b4fb033cb653a04041ee09b3b52bf79b5473b9fa18392ae5dfb97b993c0","signatures":"sha256:1ca59b4fb033cb653a04041ee09b3b52bf79b5473b9fa18392ae5dfb97b993c0"},"created":"2026-10-13T00:06:38Z"}]
+2026-10-22T22:47:26.5040738Z ##[group]Run set -euo pipefail
+2026-10-22T22:47:26.5041090Z [36;1mset -euo pipefail[0m
+2026-10-22T22:47:26.5041341Z [36;1mbash os/ci/install-tools.sh[0m
+2026-10-22T22:47:26.5041743Z [36;1msudo apt-get install -y --no-install-recommends gnu-efi ntfs-3g dosfstools gdisk mtools psmisc[0m
+2026-10-22T22:47:26.5042172Z [36;1mdpkg-query -W > evidence/rehearsal-host-packages.txt[0m
+2026-10-22T22:47:26.5042520Z [36;1mpython3 -m unittest discover -s os/tests -v[0m
+2026-10-22T22:47:26.5042851Z [36;1mcp os/manifest/release.json evidence/release.json[0m
+2026-10-22T22:47:26.5043182Z [36;1mpython3 os/ci/verify_release.py 39818554327[0m
+2026-10-22T22:47:26.5043485Z [36;1msudo python3 os/ci/prepare_two_disks.py[0m
+2026-10-22T22:47:26.5043872Z [36;1msudo -E python3 os/ci/two_disk_vm.py 'probe'[0m
+2026-10-22T22:47:26.5089160Z shell: /usr/bin/bash -e {0}
+2026-10-22T22:47:26.5089462Z env:
+2026-10-22T22:47:26.5095735Z   GH_TOKEN: ***
+2026-10-22T22:47:26.5095963Z ##[endgroup]
+2026-10-22T22:47:27.3287441Z Get:1 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble InRelease [256 kB]
+2026-10-22T22:47:28.0465602Z Get:2 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates InRelease [126 kB]
+2026-10-22T22:47:28.2821172Z Get:3 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security InRelease [126 kB]
+2026-10-22T22:47:28.7478540Z Get:4 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 Packages [1401 kB]
+2026-10-22T22:47:29.4466057Z Get:5 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main Translation-en [513 kB]
+2026-10-22T22:47:29.7882274Z Get:6 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 c-n-f Metadata [30.5 kB]
+2026-10-22T22:47:30.1978199Z Get:7 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/universe amd64 Packages [15.0 MB]
+2026-10-22T22:47:32.2868565Z Get:8 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/universe Translation-en [5982 kB]
+2026-10-22T22:47:32.8832160Z Get:9 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/universe amd64 c-n-f Metadata [301 kB]
+2026-10-22T22:47:33.2444431Z Get:10 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/restricted amd64 Packages [93.9 kB]
+2026-10-22T22:47:33.5940461Z Get:11 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/restricted Translation-en [18.7 kB]
+2026-10-22T22:47:33.9716192Z Get:12 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/restricted amd64 c-n-f Metadata [416 B]
+2026-10-22T22:47:34.3467048Z Get:13 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/multiverse amd64 Packages [269 kB]
+2026-10-22T22:47:34.5938807Z Get:14 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/multiverse Translation-en [118 kB]
+2026-10-22T22:47:34.9757212Z Get:15 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/multiverse amd64 c-n-f Metadata [8328 B]
+2026-10-22T22:47:35.4821076Z Get:16 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 Packages [1397 kB]
+2026-10-22T22:47:35.8152077Z Get:17 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main Translation-en [308 kB]
+2026-10-22T22:47:36.0741127Z Get:18 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 c-n-f Metadata [17.7 kB]
+2026-10-22T22:47:36.4404128Z Get:19 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/universe amd64 Packages [1704 kB]
+2026-10-22T22:47:36.7221812Z Get:20 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/universe Translation-en [342 kB]
+2026-10-22T22:47:36.9740680Z Get:21 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/universe amd64 c-n-f Metadata [34.9 kB]
+2026-10-22T22:47:37.2158399Z Get:22 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/restricted amd64 Packages [1805 kB]
+2026-10-22T22:47:37.5894388Z Get:23 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/restricted Translation-en [411 kB]
+2026-10-22T22:47:37.8735728Z Get:24 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/restricted amd64 c-n-f Metadata [456 B]
+2026-10-22T22:47:38.1200655Z Get:25 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/multiverse amd64 Packages [50.7 kB]
+2026-10-22T22:47:38.4167003Z Get:26 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/multiverse Translation-en [14.0 kB]
+2026-10-22T22:47:38.7610490Z Get:27 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/multiverse amd64 c-n-f Metadata [656 B]
+2026-10-22T22:47:39.1502555Z Get:28 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/main amd64 Packages [1145 kB]
+2026-10-22T22:47:39.7463468Z Get:29 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/main Translation-en [231 kB]
+2026-10-22T22:47:39.9533934Z Get:30 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/main amd64 c-n-f Metadata [11.9 kB]
+2026-10-22T22:47:40.2274335Z Get:31 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/universe amd64 Packages [1222 kB]
+2026-10-22T22:47:40.5739678Z Get:32 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/universe Translation-en [246 kB]
+2026-10-22T22:47:40.8932297Z Get:33 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/universe amd64 c-n-f Metadata [24.2 kB]
+2026-10-22T22:47:41.2667175Z Get:34 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/restricted amd64 Packages [1713 kB]
+2026-10-22T22:47:41.9512257Z Get:35 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/restricted Translation-en [392 kB]
+2026-10-22T22:47:42.3067695Z Get:36 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/restricted amd64 c-n-f Metadata [444 B]
+2026-10-22T22:47:42.5840954Z Get:37 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/multiverse amd64 Packages [45.4 kB]
+2026-10-22T22:47:42.8612968Z Get:38 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/multiverse Translation-en [12.1 kB]
+2026-10-22T22:47:43.1255415Z Get:39 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-security/multiverse amd64 c-n-f Metadata [468 B]
+2026-10-22T22:47:43.2546957Z Fetched 35.4 MB in 17s (2137 kB/s)
+2026-10-22T22:47:43.9053050Z Reading package lists...
+2026-10-22T22:47:43.9143357Z W: Download is performed unsandboxed as root as file '/home/runner/work/AresOS/AresOS/.work/apt/lists/partial/snapshot.ubuntu.com_ubuntu_20261021T000000Z_dists_noble_InRelease' couldn't be accessed by user '_apt'. - pkgAcquire::Run (13: Permission denied)
+2026-10-22T22:47:43.9499754Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:43.9629825Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:43.9757712Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:43.9883346Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:44.0010948Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:44.0130589Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:44.0248869Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:44.0363860Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:44.0480013Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:44.0593800Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:44.0716589Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:47:44.0736108Z podman=4.9.3+ds1-1ubuntu0.2
+2026-10-22T22:47:44.0736796Z skopeo=1.13.3+ds1-2ubuntu0.24.04.3
+2026-10-22T22:47:44.0737378Z qemu-system-x86=1:8.2.2+ds-0ubuntu1.18
+2026-10-22T22:47:44.0737867Z qemu-system-data=1:8.2.2+ds-0ubuntu1.18
+2026-10-22T22:47:44.0738327Z qemu-system-common=1:8.2.2+ds-0ubuntu1.18
+2026-10-22T22:47:44.0739009Z qemu-utils=1:8.2.2+ds-0ubuntu1.18
+2026-10-22T22:47:44.0739443Z qemu-block-extra=1:8.2.2+ds-0ubuntu1.18
+2026-10-22T22:47:44.0739849Z ovmf=2024.02-2ubuntu0.10
+2026-10-22T22:47:44.0740212Z seabios=1.16.3-2
+2026-10-22T22:47:44.0740617Z ipxe-qemu=1.21.1+git-20220113.fbbdc3926-0ubuntu2
+2026-10-22T22:47:44.0741053Z python3-pil=10.2.0-1ubuntu1.3
+2026-10-22T22:47:44.0879813Z Reading package lists...
+2026-10-22T22:47:44.2346200Z Building dependency tree...
+2026-10-22T22:47:44.2354187Z Reading state information...
+2026-10-22T22:47:44.3853294Z podman is already the newest version (4.9.3+ds1-1ubuntu0.2).
+2026-10-22T22:47:44.3854309Z skopeo is already the newest version (1.13.3+ds1-2ubuntu0.24.04.3).
+2026-10-22T22:47:44.3856509Z The following additional packages will be installed:
+2026-10-22T22:47:44.3857718Z   cpu-checker glib-networking glib-networking-common glib-networking-services
+2026-10-22T22:47:44.3858239Z   gsettings-desktop-schemas gstreamer1.0-plugins-base
+2026-10-22T22:47:44.3858992Z   gstreamer1.0-plugins-good gstreamer1.0-x ipxe-qemu-256k-compat-efi-roms
+2026-10-22T22:47:44.3859531Z   libaa1 libasyncns0 libavc1394-0 libboost-iostreams1.83.0
+2026-10-22T22:47:44.3860076Z   libboost-thread1.83.0 libbrlapi0.8 libcaca0 libcacard0 libcdparanoia0
+2026-10-22T22:47:44.3860595Z   libdaxctl1 libdecor-0-0 libdecor-0-plugin-1-gtk libdv4t64 libfdt1
+2026-10-22T22:47:44.3861109Z   libflac12t64 libgstreamer-plugins-base1.0-0 libgstreamer-plugins-good1.0-0
+2026-10-22T22:47:44.3861738Z   libiec61883-0 libimagequant0 libiscsi7 libjack-jackd2-0 libmp3lame0
+2026-10-22T22:47:44.3862298Z   libmpg123-0t64 libndctl6 libnfs14 libopus0 liborc-0.4-0t64 libpcsclite1
+2026-10-22T22:47:44.3862905Z   libpipewire-0.3-0t64 libpipewire-0.3-common libpmem1 libpmemobj1 libproxy1v5
+2026-10-22T22:47:44.3864104Z   libpulse0 librados2 libraqm0 libraw1394-11 librbd1 librdmacm1t64
+2026-10-22T22:47:44.3864967Z   libsamplerate0 libsdl2-2.0-0 libshout3 libsndfile1 libsoup-3.0-0
+2026-10-22T22:47:44.3866444Z   libsoup-3.0-common libspa-0.2-modules libspeex1 libspice-server1 libtag1v5
+2026-10-22T22:47:44.3867479Z   libtag1v5-vanilla libtheora0 libtwolame0 liburing2 libusbredirparser1t64
+2026-10-22T22:47:44.3868839Z   libv4l-0t64 libv4lconvert0t64 libvirglrenderer1 libvisual-0.4-0
+2026-10-22T22:47:44.3869707Z   libvorbisenc2 libvpx9 libvte-2.91-0 libvte-2.91-common libwavpack1
+2026-10-22T22:47:44.3870933Z   libwebrtc-audio-processing1 libxv1 msr-tools python3-olefile qemu-system-gui
+2026-10-22T22:47:44.3871938Z   qemu-system-modules-opengl qemu-system-modules-spice session-migration
+2026-10-22T22:47:44.3872790Z Suggested packages:
+2026-10-22T22:47:44.3873524Z   gvfs libdv-bin oss-compat libvisual-0.4-plugins jackd2 opus-tools pcscd
+2026-10-22T22:47:44.3894231Z   pipewire pulseaudio libraw1394-doc speex gstreamer1.0-libav
+2026-10-22T22:47:44.3895071Z   gstreamer1.0-plugins-ugly python-pil-doc samba vde2
+2026-10-22T22:47:44.4132577Z The following NEW packages will be installed:
+2026-10-22T22:47:44.4133419Z   cpu-checker glib-networking glib-networking-common glib-networking-services
+2026-10-22T22:47:44.4134361Z   gsettings-desktop-schemas gstreamer1.0-plugins-base
+2026-10-22T22:47:44.4135965Z   gstreamer1.0-plugins-good gstreamer1.0-x ipxe-qemu
+2026-10-22T22:47:44.4136456Z   ipxe-qemu-256k-compat-efi-roms libaa1 libasyncns0 libavc1394-0
+2026-10-22T22:47:44.4137035Z   libboost-iostreams1.83.0 libboost-thread1.83.0 libbrlapi0.8 libcaca0
+2026-10-22T22:47:44.4137572Z   libcacard0 libcdparanoia0 libdaxctl1 libdecor-0-0 libdecor-0-plugin-1-gtk
+2026-10-22T22:47:44.4138141Z   libdv4t64 libfdt1 libflac12t64 libgstreamer-plugins-base1.0-0
+2026-10-22T22:47:44.4138601Z   libgstreamer-plugins-good1.0-0 libiec61883-0 libimagequant0 libiscsi7
+2026-10-22T22:47:44.4139105Z   libjack-jackd2-0 libmp3lame0 libmpg123-0t64 libndctl6 libnfs14 libopus0
+2026-10-22T22:47:44.4139791Z   liborc-0.4-0t64 libpcsclite1 libpipewire-0.3-0t64 libpipewire-0.3-common
+2026-10-22T22:47:44.4140290Z   libpmem1 libpmemobj1 libproxy1v5 libpulse0 librados2 libraqm0 libraw1394-11
+2026-10-22T22:47:44.4141558Z   librbd1 librdmacm1t64 libsamplerate0 libsdl2-2.0-0 libshout3 libsndfile1
+2026-10-22T22:47:44.4142962Z   libsoup-3.0-0 libsoup-3.0-common libspa-0.2-modules libspeex1
+2026-10-22T22:47:44.4143484Z   libspice-server1 libtag1v5 libtag1v5-vanilla libtheora0 libtwolame0
+2026-10-22T22:47:44.4143998Z   liburing2 libusbredirparser1t64 libv4l-0t64 libv4lconvert0t64
+2026-10-22T22:47:44.4144482Z   libvirglrenderer1 libvisual-0.4-0 libvorbisenc2 libvpx9 libvte-2.91-0
+2026-10-22T22:47:44.4145074Z   libvte-2.91-common libwavpack1 libwebrtc-audio-processing1 libxv1 msr-tools
+2026-10-22T22:47:44.4146352Z   ovmf python3-olefile python3-pil qemu-block-extra qemu-system-common
+2026-10-22T22:47:44.4148052Z   qemu-system-data qemu-system-gui qemu-system-modules-opengl
+2026-10-22T22:47:44.4148866Z   qemu-system-modules-spice qemu-system-x86 qemu-utils seabios
+2026-10-22T22:47:44.4149263Z   session-migration
+2026-10-22T22:47:45.3028361Z 0 upgraded, 89 newly installed, 0 to remove and 86 not upgraded.
+2026-10-22T22:47:45.3029148Z Need to get 46.8 MB of archives.
+2026-10-22T22:47:45.3030318Z After this operation, 195 MB of additional disk space will be used.
+2026-10-22T22:47:45.3031684Z Get:1 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 msr-tools amd64 1.3-5ubuntu0.1 [9832 B]
+2026-10-22T22:47:45.5973923Z Get:2 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 cpu-checker amd64 0.7-1.3build2 [6148 B]
+2026-10-22T22:47:45.9417569Z Get:3 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libproxy1v5 amd64 0.5.4-4build1 [26.5 kB]
+2026-10-22T22:47:46.2389870Z Get:4 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 glib-networking-common all 2.80.0-1build1 [6702 B]
+2026-10-22T22:47:46.5025388Z Get:5 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 glib-networking-services amd64 2.80.0-1build1 [12.8 kB]
+2026-10-22T22:47:46.7441152Z Get:6 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 session-migration amd64 0.3.9build1 [9034 B]
+2026-10-22T22:47:47.0520270Z Get:7 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 gsettings-desktop-schemas all 46.1-0ubuntu1 [35.6 kB]
+2026-10-22T22:47:47.3660116Z Get:8 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 glib-networking amd64 2.80.0-1build1 [64.1 kB]
+2026-10-22T22:47:47.6904199Z Get:9 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libcdparanoia0 amd64 3.10.2+debian-14build3 [48.5 kB]
+2026-10-22T22:47:47.9651190Z Get:10 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 liborc-0.4-0t64 amd64 1:0.4.38-1ubuntu0.1 [207 kB]
+2026-10-22T22:47:48.4528475Z Get:11 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libgstreamer-plugins-base1.0-0 amd64 1.24.2-1ubuntu0.5 [862 kB]
+2026-10-22T22:47:49.0153990Z Get:12 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libopus0 amd64 1.4-1build1 [208 kB]
+2026-10-22T22:47:49.2427696Z Get:13 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libtheora0 amd64 1.1.1+dfsg.1-16.1build3 [211 kB]
+2026-10-22T22:47:49.5149575Z Get:14 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libvisual-0.4-0 amd64 0.4.2-2build1 [115 kB]
+2026-10-22T22:47:49.9427495Z Get:15 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libvorbisenc2 amd64 1.3.7-1build3 [80.8 kB]
+2026-10-22T22:47:50.2122956Z Get:16 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 gstreamer1.0-plugins-base amd64 1.24.2-1ubuntu0.5 [721 kB]
+2026-10-22T22:47:50.5544919Z Get:17 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libaa1 amd64 1.4p5-51.1 [49.9 kB]
+2026-10-22T22:47:50.9346202Z Get:18 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libraw1394-11 amd64 2.1.2-2build3 [26.2 kB]
+2026-10-22T22:47:51.1661210Z Get:19 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libavc1394-0 amd64 0.5.4-5build3 [15.4 kB]
+2026-10-22T22:47:51.4435976Z Get:20 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libcaca0 amd64 0.99.beta20-4ubuntu0.2 [209 kB]
+2026-10-22T22:47:51.7522614Z Get:21 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libdv4t64 amd64 1.0.0-17.1build1 [63.2 kB]
+2026-10-22T22:47:52.0229980Z Get:22 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libflac12t64 amd64 1.4.3+ds-2.1ubuntu2 [197 kB]
+2026-10-22T22:47:52.4069092Z Get:23 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libgstreamer-plugins-good1.0-0 amd64 1.24.2-1ubuntu1.8 [34.3 kB]
+2026-10-22T22:47:52.8007982Z Get:24 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libiec61883-0 amd64 1.2.0-6build1 [24.5 kB]
+2026-10-22T22:47:53.0896697Z Get:25 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libmp3lame0 amd64 3.100-6build1 [142 kB]
+2026-10-22T22:47:53.3864452Z Get:26 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libmpg123-0t64 amd64 1.32.5-1ubuntu1.1 [169 kB]
+2026-10-22T22:47:53.6678645Z Get:27 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libasyncns0 amd64 0.8-6build4 [11.3 kB]
+2026-10-22T22:47:53.9703852Z Get:28 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libsndfile1 amd64 1.2.2-1ubuntu5.24.04.1 [209 kB]
+2026-10-22T22:47:54.4267267Z Get:29 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libpulse0 amd64 1:16.1+dfsg1-2ubuntu10.1 [292 kB]
+2026-10-22T22:47:54.8247242Z Get:30 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libspeex1 amd64 1.2.1-2ubuntu2.24.04.1 [59.6 kB]
+2026-10-22T22:47:55.0731523Z Get:31 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libshout3 amd64 2.4.6-1build2 [50.3 kB]
+2026-10-22T22:47:55.4664789Z Get:32 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libtag1v5-vanilla amd64 1.13.1-1build1 [326 kB]
+2026-10-22T22:47:55.7465898Z Get:33 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libtag1v5 amd64 1.13.1-1build1 [11.7 kB]
+2026-10-22T22:47:56.1921033Z Get:34 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libtwolame0 amd64 0.4.0-2build3 [52.3 kB]
+2026-10-22T22:47:56.4346154Z Get:35 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libv4lconvert0t64 amd64 1.26.1-4build3 [87.6 kB]
+2026-10-22T22:47:56.7601330Z Get:36 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libv4l-0t64 amd64 1.26.1-4build3 [46.9 kB]
+2026-10-22T22:47:56.9682264Z Get:37 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libvpx9 amd64 1.14.0-1ubuntu2.3 [1143 kB]
+2026-10-22T22:47:57.3253635Z Get:38 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libwavpack1 amd64 5.6.0-1build1 [84.6 kB]
+2026-10-22T22:47:57.6597439Z Get:39 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libsoup-3.0-common all 3.4.4-5ubuntu0.9 [12.3 kB]
+2026-10-22T22:47:58.0272862Z Get:40 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libsoup-3.0-0 amd64 3.4.4-5ubuntu0.9 [291 kB]
+2026-10-22T22:47:58.3625497Z Get:41 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 gstreamer1.0-plugins-good amd64 1.24.2-1ubuntu1.8 [2236 kB]
+2026-10-22T22:47:58.7304330Z Get:42 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libxv1 amd64 2:1.0.11-1.1build1 [10.7 kB]
+2026-10-22T22:47:59.0364487Z Get:43 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 gstreamer1.0-x amd64 1.24.2-1ubuntu0.5 [85.1 kB]
+2026-10-22T22:47:59.4050067Z Get:44 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 ipxe-qemu all 1.21.1+git-20220113.fbbdc3926-0ubuntu2 [1565 kB]
+2026-10-22T22:47:59.6689554Z Get:45 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 ipxe-qemu-256k-compat-efi-roms all 1.0.0+git-20150424.a25a16d-0ubuntu5 [548 kB]
+2026-10-22T22:47:59.9294342Z Get:46 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libboost-iostreams1.83.0 amd64 1.83.0-2.1ubuntu3.2 [260 kB]
+2026-10-22T22:48:00.2017320Z Get:47 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libboost-thread1.83.0 amd64 1.83.0-2.1ubuntu3.2 [276 kB]
+2026-10-22T22:48:00.6162523Z Get:48 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libbrlapi0.8 amd64 6.6-4ubuntu5 [31.4 kB]
+2026-10-22T22:48:00.8929380Z Get:49 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libpcsclite1 amd64 2.0.3-1build1 [21.4 kB]
+2026-10-22T22:48:01.1687516Z Get:50 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libcacard0 amd64 1:2.8.0-3build4 [36.5 kB]
+2026-10-22T22:48:01.4933511Z Get:51 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libdaxctl1 amd64 77-2ubuntu2 [21.4 kB]
+2026-10-22T22:48:01.8661991Z Get:52 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libdecor-0-0 amd64 0.2.2-1build2 [16.5 kB]
+2026-10-22T22:48:02.3429956Z Get:53 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libdecor-0-plugin-1-gtk amd64 0.2.2-1build2 [22.2 kB]
+2026-10-22T22:48:02.6378870Z Get:54 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libimagequant0 amd64 2.18.0-1build1 [36.3 kB]
+2026-10-22T22:48:02.8853751Z Get:55 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 librdmacm1t64 amd64 50.0-2ubuntu0.2 [70.7 kB]
+2026-10-22T22:48:03.1616990Z Get:56 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libiscsi7 amd64 1.19.0-3build4 [68.7 kB]
+2026-10-22T22:48:03.6327479Z Get:57 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libsamplerate0 amd64 0.2.2-4build1 [1344 kB]
+2026-10-22T22:48:04.1662529Z Get:58 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libjack-jackd2-0 amd64 1.9.21~dfsg-3ubuntu3 [289 kB]
+2026-10-22T22:48:04.4901671Z Get:59 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libndctl6 amd64 77-2ubuntu2 [62.8 kB]
+2026-10-22T22:48:04.9059446Z Get:60 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libnfs14 amd64 5.0.2-1ubuntu0.24.04.1 [109 kB]
+2026-10-22T22:48:05.1866304Z Get:61 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libwebrtc-audio-processing1 amd64 0.3.1-0ubuntu6 [290 kB]
+2026-10-22T22:48:05.6051326Z Get:62 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libspa-0.2-modules amd64 1.0.5-1ubuntu3.3 [628 kB]
+2026-10-22T22:48:05.8405477Z Get:63 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libpipewire-0.3-0t64 amd64 1.0.5-1ubuntu3.3 [252 kB]
+2026-10-22T22:48:06.1434277Z Get:64 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libpipewire-0.3-common all 1.0.5-1ubuntu3.3 [19.5 kB]
+2026-10-22T22:48:06.4725633Z Get:65 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libpmem1 amd64 1.13.1-1.1ubuntu2 [84.8 kB]
+2026-10-22T22:48:06.7478149Z Get:66 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libpmemobj1 amd64 1.13.1-1.1ubuntu2 [116 kB]
+2026-10-22T22:48:07.0587065Z Get:67 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 librados2 amd64 19.2.3-0ubuntu0.24.04.3 [4041 kB]
+2026-10-22T22:48:07.4506101Z Get:68 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libraqm0 amd64 0.10.1-1build1 [15.0 kB]
+2026-10-22T22:48:07.7052179Z Get:69 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 librbd1 amd64 19.2.3-0ubuntu0.24.04.3 [3413 kB]
+2026-10-22T22:48:08.1048307Z Get:70 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libsdl2-2.0-0 amd64 2.30.0+dfsg-1ubuntu3.1 [686 kB]
+2026-10-22T22:48:08.4996418Z Get:71 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libspice-server1 amd64 0.15.1-1build2 [349 kB]
+2026-10-22T22:48:08.8428498Z Get:72 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 liburing2 amd64 2.5-1build1 [21.1 kB]
+2026-10-22T22:48:09.0887522Z Get:73 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libusbredirparser1t64 amd64 0.13.0-2.1build1 [16.5 kB]
+2026-10-22T22:48:09.4374269Z Get:74 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libvirglrenderer1 amd64 1.0.0-1ubuntu2 [226 kB]
+2026-10-22T22:48:10.1160734Z Get:75 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libvte-2.91-common amd64 0.76.0-1ubuntu0.1 [13.5 kB]
+2026-10-22T22:48:10.4124282Z Get:76 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 libvte-2.91-0 amd64 0.76.0-1ubuntu0.1 [230 kB]
+2026-10-22T22:48:10.7073380Z Get:77 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 python3-olefile all 0.46-3 [33.8 kB]
+2026-10-22T22:48:11.0623026Z Get:78 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 python3-pil amd64 10.2.0-1ubuntu1.3 [452 kB]
+2026-10-22T22:48:11.4212932Z Get:79 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 libfdt1 amd64 1.7.0-2build1 [20.1 kB]
+2026-10-22T22:48:11.8799311Z Get:80 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 qemu-system-common amd64 1:8.2.2+ds-0ubuntu1.18 [1255 kB]
+2026-10-22T22:48:12.3407939Z Get:81 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 qemu-system-data all 1:8.2.2+ds-0ubuntu1.18 [1796 kB]
+2026-10-22T22:48:12.7843996Z Get:82 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble/main amd64 seabios all 1.16.3-2 [175 kB]
+2026-10-22T22:48:13.0786423Z Get:83 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 qemu-system-x86 amd64 1:8.2.2+ds-0ubuntu1.18 [11.2 MB]
+2026-10-22T22:48:13.9937023Z Get:84 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 qemu-utils amd64 1:8.2.2+ds-0ubuntu1.18 [2221 kB]
+2026-10-22T22:48:14.7097209Z Get:85 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 qemu-block-extra amd64 1:8.2.2+ds-0ubuntu1.18 [114 kB]
+2026-10-22T22:48:15.1244429Z Get:86 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 qemu-system-modules-opengl amd64 1:8.2.2+ds-0ubuntu1.18 [186 kB]
+2026-10-22T22:48:15.6446522Z Get:87 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 qemu-system-gui amd64 1:8.2.2+ds-0ubuntu1.18 [312 kB]
+2026-10-22T22:48:16.0072158Z Get:88 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 qemu-system-modules-spice amd64 1:8.2.2+ds-0ubuntu1.18 [70.2 kB]
+2026-10-22T22:48:16.4875617Z Get:89 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 ovmf all 2024.02-2ubuntu0.10 [5188 kB]
+2026-10-22T22:48:18.9599293Z Fetched 46.8 MB in 32s (1452 kB/s)
+2026-10-22T22:48:18.9760406Z Selecting previously unselected package msr-tools.
+2026-10-22T22:48:18.9789874Z (Reading database ...
+2026-10-22T22:48:18.9790566Z (Reading database ... 5%
+2026-10-22T22:48:18.9791060Z (Reading database ... 10%
+2026-10-22T22:48:18.9791438Z (Reading database ... 15%
+2026-10-22T22:48:18.9791752Z (Reading database ... 20%
+2026-10-22T22:48:18.9792068Z (Reading database ... 25%
+2026-10-22T22:48:18.9792414Z (Reading database ... 30%
+2026-10-22T22:48:18.9792722Z (Reading database ... 35%
+2026-10-22T22:48:18.9793022Z (Reading database ... 40%
+2026-10-22T22:48:18.9793318Z (Reading database ... 45%
+2026-10-22T22:48:18.9793589Z (Reading database ... 50%
+2026-10-22T22:48:18.9843240Z (Reading database ... 55%
+2026-10-22T22:48:19.1149345Z (Reading database ... 60%
+2026-10-22T22:48:19.3242409Z (Reading database ... 65%
+2026-10-22T22:48:19.5116007Z (Reading database ... 70%
+2026-10-22T22:48:19.7156817Z (Reading database ... 75%
+2026-10-22T22:48:19.8154587Z (Reading database ... 80%
+2026-10-22T22:48:19.9763865Z (Reading database ... 85%
+2026-10-22T22:48:20.1112960Z (Reading database ... 90%
+2026-10-22T22:48:20.2810345Z (Reading database ... 95%
+2026-10-22T22:48:20.2811258Z (Reading database ... 100%
+2026-10-22T22:48:20.2812534Z (Reading database ... 203552 files and directories currently installed.)
+2026-10-22T22:48:20.2854476Z Preparing to unpack .../00-msr-tools_1.3-5ubuntu0.1_amd64.deb ...
+2026-10-22T22:48:20.2862898Z Unpacking msr-tools (1.3-5ubuntu0.1) ...
+2026-10-22T22:48:20.3053243Z Selecting previously unselected package cpu-checker.
+2026-10-22T22:48:20.3152795Z Preparing to unpack .../01-cpu-checker_0.7-1.3build2_amd64.deb ...
+2026-10-22T22:48:20.3158932Z Unpacking cpu-checker (0.7-1.3build2) ...
+2026-10-22T22:48:20.3326326Z Selecting previously unselected package libproxy1v5:amd64.
+2026-10-22T22:48:20.3408498Z Preparing to unpack .../02-libproxy1v5_0.5.4-4build1_amd64.deb ...
+2026-10-22T22:48:20.3428606Z Unpacking libproxy1v5:amd64 (0.5.4-4build1) ...
+2026-10-22T22:48:20.3576406Z Selecting previously unselected package glib-networking-common.
+2026-10-22T22:48:20.3670920Z Preparing to unpack .../03-glib-networking-common_2.80.0-1build1_all.deb ...
+2026-10-22T22:48:20.3679596Z Unpacking glib-networking-common (2.80.0-1build1) ...
+2026-10-22T22:48:20.3807895Z Selecting previously unselected package glib-networking-services.
+2026-10-22T22:48:20.3906275Z Preparing to unpack .../04-glib-networking-services_2.80.0-1build1_amd64.deb ...
+2026-10-22T22:48:20.3912149Z Unpacking glib-networking-services (2.80.0-1build1) ...
+2026-10-22T22:48:20.4055801Z Selecting previously unselected package session-migration.
+2026-10-22T22:48:20.4156135Z Preparing to unpack .../05-session-migration_0.3.9build1_amd64.deb ...
+2026-10-22T22:48:20.4163828Z Unpacking session-migration (0.3.9build1) ...
+2026-10-22T22:48:20.4305007Z Selecting previously unselected package gsettings-desktop-schemas.
+2026-10-22T22:48:20.4395976Z Preparing to unpack .../06-gsettings-desktop-schemas_46.1-0ubuntu1_all.deb ...
+2026-10-22T22:48:20.4407044Z Unpacking gsettings-desktop-schemas (46.1-0ubuntu1) ...
+2026-10-22T22:48:20.5434363Z Selecting previously unselected package glib-networking:amd64.
+2026-10-22T22:48:20.5539804Z Preparing to unpack .../07-glib-networking_2.80.0-1build1_amd64.deb ...
+2026-10-22T22:48:20.5547463Z Unpacking glib-networking:amd64 (2.80.0-1build1) ...
+2026-10-22T22:48:20.5710746Z Selecting previously unselected package libcdparanoia0:amd64.
+2026-10-22T22:48:20.5809723Z Preparing to unpack .../08-libcdparanoia0_3.10.2+debian-14build3_amd64.deb ...
+2026-10-22T22:48:20.5817711Z Unpacking libcdparanoia0:amd64 (3.10.2+debian-14build3) ...
+2026-10-22T22:48:20.5969437Z Selecting previously unselected package liborc-0.4-0t64:amd64.
+2026-10-22T22:48:20.6066672Z Preparing to unpack .../09-liborc-0.4-0t64_1%3a0.4.38-1ubuntu0.1_amd64.deb ...
+2026-10-22T22:48:20.6073809Z Unpacking liborc-0.4-0t64:amd64 (1:0.4.38-1ubuntu0.1) ...
+2026-10-22T22:48:20.6258532Z Selecting previously unselected package libgstreamer-plugins-base1.0-0:amd64.
+2026-10-22T22:48:20.6356782Z Preparing to unpack .../10-libgstreamer-plugins-base1.0-0_1.24.2-1ubuntu0.5_amd64.deb ...
+2026-10-22T22:48:20.6364620Z Unpacking libgstreamer-plugins-base1.0-0:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-22T22:48:20.6796888Z Selecting previously unselected package libopus0:amd64.
+2026-10-22T22:48:20.6898936Z Preparing to unpack .../11-libopus0_1.4-1build1_amd64.deb ...
+2026-10-22T22:48:20.6907486Z Unpacking libopus0:amd64 (1.4-1build1) ...
+2026-10-22T22:48:20.7076289Z Selecting previously unselected package libtheora0:amd64.
+2026-10-22T22:48:20.7160556Z Preparing to unpack .../12-libtheora0_1.1.1+dfsg.1-16.1build3_amd64.deb ...
+2026-10-22T22:48:20.7166514Z Unpacking libtheora0:amd64 (1.1.1+dfsg.1-16.1build3) ...
+2026-10-22T22:48:20.7361916Z Selecting previously unselected package libvisual-0.4-0:amd64.
+2026-10-22T22:48:20.7462380Z Preparing to unpack .../13-libvisual-0.4-0_0.4.2-2build1_amd64.deb ...
+2026-10-22T22:48:20.7469471Z Unpacking libvisual-0.4-0:amd64 (0.4.2-2build1) ...
+2026-10-22T22:48:20.7625990Z Selecting previously unselected package libvorbisenc2:amd64.
+2026-10-22T22:48:20.7722630Z Preparing to unpack .../14-libvorbisenc2_1.3.7-1build3_amd64.deb ...
+2026-10-22T22:48:20.7731005Z Unpacking libvorbisenc2:amd64 (1.3.7-1build3) ...
+2026-10-22T22:48:20.7881053Z Selecting previously unselected package gstreamer1.0-plugins-base:amd64.
+2026-10-22T22:48:20.7976432Z Preparing to unpack .../15-gstreamer1.0-plugins-base_1.24.2-1ubuntu0.5_amd64.deb ...
+2026-10-22T22:48:20.7984966Z Unpacking gstreamer1.0-plugins-base:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-22T22:48:20.8364059Z Selecting previously unselected package libaa1:amd64.
+2026-10-22T22:48:20.8461912Z Preparing to unpack .../16-libaa1_1.4p5-51.1_amd64.deb ...
+2026-10-22T22:48:20.8470758Z Unpacking libaa1:amd64 (1.4p5-51.1) ...
+2026-10-22T22:48:20.8616171Z Selecting previously unselected package libraw1394-11:amd64.
+2026-10-22T22:48:20.8709929Z Preparing to unpack .../17-libraw1394-11_2.1.2-2build3_amd64.deb ...
+2026-10-22T22:48:20.8718431Z Unpacking libraw1394-11:amd64 (2.1.2-2build3) ...
+2026-10-22T22:48:20.8858792Z Selecting previously unselected package libavc1394-0:amd64.
+2026-10-22T22:48:20.8954598Z Preparing to unpack .../18-libavc1394-0_0.5.4-5build3_amd64.deb ...
+2026-10-22T22:48:20.8965088Z Unpacking libavc1394-0:amd64 (0.5.4-5build3) ...
+2026-10-22T22:48:20.9099305Z Selecting previously unselected package libcaca0:amd64.
+2026-10-22T22:48:20.9196001Z Preparing to unpack .../19-libcaca0_0.99.beta20-4ubuntu0.2_amd64.deb ...
+2026-10-22T22:48:20.9204435Z Unpacking libcaca0:amd64 (0.99.beta20-4ubuntu0.2) ...
+2026-10-22T22:48:20.9425731Z Selecting previously unselected package libdv4t64:amd64.
+2026-10-22T22:48:20.9523760Z Preparing to unpack .../20-libdv4t64_1.0.0-17.1build1_amd64.deb ...
+2026-10-22T22:48:20.9534646Z Unpacking libdv4t64:amd64 (1.0.0-17.1build1) ...
+2026-10-22T22:48:20.9679148Z Selecting previously unselected package libflac12t64:amd64.
+2026-10-22T22:48:20.9776782Z Preparing to unpack .../21-libflac12t64_1.4.3+ds-2.1ubuntu2_amd64.deb ...
+2026-10-22T22:48:20.9784299Z Unpacking libflac12t64:amd64 (1.4.3+ds-2.1ubuntu2) ...
+2026-10-22T22:48:20.9939094Z Selecting previously unselected package libgstreamer-plugins-good1.0-0:amd64.
+2026-10-22T22:48:21.0034346Z Preparing to unpack .../22-libgstreamer-plugins-good1.0-0_1.24.2-1ubuntu1.8_amd64.deb ...
+2026-10-22T22:48:21.0042389Z Unpacking libgstreamer-plugins-good1.0-0:amd64 (1.24.2-1ubuntu1.8) ...
+2026-10-22T22:48:21.0188683Z Selecting previously unselected package libiec61883-0:amd64.
+2026-10-22T22:48:21.0287471Z Preparing to unpack .../23-libiec61883-0_1.2.0-6build1_amd64.deb ...
+2026-10-22T22:48:21.0293507Z Unpacking libiec61883-0:amd64 (1.2.0-6build1) ...
+2026-10-22T22:48:21.0443916Z Selecting previously unselected package libmp3lame0:amd64.
+2026-10-22T22:48:21.0542779Z Preparing to unpack .../24-libmp3lame0_3.100-6build1_amd64.deb ...
+2026-10-22T22:48:21.0554913Z Unpacking libmp3lame0:amd64 (3.100-6build1) ...
+2026-10-22T22:48:21.0711467Z Selecting previously unselected package libmpg123-0t64:amd64.
+2026-10-22T22:48:21.0810889Z Preparing to unpack .../25-libmpg123-0t64_1.32.5-1ubuntu1.1_amd64.deb ...
+2026-10-22T22:48:21.0834494Z Unpacking libmpg123-0t64:amd64 (1.32.5-1ubuntu1.1) ...
+2026-10-22T22:48:21.0983229Z Selecting previously unselected package libasyncns0:amd64.
+2026-10-22T22:48:21.1080324Z Preparing to unpack .../26-libasyncns0_0.8-6build4_amd64.deb ...
+2026-10-22T22:48:21.1093956Z Unpacking libasyncns0:amd64 (0.8-6build4) ...
+2026-10-22T22:48:21.1233138Z Selecting previously unselected package libsndfile1:amd64.
+2026-10-22T22:48:21.1331292Z Preparing to unpack .../27-libsndfile1_1.2.2-1ubuntu5.24.04.1_amd64.deb ...
+2026-10-22T22:48:21.1342984Z Unpacking libsndfile1:amd64 (1.2.2-1ubuntu5.24.04.1) ...
+2026-10-22T22:48:21.1546136Z Selecting previously unselected package libpulse0:amd64.
+2026-10-22T22:48:21.1622268Z Preparing to unpack .../28-libpulse0_1%3a16.1+dfsg1-2ubuntu10.1_amd64.deb ...
+2026-10-22T22:48:21.1673506Z Unpacking libpulse0:amd64 (1:16.1+dfsg1-2ubuntu10.1) ...
+2026-10-22T22:48:21.1883699Z Selecting previously unselected package libspeex1:amd64.
+2026-10-22T22:48:21.1985571Z Preparing to unpack .../29-libspeex1_1.2.1-2ubuntu2.24.04.1_amd64.deb ...
+2026-10-22T22:48:21.1992391Z Unpacking libspeex1:amd64 (1.2.1-2ubuntu2.24.04.1) ...
+2026-10-22T22:48:21.2139090Z Selecting previously unselected package libshout3:amd64.
+2026-10-22T22:48:21.2236890Z Preparing to unpack .../30-libshout3_2.4.6-1build2_amd64.deb ...
+2026-10-22T22:48:21.2245475Z Unpacking libshout3:amd64 (2.4.6-1build2) ...
+2026-10-22T22:48:21.2394374Z Selecting previously unselected package libtag1v5-vanilla:amd64.
+2026-10-22T22:48:21.2490607Z Preparing to unpack .../31-libtag1v5-vanilla_1.13.1-1build1_amd64.deb ...
+2026-10-22T22:48:21.2499264Z Unpacking libtag1v5-vanilla:amd64 (1.13.1-1build1) ...
+2026-10-22T22:48:21.2735495Z Selecting previously unselected package libtag1v5:amd64.
+2026-10-22T22:48:21.2835404Z Preparing to unpack .../32-libtag1v5_1.13.1-1build1_amd64.deb ...
+2026-10-22T22:48:21.2843725Z Unpacking libtag1v5:amd64 (1.13.1-1build1) ...
+2026-10-22T22:48:21.2980153Z Selecting previously unselected package libtwolame0:amd64.
+2026-10-22T22:48:21.3076441Z Preparing to unpack .../33-libtwolame0_0.4.0-2build3_amd64.deb ...
+2026-10-22T22:48:21.3083968Z Unpacking libtwolame0:amd64 (0.4.0-2build3) ...
+2026-10-22T22:48:21.3228856Z Selecting previously unselected package libv4lconvert0t64:amd64.
+2026-10-22T22:48:21.3326983Z Preparing to unpack .../34-libv4lconvert0t64_1.26.1-4build3_amd64.deb ...
+2026-10-22T22:48:21.3334527Z Unpacking libv4lconvert0t64:amd64 (1.26.1-4build3) ...
+2026-10-22T22:48:21.3485640Z Selecting previously unselected package libv4l-0t64:amd64.
+2026-10-22T22:48:21.3582156Z Preparing to unpack .../35-libv4l-0t64_1.26.1-4build3_amd64.deb ...
+2026-10-22T22:48:21.3595114Z Unpacking libv4l-0t64:amd64 (1.26.1-4build3) ...
+2026-10-22T22:48:21.3740149Z Selecting previously unselected package libvpx9:amd64.
+2026-10-22T22:48:21.3837395Z Preparing to unpack .../36-libvpx9_1.14.0-1ubuntu2.3_amd64.deb ...
+2026-10-22T22:48:21.3846242Z Unpacking libvpx9:amd64 (1.14.0-1ubuntu2.3) ...
+2026-10-22T22:48:21.4409645Z Selecting previously unselected package libwavpack1:amd64.
+2026-10-22T22:48:21.4510442Z Preparing to unpack .../37-libwavpack1_5.6.0-1build1_amd64.deb ...
+2026-10-22T22:48:21.4517945Z Unpacking libwavpack1:amd64 (5.6.0-1build1) ...
+2026-10-22T22:48:21.4656866Z Selecting previously unselected package libsoup-3.0-common.
+2026-10-22T22:48:21.4757486Z Preparing to unpack .../38-libsoup-3.0-common_3.4.4-5ubuntu0.9_all.deb ...
+2026-10-22T22:48:21.4764388Z Unpacking libsoup-3.0-common (3.4.4-5ubuntu0.9) ...
+2026-10-22T22:48:21.4907123Z Selecting previously unselected package libsoup-3.0-0:amd64.
+2026-10-22T22:48:21.5004837Z Preparing to unpack .../39-libsoup-3.0-0_3.4.4-5ubuntu0.9_amd64.deb ...
+2026-10-22T22:48:21.5013702Z Unpacking libsoup-3.0-0:amd64 (3.4.4-5ubuntu0.9) ...
+2026-10-22T22:48:21.5184993Z Selecting previously unselected package gstreamer1.0-plugins-good:amd64.
+2026-10-22T22:48:21.5282270Z Preparing to unpack .../40-gstreamer1.0-plugins-good_1.24.2-1ubuntu1.8_amd64.deb ...
+2026-10-22T22:48:21.5289012Z Unpacking gstreamer1.0-plugins-good:amd64 (1.24.2-1ubuntu1.8) ...
+2026-10-22T22:48:21.6408909Z Selecting previously unselected package libxv1:amd64.
+2026-10-22T22:48:21.6513721Z Preparing to unpack .../41-libxv1_2%3a1.0.11-1.1build1_amd64.deb ...
+2026-10-22T22:48:21.6521954Z Unpacking libxv1:amd64 (2:1.0.11-1.1build1) ...
+2026-10-22T22:48:21.6657839Z Selecting previously unselected package gstreamer1.0-x:amd64.
+2026-10-22T22:48:21.6760899Z Preparing to unpack .../42-gstreamer1.0-x_1.24.2-1ubuntu0.5_amd64.deb ...
+2026-10-22T22:48:21.6769503Z Unpacking gstreamer1.0-x:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-22T22:48:21.6917402Z Selecting previously unselected package ipxe-qemu.
+2026-10-22T22:48:21.7016666Z Preparing to unpack .../43-ipxe-qemu_1.21.1+git-20220113.fbbdc3926-0ubuntu2_all.deb ...
+2026-10-22T22:48:21.7024417Z Unpacking ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+2026-10-22T22:48:21.7589339Z Selecting previously unselected package ipxe-qemu-256k-compat-efi-roms.
+2026-10-22T22:48:21.7692740Z Preparing to unpack .../44-ipxe-qemu-256k-compat-efi-roms_1.0.0+git-20150424.a25a16d-0ubuntu5_all.deb ...
+2026-10-22T22:48:21.7699375Z Unpacking ipxe-qemu-256k-compat-efi-roms (1.0.0+git-20150424.a25a16d-0ubuntu5) ...
+2026-10-22T22:48:21.7941194Z Selecting previously unselected package libboost-iostreams1.83.0:amd64.
+2026-10-22T22:48:21.8041619Z Preparing to unpack .../45-libboost-iostreams1.83.0_1.83.0-2.1ubuntu3.2_amd64.deb ...
+2026-10-22T22:48:21.8054473Z Unpacking libboost-iostreams1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-22T22:48:21.8385047Z Selecting previously unselected package libboost-thread1.83.0:amd64.
+2026-10-22T22:48:21.8484962Z Preparing to unpack .../46-libboost-thread1.83.0_1.83.0-2.1ubuntu3.2_amd64.deb ...
+2026-10-22T22:48:21.8492781Z Unpacking libboost-thread1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-22T22:48:21.8826556Z Selecting previously unselected package libbrlapi0.8:amd64.
+2026-10-22T22:48:21.8914069Z Preparing to unpack .../47-libbrlapi0.8_6.6-4ubuntu5_amd64.deb ...
+2026-10-22T22:48:21.8924957Z Unpacking libbrlapi0.8:amd64 (6.6-4ubuntu5) ...
+2026-10-22T22:48:21.9064015Z Selecting previously unselected package libpcsclite1:amd64.
+2026-10-22T22:48:21.9161888Z Preparing to unpack .../48-libpcsclite1_2.0.3-1build1_amd64.deb ...
+2026-10-22T22:48:21.9174116Z Unpacking libpcsclite1:amd64 (2.0.3-1build1) ...
+2026-10-22T22:48:21.9313153Z Selecting previously unselected package libcacard0:amd64.
+2026-10-22T22:48:21.9411643Z Preparing to unpack .../49-libcacard0_1%3a2.8.0-3build4_amd64.deb ...
+2026-10-22T22:48:21.9418357Z Unpacking libcacard0:amd64 (1:2.8.0-3build4) ...
+2026-10-22T22:48:21.9563042Z Selecting previously unselected package libdaxctl1:amd64.
+2026-10-22T22:48:21.9658143Z Preparing to unpack .../50-libdaxctl1_77-2ubuntu2_amd64.deb ...
+2026-10-22T22:48:21.9667305Z Unpacking libdaxctl1:amd64 (77-2ubuntu2) ...
+2026-10-22T22:48:21.9814463Z Selecting previously unselected package libdecor-0-0:amd64.
+2026-10-22T22:48:21.9912403Z Preparing to unpack .../51-libdecor-0-0_0.2.2-1build2_amd64.deb ...
+2026-10-22T22:48:21.9924659Z Unpacking libdecor-0-0:amd64 (0.2.2-1build2) ...
+2026-10-22T22:48:22.0058498Z Selecting previously unselected package libdecor-0-plugin-1-gtk:amd64.
+2026-10-22T22:48:22.0160168Z Preparing to unpack .../52-libdecor-0-plugin-1-gtk_0.2.2-1build2_amd64.deb ...
+2026-10-22T22:48:22.0168480Z Unpacking libdecor-0-plugin-1-gtk:amd64 (0.2.2-1build2) ...
+2026-10-22T22:48:22.0322578Z Selecting previously unselected package libimagequant0:amd64.
+2026-10-22T22:48:22.0424813Z Preparing to unpack .../53-libimagequant0_2.18.0-1build1_amd64.deb ...
+2026-10-22T22:48:22.0437599Z Unpacking libimagequant0:amd64 (2.18.0-1build1) ...
+2026-10-22T22:48:22.0591673Z Selecting previously unselected package librdmacm1t64:amd64.
+2026-10-22T22:48:22.0690808Z Preparing to unpack .../54-librdmacm1t64_50.0-2ubuntu0.2_amd64.deb ...
+2026-10-22T22:48:22.0698483Z Unpacking librdmacm1t64:amd64 (50.0-2ubuntu0.2) ...
+2026-10-22T22:48:22.0856293Z Selecting previously unselected package libiscsi7:amd64.
+2026-10-22T22:48:22.0941350Z Preparing to unpack .../55-libiscsi7_1.19.0-3build4_amd64.deb ...
+2026-10-22T22:48:22.0949749Z Unpacking libiscsi7:amd64 (1.19.0-3build4) ...
+2026-10-22T22:48:22.1093137Z Selecting previously unselected package libsamplerate0:amd64.
+2026-10-22T22:48:22.1190449Z Preparing to unpack .../56-libsamplerate0_0.2.2-4build1_amd64.deb ...
+2026-10-22T22:48:22.1198292Z Unpacking libsamplerate0:amd64 (0.2.2-4build1) ...
+2026-10-22T22:48:22.1396427Z Selecting previously unselected package libjack-jackd2-0:amd64.
+2026-10-22T22:48:22.1494497Z Preparing to unpack .../57-libjack-jackd2-0_1.9.21~dfsg-3ubuntu3_amd64.deb ...
+2026-10-22T22:48:22.1502466Z Unpacking libjack-jackd2-0:amd64 (1.9.21~dfsg-3ubuntu3) ...
+2026-10-22T22:48:22.1690966Z Selecting previously unselected package libndctl6:amd64.
+2026-10-22T22:48:22.1787826Z Preparing to unpack .../58-libndctl6_77-2ubuntu2_amd64.deb ...
+2026-10-22T22:48:22.1794806Z Unpacking libndctl6:amd64 (77-2ubuntu2) ...
+2026-10-22T22:48:22.1939977Z Selecting previously unselected package libnfs14:amd64.
+2026-10-22T22:48:22.2035665Z Preparing to unpack .../59-libnfs14_5.0.2-1ubuntu0.24.04.1_amd64.deb ...
+2026-10-22T22:48:22.2044386Z Unpacking libnfs14:amd64 (5.0.2-1ubuntu0.24.04.1) ...
+2026-10-22T22:48:22.2238714Z Selecting previously unselected package libwebrtc-audio-processing1:amd64.
+2026-10-22T22:48:22.2339607Z Preparing to unpack .../60-libwebrtc-audio-processing1_0.3.1-0ubuntu6_amd64.deb ...
+2026-10-22T22:48:22.2347960Z Unpacking libwebrtc-audio-processing1:amd64 (0.3.1-0ubuntu6) ...
+2026-10-22T22:48:22.2513169Z Selecting previously unselected package libspa-0.2-modules:amd64.
+2026-10-22T22:48:22.2620588Z Preparing to unpack .../61-libspa-0.2-modules_1.0.5-1ubuntu3.3_amd64.deb ...
+2026-10-22T22:48:22.2633975Z Unpacking libspa-0.2-modules:amd64 (1.0.5-1ubuntu3.3) ...
+2026-10-22T22:48:22.3003635Z Selecting previously unselected package libpipewire-0.3-0t64:amd64.
+2026-10-22T22:48:22.3115090Z Preparing to unpack .../62-libpipewire-0.3-0t64_1.0.5-1ubuntu3.3_amd64.deb ...
+2026-10-22T22:48:22.3121599Z Unpacking libpipewire-0.3-0t64:amd64 (1.0.5-1ubuntu3.3) ...
+2026-10-22T22:48:22.3355955Z Selecting previously unselected package libpipewire-0.3-common.
+2026-10-22T22:48:22.3467586Z Preparing to unpack .../63-libpipewire-0.3-common_1.0.5-1ubuntu3.3_all.deb ...
+2026-10-22T22:48:22.3474659Z Unpacking libpipewire-0.3-common (1.0.5-1ubuntu3.3) ...
+2026-10-22T22:48:22.3625101Z Selecting previously unselected package libpmem1:amd64.
+2026-10-22T22:48:22.3732565Z Preparing to unpack .../64-libpmem1_1.13.1-1.1ubuntu2_amd64.deb ...
+2026-10-22T22:48:22.3740845Z Unpacking libpmem1:amd64 (1.13.1-1.1ubuntu2) ...
+2026-10-22T22:48:22.4435684Z Selecting previously unselected package libpmemobj1:amd64.
+2026-10-22T22:48:22.4540145Z Preparing to unpack .../65-libpmemobj1_1.13.1-1.1ubuntu2_amd64.deb ...
+2026-10-22T22:48:22.4547203Z Unpacking libpmemobj1:amd64 (1.13.1-1.1ubuntu2) ...
+2026-10-22T22:48:22.4792947Z Selecting previously unselected package librados2.
+2026-10-22T22:48:22.4899314Z Preparing to unpack .../66-librados2_19.2.3-0ubuntu0.24.04.3_amd64.deb ...
+2026-10-22T22:48:22.4905884Z Unpacking librados2 (19.2.3-0ubuntu0.24.04.3) ...
+2026-10-22T22:48:22.6426751Z Selecting previously unselected package libraqm0:amd64.
+2026-10-22T22:48:22.6525001Z Preparing to unpack .../67-libraqm0_0.10.1-1build1_amd64.deb ...
+2026-10-22T22:48:22.6532721Z Unpacking libraqm0:amd64 (0.10.1-1build1) ...
+2026-10-22T22:48:22.6814617Z Selecting previously unselected package librbd1.
+2026-10-22T22:48:22.6918689Z Preparing to unpack .../68-librbd1_19.2.3-0ubuntu0.24.04.3_amd64.deb ...
+2026-10-22T22:48:22.6926413Z Unpacking librbd1 (19.2.3-0ubuntu0.24.04.3) ...
+2026-10-22T22:48:22.8197771Z Selecting previously unselected package libsdl2-2.0-0:amd64.
+2026-10-22T22:48:22.8307206Z Preparing to unpack .../69-libsdl2-2.0-0_2.30.0+dfsg-1ubuntu3.1_amd64.deb ...
+2026-10-22T22:48:22.8317481Z Unpacking libsdl2-2.0-0:amd64 (2.30.0+dfsg-1ubuntu3.1) ...
+2026-10-22T22:48:22.8712275Z Selecting previously unselected package libspice-server1:amd64.
+2026-10-22T22:48:22.8823706Z Preparing to unpack .../70-libspice-server1_0.15.1-1build2_amd64.deb ...
+2026-10-22T22:48:22.8831596Z Unpacking libspice-server1:amd64 (0.15.1-1build2) ...
+2026-10-22T22:48:22.9109719Z Selecting previously unselected package liburing2:amd64.
+2026-10-22T22:48:22.9220191Z Preparing to unpack .../71-liburing2_2.5-1build1_amd64.deb ...
+2026-10-22T22:48:22.9230004Z Unpacking liburing2:amd64 (2.5-1build1) ...
+2026-10-22T22:48:22.9385324Z Selecting previously unselected package libusbredirparser1t64:amd64.
+2026-10-22T22:48:22.9493556Z Preparing to unpack .../72-libusbredirparser1t64_0.13.0-2.1build1_amd64.deb ...
+2026-10-22T22:48:22.9500781Z Unpacking libusbredirparser1t64:amd64 (0.13.0-2.1build1) ...
+2026-10-22T22:48:22.9649770Z Selecting previously unselected package libvirglrenderer1:amd64.
+2026-10-22T22:48:22.9753608Z Preparing to unpack .../73-libvirglrenderer1_1.0.0-1ubuntu2_amd64.deb ...
+2026-10-22T22:48:22.9760840Z Unpacking libvirglrenderer1:amd64 (1.0.0-1ubuntu2) ...
+2026-10-22T22:48:22.9922659Z Selecting previously unselected package libvte-2.91-common.
+2026-10-22T22:48:23.0027304Z Preparing to unpack .../74-libvte-2.91-common_0.76.0-1ubuntu0.1_amd64.deb ...
+2026-10-22T22:48:23.0034487Z Unpacking libvte-2.91-common (0.76.0-1ubuntu0.1) ...
+2026-10-22T22:48:23.0196705Z Selecting previously unselected package libvte-2.91-0:amd64.
+2026-10-22T22:48:23.0290781Z Preparing to unpack .../75-libvte-2.91-0_0.76.0-1ubuntu0.1_amd64.deb ...
+2026-10-22T22:48:23.0298705Z Unpacking libvte-2.91-0:amd64 (0.76.0-1ubuntu0.1) ...
+2026-10-22T22:48:23.0461116Z Selecting previously unselected package python3-olefile.
+2026-10-22T22:48:23.0559573Z Preparing to unpack .../76-python3-olefile_0.46-3_all.deb ...
+2026-10-22T22:48:23.0567457Z Unpacking python3-olefile (0.46-3) ...
+2026-10-22T22:48:23.0750288Z Selecting previously unselected package python3-pil:amd64.
+2026-10-22T22:48:23.0852424Z Preparing to unpack .../77-python3-pil_10.2.0-1ubuntu1.3_amd64.deb ...
+2026-10-22T22:48:23.0859495Z Unpacking python3-pil:amd64 (10.2.0-1ubuntu1.3) ...
+2026-10-22T22:48:23.1971322Z Selecting previously unselected package libfdt1:amd64.
+2026-10-22T22:48:23.2077232Z Preparing to unpack .../78-libfdt1_1.7.0-2build1_amd64.deb ...
+2026-10-22T22:48:23.2084613Z Unpacking libfdt1:amd64 (1.7.0-2build1) ...
+2026-10-22T22:48:23.2256740Z Selecting previously unselected package qemu-system-common.
+2026-10-22T22:48:23.2347080Z Preparing to unpack .../79-qemu-system-common_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:23.2354134Z Unpacking qemu-system-common (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:23.3647337Z Selecting previously unselected package qemu-system-data.
+2026-10-22T22:48:23.3755630Z Preparing to unpack .../80-qemu-system-data_1%3a8.2.2+ds-0ubuntu1.18_all.deb ...
+2026-10-22T22:48:23.3762594Z Unpacking qemu-system-data (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:23.5011745Z Selecting previously unselected package seabios.
+2026-10-22T22:48:23.5119270Z Preparing to unpack .../81-seabios_1.16.3-2_all.deb ...
+2026-10-22T22:48:23.5132518Z Unpacking seabios (1.16.3-2) ...
+2026-10-22T22:48:23.6131110Z Selecting previously unselected package qemu-system-x86.
+2026-10-22T22:48:23.6239442Z Preparing to unpack .../82-qemu-system-x86_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:23.6285826Z Unpacking qemu-system-x86 (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:24.3314914Z Selecting previously unselected package qemu-utils.
+2026-10-22T22:48:24.3431566Z Preparing to unpack .../83-qemu-utils_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:24.3438711Z Unpacking qemu-utils (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:24.5092196Z Selecting previously unselected package qemu-block-extra.
+2026-10-22T22:48:24.5202936Z Preparing to unpack .../84-qemu-block-extra_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:24.5210958Z Unpacking qemu-block-extra (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:24.5378891Z Selecting previously unselected package qemu-system-modules-opengl.
+2026-10-22T22:48:24.5484087Z Preparing to unpack .../85-qemu-system-modules-opengl_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:24.5492657Z Unpacking qemu-system-modules-opengl (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:24.5685054Z Selecting previously unselected package qemu-system-gui.
+2026-10-22T22:48:24.5786216Z Preparing to unpack .../86-qemu-system-gui_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:24.5797027Z Unpacking qemu-system-gui (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:24.6037962Z Selecting previously unselected package qemu-system-modules-spice.
+2026-10-22T22:48:24.6139103Z Preparing to unpack .../87-qemu-system-modules-spice_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:24.6146581Z Unpacking qemu-system-modules-spice (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:24.6296528Z Selecting previously unselected package ovmf.
+2026-10-22T22:48:24.6395981Z Preparing to unpack .../88-ovmf_2024.02-2ubuntu0.10_all.deb ...
+2026-10-22T22:48:24.6402947Z Unpacking ovmf (2024.02-2ubuntu0.10) ...
+2026-10-22T22:48:24.8536804Z Setting up libpipewire-0.3-common (1.0.5-1ubuntu3.3) ...
+2026-10-22T22:48:24.8561384Z Setting up libcdparanoia0:amd64 (3.10.2+debian-14build3) ...
+2026-10-22T22:48:24.8585076Z Setting up session-migration (0.3.9build1) ...
+2026-10-22T22:48:24.9694950Z Created symlink /etc/systemd/user/graphical-session-pre.target.wants/session-migration.service → /usr/lib/systemd/user/session-migration.service.
+2026-10-22T22:48:24.9695892Z
+2026-10-22T22:48:24.9915860Z Setting up libraw1394-11:amd64 (2.1.2-2build3) ...
+2026-10-22T22:48:24.9934588Z Setting up libproxy1v5:amd64 (0.5.4-4build1) ...
+2026-10-22T22:48:24.9960804Z Setting up libtag1v5-vanilla:amd64 (1.13.1-1build1) ...
+2026-10-22T22:48:24.9981201Z Setting up libspeex1:amd64 (1.2.1-2ubuntu2.24.04.1) ...
+2026-10-22T22:48:25.0005640Z Setting up libcaca0:amd64 (0.99.beta20-4ubuntu0.2) ...
+2026-10-22T22:48:25.0276897Z Setting up libv4lconvert0t64:amd64 (1.26.1-4build3) ...
+2026-10-22T22:48:25.0297105Z Setting up libtwolame0:amd64 (0.4.0-2build3) ...
+2026-10-22T22:48:25.0321756Z Setting up libvte-2.91-common (0.76.0-1ubuntu0.1) ...
+2026-10-22T22:48:25.0353075Z Setting up libvisual-0.4-0:amd64 (0.4.2-2build1) ...
+2026-10-22T22:48:25.0377461Z Setting up python3-olefile (0.46-3) ...
+2026-10-22T22:48:25.2054972Z Setting up msr-tools (1.3-5ubuntu0.1) ...
+2026-10-22T22:48:25.2081178Z Setting up libwebrtc-audio-processing1:amd64 (0.3.1-0ubuntu6) ...
+2026-10-22T22:48:25.2100477Z Setting up libboost-thread1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-22T22:48:25.2125486Z Setting up libsoup-3.0-common (3.4.4-5ubuntu0.9) ...
+2026-10-22T22:48:25.2148053Z Setting up libmpg123-0t64:amd64 (1.32.5-1ubuntu1.1) ...
+2026-10-22T22:48:25.2170880Z Setting up libfdt1:amd64 (1.7.0-2build1) ...
+2026-10-22T22:48:25.2196053Z Setting up libvte-2.91-0:amd64 (0.76.0-1ubuntu0.1) ...
+2026-10-22T22:48:25.2215769Z Setting up libnfs14:amd64 (5.0.2-1ubuntu0.24.04.1) ...
+2026-10-22T22:48:25.2236705Z Setting up liborc-0.4-0t64:amd64 (1:0.4.38-1ubuntu0.1) ...
+2026-10-22T22:48:25.2259721Z Setting up ovmf (2024.02-2ubuntu0.10) ...
+2026-10-22T22:48:25.2280694Z Setting up libvirglrenderer1:amd64 (1.0.0-1ubuntu2) ...
+2026-10-22T22:48:25.2301632Z Setting up libspa-0.2-modules:amd64 (1.0.5-1ubuntu3.3) ...
+2026-10-22T22:48:25.2329162Z Setting up libboost-iostreams1.83.0:amd64 (1.83.0-2.1ubuntu3.2) ...
+2026-10-22T22:48:25.2349721Z Setting up libraqm0:amd64 (0.10.1-1build1) ...
+2026-10-22T22:48:25.2375006Z Setting up libopus0:amd64 (1.4-1build1) ...
+2026-10-22T22:48:25.2395304Z Setting up libimagequant0:amd64 (2.18.0-1build1) ...
+2026-10-22T22:48:25.2418828Z Setting up libxv1:amd64 (2:1.0.11-1.1build1) ...
+2026-10-22T22:48:25.2439699Z Setting up libdv4t64:amd64 (1.0.0-17.1build1) ...
+2026-10-22T22:48:25.2460328Z Setting up libpcsclite1:amd64 (2.0.3-1build1) ...
+2026-10-22T22:48:25.2484946Z Setting up libdaxctl1:amd64 (77-2ubuntu2) ...
+2026-10-22T22:48:25.2505948Z Setting up qemu-system-data (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:25.2532113Z Setting up seabios (1.16.3-2) ...
+2026-10-22T22:48:25.2552783Z Setting up libv4l-0t64:amd64 (1.26.1-4build3) ...
+2026-10-22T22:48:25.2574056Z Setting up libvpx9:amd64 (1.14.0-1ubuntu2.3) ...
+2026-10-22T22:48:25.2603845Z Setting up libtag1v5:amd64 (1.13.1-1build1) ...
+2026-10-22T22:48:25.2625002Z Setting up cpu-checker (0.7-1.3build2) ...
+2026-10-22T22:48:25.2771223Z Setting up libasyncns0:amd64 (0.8-6build4) ...
+2026-10-22T22:48:25.2771685Z Setting up libwavpack1:amd64 (5.6.0-1build1) ...
+2026-10-22T22:48:25.2772559Z Setting up libusbredirparser1t64:amd64 (0.13.0-2.1build1) ...
+2026-10-22T22:48:25.2773039Z Setting up ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+2026-10-22T22:48:25.2774377Z Setting up libtheora0:amd64 (1.1.1+dfsg.1-16.1build3) ...
+2026-10-22T22:48:25.2778366Z Setting up libdecor-0-0:amd64 (0.2.2-1build2) ...
+2026-10-22T22:48:25.2786696Z Setting up libndctl6:amd64 (77-2ubuntu2) ...
+2026-10-22T22:48:25.2821300Z Setting up librdmacm1t64:amd64 (50.0-2ubuntu0.2) ...
+2026-10-22T22:48:25.2847001Z Setting up ipxe-qemu-256k-compat-efi-roms (1.0.0+git-20150424.a25a16d-0ubuntu5) ...
+2026-10-22T22:48:25.2866994Z Setting up libflac12t64:amd64 (1.4.3+ds-2.1ubuntu2) ...
+2026-10-22T22:48:25.2891420Z Setting up libbrlapi0.8:amd64 (6.6-4ubuntu5) ...
+2026-10-22T22:48:25.2913004Z Setting up glib-networking-common (2.80.0-1build1) ...
+2026-10-22T22:48:25.2934092Z Setting up liburing2:amd64 (2.5-1build1) ...
+2026-10-22T22:48:25.2958628Z Setting up libiscsi7:amd64 (1.19.0-3build4) ...
+2026-10-22T22:48:25.2979871Z Setting up libsamplerate0:amd64 (0.2.2-4build1) ...
+2026-10-22T22:48:25.3007058Z Setting up libpmem1:amd64 (1.13.1-1.1ubuntu2) ...
+2026-10-22T22:48:25.3030673Z Setting up libpipewire-0.3-0t64:amd64 (1.0.5-1ubuntu3.3) ...
+2026-10-22T22:48:25.3048272Z Setting up libdecor-0-plugin-1-gtk:amd64 (0.2.2-1build2) ...
+2026-10-22T22:48:25.3070616Z Setting up libmp3lame0:amd64 (3.100-6build1) ...
+2026-10-22T22:48:25.3090554Z Setting up libvorbisenc2:amd64 (1.3.7-1build3) ...
+2026-10-22T22:48:25.3115701Z Setting up libaa1:amd64 (1.4p5-51.1) ...
+2026-10-22T22:48:25.3135429Z Setting up libiec61883-0:amd64 (1.2.0-6build1) ...
+2026-10-22T22:48:25.3154255Z Setting up libavc1394-0:amd64 (0.5.4-5build3) ...
+2026-10-22T22:48:25.3179377Z Setting up gsettings-desktop-schemas (46.1-0ubuntu1) ...
+2026-10-22T22:48:25.3201452Z Setting up glib-networking-services (2.80.0-1build1) ...
+2026-10-22T22:48:25.3220125Z Setting up librados2 (19.2.3-0ubuntu0.24.04.3) ...
+2026-10-22T22:48:25.3244272Z Setting up libgstreamer-plugins-base1.0-0:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-22T22:48:25.3263885Z Setting up libcacard0:amd64 (1:2.8.0-3build4) ...
+2026-10-22T22:48:25.3284038Z Setting up python3-pil:amd64 (10.2.0-1ubuntu1.3) ...
+2026-10-22T22:48:25.5280840Z Setting up libgstreamer-plugins-good1.0-0:amd64 (1.24.2-1ubuntu1.8) ...
+2026-10-22T22:48:25.5306100Z Setting up gstreamer1.0-plugins-base:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-22T22:48:25.5329680Z Setting up libshout3:amd64 (2.4.6-1build2) ...
+2026-10-22T22:48:25.5348623Z Setting up libpmemobj1:amd64 (1.13.1-1.1ubuntu2) ...
+2026-10-22T22:48:25.5371325Z Setting up librbd1 (19.2.3-0ubuntu0.24.04.3) ...
+2026-10-22T22:48:25.5391255Z Setting up libjack-jackd2-0:amd64 (1.9.21~dfsg-3ubuntu3) ...
+2026-10-22T22:48:25.5416274Z Setting up libsndfile1:amd64 (1.2.2-1ubuntu5.24.04.1) ...
+2026-10-22T22:48:25.5435544Z Setting up qemu-utils (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:25.5459780Z Setting up qemu-block-extra (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:25.6143497Z Created symlink /etc/systemd/system/multi-user.target.wants/run-qemu.mount → /usr/lib/systemd/system/run-qemu.mount.
+2026-10-22T22:48:25.6143972Z
+2026-10-22T22:48:26.1744226Z Setting up gstreamer1.0-x:amd64 (1.24.2-1ubuntu0.5) ...
+2026-10-22T22:48:26.1760676Z Setting up qemu-system-common (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:26.2461693Z Created symlink /etc/systemd/system/multi-user.target.wants/qemu-kvm.service → /usr/lib/systemd/system/qemu-kvm.service.
+2026-10-22T22:48:26.2465887Z
+2026-10-22T22:48:26.4384347Z Setting up libpulse0:amd64 (1:16.1+dfsg1-2ubuntu10.1) ...
+2026-10-22T22:48:26.4444229Z Setting up libspice-server1:amd64 (0.15.1-1build2) ...
+2026-10-22T22:48:26.4466676Z Setting up qemu-system-x86 (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:26.5316500Z Setting up libsdl2-2.0-0:amd64 (2.30.0+dfsg-1ubuntu3.1) ...
+2026-10-22T22:48:26.5338980Z Setting up qemu-system-modules-opengl (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:26.5360493Z Setting up qemu-system-gui (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:26.5383844Z Setting up qemu-system-modules-spice (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:26.5450171Z Processing triggers for hicolor-icon-theme (0.17-2) ...
+2026-10-22T22:48:26.7239490Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-22T22:48:27.2259750Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-22T22:48:27.2282908Z Not building database; man-db/auto-update is not 'true'.
+2026-10-22T22:48:27.2304507Z Processing triggers for libglib2.0-0t64:amd64 (2.80.0-6ubuntu3.9) ...
+2026-10-22T22:48:27.3040592Z Setting up glib-networking:amd64 (2.80.0-1build1) ...
+2026-10-22T22:48:27.3088144Z Setting up libsoup-3.0-0:amd64 (3.4.4-5ubuntu0.9) ...
+2026-10-22T22:48:27.3128236Z Setting up gstreamer1.0-plugins-good:amd64 (1.24.2-1ubuntu1.8) ...
+2026-10-22T22:48:27.3157053Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-22T22:48:28.6571565Z
+2026-10-22T22:48:28.6572416Z Running kernel seems to be up-to-date.
+2026-10-22T22:48:28.6572992Z
+2026-10-22T22:48:28.6573204Z No services need to be restarted.
+2026-10-22T22:48:28.6573439Z
+2026-10-22T22:48:28.6573624Z No containers need to be restarted.
+2026-10-22T22:48:28.6573868Z
+2026-10-22T22:48:28.6574079Z No user sessions are running outdated binaries.
+2026-10-22T22:48:28.6574354Z
+2026-10-22T22:48:28.6574605Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-22T22:48:31.2798604Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:48:32.6714409Z Reading package lists...
+2026-10-22T22:48:32.8315775Z Building dependency tree...
+2026-10-22T22:48:32.8323569Z Reading state information...
+2026-10-22T22:48:33.8307558Z 0 upgraded, 0 newly installed, 11 reinstalled, 0 to remove and 86 not upgraded.
+2026-10-22T22:48:33.8307971Z Need to get 19.6 MB/43.6 MB of archives.
+2026-10-22T22:48:33.8308285Z After this operation, 0 B of additional disk space will be used.
+2026-10-22T22:48:33.8308737Z Get:1 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/universe amd64 podman amd64 4.9.3+ds1-1ubuntu0.2 [13.4 MB]
+2026-10-22T22:48:35.7976177Z Get:2 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/universe amd64 skopeo amd64 1.13.3+ds1-2ubuntu0.24.04.3 [6177 kB]
+2026-10-22T22:48:38.2218191Z Fetched 19.6 MB in 3s (6287 kB/s)
+2026-10-22T22:48:38.2402376Z (Reading database ...
+2026-10-22T22:48:38.2402997Z (Reading database ... 5%
+2026-10-22T22:48:38.2403748Z (Reading database ... 10%
+2026-10-22T22:48:38.2404299Z (Reading database ... 15%
+2026-10-22T22:48:38.2404866Z (Reading database ... 20%
+2026-10-22T22:48:38.2405416Z (Reading database ... 25%
+2026-10-22T22:48:38.2406040Z (Reading database ... 30%
+2026-10-22T22:48:38.2406488Z (Reading database ... 35%
+2026-10-22T22:48:38.2407044Z (Reading database ... 40%
+2026-10-22T22:48:38.2407501Z (Reading database ... 45%
+2026-10-22T22:48:38.2408078Z (Reading database ... 50%
+2026-10-22T22:48:38.2415939Z (Reading database ... 55%
+2026-10-22T22:48:38.2497457Z (Reading database ... 60%
+2026-10-22T22:48:38.2526442Z (Reading database ... 65%
+2026-10-22T22:48:38.2535842Z (Reading database ... 70%
+2026-10-22T22:48:38.2564601Z (Reading database ... 75%
+2026-10-22T22:48:38.2587485Z (Reading database ... 80%
+2026-10-22T22:48:38.2701575Z (Reading database ... 85%
+2026-10-22T22:48:38.2910702Z (Reading database ... 90%
+2026-10-22T22:48:38.3005447Z (Reading database ... 95%
+2026-10-22T22:48:38.3005965Z (Reading database ... 100%
+2026-10-22T22:48:38.3006673Z (Reading database ... 204818 files and directories currently installed.)
+2026-10-22T22:48:38.3046986Z Preparing to unpack .../00-ipxe-qemu_1.21.1+git-20220113.fbbdc3926-0ubuntu2_all.deb ...
+2026-10-22T22:48:38.3075062Z Unpacking ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) over (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+2026-10-22T22:48:38.3814224Z Preparing to unpack .../01-podman_4.9.3+ds1-1ubuntu0.2_amd64.deb ...
+2026-10-22T22:48:38.3857247Z Unpacking podman (4.9.3+ds1-1ubuntu0.2) over (4.9.3+ds1-1ubuntu0.2) ...
+2026-10-22T22:48:38.9892043Z Preparing to unpack .../02-python3-pil_10.2.0-1ubuntu1.3_amd64.deb ...
+2026-10-22T22:48:39.0412154Z Unpacking python3-pil:amd64 (10.2.0-1ubuntu1.3) over (10.2.0-1ubuntu1.3) ...
+2026-10-22T22:48:39.1398897Z Preparing to unpack .../03-qemu-block-extra_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:39.1586363Z Unpacking qemu-block-extra (1:8.2.2+ds-0ubuntu1.18) over (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:39.1889599Z Preparing to unpack .../04-qemu-utils_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:39.1913280Z Unpacking qemu-utils (1:8.2.2+ds-0ubuntu1.18) over (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:39.3294034Z Preparing to unpack .../05-qemu-system-common_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:39.3331817Z Unpacking qemu-system-common (1:8.2.2+ds-0ubuntu1.18) over (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:39.4961593Z Preparing to unpack .../06-qemu-system-data_1%3a8.2.2+ds-0ubuntu1.18_all.deb ...
+2026-10-22T22:48:39.4991431Z Unpacking qemu-system-data (1:8.2.2+ds-0ubuntu1.18) over (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:39.6343099Z Preparing to unpack .../07-qemu-system-x86_1%3a8.2.2+ds-0ubuntu1.18_amd64.deb ...
+2026-10-22T22:48:39.6436731Z Unpacking qemu-system-x86 (1:8.2.2+ds-0ubuntu1.18) over (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:40.3065681Z Preparing to unpack .../08-seabios_1.16.3-2_all.deb ...
+2026-10-22T22:48:40.3096320Z Unpacking seabios (1.16.3-2) over (1.16.3-2) ...
+2026-10-22T22:48:40.3448309Z Preparing to unpack .../09-skopeo_1.13.3+ds1-2ubuntu0.24.04.3_amd64.deb ...
+2026-10-22T22:48:40.3469677Z Unpacking skopeo (1.13.3+ds1-2ubuntu0.24.04.3) over (1.13.3+ds1-2ubuntu0.24.04.3) ...
+2026-10-22T22:48:40.5800337Z Preparing to unpack .../10-ovmf_2024.02-2ubuntu0.10_all.deb ...
+2026-10-22T22:48:40.5823306Z Unpacking ovmf (2024.02-2ubuntu0.10) over (2024.02-2ubuntu0.10) ...
+2026-10-22T22:48:40.7933472Z Setting up qemu-system-common (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:41.0476336Z Setting up podman (4.9.3+ds1-1ubuntu0.2) ...
+2026-10-22T22:48:42.4121370Z Setting up ovmf (2024.02-2ubuntu0.10) ...
+2026-10-22T22:48:42.4142200Z Setting up python3-pil:amd64 (10.2.0-1ubuntu1.3) ...
+2026-10-22T22:48:42.6132115Z Setting up skopeo (1.13.3+ds1-2ubuntu0.24.04.3) ...
+2026-10-22T22:48:42.6155455Z Setting up qemu-system-data (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:42.6177662Z Setting up seabios (1.16.3-2) ...
+2026-10-22T22:48:42.6196473Z Setting up ipxe-qemu (1.21.1+git-20220113.fbbdc3926-0ubuntu2) ...
+2026-10-22T22:48:42.6227209Z Setting up qemu-utils (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:42.6247798Z Setting up qemu-block-extra (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:43.0701353Z Setting up qemu-system-x86 (1:8.2.2+ds-0ubuntu1.18) ...
+2026-10-22T22:48:43.0765877Z Processing triggers for hicolor-icon-theme (0.17-2) ...
+2026-10-22T22:48:43.0842361Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-22T22:48:43.0861603Z Not building database; man-db/auto-update is not 'true'.
+2026-10-22T22:48:44.4503271Z
+2026-10-22T22:48:44.4503842Z Running kernel seems to be up-to-date.
+2026-10-22T22:48:44.4504077Z
+2026-10-22T22:48:44.4504181Z No services need to be restarted.
+2026-10-22T22:48:44.4504334Z
+2026-10-22T22:48:44.4504432Z No containers need to be restarted.
+2026-10-22T22:48:44.4504600Z
+2026-10-22T22:48:44.4505465Z No user sessions are running outdated binaries.
+2026-10-22T22:48:44.4505807Z
+2026-10-22T22:48:44.4506088Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-22T22:48:46.9852619Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:48:47.6017796Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
+2026-10-22T22:48:54.3548770Z Reading package lists...
+2026-10-22T22:48:54.5472141Z Building dependency tree...
+2026-10-22T22:48:54.5481889Z Reading state information...
+2026-10-22T22:48:54.7041851Z ntfs-3g is already the newest version (1:2022.10.3-1.2ubuntu3.2).
+2026-10-22T22:48:54.7042531Z ntfs-3g set to manually installed.
+2026-10-22T22:48:54.7043079Z dosfstools is already the newest version (4.2-1.1build1).
+2026-10-22T22:48:54.7043557Z dosfstools set to manually installed.
+2026-10-22T22:48:54.7044005Z gdisk is already the newest version (1.0.10-1build1).
+2026-10-22T22:48:54.7044444Z gdisk set to manually installed.
+2026-10-22T22:48:54.7044935Z psmisc is already the newest version (23.7-1build1).
+2026-10-22T22:48:54.7046011Z psmisc set to manually installed.
+2026-10-22T22:48:54.7046578Z Suggested packages:
+2026-10-22T22:48:54.7046978Z   floppyd
+2026-10-22T22:48:54.7174530Z The following NEW packages will be installed:
+2026-10-22T22:48:54.7182347Z   gnu-efi mtools
+2026-10-22T22:48:54.7333268Z 0 upgraded, 2 newly installed, 0 to remove and 99 not upgraded.
+2026-10-22T22:48:54.7334217Z Need to get 327 kB of archives.
+2026-10-22T22:48:54.7334688Z After this operation, 1114 kB of additional disk space will be used.
+2026-10-22T22:48:54.7335145Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-22T22:48:54.7953813Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 gnu-efi amd64 3.0.15-1build1 [130 kB]
+2026-10-22T22:48:54.8274202Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 mtools amd64 4.0.43-1build1 [197 kB]
+2026-10-22T22:48:55.0349746Z Fetched 327 kB in 0s (3141 kB/s)
+2026-10-22T22:48:55.0506405Z Selecting previously unselected package gnu-efi.
+2026-10-22T22:48:55.0546314Z (Reading database ...
+2026-10-22T22:48:55.0556002Z (Reading database ... 5%
+2026-10-22T22:48:55.0556676Z (Reading database ... 10%
+2026-10-22T22:48:55.0557089Z (Reading database ... 15%
+2026-10-22T22:48:55.0557410Z (Reading database ... 20%
+2026-10-22T22:48:55.0557710Z (Reading database ... 25%
+2026-10-22T22:48:55.0558001Z (Reading database ... 30%
+2026-10-22T22:48:55.0558286Z (Reading database ... 35%
+2026-10-22T22:48:55.0558567Z (Reading database ... 40%
+2026-10-22T22:48:55.0558852Z (Reading database ... 45%
+2026-10-22T22:48:55.0559125Z (Reading database ... 50%
+2026-10-22T22:48:55.0559431Z (Reading database ... 55%
+2026-10-22T22:48:55.0647461Z (Reading database ... 60%
+2026-10-22T22:48:55.0673093Z (Reading database ... 65%
+2026-10-22T22:48:55.0688879Z (Reading database ... 70%
+2026-10-22T22:48:55.0721493Z (Reading database ... 75%
+2026-10-22T22:48:55.0744525Z (Reading database ... 80%
+2026-10-22T22:48:55.0870226Z (Reading database ... 85%
+2026-10-22T22:48:55.1100415Z (Reading database ... 90%
+2026-10-22T22:48:55.1199942Z (Reading database ... 95%
+2026-10-22T22:48:55.1200752Z (Reading database ... 100%
+2026-10-22T22:48:55.1201368Z (Reading database ... 204818 files and directories currently installed.)
+2026-10-22T22:48:55.1241833Z Preparing to unpack .../gnu-efi_3.0.15-1build1_amd64.deb ...
+2026-10-22T22:48:55.1251032Z Unpacking gnu-efi (3.0.15-1build1) ...
+2026-10-22T22:48:55.1484603Z Selecting previously unselected package mtools.
+2026-10-22T22:48:55.1586788Z Preparing to unpack .../mtools_4.0.43-1build1_amd64.deb ...
+2026-10-22T22:48:55.1593101Z Unpacking mtools (4.0.43-1build1) ...
+2026-10-22T22:48:55.2013300Z Setting up gnu-efi (3.0.15-1build1) ...
+2026-10-22T22:48:55.2036910Z Setting up mtools (4.0.43-1build1) ...
+2026-10-22T22:48:55.2061886Z Processing triggers for install-info (7.1-3build2) ...
+2026-10-22T22:48:55.7478403Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-22T22:48:55.7491339Z Not building database; man-db/auto-update is not 'true'.
+2026-10-22T22:48:56.1091688Z
+2026-10-22T22:48:56.1092206Z Running kernel seems to be up-to-date.
+2026-10-22T22:48:56.1092606Z
+2026-10-22T22:48:56.1092895Z No services need to be restarted.
+2026-10-22T22:48:56.1093112Z
+2026-10-22T22:48:56.1093281Z No containers need to be restarted.
+2026-10-22T22:48:56.1093503Z
+2026-10-22T22:48:56.1093698Z No user sessions are running outdated binaries.
+2026-10-22T22:48:56.1094021Z
+2026-10-22T22:48:56.1094266Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-22T22:48:57.1082802Z test_live_dependencies_and_transient_commands_are_inspected (test_audit.ActivationAuditPrototypeTest.test_live_dependencies_and_transient_commands_are_inspected) ... ok
+2026-10-22T22:48:57.1085538Z test_live_root_units_are_arguments_and_aliases_are_preserved (test_audit.ActivationAuditPrototypeTest.test_live_root_units_are_arguments_and_aliases_are_preserved) ... ok
+2026-10-22T22:48:57.1113126Z test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail (test_audit.ActivationAuditPrototypeTest.test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail) ... ok
+2026-10-22T22:48:57.1129587Z test_quoted_escaped_manager_names_and_dependencies_are_round_tripped (test_audit.ActivationAuditPrototypeTest.test_quoted_escaped_manager_names_and_dependencies_are_round_tripped) ... ok
+2026-10-22T22:48:57.1141215Z test_quoted_live_dropin_path_is_inspected (test_audit.ActivationAuditPrototypeTest.test_quoted_live_dropin_path_is_inspected) ... ok
+2026-10-22T22:48:57.1194356Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+2026-10-22T22:48:57.1242604Z test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask (test_audit.UpdaterAuditTest.test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask) ... ok
+2026-10-22T22:48:57.1256146Z test_live_state_rows_are_validated (test_audit.UpdaterAuditTest.test_live_state_rows_are_validated) ... ok
+2026-10-22T22:48:57.1256971Z test_masked_but_running_updater_is_rejected_in_every_live_state (test_audit.UpdaterAuditTest.test_masked_but_running_updater_is_rejected_in_every_live_state) ... ok
+2026-10-22T22:48:57.1283011Z test_missing_live_user_manager_is_a_failure (test_audit.UpdaterAuditTest.test_missing_live_user_manager_is_a_failure) ... ok
+2026-10-22T22:48:57.1284224Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+2026-10-22T22:48:57.1300296Z test_static_live_inventory_reads_generated_files_and_both_manager_states (test_audit.UpdaterAuditTest.test_static_live_inventory_reads_generated_files_and_both_manager_states) ... ok
+2026-10-22T22:48:57.1301582Z test_suspicious_units_require_mask_or_review_in_every_state (test_audit.UpdaterAuditTest.test_suspicious_units_require_mask_or_review_in_every_state) ... ok
+2026-10-22T22:48:57.1343196Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+2026-10-22T22:48:57.1350701Z test_fragmented_and_coalesced_frames_at_every_boundary (test_channel.ChannelTest.test_fragmented_and_coalesced_frames_at_every_boundary) ... ok
+2026-10-22T22:48:57.1455113Z test_incomplete_and_oversized_frames_fail (test_channel.ChannelTest.test_incomplete_and_oversized_frames_fail) ... ok
+2026-10-22T22:48:57.1456341Z test_raw_exports_preserve_bytes_and_reject_corruption (test_channel.ChannelTest.test_raw_exports_preserve_bytes_and_reject_corruption) ... ok
+2026-10-22T22:48:57.1465421Z test_events_before_and_after_command_reply_are_retained (test_channel.QMPTest.test_events_before_and_after_command_reply_are_retained) ... ok
+2026-10-22T22:48:57.1466303Z test_host_exit_reset_suspend_and_missing_shutdown_are_rejected (test_channel.QMPTest.test_host_exit_reset_suspend_and_missing_shutdown_are_rejected) ... ok
+2026-10-22T22:48:57.1476152Z test_failed_transaction_stops_before_success_check (test_default_stock.DefaultStockTest.test_failed_transaction_stops_before_success_check) ... ok
+2026-10-22T22:48:57.1489977Z test_resolves_booted_stock_index_and_handles_already_default (test_default_stock.DefaultStockTest.test_resolves_booted_stock_index_and_handles_already_default) ... ok
+2026-10-22T22:48:57.1521489Z test_wrong_identity_or_staged_update_never_changes_default (test_default_stock.DefaultStockTest.test_wrong_identity_or_staged_update_never_changes_default) ... ok
+2026-10-22T22:48:57.1524642Z test_any_offline_disk_gpt_or_efi_difference_fails (test_disk_audit.DiskAuditTest.test_any_offline_disk_gpt_or_efi_difference_fails) ... ok
+2026-10-22T22:48:57.1725169Z test_gpt_checks_primary_backup_crc_identity_and_exact_boundaries (test_disk_audit.DiskAuditTest.test_gpt_checks_primary_backup_crc_identity_and_exact_boundaries) ... ok
+2026-10-22T22:48:57.1741674Z test_lost_modified_or_unordered_windows_and_non_linux_addition_fail (test_disk_audit.DiskAuditTest.test_lost_modified_or_unordered_windows_and_non_linux_addition_fail) ... ok
+2026-10-22T22:48:57.1796447Z test_real_edk2_records_replace_deleted_values_and_preserve_windows_payload (test_disk_audit.DiskAuditTest.test_real_edk2_records_replace_deleted_values_and_preserve_windows_payload) ... ok
+2026-10-22T22:48:57.1798509Z test_write_even_if_bytes_later_restored_or_device_missing_is_a_failure (test_disk_audit.DiskAuditTest.test_write_even_if_bytes_later_restored_or_device_missing_is_a_failure) ... ok
+2026-10-22T22:48:57.3222512Z test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline) ... ok
+2026-10-22T22:48:57.3791764Z test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters) ... ok
+2026-10-22T22:48:58.4054329Z test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence) ... ok
+2026-10-22T22:48:58.4056314Z test_no_frame_is_accepted_without_session_readiness (test_greeter.GreeterTest.test_no_frame_is_accepted_without_session_readiness) ... ok
+2026-10-22T22:48:58.4080317Z test_active_service_without_process_or_with_wrong_active_vt_times_out (test_greeter_probe.GreeterProbeTest.test_active_service_without_process_or_with_wrong_active_vt_times_out) ... ok
+2026-10-22T22:48:58.4090758Z test_fixture_matches_the_pinned_image_manager_instead_of_assuming_sddm (test_greeter_probe.GreeterProbeTest.test_fixture_matches_the_pinned_image_manager_instead_of_assuming_sddm) ... ok
+2026-10-22T22:48:58.4095937Z test_proc_observer_reads_real_executable_effective_uid_and_environment (test_greeter_probe.GreeterProbeTest.test_proc_observer_reads_real_executable_effective_uid_and_environment) ... ok
+2026-10-22T22:48:58.4102324Z test_process_with_active_graphical_vt_is_accepted_and_records_identity (test_greeter_probe.GreeterProbeTest.test_process_with_active_graphical_vt_is_accepted_and_records_identity) ... ok
+2026-10-22T22:48:58.4103644Z test_real_greeter_identity_does_not_depend_on_logind_class_or_argv_spelling (test_greeter_probe.GreeterProbeTest.test_real_greeter_identity_does_not_depend_on_logind_class_or_argv_spelling) ... ok
+2026-10-22T22:48:58.4104967Z test_wrong_executable_owner_type_or_vt_cannot_become_ready (test_greeter_probe.GreeterProbeTest.test_wrong_executable_owner_type_or_vt_cannot_become_ready) ... ok
+2026-10-22T22:48:58.4238681Z test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created) ... ok
+2026-10-22T22:48:58.5538750Z test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently) ... ok
+2026-10-22T22:48:58.5878919Z test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask) ... ok
+2026-10-22T22:48:58.5880667Z test_missing_records_and_other_boot_cannot_pass (test_offline_journal.OfflineJournalTest.test_missing_records_and_other_boot_cannot_pass) ... ok
+2026-10-22T22:48:58.5883905Z test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail (test_offline_journal.OfflineJournalTest.test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail) ... ok
+2026-10-22T22:48:58.5890381Z Default is the identity-checked booted stock deployment: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T22:48:58.5891426Z Default is the identity-checked booted stock deployment: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T22:48:58.5892247Z {"pid": 123, "type": "wayland", "uid": 975, "vt": 1}
+2026-10-22T22:48:58.5892632Z STOCK_GRAPHICAL_GREETER_READY
+2026-10-22T22:48:58.5893237Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: reader failed
+2026-10-22T22:48:58.5894016Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T22:48:58.5904848Z test_only_unreadable_journal_is_reported_as_hardware_gate (test_offline_journal.OfflineJournalTest.test_only_unreadable_journal_is_reported_as_hardware_gate) ... ok
+2026-10-22T22:48:58.5906783Z test_ordered_logind_and_manager_records_from_exact_boot_pass (test_offline_journal.OfflineJournalTest.test_ordered_logind_and_manager_records_from_exact_boot_pass) ... ok
+2026-10-22T22:48:58.5909309Z test_restore_filter_descends_only_toward_persistent_journals (test_offline_journal.OfflineJournalTest.test_restore_filter_descends_only_toward_persistent_journals) ... ok
+2026-10-22T22:48:58.7795450Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T22:48:58.7889549Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T22:48:58.7901178Z test_every_reader_command_error_and_timeout_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_every_reader_command_error_and_timeout_is_blocking) ... ok
+2026-10-22T22:48:58.7985860Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T22:48:58.7990233Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T22:48:58.7999846Z test_fallback_verifies_before_selecting_exact_boot (test_offline_journal.OfflineReaderCommandsTest.test_fallback_verifies_before_selecting_exact_boot) ... ok
+2026-10-22T22:48:58.8041820Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--device', '/dev/nbd0p4:/dev/guest:r', '--volume', '/tmp/tmpbnr957zo/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/export:rw', '--entrypoint', '/usr/bin/btrfs', 'localhost/aresos:ci', 'version'], 'returncode': 1, 'stderr': 'stat /usr/bin/btrfs: no such file or directory', 'output': 'offline-btrfs-version.txt'}
+2026-10-22T22:48:58.8198183Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--volume', '/tmp/tmp_1d65j2p/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/var/log/journal:/guest-journal:ro', '--entrypoint', '/usr/bin/journalctl', 'localhost/aresos:ci', '--directory=/guest-journal', '--no-pager', '--version'], 'returncode': 1, 'stderr': 'stat /usr/bin/journalctl: no such file or directory', 'output': 'offline-journalctl-version.txt'}
+2026-10-22T22:48:58.8375056Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; host Podman is absent
+2026-10-22T22:48:58.8421156Z test_gate_requires_both_explicit_host_limitations (test_offline_journal.OfflineReaderCommandsTest.test_gate_requires_both_explicit_host_limitations) ... ok
+2026-10-22T22:48:58.9148236Z test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking) ... ok
+2026-10-22T22:48:58.9220819Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T22:48:58.9230520Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T22:48:58.9371192Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T22:48:58.9722394Z test_mounted_reader_and_cleanup_failures_are_blocking (test_offline_journal.OfflineReaderCommandsTest.test_mounted_reader_and_cleanup_failures_are_blocking) ... ok
+2026-10-22T22:48:59.1942087Z test_guest_tty_reader_cannot_consume_completion_command (test_serial_console.SerialCommandTest.test_guest_tty_reader_cannot_consume_completion_command) ... ok
+2026-10-22T22:48:59.2412647Z test_long_script_survives_canonical_tty_line_limit (test_serial_console.SerialCommandTest.test_long_script_survives_canonical_tty_line_limit) ... ok
+2026-10-22T22:48:59.2463856Z test_nonzero_guest_exit_is_preserved (test_serial_console.SerialCommandTest.test_nonzero_guest_exit_is_preserved) ... ok
+2026-10-22T22:48:59.2470141Z test_corruption_and_incomplete_frames_are_rejected (test_serial_console.SerialExportTest.test_corruption_and_incomplete_frames_are_rejected) ... ok
+2026-10-22T22:48:59.2477712Z test_kernel_record_at_every_payload_boundary_preserves_bytes (test_serial_console.SerialExportTest.test_kernel_record_at_every_payload_boundary_preserves_bytes) ... ok
+2026-10-22T22:48:59.2478696Z test_wrapped_crlf_export_preserves_raw_json (test_serial_console.SerialExportTest.test_wrapped_crlf_export_preserves_raw_json) ... ok
+2026-10-22T22:48:59.2479969Z test_boot_log_retention_is_bounded_without_losing_partial_query (test_serial_console.SerialTerminalTest.test_boot_log_retention_is_bounded_without_losing_partial_query) ... ok
+2026-10-22T22:48:59.2482324Z test_queries_split_at_every_socket_boundary (test_serial_console.SerialTerminalTest.test_queries_split_at_every_socket_boundary) ... ok
+2026-10-22T22:48:59.2483272Z test_repeated_queries_answered_once_each (test_serial_console.SerialTerminalTest.test_repeated_queries_answered_once_each) ... ok
+2026-10-22T22:48:59.2484304Z test_shell_text_and_other_escape_sequences_do_not_receive_input (test_serial_console.SerialTerminalTest.test_shell_text_and_other_escape_sequences_do_not_receive_input) ... ok
+2026-10-22T22:48:59.4499949Z test_all_os_scripts_and_embedded_snippets_have_no_bare_negative_assertion (test_shell_assertions.ShellAssertionTest.test_all_os_scripts_and_embedded_snippets_have_no_bare_negative_assertion) ... ok
+2026-10-22T22:48:59.4518037Z test_daily_login_rejects_brew_even_outside_linuxbrew_path (test_shell_assertions.ShellAssertionTest.test_daily_login_rejects_brew_even_outside_linuxbrew_path) ... ok
+2026-10-22T22:48:59.5338094Z test_daily_policy_rejects_wheel_each_manager_and_each_competing_process (test_shell_assertions.ShellAssertionTest.test_daily_policy_rejects_wheel_each_manager_and_each_competing_process) ... ok
+2026-10-22T22:48:59.5371896Z test_install_transactions_stop_on_failure_and_never_include_the_reboot (test_shell_assertions.ShellAssertionTest.test_install_transactions_stop_on_failure_and_never_include_the_reboot) ... ok
+2026-10-22T22:48:59.5373389Z test_static_guard_rejects_negation_and_and_false_including_embedded_shell (test_shell_assertions.ShellAssertionTest.test_static_guard_rejects_negation_and_and_false_including_embedded_shell) ... ok
+2026-10-22T22:48:59.5385949Z test_stock_and_rollback_guard_refuses_daily_account (test_shell_assertions.ShellAssertionTest.test_stock_and_rollback_guard_refuses_daily_account) ... ok
+2026-10-22T22:48:59.5407714Z test_switch_refuses_existing_daily_name_even_with_uid_1001_free (test_shell_assertions.ShellAssertionTest.test_switch_refuses_existing_daily_name_even_with_uid_1001_free) ... ok
+2026-10-22T22:48:59.5416803Z test_absent_disk_or_partition_table_cannot_pass_comparison (test_switch.SwitchEvidenceTest.test_absent_disk_or_partition_table_cannot_pass_comparison) ... ok
+2026-10-22T22:48:59.5418076Z test_corrupt_status_export_cannot_be_accepted_as_state (test_switch.SwitchEvidenceTest.test_corrupt_status_export_cannot_be_accepted_as_state) ... ok
+2026-10-22T22:48:59.5419093Z test_credentials_and_encoded_variants_are_redacted (test_switch.SwitchEvidenceTest.test_credentials_and_encoded_variants_are_redacted) ... ok
+2026-10-22T22:48:59.5420131Z test_duplicate_or_missing_shutdown_cannot_hide_a_boot_loop (test_switch.SwitchEvidenceTest.test_duplicate_or_missing_shutdown_cannot_hide_a_boot_loop) ... ok
+2026-10-22T22:48:59.5421214Z test_only_orderly_guest_initialization_reset_is_accepted (test_switch.SwitchEvidenceTest.test_only_orderly_guest_initialization_reset_is_accepted) ... ok
+2026-10-22T22:48:59.5422280Z test_partition_changes_cannot_hide_behind_identical_mounts (test_switch.SwitchEvidenceTest.test_partition_changes_cannot_hide_behind_identical_mounts) ... ok
+2026-10-22T22:48:59.5423414Z test_reboot_inspection_requires_correct_staged_or_queued_identity (test_switch.SwitchEvidenceTest.test_reboot_inspection_requires_correct_staged_or_queued_identity) ... ok
+2026-10-22T22:48:59.5606743Z test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query (test_switch.SwitchEvidenceTest.test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query) ... ok
+2026-10-22T22:48:59.6616346Z test_reboot_reader_still_rejects_guest_that_does_not_exit_by_deadline (test_switch.SwitchEvidenceTest.test_reboot_reader_still_rejects_guest_that_does_not_exit_by_deadline) ... ok
+2026-10-22T22:48:59.6617678Z test_recreated_ram_swap_is_not_a_partition_change (test_switch.SwitchEvidenceTest.test_recreated_ram_swap_is_not_a_partition_change) ... ok
+2026-10-22T22:48:59.6621280Z test_serial_json_frame_is_parsed_independently_of_shell_prompt (test_switch.SwitchEvidenceTest.test_serial_json_frame_is_parsed_independently_of_shell_prompt) ... ok
+2026-10-22T22:48:59.6622840Z test_staged_reference_cannot_be_mistaken_for_booted_release (test_switch.SwitchEvidenceTest.test_staged_reference_cannot_be_mistaken_for_booted_release) ... ok
+2026-10-22T22:48:59.6626866Z test_status_spinner_and_interleaved_kernel_records_preserve_json_bytes (test_switch.SwitchEvidenceTest.test_status_spinner_and_interleaved_kernel_records_preserve_json_bytes) ... ok
+2026-10-22T22:48:59.6897014Z test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently) ... ok
+2026-10-22T22:48:59.6902231Z test_echo_enabled_cannot_pass (test_tty_password.TtyPasswordTest.test_echo_enabled_cannot_pass) ... ok
+2026-10-22T22:48:59.6905718Z test_failed_login_query_is_not_a_password_prompt (test_tty_password.TtyPasswordTest.test_failed_login_query_is_not_a_password_prompt) ... ok
+2026-10-22T22:48:59.6913207Z test_hidden_echo_without_login_cannot_pass (test_tty_password.TtyPasswordTest.test_hidden_echo_without_login_cannot_pass) ... ok
+2026-10-22T22:48:59.6920180Z test_persistent_hangup_still_fails_at_deadline (test_tty_password.TtyPasswordTest.test_persistent_hangup_still_fails_at_deadline) ... ok
+2026-10-22T22:48:59.6929043Z test_reopens_after_login_revokes_observation_descriptor (test_tty_password.TtyPasswordTest.test_reopens_after_login_revokes_observation_descriptor) ... ok
+2026-10-22T22:48:59.6932752Z test_unexpected_terminal_error_is_not_retried (test_tty_password.TtyPasswordTest.test_unexpected_terminal_error_is_not_retried) ... ok
+2026-10-22T22:48:59.6941462Z test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit (test_two_disk_vm.TwoDiskHarnessTest.test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit) ... ok
+2026-10-22T22:48:59.6943562Z test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown (test_two_disk_vm.TwoDiskHarnessTest.test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown) ... ok
+2026-10-22T22:48:59.6947581Z test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk (test_two_disk_vm.TwoDiskHarnessTest.test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk) ... ok
+2026-10-22T22:48:59.6952895Z test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach (test_two_disk_vm.TwoDiskHarnessTest.test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach) ... ok
+2026-10-22T22:48:59.6953610Z
+2026-10-22T22:48:59.6954022Z ----------------------------------------------------------------------
+2026-10-22T22:48:59.6954638Z TTY3_LOGIN_PASSWORD_ECHO_DISABLED
+2026-10-22T22:48:59.6955405Z Ran 91 tests in 2.589s
+2026-10-22T22:48:59.6955727Z
+2026-10-22T22:48:59.6955947Z OK
+2026-10-22T22:49:01.2218274Z From https://github.com/carlsenares/AresOS
+2026-10-22T22:49:01.2218955Z  * branch            5578ab21b880091f26bfdc2eda22dd4f304a602b -> FETCH_HEAD
+2026-10-22T22:49:01.2237352Z Qualified release source 5578ab21b880091f26bfdc2eda22dd4f304a602b; runtime payload unchanged; testing ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402
+2026-10-22T22:49:03.0707664Z Creating new GPT entries in memory.
+2026-10-22T22:49:03.0708349Z Warning: The kernel is still using the old partition table.
+2026-10-22T22:49:03.0709364Z The new table will be used at the next reboot or after you
+2026-10-22T22:49:03.0709728Z run partprobe(8) or kpartx(8)
+2026-10-22T22:49:03.0710030Z The operation has completed successfully.
+2026-10-22T22:49:03.2599586Z Traceback (most recent call last):
+2026-10-22T22:49:03.2600237Z   File "/home/runner/work/AresOS/AresOS/os/ci/prepare_two_disks.py", line 63, in <module>
+2026-10-22T22:49:03.2600806Z     main()
+2026-10-22T22:49:03.2601353Z   File "/home/runner/work/AresOS/AresOS/os/ci/prepare_two_disks.py", line 40, in main
+2026-10-22T22:49:03.2601835Z     observed = json.loads(subprocess.check_output(['losetup', '--json', loop]))['loopdevices']
+2026-10-22T22:49:03.2602168Z                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-22T22:49:03.2602719Z   File "/usr/lib/python3.12/json/__init__.py", line 346, in loads
+2026-10-22T22:49:03.2879147Z     return _default_decoder.decode(s)
+2026-10-22T22:49:03.2879588Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-22T22:49:03.2879936Z   File "/usr/lib/python3.12/json/decoder.py", line 337, in decode
+2026-10-22T22:49:03.2881346Z     obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+2026-10-22T22:49:03.2881804Z                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-22T22:49:03.2882275Z   File "/usr/lib/python3.12/json/decoder.py", line 355, in raw_decode
+2026-10-22T22:49:03.2882750Z     raise JSONDecodeError("Expecting value", s, err.value) from None
+2026-10-22T22:49:03.2883348Z json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-22T22:49:03.3050166Z ##[error]Process completed with exit code 1.
+2026-10-22T22:49:03.3091819Z ##[group]Run sudo chown -R "$(id -u):$(id -g)" evidence
+2026-10-22T22:49:03.3092100Z [36;1msudo chown -R "$(id -u):$(id -g)" evidence[0m
+2026-10-22T22:49:03.3092354Z [36;1mtest "$(du -sb evidence | cut -f1)" -lt 180000000[0m
+2026-10-22T22:49:03.3123390Z shell: /usr/bin/bash -e {0}
+2026-10-22T22:49:03.3123581Z ##[endgroup]
+2026-10-22T22:49:03.3310379Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-10-22T22:49:03.3310663Z with:
+2026-10-22T22:49:03.3310817Z   name: two-disk-evidence
+2026-10-22T22:49:03.3310989Z   path: evidence/
+2026-10-22T22:49:03.3311150Z   retention-days: 3
+2026-10-22T22:49:03.3311307Z   if-no-files-found: error
+2026-10-22T22:49:03.3311485Z   compression-level: 6
+2026-10-22T22:49:03.3311649Z   overwrite: false
+2026-10-22T22:49:03.3311808Z   include-hidden-files: false
+2026-10-22T22:49:03.3311984Z ##[endgroup]
+2026-10-22T22:49:03.6777197Z (node:5558) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-22T22:49:03.6785698Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-22T22:49:03.6920717Z With the provided path, there will be 32 files uploaded
+2026-10-22T22:49:03.6921293Z Artifact name is valid!
+2026-10-22T22:49:03.6921599Z Root directory input is valid!
+2026-10-22T22:49:03.9968112Z Beginning upload of artifact content to blob storage
+2026-10-22T22:49:04.3401620Z (node:5558) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-22T22:49:04.7016460Z Uploaded bytes 2826228
+2026-10-22T22:49:04.7419693Z Finished uploading artifact content to blob storage!
+2026-10-22T22:49:04.7420955Z SHA256 digest of uploaded artifact zip is 4ff4c5e55c5106082ca098f92aaf5c9d525fd2d134aefe6cd1a68abdf6169f4b
+2026-10-22T22:49:04.7422560Z Finalizing artifact upload
+2026-10-22T22:49:05.1761413Z Artifact two-disk-evidence.zip successfully finalized. Artifact ID 12465285498
+2026-10-22T22:49:05.1761871Z Artifact two-disk-evidence has been successfully uploaded! Final size is 2826228 bytes. Artifact ID is 12465285498
+2026-10-22T22:49:05.1762457Z Artifact download URL: https://github.com/carlsenares/AresOS/actions/runs/39866564466/artifacts/12465285498
+2026-10-22T22:49:05.1916720Z Post job cleanup.
+2026-10-22T22:49:05.2601714Z [command]/usr/bin/git version
+2026-10-22T22:49:05.2666028Z git version 2.55.0
+2026-10-22T22:49:05.2703114Z Temporarily overriding HOME='/home/runner/work/_temp/fd0fa415-ff96-48dd-8909-8ecdc9807ec0' before making global git config changes
+2026-10-22T22:49:05.2703939Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T22:49:05.2704605Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/AresOS/AresOS
+2026-10-22T22:49:05.2761682Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T22:49:05.2765013Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T22:49:05.3042709Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T22:49:05.3101794Z http.https://github.com/.extraheader
+2026-10-22T22:49:05.3139388Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-22T22:49:05.3196724Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T22:49:05.3426011Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T22:49:05.3461837Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T22:49:05.3733571Z Cleaning up orphan processes
+2026-10-22T22:49:05.3977448Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

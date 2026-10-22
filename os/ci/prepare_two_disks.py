@@ -13,6 +13,16 @@ def run(*args):
     subprocess.run(args, check=True)
 
 
+def verify_loop(loop, disk):
+    # --json changes list output only; without --list losetup can return the
+    # legacy/non-list representation. Require the actual backing file before
+    # allowing any filesystem tool to open the disposable loop device.
+    observed = json.loads(subprocess.check_output([
+        'losetup', '--list', '--json', '--output', 'NAME,BACK-FILE', loop]))['loopdevices']
+    assert len(observed) == 1 and observed[0]['name'] == loop
+    assert pathlib.Path(observed[0]['back-file']).resolve() == disk.resolve(), 'Unexpected loop backing file'
+
+
 def main():
     WORK.mkdir(parents=True, exist_ok=True)
     assert (pathlib.Path.cwd() / 'AGENTS.md').is_file()
@@ -37,8 +47,7 @@ def main():
     # backing file is this newly created worktree file. Never supplied by users.
     loop = subprocess.check_output(['losetup', '--find', '--show', '--partscan', str(disk)]).decode().strip()
     try:
-        observed = json.loads(subprocess.check_output(['losetup', '--json', loop]))['loopdevices']
-        assert len(observed) == 1 and pathlib.Path(observed[0]['back-file']).resolve() == disk
+        verify_loop(loop, disk)
         run('mkfs.vfat', '-F', '32', '-n', 'WIN_ESP', loop + 'p1')
         run('mmd', '-i', loop + 'p1', '::/EFI', '::/EFI/Microsoft', '::/EFI/Microsoft/Boot', '::/EFI/Boot')
         for dest in ('::/EFI/Microsoft/Boot/bootmgfw.efi', '::/EFI/Boot/bootx64.efi'):

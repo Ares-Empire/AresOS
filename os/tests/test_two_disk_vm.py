@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
 import two_disk_vm as vm
 from switch_vm import partition_identity
+from prepare_two_disks import verify_loop
 
 
 class TwoDiskHarnessTest(unittest.TestCase):
@@ -72,3 +73,32 @@ class TwoDiskHarnessTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             guest.finish_shutdown('fixture', 'guest-shutdown')
         guest.writes.assert_not_called()
+
+    def test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file(self):
+        path = self.directory / 'protected.raw'
+        response = dict(loopdevices=[{'name': '/dev/loop9', 'back-file': str(path)}])
+        with patch('prepare_two_disks.subprocess.check_output', return_value=json.dumps(response).encode()) as command:
+            verify_loop('/dev/loop9', path)
+            self.assertEqual(command.call_args.args[0], ['losetup', '--list', '--json', '--output', 'NAME,BACK-FILE', '/dev/loop9'])
+        response['loopdevices'][0]['back-file'] = str(self.directory / 'wrong.raw')
+        with patch('prepare_two_disks.subprocess.check_output', return_value=json.dumps(response).encode()):
+            with self.assertRaisesRegex(AssertionError, 'Unexpected loop backing'):
+                verify_loop('/dev/loop9', path)
+
+    def test_german_console_input_translates_the_actual_recovery_commands(self):
+        self.assertEqual(vm.german_keys('/'), ['shift', '7'])
+        self.assertEqual(vm.german_keys('-'), ['slash'])
+        self.assertEqual(vm.german_keys('y'), ['z'])
+        self.assertEqual(vm.german_keys('z'), ['y'])
+        self.assertEqual(vm.german_keys('a'), ['a'])
+
+    def test_kickstart_limits_clear_selection_and_bootloader_to_recorded_target(self):
+        for target in ('vda', 'vdb'):
+            recipe = vm.kickstart(target, '@HASH@')
+            self.assertIn(f'ignoredisk --only-use={target}\n', recipe)
+            self.assertIn(f'clearpart --all --initlabel --drives={target}\n', recipe)
+            self.assertIn(f'bootloader --boot-drive={target} ', recipe)
+            self.assertIn('%include /usr/share/anaconda/interactive-defaults.ks', recipe)
+            self.assertNotIn('zerombr', recipe)
+        with self.assertRaises(AssertionError):
+            vm.kickstart('vda,vdb', '@HASH@')

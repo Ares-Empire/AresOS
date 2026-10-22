@@ -7,7 +7,7 @@ on:
       rehearsal:
         description: 'Package 11: inspect pinned ISO or rehearse installation; never build/publish'
         type: choice
-        options: ['', inspect, probe, full]
+        options: ['', inspect, fixture, probe, full]
         default: ''
       checks_only:
         description: 'Run regressions and live host state query; no image build or VM'
@@ -295,6 +295,7 @@ jobs:
         with:
           extra-squeeze: 'true'
       - name: Inspect the exact pinned live ISO before assuming an installer path
+        if: inputs.rehearsal != 'fixture'
         timeout-minutes: 20
         run: |
           set -euo pipefail
@@ -304,19 +305,33 @@ jobs:
           python3 os/ci/installer_inspect.py
       - name: Prepare disposable file disks and qualify the real live environment
         if: inputs.rehearsal != 'inspect'
-        timeout-minutes: 40
+        timeout-minutes: 80
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          mkdir -p evidence .work/installer
           bash os/ci/install-tools.sh
-          sudo apt-get install -y --no-install-recommends gnu-efi ntfs-3g dosfstools gdisk mtools psmisc
+          sudo apt-get install -y --no-install-recommends gnu-efi ntfs-3g dosfstools gdisk mtools psmisc tesseract-ocr
           dpkg-query -W > evidence/rehearsal-host-packages.txt
           python3 -m unittest discover -s os/tests -v
           cp os/manifest/release.json evidence/release.json
           python3 os/ci/verify_release.py 39818554327
           sudo python3 os/ci/prepare_two_disks.py
-          sudo -E python3 os/ci/two_disk_vm.py '${{ inputs.rehearsal }}'
+          if test '${{ inputs.rehearsal }}' = fixture; then
+            sudo python3 - <<'PY'
+          import json, pathlib, sys
+          sys.path.insert(0, 'os/ci')
+          from disk_audit import offline_disk, boot_variables
+          result = dict(status='passed', vm_started=False,
+                        protected=offline_disk(pathlib.Path('.work/installer/protected.raw').resolve()),
+                        nvram=boot_variables('.work/installer/vars.fd'))
+          pathlib.Path('evidence/native-fixture.json').write_text(json.dumps(result, indent=2) + '\n')
+          print('Native file-backed GPT/EFI/MSR/NTFS/recovery and offline audit passed; no VM started')
+          PY
+          else
+            sudo -E python3 os/ci/two_disk_vm.py '${{ inputs.rehearsal }}'
+          fi
       - name: Bound retained evidence
         if: always()
         run: |

@@ -1,4 +1,5 @@
 """Pinned ISO rehearsal on two writable file-backed disks, with offline gates."""
+import base64
 import json
 import pathlib
 import re
@@ -10,7 +11,7 @@ import sys
 import time
 
 import switch_vm as sw
-from disk_audit import (boot_variables, compare_disk, compare_nvram, offline_disk,
+from disk_audit import (all_variables, boot_variables, compare_disk, compare_nvram, offline_disk,
                         protected_writes, set_variable)
 
 WORK = pathlib.Path('.work/installer').resolve()
@@ -86,7 +87,17 @@ class Guest(sw.Guest):
         save(stage + '-blockstats', stats)
         return protected_writes(stats)
 
+    def type(self, text):
+        if not getattr(self, 'german_verified', False):
+            self.command('tty-keymap-proof', 'set -e; source /etc/vconsole.conf; test "$KEYMAP" = de; cat /etc/vconsole.conf; localectl status; dumpkeys -C /dev/tty3 --keys-only')
+            self.german_verified = True
+        for char in text:
+            assert char.isascii() and (char.islower() or char.isdigit() or char in ' /-\n'), char
+            self.keys(german_keys(char))
+            time.sleep(0.12)
+
     def finish_shutdown(self, stage, reason, timeout=180):
+        assert reason in ('guest-shutdown', 'guest-reset'), reason
         deadline = time.monotonic() + timeout
         output = bytearray()
         while not any(e.get('event') == 'SHUTDOWN' for e in self.monitor.events):
@@ -125,21 +136,250 @@ class Audit:
         self.disk = offline_disk(WORK / 'protected.raw')
         save('protected-baseline', self.disk)
         self.nvram = None
+        self.all_nvram = None
 
     def check(self, stage, guest=None, establish_nvram=False):
         observed = offline_disk(WORK / 'protected.raw', guest.process if guest else None)
         save(stage + '-protected', observed)
         compare_disk(self.disk, observed)
         nvram = boot_variables(WORK / 'vars.fd')
+        all_nvram = all_variables(WORK / 'vars.fd')
         save(stage + '-nvram', nvram)
+        save(stage + '-all-variables', all_nvram)
         shutil.copyfile(WORK / 'vars.fd', EVIDENCE / (stage + '-vars.fd'))
         if establish_nvram:
             assert nvram['Boot0000'] == boot_variables(EVIDENCE / 'pre-firmware-vars.fd')['Boot0000']
             self.nvram = nvram
+            self.all_nvram = all_nvram
         else:
             assert self.nvram is not None
             save(stage + '-nvram-diff', compare_nvram(self.nvram, nvram))
+            save(stage + '-all-variables-diff', {name: dict(before=self.all_nvram.get(name), after=all_nvram.get(name))
+                 for name in self.all_nvram.keys() | all_nvram.keys()
+                 if self.all_nvram.get(name) != all_nvram.get(name)})
         print(f'OFFLINE PROTECTED DISK UNCHANGED: {stage} {observed["sha256"]}', flush=True)
+
+
+def german_keys(char):
+    return {'/': ['shift', '7'], '-': ['slash'], 'y': ['z'], 'z': ['y'],
+            ' ': ['spc'], '\n': ['ret']}.get(char, [char])
+
+
+def disk_names(layout):
+    devices = layout['blockdevices']
+    protected, = [d for d in devices if d.get('serial') == 'MICRON-KEEP' and d['type'] == 'disk']
+    target, = [d for d in devices if d.get('serial') == 'CRUCIAL-TARGET' and d['type'] == 'disk']
+    assert protected['size'] == 50 * 1024 ** 3 and target['size'] == 49 * 1024 ** 3
+    assert re.fullmatch(r'vd[a-z]', protected['name']) and re.fullmatch(r'vd[a-z]', target['name'])
+    assert protected['name'] != target['name']
+    for item in devices:
+        if re.fullmatch(re.escape(protected['name']) + r'\d+', item['name']):
+            assert not any(item.get('mountpoints') or []), 'PRODUCT FAILURE: protected partition mounted'
+        assert not re.fullmatch(re.escape(target['name']) + r'\d+', item['name']), 'Target is not empty'
+    return protected['name'], target['name']
+
+
+def kickstart(target, password_hash):
+    assert re.fullmatch(r'vd[a-z]', target)
+    return f'''cmdline
+lang en_US.UTF-8
+keyboard --vckeymap=de --xlayouts=de
+timezone Europe/Berlin --utc
+rootpw --lock
+user --name=ares-recovery --uid=1000 --groups=wheel --iscrypted --password={password_hash}
+network --bootproto=dhcp --device=link --activate
+ignoredisk --only-use={target}
+clearpart --all --initlabel --drives={target}
+autopart --type=btrfs
+bootloader --boot-drive={target} --append="console=tty0 console=ttyS0,115200n8"
+%include /usr/share/anaconda/interactive-defaults.ks
+%post --nochroot --erroronfail
+echo ARESOS_INSTALLER_POST_COMPLETE > /dev/ttyS0
+%end
+reboot
+'''
+
+
+def install(audit, password, password_hash):
+    Guest.mode = 'live'
+    guest = Guest(WORK / 'target.raw', password, [password, password_hash])
+    stage = Guest.order + '-install'
+    try:
+        guest.login_live()
+        layout = guest.capture_json(stage + '-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
+        protected, target = disk_names(layout)
+        save(stage + '-mapping', dict(protected=protected, target=target, protected_serial='MICRON-KEEP', target_serial='CRUCIAL-TARGET'))
+        guest.command(stage + '-payload', 'set -e; podman image inspect ghcr.io/ublue-os/bazzite-nvidia-open:stable --format "{{.Digest}}"')
+        guest.command(stage + '-cli', 'set -e; anaconda --help > /tmp/anaconda-help; cat /tmp/anaconda-help; grep -q -- --kickstart /tmp/anaconda-help; grep -q -- --cmdline /tmp/anaconda-help')
+        recipe = kickstart(target, password_hash)
+        (EVIDENCE / (stage + '-kickstart.ks')).write_text(recipe.replace(password_hash, '@VM_PASSWORD_HASH@'))
+        encoded = base64.b64encode(recipe.encode()).decode()
+        guest.command(stage + '-prepare-kickstart', f"set -e; printf '%s' '{encoded}' | base64 -d > /tmp/rehearsal.ks; chmod 0600 /tmp/rehearsal.ks; ksvalidator /tmp/rehearsal.ks", private=True)
+        # liveinst itself warns that a --kickstart argument is unsupported.
+        # Its documented LIVECMD storage-testing hook runs the same ISO's
+        # Anaconda, preserving the launcher setup and all Bazzite defaults.
+        guest.command(stage + '-start', '''set -e
+(set +e
+PKEXEC_UID=$(id -u liveuser) LIVECMD='anaconda --liveinst --cmdline --kickstart=/tmp/rehearsal.ks' liveinst > /tmp/rehearsal-install.log 2>&1 < /dev/null
+printf '%s' "$?" > /tmp/rehearsal-install.exit) &
+echo SAME_ISO_ANACONDA_STARTED
+''')
+        deadline = time.monotonic() + 1800
+        progress = bytearray()
+        while not any(e.get('event') == 'SHUTDOWN' for e in guest.monitor.events):
+            assert time.monotonic() < deadline, 'Installer exceeded the 30-minute automation bound'
+            guest.writes(stage + '-progress')
+            # Drain the shared UART, including the post-install marker.
+            guest.console.settimeout(1)
+            try:
+                data = guest.console.recv(65536)
+            except socket.timeout:
+                data = b''
+            if data:
+                progress.extend(data)
+                reply = guest.replies.feed(data)
+                if reply:
+                    guest.console.sendall(reply)
+            if not int(time.monotonic()) % 15:
+                status = guest.capture_json(stage + '-progress', sw.framed("python3 -c 'import json,pathlib; p=pathlib.Path(\"/tmp/rehearsal-install.exit\"); print(json.dumps(dict(exit=p.read_text() if p.exists() else None)))'"))
+                if status['exit'] is not None:
+                    guest.command(stage + '-log', 'cat /tmp/rehearsal-install.log')
+                    assert status['exit'] == '0', 'Same-ISO Anaconda failed; STOP'
+                    guest.poweroff(stage)
+                    break
+        else:
+            pass
+        if guest.process.poll() is None:
+            shutdown = next(e for e in guest.monitor.events if e.get('event') == 'SHUTDOWN')
+            guest.finish_shutdown(stage, shutdown['data']['reason'])
+        text = sw.redact(progress.decode(errors='replace') + guest.transcript, guest.secrets)
+        (EVIDENCE / (stage + '-progress-console.txt')).write_text(text)
+        save(stage + '-result', dict(status='installer-returned-or-requested-reboot', target=target,
+             method='same-ISO Anaconda through liveinst LIVECMD with explicit kickstart', click_path_qualified=False))
+        return target
+    finally:
+        guest.close(stage)
+        audit.check(stage, guest)
+
+
+def restore_windows_order():
+    entries = boot_variables(WORK / 'vars.fd')
+    order = bytes.fromhex(entries['BootOrder']['hex'])
+    numbers = list(struct.unpack('<' + 'H' * (len(order) // 2), order))
+    assert 0 in numbers
+    set_variable(WORK / 'vars.fd', 'BootOrder', struct.pack('<' + 'H' * len(numbers), 0, *[n for n in numbers if n != 0]))
+
+
+def grub_promotion(audit, password, password_hash):
+    """Try the real menu first, then the explicitly permitted one-time fallback."""
+    release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
+    stock = json.loads((EVIDENCE / 'result.json').read_text())['retained_stock_checksum']
+    digest = release['base'].split('@', 1)[1]
+    Guest.mode = 'installed'
+    guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-stock')
+    try:
+        script = pathlib.Path('os/release/switch.sh').read_text().replace('@REFERENCE@', release['reference'])
+        guest.command('b-switch', script, timeout=1500)
+        pending = guest.capture_json('b-switch-inspection', sw.framed('bootc status --json'))
+        sw.inspect_transaction(pending, release['reference'], stock)
+        guest.reboot('b-switch')
+    finally:
+        guest.close('b-switch')
+        audit.check('b-switch', guest)
+    guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-aresos')
+    try:
+        status = guest.capture_json('b-aresos-status', sw.framed('bootc status --json'))
+        assert sw.booted_reference(status) == release['reference']
+        ordered = guest.capture_json('b-aresos-order', sw.framed('rpm-ostree status --json'))
+        assert ordered['deployments'][0]['booted'] and ordered['deployments'][0]['checksum'] != stock
+        # Resolve each actual BLS ostree= symlink to the deployment checksum.
+        entries = guest.capture_json('b-bls-entries', sw.framed('''python3 - <<'PY'
+import json, pathlib, re
+entries=[]
+for file in pathlib.Path('/boot/loader/entries').glob('*.conf'):
+    text=file.read_text()
+    match=re.search(r'(?:^| )ostree=([^ ]+)', text, re.M)
+    if match:
+        path=pathlib.Path('/sysroot' + match[1].strip()).resolve()
+        title=re.search(r'^title (.+)$', text, re.M)
+        entries.append(dict(id=file.stem, title=title[1], deployment=str(path), content=text))
+print(json.dumps(entries))
+PY'''))
+        candidates = [entry for entry in entries if stock in entry['deployment']]
+        if len(candidates) != 1 or candidates[0]['id'] != 'ostree-1-default':
+            save('grub-promotion', dict(status='blocked', reason='Actual BLS stock entry was not uniquely index 1', entries=entries))
+            guest.poweroff('b-unresolved-menu')
+            return False
+        backup = candidates[0]
+        guest.reboot('b-menu-preparation')
+    finally:
+        guest.close('b-menu-preparation')
+        audit.check('b-menu-preparation', guest)
+    guest = Guest(WORK / 'target.raw', password, [password, password_hash])
+    path = 'QMP Esc, Home, Down, Enter'
+    try:
+        # Attempt Esc in GRUB, retain the frame and OCR before selecting. Never
+        # select by guessed position if the actual recorded titles are absent.
+        time.sleep(2)
+        guest.keys(['esc'])
+        time.sleep(0.3)
+        guest.screenshot('b-grub-menu-attempt')
+        frame = EVIDENCE / 'b-grub-menu-attempt.png'
+        ocr = subprocess.check_output(['tesseract', str(frame), 'stdout'], stderr=subprocess.DEVNULL).decode()
+        (EVIDENCE / 'b-grub-menu-attempt-ocr.txt').write_text(ocr)
+        normalized = re.sub('[^a-z0-9]', '', ocr.lower())
+        if 'ostree0' in normalized and 'ostree1' in normalized and 'grub' in normalized:
+            guest.keys(['home'])
+            guest.keys(['down'])
+            guest.screenshot('b-grub-recorded-stock-selected')
+            guest.keys(['ret'])
+        else:
+            path = 'grub2-reboot fallback after QMP menu could not be identified'
+        try:
+            guest.login()
+        except TimeoutError:
+            # Firmware intercepted Esc or no menu could be identified. This is
+            # a bounded UI dead end, not permission to guess an entry.
+            guest.close('b-menu-undrivable')
+            audit.check('b-menu-undrivable', guest)
+            guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-menu-fallback')
+            path = 'grub2-reboot fallback after QMP menu could not be driven'
+        state = guest.capture_json('b-one-time-attempt-status', sw.framed('bootc status --json'))
+        if state['status']['booted']['ostree']['checksum'] != stock:
+            assert sw.booted_reference(state) == release['reference']
+            path = 'grub2-reboot fallback after QMP selection did not boot stock'
+            guest.command('b-one-time-fallback', f"set -e; grub2-reboot '{backup['id']}'; grub2-editenv - list")
+            guest.reboot('b-one-time-fallback')
+            guest.close('b-one-time-fallback')
+            audit.check('b-one-time-fallback', guest)
+            guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-recovered-stock')
+        state = guest.capture_json('b-recovered-stock-status', sw.framed('bootc status --json'))
+        order = guest.capture_json('b-recovered-stock-order', sw.framed('rpm-ostree status --json'))
+        assert state['status']['booted']['ostree']['checksum'] == stock
+        assert sw.booted_digest(state) == digest
+        assert not order['deployments'][0]['booted'] and order['deployments'][0]['checksum'] != stock
+        assert any(d.get('booted') and d['checksum'] == stock for d in order['deployments'][1:])
+        default = pathlib.Path('os/release/default-stock.sh').read_text().replace('@BASE_DIGEST@', digest).replace('@STOCK_CHECKSUM@', stock)
+        guest.command('b-promote-recorded-stock', default)
+        guest.reboot('b-promote-recorded-stock')
+    finally:
+        guest.close('b-recovered-stock')
+        audit.check('b-recovered-stock', guest)
+    guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-unattended-stock')
+    try:
+        state = guest.capture_json('b-unattended-stock-status', sw.framed('bootc status --json'))
+        order = guest.capture_json('b-unattended-stock-order', sw.framed('rpm-ostree status --json'))
+        assert state['status']['booted']['ostree']['checksum'] == stock and sw.booted_digest(state) == digest
+        assert order['deployments'][0]['booted'] and order['deployments'][0]['checksum'] == stock
+        assert not state['status'].get('staged') and not state['status'].get('rollbackQueued')
+        sw.capture_stock_greeter(guest, EVIDENCE, 'b-unattended-stock')
+        guest.poweroff('b-unattended-stock')
+    finally:
+        guest.close('b-unattended-stock')
+        audit.check('b-unattended-stock', guest)
+    save('grub-promotion', dict(status='passed', path=path, recorded_stock_checksum=stock,
+                               stock_was_index_1=True, stock_now_booted_first=True, unattended_second_boot=True))
+    return True
 
 
 def marker(audit, stage, baseline=False, detached=False):
@@ -196,6 +436,7 @@ efibootmgr -v
 
 
 def main():
+    global EVIDENCE
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     sw.WORK, sw.EVIDENCE = WORK, EVIDENCE
     for name in ('vmlinuz', 'initrd.img'):
@@ -208,7 +449,54 @@ def main():
         live_probe(audit)
         save('probe-result', dict(status='inspection-only', installed=False))
         return
-    raise RuntimeError('Full installation requires the recorded ISO/probe assumption audit')
+    assert sys.argv[1:] == ['full']
+    import crypt
+    import secrets
+    password = secrets.token_hex(24)
+    password_hash = crypt.crypt(password, crypt.mksalt(crypt.METHOD_SHA512))
+    print(f'::add-mask::{password}', flush=True)
+    print(f'::add-mask::{password_hash}', flush=True)
+    credentials = WORK / 'credentials.json'
+    credentials.write_text(json.dumps(dict(password=password)))
+    credentials.chmod(0o600)
+    pristine_vars = WORK / 'pristine-vars.fd'
+    shutil.copyfile(EVIDENCE / 'pre-firmware-vars.fd', pristine_vars)
+    target = install(audit, password, password_hash)
+    set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
+    marker(audit, 'after-install-without-linux', detached=True)
+    Guest.mode = 'installed'
+    sw.Guest = Guest
+    sw.main(WORK / 'target.raw', preserve_vars=True, target_name=target,
+            shutdown_hook=lambda stage, guest: audit.check('switch-sequence-' + stage, guest))
+    promoted = grub_promotion(audit, password, password_hash)
+    set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
+    marker(audit, 'before-undo-windows')
+    restore_windows_order()
+    marker(audit, 'after-undo-default-windows')
+    marker(audit, 'after-undo-without-linux', detached=True)
+    save('first-order-result', dict(status='passed', grub_promotion=promoted, default_undo='Windows-first; no erase'))
+    # A separate fresh install, same protected bytes, reversed enumeration.
+    # Discard only the closed disposable Linux target; preserve all evidence.
+    closed = subprocess.run(['fuser', str(WORK / 'target.raw')], capture_output=True)
+    assert closed.returncode == 1 and not closed.stdout.strip()
+    assert (WORK / 'target.raw').resolve().is_relative_to(WORK)
+    (WORK / 'target.raw').unlink()
+    with (WORK / 'target.raw').open('xb') as output:
+        output.truncate(49 * 1024 ** 3)
+    shutil.copyfile(pristine_vars, WORK / 'vars.fd')
+    EVIDENCE = EVIDENCE / 'protected-second'
+    EVIDENCE.mkdir()
+    sw.EVIDENCE = EVIDENCE
+    Guest.order = 'protected-second'
+    reverse = Audit()
+    shutil.copyfile(WORK / 'vars.fd', EVIDENCE / 'pre-firmware-vars.fd')
+    marker(reverse, 'baseline-firmware', baseline=True)
+    install(reverse, password, password_hash)
+    set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
+    marker(reverse, 'after-install-without-linux', detached=True)
+    save('result', dict(status='passed', install_both_orders=True, offline_protected_disk_unchanged=True,
+                        windows_boot_without_linux_after_install_and_undo=True, grub_promotion=promoted))
+    print('TWO-DISK INSTALL/SWITCH/ROLLBACK/UNDO PASSED IN BOTH DRIVE ORDERS', flush=True)
 
 
 if __name__ == '__main__':
