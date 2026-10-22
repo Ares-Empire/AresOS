@@ -2,10 +2,11 @@
 
 The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up.
 
-## Where things are (2026-10-23, about 00:20)
+## Where things are (2026-10-23, about 01:40)
 
-- **Package 11 running** (two-disk install rehearsal + GRUB recovery promotion + pinned media), launched 00:18 with the owner's OK to run autonomously. Brief `briefs/11-two-disk-rehearsal.md`, worktree `C:/Users/pab/AresOS-11-two-disk-rehearsal`, branch `pkg/11-two-disk-rehearsal`. Codex gpt-6.1-sol xhigh, PID 15272, log `C:/Users/pab/AresOS-11-two-disk-rehearsal.log` (`turn.completed` = done), final message `../AresOS-11-two-disk-rehearsal.last.md`. CI cap: 450 minutes (about 680 left in October).
-- **When it finishes:** read its REPORT, run the package review (`docs/REVIEW.md`), fix loop, then ask the owner for an explicit "merge" (auto mode blocks `gh pr merge` otherwise). Bring any JUDGMENT-CALL to the owner in plain language.
+- **Package 11** (draft PR #11, branch `pkg/11-two-disk-rehearsal`, worktree `C:/Users/pab/AresOS-11-two-disk-rehearsal`) stopped as briefed after 2 failed automation attempts (59 CI minutes). Media pins (part C) are done, and the protected-disk audit, two-disk fixture and Windows marker work. The protected disk stayed byte-identical in every check that ran. Blocker: the live ISO's installer is **Anaconda Web UI**, and kickstart is unsupported for live installs.
+- **11b running since 01:36** (`briefs/11b-webui-install.md`): drive the real Web UI pages from a host-side headless browser through a forwarded port (fallback: Anaconda's D-Bus modules), with a mandatory probe before every full run, then finish parts A and B. Cap 350 minutes and 3 full runs (about 620 minutes were left in October). Codex PID 15420, log `C:/Users/pab/AresOS-11b.log`, final message `../AresOS-11b.last.md`.
+- **When it finishes:** read the 11b REPORT section, then the package review (`docs/REVIEW.md`), the fix loop, and an explicit owner "merge". Bring any JUDGMENT-CALL to the owner in plain language.
 - **Done 2026-10-23:** PR #10 merged (`2fa6641`); emergency card `docs/EMERGENCY.md` (`d8359f2`).
 
 ## Waiting on the owner
