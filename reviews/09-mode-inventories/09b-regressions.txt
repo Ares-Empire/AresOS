@@ -1,0 +1,11 @@
+09b regression evidence, 2026-10-22
+Production baseline: c9a7159 (before 09b fixes). Regression commit: 9c7bc96.
+Command (from mod/): .\gradlew.bat runGameTest --continue runClientGameTest
+
+Caused by: java.lang.AssertionError: /gamemode survival must restore Live: selected slot 2
+[05:31:39] [Server thread/INFO] (Minecraft) 1 required tests failed :(
+> Task :runGameTest FAILED
+java.lang.AssertionError: Delayed switch accepted a stale drop: item/components/count in slot 5; actual=4 minecraft:paper {minecraft:custom_name=>literal{Live 5}, minecraft:custom_data=>{mode:"live",slot:5}}; expected=6 minecraft:paper {minecraft:custom_name=>literal{Live 5}, minecraft:custom_data=>{mode:"live",slot:5}}
+Caused by: java.lang.AssertionError: Delayed switch accepted a stale drop: item/components/count in slot 5; actual=4 minecraft:paper {minecraft:custom_name=>literal{Live 5}, minecraft:custom_data=>{mode:"live",slot:5}}; expected=6 minecraft:paper {minecraft:custom_name=>literal{Live 5}, minecraft:custom_data=>{mode:"live",slot:5}}
+> Task :runClientGameTest FAILED
+BUILD FAILED in 42s

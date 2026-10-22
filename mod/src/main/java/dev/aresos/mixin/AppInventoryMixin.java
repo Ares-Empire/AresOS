@@ -16,6 +16,7 @@ import java.util.Set;
 public abstract class AppInventoryMixin implements AppMenuPins {
     @Unique private Set<String> aresos$before;
     @Override public void aresos$beginMove(Set<String> before) { if (aresos$before == null) aresos$before = before; }
+    @Override public void aresos$resetMove() { aresos$before = null; }
     @Inject(method = "clicked", at = @At("HEAD"))
     private void aresos$start(int slot, int button, ContainerInput input, Player player, CallbackInfo ci) {
         if (player instanceof ServerPlayer serverPlayer && LiveMode.isLive(serverPlayer)

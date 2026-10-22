@@ -1,7 +1,5 @@
 package dev.aresos.mode;
 
-import dev.aresos.AresOs;
-import dev.aresos.item.AppItems;
 import dev.aresos.world.DesktopWorld;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -29,7 +27,9 @@ public final class LiveMode {
             return true;
         });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            // A switch timeout can disconnect and remove a player during this loop.
+            for (ServerPlayer player : java.util.List.copyOf(server.getPlayerList().getPlayers())) {
+                ModeInventories.of(player).tick(player);
                 protect(player);
             }
         });
@@ -52,10 +52,9 @@ public final class LiveMode {
             return false;
         }
         if (!DesktopWorld.isHost(server, player)) return false;
-        GameType mode = player.gameMode.getGameModeForPlayer();
-        if (mode != GameType.SURVIVAL && mode != GameType.CREATIVE) return false;
-        player.setGameMode(mode == GameType.CREATIVE ? GameType.SURVIVAL : GameType.CREATIVE);
-        if (isLive(player)) dev.aresos.item.AppInventory.populate(player);
+        GameType mode = ModeInventories.of(player).activeInventory(player);
+        if (!ModeInventories.of(player).switchTo(player,
+                mode == GameType.CREATIVE ? GameType.SURVIVAL : GameType.CREATIVE, true)) return false;
         protect(player);
         return true;
     }

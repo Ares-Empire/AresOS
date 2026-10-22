@@ -96,11 +96,19 @@ public final class AresOs implements ModInitializer {
         NetherHome.register();
         dev.aresos.zone.WalkInZones.register();
         PayloadTypeRegistry.serverboundPlay().register(ToggleModePayload.TYPE, ToggleModePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(dev.aresos.mode.ModeSwitchStatePayload.TYPE, dev.aresos.mode.ModeSwitchStatePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(dev.aresos.mode.ModeSwitchAckPayload.TYPE, dev.aresos.mode.ModeSwitchAckPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(dev.aresos.mode.ModeSwitchAckPayload.TYPE,
+                (payload, context) -> dev.aresos.mode.ModeInventories.of(context.player()).acknowledge(payload.transaction()));
         ServerPlayNetworking.registerGlobalReceiver(ToggleModePayload.TYPE,
-                (payload, context) -> LiveMode.toggleForHost(context.server(), context.player()));
+                (payload, context) -> {
+                    if (!LiveMode.toggleForHost(context.server(), context.player()))
+                        dev.aresos.mode.ModeInventories.of(context.player()).rejectToggle(context.player());
+                });
         AppInventory.register();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            AppInventory.populate(handler.player);
+            dev.aresos.mode.ModeInventories.of(handler.player).reportLoginError(handler.player);
+            if (!dev.aresos.mode.ModeInventories.of(handler.player).restoredForLogin()) AppInventory.populate(handler.player);
             if (configError != null) handler.player.sendSystemMessage(Component.literal("AresOS apps disabled: " + configError));
             if (discoveryError != null) handler.player.sendSystemMessage(Component.literal("App discovery failed; existing apps kept. " + discoveryError));
         });

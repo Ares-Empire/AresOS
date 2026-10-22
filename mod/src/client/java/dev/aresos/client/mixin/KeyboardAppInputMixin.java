@@ -14,6 +14,7 @@ public abstract class KeyboardAppInputMixin {
     @Inject(method = "keyPress", at = @At("HEAD"))
     private void aresos$useInput(long handle, int action, KeyEvent event, CallbackInfo ci) {
         var client = Minecraft.getInstance();
+        if (handle == client.getWindow().handle()) dev.aresos.client.AresOsClient.modeKeyInMenu(client, action, event);
         if (handle == client.getWindow().handle() && client.options.keyUse.matches(event)) {
             AppInput.onUseInput(client, action);
         }

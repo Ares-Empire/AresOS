@@ -1,0 +1,19 @@
+Source commit for both full green runs: 394b7e1.
+Command from mod/: .\gradlew.bat build runClientGameTest --rerun-tasks
+
+Pass 1: .work/09d-full-development-2.log
+[07:19:03] [Server thread/INFO] (Minecraft) All 38 required tests passed :)
+[07:19:49] [Test thread/INFO] (aresos) 09d client checks passed: pending pickup preserves all 12 emeralds across both inventories and the world after timeout and reconnect
+[07:25:56] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 7m 10s
+19 actionable tasks: 19 executed
+JUnit XML summary: {"source_commit": "394b7e1", "suites": 9, "tests": 45, "failures": 0, "errors": 0, "skipped": 0}
+
+Pass 2: .work/09d-full-pass-2.log
+[07:26:54] [Server thread/INFO] (Minecraft) All 38 required tests passed :)
+[07:27:40] [Test thread/INFO] (aresos) 09d client checks passed: pending pickup preserves all 12 emeralds across both inventories and the world after timeout and reconnect
+[07:33:56] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 7m 20s
+19 actionable tasks: 19 executed
+JUnit XML summary: {"source_commit": "394b7e1", "suites": 9, "tests": 45, "failures": 0, "errors": 0, "skipped": 0}
+

@@ -1,0 +1,20 @@
+09c regression evidence, before the production fix
+Base: 12e06d0; only regression tests and embedded-client channel registration changed.
+Command (mod/): .\gradlew.bat runGameTest
+Full local log: .work/09c-red-server.log (ignored)
+
+Caused by: java.lang.AssertionError: Unregistered state channel accepted an external mode change
+    at dev.aresos.test.ModeInventoryGameTests.unregisteredStateChannelRefusesBeforeAnyMutation(ModeInventoryGameTests.java:97)
+
+[Server thread/ERROR] (Minecraft) Encountered an unexpected exception
+java.lang.AssertionError: Lost acknowledgement must roll back Build: selected slot 5
+    at dev.aresos.test.ModeInventoryGameTests.lambda$lostAcknowledgementRollsBackOriginalStateWithinTimeout$1(ModeInventoryGameTests.java:137)
+
+> Task :runGameTest FAILED
+Process '...\java.exe' finished with non-zero exit value 1
+BUILD FAILED in 21s
+
+Both new regressions failed against the old implementation. The scheduled timeout
+assertion propagated as an AssertionError from the game-test tick and stopped the
+server. Expected serialization/fault-injection errors from existing tests also
+appear in the full log; they are unrelated to these two failures.

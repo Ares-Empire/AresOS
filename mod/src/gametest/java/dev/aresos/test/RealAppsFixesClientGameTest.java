@@ -37,6 +37,7 @@ public final class RealAppsFixesClientGameTest implements FabricClientGameTest {
                 for (var mode : List.of(GameType.SURVIVAL, GameType.CREATIVE)) {
                     world.getServer().runOnServer(server -> {
                         var player = world.getConnection().getServerPlayer(); player.setGameMode(mode);
+                        check(player.gameMode() == mode, "Chest fixture did not enter " + mode);
                         DesktopWorld.setEnabled(server, mode == GameType.CREATIVE);
                         player.getInventory().clearContent(); player.getInventory().setItem(9, AppItems.create(app));
                         openChest(player);
@@ -47,9 +48,12 @@ public final class RealAppsFixesClientGameTest implements FabricClientGameTest {
                     click(context, 54); click(context, 27); world.getConnection().waitForServerboundPackets();
                     check(!AppsConfig.load(config).apps().getFirst().pinned(), "Chest unpin escaped normal-world/Build guard: " + mode);
                     context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+                    context.waitForScreen(null);
+                    world.getConnection().waitForServerboundPackets();
                 }
                 world.getServer().runOnServer(server -> {
                     var player = world.getConnection().getServerPlayer(); player.setGameMode(GameType.SURVIVAL);
+                    check(player.gameMode() == GameType.SURVIVAL, "Live chest fixture mode change was refused");
                     DesktopWorld.setEnabled(server, true);
                     player.getInventory().clearContent(); player.getInventory().setItem(9, AppItems.create(app));
                     openChest(player);
@@ -71,6 +75,8 @@ public final class RealAppsFixesClientGameTest implements FabricClientGameTest {
                 if (AppsConfig.load(config).apps().getFirst().pinned()) failures.add("07b chest unpin: apps.json stayed pinned");
                 screenshot(context, "07b-chest-unpinned");
                 context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+                context.waitForScreen(null);
+                world.getConnection().waitForServerboundPackets();
                 world.getServer().runOnServer(server -> {
                     try { AresOs.savePins(Map.of(app.id(), true)); } catch (Exception e) { throw new RuntimeException(e); }
                     var player = world.getConnection().getServerPlayer(); player.getInventory().clearContent();

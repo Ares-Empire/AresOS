@@ -40,8 +40,10 @@ public final class AresOsGameTests {
         var connection = new Connection(PacketFlow.SERVERBOUND);
         new EmbeddedChannel(connection);
         helper.getLevel().getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
+        ModeInventoryFixtures.registerStateReceiver(player);
         player.connection.handleAcceptPlayerLoad(new net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket());
         player.setGameMode(GameType.SURVIVAL);
+        ModeInventoryFixtures.acknowledge(player);
         BlockPos pos = helper.absolutePos(new BlockPos(2, 2, 2));
         player.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
         helper.assertTrue(player.connection.hasClientLoaded()

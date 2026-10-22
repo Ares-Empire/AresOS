@@ -25,6 +25,7 @@ public final class AresOsClient implements ClientModInitializer {
     public static final FocusReturn FOCUS_RETURN = new FocusReturn();
     private static long zoneFocusToken;
     private static long zoneVisit;
+    private static KeyMapping modeToggle;
     private static AppLauncher launcher = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows")
             ? new WindowsAppLauncher() : new LinuxAppLauncher();
 
@@ -39,6 +40,8 @@ public final class AresOsClient implements ClientModInitializer {
     public void onInitializeClient() {
         HomeButton.register();
         AppsScreen.register();
+        ClientPlayNetworking.registerGlobalReceiver(dev.aresos.mode.ModeSwitchStatePayload.TYPE,
+                (payload, context) -> ModeSwitchClient.receive(payload));
         ClientPlayNetworking.registerGlobalReceiver(ZoneLaunchPayload.TYPE, (payload, context) -> {
             // A remote Minecraft server must never be able to auto-launch local programs.
             if (AppsScreen.active(Minecraft.getInstance())) launch(payload.app(), payload.visit());
@@ -47,19 +50,35 @@ public final class AresOsClient implements ClientModInitializer {
         });
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             FOCUS_RETURN.reset(); zoneFocusToken = 0; zoneVisit = 0;
+            ModeSwitchClient.reset();
         });
         var category = KeyMapping.Category.register(AresOs.id("aresos"));
         var toggle = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.aresos.switch_mode",
                 InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, category));
+        modeToggle = toggle;
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             AppInput.endTick();
             while (toggle.consumeClick()) {
                 if (client.player != null && client.gui.screen() == null
                         && ClientPlayNetworking.canSend(ToggleModePayload.TYPE)) {
-                    ClientPlayNetworking.send(ToggleModePayload.INSTANCE);
+                    ModeSwitchClient.requestToggle();
                 }
             }
         });
+    }
+
+    public static void modeKeyInMenu(Minecraft client, int action, net.minecraft.client.input.KeyEvent event) {
+        if (action == GLFW.GLFW_PRESS && modeToggle != null && modeToggle.matches(event) && client.player != null
+                && client.getSingleplayerServer() != null && dev.aresos.world.DesktopWorld.isEnabled(client.getSingleplayerServer())
+                && (client.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>
+                    || client.gui.screen() instanceof AppsScreen
+                    || client.gui.screen() instanceof net.minecraft.client.gui.screens.PauseScreen)) {
+            client.gui.hud.setOverlayMessage(Component.literal("Close the menu before switching AresOS mode"), false);
+        }
+    }
+
+    public static void discardModeToggle() {
+        if (modeToggle != null) while (modeToggle.consumeClick()) { }
     }
 
     public static void launch(String id) {

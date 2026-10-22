@@ -257,6 +257,7 @@ public final class NetherHome extends SavedData {
             AresOs.LOGGER.warn("AresOS home dimension is unavailable; keeping saved player position");
             return;
         }
+        if (!dev.aresos.mode.ModeInventories.of(player).enterLiveBeforeLogin(player)) return;
         player.setServerLevel(level);
         ((GameModeAccess) player.gameMode).aresos$setMode(GameType.SURVIVAL, player.gameMode.getGameModeForPlayer());
         player.getAbilities().flying = false;
@@ -265,7 +266,7 @@ public final class NetherHome extends SavedData {
         player.fallDistance = 0;
         player.clearFire();
         setRespawn(player, home);
-        AppItems.placePinned(player, AresOs.apps());
+        if (!dev.aresos.mode.ModeInventories.of(player).hasStoredInventories()) AppItems.placePinned(player, AresOs.apps());
         dev.aresos.mode.LiveMode.protect(player);
     }
 

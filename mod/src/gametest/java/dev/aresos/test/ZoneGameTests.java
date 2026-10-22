@@ -37,6 +37,7 @@ public final class ZoneGameTests {
         var connection = new net.minecraft.network.Connection(net.minecraft.network.protocol.PacketFlow.SERVERBOUND);
         new io.netty.channel.embedded.EmbeddedChannel(connection);
         server.getPlayerList().placeNewPlayer(connection, player, cookie);
+        ModeInventoryFixtures.registerStateReceiver(player);
         // Keep the placement and its neighbor safety margin inside the clear test chamber.
         var base = helper.absolutePos(new BlockPos(3, 2, 1));
         helper.getLevel().setBlockAndUpdate(base.below(), Blocks.STONE.defaultBlockState());
@@ -68,6 +69,7 @@ public final class ZoneGameTests {
         try { LogoBuilder.build(player, plan); } catch (java.io.IOException error) { throw new AssertionError(error); }
         helper.assertTrue(plan.blocks().entrySet().stream().allMatch(e -> helper.getLevel().getBlockState(e.getKey()).equals(e.getValue())), "Wrong block layout");
         player.setGameMode(GameType.SURVIVAL);
+        ModeInventoryFixtures.acknowledge(player);
         helper.assertTrue(!PlayerBlockBreakEvents.BEFORE.invoker().beforeBlockBreak(helper.getLevel(), player, obstruction,
                 helper.getLevel().getBlockState(obstruction), null), "Live break allowed");
         player.setGameMode(GameType.CREATIVE);

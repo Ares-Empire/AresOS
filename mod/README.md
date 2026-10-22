@@ -80,7 +80,12 @@ while holding does not launch repeatedly. Each release and new press launches
 again, even between client ticks.
 
 In an AresOS world, press **G** to switch between Build (creative) and Live
-(protected survival). The binding is under **AresOS** in Controls.
+(protected survival). Each mode keeps its own inventory, hotbar, armor, offhand
+and selected hotbar slot. The first switch from Live to Build starts empty.
+Both survive rejoining and restarting; a home arrival restores Live while keeping
+your Build items for the next **G**. Close menus and finish cursor/crafting moves
+before switching; an open menu refuses **G** with a message. The binding is under
+**AresOS** in Controls.
 `/aresos give notepad` works there without cheats. Desktop commands and mode
 switching accept only the singleplayer host, including when open to LAN.
 In normal worlds, **G** just shows "Not an AresOS world", and `/aresos give`
@@ -180,8 +185,11 @@ interface isolates the style. No installed app list or extracted icon belongs in
 
 In marked AresOS worlds in Live mode, pinned apps fill empty hotbar slots and the
 remaining apps fill empty inventory slots. Existing items are never overwritten.
-When a hotbar slot becomes available, population on rejoin/Live entry moves an
+When a hotbar slot becomes available, initial population on rejoin moves an
 existing pinned app from inventory into it instead of creating another item.
+Switching modes restores the exact saved layout instead of repopulating it;
+home arrival from Build also restores Live exactly. Ordinary joins already in Live
+keep catalogue population. Use the Apps catalogue for additional apps between joins.
 **E → Apps…** opens a paged catalogue, including apps that did not fit. Pick an app
 to put its item on the inventory cursor, then place it with normal inventory input.
 Moving an item into/out of the hotbar updates its `pinned` value once the cursor
@@ -195,6 +203,40 @@ recovery uses their personal bed/anchor spawn, or the world's default spawn if
 the personal spawn is missing; it does not consume respawn-anchor charges.
 Normal worlds never receive apps or an Apps button. Existing app items can still
 launch there, preserving package-01 behavior.
+
+Separate inventories use the versioned `aresos_mode_inventories` tag inside each
+player's vanilla save data, alongside the active inventory and game mode. There
+is no separate inventory file that could save a different half of a switch.
+The optional `build_active` field records which inventory owns the equipped items,
+independently of vanilla game mode. Older version-1 data adopts its saved mode on
+first use. Commands, F3+F4/the mode switcher, and mods using vanilla's mode setters
+use the same transaction as G. Unsupported modes and unsafe open-menu changes
+are refused with a message in marked worlds.
+
+G locks item input immediately. A server-initiated change locks input before sending
+the destination inventory. Drops, use, attacks, hand swaps, menu/hotbar moves,
+creative edits and further toggles stay blocked until the full inventory, selected
+slot and mode have reached the client. Its acknowledgement follows all older input
+packets on the same connection, so the server discards those stale actions before
+unlocking. Failure synchronizes the retained state and uses the same acknowledgement.
+Connected switches require the client's inventory-switch state receiver; older
+AresOS and vanilla clients receive a refusal message without changing their items,
+mode or transaction state. A missing acknowledgement times out after 200 server ticks
+(10 seconds at 20 TPS). Item and XP-orb pickups (including mending), inventory
+insertions and hopper-style transfers wait while acknowledgement is pending.
+Uncollected items and orbs stay in the world; returned stacks and `/give` overflow
+drop there instead. If a command or other direct setter changes the destination
+anyway, recovery retains that changed inventory as the inactive snapshot. A refused
+switch keeps external changes in its still-active inventory. The server restores
+the original inventory owner, mode and flight, then disconnects with a recovery
+message. Reconnect to continue.
+Closing that connection prevents stale destination actions from touching the restored
+inventory; a timer never unlocks an unconfirmed destination. Player replacement
+retains the original rollback state and deadline. A confirmed switch cancels recovery.
+Unreadable snapshots block switching and stay intact for backup recovery. Older
+saves first opened in creative keep their current items as Build and initialize
+Live with the app catalogue. Disabling the desktop marker keeps stored snapshots
+for when the marker is enabled again; normal worlds create no inventory tags.
 
 After an app launch, AresOS watches for the first focus loss within 30 seconds.
 On return, it closes only the pause screen created by that focus loss. An Esc

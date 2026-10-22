@@ -4,4 +4,5 @@ import java.util.Set;
 
 public interface AppMenuPins {
     void aresos$beginMove(Set<String> before);
+    void aresos$resetMove();
 }

@@ -1,0 +1,17 @@
+Before production fix, regression commit 0f6c457.
+Command from mod/: .\gradlew.bat runGameTest --continue runClientGameTest
+Full local log: .work/09d-red.log
+
+java.lang.AssertionError: Pending pickup lost items on rollback: expected 12 across both inventories and world, got 5
+	at knot//dev.aresos.test.ModeInventoryFixtures.check(ModeInventoryFixtures.java:127)
+	at knot//dev.aresos.test.ModeInventoryGameTests.lambda$pendingPickupSurvivesTimeoutAcrossBothInventoriesAndWorld$0(ModeInventoryGameTests.java:196)
+	at knot//net.minecraft.gametest.framework.GameTestInfo.tickInternal(GameTestInfo.java:128)
+
+java.lang.AssertionError: Pending pickup lost items after timeout/reconnect: expected 12 across both inventories and world, got 5
+	at knot//dev.aresos.test.ModeInventoryFixtures.check(ModeInventoryFixtures.java:127)
+	at knot//dev.aresos.test.ModeProtocolClientGameTest.lambda$runTest$14(ModeProtocolClientGameTest.java:116)
+	at knot//net.fabricmc.fabric.impl.client.gametest.context.TestServerContextImpl.lambda$runOnServer$0(TestServerContextImpl.java:55)
+
+
+BUILD FAILED in 57s
+13 actionable tasks: 5 executed, 8 up-to-date

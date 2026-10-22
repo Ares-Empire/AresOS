@@ -63,7 +63,8 @@ public final class AppInventory {
         }
     }
     private static void take(ServerPlayer player, String id) {
-        if (!LiveMode.isLive(player) || !DesktopWorld.isHost(player.level().getServer(), player)
+        if (dev.aresos.mode.ModeInventories.of(player).pending()
+                || !LiveMode.isLive(player) || !DesktopWorld.isHost(player.level().getServer(), player)
                 || player.containerMenu != player.inventoryMenu || !player.inventoryMenu.getCarried().isEmpty()) return;
         var app = AresOs.app(id);
         if (app == null) return;
