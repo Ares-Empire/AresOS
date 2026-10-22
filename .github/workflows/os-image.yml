@@ -300,6 +300,12 @@ jobs:
         run: |
           echo '11b full installation driver is not yet probe-qualified'
           exit 1
+      - name: Reserve the 11b minute budget
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+          PROBE_RUN: ${{ inputs.probe_run }}
+        run: python3 os/ci/rehearsal_guard.py ci '${{ inputs.rehearsal == 'full' && 112 || 42 }}'
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'

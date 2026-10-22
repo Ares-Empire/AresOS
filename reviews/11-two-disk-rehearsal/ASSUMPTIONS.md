@@ -1,5 +1,37 @@
 # Pre-run assumption audits
 
+## 11b: real Web UI continuation
+
+11b starts with a fresh **350-minute / three-full-run** allowance. Probe and
+checks jobs count toward minutes. No full run is authorized by the earlier
+package-11 evidence. A full dispatch must consume a successful probe artifact
+from the exact same commit, in addition to the existing signed-release guard.
+
+The first discovery probe is deliberately not a full-run qualification: it
+must first establish the real server and destination controls. Later probe
+qualification must include all pre-install pages, the review, and both drive
+orders before the installation driver is enabled.
+
+| Assumption before discovery | Evidence / required observation |
+|---|---|
+| Start exactly `liveinst` as the live desktop user | Frozen ISO launcher calls pkexec and reconstructs `liveuser`'s user-manager environment. The probe invokes it as liveuser with that environment, without LIVECMD or kickstart. Save the actual launch log and server unit. |
+| The Web UI listens on loopback HTTP port 80 | Upstream `webui-desktop` and Cockpit wrapper at `9f480b6ffeef3a6aa64fd2e0ddcd1a9632bca68f` indicate this port and `/cockpit/@localhost/anaconda-webui/index.html`. This is a hypothesis until the pinned guest's `ss`, curl and actual unit confirm it. |
+| A byte-preserving relay carries HTTP and WebSockets | Guest Python TCP relay binds 8080 and connects to loopback 80. QEMU forwards host loopback 18080 to guest 8080. Curl must pass inside the guest, and Chromium must render the actual Anaconda navigation control on the host. No remote service/listener is exposed on the laptop. |
+| Destination selectors | Upstream installer tests provide the `anaconda-screen-method-*` IDs as candidates. Retain every actual page's text, control IDs and screenshot. Process presence and a Portal frame cannot pass. |
+| Browser dependencies | The hosted venv inherits system packages, and explicitly imports crypt, PIL and Playwright before creating disks. The initial job at `6683e19` was cancelled during runner cleanup after identifying the isolated venv's missing PIL access; it never booted a VM. |
+| Disk roles and writes | Retain the actual serial/device map, make target-only selection, then shut down cleanly, require final zero protected writes, compare complete protected bytes/GPT/EFI offline and preserve/diff NVRAM. |
+
+Browser/transport difference: host headless Chromium replaces guest Firefox;
+HTTP and WebSocket traffic cross only the disposable QEMU user network and the
+guest byte relay. The ISO launcher, Anaconda service, pages and backend remain
+the ISO's own. The existing direct ISO-kernel boot plus serial console remains
+an additional previously recorded difference from a physical USB boot.
+
+Discovery dispatches: [cancelled 39873210999](https://github.com/carlsenares/AresOS/actions/runs/39873210999)
+at `6683e19`; [corrected probe 39873265524](https://github.com/carlsenares/AresOS/actions/runs/39873265524)
+at `6bfefc8`. Neither is a full run. Outcomes and final minute totals follow in
+the 11b report.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

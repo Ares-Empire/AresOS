@@ -493,6 +493,8 @@ def live_probe(audit):
         protected, target = disk_names(layout)
         save('live-assumptions', dict(order=Guest.order, layout=layout, protected=protected, target=target))
         probe(guest, EVIDENCE, protected, target)
+        after = guest.capture_json('live-after-preview-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
+        assert disk_names(after) == (protected, target)
         guest.writes('live-ui-probe')
         guest.poweroff('live-ui-probe')
     finally:

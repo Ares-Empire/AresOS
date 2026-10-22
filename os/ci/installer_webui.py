@@ -26,6 +26,22 @@ Server(('0.0.0.0', 8080), Forward).serve_forever()
 '''
 
 
+def validate_review(tables, protected, target):
+    assert [table['disk'] for table in tables] == [target], 'PRODUCT FAILURE: review includes a wrong/shared disk'
+    rows = tables[0]['rows']
+    assert rows, 'Missing storage review rows'
+    for row in rows:
+        assert not re.search(rf'(?<![a-z0-9]){re.escape(protected)}(?:\d+)?(?![a-z0-9])', row['device']), 'PRODUCT FAILURE: protected device in review'
+        devices = re.findall(r'\bvd[a-z]\d*\b', row['device'])
+        assert devices and all(re.fullmatch(re.escape(target) + r'\d*', device) for device in devices), 'Unresolved review device'
+    esp, = [row for row in rows if row['mount'] == '/boot/efi']
+    assert re.fullmatch(re.escape(target) + r'\d+', esp['device']), 'PRODUCT FAILURE: EFI is not on a new target partition'
+    assert esp['action'] in ('format as efi', 'format as vfat'), 'PRODUCT FAILURE: existing/shared EFI reuse in review'
+    assert any(row['mount'] == '/' for row in rows), 'Missing root storage in review'
+    assert any(row['mount'] == '/boot' for row in rows), 'Missing boot storage in review'
+    return dict(target=target, protected=protected, new_target_efi=esp, tables=tables)
+
+
 def start(guest, stage):
     import base64
     guest.command(stage + '-launcher', '''set -e

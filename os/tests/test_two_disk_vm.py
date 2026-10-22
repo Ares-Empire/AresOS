@@ -13,6 +13,14 @@ from prepare_two_disks import verify_loop
 
 
 class TwoDiskHarnessTest(unittest.TestCase):
+    def test_installer_transport_is_forwarded_only_in_live_mode_on_host_loopback(self):
+        guest = object.__new__(vm.Guest)
+        guest.mode = 'live'
+        self.assertEqual(guest.network_args(), 'user,model=virtio-net-pci,hostfwd=tcp:127.0.0.1:18080-:8080')
+        for mode in ('installed', 'marker-baseline', 'marker-detached'):
+            guest.mode = mode
+            self.assertEqual(guest.network_args(), 'user,model=virtio-net-pci')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=pathlib.Path(__file__).parent)
         self.addCleanup(self.temp.cleanup)
