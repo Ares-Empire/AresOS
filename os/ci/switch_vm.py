@@ -133,7 +133,7 @@ class Guest:
             '-drive', f'if=pflash,format=raw,file={WORK / "vars.fd"}',
             *self.disk_args(disk),
             '-device', 'virtio-vga', '-device', 'qemu-xhci', '-device', 'usb-kbd',
-            '-display', 'none', '-nic', 'user,model=virtio-net-pci',
+            '-display', 'none', '-nic', self.network_args(),
             '-qmp', f'unix:{WORK / "qmp.sock"},server=on,wait=off',
             '-serial', f'unix:{WORK / "serial.sock"},server=on,wait=off', *self.boot_args(), '-no-reboot',
         ], stdout=open(EVIDENCE / 'qemu.txt', 'a'), stderr=subprocess.STDOUT)
@@ -148,6 +148,9 @@ class Guest:
 
     def boot_args(self):
         return []
+
+    def network_args(self):
+        return 'user,model=virtio-net-pci'
 
     def connect(self, name):
         deadline = time.monotonic() + 30

@@ -13,6 +13,10 @@ on:
         description: 'Run regressions and live host state query; no image build or VM'
         type: boolean
         default: false
+      probe_run:
+        description: '11b full runs require the passing probe run ID at this exact commit'
+        type: string
+        default: ''
       switch_from_run:
         description: 'Optional prior run with successful image job; retry only its published-image switch test'
         type: string
@@ -284,13 +288,18 @@ jobs:
     name: Pinned live ISO inspection and two-disk rehearsal
     if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != ''
     runs-on: ubuntu-24.04
-    timeout-minutes: 110
+    timeout-minutes: ${{ inputs.rehearsal == 'full' && 110 || 40 }}
     permissions:
       contents: read
       packages: read
       actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Reject unqualified full dispatch before downloading or booting
+        if: inputs.rehearsal == 'full'
+        run: |
+          echo '11b full installation driver is not yet probe-qualified'
+          exit 1
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -313,6 +322,11 @@ jobs:
           mkdir -p evidence .work/installer
           bash os/ci/install-tools.sh
           sudo apt-get install -y --no-install-recommends gnu-efi ntfs-3g dosfstools gdisk mtools psmisc tesseract-ocr
+          sudo apt-get install -y --no-install-recommends python3-venv
+          python3 -m venv .work/browser-env
+          .work/browser-env/bin/pip install playwright==1.58.0
+          export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
+          .work/browser-env/bin/playwright install --with-deps chromium
           dpkg-query -W > evidence/rehearsal-host-packages.txt
           python3 -m unittest discover -s os/tests -v
           cp os/manifest/release.json evidence/release.json
@@ -330,7 +344,7 @@ jobs:
           print('Native file-backed GPT/EFI/MSR/NTFS/recovery and offline audit passed; no VM started')
           PY
           else
-            sudo -E python3 os/ci/two_disk_vm.py '${{ inputs.rehearsal }}'
+            sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py '${{ inputs.rehearsal }}'
           fi
       - name: Bound retained evidence
         if: always()

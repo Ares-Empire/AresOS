@@ -29,6 +29,9 @@ class Guest(sw.Guest):
     mode = 'installed'
     boot_count = 0
 
+    def network_args(self):
+        return super().network_args() + (',hostfwd=tcp:127.0.0.1:18080-:8080' if self.mode == 'live' else '')
+
     def __init__(self, disk, password, secrets):
         Guest.boot_count += 1
         self.boot_number = Guest.boot_count
@@ -481,44 +484,24 @@ def marker(audit, stage, baseline=False, detached=False):
 
 
 def live_probe(audit):
+    from installer_webui import probe
     Guest.mode = 'live'
     guest = Guest(WORK / 'target.raw', '', [])
     try:
         guest.login_live()
         layout = guest.capture_json('live-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
-        save('live-assumptions', dict(order=Guest.order, layout=layout))
-        guest.command('live-installer-evidence', '''set -e
-cat /usr/lib/os-release
-cat /etc/anaconda/profile.d/bazzite.conf
-cat /usr/share/anaconda/interactive-defaults.ks
-cat /usr/bin/liveinst
-efibootmgr -v
-''')
-        guest.command('launch-installer-ui', 'PKEXEC_UID=$(id -u liveuser) liveinst > /tmp/rehearsal-installer-ui.log 2>&1 < /dev/null &\nsleep 30\ncat /tmp/rehearsal-installer-ui.log\npgrep -a -f anaconda')
-        guest.command('live-graphical-session', '''set -e
-for n in {1..120}; do
-    sessions=$(loginctl list-sessions --no-legend | awk '$3 == "liveuser" {print $1}')
-    for session in $sessions; do
-        type=$(loginctl show-session "$session" -p Type --value)
-        if test "$type" = wayland || test "$type" = x11; then
-            loginctl show-session "$session" -p Name -p Type -p VTNr
-            loginctl activate "$session"
-            exit 0
-        fi
-    done
-    sleep 1
-done
-exit 1
-''')
-        time.sleep(5)
-        guest.screenshot('live-installer-ui')
-        guest.keys(['tab'])
-        guest.keys(['ret'])
-        time.sleep(5)
-        guest.screenshot('live-installer-keyboard-probe')
+        protected, target = disk_names(layout)
+        save('live-assumptions', dict(order=Guest.order, layout=layout, protected=protected, target=target))
+        probe(guest, EVIDENCE, protected, target)
         guest.writes('live-ui-probe')
         guest.poweroff('live-ui-probe')
     finally:
+        if guest.process.poll() is None:
+            try:
+                guest.command('probe-failure-diagnostics', 'cat /tmp/rehearsal-webui-launch.log; journalctl -u webui-cockpit-ws --no-pager; ss -lntp', timeout=30)
+                guest.poweroff('live-ui-probe')
+            except Exception:
+                pass
         guest.close('live-ui-probe')
         audit.check('live-ui-probe', guest)
 
@@ -535,7 +518,7 @@ def main():
     marker(audit, 'baseline-firmware', baseline=True)
     if sys.argv[1:] == ['probe']:
         live_probe(audit)
-        save('probe-result', dict(status='inspection-only', installed=False))
+        save('probe-result', dict(status='destination-only', installed=False, commit=os.environ.get('GITHUB_SHA')))
         return
     assert sys.argv[1:] == ['full']
     live_probe(audit)

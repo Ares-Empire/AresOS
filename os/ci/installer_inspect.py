@@ -64,6 +64,9 @@ def main():
                      if 'squashfs-root/' in line and not line.startswith(('d', 'l'))]
             selected = [path for path in paths if path in (
                 'usr/lib/os-release', 'usr/bin/liveinst', 'etc/sysconfig/livesys',
+                'usr/libexec/anaconda/webui-desktop',
+                'usr/lib/systemd/system/webui-cockpit-ws.service',
+                'usr/share/cockpit/anaconda-webui/manifest.json',
                 'etc/anaconda/profile.d/bazzite.conf', 'etc/anaconda/conf.d/anaconda.conf',
                 'usr/share/anaconda/interactive-defaults.ks',
                 'usr/share/anaconda/post-scripts/install-configure-upgrade.ks',
