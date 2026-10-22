@@ -1,6 +1,6 @@
 # AresOS: state
 
-Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
+Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
 
 ## Done (on main)
 
@@ -20,7 +20,7 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 - **Install guide** (PR #9, rewritten from PR #5): AresOS on its own SSD, including fitting the drive (battery check, correct seating), clear drive identification, a whole-drive install, and a Windows-return check. Council says READY-TO-MERGE. **Don't start yet:** it's gated on brief 06 (image release and Bazzite → AresOS switch) and a media rehearsal. The same-drive fallback is archived.
 - **Decisions:**
   - The AresOS image is **private** on GitHub (2026-10-22: the owner doesn't mind, so the safe default). The install needs a one-time GitHub read token. Public only on an explicit "make it public".
-  - **AresOS gets its own 500 GB SSD** (owner decision 2026-10-22, replaces dual boot and the 96 GB partition). Crucial P310 in the free 2280 slot, so Windows keeps all its space and is never touched. The SSD and two USB sticks are in the owner's Amazon cart (€117.98).
+  - **AresOS gets its own 500 GB SSD** (owner decision 2026-10-22, replaces dual boot and the 96 GB partition). Crucial P310 in the free 2280 slot, so Windows keeps all its space and is never touched. **Ordered 2026-10-22** (see below).
   - Secure Boot is off on the laptop, so no MOK step.
   - Normal Minecraft is a separate app with normal rules.
   - App icons are generated automatically from each app's real icon. The owner doesn't draw them.
@@ -31,7 +31,9 @@ Updated 2026-10-21. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Waiting on the owner
 
-- **Hardware: do NOT order yet.** The SSD plus 2 USB sticks stay in the Amazon cart (€117.98) until the owner has opened the laptop and confirmed the 2280 slot is free (the current Micron 2242 drive should be in slot 1).
+- **Hardware ORDERED 2026-10-22** (€127.05, delivery Mon 2026-10-26): Crucial P310 500 GB, Kingston 2×64 GB sticks, Wera 2050 PH0 + PH1 screwdrivers. The owner bought the SSD before the slot check because one opening beats two. Evidence the 2280 slot is free: the Windows drive is a Micron 2450 **2242** (MTFDKCD512TFK), and a LaptopMedia teardown of this model shows the factory 2242 in the 2242-only slot with the 2280 slot (by the Wi-Fi card) empty.
+  - **Return window: request within 14 days of delivery (about 2026-11-09).** Before that: make the Windows recovery stick, open the laptop once following INSTALL.md §3, and fit the SSD if the slot is free; if not, return it sealed. (Opening before the guide is released is the owner's call for the slot check.)
+  - Pry the cover clips with plastic (card or pick), never metal.
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
 
 ## Next, in order

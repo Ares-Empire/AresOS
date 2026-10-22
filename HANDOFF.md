@@ -15,8 +15,7 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 
 ## Waiting on the owner
 
-- **SSD slot photos.** The owner is opening the bottom cover (rear strip first, then the cover) to check that the M.2 2280 slot is free and has its screw or standoff.
-- **The Amazon cart** stays as it is: Crucial P310 500 GB + Kingston 2×64 GB, €117.98. **Don't order** without the owner's explicit OK, and confirm the item and total first.
+- **Hardware ordered 2026-10-22** (€127.05: SSD, 2 USB sticks, PH0 + PH1 screwdrivers), delivery Mon 2026-10-26. The owner couldn't open the laptop without the right screwdriver, so the slot check now happens when the parts arrive. The SSD return must be requested by about 2026-11-09. Details are in `STATE.md`.
 
 ## Watch out
 
