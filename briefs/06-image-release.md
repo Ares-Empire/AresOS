@@ -2,6 +2,11 @@
 
 **Goal:** deliver the image part of the install guide's maintainer release gate (`docs/INSTALL.md` → "Maintainer release gate", first bullet). Afterwards, a freshly installed Bazzite on the laptop can be switched to AresOS with a tested, documented recipe, and switched back.
 
+**Decisions since this brief was first written (2026-10-22):**
+- The image stays **private** (owner decision); no public option needed.
+- AresOS installs onto its **own SSD**: see the current `docs/INSTALL.md` §5–§7, where §6 is the NOT RELEASED placeholder to fill in.
+- The 03 image is merged (PR #3): `os/` with the static strict updater audit, the Cockpit mask, two-VM CI and offline logind proof. Keep all of it green.
+
 **Read first:**
 - `docs/design/OS-BASE.md` §8 and A1/A2
 - `docs/INSTALL.md` §5–§7 and the release gate
@@ -36,7 +41,7 @@
 - Minecraft, Prism and the mod.
 
 **Constraints:**
-- Free GitHub quotas only. Budget about 8 CI runs or 500 minutes. Never enable paid features or change billing.
+- Free GitHub quotas only. Budget: at most 6 full CI runs or about 400 minutes (about 750 of 2,000 monthly minutes are already used). Use checks-only runs before full runs. Never enable paid features or change billing.
 - No secrets in Git or logs. If a token is needed for CI publishing, use the built-in `GITHUB_TOKEN`.
 - Nothing runs on the owner's laptop except git and gh.
 
