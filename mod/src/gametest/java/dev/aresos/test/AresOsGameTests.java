@@ -151,11 +151,14 @@ public final class AresOsGameTests {
         inventory.setItem(12, inventory.getItem(1));
         inventory.setItem(1, ItemStack.EMPTY);
         AppItems.placePinned(player, AresOs.apps());
-        helper.assertTrue(inventory.getItem(1).isEmpty(), "Existing app in main inventory was duplicated");
+        helper.assertTrue(inventory.getItem(1).is(AppItems.APP) && inventory.getItem(12).isEmpty(),
+                "Existing pinned app was not moved from main inventory to hotbar");
+        inventory.setItem(1, ItemStack.EMPTY);
         inventory.setItem(12, ItemStack.EMPTY);
         inventory.setItem(40, AppItems.create(AresOs.apps().getFirst()));
         AppItems.placePinned(player, AresOs.apps());
-        helper.assertTrue(inventory.getItem(1).isEmpty(), "Offhand app was duplicated");
+        helper.assertTrue(inventory.getItem(1).is(AppItems.APP) && inventory.getItem(40).isEmpty(),
+                "Configured offhand pin was not moved into the free hotbar slot");
         inventory.clearContent();
         for (int slot = 0; slot < 9; slot++) inventory.setItem(slot, new ItemStack(Items.STONE));
         AppItems.placePinned(player, AresOs.apps());
@@ -166,6 +169,41 @@ public final class AresOsGameTests {
         AppItems.placePinned(player, List.of(new AppDefinition("unpinned", "Unpinned", List.of("none"),
                 "minecraft:paper", false)));
         helper.assertTrue(inventory.isEmpty(), "Unpinned app was added");
+        leave(player);
+        helper.succeed();
+    }
+
+    @GameTest(environment = "aresos-test:desktop")
+    public void catalogueFillsInventoryWithoutOverwritingAndRefreshesSavedItems(GameTestHelper helper) {
+        ServerPlayer player = join(helper);
+        var inventory = player.getInventory();
+        inventory.clearContent();
+        inventory.setItem(0, new ItemStack(Items.DIAMOND, 7));
+        inventory.setItem(9, new ItemStack(Items.STONE, 12));
+        var apps = new java.util.ArrayList<AppDefinition>();
+        for (int i = 0; i < 42; i++) apps.add(new AppDefinition("fixture-" + i, "Fixture " + i,
+                List.of("fixture.exe"), "minecraft:paper", i == 0));
+        inventory.setItem(10, AppItems.create(apps.get(1)));
+        inventory.getItem(10).set(net.minecraft.core.component.DataComponents.ITEM_MODEL,
+                net.minecraft.resources.Identifier.withDefaultNamespace("writable_book"));
+        dev.aresos.item.AppInventory.populate(player, apps);
+        dev.aresos.item.AppInventory.populate(player, apps);
+        helper.assertTrue(inventory.getItem(0).is(Items.DIAMOND) && inventory.getItem(0).getCount() == 7,
+                "Catalogue overwrote a hotbar item");
+        helper.assertTrue(inventory.getItem(9).is(Items.STONE) && inventory.getItem(9).getCount() == 12,
+                "Catalogue overwrote an inventory item");
+        helper.assertTrue("fixture-0".equals(inventory.getItem(1).get(AppItems.APP_ID)), "Pinned fixture missing");
+        helper.assertTrue(net.minecraft.resources.Identifier.withDefaultNamespace("paper").equals(
+                inventory.getItem(10).get(net.minecraft.core.component.DataComponents.ITEM_MODEL)), "Saved icon model was not refreshed");
+        var ids = new java.util.HashSet<String>();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) if (inventory.getItem(slot).is(AppItems.APP)) {
+            helper.assertTrue(ids.add(inventory.getItem(slot).get(AppItems.APP_ID)), "Catalogue duplicated an item");
+        }
+        helper.assertTrue(ids.size() == 27, "Catalogue did not fill exactly the available 26 inventory slots plus pin");
+        player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
+        inventory.clearContent();
+        dev.aresos.item.AppInventory.populate(player, apps);
+        helper.assertTrue(inventory.isEmpty(), "Build mode received catalogue items");
         leave(player);
         helper.succeed();
     }

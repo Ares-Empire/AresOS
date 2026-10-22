@@ -54,6 +54,8 @@ java {
 jar { from('LICENSE') { rename { "${it}_aresos" } } }
 
 tasks.named('runClientGameTest') {
+    systemProperty 'aresos.disableDiscovery', 'true'
+    systemProperty 'aresos.appsReviewDir', file('../reviews/07-real-apps/screenshots').absolutePath
     systemProperty 'aresos.reviewDir', file('build/review/01-first-app').absolutePath
     systemProperty 'aresos.homeReviewDir', file('../reviews/04-nether-home/screenshots').absolutePath
     systemProperty 'aresos.seedReviewDir', file('../reviews/04-nether-home/seeds').absolutePath
@@ -67,4 +69,22 @@ tasks.register('searchNetherSeeds', JavaExec) {
     workingDir = file('run')
     doFirst { workingDir.mkdirs() }
     maxHeapSize = '2G'
+}
+
+tasks.named('runGameTest') { systemProperty 'aresos.disableDiscovery', 'true' }
+
+sourceSets.gametest.resources.srcDir 'src/test/resources'
+sourceSets.test.compileClasspath += sourceSets.client.output
+sourceSets.test.runtimeClasspath += sourceSets.client.output
+
+// Recovery is explicit and never runs during a build or normal startup.
+tasks.register('restoreLegacyApps', JavaExec) {
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'dev.aresos.config.RestoreLegacyApps'
+    doFirst {
+        if (!project.hasProperty('appsConfig') || !project.hasProperty('appsBackup'))
+            throw new GradleException('Close Minecraft, then provide -PappsConfig=<path> -PappsBackup=<schema-1 backup path>')
+        args project.property('appsConfig'), project.property('appsBackup')
+    }
 }

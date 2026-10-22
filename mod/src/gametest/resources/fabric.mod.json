@@ -6,7 +6,7 @@
   "environment": "*",
   "entrypoints": {
     "fabric-gametest": ["dev.aresos.test.AresOsGameTests", "dev.aresos.test.NetherHomeGameTests"],
-    "fabric-client-gametest": ["dev.aresos.test.HomeSitesClientGameTest", "dev.aresos.test.AresOsClientGameTest", "dev.aresos.test.NetherHomeClientGameTest", "dev.aresos.test.HomeChoiceClientGameTest"]
+    "fabric-client-gametest": ["dev.aresos.test.RealAppsFixesClientGameTest", "dev.aresos.test.RealAppsClientGameTest", "dev.aresos.test.HomeSitesClientGameTest", "dev.aresos.test.AresOsClientGameTest", "dev.aresos.test.NetherHomeClientGameTest", "dev.aresos.test.HomeChoiceClientGameTest"]
   },
   "mixins": [{"config": "aresos.test.client.mixins.json", "environment": "client"}]
 }

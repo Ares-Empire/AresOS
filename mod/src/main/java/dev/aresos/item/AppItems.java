@@ -45,6 +45,7 @@ public final class AppItems {
             AresOs.LOGGER.warn("Unknown item look {} for {}; using writable_book", app.look(), app.id());
             model = Identifier.withDefaultNamespace("writable_book");
         }
+        if (AresOs.generatedIcons.contains(app.id())) model = AresOs.id("apps/" + app.id());
         stack.set(DataComponents.ITEM_MODEL, model);
         return stack;
     }
@@ -54,18 +55,20 @@ public final class AppItems {
         var inventory = player.getInventory();
         for (AppDefinition app : apps) {
             if (!app.pinned()) continue;
-            boolean present = false;
+            int present = -1;
             for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
                 ItemStack stack = inventory.getItem(slot);
                 if (stack.is(APP) && app.id().equals(stack.get(APP_ID))) {
-                    present = true;
+                    present = slot;
                     break;
                 }
             }
-            if (present) continue;
+            if (present >= 0 && present < 9) continue;
             for (int slot = 0; slot < 9; slot++) {
                 if (inventory.getItem(slot).isEmpty()) {
-                    inventory.setItem(slot, create(app));
+                    ItemStack stack = present < 0 ? create(app) : inventory.getItem(present);
+                    if (present >= 0) inventory.setItem(present, ItemStack.EMPTY);
+                    inventory.setItem(slot, stack);
                     break;
                 }
             }

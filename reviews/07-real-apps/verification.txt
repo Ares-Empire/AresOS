@@ -1,0 +1,114 @@
+Package 07 final verification excerpts
+Runtime implementation: 0f59a5e
+Final code/test/doc head before evidence: 95d172e
+
+Configured client test entrypoints:
+dev.aresos.test.RealAppsClientGameTest
+dev.aresos.test.HomeSitesClientGameTest
+dev.aresos.test.AresOsClientGameTest
+dev.aresos.test.NetherHomeClientGameTest
+dev.aresos.test.HomeChoiceClientGameTest
+
+Final complete pass 1: .\gradlew.bat build runClientGameTest --rerun-tasks
+Raw local log: mod/build/final-pass-2.log
+[01:33:49] [Server thread/INFO] (Minecraft) All 16 required tests passed :)
+LinuxLauncherTest > commandsAndUrlsFailClosedWithoutAHelper() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+AppsConfigTest > linuxMigrationImportsAppearanceOnlyAndKeepsCommandsInBackup() PASSED
+AppsConfigTest > package01MigrationMakesVersionedBackupAndIsIdempotent() PASSED
+AppsConfigTest > firstStartWritesDefaults() PASSED
+AppsConfigTest > discoveryMergeNeverAutoPinsOrReplacesOwnerFields() PASSED
+AppsConfigTest > websitesRoundTripAndRejectUnsafeOrInvalidTargets() PASSED
+AppsConfigTest > emptyListIsAnIntentionalConfig() PASSED
+AppsConfigTest > failedReadDoesNotReplaceOwnersPath() PASSED
+AppsConfigTest > explicitDowngradeRestoresExactBytesAndKeepsLaterEdits() PASSED
+AppsConfigTest > invalidFilesStopAndLeaveOriginalBytesIntact() PASSED
+AppsConfigTest > roundTripPreservesArgumentsUnicodeAndPinnedChoice() PASSED
+AppsConfigTest > discoveryRefreshesOwnedCachePathsAndPreservesCustomIcons() PASSED
+FocusReturnTest > onlyClosesTheCapturedFocusLossScreen() PASSED
+FocusReturnTest > returnBeforeMenuExistsDoesNotCloseAnything() PASSED
+FocusReturnTest > focusLossIsAcceptedThroughThirtySecondsOnly() PASSED
+FocusReturnTest > failureCanOnlyCancelItsOwnLaunch() PASSED
+FocusReturnTest > unrelatedFocusLossAndFailedOrExpiredLaunchDoNotCloseMenus() PASSED
+FocusReturnTest > preservesEscMenuAndReplacementScreen() PASSED
+IconTest > cacheUsesContentAndConverterVersionAndUnreadableIconsFallBack() PASSED
+IconTest > conversionMatchesHandmadeFixtureGoldens() PASSED
+[01:34:22] [Test thread/INFO] (aresos) 07 client checks passed: fixture textures and mounted models, normal/Build gating, inventory and page 2, vanilla drag pin/unpin persisted across config reload and rejoin, overflow item pickup, URL one launch per click
+[01:37:14] [Test thread/INFO] (aresos) 01c client checks passed: same-tick number-key and scroll selection (empty -> app, A -> B, app -> empty), normal-world defaults, marker on/off and reopen, host-only commands without cheats, held-click slot switch, between-tick clicks, door/chest/villager interception with vanilla controls, overlapping launch focus return, Build/Live, errors, give command, and five screenshots
+[01:38:09] [Test thread/INFO] (aresos) 04 client checks passed: real title button creation and reload, Nether in first login packet, Live and pins on both joins, flags, safe hub, anchor respawn, edits persist, three generated seed screenshots, existing-save refusal
+[01:39:16] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 5m 42s
+19 actionable tasks: 19 executed
+
+Final complete pass 2: .\gradlew.bat build runClientGameTest --rerun-tasks
+Raw local log: mod/build/final-pass-3.log
+[01:40:03] [Server thread/INFO] (Minecraft) All 16 required tests passed :)
+LinuxLauncherTest > commandsAndUrlsFailClosedWithoutAHelper() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+AppsConfigTest > linuxMigrationImportsAppearanceOnlyAndKeepsCommandsInBackup() PASSED
+AppsConfigTest > package01MigrationMakesVersionedBackupAndIsIdempotent() PASSED
+AppsConfigTest > firstStartWritesDefaults() PASSED
+AppsConfigTest > discoveryMergeNeverAutoPinsOrReplacesOwnerFields() PASSED
+AppsConfigTest > websitesRoundTripAndRejectUnsafeOrInvalidTargets() PASSED
+AppsConfigTest > emptyListIsAnIntentionalConfig() PASSED
+AppsConfigTest > failedReadDoesNotReplaceOwnersPath() PASSED
+AppsConfigTest > explicitDowngradeRestoresExactBytesAndKeepsLaterEdits() PASSED
+AppsConfigTest > invalidFilesStopAndLeaveOriginalBytesIntact() PASSED
+AppsConfigTest > roundTripPreservesArgumentsUnicodeAndPinnedChoice() PASSED
+AppsConfigTest > discoveryRefreshesOwnedCachePathsAndPreservesCustomIcons() PASSED
+FocusReturnTest > onlyClosesTheCapturedFocusLossScreen() PASSED
+FocusReturnTest > returnBeforeMenuExistsDoesNotCloseAnything() PASSED
+FocusReturnTest > focusLossIsAcceptedThroughThirtySecondsOnly() PASSED
+FocusReturnTest > failureCanOnlyCancelItsOwnLaunch() PASSED
+FocusReturnTest > unrelatedFocusLossAndFailedOrExpiredLaunchDoNotCloseMenus() PASSED
+FocusReturnTest > preservesEscMenuAndReplacementScreen() PASSED
+IconTest > cacheUsesContentAndConverterVersionAndUnreadableIconsFallBack() PASSED
+IconTest > conversionMatchesHandmadeFixtureGoldens() PASSED
+[01:40:35] [Test thread/INFO] (aresos) 07 client checks passed: fixture textures and mounted models, normal/Build gating, inventory and page 2, vanilla drag pin/unpin persisted across config reload and rejoin, overflow item pickup, URL one launch per click
+[01:43:28] [Test thread/INFO] (aresos) 01c client checks passed: same-tick number-key and scroll selection (empty -> app, A -> B, app -> empty), normal-world defaults, marker on/off and reopen, host-only commands without cheats, held-click slot switch, between-tick clicks, door/chest/villager interception with vanilla controls, overlapping launch focus return, Build/Live, errors, give command, and five screenshots
+[01:44:24] [Test thread/INFO] (aresos) 04 client checks passed: real title button creation and reload, Nether in first login packet, Live and pins on both joins, flags, safe hub, anchor respawn, edits persist, three generated seed screenshots, existing-save refusal
+[01:45:30] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 5m 43s
+19 actionable tasks: 19 executed
+
+Additional Unicode-fixture verification: .\gradlew.bat test --rerun-tasks
+LinuxLauncherTest > commandsAndUrlsFailClosedWithoutAHelper() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+AppsConfigTest > linuxMigrationImportsAppearanceOnlyAndKeepsCommandsInBackup() PASSED
+AppsConfigTest > package01MigrationMakesVersionedBackupAndIsIdempotent() PASSED
+AppsConfigTest > firstStartWritesDefaults() PASSED
+AppsConfigTest > discoveryMergeNeverAutoPinsOrReplacesOwnerFields() PASSED
+AppsConfigTest > websitesRoundTripAndRejectUnsafeOrInvalidTargets() PASSED
+AppsConfigTest > emptyListIsAnIntentionalConfig() PASSED
+AppsConfigTest > failedReadDoesNotReplaceOwnersPath() PASSED
+AppsConfigTest > explicitDowngradeRestoresExactBytesAndKeepsLaterEdits() PASSED
+AppsConfigTest > invalidFilesStopAndLeaveOriginalBytesIntact() PASSED
+AppsConfigTest > roundTripPreservesArgumentsUnicodeAndPinnedChoice() PASSED
+AppsConfigTest > discoveryRefreshesOwnedCachePathsAndPreservesCustomIcons() PASSED
+FocusReturnTest > onlyClosesTheCapturedFocusLossScreen() PASSED
+FocusReturnTest > returnBeforeMenuExistsDoesNotCloseAnything() PASSED
+FocusReturnTest > focusLossIsAcceptedThroughThirtySecondsOnly() PASSED
+FocusReturnTest > failureCanOnlyCancelItsOwnLaunch() PASSED
+FocusReturnTest > unrelatedFocusLossAndFailedOrExpiredLaunchDoNotCloseMenus() PASSED
+FocusReturnTest > preservesEscMenuAndReplacementScreen() PASSED
+IconTest > cacheUsesContentAndConverterVersionAndUnreadableIconsFallBack() PASSED
+IconTest > conversionMatchesHandmadeFixtureGoldens() PASSED
+BUILD SUCCESSFUL in 5s
+7 actionable tasks: 7 executed
+
+Recovery command stdout/stderr (fixture-only paths):
+WARNING: restoring the schema-1 backup. Later apps, names and pins remain ONLY in C:\Users\pab\AresOS-07-real-apps\.work\downgrade\apps.json.schema-2-before-downgrade-f4741bd5-2ad3-4318-ba59-ce34be60595c.bak
+Restored original schema-1 apps.json. Compare later edits in C:\Users\pab\AresOS-07-real-apps\.work\downgrade\apps.json.schema-2-before-downgrade-f4741bd5-2ad3-4318-ba59-ce34be60595c.bak before using the older mod.
+BUILD SUCCESSFUL in 1s
+3 actionable tasks: 2 executed, 1 up-to-date
+Python byte/JSON assertion: Recovery smoke: exact schema-1 bytes restored; later schema-2 edits retained.
+
+.\gradlew.bat --stop
+Stopping Daemon(s)
+1 Daemon stopped
+
+JUnit XML after final pass: 5 suites; tests=22; failures=0; errors=0; skipped=0
+Earlier review artifacts restored; 14 newly generated regression PNGs removed from package-04 folders.

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dev.aresos.catalogue.WindowsNotepadAliasTest" tests="3" skipped="0" failures="3" errors="0" timestamp="2026-10-22T00:54:28.716Z" hostname="NOTEBOOK_PATRIK" time="0.16">
+  <properties/>
+  <testcase name="defaultNotepadAndStoreNeverAbsorbUnrelatedNotepadExecutable()" classname="dev.aresos.catalogue.WindowsNotepadAliasTest" time="0.077">
+    <failure message="org.opentest4j.AssertionFailedError: Unrelated C:\Tools\notepad.exe was swallowed by the Notepad alias ==&gt; expected: &lt;2&gt; but was: &lt;1&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: Unrelated C:\Tools\notepad.exe was swallowed by the Notepad alias ==&gt; expected: &lt;2&gt; but was: &lt;1&gt;
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
+	at dev.aresos.catalogue.WindowsNotepadAliasTest.defaultNotepadAndStoreNeverAbsorbUnrelatedNotepadExecutable(WindowsNotepadAliasTest.java:28)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+</failure>
+  </testcase>
+  <testcase name="otherPathsAndLaunchModifiersStaySeparate()" classname="dev.aresos.catalogue.WindowsNotepadAliasTest" time="0.006">
+    <failure message="org.opentest4j.AssertionFailedError: Unknown path treated as Windows Notepad: C:\Tools\notepad.exe ==&gt; expected: &lt;2&gt; but was: &lt;1&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: Unknown path treated as Windows Notepad: C:\Tools\notepad.exe ==&gt; expected: &lt;2&gt; but was: &lt;1&gt;
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
+	at dev.aresos.catalogue.WindowsNotepadAliasTest.otherPathsAndLaunchModifiersStaySeparate(WindowsNotepadAliasTest.java:67)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+</failure>
+  </testcase>
+  <testcase name="knownWindowsPathsResolveVariablesCaseAndDotSegments()" classname="dev.aresos.catalogue.WindowsNotepadAliasTest" time="0.059">
+    <failure message="org.opentest4j.AssertionFailedError: Known Windows path did not reconcile: %windir%\notepad.exe ==&gt; expected: &lt;[AppDefinition[id=notepad, name=Owner notes, command=[%windir%\notepad.exe], look=minecraft:diamond, pinned=true, type=command, url=null, icon=null, launchIdentity=null]]&gt; but was: &lt;[AppDefinition[id=notepad, name=Owner notes, command=[%windir%\notepad.exe], look=minecraft:diamond, pinned=true, type=command, url=null, icon=null, launchIdentity=null], AppDefinition[id=win-a5a113f67485761f3b6f6815, name=Notepad, command=[explorer.exe, shell:AppsFolder\Microsoft.WindowsNotepad_8wekyb3d8bbwe!App], look=minecraft:paper, pinned=false, type=command, url=null, icon=null, launchIdentity=WindowsLaunchIdentity[target=, arguments=[], workingDirectory=, aumid=microsoft.windowsnotepad_8wekyb3d8bbwe!app, rawArguments=]], AppDefinition[id=win-80ce7d3b3232fda056e0b378, name=Windows Editor.lnk, command=[explorer.exe, C:\FixtureMenu\Windows Editor.lnk], look=minecraft:paper, pinned=false, type=command, url=null, icon=null, launchIdentity=WindowsLaunchIdentity[target=%windir%/notepad.exe, arguments=[], workingDirectory=, aumid=, rawArguments=]]]&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: Known Windows path did not reconcile: %windir%\notepad.exe ==&gt; expected: &lt;[AppDefinition[id=notepad, name=Owner notes, command=[%windir%\notepad.exe], look=minecraft:diamond, pinned=true, type=command, url=null, icon=null, launchIdentity=null]]&gt; but was: &lt;[AppDefinition[id=notepad, name=Owner notes, command=[%windir%\notepad.exe], look=minecraft:diamond, pinned=true, type=command, url=null, icon=null, launchIdentity=null], AppDefinition[id=win-a5a113f67485761f3b6f6815, name=Notepad, command=[explorer.exe, shell:AppsFolder\Microsoft.WindowsNotepad_8wekyb3d8bbwe!App], look=minecraft:paper, pinned=false, type=command, url=null, icon=null, launchIdentity=WindowsLaunchIdentity[target=, arguments=[], workingDirectory=, aumid=microsoft.windowsnotepad_8wekyb3d8bbwe!app, rawArguments=]], AppDefinition[id=win-80ce7d3b3232fda056e0b378, name=Windows Editor.lnk, command=[explorer.exe, C:\FixtureMenu\Windows Editor.lnk], look=minecraft:paper, pinned=false, type=command, url=null, icon=null, launchIdentity=WindowsLaunchIdentity[target=%windir%/notepad.exe, arguments=[], workingDirectory=, aumid=, rawArguments=]]]&gt;
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)
+	at dev.aresos.catalogue.WindowsNotepadAliasTest.knownWindowsPathsResolveVariablesCaseAndDotSegments(WindowsNotepadAliasTest.java:56)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

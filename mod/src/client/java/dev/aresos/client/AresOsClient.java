@@ -34,6 +34,7 @@ public final class AresOsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         HomeButton.register();
+        AppsScreen.register();
         var category = KeyMapping.Category.register(AresOs.id("aresos"));
         var toggle = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.aresos.switch_mode",
                 InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, category));
@@ -57,18 +58,18 @@ public final class AresOsClient implements ClientModInitializer {
         }
         long token = FOCUS_RETURN.arm(System.nanoTime());
         try {
-            launcher.launch(app.command()).whenComplete((ignored, error) -> {
+            launcher.launch(app).whenComplete((ignored, error) -> {
                 if (error != null) {
                     client.execute(() -> {
                         FOCUS_RETURN.cancel(token);
-                        message(client, "Couldn't open " + app.name());
+                        message(client, "Couldn't open " + app.name() + (launcher instanceof LinuxAppLauncher ? ": app helper unavailable" : ""));
                     });
                     AresOs.LOGGER.warn("Could not launch app {}", id, error);
                 }
             });
         } catch (RuntimeException error) {
             FOCUS_RETURN.cancel(token);
-            message(client, "Couldn't open " + app.name());
+            message(client, "Couldn't open " + app.name() + (launcher instanceof LinuxAppLauncher ? ": app helper unavailable" : ""));
             AresOs.LOGGER.warn("Could not launch app {}", id, error);
         }
     }

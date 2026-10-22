@@ -36,7 +36,7 @@ public final class DesktopWorld extends SavedData {
         marker.setDirty();
         if (enabled) {
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                AppItems.placePinned(player, AresOs.apps());
+                dev.aresos.item.AppInventory.populate(player);
                 LiveMode.protect(player);
             }
         }

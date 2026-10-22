@@ -23,13 +23,36 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.nio.file.Path;
+import java.util.Locale;
+import java.util.Set;
+import dev.aresos.catalogue.WindowsAppCatalogue;
+import dev.aresos.catalogue.LinuxAppCatalogue;
+import dev.aresos.icon.IconPack;
+import dev.aresos.icon.PixelIconConverter;
+import dev.aresos.item.AppInventory;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 public final class AresOs implements ModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("aresos");
-    private static List<AppDefinition> apps = AppsConfig.defaults();
+    private static volatile List<AppDefinition> apps = List.of();
+    private static String configError;
+    private static String discoveryError;
+    public static Set<String> generatedIcons = Set.of();
+
+    public static Path configPath() {
+        return Path.of(System.getProperty("aresos.appsConfig", FabricLoader.getInstance().getConfigDir().resolve("aresos/apps.json").toString()));
+    }
+
+    public static Path iconPackPath() {
+        return FabricLoader.getInstance().getGameDir().resolve("aresos-runtime/app-icons");
+    }
+
+    public static void savePins(java.util.Map<String, Boolean> changes) throws IOException {
+        apps = AppsConfig.pins(configPath(), changes);
+    }
 
     public static Identifier id(String path) {
         return Identifier.fromNamespaceAndPath("aresos", path);
@@ -46,13 +69,27 @@ public final class AresOs implements ModInitializer {
     @Override
     public void onInitialize() {
         try {
-            var loaded = AppsConfig.load(FabricLoader.getInstance().getConfigDir().resolve("aresos/apps.json"));
+            boolean windows = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows");
+            var loaded = AppsConfig.load(configPath(), !windows);
             apps = loaded.apps();
-            if (loaded.brokenBackup() != null) {
-                LOGGER.warn("Invalid apps.json; using defaults. Original saved at {}", loaded.brokenBackup());
+            if (loaded.migrationBackup() != null) {
+                LOGGER.info("Migrated apps.json to schema 2; original saved at {}", loaded.migrationBackup());
             }
+            if (!Boolean.getBoolean("aresos.disableDiscovery")) {
+                try {
+                    var catalogue = windows ? new WindowsAppCatalogue(FabricLoader.getInstance().getGameDir().resolve("aresos-runtime/discovery"), apps)
+                            : new LinuxAppCatalogue();
+                    apps = AppsConfig.merge(configPath(), catalogue.listApps());
+                } catch (IOException | RuntimeException error) {
+                    discoveryError = error.getMessage();
+                    LOGGER.error("App discovery failed; existing catalogue kept intact", error);
+                }
+            }
+            try { generatedIcons = IconPack.generate(iconPackPath(), apps, new PixelIconConverter()); }
+            catch (IOException error) { LOGGER.error("Cannot write icon cache; using configured vanilla looks", error); }
         } catch (IOException error) {
-            LOGGER.error("Cannot read/write apps.json; using defaults in memory and leaving the file intact", error);
+            configError = error.getMessage();
+            LOGGER.error("Cannot load app catalogue; apps disabled and original file left intact", error);
         }
         AppItems.register();
         LiveMode.register();
@@ -60,8 +97,12 @@ public final class AresOs implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(ToggleModePayload.TYPE, ToggleModePayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ToggleModePayload.TYPE,
                 (payload, context) -> LiveMode.toggleForHost(context.server(), context.player()));
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                AppItems.placePinned(handler.player, apps));
+        AppInventory.register();
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            AppInventory.populate(handler.player);
+            if (configError != null) handler.player.sendSystemMessage(Component.literal("AresOS apps disabled: " + configError));
+            if (discoveryError != null) handler.player.sendSystemMessage(Component.literal("App discovery failed; existing apps kept. " + discoveryError));
+        });
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             if (!environment.includeIntegrated) return;
             dispatcher.register(Commands.literal("aresos")

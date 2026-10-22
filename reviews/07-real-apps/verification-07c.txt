@@ -1,0 +1,119 @@
+07c pre-fix regression evidence
+Command in mod/: .\gradlew.bat test --tests dev.aresos.catalogue.WindowsCatalogueIdentityTest --rerun-tasks
+Production code: c158fb5 (unchanged 07b implementation); only the two new tests added.
+
+WindowsCatalogueIdentityTest > migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() FAILED
+    org.opentest4j.AssertionFailedError at WindowsCatalogueIdentityTest.java:35
+WindowsCatalogueIdentityTest > nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() FAILED
+    org.opentest4j.AssertionFailedError at WindowsCatalogueIdentityTest.java:54
+2 tests completed, 2 failed
+FAILURE: Build failed with an exception.
+7 actionable tasks: 7 executed
+BUILD FAILED in 11s
+
+migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields(): org.opentest4j.AssertionFailedError: Known Notepad alias duplicated migrated default ==> expected: <1> but was: <2>
+nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps(): org.opentest4j.AssertionFailedError: Raw cmd quoting silently dropped a distinct shortcut ==> expected: <2> but was: <1>
+
+Initial fixed unit run: .\gradlew.bat test --rerun-tasks (build/07c-unit.log)
+36 tests passed; selected exact Gradle summary:
+BUILD SUCCESSFUL in 10s
+7 actionable tasks: 7 executed
+
+Final unit run: .\gradlew.bat test --rerun-tasks (build/07c-unit-final.log)
+WindowsCatalogueFixesTest > ambiguousConfiguredMatchesKeepEveryOwnerEntryAndDiagnose() PASSED
+WindowsCatalogueFixesTest > distinctAumidsAndSameNamedMenuEntriesAreNotDropped() PASSED
+WindowsCatalogueFixesTest > earlierAliasKeepsExistingIdAndOwnerCommand() PASSED
+WindowsCatalogueFixesTest > identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps() PASSED
+WindowsCatalogueFixesTest > configuredCommandWithArgumentsRetainsOwnerArgv() PASSED
+WindowsCatalogueFixesTest > failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel() PASSED
+WindowsCatalogueIdentityTest > savedRawIdentitySelectsOnlyItsAliasAfterOriginalDisappears() PASSED
+WindowsCatalogueIdentityTest > oneParsedShellCandidateIsStillInsufficientToProveEquivalence() PASSED
+WindowsCatalogueIdentityTest > repurposedNotepadEntriesNeverAbsorbKnownAliases() PASSED
+WindowsCatalogueIdentityTest > migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() PASSED
+WindowsCatalogueIdentityTest > nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() PASSED
+WindowsCatalogueIdentityTest > legacyMetadataWithoutRawArgumentsCannotGuessAnAlias() PASSED
+WindowsCatalogueIdentityTest > ambiguousConfiguredArgvKeepsBothRawLaunchesAndDiagnoses() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > nativeShortcutIdentityIncludesArgvAndWorkingDirectory() PASSED
+WindowsCatalogueTest > nativeMissingIconSourceClearsPreviousExtraction() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+BUILD SUCCESSFUL in 10s
+7 actionable tasks: 7 executed
+
+Full verification pass 1 at 585f357
+Command in mod/: .\gradlew.bat build runClientGameTest --rerun-tasks
+Raw log: mod/build/07c-final-pass-1.log
+[02:32:58] [Server thread/INFO] (Minecraft) All 16 required tests passed :)
+WindowsCatalogueFixesTest > ambiguousConfiguredMatchesKeepEveryOwnerEntryAndDiagnose() PASSED
+WindowsCatalogueFixesTest > distinctAumidsAndSameNamedMenuEntriesAreNotDropped() PASSED
+WindowsCatalogueFixesTest > earlierAliasKeepsExistingIdAndOwnerCommand() PASSED
+WindowsCatalogueFixesTest > identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps() PASSED
+WindowsCatalogueFixesTest > configuredCommandWithArgumentsRetainsOwnerArgv() PASSED
+WindowsCatalogueFixesTest > failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel() PASSED
+WindowsCatalogueIdentityTest > savedRawIdentitySelectsOnlyItsAliasAfterOriginalDisappears() PASSED
+WindowsCatalogueIdentityTest > oneParsedShellCandidateIsStillInsufficientToProveEquivalence() PASSED
+WindowsCatalogueIdentityTest > repurposedNotepadEntriesNeverAbsorbKnownAliases() PASSED
+WindowsCatalogueIdentityTest > migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() PASSED
+WindowsCatalogueIdentityTest > nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() PASSED
+WindowsCatalogueIdentityTest > legacyMetadataWithoutRawArgumentsCannotGuessAnAlias() PASSED
+WindowsCatalogueIdentityTest > ambiguousConfiguredArgvKeepsBothRawLaunchesAndDiagnoses() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > nativeShortcutIdentityIncludesArgvAndWorkingDirectory() PASSED
+WindowsCatalogueTest > nativeMissingIconSourceClearsPreviousExtraction() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+[02:33:34] [Test thread/INFO] (aresos) 07b client checks passed: chest pin/unpin persisted; full-hotbar overflow moved into freed slot on rejoin; exactly one app; ordinary items preserved
+[02:33:44] [Test thread/INFO] (aresos) 07 client checks passed: fixture textures and mounted models, normal/Build gating, inventory and page 2, vanilla drag pin/unpin persisted across config reload and rejoin, overflow item pickup, URL one launch per click
+[02:36:36] [Test thread/INFO] (aresos) 01c client checks passed: same-tick number-key and scroll selection (empty -> app, A -> B, app -> empty), normal-world defaults, marker on/off and reopen, host-only commands without cheats, held-click slot switch, between-tick clicks, door/chest/villager interception with vanilla controls, overlapping launch focus return, Build/Live, errors, give command, and five screenshots
+[02:37:32] [Test thread/INFO] (aresos) 04 client checks passed: real title button creation and reload, Nether in first login packet, Live and pins on both joins, flags, safe hub, anchor respawn, edits persist, three generated seed screenshots, existing-save refusal
+[02:38:40] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 5m 58s
+19 actionable tasks: 19 executed
+
+dev.aresos.catalogue.LinuxLauncherTest: tests=1, failures=0, errors=0, skipped=0
+dev.aresos.catalogue.WindowsCatalogueFixesTest: tests=6, failures=0, errors=0, skipped=0
+dev.aresos.catalogue.WindowsCatalogueIdentityTest: tests=7, failures=0, errors=0, skipped=0
+dev.aresos.catalogue.WindowsCatalogueTest: tests=4, failures=0, errors=0, skipped=0
+dev.aresos.config.AppsConfigTest: tests=11, failures=0, errors=0, skipped=0
+dev.aresos.focus.FocusReturnTest: tests=6, failures=0, errors=0, skipped=0
+dev.aresos.icon.IconTest: tests=2, failures=0, errors=0, skipped=0
+
+Full verification pass 2 at 585f357
+Command in mod/: .\gradlew.bat build runClientGameTest --rerun-tasks
+Raw log: mod/build/07c-final-pass-2.log
+[02:39:12] [Server thread/INFO] (Minecraft) All 16 required tests passed :)
+WindowsCatalogueFixesTest > ambiguousConfiguredMatchesKeepEveryOwnerEntryAndDiagnose() PASSED
+WindowsCatalogueFixesTest > distinctAumidsAndSameNamedMenuEntriesAreNotDropped() PASSED
+WindowsCatalogueFixesTest > earlierAliasKeepsExistingIdAndOwnerCommand() PASSED
+WindowsCatalogueFixesTest > identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps() PASSED
+WindowsCatalogueFixesTest > configuredCommandWithArgumentsRetainsOwnerArgv() PASSED
+WindowsCatalogueFixesTest > failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel() PASSED
+WindowsCatalogueIdentityTest > savedRawIdentitySelectsOnlyItsAliasAfterOriginalDisappears() PASSED
+WindowsCatalogueIdentityTest > oneParsedShellCandidateIsStillInsufficientToProveEquivalence() PASSED
+WindowsCatalogueIdentityTest > repurposedNotepadEntriesNeverAbsorbKnownAliases() PASSED
+WindowsCatalogueIdentityTest > migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() PASSED
+WindowsCatalogueIdentityTest > nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() PASSED
+WindowsCatalogueIdentityTest > legacyMetadataWithoutRawArgumentsCannotGuessAnAlias() PASSED
+WindowsCatalogueIdentityTest > ambiguousConfiguredArgvKeepsBothRawLaunchesAndDiagnoses() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > nativeShortcutIdentityIncludesArgvAndWorkingDirectory() PASSED
+WindowsCatalogueTest > nativeMissingIconSourceClearsPreviousExtraction() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+[02:39:47] [Test thread/INFO] (aresos) 07b client checks passed: chest pin/unpin persisted; full-hotbar overflow moved into freed slot on rejoin; exactly one app; ordinary items preserved
+[02:39:56] [Test thread/INFO] (aresos) 07 client checks passed: fixture textures and mounted models, normal/Build gating, inventory and page 2, vanilla drag pin/unpin persisted across config reload and rejoin, overflow item pickup, URL one launch per click
+[02:42:48] [Test thread/INFO] (aresos) 01c client checks passed: same-tick number-key and scroll selection (empty -> app, A -> B, app -> empty), normal-world defaults, marker on/off and reopen, host-only commands without cheats, held-click slot switch, between-tick clicks, door/chest/villager interception with vanilla controls, overlapping launch focus return, Build/Live, errors, give command, and five screenshots
+[02:43:45] [Test thread/INFO] (aresos) 04 client checks passed: real title button creation and reload, Nether in first login packet, Live and pins on both joins, flags, safe hub, anchor respawn, edits persist, three generated seed screenshots, existing-save refusal
+[02:44:51] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 5m 54s
+19 actionable tasks: 19 executed
+
+dev.aresos.catalogue.LinuxLauncherTest: tests=1, failures=0, errors=0, skipped=0
+dev.aresos.catalogue.WindowsCatalogueFixesTest: tests=6, failures=0, errors=0, skipped=0
+dev.aresos.catalogue.WindowsCatalogueIdentityTest: tests=7, failures=0, errors=0, skipped=0
+dev.aresos.catalogue.WindowsCatalogueTest: tests=4, failures=0, errors=0, skipped=0
+dev.aresos.config.AppsConfigTest: tests=11, failures=0, errors=0, skipped=0
+dev.aresos.focus.FocusReturnTest: tests=6, failures=0, errors=0, skipped=0
+dev.aresos.icon.IconTest: tests=2, failures=0, errors=0, skipped=0
+
+Daemon shutdown after both passes: .\gradlew.bat --stop
+Stopping Daemon(s)
+1 Daemon stopped

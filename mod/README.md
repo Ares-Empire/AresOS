@@ -93,39 +93,108 @@ The new home's gamerules remain saved world settings. The marker is saved as
 
 ## App configuration
 
-The first start creates `config/aresos/apps.json` inside the game directory:
+The first start creates schema 2 at `config/aresos/apps.json` inside the dev
+client's game directory. On Windows, AresOS reads user/common Start Menu `.lnk`
+files and the current user's AppsFolder/Store entries. Discovered apps are added
+without pins. Existing IDs, names, looks, pins and Windows command argv stay intact;
+Notepad keeps `notepad`. Shortcut launches go through Explorer so their arguments
+and working directory remain Windows' responsibility. Disappearing apps are kept
+in the configuration; discovery never removes an owner entry.
+
+Discovery matches complete Windows launch identities before choosing aliases:
+target, raw shortcut arguments, parsed argument list, working directory and AUMID.
+Different raw quoting or working directories remain separate apps, even with
+identical executables and parsed arguments. Configured argv matches only one
+unambiguous candidate; shell arguments and older metadata lacking raw arguments
+are retained separately when equivalence cannot be proved, with a diagnostic.
+Known Notepad shortcuts and its Store alias reconcile to `notepad` while that
+entry still launches Notepad without document arguments. Repurposed entries keep
+their owner fields and IDs. Generated
+shortcut entries retain optional `launchIdentity` metadata in schema 2, so adding
+an earlier-sorted alias (or later removing the original alias) keeps the existing
+ID. This metadata does not change the owner's command. Multiple existing matches
+are all retained and logged as ambiguous; discovery never chooses between them.
 
 ```json
-[
-  {
-    "id": "notepad",
-    "name": "Notepad",
-    "command": ["notepad.exe"],
-    "look": "minecraft:writable_book",
-    "pinned": true
-  }
-]
+{
+  "schemaVersion": 2,
+  "apps": [
+    {
+      "id": "notepad",
+      "name": "Notepad",
+      "type": "command",
+      "command": ["notepad.exe"],
+      "look": "minecraft:writable_book",
+      "pinned": true
+    },
+    {
+      "id": "moodle",
+      "name": "TUM Moodle",
+      "type": "url",
+      "url": "https://www.moodle.tum.de/",
+      "look": "minecraft:book",
+      "pinned": false
+    }
+  ]
+}
 ```
 
-Restart the client after edits. Commands are argument lists passed directly to
-`ProcessBuilder`, without a shell. Each app needs a unique lowercase id, a name,
-a nonempty command, a vanilla item id, and a boolean `pinned`. An empty list
-intentionally disables all configured apps. Missing vanilla items fall back to
-the book model. Broken JSON or invalid entries produce a byte-for-byte sibling
-backup named `apps.json.broken-<unique id>` before defaults replace the file.
-An I/O failure is logged and leaves the original file intact.
+Restart after edits. A URL must use HTTP or HTTPS; Windows opens it through the
+default browser. Commands remain argument lists passed directly to `ProcessBuilder`.
+Each entry needs a unique lowercase `id`, nonempty `name`, vanilla item `look`, and
+boolean `pinned`. `command` entries need a nonempty argv; `url` entries need `url`.
+An optional `icon` path can supply a local PNG. Missing/unreadable icons use `look`;
+a missing vanilla item uses a book. Websites use their configured vanilla look
+unless a local icon is supplied; AresOS does not fetch favicons.
 
-On Linux the same configuration works with Linux commands; the default
-`notepad.exe` must be replaced with an installed executable. The Linux launcher
-has no desktop-specific behavior beyond starting a detached process.
+Package-01 arrays migrate on startup: the entire file is validated first, copied
+byte for byte to `apps.json.schema-1-<unique id>.bak`, then replaced atomically by
+schema 2. Migration runs once. Invalid entries, duplicate IDs, unsupported schemas
+or an I/O error stop with a diagnostic and preserve the original file. No defaults
+replace a broken file. Pin/merge edits also preserve unknown optional fields.
+
+Before downgrading to package 01, close Minecraft and run the explicit recovery
+command from `mod/` (substitute the paths to your dev config and its migration backup):
+
+```powershell
+.\gradlew.bat restoreLegacyApps '-PappsConfig=run/config/aresos/apps.json' '-PappsBackup=run/config/aresos/apps.json.schema-1-<id>.bak'
+```
+
+It validates the backup, keeps your current schema-2 file as
+`apps.json.schema-2-before-downgrade-<id>.bak`, prints a warning about later edits,
+and restores the original schema-1 bytes atomically. **The old backup excludes
+later apps, edits and pins.** Compare both retained versions before using the older
+mod. Starting the new mod again migrates back to schema 2.
+
+On Linux, `aresos-shell/1.0` is a stub until the OS helper arrives. Legacy migration
+imports appearance/pins and removes command argv from schema 2 (the original
+remains in its backup). Unknown/custom IDs stay visible. All Linux launches,
+including URLs, fail with an unavailable-helper diagnostic; no commands execute.
+
+Generated icons live only in `aresos-runtime/` under the game directory, in a
+required runtime resource pack. Each source becomes a 16×16 texture, fitted within
+14×14 pixels, with binary alpha and at most 15 visible colors. Sources and converter
+version are hashed; unchanged converted textures are reused. Windows re-reads
+shortcut/resource/UWP icons on startup to detect changes. The `IconConverter`
+interface isolates the style. No installed app list or extracted icon belongs in Git.
+
+In marked AresOS worlds in Live mode, pinned apps fill empty hotbar slots and the
+remaining apps fill empty inventory slots. Existing items are never overwritten.
+When a hotbar slot becomes available, population on rejoin/Live entry moves an
+existing pinned app from inventory into it instead of creating another item.
+**E → Apps…** opens a paged catalogue, including apps that did not fit. Pick an app
+to put its item on the inventory cursor, then place it with normal inventory input.
+Moving an item into/out of the hotbar updates its `pinned` value once the cursor
+is empty, including through chest and other container menus; reordering within the
+hotbar does not change pins. A failed save displays
+a diagnostic. More than nine pins remain configured; overflow stays in the
+inventory/catalogue. Build mode and normal worlds get no catalogue or pin edits.
 
 Only survival players in marked AresOS worlds receive Live protection. Void
 recovery uses their personal bed/anchor spawn, or the world's default spawn if
 the personal spawn is missing; it does not consume respawn-anchor charges.
-Pinned apps already anywhere in the inventory are left alone. A full hotbar is
-left alone, and pinned placement is tried again on the next join or return to
-Live mode. Normal worlds never receive pinned apps. Existing app items can still
-launch there.
+Normal worlds never receive apps or an Apps button. Existing app items can still
+launch there, preserving package-01 behavior.
 
 After an app launch, AresOS watches for the first focus loss within 30 seconds.
 On return, it closes only the pause screen created by that focus loss. An Esc

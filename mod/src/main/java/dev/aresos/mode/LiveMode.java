@@ -55,7 +55,7 @@ public final class LiveMode {
         GameType mode = player.gameMode.getGameModeForPlayer();
         if (mode != GameType.SURVIVAL && mode != GameType.CREATIVE) return false;
         player.setGameMode(mode == GameType.CREATIVE ? GameType.SURVIVAL : GameType.CREATIVE);
-        if (isLive(player)) AppItems.placePinned(player, AresOs.apps());
+        if (isLive(player)) dev.aresos.item.AppInventory.populate(player);
         protect(player);
         return true;
     }

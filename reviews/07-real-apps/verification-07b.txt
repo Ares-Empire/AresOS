@@ -1,0 +1,82 @@
+Package 07b verification excerpts
+Runtime and test sources: b4e712b
+
+Pre-fix discovery proof: cf62b88 catalogue/adapter, only test seams retained.
+Command in mod/: .\gradlew.bat test --tests 'dev.aresos.catalogue.WindowsCatalogue*' --rerun-tasks
+WindowsCatalogueFixesTest > ambiguousConfiguredMatchesKeepEveryOwnerEntryAndDiagnose() FAILED
+WindowsCatalogueFixesTest > distinctAumidsAndSameNamedMenuEntriesAreNotDropped() FAILED
+WindowsCatalogueFixesTest > earlierAliasKeepsExistingIdAndOwnerCommand() FAILED
+WindowsCatalogueFixesTest > identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps() FAILED
+WindowsCatalogueFixesTest > configuredCommandWithArgumentsRetainsOwnerArgv() FAILED
+WindowsCatalogueFixesTest > failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel() FAILED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > nativeShortcutIdentityIncludesArgvAndWorkingDirectory() FAILED
+WindowsCatalogueTest > nativeMissingIconSourceClearsPreviousExtraction() FAILED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+10 tests completed, 8 failed
+FAILURE: Build failed with an exception.
+BUILD FAILED in 7s
+7 actionable tasks: 7 executed
+
+Exact JUnit assertion messages:
+ambiguousConfiguredMatchesKeepEveryOwnerEntryAndDiagnose(): org.opentest4j.AssertionFailedError: expected: <[AppDefinition[id=owner-a, name=A, command=[C:\Tools\app.exe, --work], look=minecraft:book, pinned=true, type=command, url=null, icon=null, launchIdentity=null], AppDefinition[id=owner-b, name=B, command=[C:\Tools\app.exe, --work], look=minecraft:diamond, pinned=false, type=command, url=null, icon=null, launchIdentity=null]]> but was: <[AppDefinition[id=owner-a, name=A, command=[C:\Tools\app.exe, --work], look=minecraft:book, pinned=true, type=command, url=null, icon=null, launchIdentity=null], AppDefinition[id=owner-b, name=B, command=[C:\Tools\app.exe, --work], look=minecraft:diamond, pinned=false, type=command, url=null, icon=null, launchIdentity=null], AppDefinition[id=win-8c107ab41daef657ff32e02e, name=App.lnk, command=[explorer.exe, C:\FixtureMenu\App.lnk], look=minecraft:paper, pinned=false, type=command, url=null, icon=null, launchIdentity=null]]>
+distinctAumidsAndSameNamedMenuEntriesAreNotDropped(): org.opentest4j.AssertionFailedError: expected: <2> but was: <1>
+earlierAliasKeepsExistingIdAndOwnerCommand(): org.opentest4j.AssertionFailedError: Earlier alias duplicated a known app ==> expected: <[win-0c183db28717146d1890deb8]> but was: <[win-0c183db28717146d1890deb8, win-f7950283927e01896a161204]>
+identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps(): org.opentest4j.AssertionFailedError: Working directory silently dropped an app ==> expected: <2> but was: <1>
+configuredCommandWithArgumentsRetainsOwnerArgv(): org.opentest4j.AssertionFailedError: Configured argv was duplicated ==> expected: <1> but was: <2>
+failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel(): org.opentest4j.AssertionFailedError: Failed refresh retained configured cache path ==> expected: <null> but was: <C:\Users\pab\AresOS-07-real-apps\mod\build\tmp\unit-tests\junit-1384422851406700010\aresos-runtime\discovery\sources\notes.png>
+nativeShortcutIdentityIncludesArgvAndWorkingDirectory(): org.opentest4j.AssertionFailedError: Native discovery lost working directories or duplicated configured argv ==> expected: <3> but was: <2>
+nativeMissingIconSourceClearsPreviousExtraction(): org.opentest4j.AssertionFailedError: expected: <null> but was: <C:\Users\pab\AresOS-07-real-apps\mod\build\tmp\unit-tests\junit-7915944633967993692\aresos-runtime\discovery\sources\icon-fixture.png>
+
+Pre-fix pins proof: cf62b88 AppItems and AppInventoryMixin, final client regression.
+Command in mod/: .\gradlew.bat runClientGameTest
+[02:05:58] [Test thread/ERROR] (aresos) 07b chest pin: apps.json stayed unpinned
+[02:05:58] [Test thread/ERROR] (aresos) 07b chest unpin: apps.json stayed pinned
+[02:05:58] [Test thread/ERROR] (aresos) 07b overflow rejoin: pinned app did not enter freed hotbar slot
+FAILURE: Build failed with an exception.
+12 actionable tasks: 7 executed, 5 up-to-date
+BUILD FAILED in 30s
+
+Restored fixes: .\gradlew.bat test --rerun-tasks
+WindowsCatalogueFixesTest > ambiguousConfiguredMatchesKeepEveryOwnerEntryAndDiagnose() PASSED
+WindowsCatalogueFixesTest > distinctAumidsAndSameNamedMenuEntriesAreNotDropped() PASSED
+WindowsCatalogueFixesTest > earlierAliasKeepsExistingIdAndOwnerCommand() PASSED
+WindowsCatalogueFixesTest > identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps() PASSED
+WindowsCatalogueFixesTest > configuredCommandWithArgumentsRetainsOwnerArgv() PASSED
+WindowsCatalogueFixesTest > failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > nativeShortcutIdentityIncludesArgvAndWorkingDirectory() PASSED
+WindowsCatalogueTest > nativeMissingIconSourceClearsPreviousExtraction() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+BUILD SUCCESSFUL in 7s
+7 actionable tasks: 7 executed
+
+Final complete pass 1: .\gradlew.bat build runClientGameTest --rerun-tasks
+Raw log: mod/build/07b-final-pass-1.log
+[02:06:50] [Server thread/INFO] (Minecraft) All 16 required tests passed :)
+[02:07:24] [Test thread/INFO] (aresos) 07b client checks passed: chest pin/unpin persisted; full-hotbar overflow moved into freed slot on rejoin; exactly one app; ordinary items preserved
+[02:07:33] [Test thread/INFO] (aresos) 07 client checks passed: fixture textures and mounted models, normal/Build gating, inventory and page 2, vanilla drag pin/unpin persisted across config reload and rejoin, overflow item pickup, URL one launch per click
+[02:10:05] [Test thread/INFO] (aresos) 04d deterministic site search PASSED: 3 seeds, 3 fresh worlds each, repeated searches and rejoin per seed
+[02:10:27] [Test thread/INFO] (aresos) 01c client checks passed: same-tick number-key and scroll selection (empty -> app, A -> B, app -> empty), normal-world defaults, marker on/off and reopen, host-only commands without cheats, held-click slot switch, between-tick clicks, door/chest/villager interception with vanilla controls, overlapping launch focus return, Build/Live, errors, give command, and five screenshots
+[02:11:24] [Test thread/INFO] (aresos) 04 client checks passed: real title button creation and reload, Nether in first login packet, Live and pins on both joins, flags, safe hub, anchor respawn, edits persist, three generated seed screenshots, existing-save refusal
+[02:12:29] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 5m 54s
+19 actionable tasks: 19 executed
+
+Final complete pass 2: .\gradlew.bat build runClientGameTest --rerun-tasks
+Raw log: mod/build/07b-final-pass-2.log
+[02:13:20] [Server thread/INFO] (Minecraft) All 16 required tests passed :)
+[02:13:54] [Test thread/INFO] (aresos) 07b client checks passed: chest pin/unpin persisted; full-hotbar overflow moved into freed slot on rejoin; exactly one app; ordinary items preserved
+[02:14:03] [Test thread/INFO] (aresos) 07 client checks passed: fixture textures and mounted models, normal/Build gating, inventory and page 2, vanilla drag pin/unpin persisted across config reload and rejoin, overflow item pickup, URL one launch per click
+[02:16:33] [Test thread/INFO] (aresos) 04d deterministic site search PASSED: 3 seeds, 3 fresh worlds each, repeated searches and rejoin per seed
+[02:16:55] [Test thread/INFO] (aresos) 01c client checks passed: same-tick number-key and scroll selection (empty -> app, A -> B, app -> empty), normal-world defaults, marker on/off and reopen, host-only commands without cheats, held-click slot switch, between-tick clicks, door/chest/villager interception with vanilla controls, overlapping launch focus return, Build/Live, errors, give command, and five screenshots
+[02:17:51] [Test thread/INFO] (aresos) 04 client checks passed: real title button creation and reload, Nether in first login packet, Live and pins on both joins, flags, safe hub, anchor respawn, edits persist, three generated seed screenshots, existing-save refusal
+[02:18:56] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 5m 51s
+19 actionable tasks: 19 executed
+
+Final JUnit XML: 6 suites, 30 tests, 0 failures, 0 errors, 0 skipped.
+
+Daemon shutdown: .\gradlew.bat --stop
+Stopping Daemon(s)
+1 Daemon stopped

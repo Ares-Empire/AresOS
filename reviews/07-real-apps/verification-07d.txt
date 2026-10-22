@@ -1,0 +1,208 @@
+07d verification on Windows / Java 25 / Gradle wrapper 9.8.0
+Before fix: production sources unchanged from 6a640fb; only the three new tests added.
+Command in mod/: .\gradlew.bat test --tests dev.aresos.catalogue.WindowsNotepadAliasTest --rerun-tasks
+Original JUnit result: 07d-before-fix.xml (3 tests, 3 failures, 0 errors, 0 skipped).
+
+Starting a Gradle Daemon, 4 stopped Daemons could not be reused, use --status for details
+
+> Configure project :
+Fabric Loom: 1.19.2
+
+> Task :compileJava
+Hinweis: Einige Eingabedateien verwenden oder überschreiben eine veraltete API.
+Hinweis: Wiederholen Sie die Kompilierung mit -Xlint:deprecation, um Details zu erhalten.
+
+> Task :processResources
+> Task :classes
+> Task :compileClientJava
+> Task :processClientResources
+> Task :clientClasses
+> Task :compileTestJava
+> Task :processTestResources
+> Task :testClasses
+
+> Task :test FAILED
+
+
+WindowsNotepadAliasTest > defaultNotepadAndStoreNeverAbsorbUnrelatedNotepadExecutable() FAILED
+3 tests completed, 3 failed
+
+FAILURE: Build failed with an exception.
+
+    org.opentest4j.AssertionFailedError at WindowsNotepadAliasTest.java:28
+
+WindowsNotepadAliasTest > otherPathsAndLaunchModifiersStaySeparate() FAILED
+    org.opentest4j.AssertionFailedError at WindowsNotepadAliasTest.java:67
+
+WindowsNotepadAliasTest > knownWindowsPathsResolveVariablesCaseAndDotSegments() FAILED
+    org.opentest4j.AssertionFailedError at WindowsNotepadAliasTest.java:56
+
+[Incubating] Problems report is available at: file:///C:/Users/pab/AresOS-07-real-apps/mod/build/reports/problems/problems-report.html
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///C:/Users/pab/AresOS-07-real-apps/mod/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.8.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 10s
+7 actionable tasks: 7 executed
+
+After fix: .\gradlew.bat test --rerun-tasks (mod/build/07d-unit.log)
+WindowsNotepadAliasTest > defaultNotepadAndStoreNeverAbsorbUnrelatedNotepadExecutable() PASSED
+WindowsNotepadAliasTest > otherPathsAndLaunchModifiersStaySeparate() PASSED
+WindowsNotepadAliasTest > knownWindowsPathsResolveVariablesCaseAndDotSegments() PASSED
+LinuxLauncherTest > commandsAndUrlsFailClosedWithoutAHelper() PASSED
+WindowsCatalogueFixesTest > ambiguousConfiguredMatchesKeepEveryOwnerEntryAndDiagnose() PASSED
+WindowsCatalogueFixesTest > distinctAumidsAndSameNamedMenuEntriesAreNotDropped() PASSED
+WindowsCatalogueFixesTest > earlierAliasKeepsExistingIdAndOwnerCommand() PASSED
+WindowsCatalogueFixesTest > identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps() PASSED
+WindowsCatalogueFixesTest > configuredCommandWithArgumentsRetainsOwnerArgv() PASSED
+WindowsCatalogueFixesTest > failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel() PASSED
+WindowsCatalogueIdentityTest > savedRawIdentitySelectsOnlyItsAliasAfterOriginalDisappears() PASSED
+WindowsCatalogueIdentityTest > oneParsedShellCandidateIsStillInsufficientToProveEquivalence() PASSED
+WindowsCatalogueIdentityTest > repurposedNotepadEntriesNeverAbsorbKnownAliases() PASSED
+WindowsCatalogueIdentityTest > migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() PASSED
+WindowsCatalogueIdentityTest > nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() PASSED
+WindowsCatalogueIdentityTest > legacyMetadataWithoutRawArgumentsCannotGuessAnAlias() PASSED
+WindowsCatalogueIdentityTest > ambiguousConfiguredArgvKeepsBothRawLaunchesAndDiagnoses() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > nativeShortcutIdentityIncludesArgvAndWorkingDirectory() PASSED
+WindowsCatalogueTest > nativeMissingIconSourceClearsPreviousExtraction() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+AppsConfigTest > linuxMigrationImportsAppearanceOnlyAndKeepsCommandsInBackup() PASSED
+AppsConfigTest > package01MigrationMakesVersionedBackupAndIsIdempotent() PASSED
+AppsConfigTest > firstStartWritesDefaults() PASSED
+AppsConfigTest > discoveryMergeNeverAutoPinsOrReplacesOwnerFields() PASSED
+AppsConfigTest > websitesRoundTripAndRejectUnsafeOrInvalidTargets() PASSED
+AppsConfigTest > emptyListIsAnIntentionalConfig() PASSED
+AppsConfigTest > failedReadDoesNotReplaceOwnersPath() PASSED
+AppsConfigTest > explicitDowngradeRestoresExactBytesAndKeepsLaterEdits() PASSED
+AppsConfigTest > invalidFilesStopAndLeaveOriginalBytesIntact() PASSED
+AppsConfigTest > roundTripPreservesArgumentsUnicodeAndPinnedChoice() PASSED
+AppsConfigTest > discoveryRefreshesOwnedCachePathsAndPreservesCustomIcons() PASSED
+FocusReturnTest > onlyClosesTheCapturedFocusLossScreen() PASSED
+FocusReturnTest > returnBeforeMenuExistsDoesNotCloseAnything() PASSED
+FocusReturnTest > focusLossIsAcceptedThroughThirtySecondsOnly() PASSED
+FocusReturnTest > failureCanOnlyCancelItsOwnLaunch() PASSED
+FocusReturnTest > unrelatedFocusLossAndFailedOrExpiredLaunchDoNotCloseMenus() PASSED
+FocusReturnTest > preservesEscMenuAndReplacementScreen() PASSED
+IconTest > cacheUsesContentAndConverterVersionAndUnreadableIconsFallBack() PASSED
+IconTest > conversionMatchesHandmadeFixtureGoldens() PASSED
+BUILD SUCCESSFUL in 10s
+7 actionable tasks: 7 executed
+
+Full pass 1 on 0926389: .\gradlew.bat build runClientGameTest --rerun-tasks (mod/build/07d-final-pass-1.log)
+[02:56:01] [Server thread/INFO] (Minecraft) All 16 required tests passed :)
+LinuxLauncherTest > commandsAndUrlsFailClosedWithoutAHelper() PASSED
+WindowsCatalogueFixesTest > ambiguousConfiguredMatchesKeepEveryOwnerEntryAndDiagnose() PASSED
+WindowsCatalogueFixesTest > distinctAumidsAndSameNamedMenuEntriesAreNotDropped() PASSED
+WindowsCatalogueFixesTest > earlierAliasKeepsExistingIdAndOwnerCommand() PASSED
+WindowsCatalogueFixesTest > identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps() PASSED
+WindowsCatalogueFixesTest > configuredCommandWithArgumentsRetainsOwnerArgv() PASSED
+WindowsCatalogueFixesTest > failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel() PASSED
+WindowsCatalogueIdentityTest > savedRawIdentitySelectsOnlyItsAliasAfterOriginalDisappears() PASSED
+WindowsCatalogueIdentityTest > oneParsedShellCandidateIsStillInsufficientToProveEquivalence() PASSED
+WindowsCatalogueIdentityTest > repurposedNotepadEntriesNeverAbsorbKnownAliases() PASSED
+WindowsCatalogueIdentityTest > migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() PASSED
+WindowsCatalogueIdentityTest > nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() PASSED
+WindowsCatalogueIdentityTest > legacyMetadataWithoutRawArgumentsCannotGuessAnAlias() PASSED
+WindowsCatalogueIdentityTest > ambiguousConfiguredArgvKeepsBothRawLaunchesAndDiagnoses() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > nativeShortcutIdentityIncludesArgvAndWorkingDirectory() PASSED
+WindowsCatalogueTest > nativeMissingIconSourceClearsPreviousExtraction() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+WindowsNotepadAliasTest > defaultNotepadAndStoreNeverAbsorbUnrelatedNotepadExecutable() PASSED
+WindowsNotepadAliasTest > otherPathsAndLaunchModifiersStaySeparate() PASSED
+WindowsNotepadAliasTest > knownWindowsPathsResolveVariablesCaseAndDotSegments() PASSED
+AppsConfigTest > linuxMigrationImportsAppearanceOnlyAndKeepsCommandsInBackup() PASSED
+AppsConfigTest > package01MigrationMakesVersionedBackupAndIsIdempotent() PASSED
+AppsConfigTest > firstStartWritesDefaults() PASSED
+AppsConfigTest > discoveryMergeNeverAutoPinsOrReplacesOwnerFields() PASSED
+AppsConfigTest > websitesRoundTripAndRejectUnsafeOrInvalidTargets() PASSED
+AppsConfigTest > emptyListIsAnIntentionalConfig() PASSED
+AppsConfigTest > failedReadDoesNotReplaceOwnersPath() PASSED
+AppsConfigTest > explicitDowngradeRestoresExactBytesAndKeepsLaterEdits() PASSED
+AppsConfigTest > invalidFilesStopAndLeaveOriginalBytesIntact() PASSED
+AppsConfigTest > roundTripPreservesArgumentsUnicodeAndPinnedChoice() PASSED
+AppsConfigTest > discoveryRefreshesOwnedCachePathsAndPreservesCustomIcons() PASSED
+FocusReturnTest > onlyClosesTheCapturedFocusLossScreen() PASSED
+FocusReturnTest > returnBeforeMenuExistsDoesNotCloseAnything() PASSED
+FocusReturnTest > focusLossIsAcceptedThroughThirtySecondsOnly() PASSED
+FocusReturnTest > failureCanOnlyCancelItsOwnLaunch() PASSED
+FocusReturnTest > unrelatedFocusLossAndFailedOrExpiredLaunchDoNotCloseMenus() PASSED
+FocusReturnTest > preservesEscMenuAndReplacementScreen() PASSED
+IconTest > cacheUsesContentAndConverterVersionAndUnreadableIconsFallBack() PASSED
+IconTest > conversionMatchesHandmadeFixtureGoldens() PASSED
+[02:56:36] [Test thread/INFO] (aresos) 07b client checks passed: chest pin/unpin persisted; full-hotbar overflow moved into freed slot on rejoin; exactly one app; ordinary items preserved
+[02:56:45] [Test thread/INFO] (aresos) 07 client checks passed: fixture textures and mounted models, normal/Build gating, inventory and page 2, vanilla drag pin/unpin persisted across config reload and rejoin, overflow item pickup, URL one launch per click
+[02:59:15] [Test thread/INFO] (aresos) 04d deterministic site search PASSED: 3 seeds, 3 fresh worlds each, repeated searches and rejoin per seed
+[02:59:37] [Test thread/INFO] (aresos) 01c client checks passed: same-tick number-key and scroll selection (empty -> app, A -> B, app -> empty), normal-world defaults, marker on/off and reopen, host-only commands without cheats, held-click slot switch, between-tick clicks, door/chest/villager interception with vanilla controls, overlapping launch focus return, Build/Live, errors, give command, and five screenshots
+[03:00:33] [Test thread/INFO] (aresos) 04 client checks passed: real title button creation and reload, Nether in first login packet, Live and pins on both joins, flags, safe hub, anchor respawn, edits persist, three generated seed screenshots, existing-save refusal
+[03:01:40] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 5m 56s
+19 actionable tasks: 19 executed
+JUnit XML: 8 suites, 40 tests, 0 failures, 0 errors, 0 skipped
+
+Full pass 2 on 0926389: .\gradlew.bat build runClientGameTest --rerun-tasks (mod/build/07d-final-pass-2.log)
+[03:02:08] [Server thread/INFO] (Minecraft) All 16 required tests passed :)
+LinuxLauncherTest > commandsAndUrlsFailClosedWithoutAHelper() PASSED
+WindowsCatalogueFixesTest > ambiguousConfiguredMatchesKeepEveryOwnerEntryAndDiagnose() PASSED
+WindowsCatalogueFixesTest > distinctAumidsAndSameNamedMenuEntriesAreNotDropped() PASSED
+WindowsCatalogueFixesTest > earlierAliasKeepsExistingIdAndOwnerCommand() PASSED
+WindowsCatalogueFixesTest > identicalTargetAndArgumentsWithDifferentDirectoriesRemainTwoApps() PASSED
+WindowsCatalogueFixesTest > configuredCommandWithArgumentsRetainsOwnerArgv() PASSED
+WindowsCatalogueFixesTest > failedConfiguredExtractionInvalidatesOwnedSourceAndGeneratedModel() PASSED
+WindowsCatalogueIdentityTest > savedRawIdentitySelectsOnlyItsAliasAfterOriginalDisappears() PASSED
+WindowsCatalogueIdentityTest > oneParsedShellCandidateIsStillInsufficientToProveEquivalence() PASSED
+WindowsCatalogueIdentityTest > repurposedNotepadEntriesNeverAbsorbKnownAliases() PASSED
+WindowsCatalogueIdentityTest > migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() PASSED
+WindowsCatalogueIdentityTest > nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() PASSED
+WindowsCatalogueIdentityTest > legacyMetadataWithoutRawArgumentsCannotGuessAnAlias() PASSED
+WindowsCatalogueIdentityTest > ambiguousConfiguredArgvKeepsBothRawLaunchesAndDiagnoses() PASSED
+WindowsCatalogueTest > fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() PASSED
+WindowsCatalogueTest > nativeShortcutIdentityIncludesArgvAndWorkingDirectory() PASSED
+WindowsCatalogueTest > nativeMissingIconSourceClearsPreviousExtraction() PASSED
+WindowsCatalogueTest > linuxCatalogueIsAnUnavailableHelperStub() PASSED
+WindowsNotepadAliasTest > defaultNotepadAndStoreNeverAbsorbUnrelatedNotepadExecutable() PASSED
+WindowsNotepadAliasTest > otherPathsAndLaunchModifiersStaySeparate() PASSED
+WindowsNotepadAliasTest > knownWindowsPathsResolveVariablesCaseAndDotSegments() PASSED
+AppsConfigTest > linuxMigrationImportsAppearanceOnlyAndKeepsCommandsInBackup() PASSED
+AppsConfigTest > package01MigrationMakesVersionedBackupAndIsIdempotent() PASSED
+AppsConfigTest > firstStartWritesDefaults() PASSED
+AppsConfigTest > discoveryMergeNeverAutoPinsOrReplacesOwnerFields() PASSED
+AppsConfigTest > websitesRoundTripAndRejectUnsafeOrInvalidTargets() PASSED
+AppsConfigTest > emptyListIsAnIntentionalConfig() PASSED
+AppsConfigTest > failedReadDoesNotReplaceOwnersPath() PASSED
+AppsConfigTest > explicitDowngradeRestoresExactBytesAndKeepsLaterEdits() PASSED
+AppsConfigTest > invalidFilesStopAndLeaveOriginalBytesIntact() PASSED
+AppsConfigTest > roundTripPreservesArgumentsUnicodeAndPinnedChoice() PASSED
+AppsConfigTest > discoveryRefreshesOwnedCachePathsAndPreservesCustomIcons() PASSED
+FocusReturnTest > onlyClosesTheCapturedFocusLossScreen() PASSED
+FocusReturnTest > returnBeforeMenuExistsDoesNotCloseAnything() PASSED
+FocusReturnTest > focusLossIsAcceptedThroughThirtySecondsOnly() PASSED
+FocusReturnTest > failureCanOnlyCancelItsOwnLaunch() PASSED
+FocusReturnTest > unrelatedFocusLossAndFailedOrExpiredLaunchDoNotCloseMenus() PASSED
+FocusReturnTest > preservesEscMenuAndReplacementScreen() PASSED
+IconTest > cacheUsesContentAndConverterVersionAndUnreadableIconsFallBack() PASSED
+IconTest > conversionMatchesHandmadeFixtureGoldens() PASSED
+[03:02:43] [Test thread/INFO] (aresos) 07b client checks passed: chest pin/unpin persisted; full-hotbar overflow moved into freed slot on rejoin; exactly one app; ordinary items preserved
+[03:02:53] [Test thread/INFO] (aresos) 07 client checks passed: fixture textures and mounted models, normal/Build gating, inventory and page 2, vanilla drag pin/unpin persisted across config reload and rejoin, overflow item pickup, URL one launch per click
+[03:05:23] [Test thread/INFO] (aresos) 04d deterministic site search PASSED: 3 seeds, 3 fresh worlds each, repeated searches and rejoin per seed
+[03:05:45] [Test thread/INFO] (aresos) 01c client checks passed: same-tick number-key and scroll selection (empty -> app, A -> B, app -> empty), normal-world defaults, marker on/off and reopen, host-only commands without cheats, held-click slot switch, between-tick clicks, door/chest/villager interception with vanilla controls, overlapping launch focus return, Build/Live, errors, give command, and five screenshots
+[03:06:41] [Test thread/INFO] (aresos) 04 client checks passed: real title button creation and reload, Nether in first login packet, Live and pins on both joins, flags, safe hub, anchor respawn, edits persist, three generated seed screenshots, existing-save refusal
+[03:07:48] [Test thread/INFO] (aresos) 04c client checks passed: seed entry/quick picks/toggle, natural blocks unchanged, safe non-49 hub, home set/go/info without cheats, unsafe and guest refusal, exact joins and actual respawn, lossless confirmed save rename, create screenshots
+BUILD SUCCESSFUL in 5m 56s
+19 actionable tasks: 19 executed
+JUnit XML: 8 suites, 40 tests, 0 failures, 0 errors, 0 skipped
+
+Source checks: git diff --quiet 0926389 -- mod/src (exit 0); git show --check 0926389 (exit 0); git diff --check (exit 0).
+Daemon cleanup: .\gradlew.bat --stop (mod/build/07d-daemon-stop.txt)
+Stopping Daemon(s)
+1 Daemon stopped
