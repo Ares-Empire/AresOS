@@ -1,5 +1,7 @@
 # Package 11: two-disk install rehearsal and pinned media
 
+Latest 11d outcome: **STOPPED at reverse-order detached firmware audit — automatic entry changed and an attached-device entry disappeared. A OPEN, B UNTESTED, C pins retained.** The owner token closed the release-access blocker; 133 native regressions passed. Protected bytes and Windows entry stayed unchanged, with six zero-write records, but the failed probe authorizes no full run. Shared 11c/11d measured cost is **66/330 minutes**, plus at most 14 reserved for closing privacy checks; **0/3 full runs**. See [11d](#11d-owner-read-only-token-and-continued-qualification-2026-10-24).
+
 Latest 11c outcome: **STOPPED before any VM — pinned private image returned manifest unknown. A OPEN, B UNTESTED, C pins retained.** Native regressions and exact firmware-rule regressions pass; no full run was authorized. See [11c](#11c-firmware-contract-and-fresh-install-qualification-2026-10-23).
 
 Latest 11b outcome: **STOPPED at the pre-install firmware audit; A NOT QUALIFIED, B UNTESTED, C pins unchanged.** No installation or full run was authorized. Follow-up cost: **168/350 minutes, 0/3 full runs**. See the 11b section below; earlier sections retain the original package-11 history.
@@ -717,6 +719,17 @@ the branch is pushed fast-forward only, and nothing is merged.
 
 ## 11d: owner read-only token and continued qualification (2026-10-24)
 
+**STOPPED — firmware-contract PLAN-GAP in the fresh probe. A OPEN, B UNTESTED,
+C pins retained.** [Probe 40038465601](https://github.com/Ares-Empire/AresOS/actions/runs/40038465601)
+on source **`31879417304d2ca584fe7e5f6b0de9555f4dd0ae`** reached the live Web UI
+review and pre-install detached Windows boot in both drive orders. Reverse-order
+OVMF then removed an automatic option for a still-attached protected device and
+changed an existing automatic option. Both are explicitly forbidden by 11c.
+The unchanged guard failed; no exemption was widened, no full run was authorized,
+and no further VM or checks-only dispatch followed. PR #11 remains draft.
+
+### Done
+
 The owner authorized Actions secret `GHCR_READ_TOKEN` solely for reading the
 original pinned `ghcr.io/carlsenares/aresos` image, its layers and associated
 signature, using username `carlsenares`. The declared scope is classic
@@ -739,9 +752,10 @@ requires the probe artifact's passing manifest/pull proofs and cleanup receipt.
 The old user-package metadata step records that visibility cannot be queried
 with the org job token; it no longer treats a 404 as success or absence.
 
-Parts A/B remain OPEN while the new probe/full evidence is being collected.
-The allowance is shared with 11c: 17 rounded minutes were already consumed,
-including the two checks on the new brief; no full run has been dispatched.
+Parts A/B remain OPEN after the firmware stop. The allowance is shared with
+11c: 17 rounded minutes were already consumed at entry, including the two
+checks on the new brief. The final measured cost before closing privacy checks
+is 66/330; no full run has been dispatched.
 
 
 The first 11d probe was cancelled during setup when source review identified
@@ -749,7 +763,7 @@ that a runner-owned 9p export could have the same UID as future `ares` (1001).
 No full run was authorized. Credential creation/read/cleanup now execute as
 root on the disposable runner; the guest requires root ownership of both share
 root and file, in addition to read-only mode and 0600. A negative regression
-rejects UID 1001 and relaxed permissions. A new same-commit probe is required.
+rejects UID 1001 and relaxed permissions. A new same-commit probe was required.
 
 
 Probe 2 (`40036342487`, source `a8c77f7`) passed 132 native tests in 3.296s,
@@ -761,4 +775,215 @@ expected a path suffix. This is a harness schema mistake, not an observed EFI
 option mutation. The guard now requires the exact real IDE ID; all PCI/SATA/file
 binding checks remain. A replay regression consumes the original raw QMP record
 and rejects a different ID. Cleanup passed; no full run is authorized and no
-fresh firmware/disk stage is claimed. A new same-commit probe follows.
+fresh firmware/disk stage is claimed for probe 2. The fresh same-source probe 3
+then reached the real firmware behavior described below and triggered the stop.
+
+Nine `test_rehearsal_auth.py` regressions cover dispatch-only secret scope,
+outside-workspace/artifact paths, always-cleanup ordering, UID/mode protection,
+fail-closed contexts/reads, and suppressed credential diagnostics. Workflow/tool
+setup includes the YAML parser for these checks. The QMP replay regression
+preserves all PCI/SATA/file bindings and rejects a different IDE identifier.
+No mod/runtime payload, image/base/key/lock, release signature script or
+disk-audit contract was changed in 11d. No rebuild, publication, visibility
+change, Gradle/Minecraft or real-disk operation occurred.
+
+Captured API identities use the rewrite's placeholders. Original ZIPs stay byte
+exact with API digest receipts; readable text alone normalizes line endings and
+trailing whitespace. The capture helper scans uncompressed bytes, including
+encoded token patterns, and rejects auth-file contents before retention.
+`verify-11d-evidence.py` independently checks receipts, raw stores, QMP context,
+the original contract, disk/counter proofs, review and keyboard data. It records
+the strict firmware failure and exits **1**, never qualifying it. INSTALL and
+EMERGENCY now describe this firmware stop; installation/GRUB gates stay open.
+Original 11/11b/11c evidence is retained.
+
+### Verified
+
+The required first commands, `git fetch` and `git pull --ff-only`, completed;
+pull printed `Already up to date.` Pushes use the normal branch ref: no
+force-push, pre-rewrite ref, main push, merge or rebase was used.
+
+| Gate | Result and evidence |
+|---|---|
+| Pinned release access | **PASS** [manifest](../../os/manifest/ci/11d/probe-3/private-registry-preflight.json) and [all-layer pull](../../os/manifest/ci/11d/probe-3/owner-release-pull.json), preserved digest `sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402`; OCI cache removed. Metadata visibility explicitly unverified. |
+| Original signed identity/runtime | **PASS** unchanged release checks on old source `5578ab21b880091f26bfdc2eda22dd4f304a602b`, equivalent rewritten source `f5bb5d35dac73e95ce2bc6680ae61f20d042f5b7`. Original `os/release/verify.sh` succeeds in [first order](../../os/manifest/ci/11d/probe-3/two-disk/live-release-signature-proof.json) and [reverse order](../../os/manifest/ci/11d/probe-3/two-disk/protected-second/live-release-signature-proof.json); identity stays `https://github.com/carlsenares/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/06-image-release`, issuer `https://token.actions.githubusercontent.com`. |
+| Credential boundary/cleanup | **PASS reached live stages**: [first mount](../../os/manifest/ci/11d/probe-3/two-disk/boot-2-owner-auth-mount.txt), [reverse mount](../../os/manifest/ci/11d/probe-3/two-disk/protected-second/boot-5-owner-auth-mount.txt), [always-cleanup receipt](../../os/manifest/ci/11d/probe-3/owner-auth-cleanup.json); removed before upload. Zero owner-token API calls; installed-target transport unqualified. |
+| Exact firmware contract | **PASS source/baselines** [OVMF receipt](../../os/manifest/ci/11d/probe-3/firmware-contract.json): `2024.02-2ubuntu0.10`, exact 16-byte auto GUID checked against patched package source and both actual baseline stores. CODE SHA-256 `ad23261d43116abc3747d59a7837fbf578c9586a8993f4eeba064cd07eccb083`; BmBoot.c SHA-256 `e961d1bc0ad7df99156a030dee92585fb2608ad5722f34d494459c2f74e6f3c6`. |
+| Native regressions | **PASS** 133 tests in 3.463s, `OK`; Python compilation and Bash syntax checks exit 0 in [same-source probe log](logs/11d/probe-3-native-and-auth.txt). |
+| Complete pinned live ISO | **PASS** [9,068,650,496-byte download](../../os/manifest/ci/11d/probe-3/installer/iso-download.json), SHA-256 `776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6`, unchanged pin and fresh official checksum. |
+| Real two-order Web UI preview | **PASS preview only** [first review](../../os/manifest/ci/11d/probe-3/two-disk/review-proof.json), [reverse review](../../os/manifest/ci/11d/probe-3/two-disk/protected-second/review-proof.json). Only target rows: new 629 MB EFI `/boot/efi`, 2.15 GB ext4 `/boot`, Btrfs `/`, `/home`, `/var`. No protected row or install click. Backend selection, Europe/Berlin, recovery account wheel/password/root lock and German keyboard resolver proofs retained. |
+| Protected disk/Windows through reached stages | **PASS reached stages only** [verification](../../os/manifest/ci/11d/evidence-verification.json): six identical offline captures, six final write records `wr_bytes=0`, `wr_operations=0`, no missing counter. Windows Boot0000 remains byte-identical and first. Both pre-install detached Windows markers boot the original Microsoft path. |
+| Reverse detached firmware entries | **FAIL / STOP** [raw before](../../os/manifest/ci/11d/probe-3/two-disk/protected-second/live-ui-probe-vars.fd), [raw after](../../os/manifest/ci/11d/probe-3/two-disk/protected-second/probe-windows-without-linux-vars.fd), [derived changes + full per-boot QMP contexts](../../os/manifest/ci/11d/firmware-stop-analysis.json). See stage table below. |
+| A: both installations/switch/policy/tty3/rollback/default undo; Windows detached after install/undo | **OPEN**: no complete passing probe, no full run, no installed target. Pre-install markers are not these gates. |
+| B: actual GRUB stock selection/promotion/unattended stock | **UNTESTED / BLOCKED** by failed probe and absent installed target. No menu/identity/promotion proof claimed. |
+| C: media pins | **RETAINED**, fresh complete live ISO verified; no media substitution. Physical USB/writer operation remains OPEN. |
+| Privacy | Captured source scans green: [push](https://github.com/Ares-Empire/AresOS/actions/runs/40038275064), [PR](https://github.com/Ares-Empire/AresOS/actions/runs/40038279622). Main's privacy workflow/config remain byte-identical. Final closing scan URLs/results and exact shared minutes go in PR #11 after the final push. |
+
+All six offline records retain protected SHA-256
+`3f45ca070eaeda0e059af7e7b505aac9b549a097134243a21c8995f01767e111`,
+validated primary/backup GPT, partition GUIDs/bounds and complete EFI hashes.
+Both detached marker frames show `BootCurrent=0000`, original ESP GUID
+`638D3069-A6B2-4FCB-9D97-01ABA3ECC83A`, and
+`\EFI\Microsoft\Boot\bootmgfw.efi`; only PCI address differs (2.0 versus 3.0).
+This is file-backed VM fixture evidence, not a real Windows boot test.
+
+Visually inspected [first full review](screenshots/11d-probe-3-two-disk-review-full.png),
+[reverse full review](screenshots/11d-probe-3-two-disk-protected-second-review-full.png),
+and [first](screenshots/11d-probe-3-two-disk-probe-windows-without-linux-windows-marker.png)
+and [reverse](screenshots/11d-probe-3-two-disk-protected-second-probe-windows-without-linux-windows-marker.png)
+detached marker frames. Target is `vdb` first and `vda` in reverse; these are
+same-session identities, never physical-guide device assumptions. Destination
+frames include transient loading/disabled states; the complete validated review
+is the final preview evidence.
+
+### Firmware exemptions and failure per stage
+
+Every auto option below has exactly GUID bytes
+`4eac0881119f594d850ee21a522c59b2`; labels do not decide attachment.
+
+| Order / stage | Exemption or result |
+|---|---|
+| Protected first / baseline firmware | Baseline established, original Windows Boot0000 unchanged, actual QMP ownership saved. No transition exemption. |
+| Protected first / live-ui-probe | Diff `{}`, exemptions `{}`. |
+| Protected first / detached Windows | **Exactly two accepted removals:** Boot0002 for detached DVD `pci:00:1f.2/sata:0:65535:0`, Boot0004 for detached empty target `pci:00:03.0`. Each stage record names its device and reason. BootOrder otherwise preserves fixed order, Windows first. |
+| Protected second / baseline firmware | Baseline established, original Windows unchanged, target at PCI 2.0 and protected at PCI 3.0. No transition exemption. |
+| Protected second / live-ui-probe | Diff `{}`, exemptions `{}`. |
+| Protected second / detached Windows | **FAIL, no accepted exemption record:** Boot0004 removed while protected `pci:00:03.0` is still attached. Boot0002 changed from DVD/SATA to protected PCI 3.0 (forbidden existing-entry mutation/ID reuse). Boot0003 removed for detached target PCI 2.0 would individually fit the rule, but cannot make the stage pass. Raw stores, JSON and QMP context were saved before the assertion. |
+
+The actual runner printed
+`AssertionError: PRODUCT FAILURE: auto option removal does not match a detached device`.
+Independent raw decoding also shows the forbidden Boot0002 change. Reverse
+BootOrder changed from `0000,0001,0002,0003,0004,0005,0006,0007,0008,0009` to
+`0000,0001,0005,0006,0007,0008,0009,0002`. Windows remains first, but this
+renumbering/recycling is outside the authorized rule. No entry was reconstructed
+or renumbered by the harness to pass the audit.
+
+Actual commands/results (full output in retained logs/ZIPs):
+
+```text
+Windows focused unittest discovery, os/tests (local-regressions.txt):
+  test_rehearsal_auth.py: initially 8 in 0.075s, OK; after UID fix 9 in 0.065s, OK
+  test_disk_audit.py, test_two_disk_vm.py, test_installer_webui.py,
+  test_firmware_contract.py, test_rehearsal_budget.py: all OK
+  after QMP replay fix, test_two_disk_vm.py: 20 in 0.274s, OK
+  Python compilation of every os/ci/*.py: exit 0
+Ubuntu probe 40038465601:
+  python3 -m unittest discover -s os/tests -v
+    Ran 133 tests in 3.463s; OK
+  python3 -m py_compile os/ci/*.py os/ci/overlay/*.py
+    exit 0
+  for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done
+    exit 0
+  python3 os/ci/verify_release.py 39818554327
+    Qualified release source 5578ab21b880091f26bfdc2eda22dd4f304a602b;
+    runtime payload unchanged; testing the original pinned image
+  sudo -E python3 os/ci/rehearsal_auth.py create / preflight / pull
+    separate steps: temporary file created; pinned digest verified;
+    exact layers pulled with preserved digest
+  python3 os/ci/installer_inspect.py
+    exit 0; complete ISO matched original pin
+  sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py probe
+    exit 1; PRODUCT FAILURE: auto option removal does not match a detached device
+  sudo -E python3 os/ci/rehearsal_auth.py cleanup (always)
+    Runner-temporary GHCR_READ_TOKEN auth file removed; success before upload
+Retained-evidence verification:
+  python -X utf8 reviews/11-two-disk-rehearsal/verify-11d-evidence.py
+    exit 1; 6 matching offline stages, 6 zero-write records, no missing counters
+    2 accepted first-order exemptions; reverse firmware failure retained
+    648 archived UTF-8 records checked, raw/encoded credential checks passed
+    STOP: retained firmware contract failure; probe/full qualification is absent.
+  python -X utf8 os/ci/rehearsal_guard.py ledger 0
+    66 consumed minutes, full_dispatched=0, cap=330, full_cap=3
+  gitleaks.exe git . --pre-commit --staged --redact --no-banner --log-level info
+    exit 0; no leaks found in staged evidence
+  gitleaks.exe git . --log-opts HEAD --redact --no-banner --log-level info
+    exit 0; 94 rewritten-HEAD commits scanned, no leaks found (before report commit)
+```
+
+[Local regressions](logs/11d/local-regressions.txt),
+[native/auth log](logs/11d/probe-3-native-and-auth.txt),
+[failed VM step](logs/11d/probe-3.txt),
+[verifier output](logs/11d/evidence-verification.txt).
+No test was weakened, skipped or deleted. No Gradle/Minecraft command or daemon
+was started, as this brief explicitly prohibits them.
+The checksum-verified portable gitleaks 8.21.2 stayed under ignored `.work/`;
+no system software was installed locally. The final report commit is scanned
+again before the push, then GitHub runs the unchanged privacy workflow.
+
+Original [probe-3 artifact ZIP](artifacts/11d-probe-3-two-disk-evidence.zip):
+6,341,568 bytes, API SHA-256
+`c71cf2ff3a741640124629d212d52a7708d30e3d845a1b54065a71dfbf671799`.
+The [receipt](../../os/manifest/ci/11d/probe-3/artifacts.json), raw stores,
+QMP/serial logs, screenshots and workflow-log ZIPs are retained. Large full
+squashfs inventories stay inside original ZIPs instead of duplicated expanded
+text. The verifier explicitly lists probe 2's unreached baseline; absent evidence
+is not a zero-write or qualification result.
+
+### Minute ledger
+
+The allowance **never reset**: 11c + 11d share start **2026-10-23 16:21 UTC**,
+**330 rounded minutes / 3 full runs**. Every executed branch workflow job counts,
+including privacy/cancelled jobs (ceil per job; skipped jobs cost zero).
+[Shared machine-readable ledger](../../os/manifest/ci/11d/final-budget.json)
+lists every run, source SHA, conclusion and minute value.
+
+| Run(s) | Result | Rounded minutes |
+|---|---|---:|
+| Prior 11c, including final 39992290220 / 39992295958 privacy pair | 7-minute blocked probe + 8 privacy jobs; actual carry-forward | 15 |
+| 40034559047 / 40034568137 | Owner brief push / PR privacy, success | 2 |
+| 40035578181 / 40035585755 | First 11d source push / PR privacy, success | 2 |
+| 40035777911 / 40035784085 | OCI-cache source push / PR privacy, success | 2 |
+| 40035950604, source `727d1e8` | Cancelled during setup after UID review; credential creation skipped; cleanup passed; no VM | 3 |
+| 40036158941 / 40036169351 | Root-ownership source push / PR privacy, success | 2 |
+| 40036342487, source `a8c77f7` | 132 native tests in 3.296s, host manifest/layers/ISO pass; IDE identifier guard fails before baseline; cleanup passed | 16 |
+| 40038275064 / 40038279622 | QMP-replay source push / PR privacy, success | 2 |
+| 40038465601, source `3187941` | Both-order previews/signatures/markers; reverse firmware contract fails; cleanup passed; mandatory stop | 22 |
+| **Measured before closing push** | **0/3 full dispatches** | **66/330** |
+| Closing push + PR privacy pair | Reserved: five-minute watchdog plus two-minute cleanup allowance per job | **at most 14** |
+| **Bound including closing checks** | Final exact actual total and scan URLs in PR description | **at most 80/330** |
+
+The reservation avoids an endless evidence-only push/scan loop. Final actual
+accounting is updated in PR #11 after final checks, without another commit
+creating checks. At least 250 minutes stay unused within this bound: firmware,
+not budget exhaustion, stopped installation. Zero full runs were attempted.
+No VM, full or checks-only dispatch followed the firmware failure; only required
+closing privacy checks run afterward.
+
+### Not verified
+
+No installation, installed UID/group/keymap/encryption result, post-install
+target ESP, switch/policy/real tty3 recovery, rollback/default undo, or Windows
+boot with Linux detached after install/undo was reached in either order.
+Installed-target token mount/switch/cleanup paths remain unqualified. Part B has
+no actual installed GRUB menu, selected stock identity, promotion or unattended
+stock boot. No complete passing probe result exists. Physical USB/writer use,
+novice/physical-keyboard tests, Lenovo fitting, laptop firmware/Windows/BitLocker
+helpers and hardware remain human gates. **Physical installation is NOT RELEASED.**
+
+### JUDGMENT-CALL
+
+Root-owned read-only 9p transport was selected instead of copying a token into a
+guest file or encoding it in serial commands. It adds one fixed disposable PCI
+6.0 device, keeping protected/target addresses stable. This reversible CI choice
+costs adapter/security regressions and a fresh probe if replaced. No new
+product-feel or hard-to-undo product decision was made. Firmware ownership rules
+remain exactly as the integrator set.
+
+### PLAN-GAP
+
+11d resolves the org-to-personal-package access gap under the explicit owner
+exception. The new blocker is reverse-order OVMF automatic-option ID recycling:
+an attached protected-device option disappears, and an existing DVD option is
+reused for that protected device. Although Windows bytes/entry and write counters
+remain correct, 11c explicitly forbids both operations. The run stops. Treating
+this as an allowed rename, manipulating the store or changing fixtures to
+conceal it would widen/bypass the decision and is not authorized.
+
+### Open questions
+
+The integrator must address the real reverse-order firmware behavior before a
+new scoped qualification: a faithful fixture approach satisfying the existing
+contract, or a separately authorized contract decision with exact regressions
+and evidence. This run makes neither change. Parts A/B still need fresh
+qualification; spare minutes do not bypass the stop. PR #11 stays draft,
+branch pushes are fast-forward only, and nothing is merged.

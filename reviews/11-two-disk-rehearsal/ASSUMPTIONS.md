@@ -496,3 +496,20 @@ The real live ISO must prove the 9p module, mount and unchanged cosign script in
 the fresh probe. No full run is authorized by host-only reads. The guard also
 requires the probe's successful always-cleanup receipt. Raw artifacts are
 scanned for credential patterns and encoded credentials before capture.
+
+
+The complete pinned-ISO inventory retained in the probe-2 ZIP includes
+`usr/lib/modules/7.2.9-201.fc44.x86_64/kernel/fs/9p/9p.ko.xz` and
+`usr/lib/modules/7.2.9-201.fc44.x86_64/kernel/net/9p/9pnet_virtio.ko.xz`.
+Presence alone is not runtime proof; the fresh probe must load/mount them.
+The pinned installer defaults deploy the preloaded `containers-storage` stock
+image through `ostreecontainer`; they do not copy the modified live root.
+The CI auth symlink therefore is not part of the installed-image payload.
+
+Probe 3 (`40038465601`, source `3187941`) loaded and mounted the read-only,
+root-owned 9p share in both drive orders and passed the unchanged release
+signature script in each live guest. The subsequent reverse-order detached
+Windows firmware audit failed 11c's contract: Boot0004 disappeared while the
+protected PCI 3.0 device remained attached, and Boot0002 changed from the DVD
+to that protected device. This is a mandatory stop, not a new exemption.
+No full run or installed-target credential handling is qualified.
