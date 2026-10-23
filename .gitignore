@@ -4,6 +4,7 @@ build/
 __pycache__/
 # Complete ISO inventories remain in the original 11b artifact ZIPs.
 /os/manifest/ci/11b/**/installer/squashfs-files.txt
+/os/manifest/ci/11c/**/installer/squashfs-files.txt
 out/
 bin/
 run/
