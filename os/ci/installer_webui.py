@@ -6,6 +6,24 @@ import re
 import shlex
 import time
 
+UI_BUNDLE_SHA256 = '9e456995a4be3d09b2b81b7e55f363d09577e688b8361d90081e1484cfb4f449'
+UI_SOURCE_MAP_SHA256 = 'de301b46d770b5ce75ee3b00be8416c5b8de1a5348dfe0c4ab282f8e8b3ef36a'
+
+
+def completion_selectors(sources):
+    progress = sources['components/installation/InstallationProgress.jsx']
+    error = sources['components/Error.jsx']
+    footer = sources['components/AnacondaWizardFooter.jsx']
+    assert 'const SCREEN_ID = "anaconda-screen-progress";' in progress
+    assert 'className={SCREEN_ID + "-status " + SCREEN_ID + "-status-" + status}' in progress
+    assert 'setStatus("success")' in progress and 'setStatus("danger")' in progress
+    assert 'const idPrefix = "critical-error";' in error
+    assert 'id={idPrefix + "-bz-report-modal"}' in error
+    assert 'id="installation-next-btn"' in footer
+    return dict(success='.anaconda-screen-progress-status-success',
+                failure='.anaconda-screen-progress-status-danger',
+                critical='#critical-error-bz-report-modal', next='#installation-next-btn')
+
 
 # This runs only in the disposable live guest. It preserves HTTP and WebSocket
 # bytes and leaves Anaconda's own loopback listener/configuration untouched.
@@ -388,18 +406,31 @@ PY
 
     def completion_source(self):
         sources = []
-        combined = ''
+        selectors = None
         for url in self.frame.locator('script[src]').evaluate_all('els => els.map(e => e.src)'):
             response = self.page.request.get(url)
             assert response.ok, 'Unable to inspect the actual installed UI script'
             raw = response.body()
             sources.append(dict(url=url, sha256=hashlib.sha256(raw).hexdigest(), bytes=len(raw)))
-            combined += raw.decode(errors='replace')
-        features = {name: name in combined for name in ('status-success', 'critical-error-bz-report-modal', 'installation-next-btn')}
-        (self.evidence / 'completion-selector-source.json').write_text(json.dumps(dict(sources=sources, features=features), indent=2) + '\n')
-        assert all(features.values()), 'Completion/error controls are not evidenced by the pinned UI bundle'
+            if url.endswith('/index.js'):
+                assert hashlib.sha256(raw).hexdigest() == UI_BUNDLE_SHA256, 'Served installer bundle changed'
+                mapped = self.page.request.get(url + '.map')
+                assert mapped.ok, 'Pinned UI source map is unavailable'
+                mapping_raw = mapped.body()
+                assert hashlib.sha256(mapping_raw).hexdigest() == UI_SOURCE_MAP_SHA256, 'Served UI source map changed'
+                mapping = json.loads(mapping_raw)
+                application = {name.split('/src/', 1)[1]: content
+                               for name, content in zip(mapping['sources'], mapping['sourcesContent'])
+                               if '/src/' in name and '/node_modules/' not in name and content is not None}
+                selectors = completion_selectors(application)
+                sources.append(dict(url=url + '.map', sha256=UI_SOURCE_MAP_SHA256, bytes=len(mapping_raw)))
+        assert selectors is not None, 'Actual installer bundle was not inspected'
+        self.completion = selectors
+        (self.evidence / 'completion-selector-source.json').write_text(json.dumps(dict(sources=sources, selectors=selectors,
+            derivation='Exact pinned source map: progress SCREEN_ID + status; critical-error idPrefix + modal suffix'), indent=2) + '\n')
 
     def install(self, guest, stage):
+        assert self.completion, 'Completion controls must be qualified before installation'
         self.frame.locator('#installation-next-btn').click()
         self.snapshot('installation-started')
         deadline = time.monotonic() + 1800
@@ -409,10 +440,10 @@ PY
             if time.monotonic() >= heartbeat:
                 guest.command(stage + '-heartbeat', 'true', timeout=30)
                 heartbeat = time.monotonic() + 15
-            if self.frame.locator('#critical-error-bz-report-modal').is_visible() or self.frame.locator('.anaconda-screen-progress-status-danger').is_visible():
+            if self.frame.locator(self.completion['critical']).is_visible() or self.frame.locator(self.completion['failure']).is_visible():
                 self.snapshot('installation-error')
                 raise RuntimeError('Real Anaconda installer reported failure; STOP')
-            if self.frame.locator('.anaconda-screen-progress-status-success').is_visible():
+            if self.frame.locator(self.completion['success']).is_visible():
                 self.snapshot('installation-complete')
                 return
             time.sleep(5)

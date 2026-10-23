@@ -252,6 +252,35 @@ and transport remain the only installation click-path differences; the paused
 guest browser and serial audit shutdown are recorded explicitly. A fresh
 complete probe must prove backend/configuration lifetime and every UI page.
 
+### Probe 10: real review reached; qualify computed completion selectors
+
+Probe 10 (`d8d6fa9`, 39889623330) printed `Ran 114 tests in 4.088s`, `OK`.
+The paused Firefox tree kept Anaconda/config alive. Every real pre-install
+page was reached: German Save showed `de`, backend XLayouts stayed German,
+and the actual installation resolver produced `KEYMAP="de"` with live/module
+state preserved. Berlin, explicit recovery username, encryption off and the
+entire-target route reached Review. Its sole table is `vdb`, including new
+formatted EFI `vdb1` at `/boot/efi`, ext4 `vdb2` `/boot`, and Btrfs `vdb3`
+for `/`, `/home`, `/var`. Full review and modal/account screenshots were
+visually inspected. No protected `vda` row is present.
+
+It stopped before backend review readback and reverse order: the completion
+check searched compiled JS for literal `status-success` and
+`critical-error-bz-report-modal`. The exact sources assemble both dynamically
+from prefixes/suffixes, so those literals are correctly absent. This was a
+harness check error, not installer failure. The next check verifies the exact
+served bundle SHA-256 `9e456995a4be3d09b2b81b7e55f363d09577e688b8361d90081e1484cfb4f449`
+and shipped source-map SHA-256
+`de301b46d770b5ce75ee3b00be8416c5b8de1a5348dfe0c4ab282f8e8b3ef36a`,
+then requires the actual progress status assignments/class formula, error
+prefix/modal formula, and navigation ID in that map. A regression consumes the
+three original source files, proves the literals absent, and rejects changed
+state names/prefixes. Full mode uses only those qualified computed selectors.
+
+Final zero writes, offline protected bytes/GPT/EFI and unchanged Windows boot
+entries passed. Probe 10 is failed and cannot authorize installation. Its
+31 rounded minutes bring completed cost to **151/350**, still **0/3 full runs**.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

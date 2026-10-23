@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
 from rehearsal_guard import require_probe, job_minutes
-from installer_webui import Pages, validate_review, validate_keyboard_selection, validate_keyboard_proof
+from installer_webui import Pages, validate_review, validate_keyboard_selection, validate_keyboard_proof, completion_selectors
 from installer_inspect import validate_download
 
 
@@ -26,6 +26,20 @@ class DownloadCompletenessTest(unittest.TestCase):
 
 
 class ReviewBoundaryTest(unittest.TestCase):
+    def test_completion_selectors_follow_actual_dynamic_class_and_modal_sources(self):
+        folder = pathlib.Path(__file__).resolve().parents[2] / 'os/manifest/ci/11b/inspect-8/installer/webui-source'
+        names = ['components/installation/InstallationProgress.jsx', 'components/Error.jsx', 'components/AnacondaWizardFooter.jsx']
+        sources = {name: (folder / name).read_text() for name in names}
+        selected = completion_selectors(sources)
+        self.assertEqual(selected['success'], '.anaconda-screen-progress-status-success')
+        self.assertEqual(selected['critical'], '#critical-error-bz-report-modal')
+        self.assertNotIn('status-success', sources[names[0]])
+        self.assertNotIn('critical-error-bz-report-modal', sources[names[1]])
+        for name, before, after in [(names[0], 'setStatus("success")', 'setStatus("finished")'),
+                                    (names[1], '"critical-error"', '"changed-prefix"')]:
+            with self.assertRaises(AssertionError):
+                completion_selectors(dict(sources, **{name: sources[name].replace(before, after)}))
+
     def test_empty_model_console_requires_real_installer_conversion_and_generated_file(self):
         proof = dict(xlayouts=['de'], model_keymap='', resolved_keymap='de',
                      generated_vconsole='KEYMAP="de"\nFONT="eurlatgr"\n',
