@@ -228,6 +228,11 @@ actual installed stock identities and menu choices remain full-run observations.
 This source change requires a replacement complete probe, regardless of probe
 9's eventual result. No full dispatch is made using stale evidence.
 
+The same frozen account source asynchronously guesses a username on full-name
+blur if username is empty. The driver now enters the explicit `ares-recovery`
+username first, then the full name, to avoid racing that suggestion. It still
+requires the exact account and wheel membership from the backend at review.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

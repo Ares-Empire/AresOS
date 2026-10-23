@@ -321,8 +321,10 @@ PY
                 self.frame.locator('#disk-encryption-encrypt-devices').set_checked(False)
             elif self.frame.url.endswith('/anaconda-screen-accounts'):
                 prefix = '#anaconda-screen-accounts-create-account'
-                self.frame.locator(prefix + '-full-name').fill('Ares recovery')
+                # Full-name blur asynchronously guesses a username only when
+                # that field is empty. Set the explicit recovery name first.
                 self.frame.locator(prefix + '-user-name').fill('ares-recovery')
+                self.frame.locator(prefix + '-full-name').fill('Ares recovery')
                 self.frame.locator(prefix + '-password-field').fill(password)
                 self.frame.locator(prefix + '-password-confirm-field').fill(password)
                 root = self.frame.locator('#anaconda-screen-accounts-root-account-enable-root-account')
