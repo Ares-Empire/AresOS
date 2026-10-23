@@ -135,7 +135,7 @@ class Guest:
             '-drive', 'if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd',
             '-drive', f'if=pflash,format=raw,file={WORK / "vars.fd"}',
             *self.disk_args(disk),
-            '-device', 'virtio-vga', '-device', 'qemu-xhci', '-device', 'usb-kbd',
+            *self.peripheral_args(),
             '-display', 'none', '-nic', self.network_args(),
             '-qmp', f'unix:{WORK / "qmp.sock"},server=on,wait=off',
             '-serial', f'unix:{WORK / "serial.sock"},server=on,wait=off', *self.boot_args(), '-no-reboot',
@@ -148,6 +148,9 @@ class Guest:
 
     def disk_args(self, disk):
         return ['-drive', f'file={disk},format=raw,if=virtio']
+
+    def peripheral_args(self):
+        return ['-device', 'virtio-vga', '-device', 'qemu-xhci', '-device', 'usb-kbd']
 
     def boot_args(self):
         return []

@@ -10,6 +10,7 @@ import zlib
 
 AUTH_STORE = uuid.UUID('aaf32c78-947b-439a-a180-2e144ec37792').bytes_le
 EFI_GLOBAL = uuid.UUID('8be4df61-93ca-11d2-aa0d-00e098032b8c').bytes_le
+AUTO_BOOT_GUID = uuid.UUID('8108ac4e-9f11-4d59-850e-e21a522c59b2').bytes_le
 
 
 def sha256(path):
@@ -155,7 +156,9 @@ def boot_entry(partition, label='Windows Boot Manager', filename='\\EFI\\Microso
     return struct.pack('<IH', 1, len(path)) + (label + '\0').encode('utf-16le') + path
 
 
-def entry_target(data):
+def load_option(data):
+    """Separate the bounded device path from OptionalData, without label heuristics."""
+    assert len(data) >= 12, 'Truncated EFI load option'
     _, length = struct.unpack_from('<IH', data)
     position = 6
     while data[position:position + 2] != b'\0\0':
@@ -165,22 +168,74 @@ def entry_target(data):
     position += 2
     end = position + length
     assert end <= len(data)
-    partitions = []
-    files = []
+    nodes = []
     while position < end:
         kind, subtype, size = struct.unpack_from('<BBH', data, position)
         assert size >= 4 and position + size <= end
         node = data[position:position + size]
+        nodes.append((kind, subtype, node))
+        position += size
+    assert nodes and nodes[-1][:2] == (0x7f, 0xff) and len(nodes[-1][2]) == 4, 'Missing EFI path terminator'
+    assert all(kind != 0x7f for kind, _, _ in nodes[:-1]), 'Unsupported multi-instance EFI path'
+    return dict(description=description, nodes=nodes, optional=data[end:])
+
+
+def firmware_hardware(option):
+    """The supported Q35 root PCI path, with an exact SATA port when present."""
+    nodes = option['nodes'][:-1]
+    assert len(nodes) >= 2, 'PLAN-GAP: firmware option has no supported hardware path'
+    kind, subtype, root = nodes[0]
+    assert (kind, subtype) == (2, 1) and len(root) == 12, 'PLAN-GAP: unsupported firmware root'
+    hid, uid = struct.unpack_from('<II', root, 4)
+    assert hid in (0x0a0341d0, 0x0a0841d0) and uid == 0, 'PLAN-GAP: unsupported PCI root'
+    kind, subtype, pci = nodes[1]
+    assert (kind, subtype) == (1, 1) and len(pci) == 6, 'PLAN-GAP: unsupported firmware PCI node'
+    function, slot = pci[4:6]
+    key = f'pci:00:{slot:02x}.{function}'
+    rest = nodes[2:]
+    if rest and rest[0][:2] == (3, 18):
+        assert len(rest) == 1 and len(rest[0][2]) == 10, 'PLAN-GAP: unsupported SATA path'
+        key += '/sata:' + ':'.join(str(v) for v in struct.unpack_from('<HHH', rest[0][2], 4))
+    else:
+        assert all(kind == 3 and subtype in (11, 12, 13) for kind, subtype, _ in rest), 'PLAN-GAP: unsupported firmware device path'
+    return key
+
+
+def firmware_baseline(nvram, devices):
+    attached = {device['key'] for device in devices['attached']}
+    owned = {}
+    for name, value in nvram.items():
+        if not re.fullmatch(r'Boot[0-9A-F]{4}', name):
+            continue
+        option = load_option(bytes.fromhex(value['hex']))
+        if option['optional'] != AUTO_BOOT_GUID:
+            continue
+        try:
+            device = firmware_hardware(option)
+        except AssertionError:
+            device = None
+        if device is not None:
+            assert device in attached, 'PLAN-GAP: baseline automatic option names an unattached device'
+        owned[name] = dict(optional_data=option['optional'].hex(), device=device)
+    assert owned, 'PLAN-GAP: no baseline EDK2 automatic-option GUID found'
+    assert load_option(bytes.fromhex(nvram['Boot0000']['hex']))['optional'] == b'', 'Windows fixture must have no OptionalData'
+    return owned
+
+
+def entry_target(data):
+    option = load_option(data)
+    partitions = []
+    files = []
+    for kind, subtype, node in option['nodes']:
         if (kind, subtype) == (4, 1):
-            assert size == 42 and node[40:42] == b'\x02\x02', 'Not a GPT hard-drive node'
+            assert len(node) == 42 and node[40:42] == b'\x02\x02', 'Not a GPT hard-drive node'
             number, start, count = struct.unpack_from('<IQQ', node, 4)
             partitions.append(dict(number=number, start_lba=start, sectors=count,
                                    guid=str(uuid.UUID(bytes_le=node[24:40]))))
         elif (kind, subtype) == (4, 4):
             files.append(node[4:].decode('utf-16le').rstrip('\0'))
-        position += size
     assert len(partitions) == 1 and files, 'Missing or ambiguous EFI boot target'
-    return dict(description=description, partition=partitions[0], file=''.join(files))
+    return dict(description=option['description'], partition=partitions[0], file=''.join(files))
 
 
 def boot_variables(path):
@@ -197,16 +252,55 @@ def all_variables(path):
             for (guid, name), value in values.items()}
 
 
-def compare_nvram(before, after, windows='Boot0000'):
+def compare_nvram(before, after, windows='Boot0000', before_devices=None, after_devices=None, target_esp=None):
     assert windows in before and after.get(windows) == before[windows], 'PRODUCT FAILURE: Windows firmware entry lost or changed'
     changes = {name: dict(before=before.get(name), after=after.get(name))
                for name in before.keys() | after.keys() if before.get(name) != after.get(name)}
     for name, change in changes.items():
         if name in ('BootOrder', 'BootNext'):
             continue
-        assert change['before'] is None and change['after'] is not None, 'PRODUCT FAILURE: existing boot entry changed'
-        data = bytes.fromhex(change['after']['hex'])
-        assert any(text.encode('utf-16le') in data for text in ('Fedora', 'fedora', 'Bazzite', 'bazzite')), 'Unexpected non-Linux boot entry added'
+        assert re.fullmatch(r'Boot[0-9A-F]{4}', name), 'PLAN-GAP: unknown boot variable change'
+        assert change['before'] is None or change['after'] is None, 'PRODUCT FAILURE: existing boot entry changed'
+        value = change['before'] or change['after']
+        data = bytes.fromhex(value['hex'])
+        option = load_option(data)
+        if option['optional'] == AUTO_BOOT_GUID:
+            assert before_devices is not None and after_devices is not None, 'PLAN-GAP: missing per-boot device evidence'
+            device = firmware_hardware(option)
+            previous = {item['key'] for item in before_devices['attached']}
+            current = {item['key'] for item in after_devices['attached']}
+            if change['after'] is None:
+                assert device in previous and device not in current, 'PRODUCT FAILURE: auto option removal does not match a detached device'
+                reason = 'firmware removed an exact-GUID automatic option for a device detached in this boot'
+            else:
+                assert device in current, 'PRODUCT FAILURE: auto option addition does not match an attached device'
+                reason = 'firmware added an exact-GUID automatic option for an attached device'
+            change['firmware_owned'] = dict(device=device, reason=reason, optional_data=option['optional'].hex())
+        else:
+            assert AUTO_BOOT_GUID not in option['optional'], 'PRODUCT FAILURE: OptionalData contains but is not exactly the automatic-option GUID'
+            assert change['before'] is None, 'PRODUCT FAILURE: existing non-firmware boot entry removed'
+            assert option['description'].lower() in ('fedora', 'bazzite'), 'Unexpected non-Linux boot entry added'
+            assert entry_target(data)['file'].lower() in ('\\efi\\fedora\\shimx64.efi', '\\efi\\fedora\\grubx64.efi'), 'Unexpected Linux loader path'
+            if target_esp is not None:
+                target = entry_target(data)['partition']
+                assert target['guid'] == target_esp['guid'] and target['start_lba'] == target_esp['start_lba'] and target['sectors'] == target_esp['bytes'] // 512, 'PRODUCT FAILURE: new Linux entry does not target the target ESP'
     order = bytes.fromhex(after['BootOrder']['hex'])
     assert bytes.fromhex(windows[4:])[::-1] in [order[i:i + 2] for i in range(0, len(order), 2)], 'Windows entry absent from BootOrder'
+    def fixed_order(store):
+        raw = bytes.fromhex(store['BootOrder']['hex'])
+        assert len(raw) % 2 == 0, 'Malformed BootOrder'
+        numbers = list(struct.unpack('<' + 'H' * (len(raw) // 2), raw))
+        assert len(numbers) == len(set(numbers)), 'Duplicate BootOrder entries'
+        fixed = []
+        for number in numbers:
+            name = f'Boot{number:04X}'
+            assert name in store, 'BootOrder names a missing option'
+            if changes.get(name, {}).get('firmware_owned'):
+                continue
+            option = load_option(bytes.fromhex(store[name]['hex']))
+            if option['optional'] != AUTO_BOOT_GUID and option['description'].lower() in ('fedora', 'bazzite'):
+                continue
+            fixed.append(number)
+        return fixed
+    assert fixed_order(before) == fixed_order(after), 'PLAN-GAP: BootOrder changed beyond separate Linux or exempted firmware options'
     return changes

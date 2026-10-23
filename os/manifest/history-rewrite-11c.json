@@ -1,0 +1,106 @@
+{
+  "rewritten_at": "2026-10-23T09:34:00Z",
+  "matching": "commit subject; historical run/artifact contents preserved",
+  "sources": [
+    {
+      "old": "1fa92a09ff857593419f40e5db570f956acbae4a",
+      "new": "6e542c7df7151ef7240f0d83d0a1128a743799b3",
+      "subject": "Inspect the pinned installer application source map before further UI changes"
+    },
+    {
+      "old": "221ca1aa376ec313af394fde02fc5d6432ad79cc",
+      "new": "ce7d971c3e4f62d92bf20d3947751eee20eea6b7",
+      "subject": "Verify German selection at the actual modal and committed backend checkpoint"
+    },
+    {
+      "old": "24118e1e4a4b2ef1b1806afe5131b029c2de81f4",
+      "new": "ce661cbebf5585744e35000fc29be1cc09e8757a",
+      "subject": "Qualify computed installer selectors from its pinned source map"
+    },
+    {
+      "old": "28a8d09946d2fe70405b6ac3854b88b2e99a2991",
+      "new": "371c091cd37bcb5231f57b3bdc7dc42ba9e80669",
+      "subject": "Wait for shipped Web UI saves and read its actual review cells"
+    },
+    {
+      "old": "502676bedfc0e4aebb046ed42bc49e6e79c0df66",
+      "new": "49ac15e15a7819afd6fcb82fb65b28a1e432fcdc",
+      "subject": "Share the real installer flow and require a two-order review probe"
+    },
+    {
+      "old": "60758f6919d997982e4281e86001c9b7086621a8",
+      "new": "51db2c5aca12eb4f7326440e1aa3c8b707ab4236",
+      "subject": "Reject incomplete media transfers and probe disk-reset and detached boot branches"
+    },
+    {
+      "old": "6683e19da46f81788870ddb72db6b41bd2cbb228",
+      "new": "b5933d664a7a1304d560b456c12598e4a2d4c41f",
+      "subject": "Probe actual Anaconda Web UI from liveuser through host Chromium"
+    },
+    {
+      "old": "6bfefc874a7cd99099b0ebe50a358c8b435a5045",
+      "new": "8f91a71b473a4dea939491e7a676e2cc01cd2a36",
+      "subject": "Preflight browser environment with the native VM dependencies"
+    },
+    {
+      "old": "a7a0a44c5f91dc682ea5db675538c15a6c50f549",
+      "new": "c06109e31e9d5f79db25871fb3ad51a94e01d3fe",
+      "subject": "Bound installer HTTP checks and preserve redacted timeout evidence"
+    },
+    {
+      "old": "c4bcb1df9748302c3d6fd9080034d8b6a6f72210",
+      "new": "e9c11094bb6d606662f1bacca87231bbcd5877bc",
+      "subject": "Qualify colorized ISO help, cleanup, serial transport and learned GRUB identities"
+    },
+    {
+      "old": "ccb1b81e69b092d9f2a4325dd26b394f83cfae2a",
+      "new": "347bac28890376cf42845fefcc3a70208d43d8b0",
+      "subject": "Prove deferred German console generation with the ISO installer functions"
+    },
+    {
+      "old": "d8d6fa92d9a849dc2cec77774bf30ff0c306c580",
+      "new": "6af9c685b213732454f288b5ebf932536d94be8c",
+      "subject": "Keep Anaconda alive while replacing its active browser client"
+    },
+    {
+      "old": "ea527beff24f230e0805e5693ef361bb013d4cd9",
+      "new": "2fe301d04912f57b5b996b7be1e9258400465f77",
+      "subject": "Add protected-disk audits and official media pins"
+    },
+    {
+      "old": "f32f1da0cbc5c7a6eb17ad51b46d77b461ae13de",
+      "new": "b9f028c8fb6595c455bca30bdb28c482ce3140df",
+      "subject": "Verify target EFI identity and record final-run assumptions"
+    },
+    {
+      "old": "bf5c98df39934dd36d743e27230081e4229b2177",
+      "new": "aed3d3e977a75cb6226c8f9bbf2ed99872bf0ecf",
+      "subject": "Stop failed qualification and reject unsupported live kickstart"
+    },
+    {
+      "old": "83272d18dd60ea2435b6afc0a8e4b94746b7d44b",
+      "new": "a40152c64269774530fa896c470364de95b2d3fa",
+      "subject": "Fix loop-device verification and add native disk-fixture preflight"
+    },
+    {
+      "old": "c919574c49a8e9028555276772e0a20ba0c8952b",
+      "new": "ad3bee37d9c1905578cf2163c314c8904c3cb9ac",
+      "subject": "Inspect the pinned live ISO before two-disk qualification"
+    },
+    {
+      "old": "c5548f4fb5620b59c11a17012fd95c8db13d7a7c",
+      "new": "e175f0691bc85ff9a35d6ca63f7b460ca8decc3d",
+      "subject": "Capture the ISO's actual installer and live-session configuration"
+    },
+    {
+      "old": "bb186b307e5ac95d5e2bc919821a1ca4f61ead38",
+      "new": "93263d82329fee1dce23495fe6c1da62c22b1ff5",
+      "subject": "Probe the real live installer with two audited writable VM disks"
+    }
+  ],
+  "release_runtime": {
+    "old": "5578ab21b880091f26bfdc2eda22dd4f304a602b",
+    "new": "f5bb5d35dac73e95ce2bc6680ae61f20d042f5b7",
+    "reason": "Package 06 history was squashed; same runtime payload trees, not a subject match"
+  }
+}

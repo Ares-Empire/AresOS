@@ -14,7 +14,7 @@ import time
 
 import switch_vm as sw
 from disk_audit import (all_variables, boot_variables, compare_disk, compare_nvram, offline_disk,
-                        protected_writes, set_variable, gpt, efi_files, entry_target)
+                        protected_writes, set_variable, gpt, efi_files, entry_target, firmware_baseline)
 
 WORK = pathlib.Path('.work/installer').resolve()
 EVIDENCE = pathlib.Path('evidence/two-disk').resolve()
@@ -29,6 +29,7 @@ class Guest(sw.Guest):
     order = 'protected-first'
     mode = 'installed'
     boot_count = 0
+    audit = None
 
     def network_args(self):
         return super().network_args() + (',hostfwd=tcp:127.0.0.1:18080-:8080' if self.mode == 'live' else '')
@@ -48,20 +49,58 @@ class Guest(sw.Guest):
             assert len(linux) == 1, f'Ambiguous Linux firmware entry: {linux}'
             set_variable(WORK / 'vars.fd', 'BootNext', struct.pack('<H', int(linux[0][4:], 16)))
         super().__init__(disk, password, secrets)
+        try:
+            self.devices = self.device_inventory()
+            save(f'boot-{self.boot_number}-devices', self.devices)
+        except Exception:
+            self.close(f'boot-{self.boot_number}-inventory-failure')
+            raise
 
-    def disk_args(self, disk):
+    def peripheral_args(self):
+        # Keep detached storage slots empty, rather than reusing them for VGA/USB.
+        return ['-device', 'virtio-vga,addr=0x4', '-device', 'qemu-xhci,id=usb-controller,addr=0x5',
+                '-device', 'usb-kbd,bus=usb-controller.0']
+
+    def storage_specs(self):
         specs = [('protected', WORK / 'protected.raw', 'MICRON-KEEP'), ('target', WORK / 'target.raw', 'CRUCIAL-TARGET')]
         if self.order == 'protected-second':
             specs.reverse()
-        if self.mode == 'marker-detached':
-            specs = [item for item in specs if item[0] == 'protected']
+        # Assign addresses before filtering: protected stays at 3 in reverse order.
+        return [(name, path, serial, slot) for slot, (name, path, serial) in enumerate(specs, 2)
+                if self.mode != 'marker-detached' or name == 'protected']
+
+    def device_inventory(self):
+        pci = self.monitor.command('query-pci')
+        blocks = self.monitor.command('query-block')
+        save(f'boot-{self.boot_number}-raw-hardware', dict(query_pci=pci, query_block=blocks))
+        root, = [bus for bus in pci if bus['bus'] == 0]
+        attached = [dict(key=f'pci:00:{d["slot"]:02x}.{d["function"]}',
+                         qdev_id=d.get('qdev_id', ''), evidence='QMP query-pci') for d in root['devices']]
+        for name, path, _, slot in self.storage_specs():
+            device, = [d for d in root['devices'] if d.get('qdev_id') == name + '-device']
+            assert device['slot'] == slot and device['function'] == 0, 'PLAN-GAP: storage PCI address differs'
+            block, = [b for b in blocks if b.get('device') == name]
+            assert pathlib.Path(block['inserted']['file']).resolve() == path.resolve()
+        if self.mode in ('live', 'marker-baseline'):
+            controller, = [d for d in root['devices'] if d['slot'] == 31 and d['function'] == 2]
+            assert controller['class_info']['class'] == 0x0106, 'PLAN-GAP: expected Q35 SATA controller missing'
+            cd, = [b for b in blocks if b.get('device') == 'installer-cd']
+            assert pathlib.Path(cd['inserted']['file']).resolve() == (WORK / LIVE['filename']).resolve()
+            assert cd['qdev'].endswith('/installer-cd-device'), 'PLAN-GAP: unexpected ISO device binding'
+            attached.append(dict(key='pci:00:1f.2/sata:0:65535:0', qdev_id='installer-cd-device',
+                                 bus='ide.0', unit=0, evidence='explicit QEMU ide.0/unit=0 and QMP query-block'))
+        return dict(boot=self.boot_number, mode=self.mode, order=self.order, attached=attached,
+                    query_pci=pci, query_block=blocks)
+
+    def disk_args(self, disk):
         args = []
-        for name, path, serial in specs:
+        for name, path, serial, slot in self.storage_specs():
             assert path.is_file() and path.resolve().is_relative_to(WORK)
             args += ['-drive', f'file={path},format=raw,if=none,id={name}',
-                     '-device', f'virtio-blk-pci,drive={name},serial={serial}']
+                     '-device', f'virtio-blk-pci,drive={name},id={name}-device,serial={serial},addr=0x{slot:x}']
         if self.mode in ('live', 'marker-baseline'):
-            args += ['-drive', f'file={WORK / LIVE["filename"]},format=raw,media=cdrom,readonly=on']
+            args += ['-drive', f'file={WORK / LIVE["filename"]},format=raw,if=none,id=installer-cd,media=cdrom,readonly=on',
+                     '-device', 'ide-cd,drive=installer-cd,id=installer-cd-device,bus=ide.0,unit=0']
         return args
 
     def boot_args(self):
@@ -157,6 +196,8 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
             self.boot_transcript += text
         (EVIDENCE / (stage + '-shutdown-console.txt')).write_text(sw.redact(text, self.secrets))
         assert self.process.returncode == 0
+        if stage == 'pre-login-reset' and self.audit is not None:
+            self.audit.check(f'boot-{self.boot_number}-pre-login-reset', self)
 
     def poweroff(self, stage):
         self.send('systemctl poweroff\n')
@@ -174,6 +215,9 @@ class Audit:
         self.nvram = None
         self.all_nvram = None
         self.target_installed = False
+        self.devices = None
+        self.stage = None
+        Guest.audit = self
 
     def check(self, stage, guest=None, establish_nvram=False):
         observed = offline_disk(WORK / 'protected.raw', guest.process if guest else None)
@@ -184,16 +228,28 @@ class Audit:
         save(stage + '-nvram', nvram)
         save(stage + '-all-variables', all_nvram)
         shutil.copyfile(WORK / 'vars.fd', EVIDENCE / (stage + '-vars.fd'))
+        assert guest is not None, 'Every firmware audit requires its per-boot device record'
+        save(stage + '-devices', guest.devices)
+        esp = None
+        if self.target_installed:
+            esp, = [p for p in gpt(WORK / 'target.raw')['partitions'] if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b']
         if establish_nvram:
             assert nvram['Boot0000'] == boot_variables(EVIDENCE / 'pre-firmware-vars.fd')['Boot0000']
-            self.nvram = nvram
-            self.all_nvram = all_nvram
+            contract = json.loads((EVIDENCE.parents[0] / 'firmware-contract.json' if EVIDENCE.name == 'two-disk'
+                                   else EVIDENCE.parents[1] / 'firmware-contract.json').read_text())
+            assert contract['guid'] == '8108ac4e-9f11-4d59-850e-e21a522c59b2' and contract['optional_data_bytes'] == 16
+            save(stage + '-firmware-ownership', dict(build_contract=contract, baseline=firmware_baseline(nvram, guest.devices)))
         else:
             assert self.nvram is not None
-            save(stage + '-nvram-diff', compare_nvram(self.nvram, nvram))
+            changes = compare_nvram(self.nvram, nvram, before_devices=self.devices, after_devices=guest.devices, target_esp=esp)
+            save(stage + '-nvram-diff', dict(from_stage=self.stage, changes=changes,
+                 exemptions={name: value['firmware_owned'] for name, value in changes.items() if 'firmware_owned' in value}))
             save(stage + '-all-variables-diff', {name: dict(before=self.all_nvram.get(name), after=all_nvram.get(name))
                  for name in self.all_nvram.keys() | all_nvram.keys()
                  if self.all_nvram.get(name) != all_nvram.get(name)})
+        self.nvram, self.all_nvram, self.devices, self.stage = nvram, all_nvram, guest.devices, stage
+        if guest.mode != 'live':
+            assert bytes.fromhex(nvram['BootOrder']['hex'])[:2] == bytes(2), 'PRODUCT FAILURE: Windows is not the default'
         if self.target_installed:
             layout = gpt(WORK / 'target.raw')
             esp, = [p for p in layout['partitions'] if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b']
@@ -528,7 +584,7 @@ def main():
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     assert sys.argv[1:] in (['probe'], ['full'])
     if sys.argv[1:] == ['full']:
-        authorization = json.loads((EVIDENCE.parent / '11b-dispatch-authorization.json').read_text())
+        authorization = json.loads((EVIDENCE.parent / '11c-dispatch-authorization.json').read_text())
         assert authorization['probe']['status'] == 'passed'
         assert authorization['probe']['commit'] == os.environ['GITHUB_SHA']
         assert authorization['probe']['both_orders'] and authorization['probe']['review_validated']
@@ -575,25 +631,29 @@ def main():
     credentials.chmod(0o600)
     pristine_vars = WORK / 'pristine-vars.fd'
     shutil.copyfile(EVIDENCE / 'pre-firmware-vars.fd', pristine_vars)
-    target = install(audit, password, password_hash)
-    set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
-    marker(audit, 'after-install-without-linux', detached=True)
-    Guest.mode = 'installed'
-    sw.Guest = Guest
-    sw.main(WORK / 'target.raw', preserve_vars=True, target_name=target,
-            shutdown_hook=lambda stage, guest: audit.check('switch-sequence-' + stage, guest))
-    promoted = grub_promotion(audit, password, password_hash)
-    set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
-    marker(audit, 'before-undo-windows')
-    restore_windows_order()
-    marker(audit, 'after-undo-default-windows')
-    marker(audit, 'after-undo-without-linux', detached=True)
-    save('first-order-result', dict(status='passed', grub_promotion=promoted, default_undo='Windows-first; no erase'))
-    # A separate fresh install, same protected bytes, reversed enumeration.
-    # Discard only the closed disposable Linux target; preserve all evidence.
+    root = EVIDENCE
+    def part_a(current):
+        target = install(current, password, password_hash)
+        restore_windows_order()
+        set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
+        marker(current, 'after-install-without-linux', detached=True)
+        Guest.mode = 'installed'
+        sw.Guest = Guest
+        sw.main(WORK / 'target.raw', preserve_vars=True, target_name=target,
+                shutdown_hook=lambda stage, guest: current.check('switch-sequence-' + stage, guest))
+        set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
+        marker(current, 'before-undo-windows')
+        restore_windows_order()
+        marker(current, 'after-undo-default-windows')
+        marker(current, 'after-undo-without-linux', detached=True)
+        save('part-a-result', dict(status='passed', order=Guest.order,
+             switch_policy_tty3_rollback=True, default_undo='Windows-first; no erase',
+             windows_detached_after_install_and_undo=True, offline_protected_disk_unchanged=True))
+    part_a(audit)
+    # A separate fresh install and complete switch/recovery/undo sequence.
     reset_target()
     shutil.copyfile(pristine_vars, WORK / 'vars.fd')
-    EVIDENCE = EVIDENCE / 'protected-second'
+    EVIDENCE = root / 'protected-second'
     EVIDENCE.mkdir()
     sw.EVIDENCE = EVIDENCE
     Guest.order = 'protected-second'
@@ -601,12 +661,13 @@ def main():
     compare_disk(audit.disk, reverse.disk)
     shutil.copyfile(WORK / 'vars.fd', EVIDENCE / 'pre-firmware-vars.fd')
     marker(reverse, 'baseline-firmware', baseline=True)
-    install(reverse, password, password_hash)
-    set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
-    marker(reverse, 'after-install-without-linux', detached=True)
-    save('result', dict(status='passed', install_both_orders=True, offline_protected_disk_unchanged=True,
-                        windows_boot_without_linux_after_install_and_undo=True, grub_promotion=promoted))
-    print('TWO-DISK INSTALL PASSED IN BOTH DRIVE ORDERS; FIRST-ORDER SWITCH/ROLLBACK/UNDO PASSED', flush=True)
+    part_a(reverse)
+    (root / 'part-a-result.json').write_text(json.dumps(dict(status='passed', both_orders=True,
+        orders=['protected-first', 'protected-second']), indent=2) + '\n')
+    print('PART A PASSED: complete switch/policy/tty3/rollback/default undo and detached Windows in both orders', flush=True)
+    promoted = grub_promotion(reverse, password, password_hash)
+    (root / 'full-result.json').write_text(json.dumps(dict(part_a='passed', both_orders=True,
+        part_b='passed' if promoted else 'blocked', part_b_evidence='protected-second/grub-promotion.json'), indent=2) + '\n')
 
 
 if __name__ == '__main__':

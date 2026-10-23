@@ -1,4 +1,4 @@
-"""Fail closed on the 11b CI budget and same-commit probe authorization."""
+"""Fail closed on the separate 11c allowance and same-commit probe authorization."""
 import datetime
 import hashlib
 import io
@@ -10,10 +10,10 @@ import subprocess
 import sys
 import zipfile
 
-REPOSITORY = 'carlsenares/AresOS'
+REPOSITORY = 'Ares-Empire/AresOS'
 BRANCH = 'pkg/11-two-disk-rehearsal'
-START = '2026-10-22T23:39:21Z'
-MINUTE_CAP = 350
+START = '2026-10-23T16:21:00Z'
+MINUTE_CAP = 330
 FULL_CAP = 3
 
 
@@ -30,7 +30,8 @@ def job_minutes(job):
 
 
 def budget(reserve, current=None):
-    runs = api(f'actions/workflows/os-image.yml/runs?branch={BRANCH}&event=workflow_dispatch&per_page=100')['workflow_runs']
+    # Push/PR privacy checks consume the same account minutes as VM dispatches.
+    runs = api(f'actions/runs?branch={BRANCH}&per_page=100')['workflow_runs']
     assert len(runs) < 100 or runs[-1]['created_at'] < START, 'Budget history requires pagination; refuse an incomplete ledger'
     records = []
     full = 0
@@ -41,14 +42,14 @@ def budget(reserve, current=None):
             full += 1
         if str(run['id']) == str(current):
             continue
-        assert run['status'] == 'completed', 'Another 11b dispatch is active; cannot reserve its cost'
+        assert run['status'] == 'completed', 'Another branch workflow is active; cannot reserve its cost'
         jobs = api(f'actions/runs/{run["id"]}/jobs?per_page=100')['jobs']
         records.append(dict(run=run['id'], title=run['display_title'], sha=run['head_sha'],
                             conclusion=run['conclusion'], minutes=sum(job_minutes(job) for job in jobs)))
     consumed = sum(record['minutes'] for record in records)
     assert consumed + reserve <= MINUTE_CAP, f'STOP: {consumed} + {reserve} reserved exceeds {MINUTE_CAP} minutes'
     assert full <= FULL_CAP, 'STOP: full-run allowance exhausted'
-    return dict(cap=MINUTE_CAP, full_cap=FULL_CAP, full_dispatched=full,
+    return dict(allowance='11c', start=START, cap=MINUTE_CAP, full_cap=FULL_CAP, full_dispatched=full,
                 consumed_minutes=consumed, reserved_minutes=reserve, runs=records)
 
 
@@ -84,9 +85,9 @@ def main():
         assert proof['detached_windows'] and proof['target_reset']
         result['probe_run'] = probe_id
         result['probe'] = proof
-    directory = pathlib.Path('evidence' if mode == 'ci' else '.work/11b')
+    directory = pathlib.Path('evidence' if mode == 'ci' else '.work/11c')
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / '11b-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
+    (directory / '11c-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 
 

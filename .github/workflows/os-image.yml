@@ -14,7 +14,7 @@ on:
         type: boolean
         default: false
       probe_run:
-        description: '11b full runs require the passing probe run ID at this exact commit'
+        description: '11c full runs require the passing probe run ID at this exact commit'
         type: string
         default: ''
       switch_from_run:
@@ -48,6 +48,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m unittest discover -s os/tests -v
+          python3 -m py_compile os/ci/*.py os/ci/overlay/*.py
+          for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done
           python3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/tests/audit.py os/tests/power-events.py
           for script in os/ci/*.sh os/release/*.sh os/ci/overlay/updater-generator os/build.sh os/tests/*.sh os/config/usr/bin/aresos-session os/config/usr/bin/aresos-terminal; do
             bash -n "$script"
@@ -115,6 +117,8 @@ jobs:
           sudo modprobe nbd max_part=8
           df -B1 / > evidence/post-cleanup-disk.txt
           python3 -m unittest discover -s os/tests -v
+          python3 -m py_compile os/ci/*.py os/ci/overlay/*.py
+          for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done
           python3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/tests/audit.py os/tests/power-events.py
           for script in os/ci/*.sh os/release/*.sh os/ci/overlay/updater-generator os/build.sh os/tests/*.sh os/config/usr/bin/aresos-session os/config/usr/bin/aresos-terminal; do
             bash -n "$script"
@@ -295,7 +299,7 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Reserve the 11b minute budget
+      - name: Reserve the separate 11c minute budget (including privacy checks)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -304,25 +308,15 @@ jobs:
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
-      - name: Inspect the exact pinned live ISO before assuming an installer path
-        if: inputs.rehearsal != 'fixture'
-        timeout-minutes: 20
-        run: |
-          set -euo pipefail
-          mkdir -p evidence/installer .work/installer
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools
-          python3 os/ci/installer_inspect.py
-      - name: Prepare disposable file disks and qualify the real live environment
-        if: inputs.rehearsal != 'inspect'
-        timeout-minutes: 80
+      - name: Qualify tools, regressions, rewritten release identity and private access
+        timeout-minutes: 15
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p evidence .work/installer
           bash os/ci/install-tools.sh
-          sudo apt-get install -y --no-install-recommends gnu-efi ntfs-3g dosfstools gdisk mtools psmisc tesseract-ocr
+          sudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools gnu-efi ntfs-3g dosfstools gdisk mtools psmisc tesseract-ocr
           sudo apt-get install -y --no-install-recommends python3-venv
           python3 -m venv --system-site-packages .work/browser-env
           .work/browser-env/bin/pip install playwright==1.58.0
@@ -331,8 +325,25 @@ jobs:
           .work/browser-env/bin/python -c 'import crypt, PIL, playwright.sync_api'
           dpkg-query -W > evidence/rehearsal-host-packages.txt
           python3 -m unittest discover -s os/tests -v
+          python3 -m py_compile os/ci/*.py os/ci/overlay/*.py
+          for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done
           cp os/manifest/release.json evidence/release.json
-          python3 os/ci/verify_release.py 39818554327
+          python3 os/ci/verify_release.py 39818554327 --registry-preflight
+      - name: Inspect the exact pinned live ISO before assuming an installer path
+        if: inputs.rehearsal != 'fixture'
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/installer .work/installer
+          python3 os/ci/installer_inspect.py
+      - name: Prepare disposable file disks and qualify the real live environment
+        if: inputs.rehearsal != 'inspect'
+        timeout-minutes: 80
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
           sudo python3 os/ci/prepare_two_disks.py
           if test '${{ inputs.rehearsal }}' = fixture; then
             sudo python3 - <<'PY'

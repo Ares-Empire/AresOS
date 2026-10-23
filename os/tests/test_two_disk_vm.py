@@ -130,10 +130,30 @@ class TwoDiskHarnessTest(unittest.TestCase):
                 self.assertEqual(len(drives), 2)
                 self.assertIn(f'id={first}', drives[0])
                 self.assertFalse(any('readonly' in drive for drive in drives))
+                devices = [args[i + 1] for i, v in enumerate(args) if v == '-device']
+                self.assertIn('addr=0x2', devices[0])
+                self.assertIn('addr=0x3', devices[1])
             guest.mode = 'marker-detached'
             args = guest.disk_args(self.directory / 'target.raw')
             self.assertIn('id=protected', ' '.join(args))
             self.assertNotIn('target.raw', ' '.join(args))
+            self.assertIn('addr=0x3', ' '.join(args))
+
+    def test_qmp_inventory_verifies_pci_bindings_and_keeps_detached_target_slot_empty(self):
+        guest = object.__new__(vm.Guest)
+        guest.mode, guest.order, guest.boot_number = 'marker-detached', 'protected-second', 7
+        pci = [dict(bus=0, devices=[dict(slot=3, function=0, qdev_id='protected-device'),
+                                    dict(slot=4, function=0, qdev_id='')])]
+        blocks = [dict(device='protected', inserted=dict(file=str(self.directory / 'protected.raw')))]
+        guest.monitor = Mock()
+        guest.monitor.command.side_effect = [pci, blocks]
+        with patch.object(vm, 'WORK', self.directory), patch.object(vm, 'EVIDENCE', self.directory):
+            observed = guest.device_inventory()
+            self.assertEqual({d['key'] for d in observed['attached']}, {'pci:00:03.0', 'pci:00:04.0'})
+            pci[0]['devices'][0]['slot'] = 2
+            guest.monitor.command.side_effect = [pci, blocks]
+            with self.assertRaisesRegex(AssertionError, 'PCI address differs'):
+                guest.device_inventory()
 
     def test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit(self):
         guest = object.__new__(vm.Guest)
