@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import pathlib
+import shutil
 import stat
 import subprocess
 import sys
@@ -87,9 +88,14 @@ def pull():
         raise RuntimeError('BLOCKED: pinned layer pull with GHCR_READ_TOKEN failed; no fallback permitted')
     raw = subprocess.check_output(['skopeo', 'inspect', '--raw', 'oci:' + str(destination) + ':pinned'])
     assert 'sha256:' + hashlib.sha256(raw).hexdigest() == DIGEST, 'Pinned local OCI manifest digest differs'
+    workspace = pathlib.Path(os.environ['GITHUB_WORKSPACE']).resolve()
+    assert destination.resolve().is_relative_to(workspace / '.work') and not destination.is_symlink()
+    # The completed pull is proof, not a second image cache competing with the
+    # installed target for the hosted runner's disk space.
+    shutil.rmtree(destination)
     pathlib.Path('evidence/owner-release-pull.json').write_text(json.dumps(dict(status='passed',
         reference=REFERENCE, secret='GHCR_READ_TOKEN', owner_token_api_calls=0,
-        preserved_digest=True, credential_file_copied=False)) + '\n')
+        preserved_digest=True, credential_file_copied=False, local_copy_removed=True)) + '\n')
     print('Pinned release layers pulled with GHCR_READ_TOKEN; exact manifest digest preserved')
 
 
