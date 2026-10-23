@@ -3,6 +3,7 @@ import json
 import hashlib
 import pathlib
 import re
+import shlex
 import time
 
 
@@ -57,20 +58,20 @@ def validate_keyboard_proof(proof):
 
 def read_keyboard(guest):
     from switch_vm import framed
-    proof = guest.capture_json('webui-keyboard-proof', framed('''set -e
-python3 - <<'PY'
-import hashlib, inspect, json, os, pathlib, shlex, subprocess, tempfile
-from pyanaconda.modules.localization.installation import KeyboardInstallationTask, write_vc_configuration
-from pyanaconda.modules.localization.localed import LocaledWrapper
-from pyanaconda.modules.localization.utils import get_missing_keyboard_configuration
+    script = '''import hashlib, inspect, json, os, pathlib, shlex, subprocess, sys, tempfile
 address = pathlib.Path('/run/anaconda/bus.address').read_text().strip()
 service = 'org.fedoraproject.Anaconda.Modules.Localization'
 def prop(name):
     return subprocess.check_output(['busctl', '--address=' + address, 'get-property', service,
         '/org/fedoraproject/Anaconda/Modules/Localization', service, name], text=True).strip()
 original = (prop('XLayouts'), prop('VirtualConsoleKeymap'))
-assert original[0] == 'as 1 "de"', 'Wrong committed German X layout'
-assert original[1] in ('s ""', 's "de"'), 'Wrong explicit console keymap'
+print('KEYBOARD_BEFORE_IMPORT', original, file=sys.stderr, flush=True)
+assert original[0] == 'as 1 "de"', 'Wrong committed German X layout: ' + repr(original)
+assert original[1] in ('s ""', 's "de"'), 'Wrong explicit console keymap: ' + repr(original)
+from pyanaconda.modules.localization.installation import KeyboardInstallationTask, write_vc_configuration
+from pyanaconda.modules.localization.localed import LocaledWrapper
+from pyanaconda.modules.localization.utils import get_missing_keyboard_configuration
+assert original == (prop('XLayouts'), prop('VirtualConsoleKeymap')), 'Imports changed keyboard state'
 model_keymap = shlex.split(original[1])[1]
 source = inspect.getsource(KeyboardInstallationTask.run)
 same_resolver = 'get_missing_keyboard_configuration(' in source and 'write_vc_configuration(' in source
@@ -92,8 +93,8 @@ print(json.dumps(dict(xlayouts=layouts, model_keymap=model_keymap, resolved_keym
     generated_vconsole=content, same_installation_resolver=same_resolver,
     live_configuration_restored=(before == after), module_configuration_unchanged=unchanged,
     installation_task_source=source, installation_source_sha256=hashlib.sha256(pathlib.Path(inspect.getfile(KeyboardInstallationTask)).read_bytes()).hexdigest())))
-PY
-'''))
+'''
+    proof = guest.capture_json('webui-keyboard-proof', framed('python3 -c ' + shlex.quote(script)))
     validate_keyboard_proof(proof)
     return proof
 
@@ -126,6 +127,36 @@ cat /usr/libexec/anaconda/cockpit-coproc-wrapper.sh
 ss -lntp
 cat /tmp/rehearsal-webui-launch.log
 ''', timeout=240)
+    guest.command(stage + '-single-browser', '''set -e
+python3 - <<'PY'
+import os, pathlib, pwd, signal, time
+uid = pwd.getpwnam('liveuser').pw_uid
+profile = '/run/user/' + str(uid) + '/anaconda/firefox-profile'
+def browsers():
+    matches = []
+    for path in pathlib.Path('/proc').glob('[0-9]*/cmdline'):
+        try:
+            args = path.read_bytes().split(b'\\0')
+            if path.stat().st_uid == uid and b'--profile' in args and profile.encode() in args and b'firefox' in args[0]:
+                matches.append(int(path.parent.name))
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            pass
+    return matches
+deadline = time.monotonic() + 60
+while not browsers() and time.monotonic() < deadline:
+    time.sleep(1)
+pids = browsers()
+assert len(pids) == 1, 'Expected exactly the liveinst Firefox profile: ' + repr(pids)
+print('REPLACING_LIVEINST_FIREFOX', pids, profile, flush=True)
+os.kill(pids[0], signal.SIGTERM)
+while browsers() and time.monotonic() < deadline:
+    time.sleep(1)
+assert not browsers(), 'Guest installer browser still active'
+PY
+test -e /run/anaconda/backend_ready
+curl --connect-timeout 1 --max-time 5 --fail --silent http://127.0.0.1/cockpit/@localhost/anaconda-webui/index.html > /dev/null
+echo SINGLE_HOST_UI_CLIENT_BACKEND_STILL_READY
+''', timeout=90)
     encoded = base64.b64encode(RELAY.encode()).decode()
     guest.command(stage + '-relay', f"set -e; printf '%s' '{encoded}' | base64 -d > /tmp/rehearsal-relay.py\npython3 /tmp/rehearsal-relay.py > /tmp/rehearsal-relay.log 2>&1 < /dev/null &\nsleep 1\ncurl --connect-timeout 1 --max-time 5 --fail --silent http://127.0.0.1:8080/cockpit/@localhost/anaconda-webui/index.html > /dev/null\nss -lntp")
     guest.command(stage + '-bootloader-console-source', '''set -e
@@ -214,6 +245,28 @@ class Pages:
         self.snapshot('keyboard-german-selected')
         self.frame.locator('#' + modal + '-save-button').click()
         expect(self.frame.locator('#' + modal)).not_to_be_visible()
+        # The shipped dialog closes without awaiting handleSaved. Wait for
+        # the real async backend commit before leaving this page.
+        self.guest.command('keyboard-save-committed', '''set -e
+python3 - <<'PY'
+import pathlib, subprocess, time
+address = pathlib.Path('/run/anaconda/bus.address').read_text().strip()
+service = 'org.fedoraproject.Anaconda.Modules.Localization'
+deadline = time.monotonic() + 60
+stable = 0
+while time.monotonic() < deadline:
+    value = subprocess.check_output(['busctl', '--address=' + address, 'get-property', service,
+        '/org/fedoraproject/Anaconda/Modules/Localization', service, 'XLayouts'], text=True).strip()
+    stable = stable + 1 if value == 'as 1 "de"' else 0
+    if stable >= 5:
+        print('UI_SAVE_COMMITTED', value)
+        break
+    time.sleep(1)
+else:
+    raise AssertionError('UI keyboard save did not stabilize at German: ' + repr(value))
+PY
+''', timeout=90)
+        self.snapshot('keyboard-save-committed')
 
     def timezone(self):
         step = 'anaconda-screen-date-time'
@@ -283,14 +336,15 @@ class Pages:
             raise RuntimeError('Review not reached')
         table = self.frame.locator(f'#storage-review-table-{target}')
         table.wait_for()
-        table.locator('tr[data-mount="/boot/efi"]').wait_for()
+        self.frame.wait_for_function('''selector => [...document.querySelectorAll(selector + ' tbody tr')]
+            .some(row => row.cells[4]?.innerText.trim() === '/boot/efi')''', arg=f'#storage-review-table-{target}')
         tables = self.frame.locator('table[id^="storage-review-table-"]').evaluate_all('''els => els.map(table => ({
             disk: table.id.replace('storage-review-table-', ''),
             text: table.innerText,
-            rows: [...table.querySelectorAll('tr[data-device]')].map(row => ({
-                device: row.getAttribute('data-device'),
-                action: row.getAttribute('data-action'),
-                mount: row.getAttribute('data-mount') || ''
+            rows: [...table.querySelectorAll('tbody tr')].map(row => ({
+                device: row.cells[0]?.innerText.trim() || '',
+                action: row.cells[2]?.innerText.trim() || '',
+                mount: row.cells[4]?.innerText.trim() || ''
             }))
         }))''')
         self.snapshot('review-full')
@@ -332,7 +386,7 @@ class Pages:
             if time.monotonic() >= heartbeat:
                 guest.command(stage + '-heartbeat', 'true', timeout=30)
                 heartbeat = time.monotonic() + 15
-            if self.frame.locator('#critical-error-bz-report-modal').is_visible() or self.frame.locator('#anaconda-screen-progress-installation-error-dialog').is_visible():
+            if self.frame.locator('#critical-error-bz-report-modal').is_visible() or self.frame.locator('.anaconda-screen-progress-status-danger').is_visible():
                 self.snapshot('installation-error')
                 raise RuntimeError('Real Anaconda installer reported failure; STOP')
             if self.frame.locator('.anaconda-screen-progress-status-success').is_visible():
@@ -383,6 +437,7 @@ def run(guest, evidence, protected, target, password, install=False, stage='webu
         (pathlib.Path(evidence) / 'browser-transport.json').write_text(json.dumps(dict(
             browser='Chromium', version=browser.version, headless=True, viewport=dict(width=1440, height=1100),
             launch='liveuser liveinst; no LIVECMD or kickstart',
+            guest_browser='Liveinst Firefox starts normally, then its exact liveuser installer profile is closed; only host Chromium drives the pages',
             transport='host loopback:18080 -> QEMU guest:8080 -> TCP relay -> original loopback:80',
             shutdown='root serial poweroff for mandatory offline audit instead of UI reboot'), indent=2) + '\n')
         pages = Pages(browser, evidence, guest.secrets, guest)

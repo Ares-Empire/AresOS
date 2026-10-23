@@ -188,6 +188,33 @@ guest Firefox and host Chromium currently both exist; if this permits competing
 state updates, browser replacement must leave only the host UI client. Any
 such change requires a new complete, exact-commit probe before full dispatch.
 
+### Exact-source inspection 8 and the next complete probe
+
+Inspection 8 (`1fa92a0`, 39886346092) passed with the exact pinned ISO hash,
+extracting 102 application sources from its shipped source map. No VM ran.
+The actual `KeyboardDialog.saveAll` closes without awaiting `onSaved`, while
+`handleSaved` first awaits the compositor update, then writes XLayouts. The
+next probe closes only liveinst's exact liveuser Firefox profile after normal
+launch, confirms the original backend remains ready, and lets host Chromium
+be the sole UI client. After Save it requires five consecutive German backend
+readings before Next. The cause of probe 7's change is still unproven; the
+next check logs raw keyboard properties before imports and checks they survive
+imports and conversion. Keyboard assertions remain strict.
+
+The exact `StorageReview.jsx` has ordinary table cells, not `data-device`,
+`data-action` or `data-mount` attributes. Its columns are device, size, action,
+encryption, mount point, helper. The parser reads those actual cells, still
+requiring only target parents and a newly formatted target EFI. Account,
+password, timezone, scenario, encryption, review confirmation and completion
+controls were checked against these frozen sources. Progress failure uses the
+actual `status-danger` class. Keyboard JSON export is one quoted Python command
+so its checksum-framed stdout contains only JSON; diagnostic state uses stderr.
+
+Completed cost before the next probe is **107 rounded job minutes**, with
+**zero full dispatches**. A 42-minute probe reservation leaves the 350-minute
+cap intact. No full run is authorized until both complete order previews and
+the detached marker/reset branches pass on that exact commit.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.
