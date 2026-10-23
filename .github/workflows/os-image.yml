@@ -43,7 +43,7 @@ jobs:
       - name: Install framebuffer regression dependency on disposable runner
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends python3-pil
+          sudo apt-get install -y --no-install-recommends python3-pil python3-yaml
       - name: Run regression and syntax checks
         run: |
           set -euo pipefail
@@ -62,20 +62,16 @@ jobs:
           assert '-.mount' in units and units['-.mount']['load_state'] == 'loaded', units.get('-.mount')
           print(f'Live hosted system manager passed: {len(files)} unit files, {len(units)} unit names')
           PY
-      - name: Preflight private package metadata access
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Record the org package-metadata limitation
         run: |
-          set -euo pipefail
-          mkdir -p .work
-          if gh api users/carlsenares/packages/container/aresos > .work/package.json 2>.work/package-error.txt; then
-            test "$(jq -r .visibility .work/package.json)" = private
-            echo 'Existing release package is private'
-          else
-            cat .work/package-error.txt
-            grep -q '(HTTP 404)' .work/package-error.txt
-            echo 'Release package does not exist yet; first publication will use private default'
-          fi
+          mkdir -p evidence
+          python3 - <<'PY'
+          import json, pathlib
+          pathlib.Path('evidence/package-metadata-access.json').write_text(json.dumps(dict(
+              status='not-possible-from-org-job-token', visibility_verified=False,
+              reason='User-owned package cannot grant Actions access to this org repository; owner secret is forbidden in this job')) + '\n')
+          print('Package visibility metadata NOT VERIFIED from the org; no owner-token API request made')
+          PY
       - name: Resolve release inputs without pulling image layers
         run: |
           mkdir -p evidence
@@ -328,7 +324,24 @@ jobs:
           python3 -m py_compile os/ci/*.py os/ci/overlay/*.py
           for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done
           cp os/manifest/release.json evidence/release.json
-          python3 os/ci/verify_release.py 39818554327 --registry-preflight
+          python3 os/ci/verify_release.py 39818554327
+      - name: Create runner-temporary pinned-image credentials
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'full')
+        env:
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: python3 os/ci/rehearsal_auth.py create
+      - name: Verify exact private manifest with owner read-only credentials
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'full')
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: python3 os/ci/rehearsal_auth.py preflight
+      - name: Qualify the exact pinned layer pull without installing
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'full')
+        timeout-minutes: 9
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: python3 os/ci/rehearsal_auth.py pull
       - name: Inspect the exact pinned live ISO before assuming an installer path
         if: inputs.rehearsal != 'fixture'
         timeout-minutes: 20
@@ -341,6 +354,7 @@ jobs:
         timeout-minutes: 80
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: |
           set -euo pipefail
           export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
@@ -359,6 +373,9 @@ jobs:
           else
             sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py '${{ inputs.rehearsal }}'
           fi
+      - name: Remove owner registry credentials
+        if: always()
+        run: python3 os/ci/rehearsal_auth.py cleanup
       - name: Bound retained evidence
         if: always()
         run: |

@@ -1,5 +1,4 @@
 """Permit a cheaper switch-only retry only for an already-qualified image."""
-import base64
 import json
 import os
 import pathlib
@@ -55,25 +54,5 @@ subprocess.run(['git', 'diff', '--exit-code', rewritten, 'HEAD', '--', *payload]
 print(f'Qualified release source {source}; runtime payload unchanged; testing {release["reference"]}')
 
 if '--registry-preflight' in sys.argv[2:]:
-    # Ephemeral job credentials only; this reads a manifest and pulls no layers.
-    work = pathlib.Path('.work/installer')
-    work.mkdir(parents=True, exist_ok=True)
-    authfile = work / 'registry-preflight-auth.json'
-    token = os.environ['GH_TOKEN']
-    auth = base64.b64encode((os.environ['GITHUB_ACTOR'] + ':' + token).encode()).decode()
-    authfile.write_text(json.dumps({'auths': {'ghcr.io': {'auth': auth}}}))
-    authfile.chmod(0o600)
-    try:
-        result = subprocess.run(['skopeo', 'inspect', '--authfile', str(authfile), '--format', '{{.Digest}}',
-            'docker://' + release['reference']], capture_output=True, text=True, timeout=90)
-    finally:
-        authfile.unlink()
-    proof = dict(status='passed' if result.returncode == 0 else 'blocked', reference=release['reference'],
-                 credentials='ephemeral GITHUB_TOKEN with packages:read', layers_pulled=False,
-                 registry_digest=result.stdout.strip() if result.returncode == 0 else None)
-    if result.returncode:
-        proof['reason'] = result.stderr.replace(token, '<redacted>').replace(auth, '<redacted>')[:3000]
-    pathlib.Path('evidence/private-registry-preflight.json').write_text(json.dumps(proof, indent=2) + '\n')
-    assert result.returncode == 0, 'BLOCKED: existing private release is inaccessible to the ephemeral job token; no owner token or visibility change permitted'
-    assert proof['registry_digest'] == release['reference'].split('@')[1]
-    print('Private release manifest access passed with ephemeral job token; no layers pulled')
+    from rehearsal_auth import preflight
+    preflight(release)

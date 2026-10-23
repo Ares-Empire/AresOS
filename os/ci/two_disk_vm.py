@@ -13,6 +13,7 @@ import sys
 import time
 
 import switch_vm as sw
+from rehearsal_auth import auth_file, guest_mount_command, REFERENCE
 from disk_audit import (all_variables, boot_variables, compare_disk, compare_nvram, offline_disk,
                         protected_writes, set_variable, gpt, efi_files, entry_target, firmware_baseline)
 
@@ -35,6 +36,8 @@ class Guest(sw.Guest):
         return super().network_args() + (',hostfwd=tcp:127.0.0.1:18080-:8080' if self.mode == 'live' else '')
 
     def __init__(self, disk, password, secrets):
+        assert 'GHCR_READ_TOKEN' not in os.environ, 'Owner token must not enter the VM observer environment'
+        self.owner_auth_directory = auth_file().parent
         Guest.boot_count += 1
         self.boot_number = Guest.boot_count
         token = os.environ.get('GH_TOKEN', '')
@@ -59,7 +62,18 @@ class Guest(sw.Guest):
     def peripheral_args(self):
         # Keep detached storage slots empty, rather than reusing them for VGA/USB.
         return ['-device', 'virtio-vga,addr=0x4', '-device', 'qemu-xhci,id=usb-controller,addr=0x5',
-                '-device', 'usb-kbd,bus=usb-controller.0']
+                '-device', 'usb-kbd,bus=usb-controller.0',
+                '-fsdev', f'local,id=owner-auth,path={self.owner_auth_directory},security_model=none,readonly=on',
+                '-device', 'virtio-9p-pci,id=owner-auth-device,fsdev=owner-auth,mount_tag=aresos-owner-auth,addr=0x6']
+
+    def prepare_registry_auth(self, encoded_auth=None):
+        self.command(f'boot-{self.boot_number}-owner-auth-mount', guest_mount_command())
+
+    def command(self, name, script, timeout=900, private=False):
+        # Registry-client diagnostics stay private without needing the owner
+        # token in the observer's environment or redaction list.
+        registry_read = 'cosign verify' in script or 'bootc switch' in script
+        return super().command(name, script, timeout, private=private or registry_read)
 
     def storage_specs(self):
         specs = [('protected', WORK / 'protected.raw', 'MICRON-KEEP'), ('target', WORK / 'target.raw', 'CRUCIAL-TARGET')]
@@ -120,6 +134,7 @@ class Guest(sw.Guest):
         self.send("stty -echo; export PS1='ARESOS_ROOT> '; printf '\\nARESOS_ROOT_READY\\n'\n")
         self.wait(r'\r?\nARESOS_ROOT_READY\r?\n')
         self.command('live-root', 'set -e; test "$(id -u)" = 0; echo ISO_LIVE_ROOT_READY')
+        self.prepare_registry_auth()
 
     def login(self):
         super().login()
@@ -131,6 +146,7 @@ test "$(lsblk -ndo SERIAL "/dev/$parent")" = CRUCIAL-TARGET
 findmnt /boot/efi
 lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOINTS
 ''')
+        self.prepare_registry_auth()
 
     def wait(self, pattern, timeout=300):
         deadline = time.monotonic() + timeout
@@ -350,6 +366,13 @@ reboot
 
 
 def live_inventory(guest, stage):
+    release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
+    assert release['reference'] == REFERENCE
+    verify = pathlib.Path('os/release/verify.sh').read_text().replace('@REFERENCE@', REFERENCE).replace('@IDENTITY@', release['signature']['identity'])
+    guest.command(stage + '-release-signature', verify, timeout=180)
+    save(stage + '-release-signature-proof', dict(status='passed', reference=REFERENCE,
+        identity=release['signature']['identity'], issuer=release['signature']['issuer'],
+        diagnostics='private; only fixed proof fields exported'))
     layout = guest.capture_json(stage + '-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
     protected, target = disk_names(layout)
     save(stage + '-mapping', dict(protected=protected, target=target, protected_serial='MICRON-KEEP', target_serial='CRUCIAL-TARGET'))
@@ -615,7 +638,7 @@ def main():
         restore_windows_order()
         marker(reverse, 'probe-windows-without-linux', detached=True)
         proof = dict(status='passed', installed=False, both_orders=True, review_validated=True,
-                     detached_windows=True, target_reset=True,
+                     detached_windows=True, target_reset=True, owner_auth_read_only=True, signature_verified=True,
                      commit=os.environ['GITHUB_SHA'])
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)

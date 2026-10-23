@@ -83,6 +83,16 @@ def main():
         assert proof['commit'] == os.environ['GITHUB_SHA']
         assert proof['both_orders'] and proof['review_validated']
         assert proof['detached_windows'] and proof['target_reset']
+        assert proof['owner_auth_read_only'] and proof['signature_verified']
+        from rehearsal_auth import REFERENCE, DIGEST
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            manifest = json.loads(archive.read('private-registry-preflight.json'))
+            pull = json.loads(archive.read('owner-release-pull.json'))
+            cleanup = json.loads(archive.read('owner-auth-cleanup.json'))
+        assert manifest['status'] == 'passed' and manifest['reference'] == REFERENCE and manifest['registry_digest'] == DIGEST
+        assert manifest['secret'] == 'GHCR_READ_TOKEN' and manifest['owner_token_api_calls'] == 0
+        assert pull['status'] == 'passed' and pull['reference'] == REFERENCE and pull['preserved_digest']
+        assert cleanup['status'] == 'passed' and cleanup['removed'] and cleanup['outside_workspace']
         result['probe_run'] = probe_id
         result['probe'] = proof
     directory = pathlib.Path('evidence' if mode == 'ci' else '.work/11c')

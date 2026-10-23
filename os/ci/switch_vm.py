@@ -158,6 +158,9 @@ class Guest:
     def network_args(self):
         return 'user,model=virtio-net-pci'
 
+    def prepare_registry_auth(self, encoded_auth):
+        self.command('private-auth', f"set -e; install -d -m 0700 /etc/ostree; printf '%s' '{encoded_auth}' | base64 -d > /etc/ostree/auth.json; chmod 0600 /etc/ostree/auth.json", private=True)
+
     def connect(self, name):
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
@@ -398,7 +401,7 @@ def main(disk=None, preserve_vars=False, target_name='vda', shutdown_hook=None):
                 # Pin the booted deployment by its actual checksum, never assume
                 # a deployment index from an example or after another update.
                 guest.command('pin-stock', pathlib.Path('os/release/pin-stock.sh').read_text())
-                guest.command('private-auth', f"set -e; install -d -m 0700 /etc/ostree; printf '%s' '{encoded_auth}' | base64 -d > /etc/ostree/auth.json; chmod 0600 /etc/ostree/auth.json", private=True)
+                guest.prepare_registry_auth(encoded_auth)
                 verify = pathlib.Path('os/release/verify.sh').read_text()
                 verify = verify.replace('@REFERENCE@', target).replace('@IDENTITY@', release['signature']['identity'])
                 guest.command('verify-published-signature', verify)

@@ -46,7 +46,7 @@ sha256sum /usr/bin/podman /usr/bin/skopeo /usr/bin/qemu-system-x86_64 /usr/bin/q
 
 # Use the patched source for the exact installed binary, authenticated by the
 # same dated Ubuntu indexes. This downloads/extracts source, never builds it.
-sudo apt-get "${options[@]}" install -y --no-install-recommends dpkg-dev
+sudo apt-get "${options[@]}" install -y --no-install-recommends dpkg-dev python3-yaml
 source_directory="$PWD/.work/edk2-source"
 mkdir -p "$source_directory"
 source_version=$(dpkg-query -W -f='${source:Version}' ovmf)
