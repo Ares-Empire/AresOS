@@ -435,3 +435,35 @@ identities without consuming the following line. These are regression-only
 changes; no third VM/full run or live installation validation followed. The
 full run's tested source remains `f32f1da`. See the report for exact evidence,
 the limited counter coverage on the final failed-preflight VM, and budget.
+
+
+## 11c assumptions and qualification boundary
+
+- Firmware ownership uses bounded EFI load-option parsing: OptionalData must
+  equal exactly the 16 GUID bytes. Labels never establish ownership or device
+  attachment. Windows Boot0000 has no OptionalData and remains byte-identical.
+- `install-tools.sh` obtains patched edk2 source for the exact installed OVMF
+  version from the same authenticated Ubuntu snapshot indexes. The runner must
+  verify both the GUID definition and exact-size predicate before any VM.
+  `firmware-contract.json` records source/binary hashes and version; the actual
+  baseline options are separately recorded and checked against that contract.
+- Every boot has QMP PCI/block inventories and explicit storage addresses.
+  Reverse-order protected storage stays at PCI 3.0 when the target at 2.0 is
+  detached. VGA/USB occupy fixed slots 4/5, so detaching storage cannot make
+  another peripheral reuse its hardware identity. ISO uses ICH9 SATA port 0.
+- Every NVRAM diff names the preceding audited stage and lists each permitted
+  firmware addition/removal with its exact device and reason. Existing options
+  may never change; automatic options may not disappear while attached. Other
+  BootOrder entries retain relative order. Unsupported hardware paths stop.
+- The unchanged original signed release keeps its historical repository/source
+  identities. `verify_release.py` fetches only rewritten main, pins its runtime
+  Git objects, and requires unchanged runtime paths. An ephemeral job-token
+  manifest read must succeed before downloading the live ISO; an access failure
+  requires a blocker, never a token/visibility/image workaround.
+- Fresh probe and full must use the same commit. The probe covers both serial
+  mappings, actual UI/review/backend/completion selectors, detached Windows
+  boots and disposable-target reset without installing. Part A then repeats
+  the entire install/switch/policy/tty3/rollback/Windows-default undo sequence
+  in both orders. Part B starts only after both Part A result records exist.
+- Only full-run evidence can qualify those installed stages. The 11b stores
+  passing narrow regression tests do not establish fresh VM qualification.

@@ -1,5 +1,7 @@
 # Package 11: two-disk install rehearsal and pinned media
 
+Latest 11c outcome: **STOPPED before any VM — pinned private image returned manifest unknown. A OPEN, B UNTESTED, C pins retained.** Native regressions and exact firmware-rule regressions pass; no full run was authorized. See [11c](#11c-firmware-contract-and-fresh-install-qualification-2026-10-23).
+
 Latest 11b outcome: **STOPPED at the pre-install firmware audit; A NOT QUALIFIED, B UNTESTED, C pins unchanged.** No installation or full run was authorized. Follow-up cost: **168/350 minutes, 0/3 full runs**. See the 11b section below; earlier sections retain the original package-11 history.
 
 Original package-11 outcome: **STOPPED — A NOT QUALIFIED; B UNTESTED; C PINNING DONE.** Both full
@@ -510,8 +512,199 @@ manifest, signed image and original CI evidence retain their original IDs.
 The canonical repository is now `Ares-Empire/AresOS`; only the rewritten
 package branch is pushed, without force. No `pre-rewrite/*` ref is pushed.
 
-Qualification is in progress. Parts A and B remain OPEN until the new probe
-and full-run evidence below establish otherwise. The separate 11c guard counts
-all branch workflow jobs, including push/PR privacy scans, against 330 rounded
-minutes and three full dispatches. A full run requires a complete passing probe
-on its exact commit. The image/runtime payload is unchanged.
+### Done
+
+- `disk_audit.py`: parse bounded EFI load options and accept firmware ownership
+  only for exactly the 16-byte EDK2 GUID. Resolve Q35 PCI/SATA hardware, require
+  actual per-boot attachment evidence, reject existing-option mutations and
+  preserve other entries' relative order. Windows byte identity, BootOrder
+  membership/default, protected bytes/GPT/EFI and zero-write requirements remain
+  mandatory. Linux additions must name the target's new ESP and Fedora loader.
+- `two_disk_vm.py`, `switch_vm.py`: record raw QMP PCI/block inventories for each
+  boot, bind explicit storage addresses before detaching devices, preserve empty
+  PCI slots, compare each audited stage to its predecessor, and list every
+  exemption with device/reason. Both drive orders now contain the full Part A
+  sequence, including both detached-Windows checkpoints; Part B follows both.
+  **These fresh VM paths were not reached and are not qualified.**
+- `install-tools.sh`, `firmware_contract.py`: obtain patched edk2 source for the
+  exact installed Ubuntu OVMF package from authenticated snapshot indexes.
+  Verify the GUID and exact-size predicate before VM work; retain the version,
+  source/firmware hashes and predicate excerpt. Native regressions consume the
+  original 11b raw stores and all requested negative mutations.
+- `verify_release.py`: preserve the original signed image/run identity while
+  fetching only rewritten main and pinning its equivalent runtime Git objects.
+  Preflight the private manifest with the ephemeral job token before the ISO.
+  `rehearsal_guard.py` has a separate 330-minute/three-full-run ledger, counts
+  privacy jobs, and requires a complete passing same-commit probe for full runs.
+- Copied main's privacy workflow/config, added API identity redaction to the
+  11c capture helper, retained original artifact/log ZIP receipts, and added an
+  independent evidence verifier. Privacy jobs now have a five-minute timeout
+  so the final push/PR scan pair has a bounded ten-minute reservation.
+- INSTALL/EMERGENCY explain that unplugged devices' automatic F12 entries can
+  disappear normally. Their installation/recovery gates remain closed/open as
+  appropriate; neither a native regression nor an earlier preview is called an
+  installation rehearsal.
+
+### Verified and stop
+
+First ran `git fetch` and `git log` as requested. Pushes used only the
+rewritten package branch, fast-forward only. No merge or pre-rewrite ref push.
+
+Fresh probe [39989739478](https://github.com/Ares-Empire/AresOS/actions/runs/39989739478)
+used commit **`3babb48359291853a48f9f668c01810476a78d17`**. The runner printed:
+
+```text
+OVMF exact 16-byte auto-option GUID predicate verified against installed package source
+Ran 123 tests in 3.113s
+OK
+Qualified release source 5578ab21b880091f26bfdc2eda22dd4f304a602b; runtime payload unchanged
+AssertionError: BLOCKED: existing private release is inaccessible to the ephemeral job token; no owner token or visibility change permitted
+```
+
+The [registry preflight](../../os/manifest/ci/11c/probe-1/private-registry-preflight.json)
+records the actual error: **`reading manifest sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402 in ghcr.io/carlsenares/aresos: manifest unknown`**.
+This establishes that the pinned reference could not be resolved with that job's
+credentials. It does **not** distinguish removal from an access/namespace issue.
+No image layer was pulled. ISO inspection, disk preparation and VM steps were
+skipped. No complete probe proof exists; no full run was dispatched. The exact
+[failed-step log](logs/11c/probe-1.txt) and original artifact/workflow ZIPs under
+[artifacts](artifacts/) are retained with API digests/receipts.
+
+The [build contract](../../os/manifest/ci/11c/probe-1/firmware-contract.json)
+binds `ovmf`/`edk2` **2024.02-2ubuntu0.10**, patched `BmBoot.c` SHA-256
+`e961d1bc0ad7df99156a030dee92585fb2608ad5722f34d494459c2f74e6f3c6`
+and installed OVMF code SHA-256
+`ad23261d43116abc3747d59a7837fbf578c9586a8993f4eeba064cd07eccb083`.
+Its [predicate excerpt](../../os/manifest/ci/11c/probe-1/firmware-contract-source.txt)
+requires both GUID equality and `OptionalDataSize == sizeof(EFI_GUID)`.
+The upstream [EDK2 implementation](https://github.com/tianocore/edk2/blob/edk2-stable202402/MdeModulePkg/Library/UefiBootManagerLib/BmBoot.c)
+also documents the predicate; runner qualification used the exact Ubuntu source.
+The historical baseline's ownership bytes were checked from the original raw
+stores; **no new VM baseline was reached**.
+
+| Gate | 11c result | Evidence |
+|---|---|---|
+| Exact firmware ownership / requested regressions | **Native PASS** | [Raw-store regression](../../os/manifest/ci/11c/probe-11-regression.json), `test_disk_audit.py`; exactly Boot0002 and Boot0004 removals. Windows loss/change/OptionalData, attached removal, wrong hardware, non-auto removal, unknown addition, GUID-plus-extra bytes and auto mutation remain failures |
+| GUID against installed runner build | **PASS; fresh baseline OPEN** | [Source/binary contract](../../os/manifest/ci/11c/probe-1/firmware-contract.json), [excerpt](../../os/manifest/ci/11c/probe-1/firmware-contract-source.txt), original raw-store regression |
+| Rewritten runtime equivalence | **PASS** | Successful fetch of `f5bb5d3`, pinned runtime objects and unchanged payload diff in [probe log](logs/11c/probe-1.txt) |
+| Existing private signed release access | **BLOCKED — stop** | [Exact manifest response](../../os/manifest/ci/11c/probe-1/private-registry-preflight.json); no token, visibility or image workaround |
+| Fresh complete probe / full authorization | **FAIL; no full authorized** | [Probe run](https://github.com/Ares-Empire/AresOS/actions/runs/39989739478); UI and VM steps skipped; no probe-result file |
+| A: complete installs/switch/policy/tty3/rollback/undo in both orders | **OPEN — not reached** | No disposable disks or VM boot in 11c; no fresh offline snapshots or zero-write records |
+| A: Windows detached after install and undo, both orders | **OPEN — not reached** | Only historical pre-install marker evidence exists; no installed target |
+| B: QMP one-time stock / identity promotion / unattended stock | **UNTESTED; clear blocker** | No installed target; pinned release unresolved; guide gate remains open |
+| C: media pins | **DONE previously, no new download** | Original package-11 receipts and manifests retained |
+| Privacy | **Harness HEAD PASS; closing HEAD required** | [Push scan 39989537420](https://github.com/Ares-Empire/AresOS/actions/runs/39989537420), [PR scan 39989544924](https://github.com/Ares-Empire/AresOS/actions/runs/39989544924). Final HEAD scan URLs/status are recorded on [PR #11](https://github.com/Ares-Empire/AresOS/pull/11) after the closing push |
+| Physical media / novice / real Windows / laptop | **OPEN** | No physical or owner-system qualification performed |
+
+Exempted firmware changes, listed per stage:
+
+| Stage | Option | Hardware and reason |
+|---|---|---|
+| Historical 11b probe 11 baseline -> detached boot, **regression only** | Boot0002 | `pci:00:1f.2/sata:0:65535:0`; exact-GUID firmware option removed after DVD detachment |
+| Same historical stage, **regression only** | Boot0004 | `pci:00:03.0`; exact-GUID firmware option removed after empty-target detachment |
+| Fresh 11c probe | **None** | No VM stage was reached; no new exemption or protected-disk result is claimed |
+
+The [derived regression record](../../os/manifest/ci/11c/probe-11-regression.json)
+identifies both original raw-store hashes and its historical topology context.
+Fresh runs require QMP evidence rather than these historical fixture facts.
+No historical evidence file was edited.
+
+Actual local checks are saved in [local-regressions.txt](logs/11c/local-regressions.txt):
+
+```text
+python -X utf8 -m unittest discover -s os/tests -p test_disk_audit.py -v
+  Ran 11 tests in 0.233s; OK
+python -X utf8 -m unittest discover -s os/tests -p test_two_disk_vm.py -v
+  Ran 19 tests in 0.229s; OK
+python -X utf8 -m unittest discover -s os/tests -p test_installer_webui.py -v
+  Ran 9 tests in 0.003s; OK
+python -X utf8 -m unittest discover -s os/tests -p test_firmware_contract.py -v
+  Ran 1 test in 0.000s; OK
+python -X utf8 -m unittest discover -s os/tests -p test_rehearsal_budget.py -v
+  Ran 1 test in 0.000s; OK
+Python compilation of every os/ci/*.py: exit 0
+python -X utf8 reviews/11-two-disk-rehearsal/verify-11c-evidence.py
+  Original archive receipts/expanded contents and source predicate verified
+  67 archived UTF-8 credential-pattern checks passed
+  0 fresh offline stages, 0 zero-write records, 0 fresh exemptions
+  Evidence consistency verified; no VM qualification claimed
+```
+
+An earlier local negative regression matched the wrong error-message substring;
+that new test was corrected to require the actual detached-device rejection.
+An initial PowerShell wildcard `py_compile os/ci/*.py` invocation failed because
+Python received a literal wildcard; the explicit file iteration above passed.
+The full native suite and Bash syntax checks ran on Ubuntu in the probe.
+No Gradle/Minecraft command or daemon was started, as the brief requires.
+
+The first new privacy push/PR scans each found one false positive: the Git tree
+ID of the verification-key directory, assigned under the path `os/keys` in
+`verify_release.py`. `.gitleaksignore` names **only that historical commit/file/
+rule/line fingerprint**. New pins put object IDs before paths. No file, rule or
+credential category was broadly excluded. A checksum-verified portable gitleaks
+8.21.2 under ignored `.work/` passed locally; it was not installed system-wide.
+Captured API author/committer identities use the rewrite's placeholders; original
+ZIP receipts stay byte exact. Display text normalizes line endings and trailing
+whitespace; the verifier compares the complete normalized expanded contents.
+Final GitHub scans must pass before this run ends.
+
+### Minute ledger
+
+[Separate 11c ledger](../../os/manifest/ci/11c/final-budget.json), rounded up
+**per executed job**, includes all branch workflows since 16:21 UTC:
+
+| Run | Result | Rounded minutes |
+|---|---|---:|
+| 39986075815, initial PR privacy | success | 1 |
+| 39989148428, first push privacy | false-positive failure | 1 |
+| 39989156330, first PR privacy | false-positive failure | 1 |
+| 39989537420, corrected push privacy | success | 1 |
+| 39989544924, corrected PR privacy | success | 1 |
+| 39989739478, fresh probe | blocked at manifest preflight | 7 |
+| **Measured before closing push** | **0/3 full dispatches** | **12/330** |
+| Closing push + PR privacy pair | reserved; two jobs capped at five minutes each | **at most 10** |
+| **Bound including closing checks** | final actual total/scan URLs recorded in PR description | **at most 22/330** |
+
+The closing reservation avoids another evidence-only push creating an unrecorded
+scan pair. The final PR description records the completed closing runs and exact
+actual total. At least 308 minutes of the cap remain unused: the release blocker
+stopped work, not budget exhaustion. No additional VM, full or checks-only run
+followed the failed preflight.
+
+### Not verified
+
+No fresh baseline/device-path classification in OVMF, either-order Web UI preview,
+installation, target ESP, installed account/keymap, switch/policy/tty3 recovery,
+rollback/default undo, or post-install/post-undo Windows independence was reached.
+The expanded complete reverse-order sequence and per-boot QMP inventories remain
+regression-qualified source only. Part B is blocked before GRUB/menu/promotion.
+Physical USBs, keyboard, novice followability, real Windows/BitLocker/UEFI helpers,
+Lenovo fitting and laptop hardware remain open. Physical installation is NOT RELEASED.
+
+### JUDGMENT-CALL
+
+The ownership exception implements the integrator's exact 11c decision. The
+fixture now fixes PCI identities so removing storage cannot make VGA/USB occupy
+its address; automatic reassignment would make a label-independent comparison
+ambiguous. This is a disposable harness choice, not a product/firmware change;
+changing it later requires adapter regression updates and a new probe. No new
+product-feel or hard-to-undo decision was made.
+
+### PLAN-GAP
+
+The brief assumes the recorded signed private image is available. GHCR returned
+`manifest unknown` to the ephemeral `packages:read` job token after the history/
+repository transition. The response does not establish the cause. Rebuilding,
+republishing, changing visibility, substituting another image or obtaining an
+owner token is outside this brief. Restoring access to the exact recorded signed
+reference, or an explicit new release decision, is required before a new scoped
+qualification. The firmware rule is not widened and no full allowance is spent
+trying installation without a complete probe.
+
+### Open questions
+
+Does the exact pinned manifest still exist under its recorded GHCR reference,
+and can the repository's ephemeral job token read it? This needs a maintainer
+registry/access decision outside the run. Parts A/B require fresh qualification
+after that blocker is resolved. Acceptance is not met: PR #11 remains draft,
+the branch is pushed fast-forward only, and nothing is merged.
