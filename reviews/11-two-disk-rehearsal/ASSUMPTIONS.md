@@ -171,6 +171,23 @@ command also disrupted a diagnostic shell command. The adapter now tracks
 whether a command is actually pending and interrupts only a timed-out command;
 diagnostics still cannot suppress poweroff or any write/shutdown failure.
 
+### Probe 7: investigate the exact shipped UI before more selector changes
+
+Probe 7 (`ccb1b81`, 39884771824) passed 113 Linux regressions and the release
+guard, but the expanded keyboard check no longer saw the exact German X-layout
+property. It stopped before running the resolver or reaching review. This
+does not qualify the keyboard, and the check is not bypassed. Protected bytes,
+Windows NVRAM and final zero-write counters passed; the command-pending cleanup
+correction also completed without the previous diagnostic-shell corruption.
+
+The frozen ISO inventory contains `index.js.map` (3,566,994 bytes). The next
+dispatch is source inspection only, no fixture or VM: extract this map's actual
+application sources and inspect the keyboard state/Next code plus remaining
+page IDs. This replaces dependence on newer upstream source assumptions. The
+guest Firefox and host Chromium currently both exist; if this permits competing
+state updates, browser replacement must leave only the host UI client. Any
+such change requires a new complete, exact-commit probe before full dispatch.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

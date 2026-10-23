@@ -87,6 +87,26 @@ def main():
                 assert len(raw) < 2 * 1024 * 1024
                 (EVIDENCE / path.replace('/', '_')).write_bytes(raw)
                 print(path + '\n' + raw.decode(errors='replace'), flush=True)
+            map_path = 'usr/share/cockpit/anaconda-webui/index.js.map'
+            assert map_path in paths, 'Pinned UI source map unavailable; do not guess its version'
+            raw = subprocess.check_output(['unsquashfs', '-cat', str(squash), map_path])
+            source_map = json.loads(raw)
+            source_directory = EVIDENCE / 'webui-source'
+            source_directory.mkdir()
+            sources = []
+            for name, content in zip(source_map['sources'], source_map['sourcesContent']):
+                if '/src/' not in name or '/node_modules/' in name or content is None:
+                    continue
+                relative = pathlib.PurePosixPath(name.split('/src/', 1)[1])
+                assert not relative.is_absolute() and '..' not in relative.parts
+                destination = source_directory.joinpath(*relative.parts)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(content)
+                sources.append(dict(path=str(relative), sha256=hashlib.sha256(content.encode()).hexdigest()))
+            assert sources, 'No application sources in pinned UI source map'
+            (EVIDENCE / 'webui-source-map.json').write_text(json.dumps(dict(
+                source_map_sha256=hashlib.sha256(raw).hexdigest(), sources=sources), indent=2) + '\n')
+            print(f'Extracted {len(sources)} actual pinned Web UI sources for command/selector inspection', flush=True)
 
 
 if __name__ == '__main__':
