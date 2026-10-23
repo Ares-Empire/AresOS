@@ -713,3 +713,32 @@ and can the repository's ephemeral job token read it? This needs a maintainer
 registry/access decision outside the run. Parts A/B require fresh qualification
 after that blocker is resolved. Acceptance is not met: PR #11 remains draft,
 the branch is pushed fast-forward only, and nothing is merged.
+
+
+## 11d: owner read-only token and continued qualification (2026-10-24)
+
+The owner authorized Actions secret `GHCR_READ_TOKEN` solely for reading the
+original pinned `ghcr.io/carlsenares/aresos` image, its layers and associated
+signature, using username `carlsenares`. The declared scope is classic
+`read:packages`, expiring after 30 days. No owner-token GitHub API call is made.
+The org job token remains separate for CI/run metadata.
+
+Only an explicit workflow-dispatch probe/full step receives the secret in its
+environment. It writes one package-scoped mode-0600 auth file under
+`RUNNER_TEMP/aresos-11d-ghcr`, outside the workspace and all artifact paths.
+The VM reads that same host file over a read-only 9p share at fixed PCI 6.0;
+its `/etc/ostree/auth.json` is a symlink to the mounted temporary file, so no
+credential value is sent through a console command or written to a guest disk.
+Registry-client output is private; exported proofs contain fixed image/identity
+fields only. An always-cleanup step deletes the host auth file before artifacts.
+Missing/rejected credentials fail closed with no job-token or anonymous fallback.
+
+The probe now qualifies the exact layer pull as well as the manifest and the
+same signature/identity script used for switching. Full authorization also
+requires the probe artifact's passing manifest/pull proofs and cleanup receipt.
+The old user-package metadata step records that visibility cannot be queried
+with the org job token; it no longer treats a 404 as success or absence.
+
+Parts A/B remain OPEN while the new probe/full evidence is being collected.
+The allowance is shared with 11c: 17 rounded minutes were already consumed,
+including the two checks on the new brief; no full run has been dispatched.
