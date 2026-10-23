@@ -123,6 +123,30 @@ these additional branches before full authorization. No NVRAM/disk assertion
 is relaxed for firmware device enumeration changes. This pre-install marker
 check cannot substitute for the required post-install and post-undo checks.
 
+### Probe 5: confirmed console propagation; correct the keyboard checkpoint
+
+Probe 5 (`60758f6`, 39880735063) re-downloaded the complete pinned ISO,
+passed **111 Linux tests**, and confirmed the actual bootloader preserves
+`console` arguments, including multiple consoles in order. Its effective
+`Bootloader.preserved_arguments` includes `console`. The local serial-transport
+boot args are present. The anonymous registry metadata check also found the
+installer post-script's `stable` tag still at the exact tested stock digest;
+no layers or owner registry credentials were used.
+
+The real keyboard modal selected **only `de`**, as its screenshot and text show.
+The harness then waited for `anaconda-screen-language-selected-keyboards`, an
+upstream-version selector absent from this ISO, before pressing Next. The
+Welcome summary still read `us`; this does not establish what Next would
+commit. The next probe requires the actual modal's selected list to be exactly
+`de`, saves it, presses Next, then immediately requires both D-Bus XLayouts and
+VirtualConsoleKeymap to be German. The same checks remain mandatory at review
+and on the installed console; no keyboard assertion is relaxed. The actual
+modal capture backs a regression, and snapshots now inventory all element IDs.
+
+Cleanup's corrected failure path ran in the real VM: orderly guest shutdown,
+final zero protected writes, identical offline protected hash/GPT/EFI and
+unchanged Windows boot entry. Probe 5 remains failed and cannot authorize full.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

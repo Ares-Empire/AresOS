@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
 from rehearsal_guard import require_probe, job_minutes
-from installer_webui import Pages, validate_review
+from installer_webui import Pages, validate_review, validate_keyboard_selection
 from installer_inspect import validate_download
 
 
@@ -26,6 +26,15 @@ class DownloadCompletenessTest(unittest.TestCase):
 
 
 class ReviewBoundaryTest(unittest.TestCase):
+    def test_actual_modal_requires_only_german_before_next_commits_it(self):
+        import json
+        root = pathlib.Path(__file__).resolve().parents[2]
+        frames = json.loads((root / 'os/manifest/ci/11b/probe-5/two-disk/keyboard-german-selected.json').read_text())
+        selected = frames[0]['text'].split('Selected (top = current)\n')[1].split('\nSave')[0]
+        validate_keyboard_selection(selected)
+        for wrong in ('us', 'us\nde', 'de\nus', 'de(nodeadkeys)', ''):
+            with self.assertRaises(AssertionError):
+                validate_keyboard_selection(wrong)
     def test_probe_navigation_refuses_the_destructive_install_button(self):
         pages = object.__new__(Pages)
         pages.frame = Mock()

@@ -43,6 +43,25 @@ def validate_review(tables, protected, target):
     return dict(target=target, protected=protected, new_target_efi=esp, tables=tables)
 
 
+def validate_keyboard_selection(text):
+    assert text.split() == ['de'], 'German must be the only selected keyboard'
+
+
+def read_keyboard(guest):
+    guest.command('webui-keyboard-after-next', '''set -e
+python3 - <<'PY'
+import pathlib, subprocess
+address = pathlib.Path('/run/anaconda/bus.address').read_text().strip()
+service = 'org.fedoraproject.Anaconda.Modules.Localization'
+for name, expected in [('XLayouts', 'as 1 "de"'), ('VirtualConsoleKeymap', 's "de"')]:
+    value = subprocess.check_output(['busctl', '--address=' + address, 'get-property', service,
+        '/org/fedoraproject/Anaconda/Modules/Localization', service, name], text=True).strip()
+    print(name + ': ' + value)
+    assert value == expected, 'Wrong committed German keyboard'
+PY
+''')
+
+
 def start(guest, stage):
     import base64
     guest.command(stage + '-launcher', '''set -e
@@ -98,12 +117,13 @@ PY
 
 
 class Pages:
-    def __init__(self, browser, evidence, secrets=()):
+    def __init__(self, browser, evidence, secrets=(), guest=None):
         self.page = browser.new_page(viewport=dict(width=1440, height=1100))
         self.page.set_default_timeout(60000)
         self.evidence = pathlib.Path(evidence)
         self.events = []
         self.secrets = secrets
+        self.guest = guest
         self.page.on('pageerror', lambda error: self.events.append(str(error)))
         self.page.on('console', lambda message: self.events.append(message.type + ': ' + message.text))
         self.frame = self.page
@@ -113,6 +133,7 @@ class Pages:
         frames = []
         for frame in self.page.frames:
             frames.append(dict(url=frame.url, text=frame.locator('body').inner_text(),
+                ids=frame.locator('[id]').evaluate_all('els => els.map(e => ({tag:e.tagName,id:e.id,role:e.getAttribute("role")}))'),
                 controls=frame.locator('input,button,select,[role=button]').evaluate_all(
                     "els => els.map(e => ({tag:e.tagName,id:e.id,type:e.type,text:e.textContent,name:e.name,checked:e.checked,disabled:e.disabled,ariaDisabled:e.getAttribute('aria-disabled')}))")))
         (self.evidence / (name + '.json')).write_text(json.dumps(frames, indent=2) + '\n')
@@ -151,10 +172,12 @@ class Pages:
         listing = self.frame.locator('#' + modal + '-list')
         if listing.count() and re.search(r'\bus\b', listing.inner_text()):
             self.frame.locator('#' + modal + '-remove-0').click()
+        from playwright.sync_api import expect
+        expect(listing).to_have_text('de')
+        validate_keyboard_selection(listing.inner_text())
         self.snapshot('keyboard-german-selected')
         self.frame.locator('#' + modal + '-save-button').click()
-        from playwright.sync_api import expect
-        expect(self.frame.locator('#' + step + '-selected-keyboards')).to_have_text('de')
+        expect(self.frame.locator('#' + modal)).not_to_be_visible()
 
     def timezone(self):
         step = 'anaconda-screen-date-time'
@@ -171,12 +194,15 @@ class Pages:
             self.snapshot(f'page-{index:02d}')
             if self.frame.locator('#anaconda-screen-method-change-destination-button').is_visible():
                 break
+            language = self.frame.url.endswith('/anaconda-screen-language')
             if configure:
-                if self.frame.url.endswith('/anaconda-screen-language'):
+                if language:
                     self.localization()
                 elif self.frame.url.endswith('/anaconda-screen-date-time'):
                     self.timezone()
             self.next()
+            if configure and language:
+                read_keyboard(self.guest)
         else:
             raise RuntimeError('Destination was not reached through the real pages')
         self.frame.locator('#anaconda-screen-method-change-destination-button').click()
@@ -322,7 +348,7 @@ def run(guest, evidence, protected, target, password, install=False, stage='webu
             launch='liveuser liveinst; no LIVECMD or kickstart',
             transport='host loopback:18080 -> QEMU guest:8080 -> TCP relay -> original loopback:80',
             shutdown='root serial poweroff for mandatory offline audit instead of UI reboot'), indent=2) + '\n')
-        pages = Pages(browser, evidence, guest.secrets)
+        pages = Pages(browser, evidence, guest.secrets, guest)
         try:
             proof = pages.review(protected, target, password)
             pages.completion_source()
