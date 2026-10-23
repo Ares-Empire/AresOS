@@ -1,0 +1,290 @@
+]3008;end=931405f2-7757-4a54-854a-0a85c2554518;exit=success\]3008;start=2d849ac6-039e-4317-98bc-3e06ae9da144;type=shell;machineid=96f164c7a28f486f8257cd2b2aa7bd3f;user=root;hostname=localhost-live;bootid=956c0830-373b-4ddd-a4d2-1bd356345412;pid=2297;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+[?2004h> [?2004l
+[?2004h> [?2004l
+]3008;start=c70746e4-083e-4624-94fa-8da837f9caa7;type=command;machineid=96f164c7a28f486f8257cd2b2aa7bd3f;user=root;hostname=localhost-live;bootid=956c0830-373b-4ddd-a4d2-1bd356345412;pid=2297;cwd=/root\failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+[1;34musage: [0m[1;35manaconda[0m [[32m-h[0m] [[36m--version[0m] [[32m-G[0m] [[32m-T[0m] [[32m-C[0m] [[36m--noninteractive[0m]
+                [[36m--profile [33mPROFILE_ID[0m] [[36m--proxy [33mPROXY_URL[0m]
+                [[36m--waitfornet [33mTIMEOUT_IN_SECONDS[0m] [[32m-d[0m] [[36m--ks[0m]
+                [[36m--kickstart [33mKICKSTART_PATH[0m] [[36m--ksstrict[0m] [[36m--rescue[0m]
+                [[36m--armplatform [33mPLATFORM_ID[0m] [[36m--multilib[0m]
+                [[36m--repo [33mREPO_URL[0m] [[36m--stage2 [33mSTAGE2_URL[0m]
+                [[36m--addrepo [33mNAME,ADDITIONAL_REPO_URL[0m] [[36m--noverifyssl[0m]
+                [[36m--liveinst[0m] [[36m--resolution [33mWIDTHxHEIGHT[0m]
+                [[36m--xtimeout [33mTIMEOUT_IN_SECONDS[0m] [[36m--rdp[0m]
+                [[36m--rdp.username [33mUSERNAME[0m] [[36m--rdp.password [33mPASSWORD[0m]
+                [[36m--keymap [33mKEYMAP[0m] [[36m--lang [33mLANG[0m] [[36m--syslog [33mHOST[:PORT][0m]
+                [[36m--remotelog [33mHOST:PORT[0m]
+                [[36m--virtiolog [33m/dev/virtio-ports/NAME[0m] [[36m--noselinux[0m]
+                [[36m--selinux [33m[SELINUX][0m] [[36m--mpath[0m] [[36m--disklabel [33mDISKLABEL[0m]
+                [[36m--gpt[0m] [[36m--noibft[0m] [[36m--ibft[0m] [[36m--nonibftiscsiboot[0m]
+                [[36m--geoloc [33mPROVIDER_ID[0m] [[36m--geoloc-use-with-ks[0m]
+                [[36m--nosave [33m[NOSAVE][0m] [[36m--nomount[0m] [[36m--updates [33mUPDATES_URL[0m]
+                [[36m--image [33mIMAGE_SPEC[0m] [[36m--dirinstall [33m[DIRINSTALL][0m]
+                [[36m--memcheck[0m] [[36m--nomemcheck[0m] [[36m--leavebootorder[0m]
+                [[36m--noeject[0m] [[36m--extlinux[0m] [[36m--sdboot[0m] [[36m--nombr[0m]
+                [[36m--mpathfriendlynames[0m] [[36m--kexec[0m]
+
+Anaconda is the installation program used by Fedora, Red Hat Enterprise
+Linux and some other distributions.
+
+[1;34moptions:[0m
+  [1;32m-h[0m, [1;36m--help[0m
+        show this help message and exit
+  [1;36m--version[0m
+        show program's version number and exit
+  [1;32m-G[0m, [1;36m--graphical[0m
+        Force graphical installation. A graphical installation implies
+        that the installed system will boot up into graphical.target,
+        using whichever display manager is in use by the default desktop
+        (gdm for GNOME, kdm for KDE).
+  [1;32m-T[0m, [1;36m--text[0m
+        Force text mode installation. This also implies that the
+        installed system will boot up in text mode instead of to the
+        graphical login screen.
+  [1;32m-C[0m, [1;36m--cmdline[0m
+        Force command line installation mode. This mode simply prints
+        out text and does not allow any interactivity. All options must
+        be specified either in a kickstart file or on the command line.
+        If all required options are not specified, the installation will
+        terminate immediately. If running in PXE, network or media
+        installation mode Anaconda will also reboot the machine. This
+        can be prevented by passing the "inst.nokill" boot option.
+  [1;36m--noninteractive[0m
+  [1;36m--profile[0m [1;33mPROFILE_ID[0m
+        Use a profile configuration file with the specified profile id.
+        The installer will be customized based on configuration files
+        from /etc/anaconda/profile.d that are specific for this profile.
+  [1;36m--proxy[0m [1;33mPROXY_URL[0m
+        Use the given proxy settings when performing an installation
+        from a HTTP/HTTPS/FTP source. The PROXY_URL can be specified
+        like this: [PROTOCOL://][USERNAME[:PASSWORD]@]HOST[:PORT]
+  [1;36m--waitfornet[0m [1;33mTIMEOUT_IN_SECONDS[0m
+        Wait for network connectivity at the beginning of the
+        installation with the timeout in seconds specified as a
+        mandatory value of the option.
+  [1;32m-d[0m, [1;36m--debug[0m
+        Run the installer in the debugging mode.
+  [1;36m--ks[0m  Gives the location of the kickstart file to be used for
+        installation. The KICKSTART_URL supports fetching kickstarts
+        from HTTP/S, FTP, NFS, from a local file, from a local
+        harddrive, from an optical disk and from BIOS RAID sets. For
+        details on the KICKSTART_URL syntax see the Anaconda options
+        wiki page: http://fedoraproject.org/wiki/Anaconda_Boot_Options
+  [1;36m--kickstart[0m [1;33mKICKSTART_PATH[0m
+        Gives the local file path to use for kickstart. Normally only
+        used when running anaconda from the cmdline. This option is not
+        supported for live installations.
+  [1;36m--ksstrict[0m
+        With this option, all warnings from reading the kickstart file
+        will be treated as errors. They will be printed on the output
+        and the installation will terminate immediately. By default, the
+        warnings are printed to logs and the installation continues.
+  [1;36m--rescue[0m
+        Start the rescue environment instead of installation. This
+        option is not supported for live installations.
+  [1;36m--armplatform[0m [1;33mPLATFORM_ID[0m
+        This option is deprecated.
+  [1;36m--multilib[0m
+        Enable dnf's multlib_policy of "all" instead of the default of
+        "best".
+  [1;36m--repo[0m [1;33mREPO_URL[0m
+        This option tells Anaconda where to find the packages for
+        installation. This option must point to a valid package
+        repository (or, for some protocols, a Fedora DVD ISO image). It
+        is analogous to the older method option, but repo makes it more
+        clear exactly what is meant. This option may appear only once on
+        the command line. It corresponds to the kickstart command
+        install (whereas kickstart command repo is used for additional
+        repositories). As of Fedora 16, you can (optionally) add a
+        specific .iso file to the path. If no inst.root or inst.stage2
+        parameter is passed, this location will also be used as the
+        source for the installer runtime image. For more information
+        about the REPO_URL format check the Anaconda option
+        documentation, available on:
+        http://fedoraproject.org/wiki/Anaconda_Boot_Options
+  [1;36m--stage2[0m [1;33mSTAGE2_URL[0m
+        The STAGE2_URL specifies a path to a repository containing a
+        stage2 (squashfs.img) file instead of to an installation source.
+        Follows the same syntax as the repo option. If this parameter is
+        provided, it takes precedence over all other methods of finding
+        the install.img. Otherwise, Anaconda will attempt to find the
+        install.img first on any existing CD, and then from the location
+        given by repo. If only the stage2 option is given without repo,
+        Anaconda will use whatever repos the installed system would have
+        enabled by default for installation. For instance, an install of
+        a Fedora release will attempt to use the Fedora mirrorlist given
+        by /etc/yum.repos.d/fedora.repo from that release.
+  [1;36m--addrepo[0m [1;33mNAME,ADDITIONAL_REPO_URL[0m
+        This option adds additional repositories to the installation.
+        These repositories are used during installation but they are not
+        saved to the installed system. Repository must be specified in
+        the '<name>,<url>' format, where name can't contain space and
+        <url> have to be in a supported format. Supported formats can be
+        found here: http://rhinstaller.github.io/anaconda/boot-
+        options.html#inst-addrepo
+  [1;36m--noverifyssl[0m
+        Prevents Anaconda from verifying the ssl certificate for all
+        HTTPS connections with an exception of the additional kickstart
+        repos (where --noverifyssl can be set per repo).
+  [1;36m--liveinst[0m
+        Run in live installation mode.
+  [1;36m--resolution[0m [1;33mWIDTHxHEIGHT[0m
+        Run GUI installer in the resolution specified, "1024x768" for
+        example.
+  [1;36m--xtimeout[0m [1;33mTIMEOUT_IN_SECONDS[0m
+        Specify the timeout in seconds for starting X server or Wayland
+        compositor.
+  [1;36m--rdp[0m
+        Enable Remote Desktop Protocol-controlled installation. You will
+        need to connect to the machine using an RDP client application.
+        An RDP install implies that the installed system will boot up in
+        in multiuser.target instead of to the graphical login screen.
+        Multiple RDP clients can connect. When using rdp you also need
+        to set RDP username and password using the rdp.username and
+        rdp.password options. This option is not supported for live
+        installations.
+  [1;36m--rdp.username[0m [1;33mUSERNAME[0m
+        Set password for the RDP session. To enable RDP access, also use
+        the rdp and rdp.password options.
+  [1;36m--rdp.password[0m [1;33mPASSWORD[0m
+        Set password for the RDP session. To enable RDP access, also use
+        the rdp and rdp.username options. keymap Keyboard layout to use
+        during installation and on the installed system. Valid KEYMAP
+        values are those which can be used for the keyboard kickstart
+        command.
+  [1;36m--keymap[0m [1;33mKEYMAP[0m
+  [1;36m--lang[0m [1;33mLANG[0m
+        Language to use for the installation. LANG should be a language
+        code which is valid to be used with the lang kickstart command.
+  [1;36m--syslog[0m [1;33mHOST[:PORT][0m
+        Once installation is up and running, send log messages to the
+        syslog process on HOST, and optionally, on TCP port PORT.
+        Requires the remote syslog process to accept incoming
+        connections.
+  [1;36m--remotelog[0m [1;33mHOST:PORT[0m
+        Send all the logs to a remote host:port using a TCP connection.
+        The connection will be retried if there is no listener (ie.
+        won't block the installation).
+  [1;36m--virtiolog[0m [1;33m/dev/virtio-ports/NAME[0m
+        Forward logs through the named virtio port (a character device
+        at /dev/virtio-ports/<name>). If not provided, a port named
+        org.fedoraproject.anaconda.log.0 will be used by default, if
+        found.
+  [1;36m--noselinux[0m
+        Disable SELinux usage on the installed system.
+  [1;36m--selinux[0m [1;33m[SELINUX][0m
+        Enable SELinux usage in the installed system (default). Note
+        that when used as a boot option, "selinux" and "inst.selinux"
+        are not the same. The "selinux" option is picked up by both the
+        kernel and Anaconda, but "inst.selinux" is processed only by
+        Anaconda. So when "selinux=0" is used, SELinux will be disabled
+        both in the installation environment and in the installed
+        system, but when "inst.selinux=0" is used SELinux will only be
+        disabled in the installed system. Also note that while SELinux
+        is running in the installation environment by default, it is
+        running in permissive mode so disabling it there does not make
+        much sense.
+  [1;36m--mpath[0m
+  [1;36m--disklabel[0m [1;33mDISKLABEL[0m
+        Prefer creation of the specified disk label type. Specify "gpt"
+        to prefer creation of GPT disk labels. Specify "mbr" to prefer
+        creation of MBR disk labels if supported.
+  [1;36m--gpt[0m
+        Prefer creation of GPT disklabels. This option is deprecated and
+        will be removed in future releases.
+  [1;36m--noibft[0m
+        Disable iBFT usage during the installation.
+  [1;36m--ibft[0m
+        Enable iBFT (iSCSI Boot Firmware Table) usage during the
+        installation (default).
+  [1;36m--nonibftiscsiboot[0m
+  [1;36m--geoloc[0m [1;33mPROVIDER_ID[0m
+        Configure geolocation usage in Anaconda. Geolocation is used to
+        pre-set language and time zone. The following values for
+        PROVIDER_ID are supported: 0 - disable geolocation,
+        "provider_fedora_geoip" - use the Fedora GeoIP API (default) and
+        "provider_hostip" - use the Hostip.info GeoIP API.
+  [1;36m--geoloc-use-with-ks[0m
+        Enable geolocation even during a kickstart installation (both
+        partial and fully automatic). Otherwise geolocation is only
+        enabled during a fully interactive installation.
+  [1;36m--nosave[0m [1;33m[NOSAVE][0m
+        This option controls what installation results should not be
+        saved to the installed system, valid values are: "input_ks",
+        "output_ks", "all_ks", "logs" and "all". The "input_ks" value
+        disables saving of the input kickstart (if any), "output_ks"
+        disables saving of the output kickstart generated by Anaconda,
+        "all_ks" disables saving of both input and output kickstarts,
+        "logs" disables saving of all installation logs and "all"
+        disables saving of all kickstarts and all logs. Multiple values
+        can be combined as a comma separated list, for example:
+        "all_ks,logs"
+  [1;36m--nomount[0m
+        Don't automatically mount any installed Linux partitions in
+        rescue mode.
+  [1;36m--updates[0m [1;33mUPDATES_URL[0m
+        Path to an updates image that is on local filesystem or
+        available over FTP or HTTP. UPDATES_URL must be either a local
+        filesystem path, a network URL or <disk>:<path> where <disk> can
+        be one of sdX, /dev/sdX, LABEL=xxx, UUID=xxx and <path> defaults
+        to /updates.img if missing. See the Anaconda docs for more
+        details about the path specification. Please note that the
+        updates image only updates the installation environment and is
+        completely unrelated to package updates.
+  [1;36m--image[0m [1;33mIMAGE_SPEC[0m
+        Specification of disk image file to be used as installation
+        destination. IMAGE_SPEC must have format <path>[:<name>] where
+        <path> specifies the path of an image file and an optional
+        <name> component is used to identify the disk during
+        installation. <path> must be a local path but it may be relative
+        or absolute. If <name> is not specified, a name is synthesized
+        from the basename of <path>. <name> may not contain a colon or a
+        slash. This option may be used multiple times to specify
+        multiple disk images. It is an error to specify the same <path>
+        twice or to use duplicate names. The --image and --dirinstall
+        options are mutually exclusive.
+  [1;36m--dirinstall[0m [1;33m[DIRINSTALL][0m
+        Use the device mounted at /mnt/sysimage as the installation
+        destination. The --dirinstall and --image options are mutually
+        exclusive. The /mnt/sysimage directory can be overridden by
+        setting the ANACONDA_ROOT_PATH environmental variable before
+        starting anaconda.
+  [1;36m--memcheck[0m
+        Check if the system has enough RAM to complete the installation
+        and abort if it doesn't. Please note that this check is
+        approximate and that memory usage during installation depends on
+        the package selection, user interface (graphical vs text) and
+        other parameters.
+  [1;36m--nomemcheck[0m
+        Do not check if the system has enough RAM to complete the
+        installation. Of course, any attempt to install with less than
+        the safe minimum amount of memory may fail and is unsupported.
+  [1;36m--leavebootorder[0m
+        Boot the drives in their existing order, to override the default
+        of booting into the newly installed drive on Power Systems
+        servers and EFI systems. This is useful for systems that, for
+        example, should network boot first before falling back to a
+        local boot.
+  [1;36m--noeject[0m
+        Don't eject the installation CD/DVD (if any) once the
+        installation has been completed. Ignored for image, directory
+        and livecd installs.
+  [1;36m--extlinux[0m
+        Use extlinux as the bootloader. Note that there's no attempt to
+        validate that this will work for your platform or anything; it
+        assumes that if you ask for it, you want to try.
+  [1;36m--sdboot[0m
+        Use systemd-boot as the bootloader. Note that there's no attempt
+        to validate that this will work for your platform or anything;
+        it assumes that if you ask for it, you want to try.
+  [1;36m--nombr[0m
+  [1;36m--mpathfriendlynames[0m
+        Tell multipathd to use user friendly names when naming devices
+        during the installation. See the multipathd documentation for
+        more info.
+  [1;36m--kexec[0m
+        Reboot the system using kexec with the new kernel and initrd.
+        This will result in a faster reboot by skipping the
+        BIOS/Firmware and bootloader steps.
+
+ARESOS_CMD_DONE:0

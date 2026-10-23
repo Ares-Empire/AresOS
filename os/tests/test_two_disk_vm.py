@@ -43,6 +43,36 @@ class TwoDiskHarnessTest(unittest.TestCase):
             secret = '$' + algorithm + '$different-salt$' + 'A' * 86
             self.assertEqual(vm.sw.redact('hash="' + secret + '"', []), 'hash="<redacted-password-hash>"')
 
+    def test_recorded_stock_bls_entry_does_not_assume_the_installer_os_name(self):
+        stock = 'a' * 64
+        for name in ('default', 'bazzite', 'fedora'):
+            for index in (1, 2, 3):
+                entry = dict(id=f'ostree-{index}-' + name, deployment='/sysroot/ostree/deploy/' + name + '/deploy/' + stock + '.0')
+                self.assertEqual(vm.stock_bls_entry([entry], stock), dict(entry, menu_index=index))
+                self.assertIsNone(vm.stock_bls_entry([entry, dict(entry)], stock))
+                self.assertIsNone(vm.stock_bls_entry([dict(entry, id='ostree-0-' + name)], stock))
+                self.assertIsNone(vm.stock_bls_entry([dict(entry, id="ostree-1-invalid'quote")], stock))
+                self.assertIsNone(vm.stock_bls_entry([entry], 'b' * 64))
+
+    def test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart(self):
+        root = pathlib.Path(__file__).resolve().parents[2]
+        actual = (root / 'os/manifest/ci/11b/probe-3/two-disk/live-cli.txt').read_text(encoding='utf-8')
+        self.assertIn('\x1b[1;36m--kickstart', actual)
+        with self.assertRaisesRegex(RuntimeError, 'does not support live kickstart'):
+            vm.require_supported_live_kickstart(actual)
+
+    def test_failed_diagnostic_cannot_skip_orderly_shutdown_or_suppress_write_failure(self):
+        guest = Mock()
+        guest.process.poll.return_value = None
+        guest.command.side_effect = AssertionError('Missing diagnostic process')
+        with self.assertRaisesRegex(AssertionError, 'Missing diagnostic'):
+            vm.cleanup_live(guest, 'fixture', diagnostics=True)
+        guest.poweroff.assert_called_once_with('fixture')
+        guest.command.side_effect = None
+        guest.poweroff.side_effect = AssertionError('PRODUCT FAILURE: protected writes')
+        with self.assertRaisesRegex(AssertionError, 'PRODUCT FAILURE'):
+            vm.cleanup_live(guest, 'fixture', diagnostics=True)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=pathlib.Path(__file__).parent)
         self.addCleanup(self.temp.cleanup)

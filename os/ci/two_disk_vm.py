@@ -212,6 +212,7 @@ def german_keys(char):
 
 
 def require_supported_live_kickstart(help_text):
+    help_text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', help_text).replace('\r\n', '\n')
     section = re.search(r'^  --kickstart[^\n]*\n(.*?)(?=^  --\S|\Z)', help_text, re.M | re.S)
     assert section, 'Missing explicit local kickstart option documentation'
     normalized = ' '.join(section[1].split()).lower()
@@ -226,6 +227,17 @@ def bls_identity(text):
     targets = re.findall(r'(?:^|\s)ostree=(\S+)', options[0])
     assert len(targets) == 1 and targets[0].startswith('/ostree/'), 'Missing or ambiguous BLS deployment'
     return dict(title=titles[0], ostree=targets[0])
+
+
+def stock_bls_entry(entries, stock):
+    # Anaconda and image-builder need not choose the same OSTree OS name.
+    # Match the learned checksum and previous index, never a guessed suffix.
+    candidates = []
+    for entry in entries:
+        match = re.fullmatch(r'ostree-([1-9][0-9]*)-[A-Za-z0-9_.-]+', entry['id'])
+        if stock in entry['deployment'] and match:
+            candidates.append(dict(entry, menu_index=int(match[1])))
+    return candidates[0] if len(candidates) == 1 else None
 
 
 def disk_names(layout):
@@ -274,7 +286,7 @@ printf '%s\\n' "$digest"
 test "$digest" = '{digest}'
 command -v runuser curl python3 busctl ss liveinst
 ''')
-    help_text = guest.command(stage + '-cli', 'anaconda --help')
+    help_text = guest.command(stage + '-cli', 'set -e; NO_COLOR=1 anaconda --help > /tmp/rehearsal-anaconda-help; cat /tmp/rehearsal-anaconda-help')
     try:
         require_supported_live_kickstart(help_text)
     except RuntimeError:
@@ -282,6 +294,21 @@ command -v runuser curl python3 busctl ss liveinst
     else:
         raise AssertionError('Pinned ISO help changed; stop rather than assume a new installer contract')
     return protected, target
+
+
+def cleanup_live(guest, stage, diagnostics=False):
+    if guest.process.poll() is not None:
+        return
+    guest.buffer = ''
+    guest.send('\x03')
+    guest.wait('ARESOS_ROOT> ', timeout=15)
+    try:
+        if diagnostics:
+            guest.command('probe-failure-diagnostics', 'cat /tmp/rehearsal-webui-launch.log; journalctl -u webui-cockpit-ws --no-pager; ss -lntp; pgrep -a -f anaconda', timeout=30)
+    finally:
+        # Missing diagnostic files/processes cannot prevent the final write
+        # counters and offline audit. Never suppress a shutdown/write failure.
+        guest.poweroff(stage)
 
 
 def install(audit, password, password_hash):
@@ -300,16 +327,11 @@ def install(audit, password, password_hash):
              click_path_qualified=False, installation_pages_exercised=True))
         return target
     finally:
-        if guest.process.poll() is None:
-            try:
-                guest.buffer = ''
-                guest.send('\x03')
-                guest.wait('ARESOS_ROOT> ', timeout=15)
-                guest.poweroff(stage)
-            except Exception:
-                pass
-        guest.close(stage)
-        audit.check(stage, guest)
+        try:
+            cleanup_live(guest, stage)
+        finally:
+            guest.close(stage)
+            audit.check(stage, guest)
 
 
 def restore_windows_order():
@@ -355,18 +377,17 @@ for file in pathlib.Path('/boot/loader/entries').glob('*.conf'):
     entries.append(dict(id=file.stem, title=identity['title'], deployment=str(path), content=text))
 print(json.dumps(entries))
 PY'''))
-        candidates = [entry for entry in entries if stock in entry['deployment']]
-        if len(candidates) != 1 or candidates[0]['id'] != 'ostree-1-default':
-            save('grub-promotion', dict(status='blocked', reason='Actual BLS stock entry was not uniquely index 1', entries=entries))
+        backup = stock_bls_entry(entries, stock)
+        if backup is None:
+            save('grub-promotion', dict(status='blocked', reason='Actual nondefault BLS stock entry was not unique', entries=entries))
             guest.poweroff('b-unresolved-menu')
             return False
-        backup = candidates[0]
         guest.reboot('b-menu-preparation')
     finally:
         guest.close('b-menu-preparation')
         audit.check('b-menu-preparation', guest)
     guest = Guest(WORK / 'target.raw', password, [password, password_hash])
-    path = 'QMP Esc, Home, Down, Enter'
+    path = f'QMP Esc, Home, Down x{backup["menu_index"]}, Enter'
     try:
         # Attempt Esc in GRUB, retain the frame and OCR before selecting. Never
         # select by guessed position if the actual recorded titles are absent.
@@ -378,9 +399,10 @@ PY'''))
         ocr = subprocess.check_output(['tesseract', str(frame), 'stdout'], stderr=subprocess.DEVNULL).decode()
         (EVIDENCE / 'b-grub-menu-attempt-ocr.txt').write_text(ocr)
         normalized = re.sub('[^a-z0-9]', '', ocr.lower())
-        if 'ostree0' in normalized and 'ostree1' in normalized and 'grub' in normalized:
+        if 'ostree0' in normalized and f'ostree{backup["menu_index"]}' in normalized and 'grub' in normalized:
             guest.keys(['home'])
-            guest.keys(['down'])
+            for _ in range(backup['menu_index']):
+                guest.keys(['down'])
             guest.screenshot('b-grub-recorded-stock-selected')
             guest.keys(['ret'])
         else:
@@ -428,7 +450,7 @@ PY'''))
         guest.close('b-unattended-stock')
         audit.check('b-unattended-stock', guest)
     save('grub-promotion', dict(status='passed', path=path, recorded_stock_checksum=stock,
-                               stock_was_index_1=True, stock_now_booted_first=True, unattended_second_boot=True))
+                               stock_previous_index=backup['menu_index'], stock_now_booted_first=True, unattended_second_boot=True))
     return True
 
 
@@ -467,20 +489,16 @@ def live_probe(audit):
         probe(guest, EVIDENCE, protected, target)
         after = guest.capture_json('live-after-preview-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
         assert disk_names(after) == (protected, target)
+        guest.keys(['shift'])
+        guest.screenshot('live-qmp-observer-input')
         guest.writes('live-ui-probe')
         guest.poweroff('live-ui-probe')
     finally:
-        if guest.process.poll() is None:
-            try:
-                guest.buffer = ''
-                guest.send('\x03')
-                guest.wait('ARESOS_ROOT> ', timeout=15)
-                guest.command('probe-failure-diagnostics', 'cat /tmp/rehearsal-webui-launch.log; journalctl -u webui-cockpit-ws --no-pager; ss -lntp; pgrep -a -f anaconda', timeout=30)
-                guest.poweroff('live-ui-probe')
-            except Exception:
-                pass
-        guest.close('live-ui-probe')
-        audit.check('live-ui-probe', guest)
+        try:
+            cleanup_live(guest, 'live-ui-probe', diagnostics=True)
+        finally:
+            guest.close('live-ui-probe')
+            audit.check('live-ui-probe', guest)
 
 
 def main():

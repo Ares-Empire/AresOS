@@ -73,6 +73,28 @@ cat /tmp/rehearsal-webui-launch.log
 ''', timeout=240)
     encoded = base64.b64encode(RELAY.encode()).decode()
     guest.command(stage + '-relay', f"set -e; printf '%s' '{encoded}' | base64 -d > /tmp/rehearsal-relay.py\npython3 /tmp/rehearsal-relay.py > /tmp/rehearsal-relay.log 2>&1 < /dev/null &\nsleep 1\ncurl --connect-timeout 1 --max-time 5 --fail --silent http://127.0.0.1:8080/cockpit/@localhost/anaconda-webui/index.html > /dev/null\nss -lntp")
+    guest.command(stage + '-bootloader-console-source', '''set -e
+cat /proc/cmdline
+python3 - <<'PY'
+import configparser, hashlib, importlib.util, pathlib, re
+spec = importlib.util.find_spec('pyanaconda')
+root = pathlib.Path(next(iter(spec.submodule_search_locations)))
+paths = list((root / 'modules/storage/bootloader').rglob('*.py'))
+assert paths, 'Pinned installer bootloader source unavailable'
+for path in paths:
+    text = path.read_text()
+    lines = text.splitlines()
+    selected = {i for i, line in enumerate(lines) if re.search(r'console|preserv.*arg|cmdline', line, re.I)}
+    if selected:
+        print(str(path), 'SHA256', hashlib.sha256(path.read_bytes()).hexdigest())
+        indexes = sorted({j for i in selected for j in range(max(0, i-3), min(len(lines), i+5))})
+        for i in indexes:
+            print(str(i+1) + ': ' + lines[i])
+config = configparser.ConfigParser(interpolation=None, strict=False)
+config.read('/run/anaconda/anaconda.conf')
+print('ACTUAL BOOTLOADER CONFIG', {key: value for key, value in config['Bootloader'].items() if 'password' not in key})
+PY
+''')
 
 
 class Pages:

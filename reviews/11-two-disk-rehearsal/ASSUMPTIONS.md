@@ -70,6 +70,38 @@ Only that complete, successful, exact-commit artifact may authorize a full
 dispatch. The original unsupported-live-kickstart guard remains exercised;
 neither legacy media nor a constructed stock disk is permitted.
 
+### Probe 3 and final command/menu preflight
+
+Probe 3 (`502676b`, 39877073155) passed 105 Linux regressions and the signed
+release/runtime guard, but stopped before UI launch: direct terminal help has
+Python 3.14 ANSI colors around `--kickstart`, unlike the earlier redirected
+help fixture. The guard failed closed on the formatting, not on a newly
+supported kickstart path. Its original colorized help is retained as a
+regression fixture. The parser now removes CSI formatting and the inventory
+also requests redirected, plain help; the unsupported-live rejection remains
+mandatory and tested with both actual captures.
+
+Its missing-installer diagnostic listing returned 1, which skipped the old
+cleanup's poweroff. The protected offline hash/GPT/EFI and Windows entry match,
+but this failed probe again has no final live-VM zero-write counters. Cleanup
+now always attempts orderly poweroff after diagnostics, propagates every
+shutdown/write failure, and has a regression for both failure paths.
+
+Before any full run, the next probe additionally captures the ISO's actual
+bootloader Python sources/config and serial kernel arguments. The prior
+switch fixture used image-builder; serial-console propagation by this installer
+must be evidenced, not silently assumed. The frozen ISO inventory confirms
+14 Python source files at the inspected module path. A harmless QMP Shift
+press and guest screenshot also exercise the observer's keyboard command.
+
+The existing GRUB adapter's guessed `ostree-1-default` is replaced by the
+uniquely learned nondefault BLS entry for the recorded stock checksum. Its
+actual numeric index determines the QMP Down count and is recorded; OS suffix
+and index are not copied from the image-builder fixture. Regressions require
+the checksum and a positive index, support observed OS-name alternatives, and
+reject ambiguity, index zero and unsafe IDs. Actual menu rendering/selection
+and installed boots remain full-run observations, never claimed by a dry run.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.
