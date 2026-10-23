@@ -233,6 +233,25 @@ blur if username is empty. The driver now enters the explicit `ares-recovery`
 username first, then the full name, to avoid racing that suggestion. It still
 requires the exact account and wheel membership from the backend at review.
 
+### Probe 9: browser exit tears down the installer
+
+Probe 9 (`28a8d09`, 39888209565) passed 113 Linux regressions and the ISO/release
+guards. Its exact-profile Firefox termination succeeded and immediate HTTP
+readiness passed, but Anaconda then exited and removed its effective config.
+The next read-only bootloader inventory failed with `KeyError: 'Bootloader'`;
+diagnostics contain `Exiting due to channel error`. No host UI navigation or
+installation occurred. Final zero protected writes, offline protected hash/
+GPT/EFI and Windows boot-entry preservation passed. Cost is now **120 minutes**,
+zero full dispatches.
+
+The browser handoff now pauses the exact liveuser Firefox profile's entire
+process tree with SIGSTOP, verifies every member stopped, and keeps its parent
+launcher alive. This includes renderer processes, preventing a second active
+UI client without triggering Anaconda's browser-exit cleanup. The host browser
+and transport remain the only installation click-path differences; the paused
+guest browser and serial audit shutdown are recorded explicitly. A fresh
+complete probe must prove backend/configuration lifetime and every UI page.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

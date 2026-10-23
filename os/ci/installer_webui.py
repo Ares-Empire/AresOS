@@ -147,11 +147,32 @@ while not browsers() and time.monotonic() < deadline:
     time.sleep(1)
 pids = browsers()
 assert len(pids) == 1, 'Expected exactly the liveinst Firefox profile: ' + repr(pids)
-print('REPLACING_LIVEINST_FIREFOX', pids, profile, flush=True)
-os.kill(pids[0], signal.SIGTERM)
-while browsers() and time.monotonic() < deadline:
-    time.sleep(1)
-assert not browsers(), 'Guest installer browser still active'
+print('PAUSING_LIVEINST_FIREFOX_TREE', pids, profile, flush=True)
+# Anaconda watches browser exit and tears down its runtime configuration.
+# Pause this browser's entire process tree instead, including JS renderers.
+paused = set(pids)
+os.kill(pids[0], signal.SIGSTOP)
+for attempt in range(5):
+    found = set(paused)
+    for status in pathlib.Path('/proc').glob('[0-9]*/status'):
+        try:
+            fields = dict(line.split(':', 1) for line in status.read_text().splitlines() if ':' in line)
+            if int(fields['PPid']) in paused and int(fields['Uid'].split()[0]) == uid:
+                found.add(int(status.parent.name))
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            pass
+    for pid in found:
+        os.kill(pid, signal.SIGSTOP)
+    if found == paused:
+        break
+    paused = found
+else:
+    raise AssertionError('Firefox process tree did not stabilize')
+time.sleep(0.2)
+for pid in paused:
+    status = pathlib.Path('/proc/' + str(pid) + '/status').read_text()
+    assert any(line.startswith('State:') and 'T (stopped)' in line for line in status.splitlines()), 'Browser process not paused'
+print('PAUSED_BROWSER_PROCESSES', sorted(paused))
 PY
 test -e /run/anaconda/backend_ready
 curl --connect-timeout 1 --max-time 5 --fail --silent http://127.0.0.1/cockpit/@localhost/anaconda-webui/index.html > /dev/null
@@ -439,7 +460,7 @@ def run(guest, evidence, protected, target, password, install=False, stage='webu
         (pathlib.Path(evidence) / 'browser-transport.json').write_text(json.dumps(dict(
             browser='Chromium', version=browser.version, headless=True, viewport=dict(width=1440, height=1100),
             launch='liveuser liveinst; no LIVECMD or kickstart',
-            guest_browser='Liveinst Firefox starts normally, then its exact liveuser installer profile is closed; only host Chromium drives the pages',
+            guest_browser='Liveinst Firefox starts normally; its exact liveuser installer profile process tree is SIGSTOP-paused because browser exit tears down Anaconda. Only host Chromium drives the pages',
             transport='host loopback:18080 -> QEMU guest:8080 -> TCP relay -> original loopback:80',
             shutdown='root serial poweroff for mandatory offline audit instead of UI reboot'), indent=2) + '\n')
         pages = Pages(browser, evidence, guest.secrets, guest)
