@@ -299,9 +299,10 @@ command -v runuser curl python3 busctl ss liveinst
 def cleanup_live(guest, stage, diagnostics=False):
     if guest.process.poll() is not None:
         return
-    guest.buffer = ''
-    guest.send('\x03')
-    guest.wait('ARESOS_ROOT> ', timeout=15)
+    if getattr(guest, 'command_pending', False):
+        guest.buffer = ''
+        guest.send('\x03')
+        guest.wait('ARESOS_ROOT> ', timeout=15)
     try:
         if diagnostics:
             guest.command('probe-failure-diagnostics', 'cat /tmp/rehearsal-webui-launch.log; journalctl -u webui-cockpit-ws --no-pager; ss -lntp; pgrep -a -f anaconda', timeout=30)

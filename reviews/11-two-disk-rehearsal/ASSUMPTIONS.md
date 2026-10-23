@@ -147,6 +147,30 @@ Cleanup's corrected failure path ran in the real VM: orderly guest shutdown,
 final zero protected writes, identical offline protected hash/GPT/EFI and
 unchanged Windows boot entry. Probe 5 remains failed and cannot authorize full.
 
+### Probe 6: the UI commits X layouts; console configuration is derived later
+
+Probe 6 (`221ca1a`, 39882648993) passed 112 Linux regressions and reached the
+Date/time page after the German modal. The real backend returned **XLayouts =
+`["de"]`**, but **VirtualConsoleKeymap = `""`**. The earlier immediate console
+property assertion was a lifecycle assumption. Upstream's actual
+`KeyboardInstallationTask.run` resolves missing configuration with
+`get_missing_keyboard_configuration`, then calls `write_vc_configuration`.
+The next probe requires that call path in the pinned ISO's own source, invokes
+that ISO's resolver on the exact committed UI choices, and generates the
+vconsole file only under a temporary live `/tmp` directory. It requires
+**resolved `de` and generated `KEYMAP=de`**, with live localed configuration
+restored and Anaconda's module choices unchanged. Review repeats this proof;
+the installed `/etc/vconsole.conf` and real German QMP tty3 test remain strict.
+Empty console state without that conversion/file proof cannot authorize a run.
+This is a keyboard-only temporary fixture, not an installed stock disk or an
+alternative installer route.
+
+The failed probe's offline protected bytes/GPT/EFI, original Windows entry and
+final zero-write counters passed. A redundant Ctrl-C after an already finished
+command also disrupted a diagnostic shell command. The adapter now tracks
+whether a command is actually pending and interrupts only a timed-out command;
+diagnostics still cannot suppress poweroff or any write/shutdown failure.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

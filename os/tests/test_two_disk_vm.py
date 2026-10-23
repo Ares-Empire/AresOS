@@ -33,6 +33,7 @@ class TwoDiskHarnessTest(unittest.TestCase):
         with patch.object(vm.sw, 'EVIDENCE', self.directory):
             with self.assertRaises(TimeoutError):
                 guest.command('public', 'fixture')
+            self.assertTrue(guest.command_pending)
             self.assertEqual((self.directory / 'public-incomplete.txt').read_text(), 'server checkpoint <redacted>\n')
             with self.assertRaises(TimeoutError):
                 guest.command('private', 'fixture', private=True)
@@ -63,11 +64,13 @@ class TwoDiskHarnessTest(unittest.TestCase):
 
     def test_failed_diagnostic_cannot_skip_orderly_shutdown_or_suppress_write_failure(self):
         guest = Mock()
+        guest.command_pending = False
         guest.process.poll.return_value = None
         guest.command.side_effect = AssertionError('Missing diagnostic process')
         with self.assertRaisesRegex(AssertionError, 'Missing diagnostic'):
             vm.cleanup_live(guest, 'fixture', diagnostics=True)
         guest.poweroff.assert_called_once_with('fixture')
+        guest.send.assert_not_called()
         guest.command.side_effect = None
         guest.poweroff.side_effect = AssertionError('PRODUCT FAILURE: protected writes')
         with self.assertRaisesRegex(AssertionError, 'PRODUCT FAILURE'):

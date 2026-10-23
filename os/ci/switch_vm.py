@@ -120,6 +120,7 @@ class Guest:
         self.transcript = ''
         self.boot_transcript = ''
         self.authentication_started = False
+        self.command_pending = False
         self.screenshot_safe = True
         self.buffer = ''
         self.replies = TerminalReplies()
@@ -217,6 +218,7 @@ class Guest:
 
     def command(self, name, script, timeout=900, private=False):
         transcript_start = len(self.transcript)
+        self.command_pending = True
         self.send(encode_command(script))
         try:
             output = self.wait(r'\r?\nARESOS_CMD_DONE:(\d+)\r?\n', timeout)
@@ -224,6 +226,7 @@ class Guest:
             if not private:
                 (EVIDENCE / f'{name}-incomplete.txt').write_text(redact(self.transcript[transcript_start:], self.secrets))
             raise
+        self.command_pending = False
         code = int(re.search(r'ARESOS_CMD_DONE:(\d+)', output).group(1))
         clean = redact(output, self.secrets)
         if not private:

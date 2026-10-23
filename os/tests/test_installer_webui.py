@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
 from rehearsal_guard import require_probe, job_minutes
-from installer_webui import Pages, validate_review, validate_keyboard_selection
+from installer_webui import Pages, validate_review, validate_keyboard_selection, validate_keyboard_proof
 from installer_inspect import validate_download
 
 
@@ -26,6 +26,17 @@ class DownloadCompletenessTest(unittest.TestCase):
 
 
 class ReviewBoundaryTest(unittest.TestCase):
+    def test_empty_model_console_requires_real_installer_conversion_and_generated_file(self):
+        proof = dict(xlayouts=['de'], model_keymap='', resolved_keymap='de',
+                     generated_vconsole='KEYMAP="de"\nFONT="eurlatgr"\n',
+                     same_installation_resolver=True, live_configuration_restored=True,
+                     module_configuration_unchanged=True)
+        validate_keyboard_proof(proof)
+        for key, wrong in [('resolved_keymap', 'us'), ('generated_vconsole', 'KEYMAP="us"\n'),
+                           ('xlayouts', ['us']), ('same_installation_resolver', False),
+                           ('live_configuration_restored', False), ('module_configuration_unchanged', False)]:
+            with self.assertRaises(AssertionError):
+                validate_keyboard_proof(dict(proof, **{key: wrong}))
     def test_actual_modal_requires_only_german_before_next_commits_it(self):
         import json
         root = pathlib.Path(__file__).resolve().parents[2]
