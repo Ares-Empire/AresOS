@@ -295,11 +295,6 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Reject unqualified full dispatch before downloading or booting
-        if: inputs.rehearsal == 'full'
-        run: |
-          echo '11b full installation driver is not yet probe-qualified'
-          exit 1
       - name: Reserve the 11b minute budget
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

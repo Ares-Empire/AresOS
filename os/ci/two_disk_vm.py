@@ -263,78 +263,51 @@ reboot
 '''
 
 
+def live_inventory(guest, stage):
+    layout = guest.capture_json(stage + '-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
+    protected, target = disk_names(layout)
+    save(stage + '-mapping', dict(protected=protected, target=target, protected_serial='MICRON-KEEP', target_serial='CRUCIAL-TARGET'))
+    digest = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference'].split('@', 1)[1]
+    guest.command(stage + '-payload', f'''set -e
+digest=$(podman image inspect ghcr.io/ublue-os/bazzite-nvidia-open:stable --format "{{{{.Digest}}}}")
+printf '%s\\n' "$digest"
+test "$digest" = '{digest}'
+command -v runuser curl python3 busctl ss liveinst
+''')
+    help_text = guest.command(stage + '-cli', 'anaconda --help')
+    try:
+        require_supported_live_kickstart(help_text)
+    except RuntimeError:
+        save(stage + '-kickstart-guard', dict(status='rejected-unsupported-live-kickstart', method='real-Web-UI-only'))
+    else:
+        raise AssertionError('Pinned ISO help changed; stop rather than assume a new installer contract')
+    return protected, target
+
+
 def install(audit, password, password_hash):
+    from installer_webui import run
     Guest.mode = 'live'
     guest = Guest(WORK / 'target.raw', password, [password, password_hash])
     stage = Guest.order + '-install'
     try:
         guest.login_live()
-        layout = guest.capture_json(stage + '-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
-        protected, target = disk_names(layout)
-        save(stage + '-mapping', dict(protected=protected, target=target, protected_serial='MICRON-KEEP', target_serial='CRUCIAL-TARGET'))
-        digest = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference'].split('@', 1)[1]
-        guest.command(stage + '-payload', f'''set -e
-digest=$(podman image inspect ghcr.io/ublue-os/bazzite-nvidia-open:stable --format "{{{{.Digest}}}}")
-printf '%s\\n' "$digest"
-test "$digest" = '{digest}'
-''')
-        help_text = guest.command(stage + '-cli', 'set -e; anaconda --help > /tmp/anaconda-help; cat /tmp/anaconda-help; grep -q -- --kickstart /tmp/anaconda-help; grep -q -- --cmdline /tmp/anaconda-help')
-        require_supported_live_kickstart(help_text)
-        recipe = kickstart(target, password_hash)
-        (EVIDENCE / (stage + '-kickstart.ks')).write_text(recipe.replace(password_hash, '@VM_PASSWORD_HASH@'))
-        encoded = base64.b64encode(recipe.encode()).decode()
-        # The frozen live ISO contains python3-pykickstart, not ksvalidator.
-        # Preserve strict parsing, including fatal missing includes, if a future
-        # separately qualified ISO explicitly supports this fallback.
-        guest.command(stage + '-prepare-kickstart', f"set -e; printf '%s' '{encoded}' | base64 -d > /tmp/rehearsal.ks; chmod 0600 /tmp/rehearsal.ks\n" + '''python3 - <<'PY'
-from pykickstart.parser import KickstartParser
-from pykickstart.version import makeVersion
-KickstartParser(makeVersion(), errorsAreFatal=True, missingIncludeIsFatal=True).readKickstart('/tmp/rehearsal.ks')
-PY''', private=True)
-        # liveinst itself warns that a --kickstart argument is unsupported.
-        # Its documented LIVECMD storage-testing hook runs the same ISO's
-        # Anaconda, preserving the launcher setup and all Bazzite defaults.
-        guest.command(stage + '-start', '''set -e
-(set +e
-PKEXEC_UID=$(id -u liveuser) LIVECMD='anaconda --liveinst --cmdline --kickstart=/tmp/rehearsal.ks' liveinst > /tmp/rehearsal-install.log 2>&1 < /dev/null
-printf '%s' "$?" > /tmp/rehearsal-install.exit) &
-echo SAME_ISO_ANACONDA_STARTED
-''')
-        deadline = time.monotonic() + 1800
-        progress = bytearray()
-        while not any(e.get('event') == 'SHUTDOWN' for e in guest.monitor.events):
-            assert time.monotonic() < deadline, 'Installer exceeded the 30-minute automation bound'
-            guest.writes(stage + '-progress')
-            # Drain the shared UART, including the post-install marker.
-            guest.console.settimeout(1)
-            try:
-                data = guest.console.recv(65536)
-            except socket.timeout:
-                data = b''
-            if data:
-                progress.extend(data)
-                reply = guest.replies.feed(data)
-                if reply:
-                    guest.console.sendall(reply)
-            if not int(time.monotonic()) % 15:
-                status = guest.capture_json(stage + '-progress', sw.framed("python3 -c 'import json,pathlib; p=pathlib.Path(\"/tmp/rehearsal-install.exit\"); print(json.dumps(dict(exit=p.read_text() if p.exists() else None)))'"))
-                if status['exit'] is not None:
-                    guest.command(stage + '-log', 'cat /tmp/rehearsal-install.log')
-                    assert status['exit'] == '0', 'Same-ISO Anaconda failed; STOP'
-                    guest.poweroff(stage)
-                    break
-        else:
-            pass
-        if guest.process.poll() is None:
-            shutdown = next(e for e in guest.monitor.events if e.get('event') == 'SHUTDOWN')
-            guest.finish_shutdown(stage, shutdown['data']['reason'])
-        text = sw.redact(progress.decode(errors='replace') + guest.transcript, guest.secrets)
-        (EVIDENCE / (stage + '-progress-console.txt')).write_text(text)
-        save(stage + '-result', dict(status='installer-returned-or-requested-reboot', target=target,
-             method='same-ISO Anaconda through liveinst LIVECMD with explicit kickstart', click_path_qualified=False))
+        protected, target = live_inventory(guest, stage)
+        run(guest, EVIDENCE, protected, target, password, install=True, stage=stage)
+        guest.poweroff(stage)
         audit.target_installed = True
+        save(stage + '-result', dict(status='passed', target=target,
+             method='unmodified liveinst Web UI via host Chromium',
+             click_path_qualified=False, installation_pages_exercised=True))
         return target
     finally:
+        if guest.process.poll() is None:
+            try:
+                guest.buffer = ''
+                guest.send('\x03')
+                guest.wait('ARESOS_ROOT> ', timeout=15)
+                guest.poweroff(stage)
+            except Exception:
+                pass
         guest.close(stage)
         audit.check(stage, guest)
 
@@ -489,9 +462,8 @@ def live_probe(audit):
     guest = Guest(WORK / 'target.raw', '', [])
     try:
         guest.login_live()
-        layout = guest.capture_json('live-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
-        protected, target = disk_names(layout)
-        save('live-assumptions', dict(order=Guest.order, layout=layout, protected=protected, target=target))
+        protected, target = live_inventory(guest, 'live')
+        save('live-assumptions', dict(order=Guest.order, protected=protected, target=target))
         probe(guest, EVIDENCE, protected, target)
         after = guest.capture_json('live-after-preview-disks', sw.framed('lsblk --json --bytes --list --output NAME,TYPE,SIZE,SERIAL,PARTUUID,FSTYPE,MOUNTPOINTS'))
         assert disk_names(after) == (protected, target)
@@ -514,6 +486,12 @@ def live_probe(audit):
 def main():
     global EVIDENCE
     EVIDENCE.mkdir(parents=True, exist_ok=True)
+    assert sys.argv[1:] in (['probe'], ['full'])
+    if sys.argv[1:] == ['full']:
+        authorization = json.loads((EVIDENCE.parent / '11b-dispatch-authorization.json').read_text())
+        assert authorization['probe']['status'] == 'passed'
+        assert authorization['probe']['commit'] == os.environ['GITHUB_SHA']
+        assert authorization['probe']['both_orders'] and authorization['probe']['review_validated']
     sw.WORK, sw.EVIDENCE = WORK, EVIDENCE
     for name in ('vmlinuz', 'initrd.img'):
         with (WORK / name).open('wb') as output:
@@ -522,11 +500,23 @@ def main():
     shutil.copyfile(WORK / 'vars.fd', EVIDENCE / 'pre-firmware-vars.fd')
     marker(audit, 'baseline-firmware', baseline=True)
     if sys.argv[1:] == ['probe']:
+        probe_root = EVIDENCE
         live_probe(audit)
-        save('probe-result', dict(status='destination-only', installed=False, commit=os.environ.get('GITHUB_SHA')))
+        shutil.copyfile(probe_root / 'pre-firmware-vars.fd', WORK / 'vars.fd')
+        EVIDENCE = probe_root / 'protected-second'
+        EVIDENCE.mkdir()
+        sw.EVIDENCE = EVIDENCE
+        Guest.order = 'protected-second'
+        reverse = Audit()
+        compare_disk(audit.disk, reverse.disk)
+        shutil.copyfile(WORK / 'vars.fd', EVIDENCE / 'pre-firmware-vars.fd')
+        marker(reverse, 'baseline-firmware', baseline=True)
+        live_probe(reverse)
+        proof = dict(status='passed', installed=False, both_orders=True, review_validated=True,
+                     commit=os.environ['GITHUB_SHA'])
+        (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
+        print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)
         return
-    assert sys.argv[1:] == ['full']
-    live_probe(audit)
     import crypt
     import secrets
     password = secrets.token_hex(24)
@@ -566,6 +556,7 @@ def main():
     sw.EVIDENCE = EVIDENCE
     Guest.order = 'protected-second'
     reverse = Audit()
+    compare_disk(audit.disk, reverse.disk)
     shutil.copyfile(WORK / 'vars.fd', EVIDENCE / 'pre-firmware-vars.fd')
     marker(reverse, 'baseline-firmware', baseline=True)
     install(reverse, password, password_hash)
@@ -573,7 +564,7 @@ def main():
     marker(reverse, 'after-install-without-linux', detached=True)
     save('result', dict(status='passed', install_both_orders=True, offline_protected_disk_unchanged=True,
                         windows_boot_without_linux_after_install_and_undo=True, grub_promotion=promoted))
-    print('TWO-DISK INSTALL/SWITCH/ROLLBACK/UNDO PASSED IN BOTH DRIVE ORDERS', flush=True)
+    print('TWO-DISK INSTALL PASSED IN BOTH DRIVE ORDERS; FIRST-ORDER SWITCH/ROLLBACK/UNDO PASSED', flush=True)
 
 
 if __name__ == '__main__':

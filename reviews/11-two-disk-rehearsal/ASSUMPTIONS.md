@@ -32,6 +32,44 @@ at `6683e19`; [corrected probe 39873265524](https://github.com/carlsenares/AresO
 at `6bfefc8`. Neither is a full run. Outcomes and final minute totals follow in
 the 11b report.
 
+### Discovery results and complete-preview dispatch
+
+- Probe 1 (`6bfefc8`, 39873265524) launched the real Welcome page as liveuser
+  (visually inspected guest screenshot), but its serial HTTP/service inventory
+  command timed out before host Chromium. The missing partial-command log
+  prevents attributing the stall specifically to HTTP or a pager. Cleanup
+  host-terminated QEMU; protected bytes/layout/EFI and Windows NVRAM matched,
+  but this VM has no final zero-write counter proof. It is a failed probe.
+- Probe 2 (`a7a0a44`, 39875264662) uses bounded curl calls, noninteractive
+  service output and timeout logging. The real `ss`/unit/wrapper/curl and
+  Chromium evidence confirms the original loopback HTTP listener and relay.
+  Actual Welcome, Date/time, destination modal and target-only page screenshots
+  were captured and visually inspected. `MICRON-KEEP=vda` and
+  `CRUCIAL-TARGET=vdb`; both modal rows are present, only vdb is selected.
+  Its actual guest shutdown/final counters, offline full-disk/GPT/EFI and
+  Windows entry checks passed. Linux printed 104 passing regressions.
+- Probe 2 is explicitly **destination-only**, not full authorization. Its
+  immediate final frame still shows an indeterminate/space-warning state;
+  it did not wait for the scenario controls, reach review or reverse drives.
+  No minimum capacity is inferred from the blank loading text, and no storage
+  check is overridden. The complete probe waits for the actual erase-all
+  control, or fails with a screenshot.
+
+The next harness uses one shared UI flow for probe and full mode: German-only
+keyboard, Berlin timezone, exact target-only/erase-all selection, unencrypted
+disposable trial, password-protected wheel administrator `ares-recovery`, locked
+root, full review text and explicit new target EFI check. Read-only backend
+properties must confirm the choices. Probe tests the erase button's actionability
+with Playwright's non-clicking trial mode, never starts installation, and
+repeats in both drive orders. Completion/error selectors are checked against
+the actual ISO-served JavaScript; their post-install rendering is necessarily
+a full-run-only observation. Root serial poweroff replaces the owner's final
+UI reboot only to permit the mandatory closed-image audit.
+
+Only that complete, successful, exact-commit artifact may authorize a full
+dispatch. The original unsupported-live-kickstart guard remains exercised;
+neither legacy media nor a constructed stock disk is permitted.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

@@ -1,5 +1,6 @@
 """Fail closed on the 11b CI budget and same-commit probe authorization."""
 import datetime
+import hashlib
 import io
 import json
 import math
@@ -74,6 +75,7 @@ def main():
         artifacts = api(f'actions/runs/{probe_id}/artifacts')['artifacts']
         artifact, = [item for item in artifacts if item['name'] == 'two-disk-evidence' and not item['expired']]
         raw = subprocess.check_output(['gh', 'api', f'repos/{REPOSITORY}/actions/artifacts/{artifact["id"]}/zip'])
+        assert artifact['digest'] == 'sha256:' + hashlib.sha256(raw).hexdigest(), 'Probe artifact digest mismatch'
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             proof = json.loads(archive.read('two-disk/probe-result.json'))
         assert proof['status'] == 'passed' and proof['installed'] is False

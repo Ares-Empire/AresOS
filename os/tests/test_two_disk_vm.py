@@ -38,6 +38,11 @@ class TwoDiskHarnessTest(unittest.TestCase):
                 guest.command('private', 'fixture', private=True)
             self.assertFalse((self.directory / 'private-incomplete.txt').exists())
 
+    def test_ui_salted_password_hash_is_redacted_without_knowing_its_salt(self):
+        for algorithm in ('6', 'y'):
+            secret = '$' + algorithm + '$different-salt$' + 'A' * 86
+            self.assertEqual(vm.sw.redact('hash="' + secret + '"', []), 'hash="<redacted-password-hash>"')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=pathlib.Path(__file__).parent)
         self.addCleanup(self.temp.cleanup)

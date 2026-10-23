@@ -65,7 +65,9 @@ def redact(value, secrets):
     for secret in secrets:
         if secret:
             value = value.replace(secret, '<redacted>')
-    return value
+    # The interactive UI salts its own account hash. It differs from the
+    # harness's precomputed hash and must not leak through installer errors.
+    return re.sub(r'\$(?:6|5|y|gy|2[aby])\$[^\s\x27\x22<>]+', '<redacted-password-hash>', value)
 
 
 def stock_initialization_reboot(console, events):
