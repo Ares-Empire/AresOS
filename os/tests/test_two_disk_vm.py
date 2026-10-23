@@ -1,5 +1,7 @@
 import json
 import pathlib
+import shlex
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -13,6 +15,22 @@ from prepare_two_disks import verify_loop
 
 
 class TwoDiskHarnessTest(unittest.TestCase):
+    def test_bls_export_is_one_quoted_command_and_parses_real_files(self):
+        directory = self.directory / "BLS 'quoted directory"
+        directory.mkdir()
+        content = 'title Recorded stock\noptions quiet ostree=/ostree/boot.1/fedora/abc/0\n'
+        (directory / 'ostree-2-fedora.conf').write_text(content)
+        executable, option, program = shlex.split(vm.bls_inventory_command(directory, self.directory))
+        self.assertEqual((executable, option), ('python3', '-c'))
+        result = subprocess.run([sys.executable, '-c', program], check=True, capture_output=True, text=True)
+        entry, = json.loads(result.stdout)
+        self.assertEqual(entry['id'], 'ostree-2-fedora')
+        self.assertEqual(entry['title'], 'Recorded stock')
+        self.assertEqual(entry['content'], content)
+        self.assertEqual(entry['deployment'], str((self.directory / 'ostree/boot.1/fedora/abc/0').resolve()))
+        (directory / 'ostree-2-fedora.conf').write_text('title Missing deployment\noptions quiet\n')
+        self.assertNotEqual(subprocess.run([sys.executable, '-c', program], capture_output=True).returncode, 0)
+
     def test_installer_transport_is_forwarded_only_in_live_mode_on_host_loopback(self):
         guest = object.__new__(vm.Guest)
         guest.mode = 'live'

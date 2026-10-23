@@ -215,6 +215,19 @@ Completed cost before the next probe is **107 rounded job minutes**, with
 cap intact. No full run is authorized until both complete order previews and
 the detached marker/reset branches pass on that exact commit.
 
+### Part B command export preflight
+
+While probe 9 (`28a8d09`, 39888209565) runs, source review found the part B
+BLS heredoc terminator would receive the framing helper's output redirection.
+The command now passes the complete Python program as one shell-quoted `-c`
+argument. A regression executes the generated program against actual temporary
+BLS files, including a directory with spaces and a quote, and rejects a missing
+deployment. The exact read-only export is also added to live inventory, shared
+by probe and full mode. An empty live BLS list qualifies only command transport;
+actual installed stock identities and menu choices remain full-run observations.
+This source change requires a replacement complete probe, regardless of probe
+9's eventual result. No full dispatch is made using stale evidence.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

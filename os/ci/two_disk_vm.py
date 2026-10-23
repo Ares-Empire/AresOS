@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import socket
 import struct
@@ -240,6 +241,23 @@ def stock_bls_entry(entries, stock):
     return candidates[0] if len(candidates) == 1 else None
 
 
+def bls_inventory_command(entries_directory='/boot/loader/entries', sysroot='/sysroot'):
+    # Keep the entire Python program one shell argument. Appending the JSON
+    # frame's redirection to a heredoc terminator would invalidate that export.
+    identity_source = __import__('inspect').getsource(bls_identity)
+    script = (f'import json, pathlib, re\ndirectory = {str(entries_directory)!r}\n'
+              f'sysroot = {str(sysroot)!r}\n' + identity_source + '''
+entries=[]
+for file in pathlib.Path(directory).glob('*.conf'):
+    text=file.read_text()
+    identity=bls_identity(text)
+    path=pathlib.Path(sysroot + identity['ostree']).resolve()
+    entries.append(dict(id=file.stem, title=identity['title'], deployment=str(path), content=text))
+print(json.dumps(entries))
+''')
+    return 'python3 -c ' + shlex.quote(script)
+
+
 def disk_names(layout):
     devices = layout['blockdevices']
     protected, = [d for d in devices if d.get('serial') == 'MICRON-KEEP' and d['type'] == 'disk']
@@ -293,6 +311,10 @@ command -v runuser curl python3 busctl ss liveinst
         save(stage + '-kickstart-guard', dict(status='rejected-unsupported-live-kickstart', method='real-Web-UI-only'))
     else:
         raise AssertionError('Pinned ISO help changed; stop rather than assume a new installer contract')
+    # Exercise the exact read-only command/export before part B can use it.
+    # An empty live-media BLS directory proves transport only, never recovery.
+    bls = guest.capture_json(stage + '-bls-export-preflight', sw.framed(bls_inventory_command()))
+    assert isinstance(bls, list)
     return protected, target
 
 
@@ -376,18 +398,7 @@ def grub_promotion(audit, password, password_hash):
         ordered = guest.capture_json('b-aresos-order', sw.framed('rpm-ostree status --json'))
         assert ordered['deployments'][0]['booted'] and ordered['deployments'][0]['checksum'] != stock
         # Resolve each actual BLS ostree= symlink to the deployment checksum.
-        identity_source = __import__('inspect').getsource(bls_identity)
-        entries = guest.capture_json('b-bls-entries', sw.framed('''python3 - <<'PY'
-import json, pathlib, re
-''' + identity_source + '''
-entries=[]
-for file in pathlib.Path('/boot/loader/entries').glob('*.conf'):
-    text=file.read_text()
-    identity=bls_identity(text)
-    path=pathlib.Path('/sysroot' + identity['ostree']).resolve()
-    entries.append(dict(id=file.stem, title=identity['title'], deployment=str(path), content=text))
-print(json.dumps(entries))
-PY'''))
+        entries = guest.capture_json('b-bls-entries', sw.framed(bls_inventory_command()))
         backup = stock_bls_entry(entries, stock)
         if backup is None:
             save('grub-promotion', dict(status='blocked', reason='Actual nondefault BLS stock entry was not unique', entries=entries))
