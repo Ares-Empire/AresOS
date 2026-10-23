@@ -330,18 +330,18 @@ jobs:
         env:
           GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
-        run: python3 os/ci/rehearsal_auth.py create
+        run: sudo -E python3 os/ci/rehearsal_auth.py create
       - name: Verify exact private manifest with owner read-only credentials
         if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'full')
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
-        run: python3 os/ci/rehearsal_auth.py preflight
+        run: sudo -E python3 os/ci/rehearsal_auth.py preflight
       - name: Qualify the exact pinned layer pull without installing
         if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'full')
         timeout-minutes: 9
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
-        run: python3 os/ci/rehearsal_auth.py pull
+        run: sudo -E python3 os/ci/rehearsal_auth.py pull
       - name: Inspect the exact pinned live ISO before assuming an installer path
         if: inputs.rehearsal != 'fixture'
         timeout-minutes: 20
@@ -375,7 +375,7 @@ jobs:
           fi
       - name: Remove owner registry credentials
         if: always()
-        run: python3 os/ci/rehearsal_auth.py cleanup
+        run: sudo -E python3 os/ci/rehearsal_auth.py cleanup
       - name: Bound retained evidence
         if: always()
         run: |

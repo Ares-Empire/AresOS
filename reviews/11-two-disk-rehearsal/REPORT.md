@@ -724,7 +724,7 @@ signature, using username `carlsenares`. The declared scope is classic
 The org job token remains separate for CI/run metadata.
 
 Only an explicit workflow-dispatch probe/full step receives the secret in its
-environment. It writes one package-scoped mode-0600 auth file under
+environment. It writes one root-owned, package-scoped mode-0600 auth file under
 `RUNNER_TEMP/aresos-11d-ghcr`, outside the workspace and all artifact paths.
 The VM reads that same host file over a read-only 9p share at fixed PCI 6.0;
 its `/etc/ostree/auth.json` is a symlink to the mounted temporary file, so no
@@ -742,3 +742,11 @@ with the org job token; it no longer treats a 404 as success or absence.
 Parts A/B remain OPEN while the new probe/full evidence is being collected.
 The allowance is shared with 11c: 17 rounded minutes were already consumed,
 including the two checks on the new brief; no full run has been dispatched.
+
+
+The first 11d probe was cancelled during setup when source review identified
+that a runner-owned 9p export could have the same UID as future `ares` (1001).
+No full run was authorized. Credential creation/read/cleanup now execute as
+root on the disposable runner; the guest requires root ownership of both share
+root and file, in addition to read-only mode and 0600. A negative regression
+rejects UID 1001 and relaxed permissions. A new same-commit probe is required.

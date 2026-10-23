@@ -50,6 +50,7 @@ def auth_file():
     path = auth_directory() / 'auth.json'
     assert path.is_file() and not path.is_symlink(), 'BLOCKED: runner-temporary auth file missing'
     assert stat.S_IMODE(path.stat().st_mode) == 0o600, 'Unsafe credential file mode'
+    assert path.stat().st_uid == 0 and path.parent.stat().st_uid == 0, 'Credential share must be owned by root'
     return path
 
 
@@ -125,6 +126,8 @@ fi
 test "$(findmnt -n -o FSTYPE /run/aresos-owner-auth)" = 9p
 findmnt -n -o OPTIONS /run/aresos-owner-auth | tr , '\\n' | grep -qx ro
 test "$(stat -c %a /run/aresos-owner-auth/auth.json)" = 600
+test "$(stat -c %u /run/aresos-owner-auth/auth.json)" = 0
+test "$(stat -c %u /run/aresos-owner-auth)" = 0
 test -r /run/aresos-owner-auth/auth.json
 install -d -m 0700 /etc/ostree
 test ! -e /etc/ostree/auth.json || test -L /etc/ostree/auth.json

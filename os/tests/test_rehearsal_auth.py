@@ -48,12 +48,12 @@ class OwnerAuthTest(unittest.TestCase):
             self.assertIn(required, step['if'])
         self.assertEqual(step['env']['GHCR_READ_TOKEN'], '${{ secrets.GHCR_READ_TOKEN }}')
         self.assertNotIn('GH_TOKEN', step['env'])
-        self.assertEqual(step['run'], 'python3 os/ci/rehearsal_auth.py create')
+        self.assertEqual(step['run'], 'sudo -E python3 os/ci/rehearsal_auth.py create')
 
     def test_auth_is_outside_workspace_and_always_removed_before_artifact_upload(self):
         workflow = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
         steps = workflow['jobs']['rehearsal']['steps']
-        index, cleanup = next((i, s) for i, s in enumerate(steps) if s.get('run') == 'python3 os/ci/rehearsal_auth.py cleanup')
+        index, cleanup = next((i, s) for i, s in enumerate(steps) if s.get('run') == 'sudo -E python3 os/ci/rehearsal_auth.py cleanup')
         self.assertEqual(cleanup['if'], 'always()')
         for i, step in enumerate(steps):
             if 'actions/upload-artifact@' in step.get('uses', ''):
@@ -117,6 +117,8 @@ class OwnerAuthTest(unittest.TestCase):
         guest.prepare_registry_auth('must-not-enter-command')
         source = guest.command.call_args.args[1]
         self.assertIn('ro,cache=none', source)
+        self.assertIn('stat -c %u /run/aresos-owner-auth/auth.json', source)
+        self.assertIn('stat -c %u /run/aresos-owner-auth)', source)
         self.assertIn('ln -sfn /run/aresos-owner-auth/auth.json', source)
         self.assertNotIn('must-not-enter-command', source)
         self.assertNotIn('base64', source)
@@ -154,3 +156,15 @@ class OwnerAuthTest(unittest.TestCase):
             self.assertIn('docker://' + auth.REFERENCE, argv)
             self.assertNotIn('fixture-read-token', ' '.join(argv) + output.getvalue())
             inspect.assert_not_called()
+
+    def test_auth_file_rejects_runner_uid_and_relaxed_permissions(self):
+        directory = self.root / 'auth-share'
+        directory.mkdir()
+        (directory / 'auth.json').write_text('{}')
+        with patch.dict(os.environ, self.environment, clear=True), patch.object(auth, 'auth_directory', return_value=directory):
+            for mode, uid in ((0o100600, 1001), (0o100644, 0)):
+                with self.subTest(mode=mode, uid=uid), patch.object(pathlib.Path, 'stat', return_value=Mock(st_mode=mode, st_uid=uid)):
+                    with self.assertRaises(AssertionError):
+                        auth.auth_file()
+            with patch.object(pathlib.Path, 'stat', return_value=Mock(st_mode=0o100600, st_uid=0)):
+                self.assertEqual(auth.auth_file(), directory / 'auth.json')
