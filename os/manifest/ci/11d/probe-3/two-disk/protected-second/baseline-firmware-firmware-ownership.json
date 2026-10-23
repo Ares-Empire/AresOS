@@ -1,0 +1,46 @@
+{
+  "build_contract": {
+    "guid": "8108ac4e-9f11-4d59-850e-e21a522c59b2",
+    "optional_data_bytes": 16,
+    "binary_package": "ovmf",
+    "source_package": "edk2",
+    "version": "2024.02-2ubuntu0.10",
+    "source_origin": "signed Ubuntu snapshot indexes used by install-tools.sh",
+    "source_file": "edk2-2024.02/MdeModulePkg/Library/UefiBootManagerLib/BmBoot.c",
+    "source_sha256": "e961d1bc0ad7df99156a030dee92585fb2608ad5722f34d494459c2f74e6f3c6",
+    "source_descriptors": {
+      "edk2_2024.02-2ubuntu0.10.dsc": "98eb54dcbaab20528fb3392dbf65eeb02283905b6a77f7cfb69f3fd502921d8b"
+    },
+    "firmware_sha256": "ad23261d43116abc3747d59a7837fbf578c9586a8993f4eeba064cd07eccb083"
+  },
+  "baseline": {
+    "Boot0002": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:1f.2/sata:0:65535:0"
+    },
+    "Boot0003": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:02.0"
+    },
+    "Boot0004": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:03.0"
+    },
+    "Boot0005": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0006": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0007": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": null
+    },
+    "Boot0008": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": null
+    }
+  }
+}
