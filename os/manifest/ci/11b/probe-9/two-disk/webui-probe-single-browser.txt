@@ -1,0 +1,12 @@
+]3008;end=2e328e10-ec80-4518-9c75-d6df24dc3acd;exit=success\]3008;start=3f676aa4-f76a-4ee1-b839-2ee34c95144d;type=shell;machineid=1ab59ceb209a4f3a92bdae3bed02b514;user=root;hostname=localhost-live;bootid=44e2e9c5-8609-49f8-be9b-77bbff555ea5;pid=2305;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=c96f6064-dc35-4d11-8daa-1ee5ac8e5daa;type=command;machineid=1ab59ceb209a4f3a92bdae3bed02b514;user=root;hostname=localhost-live;bootid=44e2e9c5-8609-49f8-be9b-77bbff555ea5;pid=2305;cwd=/root\REPLACING_LIVEINST_FIREFOX [3345] /run/user/1000/anaconda/firefox-profile
+SINGLE_HOST_UI_CLIENT_BACKEND_STILL_READY
+
+ARESOS_CMD_DONE:0

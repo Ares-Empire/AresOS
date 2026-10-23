@@ -1,0 +1,9 @@
+{
+  "checked_at": "2026-10-23T02:29:55.269885+00:00",
+  "reference": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+  "root_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "amd64_manifest_digests": [],
+  "expected": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "matches": true,
+  "anonymous_metadata_only": true
+}

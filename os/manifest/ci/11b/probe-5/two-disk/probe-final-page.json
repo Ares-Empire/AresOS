@@ -1,0 +1,1938 @@
+[
+  {
+    "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.html#/anaconda-screen-language",
+    "text": "Bazzite installation\nWelcome\nDate and time\nInstallation method\nStorage configuration\nCreate Account\nReview and install\nWelcome. Let's install Bazzite now.\nLanguage\u00a0\u00a0\nSuggested languages\nEnglish (United States)\nDeutsch (Deutschland)\nEnglish (United Kingdom)\nEspa\u00f1ol (Espa\u00f1a)\nFran\u00e7ais (France)\n\u0420\u0443\u0441\u0441\u043a\u0438\u0439 (\u0420\u043e\u0441\u0441\u0438\u044f)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0645\u0635\u0631)\n\u65e5\u672c\u8a9e (\u65e5\u672c)\n\u7b80\u4f53\u4e2d\u6587 (\u4e2d\u56fd)\nAdditional languages\nAfrikaans (Suid-Afrika)\nAsturianu (Espa\u00f1a)\nBosanski (Bosna i Hercegovina)\nCatal\u00e0 (Espanya)\nValenci\u00e0 (Espanya)\nCatal\u00e0 (Fran\u00e7a)\nCatal\u00e0 (Andorra)\nCatal\u00e0 (It\u00e0lia)\n\u010ce\u0161tina (\u010cesko)\nCymraeg (Y Deyrnas Unedig)\nDansk (Danmark)\nDeutsch (\u00d6sterreich)\nDeutsch (Schweiz)\nDeutsch (Italien)\nDeutsch (Liechtenstein)\nDeutsch (Belgien)\nDeutsch (Luxemburg)\nEesti (Eesti)\nEnglish (India)\nEnglish (Australia)\nEnglish (Canada)\nEnglish (Denmark)\nEnglish (Ireland)\nEnglish (New Zealand)\nEnglish (Nigeria)\nEnglish (Hong Kong SAR China)\nEnglish (Philippines)\nEnglish (Singapore)\nEnglish (South Africa)\nEnglish (Zambia)\nEnglish (Zimbabwe)\nEnglish (Botswana)\nEnglish (Antigua & Barbuda)\nEnglish (Israel)\nEnglish (Sweden)\nEspa\u00f1ol (Venezuela)\nEspa\u00f1ol (Uruguay)\nEspa\u00f1ol (Estados Unidos)\nEspa\u00f1ol (El Salvador)\nEspa\u00f1ol (Paraguay)\nEspa\u00f1ol (Puerto Rico)\nEspa\u00f1ol (Per\u00fa)\nEspa\u00f1ol (Panam\u00e1)\nEspa\u00f1ol (Nicaragua)\nEspa\u00f1ol (M\u00e9xico)\nEspa\u00f1ol (Honduras)\nEspa\u00f1ol (Guatemala)\nEspa\u00f1ol (Ecuador)\nEspa\u00f1ol (Rep\u00fablica Dominicana)\nEspa\u00f1ol (Cuba)\nEspa\u00f1ol (Costa Rica)\nEspa\u00f1ol (Colombia)\nEspa\u00f1ol (Chile)\nEspa\u00f1ol (Bolivia)\nEspa\u00f1ol (Argentina)\nEsperanto\nEuskara (Espainia)\nFilipino (Pilipinas)\nFran\u00e7ais (Canada)\nFran\u00e7ais (Belgique)\nFran\u00e7ais (Suisse)\nFran\u00e7ais (Luxembourg)\nFurlan (Italie)\nGaeilge (\u00c9ire)\nGalego (Espa\u00f1a)\nHrvatski (Hrvatska)\nIndonesia (Indonesia)\nInterlingua (Francia)\nisiZulu (iNingizimu Afrika)\n\u00cdslenska (\u00cdsland)\nItaliano (Italia)\nItaliano (Svizzera)\nKernewek (Rywvaneth Unys)\nLatvie\u0161u (Latvija)\nLietuvi\u0173 (Lietuva)\nMagyar (Magyarorsz\u00e1g)\nMelayu (Malaysia)\nNeddersass\u2019sch (Nedderlannen)\nNeddersass\u2019sch (D\u00fc\u00fctschland)\nNederlands (Nederland)\nNederlands (Belgi\u00eb)\nNederlands (Aruba)\nNorsk bokm\u00e5l (Norge)\nNorsk nynorsk (Noreg)\nOccitan (Fran\u00e7a)\nOromoo (Itoophiyaa)\nOromoo (Keeniyaa)\nPolski (Polska)\nPortugu\u00eas (Brasil)\nPortugu\u00eas (Portugal)\nRom\u00e2n\u0103 (Rom\u00e2nia)\nSesotho sa Leboa (Afrika Borwa)\nShqip (Shqip\u00ebri)\nShqip (Maqedonia e Veriut)\nSloven\u010dina (Slovensko)\nSloven\u0161\u010dina (Slovenija)\nSuomi (Suomi)\nSvenska (Sverige)\nSvenska (Finland)\nTaqbaylit (Lezzayer)\nTi\u1ebfng Vi\u1ec7t (Vi\u1ec7t Nam)\nT\u00fcrk\u00e7e (T\u00fcrkiye)\nT\u00fcrk\u00e7e (K\u0131br\u0131s)\nWest-Frysk (Nederl\u00e2n)\nFrysk (D\u00fatsl\u00e2n)\n\u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac (\u0395\u03bb\u03bb\u03ac\u03b4\u03b1)\n\u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac (\u039a\u03cd\u03c0\u03c1\u03bf\u03c2)\n\u0411\u0435\u043b\u0430\u0440\u0443\u0441\u043a\u0430\u044f (\u0411\u0435\u043b\u0430\u0440\u0443\u0441\u044c)\nBie\u0142aruskaja (Bie\u0142aru\u015b)\n\u0411\u044a\u043b\u0433\u0430\u0440\u0441\u043a\u0438 (\u0411\u044a\u043b\u0433\u0430\u0440\u0438\u044f)\n\u049a\u0430\u0437\u0430\u049b \u0442\u0456\u043b\u0456 (\u049a\u0430\u0437\u0430\u049b\u0441\u0442\u0430\u043d)\n\u041c\u0430\u043a\u0435\u0434\u043e\u043d\u0441\u043a\u0438 (\u0421\u0435\u0432\u0435\u0440\u043d\u0430 \u041c\u0430\u043a\u0435\u0434\u043e\u043d\u0438\u0458\u0430)\n\u0420\u0443\u0441\u0441\u043a\u0438\u0439 (\u0423\u043a\u0440\u0430\u0438\u043d\u0430)\n\u0421\u0440\u043f\u0441\u043a\u0438 (\u0421\u0440\u0431\u0438\u0458\u0430)\nSrpski (Latinica) (Srbija)\n\u0421\u0440\u043f\u0441\u043a\u0438 (\u0426\u0440\u043d\u0430 \u0413\u043e\u0440\u0430)\n\u0422\u043e\u04b7\u0438\u043a\u04e3 (\u0422\u043e\u04b7\u0438\u043a\u0438\u0441\u0442\u043e\u043d)\n\u040e\u0437\u0431\u0435\u043a\u0447\u0430 (\u040e\u0437\u0431\u0435\u043a\u0438\u0441\u0442\u043e\u043d)\nO\u2018zbek (O\u02bbzbekiston)\n\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430 (\u0423\u043a\u0440\u0430\u0457\u043d\u0430)\n\u10e5\u10d0\u10e0\u10d7\u10e3\u10da\u10d8 (\u10e1\u10d0\u10e5\u10d0\u10e0\u10d7\u10d5\u10d4\u10da\u10dd)\n\u05e2\u05d1\u05e8\u05d9\u05ea (\u05d9\u05e9\u05e8\u05d0\u05dc)\n\u0627\u0631\u062f\u0648 (\u067e\u0627\u06a9\u0633\u062a\u0627\u0646)\n\u0627\u0631\u062f\u0648 (\u0628\u06be\u0627\u0631\u062a)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0633\u0648\u062f\u0627\u0646)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u062c\u0632\u0627\u0626\u0631)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0645\u063a\u0631\u0628)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0639\u0631\u0627\u0642)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0645\u0645\u0644\u0643\u0629 \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0627\u0644\u0633\u0639\u0648\u062f\u064a\u0629)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u064a\u0645\u0646)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0633\u0648\u0631\u064a\u0627)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u062a\u0648\u0646\u0633)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0644\u064a\u0628\u064a\u0627)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0623\u0631\u062f\u0646)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0625\u0645\u0627\u0631\u0627\u062a \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0627\u0644\u0645\u062a\u062d\u062f\u0629)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0644\u0628\u0646\u0627\u0646)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0643\u0648\u064a\u062a)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0639\u064f\u0645\u0627\u0646)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0642\u0637\u0631)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0628\u062d\u0631\u064a\u0646)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0647\u0646\u062f)\n\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u062c\u0646\u0648\u0628 \u0627\u0644\u0633\u0648\u062f\u0627\u0646)\n\u0641\u0627\u0631\u0633\u06cc (\u0627\u06cc\u0631\u0627\u0646)\n\u12a0\u121b\u122d\u129b (\u12a2\u1275\u12ee\u1335\u12eb)\n\u0928\u0947\u092a\u093e\u0932\u0940 (\u0928\u0947\u092a\u093e\u0932)\n\u092e\u0930\u093e\u0920\u0940 (\u092d\u093e\u0930\u0924)\n\u092e\u0948\u0925\u093f\u0932\u0940 (\u092d\u093e\u0930\u0924)\n\u092e\u0948\u0925\u093f\u0932\u0940 (\u0928\u0947\u092a\u093e\u0932)\n\u0939\u093f\u0928\u094d\u0926\u0940 (\u092d\u093e\u0930\u0924)\n\u0985\u09b8\u09ae\u09c0\u09af\u09bc\u09be (\u09ad\u09be\u09f0\u09a4)\n\u09ac\u09be\u0982\u09b2\u09be (\u09ac\u09be\u0982\u09b2\u09be\u09a6\u09c7\u09b6)\n\u09ac\u09be\u0982\u09b2\u09be (\u09ad\u09be\u09b0\u09a4)\n\u0a2a\u0a70\u0a1c\u0a3e\u0a2c\u0a40 (\u0a2d\u0a3e\u0a30\u0a24)\n\u067e\u0646\u062c\u0627\u0628\u06cc (\u067e\u06a9\u0633\u062a\u0627\u0646)\n\u0a97\u0ac1\u0a9c\u0ab0\u0abe\u0aa4\u0ac0 (\u0aad\u0abe\u0ab0\u0aa4)\n\u0b13\u0b21\u0b3c\u0b3f\u0b06 (\u0b2d\u0b3e\u0b30\u0b24)\n\u0ba4\u0bae\u0bbf\u0bb4\u0bcd (\u0b87\u0ba8\u0bcd\u0ba4\u0bbf\u0baf\u0bbe)\n\u0ba4\u0bae\u0bbf\u0bb4\u0bcd (\u0b87\u0bb2\u0b99\u0bcd\u0b95\u0bc8)\n\u0c24\u0c46\u0c32\u0c41\u0c17\u0c41 (\u0c2d\u0c3e\u0c30\u0c24\u0c26\u0c47\u0c36\u0c02)\n\u0c95\u0ca8\u0ccd\u0ca8\u0ca1 (\u0cad\u0cbe\u0cb0\u0ca4)\n\u0d2e\u0d32\u0d2f\u0d3e\u0d33\u0d02 (\u0d07\u0d28\u0d4d\u0d24\u0d4d\u0d2f)\n\u0dc3\u0dd2\u0d82\u0dc4\u0dbd (\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0)\n\u0e44\u0e17\u0e22 (\u0e44\u0e17\u0e22)\n\u0f56\u0f7c\u0f51\u0f0b\u0f66\u0f90\u0f51\u0f0b (\u0f62\u0f92\u0fb1\u0f0b\u0f53\u0f42)\n\u0f56\u0f7c\u0f51\u0f0b\u0f66\u0f90\u0f51\u0f0b (\u0f62\u0f92\u0fb1\u0f0b\u0f42\u0f62\u0f0b)\n\u1019\u103c\u1014\u103a\u1019\u102c (\u1019\u103c\u1014\u103a\u1019\u102c)\n\u1781\u17d2\u1798\u17c2\u179a (\u1780\u1798\u17d2\u1796\u17bb\u1787\u17b6)\n\ud55c\uad6d\uc5b4 (\ub300\ud55c\ubbfc\uad6d)\n\u7e41\u9ad4\u4e2d\u6587 (\u53f0\u7063)\n\u7e41\u9ad4\u4e2d\u6587 (\u4e2d\u83ef\u4eba\u6c11\u5171\u548c\u570b\u9999\u6e2f\u7279\u5225\u884c\u653f\u5340)\n\u7b80\u4f53\u4e2d\u6587 (\u65b0\u52a0\u5761)\nKeyboard\u00a0\u00a0\n\nus\n\nChange system keyboard layout\nBack\nNext\nQuit",
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "type": "button",
+        "text": "",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "type": "submit",
+        "text": "1 Welcome",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language",
+        "type": "submit",
+        "text": "Welcome",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-date-time",
+        "type": "submit",
+        "text": "Date and time",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-method",
+        "type": "submit",
+        "text": "Installation method",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-storage-configuration",
+        "type": "submit",
+        "text": "Storage configuration",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-accounts",
+        "type": "submit",
+        "text": "Create Account",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-review",
+        "type": "submit",
+        "text": "Review and install",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "INPUT",
+        "id": "",
+        "type": "text",
+        "text": "",
+        "name": "",
+        "checked": false,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-common-en_US",
+        "type": "button",
+        "text": "English (United States)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-common-de_DE",
+        "type": "button",
+        "text": "Deutsch (Deutschland)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-common-en_GB",
+        "type": "button",
+        "text": "English (United Kingdom)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-common-es_ES",
+        "type": "button",
+        "text": "Espa\u00f1ol (Espa\u00f1a)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-common-fr_FR",
+        "type": "button",
+        "text": "Fran\u00e7ais (France)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-common-ru_RU",
+        "type": "button",
+        "text": "\u0420\u0443\u0441\u0441\u043a\u0438\u0439 (\u0420\u043e\u0441\u0441\u0438\u044f)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-common-ar_EG",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0645\u0635\u0631)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-common-ja_JP",
+        "type": "button",
+        "text": "\u65e5\u672c\u8a9e (\u65e5\u672c)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-common-zh_CN",
+        "type": "button",
+        "text": "\u7b80\u4f53\u4e2d\u6587 (\u4e2d\u56fd)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-af_ZA",
+        "type": "button",
+        "text": "Afrikaans (Suid-Afrika)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ast_ES",
+        "type": "button",
+        "text": "Asturianu (Espa\u00f1a)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-bs_BA",
+        "type": "button",
+        "text": "Bosanski (Bosna i Hercegovina)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ca_ES",
+        "type": "button",
+        "text": "Catal\u00e0 (Espanya)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ca_ES",
+        "type": "button",
+        "text": "Valenci\u00e0 (Espanya)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ca_FR",
+        "type": "button",
+        "text": "Catal\u00e0 (Fran\u00e7a)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ca_AD",
+        "type": "button",
+        "text": "Catal\u00e0 (Andorra)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ca_IT",
+        "type": "button",
+        "text": "Catal\u00e0 (It\u00e0lia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-cs_CZ",
+        "type": "button",
+        "text": "\u010ce\u0161tina (\u010cesko)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-cy_GB",
+        "type": "button",
+        "text": "Cymraeg (Y Deyrnas Unedig)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-da_DK",
+        "type": "button",
+        "text": "Dansk (Danmark)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-de_AT",
+        "type": "button",
+        "text": "Deutsch (\u00d6sterreich)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-de_CH",
+        "type": "button",
+        "text": "Deutsch (Schweiz)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-de_IT",
+        "type": "button",
+        "text": "Deutsch (Italien)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-de_LI",
+        "type": "button",
+        "text": "Deutsch (Liechtenstein)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-de_BE",
+        "type": "button",
+        "text": "Deutsch (Belgien)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-de_LU",
+        "type": "button",
+        "text": "Deutsch (Luxemburg)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-et_EE",
+        "type": "button",
+        "text": "Eesti (Eesti)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_IN",
+        "type": "button",
+        "text": "English (India)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_AU",
+        "type": "button",
+        "text": "English (Australia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_CA",
+        "type": "button",
+        "text": "English (Canada)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_DK",
+        "type": "button",
+        "text": "English (Denmark)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_IE",
+        "type": "button",
+        "text": "English (Ireland)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_NZ",
+        "type": "button",
+        "text": "English (New Zealand)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_NG",
+        "type": "button",
+        "text": "English (Nigeria)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_HK",
+        "type": "button",
+        "text": "English (Hong Kong SAR China)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_PH",
+        "type": "button",
+        "text": "English (Philippines)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_SG",
+        "type": "button",
+        "text": "English (Singapore)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_ZA",
+        "type": "button",
+        "text": "English (South Africa)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_ZM",
+        "type": "button",
+        "text": "English (Zambia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_ZW",
+        "type": "button",
+        "text": "English (Zimbabwe)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_BW",
+        "type": "button",
+        "text": "English (Botswana)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_AG",
+        "type": "button",
+        "text": "English (Antigua & Barbuda)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_IL",
+        "type": "button",
+        "text": "English (Israel)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-en_SE",
+        "type": "button",
+        "text": "English (Sweden)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_VE",
+        "type": "button",
+        "text": "Espa\u00f1ol (Venezuela)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_UY",
+        "type": "button",
+        "text": "Espa\u00f1ol (Uruguay)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_US",
+        "type": "button",
+        "text": "Espa\u00f1ol (Estados Unidos)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_SV",
+        "type": "button",
+        "text": "Espa\u00f1ol (El Salvador)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_PY",
+        "type": "button",
+        "text": "Espa\u00f1ol (Paraguay)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_PR",
+        "type": "button",
+        "text": "Espa\u00f1ol (Puerto Rico)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_PE",
+        "type": "button",
+        "text": "Espa\u00f1ol (Per\u00fa)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_PA",
+        "type": "button",
+        "text": "Espa\u00f1ol (Panam\u00e1)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_NI",
+        "type": "button",
+        "text": "Espa\u00f1ol (Nicaragua)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_MX",
+        "type": "button",
+        "text": "Espa\u00f1ol (M\u00e9xico)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_HN",
+        "type": "button",
+        "text": "Espa\u00f1ol (Honduras)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_GT",
+        "type": "button",
+        "text": "Espa\u00f1ol (Guatemala)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_EC",
+        "type": "button",
+        "text": "Espa\u00f1ol (Ecuador)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_DO",
+        "type": "button",
+        "text": "Espa\u00f1ol (Rep\u00fablica Dominicana)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_CU",
+        "type": "button",
+        "text": "Espa\u00f1ol (Cuba)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_CR",
+        "type": "button",
+        "text": "Espa\u00f1ol (Costa Rica)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_CO",
+        "type": "button",
+        "text": "Espa\u00f1ol (Colombia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_CL",
+        "type": "button",
+        "text": "Espa\u00f1ol (Chile)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_BO",
+        "type": "button",
+        "text": "Espa\u00f1ol (Bolivia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-es_AR",
+        "type": "button",
+        "text": "Espa\u00f1ol (Argentina)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-eo",
+        "type": "button",
+        "text": "Esperanto",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-eu_ES",
+        "type": "button",
+        "text": "Euskara (Espainia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fil_PH",
+        "type": "button",
+        "text": "Filipino (Pilipinas)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fr_CA",
+        "type": "button",
+        "text": "Fran\u00e7ais (Canada)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fr_BE",
+        "type": "button",
+        "text": "Fran\u00e7ais (Belgique)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fr_CH",
+        "type": "button",
+        "text": "Fran\u00e7ais (Suisse)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fr_LU",
+        "type": "button",
+        "text": "Fran\u00e7ais (Luxembourg)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fur_IT",
+        "type": "button",
+        "text": "Furlan (Italie)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ga_IE",
+        "type": "button",
+        "text": "Gaeilge (\u00c9ire)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-gl_ES",
+        "type": "button",
+        "text": "Galego (Espa\u00f1a)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-hr_HR",
+        "type": "button",
+        "text": "Hrvatski (Hrvatska)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-id_ID",
+        "type": "button",
+        "text": "Indonesia (Indonesia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ia_FR",
+        "type": "button",
+        "text": "Interlingua (Francia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-zu_ZA",
+        "type": "button",
+        "text": "isiZulu (iNingizimu Afrika)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-is_IS",
+        "type": "button",
+        "text": "\u00cdslenska (\u00cdsland)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-it_IT",
+        "type": "button",
+        "text": "Italiano (Italia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-it_CH",
+        "type": "button",
+        "text": "Italiano (Svizzera)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-kw_GB",
+        "type": "button",
+        "text": "Kernewek (Rywvaneth Unys)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-lv_LV",
+        "type": "button",
+        "text": "Latvie\u0161u (Latvija)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-lt_LT",
+        "type": "button",
+        "text": "Lietuvi\u0173 (Lietuva)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-hu_HU",
+        "type": "button",
+        "text": "Magyar (Magyarorsz\u00e1g)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ms_MY",
+        "type": "button",
+        "text": "Melayu (Malaysia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-nds_NL",
+        "type": "button",
+        "text": "Neddersass\u2019sch (Nedderlannen)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-nds_DE",
+        "type": "button",
+        "text": "Neddersass\u2019sch (D\u00fc\u00fctschland)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-nl_NL",
+        "type": "button",
+        "text": "Nederlands (Nederland)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-nl_BE",
+        "type": "button",
+        "text": "Nederlands (Belgi\u00eb)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-nl_AW",
+        "type": "button",
+        "text": "Nederlands (Aruba)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-nb_NO",
+        "type": "button",
+        "text": "Norsk bokm\u00e5l (Norge)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-nn_NO",
+        "type": "button",
+        "text": "Norsk nynorsk (Noreg)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-oc_FR",
+        "type": "button",
+        "text": "Occitan (Fran\u00e7a)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-om_ET",
+        "type": "button",
+        "text": "Oromoo (Itoophiyaa)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-om_KE",
+        "type": "button",
+        "text": "Oromoo (Keeniyaa)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-pl_PL",
+        "type": "button",
+        "text": "Polski (Polska)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-pt_BR",
+        "type": "button",
+        "text": "Portugu\u00eas (Brasil)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-pt_PT",
+        "type": "button",
+        "text": "Portugu\u00eas (Portugal)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ro_RO",
+        "type": "button",
+        "text": "Rom\u00e2n\u0103 (Rom\u00e2nia)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-nso_ZA",
+        "type": "button",
+        "text": "Sesotho sa Leboa (Afrika Borwa)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-sq_AL",
+        "type": "button",
+        "text": "Shqip (Shqip\u00ebri)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-sq_MK",
+        "type": "button",
+        "text": "Shqip (Maqedonia e Veriut)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-sk_SK",
+        "type": "button",
+        "text": "Sloven\u010dina (Slovensko)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-sl_SI",
+        "type": "button",
+        "text": "Sloven\u0161\u010dina (Slovenija)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fi_FI",
+        "type": "button",
+        "text": "Suomi (Suomi)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-sv_SE",
+        "type": "button",
+        "text": "Svenska (Sverige)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-sv_FI",
+        "type": "button",
+        "text": "Svenska (Finland)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-kab_DZ",
+        "type": "button",
+        "text": "Taqbaylit (Lezzayer)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-vi_VN",
+        "type": "button",
+        "text": "Ti\u1ebfng Vi\u1ec7t (Vi\u1ec7t Nam)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-tr_TR",
+        "type": "button",
+        "text": "T\u00fcrk\u00e7e (T\u00fcrkiye)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-tr_CY",
+        "type": "button",
+        "text": "T\u00fcrk\u00e7e (K\u0131br\u0131s)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fy_NL",
+        "type": "button",
+        "text": "West-Frysk (Nederl\u00e2n)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fy_DE",
+        "type": "button",
+        "text": "Frysk (D\u00fatsl\u00e2n)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-el_GR",
+        "type": "button",
+        "text": "\u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac (\u0395\u03bb\u03bb\u03ac\u03b4\u03b1)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-el_CY",
+        "type": "button",
+        "text": "\u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac (\u039a\u03cd\u03c0\u03c1\u03bf\u03c2)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-be_BY",
+        "type": "button",
+        "text": "\u0411\u0435\u043b\u0430\u0440\u0443\u0441\u043a\u0430\u044f (\u0411\u0435\u043b\u0430\u0440\u0443\u0441\u044c)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-be_BY",
+        "type": "button",
+        "text": "Bie\u0142aruskaja (Bie\u0142aru\u015b)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-bg_BG",
+        "type": "button",
+        "text": "\u0411\u044a\u043b\u0433\u0430\u0440\u0441\u043a\u0438 (\u0411\u044a\u043b\u0433\u0430\u0440\u0438\u044f)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-kk_KZ",
+        "type": "button",
+        "text": "\u049a\u0430\u0437\u0430\u049b \u0442\u0456\u043b\u0456 (\u049a\u0430\u0437\u0430\u049b\u0441\u0442\u0430\u043d)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-mk_MK",
+        "type": "button",
+        "text": "\u041c\u0430\u043a\u0435\u0434\u043e\u043d\u0441\u043a\u0438 (\u0421\u0435\u0432\u0435\u0440\u043d\u0430 \u041c\u0430\u043a\u0435\u0434\u043e\u043d\u0438\u0458\u0430)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ru_UA",
+        "type": "button",
+        "text": "\u0420\u0443\u0441\u0441\u043a\u0438\u0439 (\u0423\u043a\u0440\u0430\u0438\u043d\u0430)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-sr_RS",
+        "type": "button",
+        "text": "\u0421\u0440\u043f\u0441\u043a\u0438 (\u0421\u0440\u0431\u0438\u0458\u0430)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-sr_RS",
+        "type": "button",
+        "text": "Srpski (Latinica) (Srbija)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-sr_ME",
+        "type": "button",
+        "text": "\u0421\u0440\u043f\u0441\u043a\u0438 (\u0426\u0440\u043d\u0430 \u0413\u043e\u0440\u0430)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-tg_TJ",
+        "type": "button",
+        "text": "\u0422\u043e\u04b7\u0438\u043a\u04e3 (\u0422\u043e\u04b7\u0438\u043a\u0438\u0441\u0442\u043e\u043d)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-uz_UZ",
+        "type": "button",
+        "text": "\u040e\u0437\u0431\u0435\u043a\u0447\u0430 (\u040e\u0437\u0431\u0435\u043a\u0438\u0441\u0442\u043e\u043d)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-uz_UZ",
+        "type": "button",
+        "text": "O\u2018zbek (O\u02bbzbekiston)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-uk_UA",
+        "type": "button",
+        "text": "\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430 (\u0423\u043a\u0440\u0430\u0457\u043d\u0430)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ka_GE",
+        "type": "button",
+        "text": "\u10e5\u10d0\u10e0\u10d7\u10e3\u10da\u10d8 (\u10e1\u10d0\u10e5\u10d0\u10e0\u10d7\u10d5\u10d4\u10da\u10dd)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-he_IL",
+        "type": "button",
+        "text": "\u05e2\u05d1\u05e8\u05d9\u05ea (\u05d9\u05e9\u05e8\u05d0\u05dc)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ur_PK",
+        "type": "button",
+        "text": "\u0627\u0631\u062f\u0648 (\u067e\u0627\u06a9\u0633\u062a\u0627\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ur_IN",
+        "type": "button",
+        "text": "\u0627\u0631\u062f\u0648 (\u0628\u06be\u0627\u0631\u062a)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_SD",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0633\u0648\u062f\u0627\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_DZ",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u062c\u0632\u0627\u0626\u0631)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_MA",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0645\u063a\u0631\u0628)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_IQ",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0639\u0631\u0627\u0642)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_SA",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0645\u0645\u0644\u0643\u0629 \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0627\u0644\u0633\u0639\u0648\u062f\u064a\u0629)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_YE",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u064a\u0645\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_SY",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0633\u0648\u0631\u064a\u0627)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_TN",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u062a\u0648\u0646\u0633)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_LY",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0644\u064a\u0628\u064a\u0627)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_JO",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0623\u0631\u062f\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_AE",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0625\u0645\u0627\u0631\u0627\u062a \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0627\u0644\u0645\u062a\u062d\u062f\u0629)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_LB",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0644\u0628\u0646\u0627\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_KW",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0643\u0648\u064a\u062a)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_OM",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0639\u064f\u0645\u0627\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_QA",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0642\u0637\u0631)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_BH",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0628\u062d\u0631\u064a\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_IN",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u0627\u0644\u0647\u0646\u062f)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ar_SS",
+        "type": "button",
+        "text": "\u0627\u0644\u0639\u0631\u0628\u064a\u0629 (\u062c\u0646\u0648\u0628 \u0627\u0644\u0633\u0648\u062f\u0627\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-fa_IR",
+        "type": "button",
+        "text": "\u0641\u0627\u0631\u0633\u06cc (\u0627\u06cc\u0631\u0627\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-am_ET",
+        "type": "button",
+        "text": "\u12a0\u121b\u122d\u129b (\u12a2\u1275\u12ee\u1335\u12eb)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ne_NP",
+        "type": "button",
+        "text": "\u0928\u0947\u092a\u093e\u0932\u0940 (\u0928\u0947\u092a\u093e\u0932)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-mr_IN",
+        "type": "button",
+        "text": "\u092e\u0930\u093e\u0920\u0940 (\u092d\u093e\u0930\u0924)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-mai_IN",
+        "type": "button",
+        "text": "\u092e\u0948\u0925\u093f\u0932\u0940 (\u092d\u093e\u0930\u0924)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-mai_NP",
+        "type": "button",
+        "text": "\u092e\u0948\u0925\u093f\u0932\u0940 (\u0928\u0947\u092a\u093e\u0932)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-hi_IN",
+        "type": "button",
+        "text": "\u0939\u093f\u0928\u094d\u0926\u0940 (\u092d\u093e\u0930\u0924)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-as_IN",
+        "type": "button",
+        "text": "\u0985\u09b8\u09ae\u09c0\u09af\u09bc\u09be (\u09ad\u09be\u09f0\u09a4)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-bn_BD",
+        "type": "button",
+        "text": "\u09ac\u09be\u0982\u09b2\u09be (\u09ac\u09be\u0982\u09b2\u09be\u09a6\u09c7\u09b6)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-bn_IN",
+        "type": "button",
+        "text": "\u09ac\u09be\u0982\u09b2\u09be (\u09ad\u09be\u09b0\u09a4)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-pa_IN",
+        "type": "button",
+        "text": "\u0a2a\u0a70\u0a1c\u0a3e\u0a2c\u0a40 (\u0a2d\u0a3e\u0a30\u0a24)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-pa_PK",
+        "type": "button",
+        "text": "\u067e\u0646\u062c\u0627\u0628\u06cc (\u067e\u06a9\u0633\u062a\u0627\u0646)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-gu_IN",
+        "type": "button",
+        "text": "\u0a97\u0ac1\u0a9c\u0ab0\u0abe\u0aa4\u0ac0 (\u0aad\u0abe\u0ab0\u0aa4)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-or_IN",
+        "type": "button",
+        "text": "\u0b13\u0b21\u0b3c\u0b3f\u0b06 (\u0b2d\u0b3e\u0b30\u0b24)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ta_IN",
+        "type": "button",
+        "text": "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd (\u0b87\u0ba8\u0bcd\u0ba4\u0bbf\u0baf\u0bbe)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ta_LK",
+        "type": "button",
+        "text": "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd (\u0b87\u0bb2\u0b99\u0bcd\u0b95\u0bc8)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-te_IN",
+        "type": "button",
+        "text": "\u0c24\u0c46\u0c32\u0c41\u0c17\u0c41 (\u0c2d\u0c3e\u0c30\u0c24\u0c26\u0c47\u0c36\u0c02)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-kn_IN",
+        "type": "button",
+        "text": "\u0c95\u0ca8\u0ccd\u0ca8\u0ca1 (\u0cad\u0cbe\u0cb0\u0ca4)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ml_IN",
+        "type": "button",
+        "text": "\u0d2e\u0d32\u0d2f\u0d3e\u0d33\u0d02 (\u0d07\u0d28\u0d4d\u0d24\u0d4d\u0d2f)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-si_LK",
+        "type": "button",
+        "text": "\u0dc3\u0dd2\u0d82\u0dc4\u0dbd (\u0dc1\u0dca\u200d\u0dbb\u0dd3 \u0dbd\u0d82\u0d9a\u0dcf\u0dc0)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-th_TH",
+        "type": "button",
+        "text": "\u0e44\u0e17\u0e22 (\u0e44\u0e17\u0e22)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-bo_CN",
+        "type": "button",
+        "text": "\u0f56\u0f7c\u0f51\u0f0b\u0f66\u0f90\u0f51\u0f0b (\u0f62\u0f92\u0fb1\u0f0b\u0f53\u0f42)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-bo_IN",
+        "type": "button",
+        "text": "\u0f56\u0f7c\u0f51\u0f0b\u0f66\u0f90\u0f51\u0f0b (\u0f62\u0f92\u0fb1\u0f0b\u0f42\u0f62\u0f0b)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-my_MM",
+        "type": "button",
+        "text": "\u1019\u103c\u1014\u103a\u1019\u102c (\u1019\u103c\u1014\u103a\u1019\u102c)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-km_KH",
+        "type": "button",
+        "text": "\u1781\u17d2\u1798\u17c2\u179a (\u1780\u1798\u17d2\u1796\u17bb\u1787\u17b6)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-ko_KR",
+        "type": "button",
+        "text": "\ud55c\uad6d\uc5b4 (\ub300\ud55c\ubbfc\uad6d)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-zh_TW",
+        "type": "button",
+        "text": "\u7e41\u9ad4\u4e2d\u6587 (\u53f0\u7063)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-zh_HK",
+        "type": "button",
+        "text": "\u7e41\u9ad4\u4e2d\u6587 (\u4e2d\u83ef\u4eba\u6c11\u5171\u548c\u570b\u9999\u6e2f\u7279\u5225\u884c\u653f\u5340)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-language-option-alpha-zh_SG",
+        "type": "button",
+        "text": "\u7b80\u4f53\u4e2d\u6587 (\u65b0\u52a0\u5761)",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language-change-system-keyboard-layout-modal-open-button",
+        "type": "button",
+        "text": "Change system keyboard layout",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-back-btn",
+        "type": "button",
+        "text": "Back",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-next-btn",
+        "type": "button",
+        "text": "Next",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-quit-btn",
+        "type": "button",
+        "text": "Quit",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      }
+    ]
+  }
+]

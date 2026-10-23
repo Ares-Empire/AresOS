@@ -1,0 +1,12 @@
+{
+  "browser": "Chromium",
+  "version": "145.0.7632.6",
+  "headless": true,
+  "viewport": {
+    "width": 1440,
+    "height": 1100
+  },
+  "launch": "liveuser liveinst; no LIVECMD or kickstart",
+  "transport": "host loopback:18080 -> QEMU guest:8080 -> TCP relay -> original loopback:80",
+  "shutdown": "root serial poweroff for mandatory offline audit instead of UI reboot"
+}

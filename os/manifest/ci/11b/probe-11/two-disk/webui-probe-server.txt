@@ -1,0 +1,289 @@
+]3008;end=d180240d-1aba-4e89-97c2-660f2888ad7e;exit=success\]3008;start=898ca953-a32a-4ee2-a770-b4187c5b5d88;type=shell;machineid=6dd5ad18189e48f494f103a347ac471e;user=root;hostname=localhost-live;bootid=5a3417ea-a96d-4c39-a889-29e7196f02d1;pid=2294;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=1e002b37-5938-4752-845e-b1d7362b90b0;type=command;machineid=6dd5ad18189e48f494f103a347ac471e;user=root;hostname=localhost-live;bootid=5a3417ea-a96d-4c39-a889-29e7196f02d1;pid=2294;cwd=/root\[1;31m==== AUTHENTICATING FOR org.fedoraproject.pkexec.liveinst ====
+[0mAuthentication is required to run the installer
+Authenticating as: Live System User (liveuser)
+[1;31m==== AUTHENTICATION COMPLETE ====
+[0m[   50.797604] async_tx: api initialized (async)
+[   51.432521] device-mapper: multipath round-robin: version 1.2.0 loaded
+[   51.971912] Loading iSCSI transport class v2.0-870.
+[   52.026879] iscsi: registered transport (tcp)
+[   52.157200] No iBFT detected.
+PINNED_WEBUI_HTTP_READY
+#!/usr/bin/bash
+
+# This file is part of Cockpit.
+#
+# Copyright (C) 2018 Red Hat, Inc.
+#
+# Cockpit is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation; either version 2.1 of the License, or
+# (at your option) any later version.
+#
+# Cockpit is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with Cockpit; If not, see <http://www.gnu.org/licenses/>.
+
+# Run a local bridge, web server, and browser for a particular Cockpit page.
+# This is useful for integration into .desktop files, for systems which don't
+# have cockpit.socket enabled. The web server and browser run in an unshared
+# network namespace, and thus are totally isolated from everything else.
+#
+# Usage:
+#     cockpit-desktop /cockpit/@localhost/system/index.html -t default -r 0
+# For testing purposes one can also make cockpit-ws bind to all addresses
+# (this is insecure and should not be used in prodcuction):
+#     cockpit-desktop /cockpit/@localhost/system/index.html -t default -r 1
+#
+set -eu
+
+THEME_ID="default"
+WEBUI_REMOTE=0
+while getopts t:r: option
+do
+    case "${option}"
+        in
+        t)THEME_ID=${OPTARG};;
+        r)WEBUI_REMOTE=${OPTARG};;
+        *) echo "Usage: $0 [-t THEME_ID] [-r WEBUI_REMOTE]" >&2
+       exit 1 ;;
+    esac
+done
+
+URL_PATH="/cockpit/@localhost/anaconda-webui/index.html"
+
+WEBUI_ADDRESS="127.0.0.1"
+if [[ "$WEBUI_REMOTE" == "1" ]]
+then
+    WEBUI_ADDRESS="0.0.0.0"
+fi
+
+echo "WEBUI_ADDRESS=$WEBUI_ADDRESS" > /tmp/webui-cockpit-ws.env
+systemctl start webui-cockpit-ws
+
+# Function to setup user-related environment
+setup_user_environment() {
+    # PKEXEC_UID is the uid for "gnome-initial-setup" or "liveuser"
+    # depending on how the installer gets started.
+    #
+    # It's unset on non-live-images, so we just use the current user then (root)
+    if [ -n "${PKEXEC_UID:-}" ]; then
+      # If PKEXEC_UID is set, use the user associated with it
+      INSTALLER_USER=$(id -n -u "${PKEXEC_UID}")
+    else
+      # Try to find another user who is not root and has /usr/bin/bash as their shell
+      INSTALLER_USER=$(grep '/usr/bin/bash' /etc/passwd | grep -v '^root' | cut -d: -f1 | head -n 1)
+
+      # If no such user is found, use the current user running the script
+      if [ -z "${INSTALLER_USER:-}" ]; then
+        INSTALLER_USER=$(id -un)
+      fi
+    fi
+
+    # Get the home directory of the selected user
+    HOME_DIR=$(grep "^$INSTALLER_USER:" /etc/passwd | cut -d: -f6)
+
+    # Check if the home directory exists, otherwise create it
+    if [ ! -d "$HOME_DIR" ]; then
+      echo "The home directory $HOME_DIR does not exist. Creating it." >&2
+      mkdir -p "$HOME_DIR"
+      chown "$INSTALLER_USER" "$HOME_DIR"
+    else
+      echo "Home directory $HOME_DIR already exists." >&2
+    fi
+
+    # Return the user and home directory for further use
+    echo "$INSTALLER_USER"
+}
+
+get_default_browser() {
+    # Read the default browser from the anaconda runtime configuration file but wait till it's available
+    # FIXME: Related to: https://issues.redhat.com/browse/INSTALLER-4223
+    timeout=60
+    elapsed=0
+
+    while [ ! -f /run/anaconda/anaconda.conf ]; do
+        if [ "$elapsed" -ge "$timeout" ]; then
+            echo "Timed out waiting for anaconda.conf to be available." >&2
+            exit 1
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+
+    # FIXME: Should be provided as an argument to this script instead of grepping the config file
+    DEFAULT_BROWSER=$(grep '^webui_web_engine =' /run/anaconda/anaconda.conf | cut -d'=' -f2)
+    if [ -n "$DEFAULT_BROWSER" ]; then
+        echo "Default browser set in anaconda.conf: $DEFAULT_BROWSER" >&2
+        DEFAULT_BROWSER=$(echo "$DEFAULT_BROWSER" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        echo "$DEFAULT_BROWSER"
+    else
+        echo "No default browser set in anaconda.conf, using firefox." >&2
+        echo "firefox"
+    fi
+}
+
+prepare_firefox_cmd() {
+    INSTALLER_USER=$1
+
+    # prepare empty firefox profile dir with theme based on the passed profile id
+    FIREFOX_THEME_DIR="/usr/share/anaconda/firefox-theme"
+    FIREFOX_PROFILE_PATH="${XDG_RUNTIME_DIR}/anaconda/firefox-profile"
+
+    # make sure the profile directory exists and is empty
+    if [ -d ${FIREFOX_PROFILE_PATH} ]
+    then
+        echo "Cleaning up existing Anaconda Firefox profile directory." >&2
+        rm -rf ${FIREFOX_PROFILE_PATH}
+    fi
+    pkexec --user "${INSTALLER_USER}" mkdir -p ${FIREFOX_PROFILE_PATH}
+
+    # populate the profile directory with our custom Firefox theme
+    # - theme id is passed as the second argument of this script
+    THEME_PATH="${FIREFOX_THEME_DIR}/${THEME_ID}"
+
+    pkexec --user "${INSTALLER_USER}" cp -a "${THEME_PATH}/." ${FIREFOX_PROFILE_PATH}
+
+    # set environment for Firefox
+    BROWSER_ENV=(MOZ_APP_TITLE="" MOZ_APP_REMOTINGNAME="liveinst" MOZ_GTK_TITLEBAR_DECORATION=client)
+
+    BROWSER=(/usr/bin/env "${BROWSER_ENV[@]}" /usr/bin/firefox --new-instance --profile "${FIREFOX_PROFILE_PATH}")
+
+    declare -p BROWSER
+}
+
+
+if [[ "$WEBUI_REMOTE" == "1" ]]
+then
+    /bin/sleep infinity &
+    BLOCK_ON_PID=$!
+else
+    USER_INFO=$(setup_user_environment)
+    INSTALLER_USER=$(echo "$USER_INFO" | cut -d' ' -f1)
+    HOME_DIR=$(echo "$USER_INFO" | cut -d' ' -f2)
+
+    # if we have netcat, use it for waiting until ws is up
+    if type nc >/dev/null 2>&1; then
+        for _ in `seq 10`; do
+            nc -z "$WEBUI_ADDRESS" 80 && break
+            sleep 0.5;
+        done
+    else
+        # otherwise, just wait a bit
+        sleep 3
+    fi
+
+    readarray -t user_environment < <(pkexec --user "${INSTALLER_USER}" env XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" systemctl --user show-environment)
+
+    DEFAULT_BROWSER_CMD=$(get_default_browser)
+    echo "Using default browser: ${DEFAULT_BROWSER_CMD}" >&2
+    if [[ "${DEFAULT_BROWSER_CMD}" == "firefox" ]]; then
+        eval "$(prepare_firefox_cmd "$INSTALLER_USER")"
+        echo "Using Firefox browser command: ${BROWSER[@]}" >&2
+    else
+        BROWSER=(${DEFAULT_BROWSER_CMD})
+        echo "Using default browser command: ${BROWSER[@]}" >&2
+    fi
+
+    # start browser in a temporary home dir, so that it does not interfere with your real one
+    BROWSER_HOME=$(mktemp --directory --tmpdir cockpit.desktop.XXXXXX)
+    HOME="$BROWSER_HOME" XDG_CURRENT_DESKTOP=GNOME \
+    pkexec --user $INSTALLER_USER env DISPLAY=$DISPLAY "${user_environment[@]}" "${BROWSER[@]}" http://"$WEBUI_ADDRESS""$URL_PATH" &
+    BLOCK_ON_PID=$!
+fi
+
+# Cleanup function
+cleanup() {
+    set +e
+    kill $BLOCK_ON_PID
+    [[ -n $BROWSER_HOME ]] && rm -rf $BROWSER_HOME
+}
+trap 'cleanup' EXIT INT QUIT PIPE
+
+wait $BLOCK_ON_PID
+[0;1;31m# Warning: webui-cockpit-ws.service changed on disk, the version systemd has loaded is outdated.
+[0;1;31m# This output shows the current version of the unit's original fragment and drop-in files.
+[0;1;31m# If fragments or drop-ins were added or removed, they are not properly reflected in this output.
+[0;1;31m# Run 'systemctl daemon-reload' to reload units.[0m
+[0;1;34m# ]8;;file://localhost-live/usr/lib/systemd/system/webui-cockpit-ws.service\/usr/lib/systemd/system/webui-cockpit-ws.service]8;;\[0m
+[0;1;36m[Unit][0m
+[0;1;32mDescription=[0mCockpit Web Service for Anaconda Installer
+[0;1;32mAfter=[0mnetwork.target
+
+[0;1;36m[Service][0m
+[0;1;32mType=[0msimple
+[0;1;32mEnvironmentFile=[0m/tmp/webui-cockpit-ws.env
+[0;1;32mEnvironment=[0m"COCKPIT_SUPERUSER=pkexec"
+[0;1;32mExecStart=[0m/usr/libexec/anaconda/cockpit-coproc-wrapper.sh $WEBUI_ADDRESS
+[0;1;32mRestart=[0mon-failure
+[0;1;32mRestartSec=[0m5s
+
+[0;1;36m[Install][0m
+[0;1;32mWantedBy=[0mmulti-user.target
+
+[0;1;34m# ]8;;file://localhost-live/usr/lib/systemd/system/service.d/10-timeout-abort.conf\/usr/lib/systemd/system/service.d/10-timeout-abort.conf]8;;\[0m
+[0;1;38:5:245m# This file is part of the systemd package.[0m
+[0;1;38:5:245m# See https://fedoraproject.org/wiki/Changes/Shorter_Shutdown_Timer.[0m
+[0;1;38:5:245m#[0m
+[0;1;38:5:245m# To facilitate debugging when a service fails to stop cleanly,[0m
+[0;1;38:5:245m# TimeoutStopFailureMode=abort is set to "crash" services that fail to stop in[0m
+[0;1;38:5:245m# the time allotted. This will cause the service to be terminated with SIGABRT[0m
+[0;1;38:5:245m# and a coredump to be generated.[0m
+[0;1;38:5:245m#[0m
+[0;1;38:5:245m# To undo this configuration change, create a mask file:[0m
+[0;1;38:5:245m#   sudo mkdir -p /etc/systemd/system/service.d[0m
+[0;1;38:5:245m#   sudo ln -sv /dev/null /etc/systemd/system/service.d/10-timeout-abort.conf[0m
+
+[0;1;36m[Service][0m
+[0;1;32mTimeoutStopFailureMode=[0mabort
+#!/usr/bin/bash
+
+# Copyright (C) 2023 Red Hat, Inc.
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
+set -eu
+
+# This script implements the coproc approach for the systemd service
+# to avoid SELinux denials while keeping the service manageable with systemctl
+WEBUI_ADDRESS=$1
+
+# Start cockpit-bridge in unconfined context via su using coproc
+coproc BRIDGE { cockpit-bridge; }
+
+# Start cockpit-ws connected to the coproc
+exec /usr/libexec/cockpit-ws -p 80 -a "$WEBUI_ADDRESS" --no-tls --local-session=- <&${BRIDGE[0]} >&${BRIDGE[1]}
+State     Recv-Q    Send-Q       Local Address:Port        Peer Address:Port    Process
+LISTEN    0         4096             127.0.0.1:631              0.0.0.0:*        users:(("cupsd",pid=2594,fd=8))
+LISTEN    0         10               127.0.0.1:80               0.0.0.0:*        users:(("cockpit-ws",pid=3277,fd=4))
+LISTEN    0         4096               0.0.0.0:5355             0.0.0.0:*        users:(("systemd-resolve",pid=933,fd=13))
+LISTEN    0         4096         127.0.0.53%lo:53               0.0.0.0:*        users:(("systemd-resolve",pid=933,fd=20))
+LISTEN    0         4096            127.0.0.54:53               0.0.0.0:*        users:(("systemd-resolve",pid=933,fd=22))
+LISTEN    0         4096                  [::]:5355                [::]:*        users:(("systemd-resolve",pid=933,fd=15))
+LISTEN    0         50                       *:1716                   *:*        users:(("kdeconnectd",pid=2709,fd=17))
+LISTEN    0         4096                 [::1]:631                 [::]:*        users:(("cupsd",pid=2594,fd=7))
+failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+Warning: The unit file, source configuration file or drop-ins of webui-cockpit-ws.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+Home directory /var/home/liveuser already exists.
+failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+No default browser set in anaconda.conf, using firefox.
+Using default browser: firefox
+Using Firefox browser command: /usr/bin/env MOZ_APP_TITLE= MOZ_APP_REMOTINGNAME=liveinst MOZ_GTK_TITLEBAR_DECORATION=client /usr/bin/firefox --new-instance --profile /run/user/1000/anaconda/firefox-profile
+restorecon: SELinux: Could not get canonical path for /var/home/liveuser/.config/mozilla/firefox/*/gmp-widevinecdm/* restorecon: No such file or directory.
+Starting installer, one moment...
+terminal size detection failed, using default width
+anaconda 44.30-2.fc44 for Bazzite 44 started.
+ * installation log files are stored in /tmp during the installation
+ * shell is available on TTY2 and in second TMUX pane (ctrl+b, then press 2)
+ * when reporting a bug add logs from /tmp as separate text/plain attachments
+03:15:21 Running pre-installation scripts
+
+ARESOS_CMD_DONE:0

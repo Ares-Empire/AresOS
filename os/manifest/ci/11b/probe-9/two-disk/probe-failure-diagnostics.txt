@@ -1,0 +1,64 @@
+]3008;end=f018f3cb-f28d-4666-8e95-f50de1cfee65;exit=success\]3008;start=3f676aa4-f76a-4ee1-b839-2ee34c95144d;type=shell;machineid=1ab59ceb209a4f3a92bdae3bed02b514;user=root;hostname=localhost-live;bootid=44e2e9c5-8609-49f8-be9b-77bbff555ea5;pid=2305;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=fe99008f-12b7-4fb5-b4e0-eddc697d6d9f;type=command;machineid=1ab59ceb209a4f3a92bdae3bed02b514;user=root;hostname=localhost-live;bootid=44e2e9c5-8609-49f8-be9b-77bbff555ea5;pid=2305;cwd=/root\failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+Warning: The unit file, source configuration file or drop-ins of webui-cockpit-ws.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+Home directory /var/home/liveuser already exists.
+failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+No default browser set in anaconda.conf, using firefox.
+Using default browser: firefox
+Using Firefox browser command: /usr/bin/env MOZ_APP_TITLE= MOZ_APP_REMOTINGNAME=liveinst MOZ_GTK_TITLEBAR_DECORATION=client /usr/bin/firefox --new-instance --profile /run/user/1000/anaconda/firefox-profile
+restorecon: SELinux: Could not get canonical path for /var/home/liveuser/.config/mozilla/firefox/*/gmp-widevinecdm/* restorecon: No such file or directory.
+Starting installer, one moment...
+terminal size detection failed, using default width
+anaconda 44.30-2.fc44 for Bazzite 44 started.
+ * installation log files are stored in /tmp during the installation
+ * shell is available on TTY2 and in second TMUX pane (ctrl+b, then press 2)
+ * when reporting a bug add logs from /tmp as separate text/plain attachments
+02:22:56 Running pre-installation scripts
+Exiting due to channel error.
+Exiting due to channel error.
+Exiting due to channel error.
+Exiting due to channel error.
+Exiting due to channel error.
+/usr/libexec/anaconda/webui-desktop: line 191: kill: (3345) - No such process
+Exiting due to channel error.
+Waiting for all threads to finish...
+Oct 23 02:22:29 localhost-live systemd[1]: Started webui-cockpit-ws.service - Cockpit Web Service for Anaconda Installer.
+Oct 23 02:23:22 localhost-live cockpit-ws[3276]: [0;1;39m[0;1;31m[0;1;39mconnection unexpectedly closed by peer[0m
+State     Recv-Q    Send-Q       Local Address:Port        Peer Address:Port    Process
+LISTEN    0         4096            127.0.0.54:53               0.0.0.0:*        users:(("systemd-resolve",pid=936,fd=22))
+LISTEN    0         10               127.0.0.1:80               0.0.0.0:*        users:(("cockpit-ws",pid=3276,fd=4))
+LISTEN    0         4096             127.0.0.1:631              0.0.0.0:*        users:(("cupsd",pid=2599,fd=8))
+LISTEN    0         4096               0.0.0.0:5355             0.0.0.0:*        users:(("systemd-resolve",pid=936,fd=13))
+LISTEN    0         4096         127.0.0.53%lo:53               0.0.0.0:*        users:(("systemd-resolve",pid=936,fd=20))
+LISTEN    0         5                  0.0.0.0:8080             0.0.0.0:*        users:(("python3",pid=4210,fd=3))
+LISTEN    0         50                       *:1716                   *:*        users:(("kdeconnectd",pid=2698,fd=17))
+LISTEN    0         4096                  [::]:5355                [::]:*        users:(("systemd-resolve",pid=936,fd=15))
+LISTEN    0         4096                 [::1]:631                 [::]:*        users:(("cupsd",pid=2599,fd=7))
+3277 /usr/bin/bash /usr/libexec/anaconda/cockpit-coproc-wrapper.sh 127.0.0.1
+3327 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.boss
+3330 python3 -m pyanaconda.modules.boss
+3376 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.services
+3378 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.network
+3380 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.storage
+3382 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.users
+3383 python3 -m pyanaconda.modules.network
+3385 python3 -m pyanaconda.modules.services
+3388 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.security
+3390 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.runtime
+3391 python3 -m pyanaconda.modules.storage
+3392 python3 -m pyanaconda.modules.users
+3396 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.timezone
+3400 python3 -m pyanaconda.modules.security
+3403 python3 -m pyanaconda.modules.runtime
+3404 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.payloads
+3406 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.localization
+3407 python3 -m pyanaconda.modules.timezone
+3410 python3 -m pyanaconda.modules.localization
+3416 python3 -m pyanaconda.modules.payloads
+
+ARESOS_CMD_DONE:0

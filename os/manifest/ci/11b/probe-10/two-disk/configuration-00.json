@@ -1,0 +1,200 @@
+[
+  {
+    "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.html#/anaconda-screen-storage-configuration",
+    "text": "Bazzite installation\nWelcome\nDate and time\nInstallation method\nStorage configuration\nCreate Account\nReview and install\nStorage configuration\nEncryption\n\nSecure your data using disk-based encryption. Only applies to new partitions\n\nEncrypt my data\nBack\nNext\nQuit",
+    "ids": [
+      {
+        "tag": "DIV",
+        "id": "app",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "role": null
+      },
+      {
+        "tag": "DIV",
+        "id": "installation-wizard",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-date-time",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-method",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-storage-configuration",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-accounts",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-review",
+        "role": null
+      },
+      {
+        "tag": "DIV",
+        "id": "pf-form-section-title865",
+        "role": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "disk-encryption-encrypt-devices",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-back-btn",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-next-btn",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-quit-btn",
+        "role": null
+      }
+    ],
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "type": "button",
+        "text": "",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "type": "submit",
+        "text": "5 Storage configuration",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language",
+        "type": "submit",
+        "text": "Welcome",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-date-time",
+        "type": "submit",
+        "text": "Date and time",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-method",
+        "type": "submit",
+        "text": "Installation method",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-storage-configuration",
+        "type": "submit",
+        "text": "Storage configuration",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-accounts",
+        "type": "submit",
+        "text": "Create Account",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-review",
+        "type": "submit",
+        "text": "Review and install",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "INPUT",
+        "id": "disk-encryption-encrypt-devices",
+        "type": "checkbox",
+        "text": "",
+        "name": "",
+        "checked": false,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-back-btn",
+        "type": "button",
+        "text": "Back",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-next-btn",
+        "type": "button",
+        "text": "Next",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-quit-btn",
+        "type": "button",
+        "text": "Quit",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      }
+    ]
+  }
+]

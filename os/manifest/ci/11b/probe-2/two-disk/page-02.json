@@ -1,0 +1,128 @@
+[
+  {
+    "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.html#/anaconda-screen-method",
+    "text": "Bazzite installation\nWelcome\nDate and time\nInstallation method\nStorage configuration\nCreate Account\nReview and install\nDestination\nDanger alert:\nNo disks selected\nPlease select at least one disk to continue\nChange destination\nTo continue, select the devices to install to.\n: indeterminate status;\nBack\nNext\nQuit",
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "type": "button",
+        "text": "",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "type": "submit",
+        "text": "4 Installation method",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language",
+        "type": "submit",
+        "text": "Welcome",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-date-time",
+        "type": "submit",
+        "text": "Date and time",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-method",
+        "type": "submit",
+        "text": "Installation method",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-storage-configuration",
+        "type": "submit",
+        "text": "Storage configuration",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-accounts",
+        "type": "submit",
+        "text": "Create Account",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-review",
+        "type": "submit",
+        "text": "Review and install",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-method-change-destination-button",
+        "type": "button",
+        "text": "Change destination",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-back-btn",
+        "type": "button",
+        "text": "Back",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-next-btn",
+        "type": "button",
+        "text": "Next",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-quit-btn",
+        "type": "button",
+        "text": "Quit",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      }
+    ]
+  }
+]

@@ -1,0 +1,13 @@
+]3008;end=9a5993b7-ae59-46e7-8c24-91ec8a17743a;exit=success\]3008;start=690be7f0-a5ad-411c-9aed-5a15d8dc2437;type=shell;machineid=980e482033a84b09b790798eacc04396;user=root;hostname=localhost-live;bootid=13bb2d3f-778f-4efc-9fd7-4e5cfc770c40;pid=2317;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=20adecc7-f93c-4644-8a6a-aaf1f7ad0e43;type=command;machineid=980e482033a84b09b790798eacc04396;user=root;hostname=localhost-live;bootid=13bb2d3f-778f-4efc-9fd7-4e5cfc770c40;pid=2317;cwd=/root\XLayouts: as 1 "de"
+VirtualConsoleKeymap: s ""
+Traceback (most recent call last):
+  File [35m"<stdin>"[0m, line [35m8[0m, in [35m<module>[0m
+[1;35mAssertionError[0m: [35mWrong committed German keyboard[0m
+
+ARESOS_CMD_DONE:1

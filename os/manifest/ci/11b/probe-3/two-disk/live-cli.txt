@@ -1,6 +1,9 @@
-]3008;end=931405f2-7757-4a54-854a-0a85c2554518;exit=success\]3008;start=2d849ac6-039e-4317-98bc-3e06ae9da144;type=shell;machineid=96f164c7a28f486f8257cd2b2aa7bd3f;user=root;hostname=localhost-live;bootid=956c0830-373b-4ddd-a4d2-1bd356345412;pid=2297;cwd=/root\[?2004hARESOS_ROOT> [?2004l
-[?2004h> [?2004l
-[?2004h> [?2004l
+]3008;end=931405f2-7757-4a54-854a-0a85c2554518;exit=success\]3008;start=2d849ac6-039e-4317-98bc-3e06ae9da144;type=shell;machineid=96f164c7a28f486f8257cd2b2aa7bd3f;user=root;hostname=localhost-live;bootid=956c0830-373b-4ddd-a4d2-1bd356345412;pid=2297;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
 ]3008;start=c70746e4-083e-4624-94fa-8da837f9caa7;type=command;machineid=96f164c7a28f486f8257cd2b2aa7bd3f;user=root;hostname=localhost-live;bootid=956c0830-373b-4ddd-a4d2-1bd356345412;pid=2297;cwd=/root\failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
 [1;34musage: [0m[1;35manaconda[0m [[32m-h[0m] [[36m--version[0m] [[32m-G[0m] [[32m-T[0m] [[32m-C[0m] [[36m--noninteractive[0m]
                 [[36m--profile [33mPROFILE_ID[0m] [[36m--proxy [33mPROXY_URL[0m]

@@ -1,0 +1,19 @@
+{
+  "sources": [
+    {
+      "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.js",
+      "sha256": "9e456995a4be3d09b2b81b7e55f363d09577e688b8361d90081e1484cfb4f449",
+      "bytes": 913874
+    },
+    {
+      "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/po.js",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "features": {
+    "status-success": false,
+    "critical-error-bz-report-modal": false,
+    "installation-next-btn": true
+  }
+}
