@@ -538,8 +538,9 @@ package branch is pushed, without force. No `pre-rewrite/*` ref is pushed.
   privacy jobs, and requires a complete passing same-commit probe for full runs.
 - Copied main's privacy workflow/config, added API identity redaction to the
   11c capture helper, retained original artifact/log ZIP receipts, and added an
-  independent evidence verifier. Privacy jobs now have a five-minute timeout
-  so the final push/PR scan pair has a bounded ten-minute reservation.
+  independent evidence verifier. Main's privacy workflow is kept byte-identical so both additions merge cleanly.
+  Closing scans have a fourteen-minute reservation and a five-minute per-job
+  cancellation watchdog, plus cleanup allowance; no VM retry is made.
 - INSTALL/EMERGENCY explain that unplugged devices' automatic F12 entries can
   disappear normally. Their installation/recovery gates remain closed/open as
   appropriate; neither a native regression nor an earlier preview is called an
@@ -625,7 +626,7 @@ python -X utf8 -m unittest discover -s os/tests -p test_rehearsal_budget.py -v
 Python compilation of every os/ci/*.py: exit 0
 python -X utf8 reviews/11-two-disk-rehearsal/verify-11c-evidence.py
   Original archive receipts/expanded contents and source predicate verified
-  67 archived UTF-8 credential-pattern checks passed
+  76 archived UTF-8 credential-pattern checks passed
   0 fresh offline stages, 0 zero-write records, 0 fresh exemptions
   Evidence consistency verified; no VM qualification claimed
 ```
@@ -661,15 +662,19 @@ Final GitHub scans must pass before this run ends.
 | 39989537420, corrected push privacy | success | 1 |
 | 39989544924, corrected PR privacy | success | 1 |
 | 39989739478, fresh probe | blocked at manifest preflight | 7 |
-| **Measured before closing push** | **0/3 full dispatches** | **12/330** |
-| Closing push + PR privacy pair | reserved; two jobs capped at five minutes each | **at most 10** |
-| **Bound including closing checks** | final actual total/scan URLs recorded in PR description | **at most 22/330** |
+| 39991834967, first closing push privacy | success; workflow timeout line conflicted with main | 1 |
+| **Measured before final closing push** | **0/3 full dispatches** | **13/330** |
+| Closing push + PR privacy pair | reserved; five-minute watchdog plus two-minute cleanup allowance per job | **at most 14** |
+| **Bound including closing checks** | final actual total/scan URLs recorded in PR description | **at most 27/330** |
 
 The closing reservation avoids another evidence-only push creating an unrecorded
 scan pair. The final PR description records the completed closing runs and exact
-actual total. At least 308 minutes of the cap remain unused: the release blocker
+actual total. At least 303 minutes of the cap remain unused: the release blocker
 stopped work, not budget exhaustion. No additional VM, full or checks-only run
-followed the failed preflight.
+followed the failed preflight. The timeout line initially added to the independently
+created privacy workflow produced an add/add conflict with main and prevented a
+new PR-context scan. Restoring main's exact file resolves that conflict through a
+normal follow-up commit; no merge, rebase or force-push was used.
 
 ### Not verified
 

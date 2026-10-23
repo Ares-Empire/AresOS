@@ -4,9 +4,16 @@
   "cap": 330,
   "full_cap": 3,
   "full_dispatched": 0,
-  "consumed_minutes": 12,
+  "consumed_minutes": 13,
   "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 39991834967,
+      "title": "Report the 11c pre-VM release blocker and keep installation gates closed",
+      "sha": "ba4f5c65a8355a2827ee707fcea20b7416e8c85e",
+      "conclusion": "success",
+      "minutes": 1
+    },
     {
       "run": 39989739478,
       "title": "Two-disk rehearsal (probe)",
@@ -50,10 +57,11 @@
       "minutes": 1
     }
   ],
-  "closing_privacy_reservation_minutes": 10,
+  "closing_privacy_reservation_minutes": 14,
   "closing_jobs": 2,
-  "closing_job_timeout_minutes": 5,
-  "maximum_total_including_closing_checks": 22,
+  "closing_watchdog_minutes": 5,
+  "closing_cleanup_allowance_per_job_minutes": 2,
+  "maximum_total_including_closing_checks": 27,
   "closing_receipt": "Final PR HEAD privacy-check run URLs and actual total are recorded in PR #11 description after completion",
   "stopped_reason": "Pinned private release manifest unknown; no complete probe; no full run authorized"
 }
