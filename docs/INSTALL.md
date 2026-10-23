@@ -295,7 +295,7 @@ Boot Windows directly with USB absent and present (select Windows explicitly), c
 
 **F12 chooses once**: Windows Boot Manager or the recorded Linux entry (possibly still called Fedora/Bazzite). Keep Windows default for the first trial. For persistent order, after §1's encryption check: **F2 → More Settings → Boot → UEFI**, move the identified entry first using displayed controls, **Save and Exit**. Verify a no-key/no-USB restart. Preserve Windows Boot Manager. [L3]
 
-If an update changes the order, use F12 for AresOS, then restore the preferred order as above. Missing entries, unfamiliar screens, changed Secure Boot or Windows recovery prompts mean stop with the record. Do not reset firmware defaults, clear TPM, delete entries or run Windows boot repair commands.
+If an update changes the order, use F12 for AresOS, then restore the preferred order as above. The laptop may drop automatic F12 entries for unplugged devices, such as the installer USB; that is normal. Missing Windows Boot Manager or the Linux entry while its SSD is attached, unfamiliar screens, changed Secure Boot or Windows recovery prompts mean stop with the record. Do not reset firmware defaults, clear TPM, delete entries or run Windows boot repair commands.
 
 ## 9. Undo: return to everyday Windows
 

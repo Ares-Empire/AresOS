@@ -16,7 +16,7 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 ## Two different menus
 
-- **F12 menu (the laptop's own menu):** tap F12 right after pressing the power button. It lists **Windows Boot Manager** and the Linux entry (possibly called Fedora or Bazzite). It picks which SSD starts, for this one start only.
+- **F12 menu (the laptop's own menu):** tap F12 right after pressing the power button. It lists **Windows Boot Manager** and the Linux entry (possibly called Fedora or Bazzite). It picks which SSD starts, for this one start only. Automatic entries for unplugged devices, such as the installer stick, may disappear; that is normal. A missing Windows Boot Manager still means stop.
 - **Boot menu (GRUB, on the AresOS SSD):** appears only after you pick the Linux entry. It lists the AresOS version and the backup Bazzite copy.
 
 During the first trial Windows is the default: if you press nothing, Windows starts.

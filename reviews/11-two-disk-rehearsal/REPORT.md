@@ -495,3 +495,23 @@ checks preserved.
 How should the fixture meet the existing-entry contract when devices are
 removed and OVMF prunes their automatic options? This run makes no exception.
 Parts A/B and the human/hardware gates remain open; do not merge or install.
+
+
+## 11c: firmware contract and fresh install qualification (2026-10-23)
+
+History note: the owner rewrote history at 09:34 UTC. The original 11/11b
+run IDs, archives and source SHAs above remain historical evidence. The
+[old-to-new source map](../../os/manifest/history-rewrite-11c.json) matches
+all 19 captured harness source commits by exact subject; for example
+`24118e1` -> `ce661cb`, `f32f1da` -> `b9f028c`, `bf5c98d` -> `aed3d3e`.
+The original release source `5578ab2` belongs to the squashed package-06
+history: rewritten `f5bb5d3` has identical runtime payload trees. The release
+manifest, signed image and original CI evidence retain their original IDs.
+The canonical repository is now `Ares-Empire/AresOS`; only the rewritten
+package branch is pushed, without force. No `pre-rewrite/*` ref is pushed.
+
+Qualification is in progress. Parts A and B remain OPEN until the new probe
+and full-run evidence below establish otherwise. The separate 11c guard counts
+all branch workflow jobs, including push/PR privacy scans, against 330 rounded
+minutes and three full dispatches. A full run requires a complete passing probe
+on its exact commit. The image/runtime payload is unchanged.
