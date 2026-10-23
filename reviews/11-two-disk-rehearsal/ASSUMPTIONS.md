@@ -102,6 +102,27 @@ the checksum and a positive index, support observed OS-name alternatives, and
 reject ambiguity, index zero and unsafe IDs. Actual menu rendering/selection
 and installed boots remain full-run observations, never claimed by a dry run.
 
+### Probe 4 transport failure and remaining nondestructive branches
+
+Probe 4 (`c4bcb1d`, 39879865566) stopped **before tools/fixture/VM creation**.
+The response advertised **9,068,650,496 bytes** but ended at **452,788,224**;
+the partial-file hash was `33bcbca9ca22d31fbb5b3b26228149f147212ebaf4f2a78c121611fefd0eb273`.
+Its freshly downloaded official checksum still equals the frozen pin. This is
+evidence of an incomplete transfer, not evidence of a complete replacement
+ISO. No pin is changed and no partial payload is booted. The next probe makes
+a fresh request to the same URL; the exact complete-file hash remains mandatory.
+A regression on this receipt distinguishes premature EOF from a complete
+hash mismatch, which continues to stop qualification.
+
+The complete probe now also runs the full harness's target-close/reset helper
+and Windows-only marker mode before either is used after installation. These
+are safe on the empty disposable target and make drive detachment, media
+removal, firmware-entry preservation and the file-reset commands real probe
+observations. Both order previews must still pass, and the artifact must prove
+these additional branches before full authorization. No NVRAM/disk assertion
+is relaxed for firmware device enumeration changes. This pre-install marker
+check cannot substitute for the required post-install and post-undo checks.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.

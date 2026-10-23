@@ -7,6 +7,22 @@ from unittest.mock import Mock
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
 from rehearsal_guard import require_probe, job_minutes
 from installer_webui import Pages, validate_review
+from installer_inspect import validate_download
+
+
+class DownloadCompletenessTest(unittest.TestCase):
+    def test_actual_short_transfer_is_not_mistaken_for_a_complete_new_iso(self):
+        import json
+        root = pathlib.Path(__file__).resolve().parents[2]
+        observed = json.loads((root / 'os/manifest/ci/11b/probe-4/installer/iso-download.json').read_text())
+        with self.assertRaisesRegex(IOError, 'Incomplete ISO transfer'):
+            validate_download(observed, dict(sha256=observed['sha256']))
+
+    def test_complete_transfer_still_requires_the_exact_pin(self):
+        observed = dict(headers={'content-length': '10'}, bytes=10, downloaded_sha256='a' * 64)
+        validate_download(observed, dict(sha256='a' * 64))
+        with self.assertRaisesRegex(AssertionError, 'Downloaded ISO differs: STOP'):
+            validate_download(observed, dict(sha256='b' * 64))
 
 
 class ReviewBoundaryTest(unittest.TestCase):

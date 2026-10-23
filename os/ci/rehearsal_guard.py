@@ -81,6 +81,7 @@ def main():
         assert proof['status'] == 'passed' and proof['installed'] is False
         assert proof['commit'] == os.environ['GITHUB_SHA']
         assert proof['both_orders'] and proof['review_validated']
+        assert proof['detached_windows'] and proof['target_reset']
         result['probe_run'] = probe_id
         result['probe'] = proof
     directory = pathlib.Path('evidence' if mode == 'ci' else '.work/11b')

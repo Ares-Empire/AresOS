@@ -15,6 +15,13 @@ def fetch(url):
         'User-Agent': 'Mozilla/5.0 (compatible; AresOS-release-check/1.0)'}), timeout=90)
 
 
+def validate_download(observed, live):
+    length = next((value for key, value in observed['headers'].items() if key.lower() == 'content-length'), None)
+    if length is not None and observed['bytes'] != int(length):
+        raise IOError(f'Incomplete ISO transfer: received {observed["bytes"]} of advertised {length} bytes; this probe must stop')
+    assert observed['downloaded_sha256'] == live['sha256'], 'Downloaded ISO differs: STOP'
+
+
 def main():
     WORK.mkdir(parents=True, exist_ok=True)
     EVIDENCE.mkdir(parents=True, exist_ok=True)
@@ -35,7 +42,7 @@ def main():
     observed = dict(live, downloaded_sha256=digest.hexdigest(), bytes=disk.stat().st_size,
                     resolved_url=resolved, headers=headers)
     (EVIDENCE / 'iso-download.json').write_text(json.dumps(observed, indent=2) + '\n')
-    assert digest.hexdigest() == live['sha256'], 'Downloaded ISO differs: STOP'
+    validate_download(observed, live)
     print(f'Pinned live ISO download verified: {digest.hexdigest()} ({disk.stat().st_size} bytes)', flush=True)
     listing = subprocess.check_output(['bsdtar', '-tf', str(disk)]).decode()
     (EVIDENCE / 'iso-files.txt').write_text(listing)

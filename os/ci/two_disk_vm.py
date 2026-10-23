@@ -342,6 +342,16 @@ def restore_windows_order():
     set_variable(WORK / 'vars.fd', 'BootOrder', struct.pack('<' + 'H' * len(numbers), 0, *[n for n in numbers if n != 0]))
 
 
+def reset_target():
+    target = WORK / 'target.raw'
+    assert target.resolve().is_relative_to(WORK) and target.is_file()
+    closed = subprocess.run(['fuser', str(target)], capture_output=True)
+    assert closed.returncode == 1 and not closed.stdout.strip(), 'Target file is still open'
+    target.unlink()
+    with target.open('xb') as output:
+        output.truncate(49 * 1024 ** 3)
+
+
 def grub_promotion(audit, password, password_hash):
     """Try the real menu first, then the explicitly permitted one-time fallback."""
     release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
@@ -510,6 +520,7 @@ def main():
         assert authorization['probe']['status'] == 'passed'
         assert authorization['probe']['commit'] == os.environ['GITHUB_SHA']
         assert authorization['probe']['both_orders'] and authorization['probe']['review_validated']
+        assert authorization['probe']['detached_windows'] and authorization['probe']['target_reset']
     sw.WORK, sw.EVIDENCE = WORK, EVIDENCE
     for name in ('vmlinuz', 'initrd.img'):
         with (WORK / name).open('wb') as output:
@@ -520,6 +531,9 @@ def main():
     if sys.argv[1:] == ['probe']:
         probe_root = EVIDENCE
         live_probe(audit)
+        restore_windows_order()
+        marker(audit, 'probe-windows-without-linux', detached=True)
+        reset_target()
         shutil.copyfile(probe_root / 'pre-firmware-vars.fd', WORK / 'vars.fd')
         EVIDENCE = probe_root / 'protected-second'
         EVIDENCE.mkdir()
@@ -530,7 +544,10 @@ def main():
         shutil.copyfile(WORK / 'vars.fd', EVIDENCE / 'pre-firmware-vars.fd')
         marker(reverse, 'baseline-firmware', baseline=True)
         live_probe(reverse)
+        restore_windows_order()
+        marker(reverse, 'probe-windows-without-linux', detached=True)
         proof = dict(status='passed', installed=False, both_orders=True, review_validated=True,
+                     detached_windows=True, target_reset=True,
                      commit=os.environ['GITHUB_SHA'])
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)
@@ -562,12 +579,7 @@ def main():
     save('first-order-result', dict(status='passed', grub_promotion=promoted, default_undo='Windows-first; no erase'))
     # A separate fresh install, same protected bytes, reversed enumeration.
     # Discard only the closed disposable Linux target; preserve all evidence.
-    closed = subprocess.run(['fuser', str(WORK / 'target.raw')], capture_output=True)
-    assert closed.returncode == 1 and not closed.stdout.strip()
-    assert (WORK / 'target.raw').resolve().is_relative_to(WORK)
-    (WORK / 'target.raw').unlink()
-    with (WORK / 'target.raw').open('xb') as output:
-        output.truncate(49 * 1024 ** 3)
+    reset_target()
     shutil.copyfile(pristine_vars, WORK / 'vars.fd')
     EVIDENCE = EVIDENCE / 'protected-second'
     EVIDENCE.mkdir()

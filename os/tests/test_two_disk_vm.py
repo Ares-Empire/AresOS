@@ -73,6 +73,14 @@ class TwoDiskHarnessTest(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'PRODUCT FAILURE'):
             vm.cleanup_live(guest, 'fixture', diagnostics=True)
 
+    def test_target_reset_refuses_an_open_file_and_preserves_it(self):
+        target = self.directory / 'target.raw'
+        target.write_bytes(b'must remain until closed')
+        with patch.object(vm, 'WORK', self.directory), patch.object(vm.subprocess, 'run', return_value=Mock(returncode=0, stdout=b'123')):
+            with self.assertRaisesRegex(AssertionError, 'still open'):
+                vm.reset_target()
+        self.assertEqual(target.read_bytes(), b'must remain until closed')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=pathlib.Path(__file__).parent)
         self.addCleanup(self.temp.cleanup)
