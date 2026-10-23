@@ -38,18 +38,18 @@ subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', rewritten], 
 # runtime payload, package lock, base, policy or verification key.
 payload = ['os/Containerfile', 'os/.containerignore', 'os/build.sh', 'os/packages.lock.json',
            'os/config', 'os/policy', 'os/tests/audit.py', 'os/manifest/base.json', 'os/keys']
-pinned = {
-    'os/.containerignore': '389ad38b7e11cc132d09510ab3431a306553770d',
-    'os/Containerfile': '4b8a122a21cb2b1b0545c3cbde8bdb27ca236ff6',
-    'os/build.sh': 'ec6420fcd3dbd2bf2b2060169264a4ad97670a62',
-    'os/config': '7ddab5392a26d83f96a59cc5e3737df3fab511d4',
-    'os/keys': '3724e0c06f4a3acab0811376fb928e47f2d4c11d',
-    'os/manifest/base.json': '27035216a9fd195de36f9408c907a808848186cb',
-    'os/packages.lock.json': '089309ef0e197abd494d061bbc740c1e57b623db',
-    'os/policy': '28504512e84ae8b65559942c33bfe08eae8d9c42',
-    'os/tests/audit.py': '4e16353ea8fd006d0ac03b9be0b1359249b7c140',
-}
-for path, expected in pinned.items():
+pinned = [
+    ('389ad38b7e11cc132d09510ab3431a306553770d', 'os/.containerignore'),
+    ('4b8a122a21cb2b1b0545c3cbde8bdb27ca236ff6', 'os/Containerfile'),
+    ('ec6420fcd3dbd2bf2b2060169264a4ad97670a62', 'os/build.sh'),
+    ('7ddab5392a26d83f96a59cc5e3737df3fab511d4', 'os/config'),
+    ('3724e0c06f4a3acab0811376fb928e47f2d4c11d', 'os/keys'),
+    ('27035216a9fd195de36f9408c907a808848186cb', 'os/manifest/base.json'),
+    ('089309ef0e197abd494d061bbc740c1e57b623db', 'os/packages.lock.json'),
+    ('28504512e84ae8b65559942c33bfe08eae8d9c42', 'os/policy'),
+    ('4e16353ea8fd006d0ac03b9be0b1359249b7c140', 'os/tests/audit.py'),
+]
+for expected, path in pinned:
     assert subprocess.check_output(['git', 'rev-parse', rewritten + ':' + path]).decode().strip() == expected
 subprocess.run(['git', 'diff', '--exit-code', rewritten, 'HEAD', '--', *payload], check=True)
 print(f'Qualified release source {source}; runtime payload unchanged; testing {release["reference"]}')
