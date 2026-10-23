@@ -1,0 +1,12 @@
+# Extends gitleaks' default rules. The paths below hold captured VM boot consoles and CI
+# run logs: their kernel-certificate fingerprints and checksums look like API keys to the
+# generic rule. Everything else in the repo is scanned with the full default rules.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Captured VM boot logs and CI run logs (public fingerprints and checksums)"
+paths = [
+  '''^os/manifest/ci/.*\.(txt|jsonl)$''',
+  '''^reviews/[^/]+/(logs|attempt-[^/]+)/.*\.txt$''',
+]
