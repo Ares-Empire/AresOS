@@ -1,6 +1,8 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Status: **STOPPED — A NOT QUALIFIED; B UNTESTED; C PINNING DONE.** Both full
+Latest 11b outcome: **STOPPED at the pre-install firmware audit; A NOT QUALIFIED, B UNTESTED, C pins unchanged.** No installation or full run was authorized. Follow-up cost: **168/350 minutes, 0/3 full runs**. See the 11b section below; earlier sections retain the original package-11 history.
+
+Original package-11 outcome: **STOPPED — A NOT QUALIFIED; B UNTESTED; C PINNING DONE.** Both full
 automation allowances were consumed. [Final run 39869390172](https://github.com/carlsenares/AresOS/actions/runs/39869390172)
 stopped before installation at an absent `ksvalidator`. The actual Anaconda
 help also documents kickstart as unsupported for live installations. No third
@@ -264,3 +266,232 @@ installer screen, as the saved Portal frames make clear.
 Installation/GRUB qualification needs a new scoped continuation. Human,
 hardware, media/followability and safety-council gates remain open. This PR is
 a draft stop/report handoff, not an installation release. Do not merge.
+
+## 11b: real Web UI continuation — 2026-10-23
+
+### Done
+
+- `installer_webui.py` drives the pinned ISO's own Anaconda pages from host
+  Chromium. It launches ordinary `liveinst` as liveuser, preserves its backend
+  and original HTTP listener, and relays bytes through guest 8080 and host
+  loopback 18080. It records each page's screenshot, text, controls and IDs.
+  The exact guest Firefox profile's process tree is paused, because terminating
+  Firefox tears down Anaconda. No page/backend code is replaced.
+- The shared preview/install flow selects German only, Europe/Berlin,
+  serial-identified target only, entire disk, an unencrypted trial, and a
+  password-protected wheel administrator `ares-recovery` with root locked.
+  Save must reach stable backend German state. The ISO's own keyboard resolver
+  must generate `KEYMAP=de` in a temporary live directory while restoring live
+  settings and preserving module choices. Installed German/TTY checks remain
+  separate, strict requirements. Review must contain only target storage and
+  a newly formatted target EFI. Probe tests actionability without clicking
+  Erase; only full mode can click it.
+- `rehearsal_guard.py` enforces 350 rounded hosted job minutes, at most three
+  full dispatches, and a successful complete probe artifact on the exact same
+  commit. Complete proof requires both orders, review, detached Windows marker
+  and target reset. Artifact SHA-256 is checked against GitHub's receipt.
+- Harness changes preserve partial redacted timeout evidence, always attempt
+  orderly shutdown despite diagnostic failure, require final stopped-guest
+  write counters, reject unsupported live kickstart, and learn actual BLS IDs.
+  The same quoted read-only BLS export runs in live preflight and recovery.
+  Generated Python caches are ignored. Regression coverage includes unsafe disk/review/EFI choices, missing probe
+  evidence, short ISO transfers, real captured help/modal fixtures, salted
+  password redaction, BLS export and cleanup failure paths.
+- The workflow installs pinned browser tooling only on disposable runners.
+  Rehearsal paths cannot rebuild/publish the image. Complete-file ISO pins,
+  runtime identity/signature checks, original Windows entry checks and every
+  protected-write assertion remain mandatory. Exact UI sources were extracted
+  from the pinned ISO's shipped source map before further selector changes.
+
+### Verified dispatch history
+
+Each dispatch below used `gh workflow run os-image.yml --ref
+pkg/11-two-disk-rehearsal -f rehearsal=probe`, except inspection 8 (`inspect`).
+The original artifact and workflow-log ZIPs, their API receipts, expanded
+evidence and screenshots are retained under `artifacts/`, `logs/11b/`,
+`screenshots/11b-*` and `os/manifest/ci/11b/`. Failed suites remain failed;
+passing regression tests alone do not qualify a probe.
+
+| Label / run | Source | Rounded minutes | Exact native tests / result |
+|---|---|---:|---|
+| [0](https://github.com/carlsenares/AresOS/actions/runs/39873210999) | `6683e19` | 2 | Cancelled during setup, before ISO/VM; browser venv lacked system PIL |
+| [1](https://github.com/carlsenares/AresOS/actions/runs/39873265524) | `6bfefc8` | 16 | `Ran 98 tests in 3.086s`, `OK`; real guest Welcome, serial inventory timeout; no host UI |
+| [2](https://github.com/carlsenares/AresOS/actions/runs/39875264662) | `a7a0a44` | 16 | `Ran 104 tests in 3.078s`, `OK`; destination-only success, explicitly not authorization |
+| [3](https://github.com/carlsenares/AresOS/actions/runs/39877073155) | `502676b` | 23 | `Ran 105 tests in 2.753s`, `OK`; ANSI-colored unsupported-live help failed the guard |
+| [4](https://github.com/carlsenares/AresOS/actions/runs/39879865566) | `c4bcb1d` | 3 | Premature EOF: 452,788,224 of 9,068,650,496 advertised bytes; no tools/VM; pin unchanged |
+| [5](https://github.com/carlsenares/AresOS/actions/runs/39880735063) | `60758f6` | 15 | `Ran 111 tests in 3.076s`, `OK`; real German modal, absent upstream summary selector |
+| [6](https://github.com/carlsenares/AresOS/actions/runs/39882648993) | `221ca1a` | 12 | `Ran 112 tests in 2.528s`, `OK`; X layout de, raw console property empty; derived-console lifecycle not yet checked |
+| [7](https://github.com/carlsenares/AresOS/actions/runs/39884771824) | `ccb1b81` | 13 | `Ran 113 tests in 4.000s`, `OK`; expanded keyboard proof saw wrong X layout; stopped before resolver |
+| [8](https://github.com/carlsenares/AresOS/actions/runs/39886346092) | `1fa92a0` | 7 | Exact ISO verified; 102 actual application sources extracted; no VM |
+| [9](https://github.com/carlsenares/AresOS/actions/runs/39888209565) | `28a8d09` | 13 | `Ran 113 tests in 3.220s`, `OK`; terminating Firefox removed runtime config before host UI navigation |
+| [10](https://github.com/carlsenares/AresOS/actions/runs/39889623330) | `d8d6fa9` | 31 | `Ran 114 tests in 4.088s`, `OK`; every first-order pre-install page/review passed; dynamic completion-selector literal check failed before backend review readback/reverse order |
+| [11](https://github.com/carlsenares/AresOS/actions/runs/39892768284) | `24118e1` | 17 | `Ran 115 tests in 3.284s`, `OK`; first-order complete preview/readback passed; pre-install detached marker boot failed strict existing-entry preservation |
+
+The [assumption ledger](ASSUMPTIONS.md#11b-real-web-ui-continuation) records
+each preflight hypothesis, actual observation and resulting correction. In
+particular, source inspection established that keyboard Save does not await
+its async backend write, review has ordinary cells rather than guessed data
+attributes, and full-name blur can asynchronously suggest a username. The
+original unsupported-live-kickstart rejection is still exercised; no legacy
+ISO or hand-built installed stock disk substitutes for this installer.
+
+Probe 10's [review screenshot](screenshots/11b-probe-10-two-disk-review-full.png)
+and [full text](../../os/manifest/ci/11b/probe-10/two-disk/review-full.txt) show
+only `vdb1` new EFI, `vdb2` boot, and `vdb3` Btrfs subvolumes. Its
+[German conversion proof](../../os/manifest/ci/11b/probe-10/two-disk/webui-keyboard-proof.json)
+records the actual installation task source/hash, German module state,
+generated `KEYMAP="de"`, restored live configuration and unchanged choices.
+The [destination modal](screenshots/11b-probe-10-two-disk-destination-selection-before-confirming.png),
+[encryption page](screenshots/11b-probe-10-two-disk-configuration-00-answered.png)
+and [account page](screenshots/11b-probe-10-two-disk-configuration-01-answered.png)
+were also visually inspected. These are preview evidence, not installation.
+
+The completion check now verifies the exact served bundle/source-map hashes
+and derives the progress/error selectors from the actual source formulas.
+A regression consumes those three frozen original sources and rejects changed
+state names/prefixes. Searching the minified bundle for dynamically assembled
+full names was the incorrect assumption; no status check is discarded.
+
+Browser/transport differences from the owner: headless Chromium on the host,
+the TCP relay, and a paused guest Firefox process tree after ordinary launch.
+Direct ISO kernel boot adds serial consoles; the actual pinned installer
+source/config confirms they are preserved. Serial poweroff replaces the final
+UI reboot solely to close images for offline auditing. Physical USB boot,
+physical keyboard interaction and novice followability remain separate gates.
+
+The anonymous public manifest metadata check at 2026-10-23T02:29:55Z found the
+installer post-script's `bazzite-nvidia-open:stable` still exactly at qualified
+stock digest `ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151`.
+No image layer or owner registry credential was used for this check.
+
+### Remaining result, gates and final budget
+
+Final probe 11 used **`24118e1e4a4b2ef1b1806afe5131b029c2de81f4`**. It passed
+all first-order pre-install choices, completion-source qualification and
+[backend readback](../../os/manifest/ci/11b/probe-11/two-disk/webui-probe-backend-readback.txt).
+The target remained empty after preview. It then booted the original Windows-like
+entry with **both ISO and empty Linux target detached**. The marker screenshot
+was visually inspected: BootCurrent=0000 and the original Microsoft loader path
+on protected ESP GUID `7c0a0246-ee3e-4923-9f9d-fa9bc78c85d5`.
+
+**The mandatory NVRAM audit failed, and work stopped.** OVMF deleted existing
+**Boot0002 (UEFI QEMU DVD-ROM QM00001)** and **Boot0004 (UEFI Misc Device 2)**,
+removing their IDs from BootOrder. `compare_nvram` raised
+**`PRODUCT FAILURE: existing boot entry changed`**. Windows Boot0000 was
+byte-identical and remained first. This happened **before installation**, so
+it does not demonstrate an Anaconda/AresOS write to the Windows-like disk or
+loss of Windows Boot Manager. It does demonstrate failure of the brief's strict
+existing-entry preservation contract. No entry deletion was exempted, no
+predicate/test weakened, and no VM/full dispatch followed.
+
+The initial protected capture and all three final-run offline stage captures
+match the same SHA-256, GPTs, partition identities/bounds and EFI files:
+
+```text
+32d28d0aee688053d36c31deb3a1288ca15defce2aeed5c4b380644fbd12c036
+```
+
+All three final-run shutdown counter records have **wr_bytes=0,
+wr_operations=0**. Byte equality and zero writes are separate evidence; neither
+makes the failed NVRAM audit green. The failed detached stage saved raw NVRAM
+JSON and the original variable store before the assertion; it could not save
+the normal computed diff after that assertion. The derived
+[stop analysis](../../os/manifest/ci/11b/nvram-stop-analysis.json) retains both
+changed entries, labels and BootOrder arrays without altering those originals.
+
+| Gate | 11b result | Evidence |
+|---|---|---|
+| Real first-order Web UI pages/review | **Preview passed; installation not qualified** | [Latest review screenshot](screenshots/11b-probe-11-two-disk-review-full.png), [text](../../os/manifest/ci/11b/probe-11/two-disk/review-full.txt), [target-only/new-EFI proof](../../os/manifest/ci/11b/probe-11/two-disk/review-proof.json) |
+| German and backend choices | **Preview passed** | [German proof](../../os/manifest/ci/11b/probe-11/two-disk/webui-keyboard-proof.json), [readback](../../os/manifest/ci/11b/probe-11/two-disk/webui-probe-backend-readback.txt), [served bundle/map qualification](../../os/manifest/ci/11b/probe-11/two-disk/completion-selector-source.json) |
+| Complete same-commit probe / full authorization | **FAILED; no full authorized** | [Run 39892768284](https://github.com/carlsenares/AresOS/actions/runs/39892768284), [failure log](logs/11b/probe-11.txt); no passing complete probe-result JSON |
+| Existing firmware entries | **FAIL — stop** | [Baseline](../../os/manifest/ci/11b/probe-11/two-disk/baseline-firmware-nvram.json), [after detached boot](../../os/manifest/ci/11b/probe-11/two-disk/probe-windows-without-linux-nvram.json), [derived diff](../../os/manifest/ci/11b/nvram-stop-analysis.json); original `.fd` stores beside JSON |
+| Protected bytes/GPT/EFI and writes | **Passed at reached pre-install stages only** | [Initial](../../os/manifest/ci/11b/probe-11/two-disk/protected-baseline.json), [final detached](../../os/manifest/ci/11b/probe-11/two-disk/probe-windows-without-linux-protected.json), [final counters](../../os/manifest/ci/11b/probe-11/two-disk/probe-windows-without-linux-blockstats.json) |
+| Original Windows-like path without Linux | **Pre-install boot passed; post-install/post-undo OPEN** | [Marker text](../../os/manifest/ci/11b/probe-11/two-disk/probe-windows-without-linux-marker.txt), [screenshot](screenshots/11b-probe-11-two-disk-probe-windows-without-linux-windows-marker.png) |
+| A: both installs, switch/policy/tty3/rollback/default undo | **NOT REACHED / OPEN** | Probe stopped before target reset/reverse order; target remained empty; no installation or full run |
+| B: one-time GRUB stock, promotion, unattended stock boot | **UNTESTED; blocked by missing installed target** | No GRUB/menu transaction started; INSTALL/EMERGENCY retain the open gate |
+| C: media pins | **DONE, unchanged** | Original package-11 evidence above; repeated complete live ISO hashes still match the frozen pin |
+| Physical media, novice, Windows OS and laptop | **OPEN** | File-backed marker and host Chromium are not a physical Windows/USB/keyboard/hardware rehearsal |
+
+Final [minute ledger](../../os/manifest/ci/11b/final-budget.json): **168/350
+rounded GitHub Actions job minutes, 0/3 full dispatches**. All 12 follow-up
+dispatches are included, including cancelled setup and source-only inspection;
+other image/switch jobs were skipped. **182 minutes remain unused because the
+stop rule fired, not because the budget was exhausted.** The original package-11
+allowances above are historical and separate. No new checks-only or VM job was
+started after the stop.
+
+Local commands actually run during 11b:
+
+```text
+python -m unittest discover -s os/tests -p test_installer_webui.py -v
+  latest source: Ran 9 tests in 0.003s; OK
+python -m unittest discover -s os/tests -p test_two_disk_vm.py -v
+  latest affected source: Ran 18 tests in 0.220s; OK
+python -m unittest discover -s os/tests -p test_disk_audit.py -v
+  Ran 6 tests in 0.158s; OK
+python -m py_compile os/ci/installer_webui.py os/ci/two_disk_vm.py
+  exit 0
+python reviews/11-two-disk-rehearsal/verify-11b-evidence.py
+  artifact/log receipt hashes and expanded contents checked; display whitespace normalized
+  19 matching offline stages; 17 zero-write records; 2 missing final records
+  685 expanded text/JSON credential-pattern checks passed
+  1337 raw archived UTF-8 credential-pattern checks passed
+  1 strict NVRAM failure; REHEARSAL NOT QUALIFIED; exit 1
+git diff --cached --check
+  exit 0; no whitespace errors
+```
+
+The [verification log](logs/11b/evidence-verification.txt) deliberately remains
+non-green. Probes 1 and 3 have byte/layout/EFI equality but no final live-VM
+counter record after host termination; those missing records are never used as
+zero-write evidence. Each fresh fixture has its own initial hash, so comparison
+is within a run, not between unrelated random GPT/NTFS fixtures. Original ZIPs
+are byte exact. Display text has line endings/trailing whitespace normalized,
+including four extracted live-script/defaults filenames; the verifier compares
+the complete normalized contents against their raw archived originals. Other
+expanded files must be byte-identical.
+The repeated 33 MB complete ISO file inventories remain in each original ZIP;
+their optional expanded display copies are ignored to keep the review usable.
+The [capture helper](capture-11b-evidence.py) and
+[verification script](verify-11b-evidence.py) are retained for review.
+
+The signed release/base/runtime/config/key/lock inputs and `mod/` are unchanged.
+No image rebuild/publication, visibility change, owner registry token, local VM,
+physical disk/firmware/Windows-setting operation, system install, Gradle or
+Minecraft command occurred. No Gradle daemon was started. PR #11 remains draft;
+acceptance is not met. Physical installation remains **NOT RELEASED**.
+
+### Not verified
+
+No target installation, reversed-order live preview/install, installed UID or
+console, switch/policy/real tty3/rollback/default undo, installed/undone Windows
+independence, one-time GRUB stock selection or recovery promotion was reached.
+The only detached Windows-like boot is pre-install and uses our marker, not
+Windows itself. No D-Bus installation fallback was used. Physical media,
+physical keyboards/GRUB, novice followability, Windows/BitLocker/UEFI helpers,
+Lenovo fitting and laptop hardware/safety gates remain open.
+
+### JUDGMENT-CALL
+
+No runtime/product-feel change. The browser-tree pause preserves ordinary
+liveinst/backend lifetime while replacing the active browser; it is recorded
+as a browser difference. The strict NVRAM contract is applied even to automatic
+firmware-created entries. Exempting those deletions or silently reconstructing
+entries would change the agreed qualification rule, so neither was done.
+
+### PLAN-GAP
+
+Detaching the ISO and empty target makes this OVMF fixture prune their existing
+boot options, while the current contract permits only a separate Linux entry
+addition/reordering. The probe exposed this conflict before installation or a
+full allowance. This is a fixture/firmware-contract blocker; it must not be
+misreported as evidence that installed AresOS changed Windows. A future scoped
+continuation needs an integrator decision on a faithful fixture or explicit
+NVRAM contract before further qualification, with the Windows entry/disk/write
+checks preserved.
+
+### Open questions
+
+How should the fixture meet the existing-entry contract when devices are
+removed and OVMF prunes their automatic options? This run makes no exception.
+Parts A/B and the human/hardware gates remain open; do not merge or install.

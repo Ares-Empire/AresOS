@@ -281,6 +281,39 @@ Final zero writes, offline protected bytes/GPT/EFI and unchanged Windows boot
 entries passed. Probe 10 is failed and cannot authorize installation. Its
 31 rounded minutes bring completed cost to **151/350**, still **0/3 full runs**.
 
+### Probe 11: strict firmware stop; no full run authorized
+
+Final probe 11 (`24118e1`, 39892768284) printed `Ran 115 tests in 3.284s`,
+`OK`, and passed the first-order full UI preview, exact bundle/map selector
+proof and backend review readback. SelectedDisks was only `vdb`; XLayouts was
+`de`, the actual resolver generated `KEYMAP=de`, timezone was Europe/Berlin,
+and the password-set wheel recovery account/root-lock checks passed. The target
+remained empty after preview. The real QMP input/observer checkpoint passed.
+
+The subsequent **pre-install** Windows-only marker boot succeeded through
+original Boot0000, protected ESP GUID `7c0a0246-ee3e-4923-9f9d-fa9bc78c85d5`,
+and `\\EFI\\Microsoft\\Boot\\bootmgfw.efi`, with both ISO and empty target
+detached. Windows's entry remained byte-identical and first. All three final
+counter records are zero, and initial plus three offline protected snapshots
+match SHA-256 `32d28d0aee688053d36c31deb3a1288ca15defce2aeed5c4b380644fbd12c036`,
+both GPT copies, partition GUIDs/bounds and EFI file hashes.
+
+However, OVMF removed existing **Boot0002 (UEFI QEMU DVD-ROM QM00001)** and
+**Boot0004 (UEFI Misc Device 2)** and removed those IDs from BootOrder. The
+unmodified strict predicate raised **`PRODUCT FAILURE: existing boot entry
+changed`**. Both original variable stores/JSON snapshots and a derived
+`nvram-stop-analysis.json` are retained. This occurred before installation;
+the evidence does not establish an Anaconda/AresOS Windows-disk write or loss
+of Windows Boot Manager. It does establish a failed mandatory firmware audit.
+
+**STOP honored.** No predicate or test was relaxed, no workaround or further
+VM dispatch followed, and no full run was authorized. Target reset and reverse
+order were not reached; installation/switch/tty3/rollback/undo and GRUB remain
+unqualified. Final cost is **168/350 rounded job minutes, 0/3 full runs**; the
+remaining allowance is unused because of the stop rule, not budget exhaustion.
+Resolving the fixture's automatic entry pruning versus the strict NVRAM
+contract needs a future integrator decision, not an exception made here.
+
 ## Before VM run 1 (probe)
 
 This is the first of at most two conservatively counted VM automation runs.
