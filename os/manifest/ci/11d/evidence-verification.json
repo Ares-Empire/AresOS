@@ -1,0 +1,10 @@
+{
+  "matching_offline_stages": 0,
+  "zero_write_records": 0,
+  "missing_counters": [],
+  "unreached_baselines": [
+    "probe-2\\two-disk"
+  ],
+  "exemptions": [],
+  "archived_text_credential_checks": 260
+}

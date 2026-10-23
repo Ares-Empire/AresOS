@@ -1,0 +1,89 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 120690751609,
+      "run_id": 40034568137,
+      "workflow_name": "privacy-check",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40034568137",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcGbq4eQ",
+      "head_sha": "61c33ca06f1e72a2013788dd715a5abac9c2caff",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/120690751609",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40034568137/job/120690751609",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-23T22:35:13Z",
+      "started_at": "2026-10-23T22:35:15Z",
+      "completed_at": "2026-10-23T22:36:02Z",
+      "name": "scan",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-23T22:35:16Z",
+          "completed_at": "2026-10-23T22:35:17Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-23T22:35:17Z",
+          "completed_at": "2026-10-23T22:35:22Z"
+        },
+        {
+          "name": "No secrets (gitleaks)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-23T22:35:22Z",
+          "completed_at": "2026-10-23T22:35:57Z"
+        },
+        {
+          "name": "Only private commit emails",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-23T22:35:57Z",
+          "completed_at": "2026-10-23T22:35:57Z"
+        },
+        {
+          "name": "No personal terms",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-23T22:35:57Z",
+          "completed_at": "2026-10-23T22:35:59Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-23T22:35:59Z",
+          "completed_at": "2026-10-23T22:35:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-23T22:35:59Z",
+          "completed_at": "2026-10-23T22:35:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/120690751609",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000087,
+      "runner_name": "GitHub Actions 1000000087",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

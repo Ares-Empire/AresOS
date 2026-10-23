@@ -15,6 +15,30 @@ from prepare_two_disks import verify_loop
 
 
 class TwoDiskHarnessTest(unittest.TestCase):
+    def test_real_qmp_ide_id_is_bare_while_virtio_uses_a_backend_path(self):
+        root = pathlib.Path(__file__).resolve().parents[2]
+        actual = json.loads((root / 'os/manifest/ci/11d/probe-2/two-disk/boot-1-raw-hardware.json').read_text())
+        blocks = actual['query_block']
+        cd, = [b for b in blocks if b['device'] == 'installer-cd']
+        self.assertEqual(cd['qdev'], 'installer-cd-device')
+        protected, = [b for b in blocks if b['device'] == 'protected']
+        self.assertEqual(protected['qdev'], '/machine/peripheral/protected-device/virtio-backend')
+        for block in blocks:
+            filenames = {'protected': 'protected.raw', 'target': 'target.raw', 'installer-cd': vm.LIVE['filename']}
+            if block['device'] in filenames:
+                block['inserted']['file'] = str(self.directory / filenames[block['device']])
+        guest = object.__new__(vm.Guest)
+        guest.mode, guest.order, guest.boot_number = 'marker-baseline', 'protected-first', 1
+        guest.monitor = Mock()
+        with patch.object(vm, 'WORK', self.directory), patch.object(vm, 'EVIDENCE', self.directory):
+            guest.monitor.command.side_effect = [actual['query_pci'], blocks]
+            observed = guest.device_inventory()
+            self.assertIn('pci:00:1f.2/sata:0:65535:0', {d['key'] for d in observed['attached']})
+            cd['qdev'] = 'another-device'
+            guest.monitor.command.side_effect = [actual['query_pci'], blocks]
+            with self.assertRaisesRegex(AssertionError, 'Unexpected QMP ISO device ID'):
+                guest.device_inventory()
+
     def test_bls_export_is_one_quoted_command_and_parses_real_files(self):
         directory = self.directory / "BLS 'quoted directory"
         directory.mkdir()

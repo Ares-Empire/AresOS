@@ -1,0 +1,137 @@
+{
+  "allowance": "11c",
+  "start": "2026-10-23T16:21:00Z",
+  "cap": 330,
+  "full_cap": 3,
+  "full_dispatched": 0,
+  "consumed_minutes": 26,
+  "reserved_minutes": 42,
+  "runs": [
+    {
+      "run": 40036169351,
+      "title": "11c: narrow firmware audit; pinned-release manifest blocks installs",
+      "sha": "a8c77f7221e4c5d9dbe8e992e8e8d4337d17a777",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40036158941,
+      "title": "Keep the temporary auth share root-owned so the daily UID cannot read it",
+      "sha": "a8c77f7221e4c5d9dbe8e992e8e8d4337d17a777",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035950604,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "727d1e83fd8162e4bfffb3b82db21b21cc4f92b2",
+      "conclusion": "cancelled",
+      "minutes": 3
+    },
+    {
+      "run": 40035784085,
+      "title": "11c: narrow firmware audit; pinned-release manifest blocks installs",
+      "sha": "727d1e83fd8162e4bfffb3b82db21b21cc4f92b2",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035777911,
+      "title": "Release the verified OCI pull cache before allocating installer disks",
+      "sha": "727d1e83fd8162e4bfffb3b82db21b21cc4f92b2",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035585755,
+      "title": "11c: narrow firmware audit; pinned-release manifest blocks installs",
+      "sha": "5df18ac05891496d2fc1749272ddc22e2d21ce0d",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035578181,
+      "title": "Document the 11d credential boundary and focused regressions",
+      "sha": "5df18ac05891496d2fc1749272ddc22e2d21ce0d",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40034568137,
+      "title": "11c: narrow firmware audit; pinned-release manifest blocks installs",
+      "sha": "61c33ca06f1e72a2013788dd715a5abac9c2caff",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40034559047,
+      "title": "Brief 11d: read the signed release with the owner's read-only token s\u2026",
+      "sha": "61c33ca06f1e72a2013788dd715a5abac9c2caff",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39992295958,
+      "title": "11c: narrow firmware audit; pinned-release manifest blocks installs",
+      "sha": "ad882d5b6460da373114e0fb54fe87680d420368",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39992290220,
+      "title": "Keep main's privacy workflow identical for a clean PR scan and accoun\u2026",
+      "sha": "ad882d5b6460da373114e0fb54fe87680d420368",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39991834967,
+      "title": "Report the 11c pre-VM release blocker and keep installation gates closed",
+      "sha": "ba4f5c65a8355a2827ee707fcea20b7416e8c85e",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989739478,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "failure",
+      "minutes": 7
+    },
+    {
+      "run": 39989544924,
+      "title": "11c: narrow firmware audit; pinned-release manifest blocks installs",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989537420,
+      "title": "Identify the exact public Git-tree false positive without broadening \u2026",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989156330,
+      "title": "11c: narrow firmware audit; pinned-release manifest blocks installs",
+      "sha": "f717ef24a6e04cdc192eec6912e7c248c6a53be2",
+      "conclusion": "failure",
+      "minutes": 1
+    },
+    {
+      "run": 39989148428,
+      "title": "Record rewritten source identities and explain unplugged-device firmw\u2026",
+      "sha": "f717ef24a6e04cdc192eec6912e7c248c6a53be2",
+      "conclusion": "failure",
+      "minutes": 1
+    },
+    {
+      "run": 39986075815,
+      "title": "11c: narrow firmware audit; pinned-release manifest blocks installs",
+      "sha": "3147a65dfb1f97815fec2e3634d1607031ee1379",
+      "conclusion": "success",
+      "minutes": 1
+    }
+  ]
+}

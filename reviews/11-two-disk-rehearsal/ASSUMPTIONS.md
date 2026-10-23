@@ -467,3 +467,32 @@ the limited counter coverage on the final failed-preflight VM, and budget.
   in both orders. Part B starts only after both Part A result records exist.
 - Only full-run evidence can qualify those installed stages. The 11b stores
   passing narrow regression tests do not establish fresh VM qualification.
+
+
+## 11d credential transport
+
+The owner-provided Actions secret is available only to explicit dispatch
+probe/full initialization. A root-owned 0700 directory and 0600 file under
+RUNNER_TEMP hold package-scoped credentials for the original pinned image.
+The existing org job token remains separate and handles Actions metadata only.
+No owner-token API request or package-visibility change is allowed.
+
+Host preflight requires the exact manifest digest, then pulls all layers with
+preserved digests into a disposable OCI layout and removes that layout to leave
+room for the installer. Both steps use the same temporary auth file. Failure
+has no credential fallback and exports a fixed reason, not client diagnostics.
+The original signature/identity and runtime-equivalence checks remain intact.
+
+The guest receives a read-only virtio-9p export at fixed PCI 6.0. Its root and
+file must be owned by UID 0; a runner-owned export could collide with daily
+UID 1001, so the first setup probe was cancelled before credential creation and
+a negative ownership regression was added. The guest mounts with cache=none,
+checks read-only mode/ownership/0600, and links /etc/ostree/auth.json to that
+mounted file. No credential bytes are sent as shell arguments or saved to a
+Linux target file. Console output from registry clients is private; safe proof
+records contain only fixed image/identity fields.
+
+The real live ISO must prove the 9p module, mount and unchanged cosign script in
+the fresh probe. No full run is authorized by host-only reads. The guard also
+requires the probe's successful always-cleanup receipt. Raw artifacts are
+scanned for credential patterns and encoded credentials before capture.

@@ -100,7 +100,7 @@ class Guest(sw.Guest):
             assert controller['class_info']['class'] == 0x0106, 'PLAN-GAP: expected Q35 SATA controller missing'
             cd, = [b for b in blocks if b.get('device') == 'installer-cd']
             assert pathlib.Path(cd['inserted']['file']).resolve() == (WORK / LIVE['filename']).resolve()
-            assert cd['qdev'].endswith('/installer-cd-device'), 'PLAN-GAP: unexpected ISO device binding'
+            assert cd['qdev'] == 'installer-cd-device', 'Unexpected QMP ISO device ID'
             attached.append(dict(key='pci:00:1f.2/sata:0:65535:0', qdev_id='installer-cd-device',
                                  bus='ide.0', unit=0, evidence='explicit QEMU ide.0/unit=0 and QMP query-block'))
         return dict(boot=self.boot_number, mode=self.mode, order=self.order, attached=attached,

@@ -750,3 +750,15 @@ No full run was authorized. Credential creation/read/cleanup now execute as
 root on the disposable runner; the guest requires root ownership of both share
 root and file, in addition to read-only mode and 0600. A negative regression
 rejects UID 1001 and relaxed permissions. A new same-commit probe is required.
+
+
+Probe 2 (`40036342487`, source `a8c77f7`) passed 132 native tests in 3.296s,
+verified the OVMF source contract, resolved/pulled the exact private digest,
+removed the OCI cache, and verified the complete pinned ISO (9,068,650,496 bytes).
+It then stopped in the QMP inventory adapter before establishing the first
+firmware baseline: IDE reports `qdev=installer-cd-device`, while the guard had
+expected a path suffix. This is a harness schema mistake, not an observed EFI
+option mutation. The guard now requires the exact real IDE ID; all PCI/SATA/file
+binding checks remain. A replay regression consumes the original raw QMP record
+and rejects a different ID. Cleanup passed; no full run is authorized and no
+fresh firmware/disk stage is claimed. A new same-commit probe follows.
