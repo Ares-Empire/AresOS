@@ -2,12 +2,19 @@
 
 The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up.
 
-## Where things are (2026-10-23, about 01:40)
+## Where things are (2026-10-23, about 18:25)
 
-- **Package 11** (draft PR #11, branch `pkg/11-two-disk-rehearsal`, worktree `C:/Users/pab/AresOS-11-two-disk-rehearsal`) stopped as briefed after 2 failed automation attempts (59 CI minutes). Media pins (part C) are done, and the protected-disk audit, two-disk fixture and Windows marker work. The protected disk stayed byte-identical in every check that ran. Blocker: the live ISO's installer is **Anaconda Web UI**, and kickstart is unsupported for live installs.
-- **11b running since 01:36** (`briefs/11b-webui-install.md`): drive the real Web UI pages from a host-side headless browser through a forwarded port (fallback: Anaconda's D-Bus modules), with a mandatory probe before every full run, then finish parts A and B. Cap 350 minutes and 3 full runs (about 620 minutes were left in October). Codex PID 15420, log `C:/Users/pab/AresOS-11b.log`, final message `../AresOS-11b.last.md`.
-- **When it finishes:** read the 11b REPORT section, then the package review (`docs/REVIEW.md`), the fix loop, and an explicit owner "merge". Bring any JUDGMENT-CALL to the owner in plain language.
-- **Done 2026-10-23:** PR #10 merged (`2fa6641`); emergency card `docs/EMERGENCY.md` (`d8359f2`).
+- **Package 11** (draft PR #11, branch `pkg/11-two-disk-rehearsal`, worktree `C:/Users/pab/AresOS-11-two-disk-rehearsal`). Part C (media pins) is done. **11b** (real Anaconda Web UI pages driven from host Chromium) stopped at 05:37 after 168/350 minutes and 0/3 full runs. All pre-install pages and the review work in the first drive order. The protected disk stayed byte-identical with zero writes. It stopped on the strict NVRAM rule: when the ISO and empty target were detached, OVMF pruned its own auto-created entries for them (Boot0002 DVD, Boot0004 target). Both carried exactly the EDK2 auto-create GUID `8108ac4e-9f11-4d59-850e-e21a522c59b2` as OptionalData. The Windows entry stayed identical.
+- **Integrator decision (brief 11c):** a firmware-owned option (OptionalData exactly that GUID) may be removed only for a device not attached in that boot, and added only for an attached one. Everything else stays strict.
+- **11c running since 18:21** (`briefs/11c-firmware-entries-and-installs.md`): the narrow rule plus regressions, a probe, then the full Part A (both orders) and Part B. Cap 330 minutes and 3 full runs (about 450 account minutes were left in October). It resumes the 11b Codex session `01a165f9-31fc-79c2-80de-0a8237188116`. Codex PID 26584, log `C:/Users/pab/AresOS-11c.log`, final message `../AresOS-11c.last.md`.
+- **When it finishes:** read the 11c REPORT section, then the package review (`docs/REVIEW.md`), the fix loop, and an explicit owner "merge". Bring any JUDGMENT-CALL to the owner in plain language.
+
+## History rewrite (2026-10-23 09:34 UTC)
+
+- An owner-run Claude session rewrote the whole GitHub history to replace the personal email with the no-reply address, and added `privacy-check.yml` and `.gitleaks.toml`. All SHAs changed. SHAs cited in older docs and reports name pre-rewrite commits.
+- The local `main` and the package 11 branch now track the rewritten remote. The old local heads are kept as `pre-rewrite/main` and `pre-rewrite/pkg/11-two-disk-rehearsal`. **Never push them, and never force-push.**
+- The repo-local git identity is `Patrik Breeck <287037715+carlsenares@users.noreply.github.com>`. The global identity is still the personal email, so commits in a fresh clone need the local identity set.
+- The owner turned on GitHub "Keep my email addresses private". Before that, GitHub's PR test-merge commits used the personal email and failed the privacy check. The leftover worktrees 03 to 10 still hold old-history branches.
 
 ## Waiting on the owner
 
@@ -19,6 +26,6 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 - **Merging:** delete a branch only after `gh pr view N --json state` = MERGED. Never launch Codex into a worktree with unmerged files. Claude Code's auto mode blocks `gh pr merge` without an explicit owner "merge" in chat.
 - **Low memory** stops Claude's background wrappers, but `codex.exe` keeps running. Check its PID and the `turn.completed` line in its log. The owner can start Claude Code with `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP=1` to prevent this.
 - **Codex assumptions:** before a full CI run, check every new check's assumptions against the image's retained package inventory (06d lost both runs assuming SDDM; Bazzite uses Plasma Login Manager).
-- **CI minutes:** about 1,320 of 2,000 used in October.
+- **CI minutes:** about 1,550 of 2,000 used in October (estimate; `gh` lacks the billing scope). Other repos share the quota.
 - **Leftover worktrees** for merged branches 03, 04, 06, 07, 08, 09 and 10. Remove them with `git worktree remove` from the main checkout. The safety check blocks deleting a folder the session is inside.
 - **Deferred work:** `briefs/03-followup-activation-audit.md` (activation-graph updater audit).

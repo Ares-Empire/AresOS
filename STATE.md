@@ -35,7 +35,7 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- **Package 11** (two-disk install rehearsal, GRUB recovery promotion, pinned media) is running since 2026-10-23 00:18. See `HANDOFF.md`.
+- **Package 11** (two-disk install rehearsal, GRUB recovery promotion, pinned media): media pins done. 11b drove the real installer pages and stopped on a firmware-entry rule. **11c** has been running since 2026-10-23 18:21 with a narrow rule for firmware-owned entries, followed by the real installs. See `HANDOFF.md`.
 
 ## Waiting on the owner
 
