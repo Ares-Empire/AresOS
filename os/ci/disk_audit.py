@@ -325,12 +325,10 @@ def compare_nvram(before, after, windows='Boot0000', before_devices=None, after_
                 optional_data=AUTO_BOOT_GUID.hex())
         else:
             assert (change['before'] is None or name in previous_linux) and (change['after'] is None or name in current_linux), 'PRODUCT FAILURE: non-firmware non-Linux entry added, removed or changed'
-    # Re-created Linux entries retain their logical position in the fixed order.
-    recreations = dict(zip(sorted(removed_linux), sorted(added_linux)))
-    shared = {name for name in before.keys() & after.keys() if name not in previous_auto and name not in current_auto}
-    old_fixed = [recreations.get(name, name) for name in orders[0] if name in shared or name in recreations]
-    new_fixed = [name for name in orders[1] if name in shared or name in recreations.values()]
-    assert old_fixed == new_fixed, 'PLAN-GAP: relative order of non-firmware entries changed'
+    # 11f permits target Linux movement; all other fixed entries retain order.
+    old_fixed = [name for name in orders[0] if name not in previous_auto and name not in previous_linux]
+    new_fixed = [name for name in orders[1] if name not in current_auto and name not in current_linux]
+    assert old_fixed == new_fixed, 'PLAN-GAP: relative order of fixed non-Linux entries changed'
     return changes
 
 
@@ -358,6 +356,18 @@ def nvram_audit(before, after, **context):
                 relabeled=first is not None and last is not None and descriptions[0] != descriptions[1],
                 renumbered=first is not None and last is not None and first != last,
                 optional_data=AUTO_BOOT_GUID.hex()))
-    return dict(rule='11e-device-set', changes=changes, firmware_changes=events,
+    orders = [ordered_options(store) for store in (before, after)]
+    linux = [{name for name, value in store.items() if re.fullmatch(r'Boot[0-9A-F]{4}', name)
+              and name not in auto and linux_entry(value, context.get('target_esp'))}
+             for store, auto in zip((before, after), owned)]
+    positions = []
+    for name in sorted(linux[0] | linux[1]):
+        indices = [order.index(name) if name in names and name in order else None
+                   for order, names in zip(orders, linux)]
+        if indices[0] != indices[1]:
+            positions.append(dict(option=name, old_index=indices[0], new_index=indices[1],
+                                  reason='11f target-ESP Fedora loader position is not judged'))
+    return dict(rule='11f-linux-position', changes=changes, firmware_changes=events,
+                linux_position_changes=positions,
                 firmware_before=owned[0], firmware_after=owned[1],
-                order_before=ordered_options(before), order_after=ordered_options(after))
+                order_before=orders[0], order_after=orders[1])

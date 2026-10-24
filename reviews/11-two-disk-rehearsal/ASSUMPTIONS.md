@@ -558,3 +558,23 @@ and Linux entry payloads and protected bytes remained identical; all three full
 final counters were zero. This conflicts with 11e's strict relative-order rule.
 The run stopped; no checkpoint was moved, rule widened or additional VM run
 attempted. The integrator must settle that boundary before new qualification.
+
+## 11f amended Linux position and full-length plan
+
+The integrator explicitly permits validated target Linux position changes,
+including installer-first → Windows-first. Fixed order now excludes those Linux
+entries as well as firmware-owned options; every movement records old/new index
+and complete orders. Windows payload/number/default and target ESP/loader checks
+stay strict. restore_windows_order is independently read back as an exact stable
+move of Windows to the front, with no other boot-variable mutation.
+
+The zero-cost stage walkthrough and measured time estimate are in the 11f REPORT
+section, written before any new dispatch. Full VM/job limits 156/180 minutes
+cover both complete orders plus B with approximately 30% margin; probe limits
+are unchanged. The ledger starts at the same 11c timestamp with 146 minutes and
+one full already spent. New cap 600, still three full total. Org billing
+248/2,000 used is integrator-reported, not verified via token API.
+
+Real 11e install→detached-Windows raw stores replay under 11f as exactly the DVD
+and target auto removals plus Boot000A index 0→1. Historical 11b/11d set events
+remain unchanged. These static replays do not qualify new A/B boots.

@@ -15,6 +15,22 @@ from prepare_two_disks import verify_loop
 
 
 class TwoDiskHarnessTest(unittest.TestCase):
+    def test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output(self):
+        before = dict(BootOrder=dict(attributes=7, hex='0a000100000009000200'),
+                      Boot0000=dict(attributes=7, hex='unchanged'))
+        correct = dict(before, BootOrder=dict(attributes=7, hex='00000a00010009000200'))
+        with patch.object(vm, 'boot_variables', side_effect=[before, correct]), \
+             patch.object(vm, 'set_variable') as write, patch.object(vm, 'save') as save:
+            vm.restore_windows_order('fixture')
+            self.assertEqual(write.call_args.args[2].hex(), correct['BootOrder']['hex'])
+            self.assertEqual(save.call_args.args[1]['after'], correct)
+        for bad in ('000001000a0009000200', '00000a0001000900', '0a000000010009000200'):
+            with patch.object(vm, 'boot_variables', side_effect=[before, dict(correct,
+                     BootOrder=dict(attributes=7, hex=bad))]), patch.object(vm, 'set_variable'), \
+                 patch.object(vm, 'save') as save, self.assertRaisesRegex(AssertionError, 'exactly Windows'):
+                vm.restore_windows_order('fixture')
+            save.assert_not_called()
+
     def test_real_qmp_ide_id_is_bare_while_virtio_uses_a_backend_path(self):
         root = pathlib.Path(__file__).resolve().parents[2]
         actual = json.loads((root / 'os/manifest/ci/11d/probe-2/two-disk/boot-1-raw-hardware.json').read_text())

@@ -213,6 +213,52 @@ class DiskAuditTest(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'without target-ESP recreation'):
             compare_nvram(before, removed, before_devices=devices, after_devices=devices, target_esp=esp)
 
+    def test_11e_real_install_to_detached_windows_records_linux_move_and_two_removals(self):
+        root = pathlib.Path(__file__).resolve().parents[1] / 'manifest/ci/11e/full-1/two-disk'
+        stages = ('protected-first-install', 'after-install-without-linux')
+        stores = [boot_variables(root / (s + '-vars.fd')) for s in stages]
+        devices = [json.loads((root / (s + '-devices.json')).read_text()) for s in stages]
+        esp, = [p for p in json.loads((root / (stages[0] + '-target-efi.json')).read_text())['gpt']['partitions']
+                if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b']
+        result = nvram_audit(*stores, before_devices=devices[0], after_devices=devices[1], target_esp=esp)
+        self.assertEqual({(e['before_option'], e['after_option']) for e in result['firmware_changes']},
+                         {('Boot0002', None), ('Boot0004', None)})
+        self.assertEqual([(e['option'], e['old_index'], e['new_index']) for e in result['linux_position_changes']],
+                         [('Boot000A', 0, 1)])
+        self.assertEqual(result['order_before'][0], 'Boot000A')
+        self.assertEqual(result['order_after'][:2], ['Boot0000', 'Boot000A'])
+
+    def test_linux_positions_free_but_fixed_order_and_windows_default_strict(self):
+        before, devices, _, esp = self.linux_fixture()
+        for index in (0, 1, 3, 9):
+            moved = copy.deepcopy(before)
+            order = bytes.fromhex(moved['BootOrder']['hex']).replace(bytes.fromhex('9900'), b'')
+            order = order[:index * 2] + bytes.fromhex('9900') + order[index * 2:]
+            moved['BootOrder']['hex'] = order.hex()
+            result = nvram_audit(before, moved, before_devices=devices, after_devices=devices,
+                                 target_esp=esp, windows_first=False)
+            self.assertEqual(result['linux_position_changes'][0]['new_index'], index)
+            if index == 0:
+                with self.assertRaisesRegex(AssertionError, 'Windows is not first'):
+                    compare_nvram(before, moved, before_devices=devices, after_devices=devices, target_esp=esp)
+        for order in ('010000000900', '090000000100', '000009000100'):
+            wrong = copy.deepcopy(before)
+            wrong['BootOrder']['hex'] = order + '9900'
+            with self.subTest(order=order), self.assertRaises(AssertionError):
+                compare_nvram(before, wrong, before_devices=devices, after_devices=devices,
+                              target_esp=esp, windows_first=False)
+
+    def test_moving_invalid_linux_loader_or_esp_does_not_exempt_it(self):
+        before, devices, part, esp = self.linux_fixture()
+        for wrong_part, loader in ((dict(part, guid=str(uuid.uuid4())), '\\EFI\\fedora\\shimx64.efi'),
+                                   (part, '\\EFI\\Microsoft\\Boot\\bootmgfw.efi')):
+            after = copy.deepcopy(before)
+            after['Boot0099']['hex'] = boot_entry(wrong_part, 'Bazzite', loader).hex()
+            after['BootOrder']['hex'] = '9900' + after['BootOrder']['hex'][:-4]
+            with self.assertRaises(AssertionError):
+                compare_nvram(before, after, before_devices=devices, after_devices=devices,
+                              target_esp=esp, windows_first=False)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=pathlib.Path(__file__).parent)
         self.addCleanup(self.temp.cleanup)

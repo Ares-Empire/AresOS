@@ -438,12 +438,17 @@ def install(audit, password, password_hash):
             audit.check(stage, guest)
 
 
-def restore_windows_order():
+def restore_windows_order(stage):
     entries = boot_variables(WORK / 'vars.fd')
     order = bytes.fromhex(entries['BootOrder']['hex'])
     numbers = list(struct.unpack('<' + 'H' * (len(order) // 2), order))
     assert 0 in numbers
-    set_variable(WORK / 'vars.fd', 'BootOrder', struct.pack('<' + 'H' * len(numbers), 0, *[n for n in numbers if n != 0]))
+    expected = struct.pack('<' + 'H' * len(numbers), 0, *[n for n in numbers if n != 0])
+    set_variable(WORK / 'vars.fd', 'BootOrder', expected)
+    observed = boot_variables(WORK / 'vars.fd')
+    assert observed == dict(entries, BootOrder=dict(entries['BootOrder'], hex=expected.hex())), 'PRODUCT FAILURE: restore_windows_order must produce exactly Windows + previous order without Windows'
+    save(stage + '-windows-order', dict(status='passed', before=entries, after=observed,
+         rule='exactly Windows followed by previous BootOrder without Windows'))
 
 
 def reset_target():
@@ -624,7 +629,7 @@ def main():
     if sys.argv[1:] == ['probe']:
         probe_root = EVIDENCE
         live_probe(audit)
-        restore_windows_order()
+        restore_windows_order('probe')
         marker(audit, 'probe-windows-without-linux', detached=True)
         reset_target()
         shutil.copyfile(probe_root / 'pre-firmware-vars.fd', WORK / 'vars.fd')
@@ -637,11 +642,11 @@ def main():
         shutil.copyfile(WORK / 'vars.fd', EVIDENCE / 'pre-firmware-vars.fd')
         marker(reverse, 'baseline-firmware', baseline=True)
         live_probe(reverse)
-        restore_windows_order()
+        restore_windows_order('probe')
         marker(reverse, 'probe-windows-without-linux', detached=True)
         proof = dict(status='passed', installed=False, both_orders=True, review_validated=True,
                      detached_windows=True, target_reset=True, owner_auth_read_only=True, signature_verified=True,
-                     firmware_rule='11e-device-set', commit=os.environ['GITHUB_SHA'])
+                     firmware_rule='11f-linux-position', commit=os.environ['GITHUB_SHA'])
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)
         return
@@ -659,7 +664,7 @@ def main():
     root = EVIDENCE
     def part_a(current):
         target = install(current, password, password_hash)
-        restore_windows_order()
+        restore_windows_order('after-install')
         set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
         marker(current, 'after-install-without-linux', detached=True)
         Guest.mode = 'installed'
@@ -668,7 +673,7 @@ def main():
                 shutdown_hook=lambda stage, guest: current.check('switch-sequence-' + stage, guest))
         set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
         marker(current, 'before-undo-windows')
-        restore_windows_order()
+        restore_windows_order('undo')
         marker(current, 'after-undo-default-windows')
         marker(current, 'after-undo-without-linux', detached=True)
         save('part-a-result', dict(status='passed', order=Guest.order,

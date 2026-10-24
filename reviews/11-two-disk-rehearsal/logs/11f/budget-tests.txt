@@ -1,0 +1,8 @@
+test_allowance_includes_privacy_push_and_pr_jobs_and_excludes_old_runs (test_rehearsal_budget.BudgetTest.test_allowance_includes_privacy_push_and_pr_jobs_and_excludes_old_runs) ... ok
+test_full_dispatch_count_includes_current_run_and_rejects_fourth (test_rehearsal_budget.BudgetTest.test_full_dispatch_count_includes_current_run_and_rejects_fourth) ... ok
+test_full_time_reservation_covers_one_complete_job_without_changing_probe_limits (test_rehearsal_budget.BudgetTest.test_full_time_reservation_covers_one_complete_job_without_changing_probe_limits) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.017s
+
+OK

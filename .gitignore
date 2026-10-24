@@ -30,3 +30,5 @@ evidence/
 # Machine-local app catalogue and generated proprietary icons
 aresos-runtime/
 **/config/aresos/apps.json*
+
+/os/manifest/ci/11f/**/installer/squashfs-files.txt

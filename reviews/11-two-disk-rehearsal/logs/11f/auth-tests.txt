@@ -1,0 +1,14 @@
+test_auth_file_rejects_runner_uid_and_relaxed_permissions (test_rehearsal_auth.OwnerAuthTest.test_auth_file_rejects_runner_uid_and_relaxed_permissions) ... ok
+test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload) ... ok
+test_cleanup_refuses_unexpected_files_in_the_temporary_directory (test_rehearsal_auth.OwnerAuthTest.test_cleanup_refuses_unexpected_files_in_the_temporary_directory) ... ok
+test_failed_layer_pull_has_no_retry_or_credential_diagnostics (test_rehearsal_auth.OwnerAuthTest.test_failed_layer_pull_has_no_retry_or_credential_diagnostics) ... ok
+test_guest_uses_only_a_read_only_share_not_an_encoded_secret_command (test_rehearsal_auth.OwnerAuthTest.test_guest_uses_only_a_read_only_share_not_an_encoded_secret_command) ... ok
+test_missing_secret_wrong_event_or_mode_and_workspace_path_fail_closed (test_rehearsal_auth.OwnerAuthTest.test_missing_secret_wrong_event_or_mode_and_workspace_path_fail_closed) ... ok
+test_preflight_accepts_only_the_pinned_digest_and_discards_error_output (test_rehearsal_auth.OwnerAuthTest.test_preflight_accepts_only_the_pinned_digest_and_discards_error_output) ... ok
+test_registry_diagnostics_are_never_written_to_public_console_evidence (test_rehearsal_auth.OwnerAuthTest.test_registry_diagnostics_are_never_written_to_public_console_evidence) ... ok
+test_secret_is_only_referenced_in_the_dispatch_probe_full_create_step (test_rehearsal_auth.OwnerAuthTest.test_secret_is_only_referenced_in_the_dispatch_probe_full_create_step) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.078s
+
+OK

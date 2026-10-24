@@ -1248,3 +1248,124 @@ transition, or should the installation/checkpoint contract establish Windows-
 first at a different defined boundary? This needs an integrator decision and
 fresh same-source qualification under the still-shared allowance. This run
 chooses neither. Acceptance is not met; PR #11 stays draft and nothing is merged.
+
+## 11f: Linux position rule and full-length qualification (2026-10-24)
+
+### Done / zero-cost stage walk-through — BEFORE ANY DISPATCH
+
+Read 11c/11d/11e/11f, the previous 11e result, both harnesses and the guide.
+Initial fetch and `git pull --ff-only` fast-forwarded to integrator brief
+`60b20e1a611240efa4583b36f69b0cf371a85531`; no force-push or merge.
+This section was written locally before dispatch or source push.
+
+11f explicitly replaces the overly broad fixed-order rule: remove all validated
+target-ESP Fedora-loader Linux entries and exact-GUID firmware options before
+comparing fixed-entry order. Windows, UiApp and Shell retain their relative order.
+Every Linux position change (including addition/recreation) records old/new zero-based
+indices and complete before/after BootOrder. Windows payload/number/default remain
+strict. The host's Windows-first action is read back and must produce EXACTLY
+Windows + previous BootOrder without Windows, without any other boot-variable change.
+
+The following applies independently to **protected-first AND protected-second**.
+Only these disposable file-backed disks and the closed OVMF store are manipulated.
+The second order starts with an empty target and pristine initial vars; it uses the
+same protected fixture and must match the first order's protected baseline.
+
+| Stage still to execute | Expected NVRAM transition | Rule / required check |
+|---|---|---|
+| Baseline Windows, ISO + empty target attached | OVMF adds automatic DVD, both storage and NIC options; numbering/labels differ by enumeration. Windows Boot0000 first; no BootNext required. | Source-verified exact 16-byte auto GUID; every auto path resolves to attached per-boot QMP device. Original Windows payload pinned. |
+| Real live installation | Same devices remain attached. Anaconda adds target-only Bazzite/Fedora shim entry, typically first. Auto options may refresh/relabel/renumber; Linux-first is expected here. | 11e device-set/takeover checks; 11f Linux position freedom; target GPT ESP GUID/number/start/length + exact Fedora shim/GRUB path; fixed order unchanged. Windows-first intentionally not required in live mode. |
+| Restore Windows after install | Move Windows from its previous index to index zero, shifting Linux behind it. | 11f exact stable Windows move, read back before continuing. No other variable may change in this host action. |
+| Windows after install, target + ISO detached | Set BootNext=0000, firmware consumes it; DVD/target auto options disappear. In reverse order the protected auto option can relabel/renumber (previously Boot0004→0002); Linux option may remain even though its target is absent. | Same three 11e device-set events in reverse, two in first order (or other device-set changes within explicit rule); Windows unchanged/first and marker BootCurrent=0000 on protected ESP. A retained validated Linux entry is permitted; an unpaired Linux removal is not. |
+| First installed stock boot / optional orderly hardware-setup reboot | Reattach target (no ISO), automatic target option may return/recycle a former auto number. Set BootNext to the validated Linux entry; consumed on each boot. Shim fallback/bootupd may recreate/change a target-only Linux entry or move it. | 11e auto set + non-auto number protection; 11f validated Linux recreation/position. Only the known first stock pre-login initialization reboot is accepted and separately audited. Windows remains default at all installed checkpoints; a Linux move ahead of Windows there would STOP, not be excused. |
+| Stock → staged AresOS switch | BootNext Linux consumed; bootc/bootupd may update the separate Linux option or its position. Attached devices unchanged. | Same target ESP/loader, GUID/device-set, Windows-first/fixed-order checks; signature and staged image identity unchanged. Offline audit after shutdown. |
+| AresOS policy + actual tty3 password/sudo/logout → rollback queued | BootNext Linux consumed; same permitted Linux/auto refresh. bootc rollback changes OSTree/GRUB deployment state, not authority to change fixed firmware entries. | Full inherited policy, UID, Homebrew, partition and transaction identity checks plus offline protected/NVRAM checks. |
+| Rolled-back stock → persistent stock default | BootNext Linux consumed; stock set-default changes GRUB deployment order. Firmware may refresh/recreate only validated Linux/auto options. | Recorded stock checksum/digest, first deployment, no staged/queued state; Windows still first in firmware. Offline audit. |
+| Second unattended stock boot | Only firmware BootNext selects Linux; no GRUB selection. Auto/Linux updates subject to same checks. | Same recorded stock checksum/digest remains booted and first. Protected disk/NVRAM audit. |
+| Windows before undo (both drives, no ISO) | Set BootNext=0000, consumed; auto options remain device-bound. | Original Microsoft path/ESP marker; Windows first; all disk/NVRAM checks. |
+| Default undo | Read back exact Windows + previous BootOrder without Windows. Boot Windows without BootNext or keys, both drives attached. | Strict restoration assertion, marker and offline audit. No deployment or partition erase. |
+| Windows after undo, target detached | Target auto option may disappear; reverse protected auto option may relabel/renumber. Linux entry may remain. | Same 11e device-set, 11f fixed/Windows order, original Windows marker and zero-write/offline comparisons. |
+
+**Part B uses the reverse installed target after successful Part A:**
+
+| Stage | Expected transition | Rule / required check |
+|---|---|---|
+| Re-switch stock → AresOS | Reattach target, auto option may return at a recyclable auto/free ID; BootNext Linux consumed; Linux EFI changes/moves remain target-only. | Identical strict device-set, target ESP, Windows default and fixed-entry order checks; inspect switch identity before reboot. |
+| AresOS / prepare actual BLS menu | BootNext Linux consumed; record actual BLS stock checksum/index; reboot without changing the firmware default. | AresOS first in GRUB, retained stock identified from real BLS ostree= resolution; offline audit. |
+| QMP Esc / actual stock menu selection | BootNext selects Linux firmware entry once, then GRUB one-time stock choice. Firmware auto refresh/validated Linux movement only. | Select only if OCR shows recorded real menu entries. No guessed stock identity. If undrivable, the brief-authorized grub2-reboot fallback is recorded. A menu failure never exempts protected/NVRAM checks. |
+| Optional fallback boot / one-time stock | BootNext Linux consumed. grub2-reboot affects GRUB environment, not firmware BootOrder. | Stock booted at previous nonzero deployment index while AresOS remains default; validate checksum and pinned digest; audit any extra shutdown. |
+| Promote recorded stock | Identity-checked ostree admin set-default; normal Linux BootNext consumed on next boot. | Confirm recovered stock identity BEFORE promotion, retain target-only Linux entry and Windows firmware default; offline audit. |
+| Unattended stock | No GRUB selection; firmware BootNext selects Linux only. Stock must remain booted and deployment zero. | Same stock checksum/digest, no staged/queued state, rendered stock greeter, all protected/NVRAM checks. |
+
+No **required** foreseeable transition conflicts with the amended rules. Unknown
+paths/GUID-plus-extra, non-Linux fixed-entry changes/removal/addition, automatic
+takeover of non-auto IDs, a Linux entry on the protected ESP or non-Fedora loader,
+an unpaired Linux disappearance, Windows payload/default loss or any protected
+write still STOP immediately. A future bootupd move before Windows at an installed
+Windows-default checkpoint would also STOP; 11f does not authorize ignoring it.
+No broader allowance was inferred from this walk-through.
+
+### Time estimate / continuing ledger — BEFORE ANY DISPATCH
+
+Integrator-reported org billing: **248 / 2,000 October included Actions minutes used
+on 2026-10-24**, resets 1 November. This was read by the integrator, not verified by
+job/owner token API. Same 11c start `2026-10-23T16:21:00Z`, **600 rounded minutes,
+3 full dispatches total**, no reset. Initial read-only ledger: **146 minutes, 1 full**
+(144 through 11e closure + two brief-11f privacy jobs).
+
+Observed step timings from retained probe 2 / full 1 jobs: tools 2.40 / 2.68 min,
+cleanup-software 0.80 / 1.60, pinned layer pull 0.57 / 0.55, pinned ISO inspection
+5.75 / 5.45, VM/fixture step 11.55 / 27.77. Full first install alone took about
+25.1 minutes from baseline through final install audit. Thus:
+
+| Remaining complete-full work | Estimated minutes |
+|---|---:|
+| Fixture preparation, initial Windows baselines, fresh reverse target/vars | 4–5 |
+| Two real ISO UI installations including install audit | 50–54 |
+| Two complete switch/policy/tty3/rollback/second-stock sequences (06e 7.1 min lower bound; real installer path plus audits slower) | 22–26 |
+| Windows markers after install, before/default/detached undo, including full offline hash each | 8–10 |
+| Part B re-switch, recorded menu attempt/possible fallback, promotion, second stock, offline audits | 17–23 |
+| Remaining per-stage hashes/EFI inventories and ordinary initialization variation | 4–5 |
+| **Complete VM step** | **105–123 (planning upper bound approximately 120)** |
+| Setup/ISO/auth/collection outside VM, observed about 11 | **11–13** |
+
+Full VM limit **156** = 120 × 1.30; full job **180** covers VM + about 14 setup +
+cleanup/upload with margin (and is the brief's maximum). The high endpoint 123
+still has 27% VM margin. Full budget reservation **182** includes the full job
+bound plus 2 minutes cleanup/accounting contingency. Probe job **40**, VM **80**,
+reservation **42** remain unchanged. One job covers both orders + B; no splitting.
+The unchanged 30-minute Web UI installation deadline already reached successful
+completion in full 1; it is distinct from the previously insufficient full VM limit.
+
+### Verified / gate → evidence — pre-dispatch
+
+- `python -X utf8 -m unittest discover -s os/tests -p test_disk_audit.py -v`:
+  **21 tests, 0.239s, OK**.
+- Same command with `test_two_disk_vm.py`: **21 tests, 0.260s, OK**.
+- With `test_rehearsal_budget.py`: **3 tests, 0.017s, OK**.
+- With `test_rehearsal_auth.py`: **9 tests, 0.078s, OK**.
+- `python -X utf8 reviews/11-two-disk-rehearsal/replay-11f-firmware.py`:
+  11b-first-order **2**, 11d-first-order **2**, 11e-full-install **2 firmware +
+  Boot000A 0→1**, 11d-reverse-order **3** events; all passed. Raw inputs and
+  QMP context are SHA-bound in [new derived replay](../../os/manifest/ci/11f/firmware-set-replays.json).
+- Targeted `python -X utf8 -m py_compile` on the changed CI and new evidence helpers
+  passed. Local logs: [11f](logs/11f/).
+- AST source comparison confirms 13 protected/ownership/loader helpers unchanged;
+  auth, installer, switch, release identity and frozen manifests unchanged;
+  privacy workflow/config identical to origin/main. [Scope check](logs/11f/scope-check.txt).
+
+Fresh CI native regressions, same-source probe and full are pending. No new
+dispatch has occurred; the zero-cost walkthrough above precedes them.
+
+### Not verified
+
+Complete A/B and hardware gates remain open until new evidence establishes them.
+
+### JUDGMENT-CALL
+
+No new product decision; the integrator explicitly authorized Linux position
+freedom and the new cap. The full timeout/reservation follows measured timings.
+
+### PLAN-GAP / Open questions
+
+None newly established by this zero-cost walkthrough; all original stop rules remain.
