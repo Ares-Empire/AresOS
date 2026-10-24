@@ -44,7 +44,7 @@ class OwnerAuthTest(unittest.TestCase):
         name, step = references[0]
         self.assertEqual(name, 'rehearsal')
         self.assertIn("github.event_name == 'workflow_dispatch'", workflow['jobs'][name]['if'])
-        for required in ("github.event_name == 'workflow_dispatch'", "inputs.rehearsal == 'probe'", "inputs.rehearsal == 'full'"):
+        for required in ("github.event_name == 'workflow_dispatch'", "inputs.rehearsal == 'probe'", "inputs.rehearsal == 'part-b'"):
             self.assertIn(required, step['if'])
         self.assertEqual(step['env']['GHCR_READ_TOKEN'], '${{ secrets.GHCR_READ_TOKEN }}')
         self.assertNotIn('GH_TOKEN', step['env'])
@@ -81,7 +81,7 @@ class OwnerAuthTest(unittest.TestCase):
 
     def test_missing_secret_wrong_event_or_mode_and_workspace_path_fail_closed(self):
         for change in (dict(GHCR_READ_TOKEN=''), dict(GITHUB_EVENT_NAME='push'),
-                       dict(GITHUB_EVENT_NAME='pull_request'), dict(REHEARSAL_MODE='inspect'),
+                        dict(GITHUB_EVENT_NAME='pull_request'), dict(REHEARSAL_MODE='inspect'), dict(REHEARSAL_MODE='full'),
                        dict(RUNNER_TEMP=str(self.workspace))):
             with self.subTest(change=change), patch.dict(os.environ, dict(self.environment, **change), clear=True):
                 with self.assertRaises((AssertionError, RuntimeError)):

@@ -15,8 +15,9 @@ import zipfile
 REPOSITORY = 'Ares-Empire/AresOS'
 BRANCH = 'pkg/11-two-disk-rehearsal'
 START = '2026-10-23T16:21:00Z'
-MINUTE_CAP = 750
+MINUTE_CAP = 900
 FULL_CAP = 5
+PART_B_CAP = 1
 RETRY_WAITS = (10, 20, 40, 60)
 READ_RETRIES = []
 
@@ -75,11 +76,14 @@ def budget(reserve, current=None):
     assert len(runs) < 100 or runs[-1]['created_at'] < START, 'Budget history requires pagination; refuse an incomplete ledger'
     records = []
     full = 0
+    part_b = 0
     for run in runs:
         if run['created_at'] < START:
             continue
         if run['display_title'] == 'Two-disk rehearsal (full)':
             full += 1
+        if run['display_title'] == 'Two-disk rehearsal (part-b)':
+            part_b += 1
         if str(run['id']) == str(current):
             continue
         assert run['status'] == 'completed', 'Another branch workflow is active; cannot reserve its cost'
@@ -89,7 +93,9 @@ def budget(reserve, current=None):
     consumed = sum(record['minutes'] for record in records)
     assert consumed + reserve <= MINUTE_CAP, f'STOP: {consumed} + {reserve} reserved exceeds {MINUTE_CAP} minutes'
     assert full <= FULL_CAP, 'STOP: full-run allowance exhausted'
+    assert part_b <= PART_B_CAP, 'STOP: Part B qualification allowance exhausted'
     return dict(allowance='11c', start=START, cap=MINUTE_CAP, full_cap=FULL_CAP, full_dispatched=full,
+                part_b_cap=PART_B_CAP, part_b_dispatched=part_b,
                 consumed_minutes=consumed, reserved_minutes=reserve, runs=records)
 
 
@@ -104,12 +110,14 @@ def require_probe(run, sha):
 
 def main():
     mode = sys.argv[1]
+    assert mode != 'full' and not (mode == 'ci' and os.environ.get('REHEARSAL_MODE') == 'full'), 'STOP: 11l permits no further full run'
     reserve = int(sys.argv[2])
     current = os.environ.get('GITHUB_RUN_ID') if mode == 'ci' else None
     result = budget(reserve, current)
-    if mode == 'full':
-        assert result['full_dispatched'] < FULL_CAP, 'STOP: no full dispatches remain'
-    if mode == 'ci' and os.environ.get('REHEARSAL_MODE') == 'full':
+    if mode == 'part-b':
+        assert result['part_b_dispatched'] < PART_B_CAP, 'STOP: no Part B qualification dispatch remains'
+    if mode == 'ci' and os.environ.get('REHEARSAL_MODE') == 'part-b':
+        assert result['part_b_dispatched'] == PART_B_CAP, 'STOP: Part B current dispatch is absent or duplicated'
         probe_id = os.environ.get('PROBE_RUN', '')
         assert probe_id.isdigit(), 'Full run requires an explicit passing probe ID'
         require_probe(api('actions/runs/' + probe_id), os.environ['GITHUB_SHA'])

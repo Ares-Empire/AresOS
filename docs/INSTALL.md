@@ -82,7 +82,7 @@ Use AC, lid open, backups/recovery stick disconnected. F12-boot the installer in
 3. **Installation method → Change destination**: use record C's **same-session whole-disk path** to find the exact Crucial entry; copy/photograph its full text in the mapping. Deselect every other drive. **Destination** must show only this entry; choose **Use entire disk**. This erases the selected disk. [B3] A missing/ambiguous device name means stop. Do not choose alongside Windows, reclaim or manual partitioning.
 4. At **Storage configuration**, leave **Encrypt my data** unchecked for the proposed disposable first trial; personal-data encryption needs a separate decision. At **Create Account**, keep **Use local account** checked; its description promises administrator access. Enter **ares-recovery** as **User name** first, then the full name and a strong unique passphrase twice. Do not create `ares` or enable root. The actual screen was previewed in 11b; **installed UID/group, encryption and two-drive qualification remain OPEN; do not install yet**. The required account checks are in [§6](#accounts-before-switching).
 5. At **Review and install**, before **Erase data and install**, complete record C's **installer plan** check: require **only Crucial storage rows**, including a **new EFI partition at `/boot/efi`**, boot and system/data storage. [B4] Resolve every path through the same-session mapping, not example `vda` or a remembered `nvme0n1`. Photograph the whole summary privately. **Any Micron write/mount/EFI reuse, shared Windows EFI, missing new EFI or unclear target means FAIL — Quit.** Never dismiss Windows EFI wording as harmless. Every check must be PASS before continuing.
-6. After all checks, install. On error, stop; do not retry with wider erase options. Reboot, remove USB and F12-select the new Linux entry. Unexpected enrollment/signature screens stop the trial; Secure Boot stays off. [B1]
+6. After all checks, install. On error, stop; do not retry with wider erase options. Reboot, remove USB and press nothing: **Linux is the firmware default at this point**. Let stock Bazzite finish its one-time hardware setup, including its possible automatic reboot, then sign in and complete the pause-and-retain block below. Unexpected enrollment/signature screens stop the trial; Secure Boot stays off. [B1]
 
 The pinned live installer's whole-drive route passed the automated two-disk VM rehearsal in **both drive orders**: Linux EFI/boot/root stayed on the selected target and the protected disk stayed unchanged. See [11k](../reviews/11-two-disk-rehearsal/REPORT.md#11k-bounded-read-only-guard-retry-and-final-qualification-2026-10-24). Physical media, the laptop and unaided followability still need qualification before release. Do not improvise legacy/manual or shared EFI.
 
@@ -348,7 +348,7 @@ uupd.timer** to turn stock updates back on.
 
 ## 5. Check installed Bazzite
 
-Finish [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): save Crucial's new GUIDs and Linux firmware entry; prove `/boot/efi` resolves to Crucial. Then **F12 → Windows Boot Manager**, run [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage). A mismatch or Windows repair/recovery prompt stops the trial. Keep records independently.
+After the successful first-login pause-and-retain block, finish [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): save Crucial's new GUIDs and Linux firmware entry; prove `/boot/efi` resolves to Crucial. Restart into **F2 → put Windows Boot Manager first → Save and Exit**. On the next start **press nothing: Windows must start**. This checks the saved firmware default; choosing Windows once with F12 would not check it. Then run [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage). A missing entry, unexpected default, mismatch or Windows repair/recovery prompt stops the trial. Keep records independently. From this step onward Windows stays the firmware default; use F12 for one Linux start.
 
 ## 6. Switch to AresOS
 
@@ -420,13 +420,24 @@ Require successful verification and the exact release digest in the signed paylo
 
 ### Switch, reboot, and check recovery
 
-Run the transaction in its own block. The subshell stops on failure and returns to your root prompt:
+Run the checked switch script below in its own block. It repeats the account and pending-deployment checks immediately before switching. Any failure stops the block; do not reboot:
 
 ```bash
-(
+#!/usr/bin/bash
 set -euo pipefail
+test "$(id -u ares-recovery)" = 1000
+if getent passwd ares; then
+    echo 'Refusing switch: daily account ares already exists'
+    exit 1
+fi
+test -z "$(getent passwd 1001)"
+test -r /etc/ostree/auth.json
+python3 - <<'PY'
+import json, subprocess
+state = json.loads(subprocess.check_output(['bootc', 'status', '--json']))['status']
+assert not state.get('staged') and not state.get('rollbackQueued'), 'STOP: pending deployment before switch; see EMERGENCY.md / get help'
+PY
 bootc switch --retain ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402
-)
 ```
 
 **If the transaction prints an error, stop and don't reboot.** After success, run the inspection separately:
@@ -437,7 +448,9 @@ bootc status --json
 
 Read the output before continuing: require **`status.staged.image.image.image`** to equal the full release reference above and **`status.staged.image.imageDigest`** to equal its `sha256:362a…c402` digest. The booted deployment must still have your recorded stock checksum; `status.rollbackQueued` must be false. Stop on missing/mismatched identity or pull, authentication, signature, disk-space or staging errors; do not try a mutable tag, change signature policy, remove the pinned stock deployment or alter partitions. CI uses this same transaction → identity inspection → reboot order.
 
-Only after reading and accepting that checkpoint, reboot as its own step:
+**Before this switch reboot, note down the stock menu title.** Run `rpm-ostree status` and find your recorded stock checksum. Count the deployment rows from **0 at the top**: the number is the `N` in that entry's **`(ostree:N)`** menu title. Both entries can be called **Bazzite**, including AresOS; the name alone does not identify stock. Immediately after this single switch, AresOS should be row0 and your recorded stock row1, titled **Bazzite (ostree:1)**. Write the exact stock title/number next to its checksum in record C. If the checksum is missing, occurs twice, or the rows differ, stop and get help rather than guessing from a filename or remembered position.
+
+Only after reading and accepting those checkpoints, reboot as its own step:
 
 ```bash
 systemctl reboot
@@ -474,7 +487,7 @@ systemctl reboot
 
 06c booted the exact retained stock checksum again, verified its display manager and password-protected administrator, and compared every attached-disk partition identity/boundary across stock, AresOS and rollback. The original owner still ran Homebrew 7.0.9 with the same brew script hash. Rollback restores that deployment's `/etc`; shared `/var` and home data are not rolled back or erased. The UID 1001 deny ACL remains on `/var/home/linuxbrew` without restricting owner UID 1000. To reverse it on stock if that UID later needs Homebrew, an administrator runs `sudo setfacl -x u:1001 /var/home/linuxbrew`; AresOS reapplies its rule on its next boot. Stock Bazzite's OS update timers stay paused for this trial; enable uupd.timer only after choosing stock for good and verifying its second default boot. This OS rollback does not replace a data backup.
 
-If the new deployment cannot reach a TTY, use Bazzite's [GRUB previous-deployment recovery](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rolling_back_system_updates/): select the recorded stock/backup entry, normally `ostree:1` immediately after this single switch. Bazzite documents **Esc once, then ↓** if the menu is hidden. Match the recorded deployment, rather than assuming an index after further transactions. **Selecting stock in GRUB recovers that boot only. Complete the default step below before another unattended boot.** Do not format, repair Windows boot files or delete deployments to recover. F12 → Windows Boot Manager remains the everyday Windows return path.
+If the new deployment cannot reach a TTY, use Bazzite's [GRUB previous-deployment recovery](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rolling_back_system_updates/): select the exact stock title/`(ostree:N)` noted before the switch reboot. **Both entries may say Bazzite**; match the recorded checksum-to-row number, normally **Bazzite (ostree:1)** after this single switch. Bazzite documents **Esc once, then ↓** if the menu is hidden. A different or unclear title/order means stop; never infer the position from an `ostree-…` filename or reuse a number after further transactions. **Selecting stock in GRUB recovers that boot only. Complete the default step below before another unattended Linux boot.** Do not format, repair Windows boot files or delete deployments to recover. F12 → Windows Boot Manager remains the everyday Windows return path.
 
 ### Keep recovered stock as the default
 

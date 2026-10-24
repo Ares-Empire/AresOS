@@ -105,13 +105,13 @@ class ReadRetryTest(unittest.TestCase):
         responses = [json.dumps(metadata).encode(), json.dumps(dict(artifacts=[dict(
             id=123, name='two-disk-evidence', expired=False, digest='sha256:' + hashlib.sha256(raw).hexdigest())])).encode(),
             *[failure(502) for _ in range(failures)], raw]
-        environment = dict(REHEARSAL_MODE='full', PROBE_RUN=str(metadata['id']), GITHUB_SHA=metadata['head_sha'])
+        environment = dict(REHEARSAL_MODE='part-b', PROBE_RUN=str(metadata['id']), GITHUB_SHA=metadata['head_sha'])
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory:
             original = pathlib.Path.cwd()
             try:
                 os.chdir(directory)
                 with patch.dict(os.environ, environment), patch.object(sys, 'argv', ['guard', 'ci', '182']), \
-                     patch.object(guard, 'budget', return_value=dict(consumed_minutes=464, full_dispatched=5)), \
+                     patch.object(guard, 'budget', return_value=dict(consumed_minutes=464, full_dispatched=5, part_b_dispatched=1)), \
                      patch.object(guard.subprocess, 'check_output', side_effect=responses) as get, \
                      patch.object(guard.time, 'sleep') as sleep, contextlib.redirect_stdout(io.StringIO()), \
                      contextlib.redirect_stderr(io.StringIO()):

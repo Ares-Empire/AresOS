@@ -291,8 +291,32 @@ def automatic_options(store, devices):
     return firmware_baseline(store, devices)
 
 
+def check_boot_next(store, *, authorization=None, consumed=True, windows_default=False, target_esp=None):
+    """A checkpoint has no override; a prepared boot needs an exact recorded selection."""
+    value = store.get('BootNext')
+    if value is None:
+        assert consumed or authorization is None, 'Authorized BootNext was not written'
+        return dict(status='passed', present=False, consumed=bool(authorization))
+    try:
+        raw = bytes.fromhex(value['hex'])
+    except (ValueError, TypeError, KeyError):
+        raise AssertionError('PRODUCT FAILURE: malformed BootNext')
+    assert len(raw) == 2 and value['attributes'] == 7, 'PRODUCT FAILURE: malformed BootNext length/attributes'
+    destination = 'Boot%04X' % struct.unpack('<H', raw)[0]
+    assert destination in store, 'PRODUCT FAILURE: unknown BootNext destination'
+    assert destination == 'Boot0000' or linux_entry(store[destination], target_esp), 'PRODUCT FAILURE: unknown BootNext destination'
+    assert not windows_default, 'PRODUCT FAILURE: BootNext remains at Windows-default checkpoint'
+    assert not consumed, 'PRODUCT FAILURE: BootNext was not consumed'
+    assert authorization and authorization['destination'] == destination and authorization['value'] == raw.hex(), 'PRODUCT FAILURE: unauthorized BootNext'
+    assert authorization['for_boot'] > 0 and authorization['purpose'], 'Missing BootNext boot/purpose record'
+    return dict(status='passed', present=True, destination=destination,
+                for_boot=authorization['for_boot'], purpose=authorization['purpose'])
+
+
 def compare_nvram(before, after, windows='Boot0000', before_devices=None, after_devices=None,
                   target_esp=None, windows_first=True):
+    check_boot_next(before, target_esp=target_esp)
+    check_boot_next(after, windows_default=windows_first, target_esp=target_esp)
     assert windows in before and after.get(windows) == before[windows], 'PRODUCT FAILURE: Windows firmware entry lost or changed'
     previous_auto = automatic_options(before, before_devices)
     current_auto = automatic_options(after, after_devices)
@@ -313,7 +337,7 @@ def compare_nvram(before, after, windows='Boot0000', before_devices=None, after_
     changes = {name: dict(before=before.get(name), after=after.get(name))
                for name in sorted(before.keys() | after.keys()) if before.get(name) != after.get(name)}
     for name, change in changes.items():
-        if name in ('BootOrder', 'BootNext'):
+        if name == 'BootOrder':
             continue
         assert re.fullmatch(r'Boot[0-9A-F]{4}', name), 'PLAN-GAP: unknown boot variable change'
         if name in previous_auto or name in current_auto:

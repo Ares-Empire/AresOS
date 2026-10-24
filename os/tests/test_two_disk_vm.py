@@ -1,6 +1,7 @@
 import json
 import pathlib
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -15,6 +16,35 @@ from prepare_two_disks import verify_loop
 
 
 class TwoDiskHarnessTest(unittest.TestCase):
+    def test_real_retained_vars_first_stock_uses_default_and_later_linux_records_bootnext(self):
+        root = pathlib.Path(__file__).resolve().parents[2] / 'os/manifest/ci/11k/full-5/two-disk'
+        shutil.copyfile(root / 'stock-before-windows-vars.fd', self.directory / 'vars.fd')
+        layout = json.loads((root / 'stock-before-windows-target-efi.json').read_text())['gpt']
+        vars_path = self.directory / 'vars.fd'
+        entries = vm.boot_variables(vars_path)
+        linux, = [name for name, value in entries.items() if name.startswith('Boot') and len(name) == 8
+                   and vm.linux_entry(value, next(p for p in layout['partitions'] if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b'))]
+        names = vm.ordered_options(entries)
+        import struct
+        vm.set_variable(vars_path, 'BootOrder', struct.pack('<' + 'H' * len(names), *[int(n[4:], 16) for n in [linux] + [n for n in names if n != linux]]))
+        before = vars_path.read_bytes()
+        with patch.object(vm, 'WORK', self.directory), patch.object(vm, 'EVIDENCE', self.directory), \
+             patch.object(vm, 'auth_file', return_value=self.directory / 'auth.json'), \
+             patch.object(vm, 'gpt', return_value=layout), \
+             patch.object(vm.Guest.__mro__[1], '__init__', return_value=None), \
+             patch.object(vm.Guest, 'device_inventory', return_value={}), \
+             patch.object(vm.Guest, 'mode', 'installed'), patch.object(vm.Guest, 'firmware_default', True):
+            guest = vm.Guest(self.directory / 'target.raw', 'fixture', [])
+            self.assertFalse(guest.bootnext_authorization['written'])
+            self.assertEqual(vars_path.read_bytes(), before)
+            with patch.object(vm.Guest, 'firmware_default', False):
+                guest = vm.Guest(self.directory / 'target.raw', 'fixture', [])
+            self.assertTrue(guest.bootnext_authorization['written'])
+            self.assertEqual(guest.bootnext_authorization['destination'], linux)
+            self.assertEqual(vm.boot_variables(vars_path)['BootNext']['hex'], guest.bootnext_authorization['value'])
+            with self.assertRaisesRegex(AssertionError, 'not consumed'):
+                vm.Guest(self.directory / 'target.raw', 'fixture', [])
+
     def test_installed_keyboard_is_read_before_pause_and_mismatch_prevents_pause(self):
         guest, audit = Mock(), Mock()
         events = []
@@ -78,6 +108,7 @@ class TwoDiskHarnessTest(unittest.TestCase):
         directory = self.directory / "BLS 'quoted directory"
         directory.mkdir()
         content = 'title Recorded stock\noptions quiet ostree=/ostree/boot.1/fedora/abc/0\n'
+        (self.directory / 'ostree/boot.1/fedora/abc/0').mkdir(parents=True)
         (directory / 'ostree-2-fedora.conf').write_text(content)
         executable, option, program = shlex.split(vm.bls_inventory_command(directory, self.directory))
         self.assertEqual((executable, option), ('python3', '-c'))
@@ -124,13 +155,17 @@ class TwoDiskHarnessTest(unittest.TestCase):
     def test_recorded_stock_bls_entry_does_not_assume_the_installer_os_name(self):
         stock = 'a' * 64
         for name in ('default', 'bazzite', 'fedora'):
-            for index in (1, 2, 3):
-                entry = dict(id=f'ostree-{index}-' + name, deployment='/sysroot/ostree/deploy/' + name + '/deploy/' + stock + '.0')
-                self.assertEqual(vm.stock_bls_entry([entry], stock), dict(entry, menu_index=index))
-                self.assertIsNone(vm.stock_bls_entry([entry, dict(entry)], stock))
-                self.assertIsNone(vm.stock_bls_entry([dict(entry, id='ostree-0-' + name)], stock))
-                self.assertIsNone(vm.stock_bls_entry([dict(entry, id="ostree-1-invalid'quote")], stock))
-                self.assertIsNone(vm.stock_bls_entry([entry], 'b' * 64))
+            entry = dict(id='ostree-1', title='Bazzite (ostree:1)',
+                         content='title Bazzite (ostree:1)\nversion 1\n',
+                         deployment='/sysroot/ostree/deploy/' + name + '/deploy/' + stock + '.0')
+            first = dict(id='ostree-2', title='Bazzite (ostree:0)', content='title Bazzite (ostree:0)\nversion 2\n',
+                         deployment='/sysroot/ostree/deploy/' + name + '/deploy/' + 'b' * 64 + '.0')
+            self.assertEqual(vm.stock_bls_entry([first, entry], stock)['menu_index'], 1)
+            for entries, checksum in (([first, entry, dict(entry)], stock),
+                    ([first, dict(entry, id='ostree-0-' + name)], stock),
+                    ([first, dict(entry, id="ostree-1-invalid'quote")], stock), ([first, entry], 'c' * 64)):
+                with self.assertRaises(vm.StockSelectionError):
+                    vm.stock_bls_entry(entries, checksum)
 
     def test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart(self):
         root = pathlib.Path(__file__).resolve().parents[2]

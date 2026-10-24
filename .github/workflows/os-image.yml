@@ -7,14 +7,14 @@ on:
       rehearsal:
         description: 'Package 11: inspect pinned ISO or rehearse installation; never build/publish'
         type: choice
-        options: ['', inspect, fixture, probe, full]
+        options: ['', inspect, fixture, probe, part-b]
         default: ''
       checks_only:
         description: 'Run regressions and live host state query; no image build or VM'
         type: boolean
         default: false
       probe_run:
-        description: '11c full runs require the passing probe run ID at this exact commit'
+        description: '11l Part B requires the passing probe run ID at this exact commit'
         type: string
         default: ''
       switch_from_run:
@@ -288,7 +288,7 @@ jobs:
     name: Pinned live ISO inspection and two-disk rehearsal
     if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != ''
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.rehearsal == 'full' && 180 || 40 }}
+    timeout-minutes: ${{ inputs.rehearsal == 'part-b' && 130 || 40 }}
     permissions:
       contents: read
       packages: read
@@ -300,7 +300,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
           PROBE_RUN: ${{ inputs.probe_run }}
-        run: python3 os/ci/rehearsal_guard.py ci '${{ inputs.rehearsal == 'full' && 182 || 42 }}'
+        run: python3 os/ci/rehearsal_guard.py ci '${{ inputs.rehearsal == 'part-b' && 130 || 42 }}'
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -326,18 +326,18 @@ jobs:
           cp os/manifest/release.json evidence/release.json
           python3 os/ci/verify_release.py 39818554327
       - name: Create runner-temporary pinned-image credentials
-        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'full')
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
         env:
           GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/rehearsal_auth.py create
       - name: Verify exact private manifest with owner read-only credentials
-        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'full')
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/rehearsal_auth.py preflight
       - name: Qualify the exact pinned layer pull without installing
-        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'full')
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
         timeout-minutes: 9
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -351,7 +351,7 @@ jobs:
           python3 os/ci/installer_inspect.py
       - name: Prepare disposable file disks and qualify the real live environment
         if: inputs.rehearsal != 'inspect'
-        timeout-minutes: ${{ inputs.rehearsal == 'full' && 156 || 80 }}
+        timeout-minutes: ${{ inputs.rehearsal == 'part-b' && 106 || 80 }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}

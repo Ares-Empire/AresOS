@@ -26,7 +26,7 @@ def auth_directory():
 
 def require_dispatch():
     assert os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'Owner auth requires workflow_dispatch'
-    assert os.environ.get('REHEARSAL_MODE') in ('probe', 'full'), 'Owner auth requires probe or full'
+    assert os.environ.get('REHEARSAL_MODE') in ('probe', 'part-b'), 'Owner auth requires the 11l probe or Part B qualification'
 
 
 def create():

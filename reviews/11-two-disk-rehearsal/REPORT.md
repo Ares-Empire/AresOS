@@ -1,5 +1,7 @@
 # Package 11: two-disk install rehearsal and pinned media
 
+Latest 11l state: **IN PROGRESS; 11k Part A remains qualified with its earlier Windows-first timing; new protected-second timing and Part B await the single fresh probe/qualification.** Exact pinned OSTree/Fedora GRUB sources support the title/index ordering rule. Review fixes and strict BootNext replay pass locally; no 11l dispatch yet. Shared start unchanged, cap900, historical full cap5 plus exactly one new Part B qualification. Physical installation remains NOT RELEASED.
+
 Latest 11k outcome: **A PASSED BOTH ORDERS; B BLOCKED before menu selection; C pins retained.** The bounded read-only guard recovered seven intermittent 502s. Fresh probe 40117290487 and final full 40119526154 passed on source **2524823**; both ran 181 native tests. Both installed German checks and all seven pause/five pin checks passed; all **32** probe/full protected captures matched with **32 final zero-write records**. Part B has one checksum-matching stock entry but its bare BLS ID is rejected by the selector. No selector change, second probe or sixth full. Shared ledger **611/750 measured, 5/5 full**, with 14 closing minutes reserved; exact closing privacy proof/cost is recorded on PR #11 after the evidence push. Physical installation stays **NOT RELEASED**.
 
 Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **229/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
@@ -3244,3 +3246,171 @@ none is implemented here. Historical failed evidence remains unchanged.
 
 **Open questions:** the actual menu selector/promotion path, physical-media/laptop
 and novice gates above. No merge; no force push; no second probe or sixth full.
+
+## 11l: review fixes, checked BootNext and GRUB qualification (2026-10-24)
+
+### Before any dispatch — source verification and zero-cost stage walk-through
+
+First ran `git fetch` then `git pull --ff-only`: **Already up to date**, clean
+head **ec7b2ba** (owner review/11l brief). Read AGENTS, README, REVIEW's four
+should-fix findings and 11l; 11c–11k remain binding except explicitly replaced
+timing, selector, cap and this round's single protected-second qualification.
+No question, local VM, software installation, administrator action or physical
+disk/firmware operation. No Gradle/Minecraft work in this OS-only brief.
+
+**Item1 verified before implementation:** retained [package inventory](../../os/manifest/ci/06c/image-full-1/packages.txt)
+pins **ostree2026.4-1.fc44** and **grub2 1:2.12-66.fc44**. Checked upstream tags
+[OSTree v2026.4 sysroot deployment writer](https://github.com/ostreedev/ostree/blob/v2026.4/src/libostree/ostree-sysroot-deploy.c)
+and [GRUB grub-2.12 one-time script](https://github.com/rhboot/grub2/blob/grub-2.12/util/grub-reboot.in),
+[menu ID lookup](https://github.com/rhboot/grub2/blob/grub-2.12/grub-core/normal/menu.c),
+plus the exact Fedora66 distgit commit
+[fd990afba5a66b3d3c5f4babfd85195e780372e3](https://src.fedoraproject.org/rpms/grub2/tree/fd990afba5a66b3d3c5f4babfd85195e780372e3).
+Its spec is version2.12/release66, matching the pinned inventory. Fedora distgit
+has no corresponding NVR tag, so the exact package commit/spec and upstream tag
+are recorded instead of inventing a tag. Browser/raw distgit requests returned
+the anti-bot page; read-only Git fetched the actual public sources successfully.
+[Version/source/hash receipt](../../os/manifest/ci/11l/bootloader-source-proof.json).
+
+OSTree's `install_deployment_kernel()` writes the deployment index into
+`(ostree:N)`; its `version` and default bare filename number are **total deployments
+minus index**. A stateroot suffix is the opt-out compatibility naming scheme,
+not the current default. Fedora's patch0017 `bls_cmp()` compares **filenames**, not
+the BLS version field, with descending split/version comparison. For the observed
+bare `ostree-positive-integer` family this gives decreasing filename numbers and
+increasing title/deployment indices. All later patches touching blscfg were
+inspected: emu-device, escaping and UKI integration changes leave this order/id
+rule unchanged. The new selector refuses unverified naming/version/title/status
+disagreement rather than generalizing to arbitrary BLS families.
+
+The BLS basename is passed as the GRUB entry ID; grub-reboot stores its argument
+unchanged in `next_entry`, and normal GRUB matches that ID. **Bare IDs work.**
+Fedora patch0073's `menu_show_once` is consumed once and shows a 60-second menu.
+This lets the harness capture/OCR **before any menu key** instead of speculatively
+pressing Esc. The real cached-image probe will confirm exact installed package
+versions and exercise create/set/list plus bare-ID `grub2-reboot` against a
+temporary grubenv in a read-only, network-none container; it does not change a
+real deployment/default/menu. **No source contradiction; no PLAN-GAP stop.**
+
+The complete walk-through for this round is:
+
+1. **Native/replay, then one probe on the new source head.** Every existing disk,
+   NVRAM, failure-counter, signature, policy, German-module/source, pause/cancel/pin
+   and privacy regression remains. Replay the new BootNext checkpoint validator
+   against every original 11k raw/JSON capture. Probe both serial orders through
+   actual read-only WebUI review, target-only EFI/boot/root and German DBus/module
+   proof; explicitly synthetic keyboard-file reader, actual cached stock package/
+   CLI/daemon/pause-twice and temporary grubenv checks, OCR availability, detached
+   marker, target reset, per-stage offline audit/final zero counters/auth cleanup.
+   No installation. Native selectors use actual 11k entries and disagreement
+   fixtures; no probe fixture is represented as a real installed menu.
+2. **One Part B qualification, protected disk second from baseline.** New writable
+   file disks/pristine vars, stable protected serial/slot and swapped target; audit
+   baseline attached firmware/device set and original Windows identity. Real pinned
+   WebUI installs only the serial-identified target's own EFI/boot/root. Read-only
+   German proof, private pinned reads and signature all remain required.
+3. **Linux stays first for the first stock boot.** No BootNext is written for this
+   first start or the separately verified one-time hardware-setup reboot. Require
+   the target Linux loader actually first in BootOrder. Each reset/boot still has
+   raw vars/devices/offline protected audit/final zero counters; only validated
+   Linux movement and exact attached-device automatic changes are allowed.
+4. **First-login keyboard, pause and pin before Windows restoration.** Read actual
+   installed `/etc/vconsole.conf` and X11/options before any pause. Then exact
+   owner pause, inventory, at-most-one cancellation, idle conjunction, permitted
+   identified staged cleanup only, unchanged booted ISO checksum/digest and pin.
+   Export all real unit/transaction/client/daemon/cancel/staged/discard values.
+   A failed predicate, unknown updater, wrong keyboard/identity or missing counter
+   stops; never repair evidence with a fixture.
+5. **Owner §5/F2 equivalent after successful pause/pin.** Restore exactly Windows
+   plus previous BootOrder without Windows. Reject pending BootNext. Require an
+   **attached unattended Windows-like marker** with no BootNext and Windows first,
+   original BootCurrent/ESP/loaded path; then detach the Linux target and repeat
+   the unattended marker. This is the F2-save proof, distinct from F12 selection.
+   Automatic target removal is audited under the unchanged device-set rule.
+6. **Reattach and perform B.** Record a one-time Linux selection (the F12 stand-in),
+   repeat pause/pin, run unchanged `switch.sh`, inspect exact signed staged image/
+   stock identities before reboot. The owner block now equals that script, including
+   account/UID/auth/pending checks. Boot AresOS and require exact reference/digest,
+   booted default at deployment index0. Resolve every actual BLS `ostree=` symlink
+   strictly; find stock **only by exact resolved checksum**, exactly one match.
+   Apply the source-verified filename ordering and require title number/version/
+   `rpm-ostree status` index agreement. A no-match, duplicate or position error
+   names the actual blocker.
+7. **Rendered menu before keys.** Set consumed one-time menu visibility, reboot,
+   then record the one-time Linux firmware selection and capture raw menu frames/
+   OCR, bounded40seconds; require two successive matching entry-line captures
+   so a partially painted menu is not selected. Require the exact ordered BLS title lines: AresOS on
+   line0 and checksum-matched stock on its verified line. A recognized disagreement
+   stops **before Home/Down/Enter**, with no fallback. Only then send Home, Down to
+   stock, retain selected frame/key receipt and Enter. Only an unavailable/undrivable
+   menu may use the already-authorized `grub2-reboot` fallback with the actual
+   basename ID; record which path. A confirmed selection booting the wrong image
+   is a failure, not fallback permission.
+8. **Recovered stock and persistent promotion.** Require exact stock checksum/
+   upstream digest booted while AresOS remains deployment0 and stock nonzero;
+   run identity-checked `default-stock.sh`, then reboot. One-time Linux firmware
+   selection still stands in for F12; **no GRUB choice/override** on this second
+   Linux boot. Require stock booted/index0, no pending/queued state and rendered
+   stock greeter. Windows remains the firmware default. Audit final protected
+   disk, GPT/EFI, raw vars, device set and counters at every close.
+9. **BootNext is never ignored.** Before each guest, reject any pending override
+   before writing another. Record each authorized write's two-byte value,
+   validated Windows/target-ESP destination, boot number/purpose, mode/order and
+   complete prepared store. A first-stock/default-marker boot records no write.
+   After each boot require BootNext absent/consumed; malformed length/attributes,
+   unknown/unauthorized destination or a Windows-default leftover fails. Replayed
+   11k captures prove checkpoint absence only; no historical write receipt is
+   invented. New receipts apply prospectively.
+
+All inherited protected-byte/GPT/EFI, Windows identity/number, fixed-relative-order,
+exact Windows-first restore, OVMF GUID/device-set/target-ESP position rules and raw
+nonboot-variable evidence remain strict. No new firmware exemption. Failure-path
+counters are queried before termination; unavailable means unqualified. The root
+read-only owner-token mount stays outside the workspace, no observer token value,
+0 owner-token API calls and always removal before artifacts. No rebuild/publish,
+visibility/pin/security change, real laptop or Mod/Gradle/Minecraft action.
+
+**Scope not re-rehearsed:** the new restore timing runs in **protected-second only**.
+11k still proves both complete A orders using its **earlier** Windows-first timing.
+This run does not repeat A's policy/tty3/normal rollback/default undo or claim the
+new timing passed both orders. Physical/manual media/typing/menu/novice/hardware
+gates stay open even if automated B passes.
+
+**Budget before dispatch:** same start **2026-10-23T16:21:00Z**, cap **900**, five
+historical fulls stay counted; a separate **one Part B qualification** allowance
+includes its current dispatch and rejects a second. Ordinary full mode is refused.
+One fresh probe then one exact-same-head Part B, no intervening source push, with
+explicit probe ID/original ZIP digest. Probe job40/reserve42 unchanged; B job130/
+reserve130, VM step106; local plan reserves42+130+14=186. The brief's nominal797
+starts at611 before 11k closing; actual 11k closure was613, and the owner/source
+privacy jobs also count. Fresh guard decides from the complete real ledger;
+no reset, reconstruction substitute, extra probe or additional qualification.
+The 11k retry implementation/waits remain unchanged.
+
+**Done so far:** four review fixes, separate bounded B route/budget and source
+receipt. **Verified so far:** source rule; actual bare-ID selector; mismatch/no-key,
+zero/duplicate checksum, exact owner switch block, BootNext negative and real-FD
+first-default/write tests; unchanged retry regressions; all32 original 11k
+post-boot captures pass the new rule and the previous complete evidence verifier.
+[BootNext/source/selection replay](../../os/manifest/ci/11l/11k-bootnext-replay.json).
+**Not verified:** new probe, new first-login timing and real B menu/promotion.
+**JUDGMENT-CALL:** use verified, consumed menu visibility to permit OCR before any
+key; reject naming families outside the exact observed pinned route rather than
+guess a broader comparator. **PLAN-GAP:** the planning baseline omitted already
+charged closing privacy; use the actual ledger. **Open questions:** actual new
+timing/menu/promotion and remaining physical gates. No dispatch yet.
+
+Final pre-source local checks: **103 tests in1.077s / OK**, [complete output](logs/11l/local-tests.txt).
+Includes the six selector/OCR/owner-copy tests, all23 disk audits, real retained-FD
+first-default/later-one-time test, budget/current-B-count, all unchanged retry
+behaviors and existing stock/keyboard/UI/auth tests. Python compilation, Bash
+syntax for unchanged `switch.sh`, diff checks and 32-capture replay passed.
+The old selector test's invalid filename-digit position premise was replaced
+with the requested source/actual-entry rule and stronger missing/duplicate/unsafe
+name failures; no assertion was relaxed to qualify a bad state.
+Fresh complete guard: **616/900 minutes, 5 historical full, 0/1 Part B**, reserve
+186, total802. This includes the actual 11k closing2 and new owner-brief privacy3;
+no actual guard retry here. [Ledger](../../os/manifest/ci/11l/initial-budget.json),
+[guard stderr](logs/11l/initial-guard.txt). The plan fits the actual cap even though
+the brief's nominal797 omits those already charged five minutes. Source privacy
+will also count. PR #11 converted to draft pending this round's acceptance.
+Only source push/privacy and the single fresh probe may follow; still no dispatch.

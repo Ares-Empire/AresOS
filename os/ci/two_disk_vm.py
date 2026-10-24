@@ -13,9 +13,11 @@ import sys
 import time
 
 import switch_vm as sw
+from grub_bls import stock_bls_entry, confirm_menu_ocr, StockSelectionError
 from rehearsal_auth import auth_file, guest_mount_command, REFERENCE
 from disk_audit import (all_variables, boot_variables, compare_disk, offline_disk,
-                        protected_writes, set_variable, gpt, efi_files, entry_target, firmware_baseline, nvram_audit)
+                        protected_writes, set_variable, gpt, efi_files, entry_target, firmware_baseline, nvram_audit,
+                        check_boot_next, linux_entry, ordered_options)
 
 WORK = pathlib.Path('.work/installer').resolve()
 EVIDENCE = pathlib.Path('evidence/two-disk').resolve()
@@ -31,6 +33,8 @@ class Guest(sw.Guest):
     mode = 'installed'
     boot_count = 0
     audit = None
+    firmware_default = False
+    boot_purpose = 'installed'
 
     def network_args(self):
         return super().network_args() + (',hostfwd=tcp:127.0.0.1:18080-:8080' if self.mode == 'live' else '')
@@ -45,12 +49,35 @@ class Guest(sw.Guest):
             auth = base64.b64encode(f'{os.environ["GITHUB_ACTOR"]}:{token}'.encode()).decode()
             encoded = base64.b64encode(json.dumps({'auths': {'ghcr.io': {'auth': auth}}}).encode()).decode()
             secrets = [*secrets, token, auth, encoded]
+        entries = boot_variables(WORK / 'vars.fd')
+        esp = None
+        self.bootnext_authorization = dict(for_boot=self.boot_number, purpose=self.boot_purpose,
+            mode=self.mode, order=self.order, destination=None, value=None, written=False)
         if self.mode == 'installed':
-            entries = boot_variables(WORK / 'vars.fd')
+            esp, = [p for p in gpt(disk)['partitions'] if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b']
             linux = [name for name, value in entries.items() if re.fullmatch(r'Boot[0-9A-F]{4}', name)
-                     and b'f\0e\0d\0o\0r\0a\0' in bytes.fromhex(value['hex']).lower()]
+                     and linux_entry(value, esp)]
             assert len(linux) == 1, f'Ambiguous Linux firmware entry: {linux}'
-            set_variable(WORK / 'vars.fd', 'BootNext', struct.pack('<H', int(linux[0][4:], 16)))
+            check_boot_next(entries, target_esp=esp)
+            if self.firmware_default:
+                assert ordered_options(entries)[0] == linux[0], 'First stock start must use the Linux firmware default'
+            else:
+                raw = struct.pack('<H', int(linux[0][4:], 16))
+                self.bootnext_authorization.update(destination=linux[0], value=raw.hex(), written=True)
+                set_variable(WORK / 'vars.fd', 'BootNext', raw)
+        else:
+            check_boot_next(entries)
+            if self.mode.startswith('marker'):
+                assert ordered_options(entries)[0] == 'Boot0000', 'Unattended marker requires Windows first'
+        prepared = boot_variables(WORK / 'vars.fd')
+        expected = dict(entries)
+        if self.bootnext_authorization['written']:
+            expected['BootNext'] = dict(attributes=7, hex=self.bootnext_authorization['value'])
+        assert prepared == expected, 'Boot preparation changed more than the recorded BootNext'
+        self.bootnext_authorization['prepared_store'] = prepared
+        check_boot_next(prepared, authorization=self.bootnext_authorization if self.bootnext_authorization['written'] else None,
+                        consumed=False, target_esp=esp)
+        save(f'boot-{self.boot_number}-bootnext', self.bootnext_authorization)
         try:
             super().__init__(disk, password, secrets)
             self.devices = self.device_inventory()
@@ -285,6 +312,7 @@ class Audit:
         self.target_installed = False
         self.devices = None
         self.stage = None
+        self.windows_default = False
         Guest.audit = self
 
     def check(self, stage, guest=None, establish_nvram=False):
@@ -301,6 +329,11 @@ class Audit:
         esp = None
         if self.target_installed:
             esp, = [p for p in gpt(WORK / 'target.raw')['partitions'] if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b']
+        authorization = getattr(guest, 'bootnext_authorization', None)
+        selected = authorization if authorization and authorization['written'] else None
+        bootnext = check_boot_next(nvram, authorization=selected, windows_default=self.windows_default, target_esp=esp)
+        save(stage + '-bootnext-audit', dict(**bootnext, boot=guest.boot_number,
+             authorization=f'boot-{guest.boot_number}-bootnext.json', windows_default=self.windows_default))
         if establish_nvram:
             assert nvram['Boot0000'] == boot_variables(EVIDENCE / 'pre-firmware-vars.fd')['Boot0000']
             contract = json.loads((EVIDENCE.parents[0] / 'firmware-contract.json' if EVIDENCE.name == 'two-disk'
@@ -312,13 +345,13 @@ class Audit:
         else:
             assert self.nvram is not None
             comparison = nvram_audit(self.nvram, nvram, before_devices=self.devices,
-                after_devices=guest.devices, target_esp=esp, windows_first=guest.mode != 'live')
+                after_devices=guest.devices, target_esp=esp, windows_first=self.windows_default)
             save(stage + '-nvram-diff', dict(from_stage=self.stage, **comparison))
             save(stage + '-all-variables-diff', {name: dict(before=self.all_nvram.get(name), after=all_nvram.get(name))
                  for name in self.all_nvram.keys() | all_nvram.keys()
                  if self.all_nvram.get(name) != all_nvram.get(name)})
         self.nvram, self.all_nvram, self.devices, self.stage = nvram, all_nvram, guest.devices, stage
-        if guest.mode != 'live':
+        if self.windows_default:
             assert bytes.fromhex(nvram['BootOrder']['hex'])[:2] == bytes(2), 'PRODUCT FAILURE: Windows is not the default'
         if self.target_installed:
             layout = gpt(WORK / 'target.raw')
@@ -356,17 +389,6 @@ def bls_identity(text):
     return dict(title=titles[0], ostree=targets[0])
 
 
-def stock_bls_entry(entries, stock):
-    # Anaconda and image-builder need not choose the same OSTree OS name.
-    # Match the learned checksum and previous index, never a guessed suffix.
-    candidates = []
-    for entry in entries:
-        match = re.fullmatch(r'ostree-([1-9][0-9]*)-[A-Za-z0-9_.-]+', entry['id'])
-        if stock in entry['deployment'] and match:
-            candidates.append(dict(entry, menu_index=int(match[1])))
-    return candidates[0] if len(candidates) == 1 else None
-
-
 def bls_inventory_command(entries_directory='/boot/loader/entries', sysroot='/sysroot'):
     # Keep the entire Python program one shell argument. Appending the JSON
     # frame's redirection to a heredoc terminator would invalidate that export.
@@ -377,7 +399,7 @@ entries=[]
 for file in pathlib.Path(directory).glob('*.conf'):
     text=file.read_text()
     identity=bls_identity(text)
-    path=pathlib.Path(sysroot + identity['ostree']).resolve()
+    path=pathlib.Path(sysroot + identity['ostree']).resolve(strict=True)
     entries.append(dict(id=file.stem, title=identity['title'], deployment=str(path), content=text))
 print(json.dumps(entries))
 ''')
@@ -470,6 +492,7 @@ def cleanup_live(guest, stage, diagnostics=False):
 def install(audit, password, password_hash):
     from installer_webui import run
     Guest.mode = 'live'
+    Guest.boot_purpose = Guest.order + '-install'
     guest = Guest(WORK / 'target.raw', password, [password, password_hash])
     stage = Guest.order + '-install'
     try:
@@ -492,6 +515,7 @@ def install(audit, password, password_hash):
 
 def restore_windows_order(stage):
     entries = boot_variables(WORK / 'vars.fd')
+    check_boot_next(entries, windows_default=True)
     order = bytes.fromhex(entries['BootOrder']['hex'])
     numbers = list(struct.unpack('<' + 'H' * (len(order) // 2), order))
     assert 0 in numbers
@@ -513,13 +537,34 @@ def reset_target():
         output.truncate(49 * 1024 ** 3)
 
 
-def grub_promotion(audit, password, password_hash):
+def start_installed(password, password_hash, stage, firmware_default=False):
+    Guest.mode, Guest.boot_purpose = 'installed', stage
+    Guest.firmware_default = firmware_default
+    try:
+        return sw.start_guest(WORK / 'target.raw', password, [password, password_hash], stage)
+    finally:
+        Guest.firmware_default = False
+
+
+def select_grub_menu(guest, backup, ocr):
+    proof = confirm_menu_ocr(ocr, backup)
+    save('b-grub-menu-ocr-proof', proof)
+    guest.keys(['home'])
+    time.sleep(0.15)
+    for _ in range(backup['menu_index']):
+        guest.keys(['down'])
+        time.sleep(0.15)
+    guest.screenshot('b-grub-recorded-stock-selected')
+    save('b-grub-selection', dict(**proof, keys=['home'] + ['down'] * backup['menu_index'] + ['ret']))
+    guest.keys(['ret'])
+
+
+def grub_promotion(audit, password, password_hash, stock):
     """Try the real menu first, then the explicitly permitted one-time fallback."""
     release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
-    stock = json.loads((EVIDENCE / 'result.json').read_text())['retained_stock_checksum']
     digest = release['base'].split('@', 1)[1]
     Guest.mode = 'installed'
-    guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-stock')
+    guest = start_installed(password, password_hash, 'b-stock')
     try:
         sw.pin_stock(guest, 'b-pin-stock')
         script = pathlib.Path('os/release/switch.sh').read_text().replace('@REFERENCE@', release['reference'])
@@ -530,44 +575,60 @@ def grub_promotion(audit, password, password_hash):
     finally:
         guest.close('b-switch')
         audit.check('b-switch', guest)
-    guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-aresos')
+    guest = start_installed(password, password_hash, 'b-aresos')
     try:
         status = guest.capture_json('b-aresos-status', sw.framed('bootc status --json'))
         assert sw.booted_reference(status) == release['reference']
+        assert sw.booted_digest(status) == release['reference'].split('@', 1)[1]
         ordered = guest.capture_json('b-aresos-order', sw.framed('rpm-ostree status --json'))
         assert ordered['deployments'][0]['booted'] and ordered['deployments'][0]['checksum'] != stock
         # Resolve each actual BLS ostree= symlink to the deployment checksum.
         entries = guest.capture_json('b-bls-entries', sw.framed(bls_inventory_command()))
-        backup = stock_bls_entry(entries, stock)
-        if backup is None:
-            save('grub-promotion', dict(status='blocked', reason='Actual nondefault BLS stock entry was not unique', entries=entries))
+        try:
+            backup = stock_bls_entry(entries, stock, ordered['deployments'])
+        except StockSelectionError as error:
+            save('grub-promotion', dict(status='blocked', reason=str(error), entries=entries))
             guest.poweroff('b-unresolved-menu')
             return False
+        save('b-recorded-stock-entry', backup)
+        # Verified Fedora menu_show_once exposes this one menu before any key.
+        guest.command('b-show-menu-once', 'set -e; grub2-editenv - set menu_show_once=1; grub2-editenv - list')
         guest.reboot('b-menu-preparation')
     finally:
         guest.close('b-menu-preparation')
         audit.check('b-menu-preparation', guest)
+    Guest.boot_purpose = 'b-grub-menu'
     guest = Guest(WORK / 'target.raw', password, [password, password_hash])
-    path = f'QMP Esc, Home, Down x{backup["menu_index"]}, Enter'
+    path = f'QMP Home, Down x{backup["menu_index"]}, Enter after exact ordered OCR'
     try:
-        # Attempt Esc in GRUB, retain the frame and OCR before selecting. Never
-        # select by guessed position if the actual recorded titles are absent.
-        time.sleep(2)
-        guest.keys(['esc'])
-        time.sleep(0.3)
-        guest.screenshot('b-grub-menu-attempt')
-        frame = EVIDENCE / 'b-grub-menu-attempt.png'
-        ocr = subprocess.check_output(['tesseract', str(frame), 'stdout'], stderr=subprocess.DEVNULL).decode()
-        (EVIDENCE / 'b-grub-menu-attempt-ocr.txt').write_text(ocr)
-        normalized = re.sub('[^a-z0-9]', '', ocr.lower())
-        if 'ostree0' in normalized and f'ostree{backup["menu_index"]}' in normalized and 'grub' in normalized:
-            guest.keys(['home'])
-            for _ in range(backup['menu_index']):
-                guest.keys(['down'])
-            guest.screenshot('b-grub-recorded-stock-selected')
-            guest.keys(['ret'])
-        else:
-            path = 'grub2-reboot fallback after QMP menu could not be identified'
+        selected = False
+        deadline = time.monotonic() + 40
+        attempt = 0
+        last_menu_lines = None
+        while time.monotonic() < deadline:
+            attempt += 1
+            name = f'b-grub-menu-attempt-{attempt:02}'
+            guest.screenshot(name)
+            ocr = subprocess.check_output(['tesseract', str(EVIDENCE / (name + '.png')), 'stdout', '--psm', '6'],
+                                          stderr=subprocess.DEVNULL).decode()
+            (EVIDENCE / (name + '-ocr.txt')).write_text(ocr)
+            if re.search(r'Bazzite.*ostree', ocr, re.I):
+                lines = [re.sub(r'\s+', ' ', line.strip()) for line in ocr.splitlines()
+                         if re.search(r'Bazzite.*ostree', line, re.I)]
+                if lines != last_menu_lines:
+                    last_menu_lines = lines
+                    time.sleep(0.3)
+                    continue
+                try:
+                    select_grub_menu(guest, backup, ocr)
+                except StockSelectionError as error:
+                    save('grub-promotion', dict(status='blocked', reason=str(error), frame=name, entries=entries))
+                    raise
+                selected = True
+                break
+            time.sleep(1)
+        if not selected:
+            path = 'grub2-reboot fallback after QMP menu could not be identified/driven; no selection key sent'
         try:
             guest.login()
         except TimeoutError:
@@ -575,17 +636,18 @@ def grub_promotion(audit, password, password_hash):
             # a bounded UI dead end, not permission to guess an entry.
             guest.close('b-menu-undrivable')
             audit.check('b-menu-undrivable', guest)
-            guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-menu-fallback')
+            guest = start_installed(password, password_hash, 'b-menu-fallback')
             path = 'grub2-reboot fallback after QMP menu could not be driven'
         state = guest.capture_json('b-one-time-attempt-status', sw.framed('bootc status --json'))
         if state['status']['booted']['ostree']['checksum'] != stock:
+            assert not selected, 'PRODUCT FAILURE: OCR-confirmed GRUB selection did not boot the recorded stock'
             assert sw.booted_reference(state) == release['reference']
             path = 'grub2-reboot fallback after QMP selection did not boot stock'
-            guest.command('b-one-time-fallback', f"set -e; grub2-reboot '{backup['id']}'; grub2-editenv - list")
+            guest.command('b-one-time-fallback', f"set -e; grub2-reboot {shlex.quote(backup['id'])}; grub2-editenv - list")
             guest.reboot('b-one-time-fallback')
             guest.close('b-one-time-fallback')
             audit.check('b-one-time-fallback', guest)
-            guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-recovered-stock')
+            guest = start_installed(password, password_hash, 'b-recovered-stock')
         state = guest.capture_json('b-recovered-stock-status', sw.framed('bootc status --json'))
         order = guest.capture_json('b-recovered-stock-order', sw.framed('rpm-ostree status --json'))
         assert state['status']['booted']['ostree']['checksum'] == stock
@@ -598,7 +660,7 @@ def grub_promotion(audit, password, password_hash):
     finally:
         guest.close('b-recovered-stock')
         audit.check('b-recovered-stock', guest)
-    guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-unattended-stock')
+    guest = start_installed(password, password_hash, 'b-unattended-stock')
     try:
         state = guest.capture_json('b-unattended-stock-status', sw.framed('bootc status --json'))
         order = guest.capture_json('b-unattended-stock-order', sw.framed('rpm-ostree status --json'))
@@ -617,6 +679,7 @@ def grub_promotion(audit, password, password_hash):
 
 def marker(audit, stage, baseline=False, detached=False):
     Guest.mode = 'marker-baseline' if baseline else 'marker-detached' if detached else 'marker'
+    Guest.boot_purpose = stage
     guest = Guest(WORK / 'target.raw', '', [])
     try:
         deadline = time.monotonic() + 90
@@ -672,6 +735,8 @@ def stock_recipe_probe(guest):
     proof, = [json.loads(line.split(' ', 1)[1]) for line in clean.splitlines() if line.startswith('ARESOS_CACHED_STOCK_CLI_PROBE ')]
     assert proof['status'] == 'passed' and proof['digest'] == digest
     assert proof['part_b_cli_help'] and proof['stock_idle_source_verified']
+    assert proof['temporary_grubenv_bare_id']
+    assert proof['idle_source']['bootloader_versions'] == {'ostree': '2026.4-1.fc44', 'grub2-common': '2.12-66.fc44'}
     save('cached-stock-cli-probe', proof)
     source = pathlib.Path('os/release/pause-stock-updates.sh').read_text().split("<<'PAUSE_STOCK'\n", 1)[1].split('\nPAUSE_STOCK', 1)[0]
     program = source.split("if __name__ == '__main__':", 1)[0]
@@ -684,7 +749,7 @@ def stock_recipe_probe(guest):
 
 
 def stock_before_windows(audit, password, password_hash):
-    guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'stock')
+    guest = start_installed(password, password_hash, 'stock', firmware_default=True)
     stage = 'stock-before-windows'
     try:
         installed_keyboard(guest)
@@ -699,6 +764,8 @@ def stock_before_windows(audit, password, password_hash):
     finally:
         guest.close(stage)
         audit.check(stage, guest)
+
+    return proof
 
 
 def keyboard_reader_command(root):
@@ -740,6 +807,7 @@ def installed_keyboard_reader_probe(guest):
 def live_probe(audit):
     from installer_webui import probe
     Guest.mode = 'live'
+    Guest.boot_purpose = 'live-ui-probe'
     guest = Guest(WORK / 'target.raw', '', [])
     try:
         guest.login_live()
@@ -773,13 +841,16 @@ def live_probe(audit):
 def main():
     global EVIDENCE
     EVIDENCE.mkdir(parents=True, exist_ok=True)
-    assert sys.argv[1:] in (['probe'], ['full'])
-    if sys.argv[1:] == ['full']:
+    assert sys.argv[1:] in (['probe'], ['part-b']), '11l permits one probe and one protected-second Part B run only'
+    if sys.argv[1:] == ['part-b']:
         authorization = json.loads((EVIDENCE.parent / '11c-dispatch-authorization.json').read_text())
         assert authorization['probe']['status'] == 'passed'
         assert authorization['probe']['commit'] == os.environ['GITHUB_SHA']
         assert authorization['probe']['both_orders'] and authorization['probe']['review_validated']
         assert authorization['probe']['detached_windows'] and authorization['probe']['target_reset']
+        assert authorization['part_b_dispatched'] == 1 and authorization['full_dispatched'] == 5
+        assert authorization['probe']['bootnext_checked'] and authorization['probe']['bootloader_source_verified']
+        Guest.order = 'protected-second'
     sw.WORK, sw.EVIDENCE = WORK, EVIDENCE
     for name in ('vmlinuz', 'initrd.img'):
         with (WORK / name).open('wb') as output:
@@ -791,6 +862,7 @@ def main():
         probe_root = EVIDENCE
         live_probe(audit)
         restore_windows_order('probe')
+        audit.windows_default = True
         marker(audit, 'probe-windows-without-linux', detached=True)
         reset_target()
         shutil.copyfile(probe_root / 'pre-firmware-vars.fd', WORK / 'vars.fd')
@@ -804,12 +876,14 @@ def main():
         marker(reverse, 'baseline-firmware', baseline=True)
         live_probe(reverse)
         restore_windows_order('probe')
+        reverse.windows_default = True
         marker(reverse, 'probe-windows-without-linux', detached=True)
         proof = dict(status='passed', installed=False, both_orders=True, review_validated=True,
                      detached_windows=True, target_reset=True, owner_auth_read_only=True, signature_verified=True,
                      firmware_rule='11f-linux-position', stock_recipe_probe=True, failure_counter_probe=True,
                      read_only_keyboard_proof=True, installed_keyboard_reader_probe=True,
                      part_b_tools_probe=True, stock_idle_source_verified=True,
+                     bootnext_checked=True, bootloader_source_verified=True,
                      commit=os.environ['GITHUB_SHA'])
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)
@@ -823,47 +897,22 @@ def main():
     credentials = WORK / 'credentials.json'
     credentials.write_text(json.dumps(dict(password=password)))
     credentials.chmod(0o600)
-    pristine_vars = WORK / 'pristine-vars.fd'
-    shutil.copyfile(EVIDENCE / 'pre-firmware-vars.fd', pristine_vars)
-    root = EVIDENCE
-    def part_a(current):
-        target = install(current, password, password_hash)
-        restore_windows_order('after-install')
-        Guest.mode = 'installed'
-        sw.Guest = Guest
-        stock_before_windows(current, password, password_hash)
-        set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
-        marker(current, 'after-install-without-linux', detached=True)
-        Guest.mode = 'installed'
-        sw.main(WORK / 'target.raw', preserve_vars=True, target_name=target,
-                shutdown_hook=lambda stage, guest: current.check('switch-sequence-' + stage, guest))
-        set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
-        marker(current, 'before-undo-windows')
-        restore_windows_order('undo')
-        marker(current, 'after-undo-default-windows')
-        marker(current, 'after-undo-without-linux', detached=True)
-        save('part-a-result', dict(status='passed', order=Guest.order,
-             switch_policy_tty3_rollback=True, installed_keyboard_german=True, default_undo='Windows-first; no erase',
-             windows_detached_after_install_and_undo=True, offline_protected_disk_unchanged=True))
-    part_a(audit)
-    # A separate fresh install and complete switch/recovery/undo sequence.
-    reset_target()
-    shutil.copyfile(pristine_vars, WORK / 'vars.fd')
-    EVIDENCE = root / 'protected-second'
-    EVIDENCE.mkdir()
-    sw.EVIDENCE = EVIDENCE
-    Guest.order = 'protected-second'
-    reverse = Audit()
-    compare_disk(audit.disk, reverse.disk)
-    shutil.copyfile(WORK / 'vars.fd', EVIDENCE / 'pre-firmware-vars.fd')
-    marker(reverse, 'baseline-firmware', baseline=True)
-    part_a(reverse)
-    (root / 'part-a-result.json').write_text(json.dumps(dict(status='passed', both_orders=True,
-        orders=['protected-first', 'protected-second']), indent=2) + '\n')
-    print('PART A PASSED: complete switch/policy/tty3/rollback/default undo and detached Windows in both orders', flush=True)
-    promoted = grub_promotion(reverse, password, password_hash)
-    (root / 'full-result.json').write_text(json.dumps(dict(part_a='passed', both_orders=True,
-        installed_keyboard_both_orders=True, part_b='passed' if promoted else 'blocked', part_b_evidence='protected-second/grub-promotion.json'), indent=2) + '\n')
+    sw.Guest = Guest
+    install(audit, password, password_hash)
+    # Match the owner guide: firmware still starts Linux for hardware setup and
+    # first login. Only the successful keyboard/pause/pin permits the F2 step.
+    stock = stock_before_windows(audit, password, password_hash)
+    restore_windows_order('after-first-login-pin')
+    audit.windows_default = True
+    marker(audit, 'after-first-login-default-windows')
+    marker(audit, 'after-install-without-linux', detached=True)
+    promoted = grub_promotion(audit, password, password_hash, stock['booted_checksum'])
+    save('part-b-result', dict(part_b='passed' if promoted else 'blocked', order=Guest.order,
+         installed_keyboard_german=True, first_stock_firmware_default=True,
+         windows_default_after_first_login_pin=True, unattended_windows_marker=True,
+         detached_windows_marker=True, rollback_and_default_undo_repeated=False,
+         part_a_evidence='11k full40119526154; both orders; earlier Windows-first timing',
+         part_b_evidence='grub-promotion.json', commit=os.environ['GITHUB_SHA']))
 
 
 if __name__ == '__main__':

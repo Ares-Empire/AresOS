@@ -18,7 +18,7 @@ def cached_image(images, digest):
 def help_command(image):
     assert re.fullmatch('[0-9a-f]{64}', image)
     return ['podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
-            '--entrypoint=/usr/bin/bash', image, '-c', '''set -euo pipefail
+            '--tmpfs=/tmp:rw,nosuid,nodev,mode=1777', '--entrypoint=/usr/bin/bash', image, '-c', '''set -euo pipefail
 for tool in systemctl rpm-ostree bootc ostree pgrep runuser getent python3 grub2-reboot grub2-editenv; do command -v "$tool"; done
 rpm-ostree cleanup --help | grep -- --pending
 rpm-ostree status --help | grep -- --json
@@ -26,6 +26,15 @@ ostree admin pin --help
 ostree admin set-default --help
 grub2-reboot --help
 grub2-editenv --help
+probe=$(mktemp -d)
+mkdir -p "$probe/grub2"
+grub2-editenv "$probe/grub2/grubenv" create
+grub2-editenv "$probe/grub2/grubenv" set menu_show_once=1
+grub2-reboot --boot-directory="$probe" ostree-1
+grub2-editenv "$probe/grub2/grubenv" list
+test "$(grub2-editenv "$probe/grub2/grubenv" list | grep '^next_entry=')" = next_entry=ostree-1
+test "$(grub2-editenv "$probe/grub2/grubenv" list | grep '^menu_show_once=')" = menu_show_once=1
+rm -rf -- "$probe"
 bootc status --help
 rpm-ostree cancel --help
 python3 - <<'VERIFY_STOCK'
@@ -34,6 +43,8 @@ def output(command):
     return subprocess.check_output(command, text=True).strip()
 versions = {name: output(['rpm', '-q', '--qf', '%{VERSION}', name]) for name in ('rpm-ostree', 'uupd')}
 assert versions == {'rpm-ostree': '2026.3', 'uupd': '1.5.0'}, versions
+bootloaders = {name: output(['rpm', '-q', '--qf', '%{VERSION}-%{RELEASE}', name]) for name in ('ostree', 'grub2-common')}
+assert bootloaders == {'ostree': '2026.4-1.fc44', 'grub2-common': '2.12-66.fc44'}, bootloaders
 unit = pathlib.Path('/usr/lib/systemd/system/rpm-ostreed.service').read_text()
 assert 'ExecStart=+rpm-ostree start-daemon' in unit.splitlines(), unit
 # This child verifies the executable's actual Linux comm. It is our own child,
@@ -51,7 +62,7 @@ finally:
     if child.poll() is None:
         child.kill()
         child.wait()
-print('ARESOS_STOCK_IDLE_SOURCE_CHECK ' + json.dumps(dict(versions=versions, service=unit,
+print('ARESOS_STOCK_IDLE_SOURCE_CHECK ' + json.dumps(dict(versions=versions, bootloader_versions=bootloaders, service=unit,
       daemon_comm=comm, daemon_command=['rpm-ostree', 'start-daemon'],
       binaries={name: hashlib.sha256(pathlib.Path('/usr/bin', name).read_bytes()).hexdigest()
                 for name in ('rpm-ostree', 'uupd')},
@@ -80,9 +91,10 @@ def main(digest):
                if line.startswith('ARESOS_STOCK_IDLE_SOURCE_CHECK ')]
     assert source['daemon_comm'] == 'rpm-ostree'
     assert source['versions'] == {'rpm-ostree': '2026.3', 'uupd': '1.5.0'}
+    assert source['bootloader_versions'] == {'ostree': '2026.4-1.fc44', 'grub2-common': '2.12-66.fc44'}
     print('ARESOS_CACHED_STOCK_CLI_PROBE ' + json.dumps(dict(status='passed', digest=digest, image_id=image,
           pull='never', network='none', read_only=True, owner_credentials_mounted=False,
-          part_b_cli_help=True, stock_idle_source_verified=True, idle_source=source)))
+          part_b_cli_help=True, temporary_grubenv_bare_id=True, stock_idle_source_verified=True, idle_source=source)))
 
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ import zlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
 from disk_audit import (AUTH_STORE, boot_entry, boot_variables, compare_disk,
                         compare_nvram, entry_target, gpt, protected_writes, set_variable, variables,
-                        AUTO_BOOT_GUID, load_option, firmware_hardware, firmware_baseline, nvram_audit)
+                        AUTO_BOOT_GUID, load_option, firmware_hardware, firmware_baseline, nvram_audit, check_boot_next)
 
 
 class DiskAuditTest(unittest.TestCase):
@@ -282,9 +282,31 @@ class DiskAuditTest(unittest.TestCase):
         after = boot_variables(path)
         self.assertEqual(after['Boot0000']['hex'], windows.hex())
         self.assertEqual(after['BootOrder']['hex'], '01000000')
-        self.assertEqual(set(compare_nvram(before, after, target_esp=dict(partition, bytes=532480 * 512),
-                                         windows_first=False)), {'Boot0001', 'BootOrder', 'BootNext'})
+        esp = dict(partition, bytes=532480 * 512)
+        authorization = dict(for_boot=1, purpose='fixture Linux boot', destination='Boot0001', value='0100')
+        self.assertTrue(check_boot_next(after, authorization=authorization, consumed=False, target_esp=esp)['present'])
+        with self.assertRaisesRegex(AssertionError, 'not consumed'):
+            compare_nvram(before, after, target_esp=esp, windows_first=False)
+        del after['BootNext']
+        self.assertEqual(set(compare_nvram(before, after, target_esp=esp, windows_first=False)), {'Boot0001', 'BootOrder'})
         self.assertEqual(len(variables(path.read_bytes())[0]), 4)
+
+    def test_bootnext_unknown_destination_leftover_and_malformed_length_stop(self):
+        store, _, _, esp = self.linux_fixture()
+        for raw, message in (('ffff', 'unknown BootNext destination'), ('9900', 'Windows-default'),
+                             ('99', 'malformed BootNext length'), ('990000', 'malformed BootNext length')):
+            changed = dict(store, BootNext=dict(attributes=7, hex=raw))
+            with self.subTest(raw=raw), self.assertRaisesRegex(AssertionError, message):
+                check_boot_next(changed, windows_default=True, target_esp=esp)
+
+    def test_bootnext_requires_exact_preboot_authorization_and_is_consumed_after_boot(self):
+        store, _, _, esp = self.linux_fixture()
+        prepared = dict(store, BootNext=dict(attributes=7, hex='9900'))
+        authorization = dict(for_boot=12, purpose='recorded Linux GRUB start', destination='Boot0099', value='9900')
+        self.assertEqual(check_boot_next(prepared, authorization=authorization, consumed=False, target_esp=esp)['for_boot'], 12)
+        self.assertTrue(check_boot_next(store, authorization=authorization, target_esp=esp)['consumed'])
+        with self.assertRaisesRegex(AssertionError, 'unauthorized BootNext'):
+            check_boot_next(prepared, consumed=False, target_esp=esp)
 
     def test_lost_modified_or_unordered_windows_and_non_linux_addition_fail(self):
         path = self.store()
