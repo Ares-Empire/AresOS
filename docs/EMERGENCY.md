@@ -2,7 +2,7 @@
 
 The AresOS emergency card. **Keep it on your phone.** If AresOS is broken, you can't read it on the laptop.
 
-This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md, and this card tells you which section to open. The 2026-10-24 [11g rehearsal](../reviews/11-two-disk-rehearsal/REPORT.md#11g-stock-updater-preparation-and-failure-counters-2026-10-24) passed the installer preview in both drive orders, then the full rehearsal stopped at an installer keyboard check before installation. All reached protected-disk checks passed, including the failed session's final write counter. The new stock preparation steps have not yet passed on an installed system. The complete install/recovery/undo sequence and GRUB recovery promotion remain unqualified; the UNTESTED recovery gate below stays open.
+This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md, and this card tells you which section to open. The 2026-10-24 [11h source investigation](../reviews/11-two-disk-rehearsal/REPORT.md#11h-pinned-keyboard-source-investigation-2026-10-24) found that the pinned installer's keyboard conversion can permanently clear X11 options. The required source-first stop applies; no new installation was attempted. Full 3's actual differing values remain unknown. The stock preparation steps and installed German console/X11 files have not been qualified. The complete install/recovery/undo sequence and GRUB recovery promotion remain unqualified; the UNTESTED recovery gate below stays open.
 
 ## Stock preparation stops before the switch
 

@@ -683,3 +683,19 @@ follow-up is needed to investigate and authorize further qualification. Current
 shared usage 316/750 rounded minutes, 3/4 full, with 14 reserved for closing privacy.
 Historical 11f's missing counter remains unchanged/unqualified. Physical gates stay
 open and PR stays draft.
+
+
+### 11h exact-source finding — stop before proof changes
+
+Inspection 40099746381 on 6b08aa3 verified the complete frozen ISO and extracted
+LocaledWrapper/resolver/task source. Conversion saves layouts and keymap, omits
+options, and restores with empty options. Executing those exact AST nodes with an
+immediate mock localed permanently loses nonempty options despite German resolution;
+empty options pass. No timing race is necessary for that counterexample. Full 3's
+actual cause remains unproven because no tuples were retained. 11h explicitly says
+to stop if source shows another issue, so no settle/installed-target/guard change,
+probe or full followed. Installed console/X11 paths are known but unverified.
+Current ledger 336/750 plus 14 closing reserve, three of five authorized full runs;
+old guard remains conservatively four until authorized continuation. Existing stock
+pause/cleanup/pin and all A/B gates remain unqualified. Source assertions, frozen
+inputs, firmware/offline checks and token/privacy boundaries are unchanged. PR draft.

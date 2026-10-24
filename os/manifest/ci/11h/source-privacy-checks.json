@@ -1,0 +1,26 @@
+[
+  {
+    "run": 40099639559,
+    "head": "6b08aa30251da875481b4af0c646e508d245d935",
+    "status": "passed",
+    "checks": {
+      "No secrets (gitleaks)": "success",
+      "Only private commit emails": "success",
+      "No personal terms": "success"
+    },
+    "personal_terms_skip_warning": false,
+    "log_sha256": "dfd6843c0be4ff0517e3be55b5de0fbd8c41883d36abd8ca3cf1fe6c0e792b9a"
+  },
+  {
+    "run": 40099645938,
+    "head": "6b08aa30251da875481b4af0c646e508d245d935",
+    "status": "passed",
+    "checks": {
+      "No secrets (gitleaks)": "success",
+      "Only private commit emails": "success",
+      "No personal terms": "success"
+    },
+    "personal_terms_skip_warning": false,
+    "log_sha256": "394ae5ae82142844b4252ef54ce28ca8e0953a2efe1d5cb5b172ae93ae747fb3"
+  }
+]

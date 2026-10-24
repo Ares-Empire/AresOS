@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11g outcome: **MANDATORY STOP before installation — a probe-covered keyboard-restoration assertion failed in the full run. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh both-order probe and 162 Ubuntu regressions passed. The pause/discard/pin recipe and failure counters are implemented; actual installed preparation was not reached. Ten reached 11g offline captures match and ten final counters are zero, including the explicitly marked full failure-path record. Shared ledger **316/750 measured + 14 closing privacy minutes reserved, 3/4 full runs**. PR #11 remains draft; no further dispatch. See [11g](#11g-stock-updater-preparation-and-failure-counters-2026-10-24).
+Latest 11h outcome: **PLAN-GAP STOP after checking the exact pinned installer source. A NOT QUALIFIED, B UNTESTED, C pins retained.** The resolver can permanently clear X11 options; a 15-second wait cannot restore that field. The actual cause of full 3 remains unproven because its tuples were not retained. Inspection-only run passed 162 Ubuntu regressions; no 11h VM, probe or full was dispatched. Shared ledger **336/750 measured + 14 closing privacy minutes reserved, 3/5 authorized full runs used**. PR #11 remains draft. See [11h](#11h-pinned-keyboard-source-investigation-2026-10-24).
 
 Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **229/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
 
@@ -2059,3 +2059,184 @@ respective dispatches. Existing estimate remains 111–133 VM minutes (central 1
 156-minute full VM step / 180-minute job; two 15-second polls and target read audits
 fit existing margin. No probe/full dispatch until source finding, then fresh
 same-SHA successful probe before one complete both-order A + B full.
+
+
+### Exact-source finding — mandatory PLAN-GAP STOP
+
+**Done:** inspection-only source `6b08aa30251da875481b4af0c646e508d245d935`,
+[run 40099746381](https://github.com/Ares-Empire/AresOS/actions/runs/40099746381),
+completed successfully. Fresh official checksum and all **9,068,650,496 ISO bytes**
+match frozen SHA-256 `776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6`.
+The inspector extracts the original localization files from that ISO's SquashFS,
+with [path/length/SHA receipt](../../os/manifest/ci/11h/inspect-1/installer/localization-source.json).
+These are the actual Python 3.14 installed modules, not the earlier upstream capture.
+
+| Original ISO module | Bytes | SHA-256 |
+|---|---:|---|
+| `localed.py` | 17,659 | `f0f8eb597455f88e656c81c9bcb3f3636418a6d92883b2c9ef4f9c012292a8af` |
+| `utils.py` | 3,498 | `9131865a34cb8e978d34083f9c981e84401fbf9852f7ca4f213b2dc9abb001e1` |
+| `installation.py` | 9,483 | `f3a348993523390c757aeab826a86110f9c92f817372173f91af2b06c34381db` |
+
+Read the full extracted [LocaledWrapper](../../os/manifest/ci/11h/inspect-1/installer/usr_lib64_python3.14_site-packages_pyanaconda_modules_localization_localed.py),
+[resolver](../../os/manifest/ci/11h/inspect-1/installer/usr_lib64_python3.14_site-packages_pyanaconda_modules_localization_utils.py)
+and [installation task](../../os/manifest/ci/11h/inspect-1/installer/usr_lib64_python3.14_site-packages_pyanaconda_modules_localization_installation.py).
+For the recorded module choice `XLayouts=['de']`, `VirtualConsoleKeymap=''`:
+
+1. `get_missing_keyboard_configuration` calls `_resolve_missing_by_conversion`,
+   then `LocaledWrapper.convert_layouts(['de'])`.
+2. `convert_layouts` reads original layouts/variants and console keymap. It **does
+   not save options**. It calls `set_and_convert_layouts`, which invokes
+   `SetX11Keyboard('de', 'pc105', '', '', True, False)`, then reads VConsoleKeymap.
+3. Restoration calls `set_layouts(orig_layouts_variants)` and
+   `set_keymap(orig_keymap)`. The omitted `options` argument defaults to `None`,
+   producing **empty options**, not the saved value. Calls are
+   `SetX11Keyboard(original_layouts, 'pc105', original_variants, '', False, False)`
+   and `SetVConsoleKeyboard(original_keymap, '', False, False)`.
+4. These are sequential ordinary synchronous proxy invocations. The function returns
+   after the restore calls; there is no deferred restore callback, poll or waiting
+   for the original tuple. The [dasbus client implementation](https://dasbus.readthedocs.io/en/latest/_modules/dasbus/client/handler.html)
+   documents the ordinary synchronous call path; [localed's API](https://www.freedesktop.org/software/systemd/man/259/org.freedesktop.locale1.html)
+   describes the conversion flags and configuration properties. Those current API
+   references provide context, not proof of exact dependency bytes or live timing.
+5. The source itself therefore demonstrates an **options-preservation defect**,
+   independent of any possible property-publication delay. By comparison,
+   `write_x_configuration` in this same ISO explicitly saves `saved_options` and
+   supplies them when restoring. Conversion does not. The exact pinned wrapper
+   also lacks the newer upstream capture's conversion lock.
+
+**Verified counterexample, without a VM or host bus:**
+`python -X utf8 reviews/11-two-disk-rehearsal/analyze-11h-keyboard-source.py` executes
+unmodified AST class/function nodes extracted from the original artifact. Only the
+bus/property storage, logging and plain-layout parser/formatter are mocked. Calls
+apply immediately, with no callbacks/external writer. Input matches the observed
+module choice (`de`, empty console model):
+
+| Synchronous mocked live state | Resolver output | State after all calls |
+|---|---|---|
+| `('us', ['de'], [])` | `(['de'], 'de')` | `('us', ['de'], [])`, strict tuple equality PASS |
+| `('us', ['de'], ['caps:escape'])` | `(['de'], 'de')` | `('us', ['de'], [])`, strict tuple equality FAIL |
+
+Thirty-one repeated state reads at **simulated** 0–15 seconds remain unequal in the
+second case. They are a deterministic counterexample, **not measured localed/VM
+settle timings**. Every recorded call supplies empty options. There is no operation
+that could restore `caps:escape`, however long the diagnostic waits. Output:
+`PLAN-GAP reproduced from exact ISO AST: German result, original keymap/layout restored, nonempty options lost permanently; no VM or host bus used.`
+[SHA-bound analysis and all calls/values](../../os/manifest/ci/11h/keyboard-source-analysis.json).
+
+**Comparison with full 3:** the retained failed transcript proves module `de` /
+empty console model and failure at exact live tuple equality; it contains no before/
+after tuple. Both passing probe orders used the same resolver, and their recorded
+installation source SHA equals this exact ISO module's SHA. Empty options can pass
+and nonempty options can fail without a timing race, as the counterexample shows.
+This does **not** establish which field actually differed in full 3 or that this
+options defect caused that failure. A race/concurrent writer remains possible;
+claiming a race as the established explanation would exceed the evidence. Also,
+the harness uses one wrapper instance for both reads, rather than the fresh wrapper
+suggested in 11h's introductory explanation. The harmless mpath warning remains
+present in both passing probe orders; no new causal claim is made.
+
+11h requires: **“If the source shows something other than a timing race, stop and
+report a PLAN-GAP.”** The permanent options loss meets that condition. Therefore:
+**no settling implementation, installed-target audit change, probe or full dispatch
+followed the source finding**. The existing assertions remain intact; no installer,
+image, firmware rule or offline audit was patched to bypass the source result.
+The installed file paths are now known from the task: `/etc/vconsole.conf` and
+`/etc/X11/xorg.conf.d/00-keyboard.conf`. Reading/asserting them in both target roots
+remains explicitly blocked work, not evidence already obtained.
+
+### Gate → evidence and remaining acceptance
+
+| Gate | 11h result / evidence |
+|---|---|
+| Fetch / FF pull / source first | **DONE**, initial fetch/pull already current; exact pinned source extracted and read before keyboard changes. |
+| Walk-through before any dispatch | **DONE**, complete both-order/B table above; only inspection dispatched. |
+| Source timing premise | **PLAN-GAP STOP**, exact methods can permanently lose options; actual full-3 cause still unproven. |
+| Strict 15-second equality and delayed/never-restored regressions | **NOT IMPLEMENTED / NOT RUN**, blocked by source-first STOP. Existing nine local keyboard/review/probe/download tests pass, including wrong layout/keymap and restoration-flag rejection. |
+| Probe/full settle timings | **NONE**, no 11h VM run. Mock simulated observations are labeled as such. |
+| Installed console/X11 German proof and non-German target rejection test | **NOT IMPLEMENTED / NOT RUN**, stop preceded installation and these changes. No installed result claimed. |
+| 11g updater inventory / pause / cleanup / pin | Existing inventory, real-status mocked replay and negative/idempotency regressions retained unchanged. Actual installed preparation, pending observation/discard and later frozen-policy compatibility **NOT REACHED** in 11h. No newer booted stock was accepted. |
+| 11g failure-path counters | Existing real full-3 receipt and 27 harness regressions retained. Inspection starts no QEMU and produces no new disk counter. Historical 11f missing record stays unqualified. |
+| Per-stage firmware/Linux events / protected checks | **No new VM stages/events** in 11h. Prior ten matching 11g captures/ten final zero counters and five allowed probe auto events retain their original limited qualification; no historical evidence relabeled. |
+| A, both complete orders | **NOT QUALIFIED**; no new install/switch/policy/tty3/rollback/default undo or detached Windows markers. |
+| B, one-time recorded stock, promotion, second unattended boot | **UNTESTED**, still open, not a passed/clearly resolved recovery path. |
+| C, media inputs | Frozen pins retained; fresh whole ISO verified again. Physical media and unaided novice followability remain open. |
+| Owner-token boundaries | All three owner credential/preflight/pull steps **SKIPPED** in inspect mode; VM step and image/build/publish jobs skipped. Always cleanup passed. No owner token read locally or used in inspection, **zero owner-token API calls**. Normal logged-in `gh` / ephemeral job token read only workflow/equivalence metadata. |
+| Privacy | Both source push/PR checks **GREEN**, all three steps success, actual missing-PRIVATE_TERMS warning absent. Configs unchanged; final report push must pass the same checks. |
+| PR / physical install gate | Keep **DRAFT**, INSTALL/EMERGENCY reflect source STOP and unqualified installed recipe/recovery. Physical installation remains NOT RELEASED; no merge. |
+
+### Commands, retained evidence and privacy
+
+- Inspection Ubuntu job: **`Ran 162 tests in 3.900s` / `OK`**, Python compilation,
+  shell syntax and frozen release-equivalence verification passed. ISO verification
+  printed the frozen SHA and 9,068,650,496 bytes. [Completed transcript](logs/11h/inspect-1.txt).
+- Local `python -m py_compile os/ci/installer_inspect.py` passed.
+  `python -m unittest discover -s os/tests -p test_installer_webui.py -v` printed
+  **`Ran 9 tests in 0.110s` / `OK`**; [log](logs/11h/local-webui.txt).
+- Source-analysis command above passed; it verifies the server ZIP digest, original
+  module lengths/SHA and expanded bytes, same installation-source SHA as probe 3,
+  skipped owner/VM steps, cleanup, native count and both synchronous cases.
+- [Original evidence ZIP](artifacts/11h-inspect-1-two-disk-evidence.zip): **3,004,373
+  bytes**, SHA-256 `9d6a008214721977c3609758d88bd4441d5c8a7b0c18358e58886c8b5e73a7df`.
+  Original workflow ZIP and its hash receipt are retained. Collector scans all archive
+  entries for raw/base64-decoded credentials and refuses auth-file paths before
+  extraction. Original ZIPs and exact Python sources are unmodified. Only display
+  text is normalized; the large listing stays inside the original ZIP, as before.
+- [Source privacy proof](../../os/manifest/ci/11h/source-privacy-checks.json) verifies
+  push 40099639559 and PR 40099645938, all three checks and no actual skipped-term
+  warning. [Unchanged input hashes](../../os/manifest/ci/11h/unchanged-inputs.json)
+  bind frozen Containerfile/manifests, disk audit, keyboard proof and privacy configs.
+  First local comparison tried `.gitleaksignore` against origin/main, which has no
+  such file; corrected comparison against the brief head passed. The ignore is
+  unchanged, and no privacy exclusion was added. No Gradle daemon was started.
+
+### Continuing ledger and stop boundary
+
+Same **2026-10-23T16:21:00Z** start; **750-minute / 5-full authorization** under 11h.
+No allowance reset. The unchanged guard still enforces the stricter four-full
+ceiling during this inspection; updating it and its regression to five is deferred
+with the other implementation after the source-first STOP. Three total full runs
+have been used, none newly dispatched. This is not budget exhaustion.
+
+| Cost | Rounded minutes |
+|---|---:|
+| Actual 11g closure | 318 |
+| Integrator brief 11h push/PR checks | 2 |
+| Source-extraction push/PR privacy checks | 2 |
+| Inspection-only 40099746381 (13:48:49–14:02:28 UTC) | 14 |
+| **Measured before closing report push** | **336 / 750; 3 / 5 authorized full runs** |
+| Reserved closing privacy allowance | **14** |
+
+[Inspection guard](../../os/manifest/ci/11h/inspect-1/11c-dispatch-authorization.json)
+measured 322 + 42 reserved; [after-inspection ledger](../../os/manifest/ci/11h/after-inspect-budget.json)
+measures 336 + 14 closing reserve. Report necessarily precedes its own privacy jobs;
+the final PR body/checks will carry the measured closing total. Integrator-reported
+org usage remains 248/2,000 October minutes, reset 1 November; owner token was not
+used to query billing or package visibility.
+
+**Not verified:** actual full-3 differing tuple/causality, real settle timings,
+installed console/X11 German configuration, installed stock pause/pending discard/
+pin, both complete A orders, later frozen updater policy, all B and all physical
+laptop/media/typing/hardware checks. The mocked options counterexample cannot
+substitute for any of these. No mod/Gradle/Minecraft or laptop disk action.
+
+**JUDGMENT-CALL:** use the existing inspection-only path to obtain exact ISO bytes
+before spending a probe/full or changing the diagnostic. No product behavior
+changed. Preserve strict tuple equality and follow the explicit source-first STOP.
+
+**PLAN-GAP:** polling alone cannot restore X11 options that the pinned conversion
+never saved or passed back. The brief's pure timing premise is insufficient. A
+follow-up must decide how to make the diagnostic preserve live state without
+changing the pinned installer/image or weakening equality, then implement the
+remaining settle/target checks, cap regression, fresh probe and full. No option was
+silently discarded or normalized to get green.
+
+**Open questions:** what actually differed in full 3; the authorized handling of
+this source defect; actual installed keyboard/updater/recovery behavior once the
+source blocker is resolved. No question or approval request was sent mid-run.
+
+
+Final local closure checks: staged gitleaks printed `no leaks found`; history scan
+of **114 commits** printed `no leaks found`. `git diff --cached --check` passed.
+All analysis input hashes and three exact ISO sources matched staged Git blob bytes
+across 165 expected paths. Final report/privacy outcome is recorded on PR #11 after
+this commit's checks complete. No additional dispatch, force-push or merge.
