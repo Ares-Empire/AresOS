@@ -36,8 +36,8 @@
     "os/release/pause-stock-updates.sh": "b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5",
     "os/release/pin-stock.sh": "6782e32be96d612823224830956042637bc53b05c8f7ea2effe60efb25e72c2f",
     "os/tests/test_stock_prepare.py": "a288dd8458765a273a838ff4fad5e627e2f3ec94129beb1722e40e09950a5032",
-    "os/tests/test_two_disk_vm.py": "63727d859a5bf8c756e893c117288dd7a57d82618acea9066db96588cadbd73b",
-    "os/ci/two_disk_vm.py": "39182b7419e2ecd710331a2d757e55b7cfb6906d1b3e305b469cc61b46e07c21",
-    "docs/INSTALL.md": "d1765098daf5176a9c13e5bc08a023c0da7c5f5ea85a0c0e4d61b67be7c90f70"
+    "os/tests/test_two_disk_vm.py": "9598bc795d7c9e08b3d7bf1a0769f9feba52694022a7ae84832639dba4f45588",
+    "os/ci/two_disk_vm.py": "ce19e30ff9ea42828e48afa4341e8af682786590f1c9ae8f0f69c2c6484ef851",
+    "docs/INSTALL.md": "ce56280013338c7869ede4cd0a295d4fbf4755041567a798ccea1fd7e7a57259"
   }
 }

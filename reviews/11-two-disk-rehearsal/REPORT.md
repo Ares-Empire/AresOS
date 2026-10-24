@@ -1714,3 +1714,33 @@ on the exact same commit. No ledger reset; next full is number **3 of 4**.
 
 Fresh probe and full outcomes, per-stage events, gate table and final ledger are
 pending. Historical 11f's missing counter remains unqualified and unchanged.
+
+### Pre-full close-path correction / replacement probe
+
+During setup-only probe 40061143698, a source audit found the unexpected-QEMU-exit
+branch could skip the explicit unavailable-counter receipt. Cancel requested before
+any VM/installation; preserve that run's actual cost, artifacts and credential
+cleanup receipt. Fixed close to attempt/query/record on an unexpected exited process
+as well as a live failed session; verified ordinary shutdowns keep their existing
+final record. Added regression: exited QEMU + unavailable QMP creates the explicit
+unavailable receipt without a redundant terminate. **25 harness tests passed**.
+A replacement same-source probe is required before any full dispatch. This is a
+harness correction with a regression; no firmware/offline/payload rule changed.
+
+The final verifier also rejects an unpaused failure counter or an earlier stale
+counter when the final QMP query was unavailable. Part B's recovered-stock audit
+uses its actual promotion-reboot counter filename; no historical record is created
+or relabeled. Corrected a stale INSTALL sentence about automatic updater resumption.
+The earlier broad Windows discovery printed `Ran 137 tests ... FAILED (failures=1,
+errors=10)` because it requires Linux symlink privileges, os.getuid, termios and
+pass_fds; retained its log, no tests skipped or changed. The first Ubuntu probe's
+complete regression step passed; its exact count will be retained from the log.
+Replacement probe will repeat the complete suite on the corrected source.
+
+Cancelled probe receipt: **11 rounded minutes**, 04:08:17–04:18:47 UTC. Native
+`Ran 156 tests in 5.003s / OK`; cancellation occurred in ISO inspection, no VM
+fixture or installation. Owner manifest/layer reads passed and always-cleanup
+removed the runner-temp credentials before artifact upload. Original artifact
+47,869 bytes SHA-256 `0e09722b1df39769098cf591e920ee2e3c18dd640ee79d5da1345e1b4db42d8e`;
+[retained metadata](../../os/manifest/ci/11g/probe-1/), [log](logs/11g/probe-1.txt).
+Archive verifier passed with **zero qualifications** for this cancelled run.

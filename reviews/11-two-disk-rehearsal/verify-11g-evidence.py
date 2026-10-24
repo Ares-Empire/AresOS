@@ -173,19 +173,29 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
             counter_stage = stage.removeprefix('switch-sequence-')
             if counter_stage.endswith('-pre-login-reset'):
                 counter_stage = 'pre-login-reset'
+            # Part B audits the recovered-stock session after its promotion reboot.
+            # The final counter uses the actual reboot command's stage name.
+            if stage == 'b-recovered-stock' and not (folder / (counter_stage + '-blockstats.json')).exists():
+                counter_stage = 'b-promote-recorded-stock'
+            if stage == 'b-menu-preparation' and (folder / 'b-unresolved-menu-blockstats.json').exists():
+                counter_stage = 'b-unresolved-menu'
             counter = folder / (counter_stage + '-blockstats.json')
             failure_receipt = folder / (counter_stage + '-failure-counter.json')
+            final = True
             if failure_receipt.exists():
                 failure = read(failure_receipt)
                 assert failure['failure_path'] and not failure['probe_only']
                 assert failure['boot'] == devices['boot']
                 assert failure['counter'] == counter.name
-                if failure['status'] != 'recorded':
-                    incomplete.append(dict(stage=capture.relative_to(records).as_posix(), reason='Failure-path QMP counter explicitly unavailable'))
-                    assert not counter.exists()
+                final = failure['status'] == 'recorded' and failure['vm_paused']
+                if not final:
+                    incomplete.append(dict(stage=capture.relative_to(records).as_posix(),
+                        reason='Failure-path final counter unavailable or VM pause unconfirmed',
+                        intermediate_counter_retained=counter.exists()))
             if counter.exists():
                 protected_writes(read(counter))
-                counters += 1
+                if final:
+                    counters += 1
             else:
                 incomplete.append(dict(stage=capture.relative_to(records).as_posix(), reason='No final write counter'))
             stages += 1
@@ -232,6 +242,10 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
         assert all(proof[k] for k in ('both_orders', 'review_validated', 'detached_windows', 'target_reset',
                                      'owner_auth_read_only', 'signature_verified', 'stock_recipe_probe', 'failure_counter_probe'))
         assert metadata['conclusion'] == 'success'
+        for folder in (probe.parent, probe.parent / 'protected-second'):
+            assert read(folder / 'stock-recipe-probe.json')['real_unit_pause_twice']
+            counter_proof = read(folder / 'failure-counter-probe-failure-counter.json')
+            assert counter_proof['status'] == 'recorded' and counter_proof['vm_paused'] and counter_proof['probe_only']
         qualifications.append(dict(run=run.name, kind='probe', source=metadata['head_sha'], status='passed'))
     for full in run.rglob('full-result.json'):
         proof = read(full)

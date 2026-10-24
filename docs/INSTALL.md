@@ -466,7 +466,7 @@ Read both outputs. Require the **first `deployments` entry** to be booted stock 
 systemctl reboot
 ```
 
-Require the stock greeter again, then sign in and repeat the two status commands (using `sudo` for bootc if needed). Require the recorded stock identity to remain booted and first. Stop if AresOS returns or the identity differs. Stock's normal automatic updates return after recovery; a later stock update can intentionally change its checksum.
+Require the stock greeter again, then sign in and repeat the two status commands (using `sudo` for bootc if needed). Require the recorded stock identity to remain booted and first. Stop if AresOS returns or the identity differs. Stock update timers stay paused during this trial. If you return to stock for good, use the re-enable command recorded before §5; a later stock update can intentionally change its checksum.
 
 Semantics checked against the [bootc rollback manual](https://bootc.dev/bootc/man/bootc-rollback.8.html), [OSTree set-default manual](https://github.com/ostreedev/ostree/blob/main/man/ostree-admin-set-default.xml) and [implementation](https://github.com/ostreedev/ostree/blob/main/src/ostree/ot-admin-builtin-set-default.c): rollback queues the rollback slot; set-default persistently moves the selected deployment to the front and writes the deployment list. This is why a blind rollback after booting stock from GRUB is not this recipe.
 

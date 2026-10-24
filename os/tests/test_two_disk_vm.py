@@ -282,6 +282,17 @@ class TwoDiskHarnessTest(unittest.TestCase):
         self.assertFalse((self.directory / 'stock-blockstats.json').exists())
         guest.process.terminate.assert_called_once()
 
+    def test_unexpected_qemu_exit_records_unavailable_counter_without_termination(self):
+        def unavailable():
+            raise EOFError('QEMU fixture already exited')
+        guest = self.failure_guest(unavailable)
+        guest.process.poll.return_value = 1
+        with patch.object(vm, 'EVIDENCE', self.directory), patch.object(vm.sw, 'EVIDENCE', self.directory):
+            guest.close('stock')
+        receipt = json.loads((self.directory / 'stock-failure-counter.json').read_text())
+        self.assertEqual((receipt['status'], receipt['error_type']), ('unavailable', 'EOFError'))
+        guest.process.terminate.assert_not_called()
+
     def test_failure_counter_protected_write_remains_product_failure_and_vm_closes(self):
         guest = self.failure_guest(lambda: [dict(device='protected', stats=dict(wr_bytes=512, wr_operations=1))])
         with patch.object(vm, 'EVIDENCE', self.directory), patch.object(vm.sw, 'EVIDENCE', self.directory):

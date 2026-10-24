@@ -191,7 +191,8 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
 
     def close(self, stage):
         try:
-            if self.process is not None and self.process.poll() is None:
+            if self.process is not None and (self.process.poll() is None
+                    or not getattr(self, 'stopped_events_verified', False)):
                 self.failure_counter(stage)
         finally:
             # Sample while QEMU is alive; the receipt says whether pause worked.

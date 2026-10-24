@@ -1,4 +1,4 @@
-Command: C:\Users\pab\AppData\Local\Programs\Python\Python313\python.exe -X utf8 -m unittest discover -s os/tests -p test_two_disk_vm.py -v
+Command: python -X utf8 -m unittest discover -s os/tests -p test_two_disk_vm.py -v
 test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart (test_two_disk_vm.TwoDiskHarnessTest.test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart) ... ok
 test_actual_iso_help_blocks_unsupported_live_kickstart_before_installation (test_two_disk_vm.TwoDiskHarnessTest.test_actual_iso_help_blocks_unsupported_live_kickstart_before_installation) ... ok
 test_bls_export_is_one_quoted_command_and_parses_real_files (test_two_disk_vm.TwoDiskHarnessTest.test_bls_export_is_one_quoted_command_and_parses_real_files) ... ok
@@ -22,9 +22,10 @@ test_target_reset_refuses_an_open_file_and_preserves_it (test_two_disk_vm.TwoDis
 test_timed_out_public_command_preserves_only_its_redacted_partial_output (test_two_disk_vm.TwoDiskHarnessTest.test_timed_out_public_command_preserves_only_its_redacted_partial_output) ... ok
 test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach (test_two_disk_vm.TwoDiskHarnessTest.test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach) ... ok
 test_ui_salted_password_hash_is_redacted_without_knowing_its_salt (test_two_disk_vm.TwoDiskHarnessTest.test_ui_salted_password_hash_is_redacted_without_knowing_its_salt) ... ok
+test_unexpected_qemu_exit_records_unavailable_counter_without_termination (test_two_disk_vm.TwoDiskHarnessTest.test_unexpected_qemu_exit_records_unavailable_counter_without_termination) ... ok
 test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output (test_two_disk_vm.TwoDiskHarnessTest.test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output) ... ok
 
 ----------------------------------------------------------------------
-Ran 24 tests in 0.237s
+Ran 25 tests in 0.252s
 
 OK

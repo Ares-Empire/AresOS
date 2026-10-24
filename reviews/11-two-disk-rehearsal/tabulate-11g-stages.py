@@ -18,6 +18,10 @@ for run in sorted(p for p in root.iterdir() if p.is_dir() and (p / 'run.json').e
             alias = stage.removeprefix('switch-sequence-')
             if alias.endswith('-pre-login-reset'):
                 alias = 'pre-login-reset'
+            if stage == 'b-recovered-stock' and not (folder / (alias + '-blockstats.json')).exists():
+                alias = 'b-promote-recorded-stock'
+            if stage == 'b-menu-preparation' and (folder / 'b-unresolved-menu-blockstats.json').exists():
+                alias = 'b-unresolved-menu'
             stats = folder / (alias + '-blockstats.json')
             writes = 'missing counter'
             if stats.exists():
