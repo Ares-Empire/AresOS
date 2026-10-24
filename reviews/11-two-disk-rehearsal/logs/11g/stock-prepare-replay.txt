@@ -39,7 +39,7 @@ Command: python -X utf8 reviews/11-two-disk-rehearsal/replay-11g-stock-prepare.p
     "os/tests/test_stock_prepare.py": "a288dd8458765a273a838ff4fad5e627e2f3ec94129beb1722e40e09950a5032",
     "os/tests/test_two_disk_vm.py": "bf077259a2bda657ff4d0d72af2408241635cc858ee96f6ba39bd4c7b1aca275",
     "os/ci/two_disk_vm.py": "31e01e99ff4ab361a5516ec9a5a7f46539753513c69055454d43683ea932abe0",
-    "docs/INSTALL.md": "ce56280013338c7869ede4cd0a295d4fbf4755041567a798ccea1fd7e7a57259"
+    "docs/INSTALL.md": "65c8b56b8d62df71d27ed80d92e5a0753086932609aab44469168fe23e6f67f8"
   }
 }
 test_pause_twice_is_idempotent_and_services_idle_timers_persistently_disabled (test_stock_prepare.StockPauseTest.test_pause_twice_is_idempotent_and_services_idle_timers_persistently_disabled) ... ok
@@ -51,6 +51,6 @@ test_replays_real_staged_update_then_pins_unchanged_booted_checksum (test_stock_
 test_wrong_booted_digest_two_stages_and_other_origins_stop_before_cleanup_or_pin (test_stock_prepare.StockPinTest.test_wrong_booted_digest_two_stages_and_other_origins_stop_before_cleanup_or_pin) ... ok
 
 ----------------------------------------------------------------------
-Ran 7 tests in 0.033s
+Ran 7 tests in 0.154s
 
 OK

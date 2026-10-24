@@ -1,2 +1,2 @@
-Command: C:\Users\pab\AppData\Local\Programs\Python\Python313\python.exe -X utf8 reviews/11-two-disk-rehearsal/regress-11g-archive-scanner.py
+Command: python -X utf8 reviews/11-two-disk-rehearsal/regress-11g-archive-scanner.py
 ASCII SHA512/rounds/yescrypt hashes and raw/decoded token fixtures detected; real compressed PNG has no credential match.

@@ -1,0 +1,2 @@
+Command: python -X utf8 reviews/11-two-disk-rehearsal/replay-11g-full-stop.py
+PROBE-COVERED STOP CONFIRMED: no install; failure counter recorded before QMP quit; zero protected writes.

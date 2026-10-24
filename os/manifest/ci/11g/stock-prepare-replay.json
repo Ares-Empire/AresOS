@@ -38,6 +38,6 @@
     "os/tests/test_stock_prepare.py": "a288dd8458765a273a838ff4fad5e627e2f3ec94129beb1722e40e09950a5032",
     "os/tests/test_two_disk_vm.py": "bf077259a2bda657ff4d0d72af2408241635cc858ee96f6ba39bd4c7b1aca275",
     "os/ci/two_disk_vm.py": "31e01e99ff4ab361a5516ec9a5a7f46539753513c69055454d43683ea932abe0",
-    "docs/INSTALL.md": "ce56280013338c7869ede4cd0a295d4fbf4755041567a798ccea1fd7e7a57259"
+    "docs/INSTALL.md": "65c8b56b8d62df71d27ed80d92e5a0753086932609aab44469168fe23e6f67f8"
   }
 }

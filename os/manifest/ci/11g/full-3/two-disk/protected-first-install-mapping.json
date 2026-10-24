@@ -1,0 +1,6 @@
+{
+  "protected": "vda",
+  "target": "vdb",
+  "protected_serial": "MICRON-KEEP",
+  "target_serial": "CRUCIAL-TARGET"
+}

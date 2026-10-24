@@ -648,3 +648,38 @@ unit pause twice on live systemd. Real installed pending cleanup is still a full
 its state logic is covered by the real 11f-status replay. No NVRAM/installer stage or
 rule changes. Source `stock_probe.py` and its real-cache regressions describe this
 new command before dispatch. No full dispatch after either nonpassing probe.
+
+### 11g successful probe → full gate, before dispatch
+
+Probe 40064206779 on source 909fe5a1d54345af550588ea926800930102c168 passed.
+Both actual cache IDs/digests match; CLI help runs read-only, offline, no-pull with
+no owner credentials mounted. Real system/global-user pause twice passed in each
+order. Failure-counter probe receipts for boots 2 and 5 are recorded, paused and
+probe-only; final live-session counters are separate. Six offline captures match,
+six final counters are zero, no incomplete stage, five firmware events and no Linux
+position event. Detached Windows marker and exact Windows-first action pass in both
+orders. Both final reviews were visually inspected: first target vdb, reverse vda,
+only that target's new EFI/boot/root rows. Signature/auth/pull/always-cleanup passed;
+owner-token API calls remain zero. 162 Ubuntu regressions passed. No source push
+between this probe and full; local/remote still 909fe5a. The full guard must verify
+this original server artifact digest and commit again. The two first-login/pin
+paths, actual cleanup occurrence, later frozen policy and all recovery/default
+checks remain full-run gates, with unchanged STOP conditions.
+
+### 11g full result — mandatory stop
+
+Full 40066161000 on the exact same source 909fe5a as probe 40064206779 failed
+`read_keyboard`: `Conversion did not restore live settings`. Both passing probe
+orders executed this same check. Therefore the mandatory probe-covered full-failure
+stop rule applies; no fourth full and no further probe. The failure was before the
+review/erase/install action, so actual installed stock pause/cleanup/pin, later
+policy, reverse full install and B were not reached. The full's two protected
+captures match; its failure final counter is recorded, failure-path, non-probe-only,
+paused, zero writes, followed by QMP quit and offline audit. No protected/firmware
+rule failed. LocaledWrapper before/after values were not printed, so root cause is
+unverified; the libbd_mpath warning also occurs in both passing probe orders.
+Do not weaken the keyboard restoration assertion or guess a retry. An integrator
+follow-up is needed to investigate and authorize further qualification. Current
+shared usage 316/750 rounded minutes, 3/4 full, with 14 reserved for closing privacy.
+Historical 11f's missing counter remains unchanged/unqualified. Physical gates stay
+open and PR stays draft.
