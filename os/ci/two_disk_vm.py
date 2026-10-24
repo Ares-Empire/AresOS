@@ -687,6 +687,7 @@ def stock_before_windows(audit, password, password_hash):
     stage = 'stock-before-windows'
     try:
         guest.command('first-stock-pause', pathlib.Path('os/release/pause-stock-updates.sh').read_text())
+        installed_keyboard(guest)
         stock_inventory(guest, 'first-stock-updater-inventory')
         proof = sw.pin_stock(guest, 'first-stock-pin')
         state = guest.capture_json('first-stock-ready-status', sw.framed('bootc status --json'))
@@ -697,6 +698,42 @@ def stock_before_windows(audit, password, password_hash):
     finally:
         guest.close(stage)
         audit.check(stage, guest)
+
+
+def keyboard_reader_command(root):
+    from keyboard_proof import read_files
+    import inspect
+    program = 'import json, pathlib\n' + inspect.getsource(read_files)
+    program += '\nprint(json.dumps(read_files(' + repr(str(root)) + ')))\n'
+    return 'python3 -c ' + shlex.quote(program)
+
+
+def installed_keyboard(guest):
+    from keyboard_proof import validate_installed_keyboard
+    assert guest.mode == 'installed', 'Installed keyboard proof cannot use the live root'
+    choices = json.loads((EVIDENCE / 'webui-keyboard-proof.json').read_text())
+    record = guest.capture_json('installed-keyboard-files', sw.framed(keyboard_reader_command('/')))
+    result = validate_installed_keyboard(record, choices['layout_switching_options'])
+    save('installed-keyboard-result', dict(**result, context='first installed stock root shell',
+         boot=guest.boot_number, order=Guest.order, root=record['root'],
+         module_proof='webui-keyboard-proof.json', files_record='installed-keyboard-files.json'))
+
+
+def installed_keyboard_reader_probe(guest):
+    from keyboard_proof import validate_installed_keyboard
+    root = '/tmp/aresos-keyboard-reader-fixture'
+    choices = json.loads((EVIDENCE / 'webui-keyboard-proof.json').read_text())
+    options = choices['layout_switching_options']
+    program = ('import pathlib\nroot = pathlib.Path(' + repr(root) + ')\n'
+               '(root / "etc/X11/xorg.conf.d").mkdir(parents=True, exist_ok=True)\n'
+               '(root / "etc/vconsole.conf").write_text(\'KEYMAP="de"\\n\')\n'
+               '(root / "etc/X11/xorg.conf.d/00-keyboard.conf").write_text(' +
+               repr('Section "InputClass"\n Option "XkbLayout" "de"\n Option "XkbOptions" "' + ','.join(options) + '"\nEndSection\n') + ')\n')
+    guest.command('keyboard-reader-fixture', 'python3 -c ' + shlex.quote(program))
+    record = guest.capture_json('keyboard-reader-probe-files', sw.framed(keyboard_reader_command(root)))
+    result = validate_installed_keyboard(record, options)
+    save('keyboard-reader-probe-result', dict(**result, installed=False, fixture_only=True,
+         context='temporary synthetic files in live guest; reader transport only'))
 
 
 def live_probe(audit):
@@ -712,6 +749,7 @@ def live_probe(audit):
         assert disk_names(after) == (protected, target)
         guest.keys(['shift'])
         guest.screenshot('live-qmp-observer-input')
+        installed_keyboard_reader_probe(guest)
         stock_recipe_probe(guest)
         assert guest.failure_counter('failure-counter-probe', probe_only=True)
         assert json.loads((EVIDENCE / 'failure-counter-probe-failure-counter.json').read_text())['vm_paused']
@@ -764,6 +802,7 @@ def main():
         proof = dict(status='passed', installed=False, both_orders=True, review_validated=True,
                      detached_windows=True, target_reset=True, owner_auth_read_only=True, signature_verified=True,
                      firmware_rule='11f-linux-position', stock_recipe_probe=True, failure_counter_probe=True,
+                     read_only_keyboard_proof=True, installed_keyboard_reader_probe=True,
                      commit=os.environ['GITHUB_SHA'])
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)
@@ -797,7 +836,7 @@ def main():
         marker(current, 'after-undo-default-windows')
         marker(current, 'after-undo-without-linux', detached=True)
         save('part-a-result', dict(status='passed', order=Guest.order,
-             switch_policy_tty3_rollback=True, default_undo='Windows-first; no erase',
+             switch_policy_tty3_rollback=True, installed_keyboard_german=True, default_undo='Windows-first; no erase',
              windows_detached_after_install_and_undo=True, offline_protected_disk_unchanged=True))
     part_a(audit)
     # A separate fresh install and complete switch/recovery/undo sequence.
@@ -817,7 +856,7 @@ def main():
     print('PART A PASSED: complete switch/policy/tty3/rollback/default undo and detached Windows in both orders', flush=True)
     promoted = grub_promotion(reverse, password, password_hash)
     (root / 'full-result.json').write_text(json.dumps(dict(part_a='passed', both_orders=True,
-        part_b='passed' if promoted else 'blocked', part_b_evidence='protected-second/grub-promotion.json'), indent=2) + '\n')
+        installed_keyboard_both_orders=True, part_b='passed' if promoted else 'blocked', part_b_evidence='protected-second/grub-promotion.json'), indent=2) + '\n')
 
 
 if __name__ == '__main__':

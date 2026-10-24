@@ -68,52 +68,22 @@ def validate_keyboard_selection(text):
 
 def validate_keyboard_proof(proof):
     assert proof['xlayouts'] == ['de'] and proof['model_keymap'] in ('', 'de')
-    assert proof['resolved_keymap'] == 'de', 'Installer did not derive a German console'
-    assert re.search(r'^KEYMAP="?de"?$', proof['generated_vconsole'], re.M), 'Installer did not generate KEYMAP=de'
-    assert proof['same_installation_resolver'] and proof['live_configuration_restored']
-    assert proof['module_configuration_unchanged']
+    assert proof['read_only'] and proof['same_installation_resolver']
+    assert proof['module_configuration_unchanged'] and proof['module_before'] == proof['module_after']
+    assert proof['layout_switching_options'] == proof['module_before']['LayoutSwitchingOptions']
 
 
 def read_keyboard(guest):
     from switch_vm import framed
-    script = '''import hashlib, inspect, json, os, pathlib, shlex, subprocess, sys, tempfile
-address = pathlib.Path('/run/anaconda/bus.address').read_text().strip()
-service = 'org.fedoraproject.Anaconda.Modules.Localization'
-def prop(name):
-    return subprocess.check_output(['busctl', '--address=' + address, 'get-property', service,
-        '/org/fedoraproject/Anaconda/Modules/Localization', service, name], text=True).strip()
-original = (prop('XLayouts'), prop('VirtualConsoleKeymap'))
-print('KEYBOARD_BEFORE_IMPORT', original, file=sys.stderr, flush=True)
-assert original[0] == 'as 1 "de"', 'Wrong committed German X layout: ' + repr(original)
-assert original[1] in ('s ""', 's "de"'), 'Wrong explicit console keymap: ' + repr(original)
-from pyanaconda.modules.localization.installation import KeyboardInstallationTask, write_vc_configuration
-from pyanaconda.modules.localization.localed import LocaledWrapper
-from pyanaconda.modules.localization.utils import get_missing_keyboard_configuration
-assert original == (prop('XLayouts'), prop('VirtualConsoleKeymap')), 'Imports changed keyboard state'
-model_keymap = shlex.split(original[1])[1]
-source = inspect.getsource(KeyboardInstallationTask.run)
-same_resolver = 'get_missing_keyboard_configuration(' in source and 'write_vc_configuration(' in source
-assert same_resolver, 'Pinned keyboard installation task changed'
-wrapper = LocaledWrapper()
-before = (wrapper.keymap, wrapper.get_layouts_variants(), wrapper.options)
-layouts, keymap = get_missing_keyboard_configuration(wrapper, ['de'], model_keymap)
-after = (wrapper.keymap, wrapper.get_layouts_variants(), wrapper.options)
-assert before == after, 'Conversion did not restore live settings'
-assert layouts == ['de'] and keymap == 'de', 'Installer conversion is not German'
-with tempfile.TemporaryDirectory(prefix='rehearsal-keyboard-', dir='/tmp') as directory:
-    (pathlib.Path(directory) / 'etc').mkdir()
-    os.environ.setdefault('LANG', 'en_US.UTF-8')
-    write_vc_configuration(keymap, directory)
-    content = (pathlib.Path(directory) / 'etc/vconsole.conf').read_text()
-unchanged = original == (prop('XLayouts'), prop('VirtualConsoleKeymap'))
-assert unchanged, 'Proof changed the installer choices'
-print(json.dumps(dict(xlayouts=layouts, model_keymap=model_keymap, resolved_keymap=keymap,
-    generated_vconsole=content, same_installation_resolver=same_resolver,
-    live_configuration_restored=(before == after), module_configuration_unchanged=unchanged,
-    installation_task_source=source, installation_source_sha256=hashlib.sha256(pathlib.Path(inspect.getfile(KeyboardInstallationTask)).read_bytes()).hexdigest())))
-'''
+    receipt = json.loads(pathlib.Path('evidence/installer/localization-source.json').read_text())
+    live = next(i for i in json.loads(pathlib.Path('os/manifest/installer-isos.json').read_text()) if i['kind'] == 'live')
+    assert receipt['iso_sha256'] == live['sha256']
+    expected, = [item['sha256'] for item in receipt['sources'] if item['path'].endswith('/installation.py')]
+    script = pathlib.Path('os/ci/keyboard_proof.py').read_text()
+    script += '\nprint(json.dumps(read_only_proof(' + repr(expected) + ')))\n'
     proof = guest.capture_json('webui-keyboard-proof', framed('python3 -c ' + shlex.quote(script)))
     validate_keyboard_proof(proof)
+    assert proof['installation_source_sha256'] == expected
     return proof
 
 
@@ -470,7 +440,7 @@ assert selected == 'as 1 "@TARGET@"', 'Wrong backend disk selection'
 xlayouts = prop('Localization', '', '', 'XLayouts')
 keymap = prop('Localization', '', '', 'VirtualConsoleKeymap')
 timezone = prop('Timezone', '', '', 'Timezone')
-assert xlayouts == 'as 1 "de"' and keymap in ('s ""', 's "de"'), 'Wrong keyboard choices; resolved console proof is separate'
+assert xlayouts == 'as 1 "de"' and keymap in ('s ""', 's "de"'), 'Wrong keyboard choices; installed console check follows installation'
 assert timezone == 's "Europe/Berlin"', 'Wrong timezone'
 users = prop('Users', '', '', 'Users')
 assert '"name" s "ares-recovery"' in users and '"wheel"' in users, 'Recovery administrator missing'

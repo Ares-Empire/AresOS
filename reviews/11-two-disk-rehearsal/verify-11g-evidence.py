@@ -1,5 +1,7 @@
 """Verify retained 11g receipts and every reached offline/QMP/firmware gate."""
+import ast
 import base64
+import subprocess
 import hashlib
 import json
 import pathlib
@@ -13,8 +15,13 @@ sys.path.insert(0, str(root / 'os/ci'))
 from disk_audit import (all_variables, boot_variables, compare_disk, firmware_baseline,
                         nvram_audit, protected_writes, automatic_options, ordered_options)
 from firmware_contract import check_source
-from installer_webui import validate_keyboard_proof, validate_review
+from installer_webui import validate_review
 from rehearsal_auth import DIGEST, REFERENCE
+
+# 11i intentionally changes the live proof; retain the exact 11g assertion for old evidence.
+legacy = ast.parse(subprocess.check_output(['git', 'show', '909fe5a:os/ci/installer_webui.py']).decode())
+validator, = [node for node in legacy.body if isinstance(node, ast.FunctionDef) and node.name == 'validate_keyboard_proof']
+exec(compile(ast.Module(body=[validator], type_ignores=[]), '11g-keyboard-validator', 'exec'))
 
 records = root / 'os/manifest/ci/11g'
 display_sources = {'usr_libexec_livesys_functions', 'usr_libexec_livesys_livesys-late',

@@ -40,17 +40,20 @@ class ReviewBoundaryTest(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 completion_selectors(dict(sources, **{name: sources[name].replace(before, after)}))
 
-    def test_empty_model_console_requires_real_installer_conversion_and_generated_file(self):
-        proof = dict(xlayouts=['de'], model_keymap='', resolved_keymap='de',
-                     generated_vconsole='KEYMAP="de"\nFONT="eurlatgr"\n',
-                     same_installation_resolver=True, live_configuration_restored=True,
+    def test_read_only_module_proof_rejects_wrong_choices_and_changed_module(self):
+        settings = dict(XLayouts=['de'], VirtualConsoleKeymap='', LayoutSwitchingOptions=[])
+        proof = dict(xlayouts=['de'], model_keymap='', layout_switching_options=[],
+                     module_before=settings, module_after=settings,
+                     same_installation_resolver=True, read_only=True,
                      module_configuration_unchanged=True)
         validate_keyboard_proof(proof)
-        for key, wrong in [('resolved_keymap', 'us'), ('generated_vconsole', 'KEYMAP="us"\n'),
-                           ('xlayouts', ['us']), ('same_installation_resolver', False),
-                           ('live_configuration_restored', False), ('module_configuration_unchanged', False)]:
+        for key, wrong in [('model_keymap', 'us'), ('xlayouts', ['us']),
+                           ('same_installation_resolver', False), ('read_only', False),
+                           ('module_configuration_unchanged', False),
+                           ('module_after', dict(settings, LayoutSwitchingOptions=['caps:escape']))]:
             with self.assertRaises(AssertionError):
                 validate_keyboard_proof(dict(proof, **{key: wrong}))
+
     def test_actual_modal_requires_only_german_before_next_commits_it(self):
         import json
         root = pathlib.Path(__file__).resolve().parents[2]

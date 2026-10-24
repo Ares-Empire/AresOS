@@ -699,3 +699,16 @@ Current ledger 336/750 plus 14 closing reserve, three of five authorized full ru
 old guard remains conservatively four until authorized continuation. Existing stock
 pause/cleanup/pin and all A/B gates remain unqualified. Source assertions, frozen
 inputs, firmware/offline checks and token/privacy boundaries are unchanged. PR draft.
+
+
+### 11i before dispatch — read-only choices, installed product check
+
+11i supersedes 11h's live-restoration premise. Read three module properties and live
+localed state; inspect/hash the same installation task but never invoke conversion
+or a setter. Require German X layout and empty/de console model, every module
+setting unchanged. First installed stock login pauses updaters immediately, then
+reads the real deployed root's console/X11 files and compares options exactly with
+that order's module record before pin or Windows reboot. Probe exercises the exact
+reader with explicit non-installed temporary fixtures only. No audit/firmware/image/
+token-policy change. Same ledger, 750m/5 full total; fresh same-commit probe required.
+All original stop rules hold, including keyboard mismatch as product failure.

@@ -36,3 +36,5 @@ aresos-runtime/
 /os/manifest/ci/11g/**/installer/squashfs-files.txt
 
 /os/manifest/ci/11h/**/installer/squashfs-files.txt
+
+/os/manifest/ci/11i/**/installer/squashfs-files.txt

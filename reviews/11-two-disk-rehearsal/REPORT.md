@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11h outcome: **PLAN-GAP STOP after checking the exact pinned installer source. A NOT QUALIFIED, B UNTESTED, C pins retained.** The resolver can permanently clear X11 options; a 15-second wait cannot restore that field. The actual cause of full 3 remains unproven because its tuples were not retained. Inspection-only run passed 162 Ubuntu regressions; no 11h VM, probe or full was dispatched. Shared ledger **336/750 measured + 14 closing privacy minutes reserved, 3/5 authorized full runs used**. PR #11 remains draft. See [11h](#11h-pinned-keyboard-source-investigation-2026-10-24).
+Latest 11i status: **implementation prepared; fresh probe/full pending. A/B remain unqualified.** The integrator authorizes a read-only pre-install keyboard proof and a real installed console/X11/options check, replacing 11h's live restoration premise. The existing 11g stock preparation, protected-disk/firmware gates and token/privacy limits remain unchanged. See [11i](#11i-read-only-choices-and-installed-keyboard-2026-10-24).
 
 Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **229/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
 
@@ -2240,3 +2240,108 @@ of **114 commits** printed `no leaks found`. `git diff --cached --check` passed.
 All analysis input hashes and three exact ISO sources matched staged Git blob bytes
 across 165 expected paths. Final report/privacy outcome is recorded on PR #11 after
 this commit's checks complete. No additional dispatch, force-push or merge.
+
+
+## 11i: read-only choices and installed keyboard (2026-10-24)
+
+### Zero-cost stage walk-through — BEFORE ANY DISPATCH
+
+`git fetch` then `git pull --ff-only` printed `Already up to date.`; `git log -4`
+showed brief `4aeeec6` above 11h report `ac6fc4c`. Read 11i, AGENTS, README,
+11b's probe rule, the retained 11c–11g constraints and the 11h source finding.
+11i explicitly withdraws the settle plan and the live-restore assertion: upstream's
+conversion can lose options, and the installer itself performs that conversion.
+Our pre-install proof now reads choices/source identity only; actual installed
+keyboard files become the product check. No image, upstream source or firmware/
+protected-disk rule changes.
+
+This complete walk-through applies independently in **both drive orders**, before
+any 11i dispatch. Probe exercises every existing live tool/page/selector, the new
+read-only proof, and the exact installed-file reader against clearly labeled
+synthetic /tmp files. That fixture validates command/transport/parsing only and
+never substitutes for installed-system evidence. It cannot invoke installation.
+The full uses the same source commit and performs both complete A orders before B.
+
+| Stage, each order unless stated | Expected transition / accepting rule |
+|---|---|
+| Baseline Windows, ISO and empty target attached | Exact-GUID auto options for attached QMP devices only; enumeration may change numbers/descriptions. Windows bytes/number/default fixed. 11e device-set and takeover rules. |
+| Live keyboard prediction / UI review / install | Read-only module/localed record and exact extracted task SHA check; no resolver/conversion/setter call. Require module de and console empty/de, unchanged settings including switching options. No diagnostic firmware change. Installer may add/recreate only the target-ESP Fedora loader and put it first. 11f permits that Linux position; other fixed entries keep relative order. |
+| Closed target audit after install | Existing byte/GPT/EFI audit remains unchanged; no added filesystem mount or mutation. Original protected byte/GPT/EFI and final-counter checks remain absolute. |
+| Exact Windows-first restoration | Read back Windows + previous order without Windows, unchanged entry bytes. 11f stable-move check. |
+| First stock login, before Windows comparison | ISO detached, both disks attached. DVD auto removal; remaining auto relabel/renumber allowed by exact ownership and attached-device set. Linux BootNext consumed. Known hardware-initialization reboot separately audited. Shim/bootupd target-only Linux recreation/moves allowed; Windows first at installed checkpoints. |
+| Pause / installed keyboard / cleanup / pin before first Windows reboot | Runtime-mask selected OS updater services, persistently disable timers, wait for no transaction. From the actual first installed stock root shell, read /etc/vconsole.conf and /etc/X11/xorg.conf.d/00-keyboard.conf; require console de, X11 de and exactly the recorded module switch options. Any mismatch is PRODUCT FAILURE / STOP. Require ISO booted digest; remove at most one identified upstream pending deployment, unchanged booted checksum, then pin. No authorized NVRAM change. Booted newer stock STOPs. Hardware setup/finalizers unchanged. |
+| Detached Windows after install | BootNext=0000 consumed; target auto removal and possible protected auto relabel/renumber, with only free/former-auto number takeover. Validated target Linux entry may remain. Windows bytes/default strict; original protected marker and zero writes required. |
+| Reattach / stock-to-signed-AresOS | Target auto option may return/recycle auto/free ID. Linux BootNext consumed. Repeat pause/pin, no staged state, frozen signature and identity checks. Only target Linux/attached auto changes permitted. |
+| AresOS policy / tty3 / rollback | Linux BootNext consumed each boot. Target-only Linux and attached-auto refresh allowed; fixed order and Windows-first strict. Frozen policy, real password/sudo/logout and rollback identity checks unchanged. |
+| Rolled-back / persistent / second stock | BootNext consumed, same allowed auto/Linux refresh. Original pinned checksum/digest, no pending/queued deployment, promotion then second unattended stock boot. Timers remain paused. |
+| Windows before undo, both disks | Consume Windows BootNext; original marker, Windows first, exact bytes and complete audits. |
+| Default undo, both disks | Exact Windows-first stable move; unattended Windows with no BootNext/keys. No disk erasure. |
+| Detached Windows after undo | Target auto removal and possible protected auto relabel/renumber under same set/takeover rules. Retained target Linux entry allowed; original marker and zero writes. |
+| Fresh reverse order | Closed target-only reset and pristine vars; repeat every preceding stage, including first-login pause/pin, all recovery and detached markers. Original protected baseline remains binding. |
+| B, only after both A orders pass | Reattach target; Linux BootNext consumed, permitted auto return/renumber. Repeat pause/pin before re-switch. Record real BLS entry and menu index, select recorded stock through GRUB or already-authorized recorded one-time fallback. Verify stock nonzero-index boot, promote identity-checked recorded stock, confirm second unattended stock. All raw vars/device/final-counter/offline audits retained, same Windows/fixed-order and target-only Linux rules. |
+
+Every stopped VM retains final protected write counters before QMP quit, raw vars,
+per-boot device context and the unchanged closed-file disk/NVRAM audit. Failure
+receipts remain explicitly marked; unavailable QMP leaves that session unqualified.
+The installed keyboard read is after the very first stock updater pause and before
+cleanup/pin and any Windows reboot, so it introduces no updater timing window.
+Known one-time hardware initialization reboot remains separately audited. Target
+/etc paths come directly from the inspected pinned installation task. Its writer
+uses the recorded module switching options, so no required keyboard/firmware
+transition foreseeably conflicts with the contract. Unknown firmware, protected
+writes, wrong booted digest, unknown updater/policy conflict, auth/signature failure,
+installed keyboard mismatch or a different probe-covered full failure means STOP.
+Do not widen rules or retry past a refusal.
+
+### Implementation / verification before dispatch
+
+- `os/ci/keyboard_proof.py` reads all three committed module properties, checks the
+  same resolver/writer names and exact extracted installation module SHA, records
+  localed keymap/layouts/options for information, then re-reads every module property.
+  No conversion, generated-file prediction or setter. `live_configuration_restored`
+  is intentionally removed under 11i, for the source-proven 11h reason; module
+  unchanged, German layout and empty/de console model remain strict.
+- `installer_webui.py` executes that read-only code in the live guest, binds its
+  expected source SHA to the freshly inspected frozen ISO and validates the result.
+  Existing real UI review, destructive-boundary and backend checks remain.
+- `two_disk_vm.py` runs the same file reader on a temporary fixture in each probe
+  order, then on `/` at each real first installed stock login. Both raw files and
+  validation receipts are retained. Missing/non-German console or X11, ambiguous
+  settings or differing XkbOptions fail with PRODUCT FAILURE. Live roots are refused
+  by the installed-check wrapper. Installed proof comes after pause and before pin.
+- Shared guard applies **750 minutes / 5 total full runs**, unchanged start
+  **2026-10-23T16:21:00Z**, reserve 42 for probe, 182 for full and 14 for closing
+  privacy. Full requires passing same-SHA probe/new reader flags and verified
+  original server artifact. No sixth full. Existing full 156-minute VM step /
+  180-minute job and 111–133-minute VM estimate (central 120) stay unchanged.
+- Native Linux discovery will run in the fresh probe/full. Focused local run:
+  **44 tests in 0.525s / OK**, including five new keyboard tests, existing UI,
+  budget and 27 failure-counter/harness tests. Python compilation and diff check
+  passed. Rerun after adding the changed-module assertion: **44 tests in 0.371s / OK**.
+  Old conversion/generated-file test expectations are replaced as explicitly
+  authorized by 11i; their real German-result requirements move to installed-file
+  validation, with negative tests for console/layout/options/missing files.
+- New 11i collector/verifier retains original ZIPs, scans raw/decoded credentials,
+  validates source-bound read-only records and actual installed/fixture contexts,
+  and recomputes every reached unchanged offline/NVRAM/counter check. 11g's verifier
+  loads its exact historical keyboard validator so its old evidence is not judged
+  by the deliberately different 11i schema. Historical evidence is not modified.
+
+**Not yet verified:** actual live probe, actual installed German files/options,
+installed stock pending cleanup/pin, both A orders and B. All physical gates remain
+open. No Gradle or Minecraft run or daemon; no real laptop disk/system change.
+
+**JUDGMENT-CALL:** choose the already-audited first installed stock root shell for
+real file reads, immediately after the required updater pause. This avoids new
+offline mount/deployment discovery behavior and preserves the existing disk audit.
+The reader fixture is labeled non-installed and is never accepted as a full result.
+**PLAN-GAP:** none newly foreseen; prior full-3 causality remains unknown and is
+not reclassified as proven timing. **Open questions:** actual installed results,
+pending update occurrence and later policy/recovery outcomes await the authorized run.
+
+
+Initial measured 11i budget: **340/750 minutes, 3/5 full runs**, plus 42 probe
+reservation. This is 11h's actual closing 338 plus two integrator-brief privacy
+jobs. Historical 11g evidence re-verification passed with exactly its existing
+10 matching offline stages, 10 final zero counters and only probe 3 qualified.
+Final local diff and staged privacy scan must pass before the source push.
