@@ -2004,3 +2004,58 @@ and printed `no leaks found`; the final staged scan also printed `no leaks found
 staged Git blob SHA-256 values before committing. The final report push's privacy
 checks and exact measured closing total are recorded in PR #11 after they finish;
 there is no further VM dispatch.
+
+
+## 11h: pinned keyboard-source investigation (2026-10-24)
+
+### Zero-cost stage walk-through — BEFORE ANY DISPATCH
+
+Initial `git fetch` and `git pull --ff-only` completed with `Already up to date.`;
+`git log -5` showed integrator brief `2cbbe2f` above the completed 11g report.
+Read AGENTS, README, briefs 11c–11h and the 11g outcome. No keyboard assertion has
+been changed. Earlier local localization captures have no retained ISO provenance;
+they cannot establish the exact installed code. The retained ISO listing names
+`usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/{localed,utils,installation}.py`.
+Add only extraction of these three original files and their SHA-256 receipt to the
+existing whole-ISO-verified inspector. An **inspection-only** dispatch comes first:
+no VM, fixture, installation, owner-token use, image build or publish. Existing
+regressions, release equivalence and privacy checks remain enabled.
+
+The complete remaining walk-through below applies independently in **both disk
+orders**. It preserves 11g's first-login stock preparation and every 11c–11f rule.
+No dispatch for a probe or full is authorized until the exact-source finding is
+recorded; 11h explicitly requires STOP if it shows something other than timing.
+
+| Stage, each order unless stated | Expected transition / accepting rule |
+|---|---|
+| Baseline Windows, ISO and empty target attached | Exact-GUID auto options for attached QMP devices only; enumeration may change numbers/descriptions. Windows bytes/number/default fixed. 11e device-set and takeover rules. |
+| Live keyboard prediction / UI review / install | Keyboard diagnostic itself authorizes no firmware change. Proposed strict 15-second restore equality and German resolver assertions depend on source finding first. Installer may add/recreate only the target-ESP Fedora loader and put it first. 11f permits that Linux position; other fixed entries keep relative order. |
+| Closed target audit after install | Proposed installed console/X11 German check reads the target root only; no boot-variable or protected-disk writes. Original protected byte/GPT/EFI and final-counter checks remain absolute. |
+| Exact Windows-first restoration | Read back Windows + previous order without Windows, unchanged entry bytes. 11f stable-move check. |
+| First stock login, before Windows comparison | ISO detached, both disks attached. DVD auto removal; remaining auto relabel/renumber allowed by exact ownership and attached-device set. Linux BootNext consumed. Known hardware-initialization reboot separately audited. Shim/bootupd target-only Linux recreation/moves allowed; Windows first at installed checkpoints. |
+| Pause / cleanup / pin before first Windows reboot | Runtime-mask selected OS updater services, persistently disable timers, wait for no transaction. Require ISO booted digest; remove at most one identified upstream pending deployment, unchanged booted checksum, then pin. No authorized NVRAM change. Booted newer stock STOPs. Hardware setup/finalizers unchanged. |
+| Detached Windows after install | BootNext=0000 consumed; target auto removal and possible protected auto relabel/renumber, with only free/former-auto number takeover. Validated target Linux entry may remain. Windows bytes/default strict; original protected marker and zero writes required. |
+| Reattach / stock-to-signed-AresOS | Target auto option may return/recycle auto/free ID. Linux BootNext consumed. Repeat pause/pin, no staged state, frozen signature and identity checks. Only target Linux/attached auto changes permitted. |
+| AresOS policy / tty3 / rollback | Linux BootNext consumed each boot. Target-only Linux and attached-auto refresh allowed; fixed order and Windows-first strict. Frozen policy, real password/sudo/logout and rollback identity checks unchanged. |
+| Rolled-back / persistent / second stock | BootNext consumed, same allowed auto/Linux refresh. Original pinned checksum/digest, no pending/queued deployment, promotion then second unattended stock boot. Timers remain paused. |
+| Windows before undo, both disks | Consume Windows BootNext; original marker, Windows first, exact bytes and complete audits. |
+| Default undo, both disks | Exact Windows-first stable move; unattended Windows with no BootNext/keys. No disk erasure. |
+| Detached Windows after undo | Target auto removal and possible protected auto relabel/renumber under same set/takeover rules. Retained target Linux entry allowed; original marker and zero writes. |
+| Fresh reverse order | Closed target-only reset and pristine vars; repeat every preceding stage, including first-login pause/pin, all recovery and detached markers. Original protected baseline remains binding. |
+| B, only after both A orders pass | Reattach target; Linux BootNext consumed, permitted auto return/renumber. Repeat pause/pin before re-switch. Record real BLS entry and menu index, select recorded stock through GRUB or already-authorized recorded one-time fallback. Verify stock nonzero-index boot, promote identity-checked recorded stock, confirm second unattended stock. All raw vars/device/final-counter/offline audits retained, same Windows/fixed-order and target-only Linux rules. |
+
+At each shutdown, read the final QMP protected counter before termination (explicit
+failure-path receipt on errors), then closed-file byte/GPT/EFI/NVRAM audit. QMP
+unavailability leaves a session unqualified. No foreseeable new firmware transition
+requires a wider rule. Unknown firmware, protected writes, auth/signature rejection,
+wrong booted stock, updater/policy conflict or a different probe-covered full failure
+means STOP. Source investigation may itself require STOP before these stages.
+
+Shared allowance still starts **2026-10-23T16:21:00Z**, **750 minutes**, now **5 total
+full runs** by 11h. The ledger does not reset. Three full runs have already been
+used; inspection does not consume a full slot. Reserve 42 minutes for inspection,
+42 for a future probe, 182 for a future full and closing privacy cost before their
+respective dispatches. Existing estimate remains 111–133 VM minutes (central 120),
+156-minute full VM step / 180-minute job; two 15-second polls and target read audits
+fit existing margin. No probe/full dispatch until source finding, then fresh
+same-SHA successful probe before one complete both-order A + B full.

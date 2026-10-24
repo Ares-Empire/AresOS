@@ -81,12 +81,23 @@ def main():
                 'usr/share/anaconda/post-scripts/secureboot-enroll-key.ks',
                 'usr/share/anaconda/post-scripts/secureboot-docs.ks',
                 'var/lib/containers/storage/overlay-images/images.json')
-                or re.fullmatch(r'usr/libexec/livesys/[^/]+', path)]
+                or re.fullmatch(r'usr/libexec/livesys/[^/]+', path)
+                or re.fullmatch(r'usr/lib64/python3\.[0-9]+/site-packages/pyanaconda/modules/localization/'
+                                r'(localed|utils|installation)\.py', path)]
+            localization = [path for path in selected if '/pyanaconda/modules/localization/' in path]
+            assert {path.rsplit('/', 1)[1] for path in localization} == {
+                'localed.py', 'utils.py', 'installation.py'}, 'Pinned localization source unavailable: STOP'
+            localization_sources = []
             for path in selected:
                 raw = subprocess.check_output(['unsquashfs', '-cat', str(squash), path])
                 assert len(raw) < 2 * 1024 * 1024
                 (EVIDENCE / path.replace('/', '_')).write_bytes(raw)
+                if path in localization:
+                    localization_sources.append(dict(path=path, bytes=len(raw),
+                        sha256=hashlib.sha256(raw).hexdigest()))
                 print(path + '\n' + raw.decode(errors='replace'), flush=True)
+            (EVIDENCE / 'localization-source.json').write_text(json.dumps(dict(
+                iso_sha256=digest.hexdigest(), sources=localization_sources), indent=2) + '\n')
             map_path = 'usr/share/cockpit/anaconda-webui/index.js.map'
             assert map_path in paths, 'Pinned UI source map unavailable; do not guess its version'
             raw = subprocess.check_output(['unsquashfs', '-cat', str(squash), map_path])
