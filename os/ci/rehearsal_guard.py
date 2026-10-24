@@ -6,8 +6,10 @@ import json
 import math
 import os
 import pathlib
+import re
 import subprocess
 import sys
+import time
 import zipfile
 
 REPOSITORY = 'Ares-Empire/AresOS'
@@ -15,10 +17,48 @@ BRANCH = 'pkg/11-two-disk-rehearsal'
 START = '2026-10-23T16:21:00Z'
 MINUTE_CAP = 750
 FULL_CAP = 5
+RETRY_WAITS = (10, 20, 40, 60)
+READ_RETRIES = []
+
+
+def failure_status(stderr):
+    # gh api appends (HTTP NNN) to JSON errors, or prints "gh: HTTP NNN"
+    # for other HTTP bodies. Unknown/parse/auth errors must not become retries.
+    message = stderr.decode('utf-8', errors='replace')
+    codes = re.findall(r'^gh: [^\r\n]*\(HTTP ([1-5][0-9]{2})\)|^gh: HTTP ([1-5][0-9]{2})(?:\s|$)', message, re.M)
+    if codes:
+        return int(next(part for part in codes[-1] if part))
+    # Go's http.Client returns a URL error for transport failures. Match only
+    # recognizable connection causes; certificate/CLI/unknown failures stop.
+    connection = re.search(r'^Get "https://[^"\r\n]+": '
+        r'(?:(?:proxyconnect tcp: )?dial (?:tcp|udp)|read tcp|write tcp|EOF$|unexpected EOF$|'
+        r'context deadline exceeded|net/http: TLS handshake timeout|'
+        r'net/http: request canceled while waiting for connection|http2: client connection lost)', message, re.M)
+    return 'connection' if connection else None
+
+
+def read_only(path):
+    command = ['gh', 'api', '--method', 'GET', path]
+    for attempt in range(1, len(RETRY_WAITS) + 2):
+        try:
+            return subprocess.check_output(command, stderr=subprocess.PIPE)
+        except subprocess.CalledProcessError as error:
+            status = failure_status(error.stderr or b'')
+            retryable = error.returncode != 4 and (status == 'connection' or
+                         isinstance(status, int) and 500 <= status <= 599)
+            if not retryable or attempt > len(RETRY_WAITS):
+                print('GUARD_READ_FAILED ' + json.dumps(dict(path=path, status=status,
+                      attempt=attempt, returncode=error.returncode)), file=sys.stderr, flush=True)
+                raise
+            record = dict(path=path, status=status, attempt=attempt,
+                          next_attempt=attempt + 1, wait_seconds=RETRY_WAITS[attempt - 1])
+            READ_RETRIES.append(record)
+            print('GUARD_READ_RETRY ' + json.dumps(record), file=sys.stderr, flush=True)
+            time.sleep(record['wait_seconds'])
 
 
 def api(path):
-    return json.loads(subprocess.check_output(['gh', 'api', f'repos/{REPOSITORY}/{path}']))
+    return json.loads(read_only(f'repos/{REPOSITORY}/{path}'))
 
 
 def job_minutes(job):
@@ -75,7 +115,7 @@ def main():
         require_probe(api('actions/runs/' + probe_id), os.environ['GITHUB_SHA'])
         artifacts = api(f'actions/runs/{probe_id}/artifacts')['artifacts']
         artifact, = [item for item in artifacts if item['name'] == 'two-disk-evidence' and not item['expired']]
-        raw = subprocess.check_output(['gh', 'api', f'repos/{REPOSITORY}/actions/artifacts/{artifact["id"]}/zip'])
+        raw = read_only(f'repos/{REPOSITORY}/actions/artifacts/{artifact["id"]}/zip')
         assert artifact['digest'] == 'sha256:' + hashlib.sha256(raw).hexdigest(), 'Probe artifact digest mismatch'
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             proof = json.loads(archive.read('two-disk/probe-result.json'))
@@ -99,6 +139,7 @@ def main():
         assert cleanup['status'] == 'passed' and cleanup['removed'] and cleanup['outside_workspace']
         result['probe_run'] = probe_id
         result['probe'] = proof
+    result['read_retries'] = list(READ_RETRIES)
     directory = pathlib.Path('evidence' if mode == 'ci' else '.work/11c')
     directory.mkdir(parents=True, exist_ok=True)
     (directory / '11c-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')

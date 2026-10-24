@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11j outcome: **STOP before full dispatch: repeated HTTP 502 prevented fresh budget authorization. A NOT QUALIFIED, B UNTESTED, C pins retained.** All three pause copies are fixed; 174 native tests and the same-source live probe pass, including exact stock daemon/service verification. No fifth full was dispatched. Reconstructed actual ledger **464/750 minutes, 4/5 full**, plus closing privacy still to measure. PR #11 remains draft; physical installation NOT RELEASED. See the 11j section below.
+Latest 11k state: **IN PROGRESS; A still NOT QUALIFIED, B UNTESTED, C pins retained.** The bounded retry fix passes 68 focused tests. The fresh guard recovered four actual 502s and produced a complete ledger: 468/750 minutes, 4/5 full, 238 reserved. One fresh probe then the same-head final full remain; physical installation stays NOT RELEASED.
 
 Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **229/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
 
@@ -2903,3 +2903,100 @@ then the remaining A/B recovery path, once budget authorization can be obtained.
 PR #11 stays draft. Fast-forward pushes only; no merge or force-push.
 
 Final closure checks: `replay-11j-stop.py` passed with 464 minutes/four full, no full authorization and no installed claims. All bound inputs are recorded in [stop-analysis.json](../../os/manifest/ci/11j/stop-analysis.json); local user/worktree/Python prefixes in the retained stderr are redacted, with raw/display SHA-256 provenance. History gitleaks scanned **122 commits**, no leaks. The final copy/idempotency/pending-update tests passed **7 in 0.132s / OK** after documentation edits; evidence/scanner and diff checks passed again. Privacy policy files, frozen pins, OS config and disk_audit.py match brief head 4b3d71d. Final staged scan and input-to-Git-blob hashes must pass before the evidence push.
+
+
+## 11k: bounded read-only guard retries (2026-10-24)
+
+### Zero-cost stage walk-through confirmation — BEFORE ANY DISPATCH
+
+Ran `git fetch` then `git pull --ff-only` first; pull printed **Already up to date.**
+Clean HEAD/remote branch was **901be51** above the 11j evidence/report push.
+Read 11k, AGENTS, README, the 11j report and current guard/tests. The inherited
+11c–11g, 11i and 11j rules remain; no new VM, owner-recipe, firmware or disk change.
+
+The **complete 11j stage walk-through above applies unchanged** in both orders
+and then Part B: baseline attached auto options; real UI read-only keyboard/source
+proof and target-only review/install; target-only Linux EFI entry may move; exact
+Windows-first restore; separately audited known hardware initialization reboot;
+first installed German console/X11/options read **before pause**; stop/mask selected
+units and persistently disable timers; record and cancel a leftover transaction
+once; require inactive/failed units, null transaction and no client outside the
+daemon cgroup; record every decision, discard at most one identified upstream
+staged deployment, require unchanged ISO booted checksum/digest, pin; detached
+Windows after install; reattach and repeat pause/pin before signed switch; policy,
+real tty3, rollback, persistent/second stock; Windows before undo, exact default
+undo and detached Windows after undo. Closed target reset/pristine vars then repeat
+the entire reverse-order route. Only after **both A orders pass**, B records real
+BLS stock identity/nonzero menu index, uses GRUB or the already-authorized recorded
+fallback, promotes identity-checked stock and verifies a second unattended boot.
+
+Each ISO/target detach may remove exact-GUID automatic options and relabel/renumber
+remaining attached options under 11e's device-set/takeover rule. Each Linux boot
+consumes BootNext and may recreate/move only a validated target-ESP Fedora loader
+under 11f. All fixed non-auto/non-Linux relative order and Windows identity/number/
+Windows-first checkpoints stay strict; restore is exactly Windows + old order
+without Windows. Protected bytes/GPT/EFI, per-stage final zero-write counters,
+raw NVRAM, attached QMP devices and complete diffs remain unchanged. Failure reads
+counters before termination; unavailable QMP is unqualified. Unknown firmware,
+protected writes, identity/auth/signature/policy/keyboard mismatch or a probe-covered
+full failure still STOPs without rule widening or another full. No foreseeable
+transition or conflict changed. No image rebuild, pin change or laptop action.
+
+The only runtime change is bounded retry around **read-only GET** calls in the
+guard, including its artifact ZIP download. The fresh probe must cover the new
+head; full uses **that exact same head** and explicit passing probe ID, with original
+artifact digest verification. No source push between them. Existing 156-minute
+full VM step / 180-minute job, 182-minute reservation and 111–133 VM-minute estimate
+(central 120) remain. Shared start 2026-10-23T16:21:00Z, cap **750**, full cap **5**;
+11j closed at **466 and 4 full**. Plan: one probe 42 + one complete full 182 + closing
+14 = **704** from that baseline; owner/source privacy jobs still count on the same
+actual ledger. **No second probe, no sixth full.** If the fresh guard cannot fit
+or complete the plan, stop/report rather than substitute bookkeeping.
+
+### Retry implementation and pre-dispatch verification
+
+Verified local **gh 2.94.0** and its tagged implementation, plus actual read-only
+success/404 responses and a controlled connection refusal with dummy credentials
+in subprocess-only environment. [Format receipt](../../os/manifest/ci/11k/gh-error-format.json).
+`gh api` writes JSON HTTP errors as `gh: ... (HTTP NNN)` and other HTTP bodies as
+`gh: HTTP NNN`; Go transport errors retain the `Get "https://...": <cause>` form.
+The guard parses these forms instead of guessing from exit code alone.
+
+`read_only()` forces GET, captures stderr privately and returns response bytes
+unchanged. It retries recognized 5xx or conservative connection failures at most
+five attempts, waits **10/20/40/60 seconds**, and logs each retry's path/status/
+attempt/next attempt/wait to stderr. It also records retries in successful guard
+receipts. Never retry 4xx (including auth/rate limiting), CLI auth exit 4, malformed
+JSON, artifact/digest/ZIP validation, missing gh, certificate or unknown errors.
+No cached response, partial ledger, skipped run, permissive authorization or
+full-count/minute computation change. Final failure logs the path/status/attempt
+and raises, so authorization is never written. Only the ordinary job/local gh
+credential reads GitHub metadata; GHCR_READ_TOKEN scope and all auth code are unchanged.
+
+Seven new regressions pass: observed formats; clean versus recovered 502 ledger
+and full count equality; five 502s with no authorization; immediate 403/404/other
+4xx/auth/parse/unknown failure; connection retry and missing-tool refusal; real
+retained probe ZIP after 502 with unchanged digest/probe checks; and five ZIP 502s
+with no authorization. Existing three budget/time/full-count tests pass unchanged.
+The full focused suite and native Ubuntu discovery are recorded below as run.
+
+**Not yet verified:** new actual guard/probe/full, actual installed keyboard per
+order, actual pause/pin/cancel/staged-state values and A/B. Historical 11j missing
+installed outcomes remain missing; prior 11f counter and 11i predicate gaps remain.
+**JUDGMENT-CALL:** recognize only verified HTTP formats and conservative transport
+causes, stopping unknown errors; retries never print response headers/bodies or
+raw transport errors (which can include redirect URLs). **PLAN-GAP:** none new;
+11k explicitly authorizes this response to intermittent plain jobs-endpoint 502s.
+**Open questions:** real retries and remaining installed outcomes await the single
+probe/full plan. Final report will list every real retry by path/status/attempt.
+
+Focused local suite: **68 tests in 0.529s / OK**; Python compilation, archive-scanner regression and diff checks passed. Fresh pre-source-push guard succeeded: **468/750 minutes, 4/5 full**, 238 reserved, total 706. The two minutes above 11j closing 466 are the integrator-brief privacy jobs, still counted. Source/closing privacy also remain charged on this ledger. No dispatch yet. [Initial ledger](../../os/manifest/ci/11k/initial-budget.json), [actual retry log](logs/11k/initial-guard.txt).
+
+| Guard phase | Relative jobs path | HTTP status | Failed attempt → next / wait |
+|---|---|---|---|
+| Initial local plan guard | `repos/Ares-Empire/AresOS/actions/runs/40112294759/jobs?per_page=100` | 502 | 1 → 2 / 10s |
+| Initial local plan guard | `repos/Ares-Empire/AresOS/actions/runs/40105647808/jobs?per_page=100` | 502 | 1 → 2 / 10s |
+| Initial local plan guard | `repos/Ares-Empire/AresOS/actions/runs/40105647808/jobs?per_page=100` | 502 | 2 → 3 / 20s |
+| Initial local plan guard | `repos/Ares-Empire/AresOS/actions/runs/40061023607/jobs?per_page=100` | 502 | 1 → 2 / 10s |
+
+All four retries recovered within the five-attempt bound; the complete result kept every run and counted four full dispatches. No owner-token API calls, cached responses or alternate endpoints. The planned VM transitions above remain unchanged.

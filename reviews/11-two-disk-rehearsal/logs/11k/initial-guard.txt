@@ -1,0 +1,4 @@
+GUARD_READ_RETRY {"path": "repos/Ares-Empire/AresOS/actions/runs/40112294759/jobs?per_page=100", "status": 502, "attempt": 1, "next_attempt": 2, "wait_seconds": 10}
+GUARD_READ_RETRY {"path": "repos/Ares-Empire/AresOS/actions/runs/40105647808/jobs?per_page=100", "status": 502, "attempt": 1, "next_attempt": 2, "wait_seconds": 10}
+GUARD_READ_RETRY {"path": "repos/Ares-Empire/AresOS/actions/runs/40105647808/jobs?per_page=100", "status": 502, "attempt": 2, "next_attempt": 3, "wait_seconds": 20}
+GUARD_READ_RETRY {"path": "repos/Ares-Empire/AresOS/actions/runs/40061023607/jobs?per_page=100", "status": 502, "attempt": 1, "next_attempt": 2, "wait_seconds": 10}
