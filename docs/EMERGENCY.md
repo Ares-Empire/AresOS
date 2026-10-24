@@ -4,6 +4,8 @@ The AresOS emergency card. **Keep it on your phone.** If AresOS is broken, you c
 
 This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md, and this card tells you which section to open. [11k](../reviews/11-two-disk-rehearsal/REPORT.md#11k-bounded-read-only-guard-retry-and-final-qualification-2026-10-24) passed complete automated installs in both drive orders, installed German checks, stock preparation, signed switch, policy, real administrator login/sudo/logout, normal rollback and Windows-default undo. All reached protected-disk checks matched with final zero writes. That run used an earlier Windows-first sequence. [11l](../reviews/11-two-disk-rehearsal/REPORT.md#11l-review-fixes-checked-bootnext-and-grub-qualification-2026-10-24) corrects the guide and selector, but stopped before a fresh probe; the revised timing and GRUB recovery promotion remain **UNTESTED**. Do not guess menu positions or bypass a STOP; prefer F12 → Windows and getting help. Physical media, laptop and followability gates stay open.
 
+[11m's fresh probe](../reviews/11-two-disk-rehearsal/REPORT.md#11m-complete-run-history-pagination-and-continued-part-b-qualification-2026-10-24) passed the complete-history guard, then failed a native test fixture's account prerequisite before any VM. No Part B ran. The revised Windows-first timing and GRUB recovery/promotion remain **UNTESTED**; this does not release the installation path.
+
 ## Stock preparation stops before the switch
 
 Run INSTALL's [pause-and-retain block](INSTALL.md#pause-and-retain-stock-before-the-windows-comparison)

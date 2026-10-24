@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11m state: **IN PROGRESS; no dispatch yet.** Guard pagination now proves a complete unique-ID set against stable API total_count, with nine new regressions. The 11l route/BootNext/selector/workflow remains unchanged. One fresh source/privacy/guard, one probe, then one protected-second Part B on the same head are still required; all stop and privacy rules hold. Cap900, same ledger, five historical fulls and one-B allowance. PR stays draft pending actual acceptance.
+Latest 11m outcome: **STOPPED at the single fresh probe's native regression gate, before credentials or any VM.** Complete history pagination passed locally and in CI (2 pages, 130 unique IDs = total_count130 in CI, zero retries). Probe **40134595231** on **43e7656** ran **200 tests: 199 passed, 1 failed**. The owner switch block's account prerequisite is not mocked by the older transaction-failure fixture, which exits before its injected bootc failure. No second probe or Part B dispatched; no runtime/test fix after the stop. New timing, prospective BootNext and GRUB recovery remain UNTESTED. Same ledger **633/900 before closing**, five historical fulls, zero B. Final evidence-head privacy/cost goes on PR #11 after push. **Draft retained; physical installation NOT RELEASED.**
 
 Latest 11l outcome: **STOPPED BEFORE PROBE — the fresh guard requires history pagination and wrote no authorization.** Four review fixes/source rules, 103 local tests and all32 original 11k BootNext checkpoint replays pass. Source privacy passed all three checks, no personal-term skip. **No 11l probe or Part B qualification dispatched.** 11k Part A remains qualified only with its earlier Windows-first timing; revised timing and B remain UNTESTED. Same ledger: **619/900 bookkeeping before closing, 5 historical full, 0/1 Part B**, plus closing privacy charged on PR #11. No guard bypass/pagination change; PR stays draft. Physical installation remains NOT RELEASED.
 
@@ -3604,3 +3604,163 @@ recorded after the required push/privacy gate, not inferred before it.
 new real guard, source privacy, probe or protected-second timing/menu/promotion.
 **PLAN-GAP:** none new; 11m explicitly authorizes the pagination needed at 11l's
 stop. **Open questions:** actual qualification and retained physical gates.
+
+### Source/privacy/fresh guard passed — BEFORE PROBE DISPATCH
+
+Source **43e76566ac99ebe07727f6f3d34d0ad34bcdb929** pushed fast-forward. Source
+privacy [40134279991](https://github.com/Ares-Empire/AresOS/actions/runs/40134279991)
+and [40134274374](https://github.com/Ares-Empire/AresOS/actions/runs/40134274374)
+passed all three individual checks, original complete command logs, no errors or
+PRIVATE_TERMS skip. [Source proof](../../os/manifest/ci/11m/source-privacy-proof.json).
+Staged gitleaks found no leaks; compilation/diff and invariant replay passed.
+
+The required fresh guard completed one snapshot, **2 pages (100+29), 129 unique
+IDs = API total_count129**, zero retries. Every branch run is included before the
+unchanged allowance-start filter. [Original receipt](../../os/manifest/ci/11m/before-probe-budget.json),
+[stderr page/completion log](logs/11m/before-probe-guard.txt). Actual ledger
+**628/900 minutes, 5 historical full, 0/1 B**, reserve186, total814. This includes
+actual 11l closure622, owner11m privacy4 and source privacy2. No reset or incomplete
+diagnostic substitute. The complete 11l walk-through above remains unchanged.
+Only the **single new probe** on this source is authorized next; actual installed
+timing/menu/promotion remains unqualified. No source push between probe and B.
+
+### Actual result — STOP at native preflight; no Part B
+
+The one fresh [probe40134595231](https://github.com/Ares-Empire/AresOS/actions/runs/40134595231)
+ran on exact tested/pushed source **43e76566ac99ebe07727f6f3d34d0ad34bcdb929**,
+attempt1. The CI budget step succeeded with the new guard. The next qualification
+step stopped at native discovery:
+
+```text
+FAIL: test_install_transactions_stop_on_failure_and_never_include_the_reboot (test_shell_assertions.ShellAssertionTest.test_install_transactions_stop_on_failure_and_never_include_the_reboot)
+os/tests/test_shell_assertions.py, line 90
+AssertionError: 1 != 42 : id: 'ares-recovery': no such user
+Ran 200 tests in 3.757s
+FAILED (failures=1)
+```
+
+The quoted account diagnostic uses plain quote characters for readability; the
+[timestamped native output](logs/11m/native-tests-stop.txt) and original ZIP retain
+the runner's actual output. **199 passed, one failed**; all nine pagination, four
+unchanged budget and seven retry tests passed in that same run. The local112-test
+selection did not include `test_shell_assertions.py`; it was not a full native
+discovery result and cannot stand in for this failed200-test gate.
+
+The failure is before the injected transaction: that existing test wraps only
+`bootc()` to return42, then executes the owner's full fenced switch block. Since
+11l made that block exactly `switch.sh`, it now first requires recovery UID1000,
+no daily/UID1001 account, readable auth and no pending deployment. On the clean
+runner the first `id -u ares-recovery` fails, so `test`/errexit returns1 before
+`bootc` is called. This is a **fixture prerequisite gap exposed by the exact-block
+fix**, not evidence that a real switch or GRUB boot failed. Source/test/guide
+transaction guards stay intact; nothing was weakened or patched after the stop.
+A future authorized fix should supply safe fixture prerequisites while still
+executing the exact block and requiring the injected42/no later transaction.
+
+All five subsequent credential/preflight/pull/ISO/VM steps were **skipped**.
+Always-cleanup and artifact upload succeeded. The artifact contains only host/tool
+inventory, firmware source contract, CI authorization and cleanup, **no two-disk
+directory, VM counter/store, probe-result, screenshot or private pull receipt**.
+No owner token was created/read/used by the job; cleanup's `removed:true` is not
+claimed as evidence of a preceding credential creation. Zero owner-token API
+calls, no private image pull, ISO/live boot, installation, switch, physical action,
+image build/publish/repin or visibility change occurred this round.
+
+**Stop/report: no second probe, no Part B, no ordinary full.** A failed probe
+cannot qualify this source for B; its unused allowance does not override the stop.
+PR #11 remains draft because the fresh probe/qualification acceptance is incomplete,
+even though Part B's blocker is now clearly stated. No merge or auto-merge.
+
+### Retained evidence and every real guard read
+
+`python reviews/11-two-disk-rehearsal/capture-11m-evidence.py 40134595231 probe-1`
+downloaded original artifacts and logs. The server metadata binds the artifact to
+the source/run and its exact ZIP digest:
+
+| Original retained archive | Bytes | SHA-256 |
+|---|---:|---|
+| [Probe artifact ZIP](artifacts/11m-probe-1-two-disk-evidence.zip) | 46,361 | `13ebb5cf5498754f4482678ad092b3783429117cf90342afc6416b21afe4bc70` |
+| [Complete workflow log ZIP](artifacts/11m-probe-1-workflow-logs.zip) | 93,005 | `d676c9e0d7c92a728751ad38a7c5e92b9c823959f32f529495eb02c3d0d67c4c` |
+
+[Run/jobs/artifact metadata and extracted proof](../../os/manifest/ci/11m/probe-1/),
+[stop replay receipt](../../os/manifest/ci/11m/stop.json). Original ZIPs are byte
+preserved; displayed text normalizes only line endings/trailing whitespace.
+Captured API author fields use the existing private metadata redaction. Raw and
+base64-decoded token/ASCII crypt scans reject credential patterns and auth paths.
+Both original source privacy ZIPs are retained and independently hash/scanned.
+
+| Real guard read this round | Pages / returned | Unique IDs = total_count | Spent / reserve | Retries | Receipt / original log |
+|---|---|---:|---:|---:|---|
+| Fresh local gate, before probe | 2 / 100+29 | 129=129 | 628 /186 | 0 | [JSON](../../os/manifest/ci/11m/before-probe-budget.json), [stderr](logs/11m/before-probe-guard.txt) |
+| Probe's CI guard, current run excluded from spent | 2 / 100+30 | 130=130 | 628 /42 | 0 | [Artifact JSON](../../os/manifest/ci/11m/probe-1/11c-dispatch-authorization.json), [original log events](logs/11m/probe-ci-guard.txt) |
+| After failed probe, bookkeeping only | 2 / 100+30 | 130=130 | 633 /14 | 0 | [JSON](../../os/manifest/ci/11m/after-probe-budget.json), [stderr](logs/11m/after-probe-guard.txt) |
+| Final closing read after evidence push/privacy | Recorded on [PR #11](https://github.com/Ares-Empire/AresOS/pull/11), including pages/IDs/total_count, retries, exact final minutes and privacy hashes; no further dispatch |
+
+Each completed one snapshot, bounded by20 pages; every page count and ordered
+ID hash is checked against the full unique set. CI's history is exactly the
+pre-dispatch set plus this one probe; its spent records match the earlier receipt
+because the active current job is excluded and reserved. The later receipt adds
+only the finished failed probe. No partial/cached ledger or alternative endpoint.
+The final read is closing bookkeeping, never permission to bypass the probe stop.
+
+`python reviews/11-two-disk-rehearsal/replay-11m-stop.py` prints:
+
+```text
+11m STOP replay passed: 3 complete two-page guard receipts; 200 native tests / 1 failure; no VM, token use or Part B; 633/900 minutes + closing, 5 full / 0 B; source/privacy unchanged.
+```
+
+It recomputes per-page hashes, complete ID/ledger set reconciliations, rounded
+probe/source privacy cost, individual native outcomes, skipped stages, original
+ZIP hashes/raw-decoded scans, source privacy's three unconditional checks and
+unchanged runtime/tests/security/pins. It fails if a B is present, a new VM result
+is claimed or the stopped runtime/test is edited. No Gradle daemon was started;
+Gradle/Minecraft are expressly out of scope in11c.
+
+| Gate → actual evidence | Outcome |
+|---|---|
+| Complete-history guard and regressions | Implemented; local112 passed; new9 + unchanged budget4 + retry7 passed natively. Local129 and CI130 unique IDs match API totals. |
+| Same source/privacy/probe gate | Source43e7656 privacy passed all3, no PRIVATE_TERMS skip. One exact-head probe failed native preflight; no B authorization. |
+| Pinned source / four review fixes / replay | 11l verification unchanged, invariants and all32 old BootNext absences retained. No new source/firmware exception or historical write receipt invented. |
+| Protected-second Windows-first timing / installed German / pause/pin | **Not executed this round**, in either order; no new decision values, cancellation/discard, installed keyboard or unattended marker proof. 11k's earlier-timing both-order A remains historical. |
+| New BootNext writes/consumption / protected audit | **No new captures**, because no VM. Strict prospective rules and historical replay are implemented, not newly boot qualified. |
+| B menu frame / OCR / selection / recovery / promotion / second stock | **No frame or execution**. Blocked by failed fresh probe; no image can be visually inspected or reused as new evidence. |
+| Owner docs / physical gate | INSTALL/EMERGENCY updated with this exact blocker. Physical installation remains NOT RELEASED; hardware/media, actual German typing, physical menu and novice followability remain open. |
+| Privacy / readiness | Source original logs pass all3. Final evidence-head privacy/cost recorded on PR after push. Acceptance incomplete, draft retained, no merge/force push. |
+
+| Shared ledger checkpoint | Rounded minutes / dispatches |
+|---|---:|
+| Actual11l closure including privacy | 622 /5 historical full,0 B |
+| Owner11m brief privacy | +4 (2+2) |
+| Tested43e7656 source privacy | +2 (1+1) |
+| Complete pre-probe ledger | **628 /900**, reserve186 |
+| Single failed probe21:31:29–21:35:53 UTC | +5 |
+| After-probe complete ledger | **633 /900**,5 full,0 B |
+| Closing privacy reservation | ≤14; bookkeeping upper bound **647≤900** |
+| Actual final closure | Recorded on PR #11 after checks/final complete read, avoiding a commit/privacy loop |
+
+The total remains628 before the probe; the independently replayed job timestamps
+resolve its split as **owner4 + source2** (not3+3). Same start/cap, no reset. No B
+minutes spent and no sixth historical full. The minute cap did not cause this stop.
+
+**Done:** complete-history proof/failure-closed regressions; unchanged11l walk-through;
+one source-privacy/fresh guard/single probe; original failed-gate evidence and
+independent replay; honest docs and report. **Not verified:** all new real VM
+probe checks and the planned protected-second B sequence. No policy/tty3/normal
+rollback/default undo was re-rehearsed; new timing has not run in either order.
+
+**JUDGMENT-CALL:** stop at the native prerequisite-fixture failure rather than
+patch tests/runtime and consume an unauthorized second probe. A clearly stated
+B blocker does not make a failed fresh probe green. Keep draft and all gates open.
+**PLAN-GAP:** the expanded owner-switch block outgrew the old failure-injection
+fixture's mocked environment; full native discovery exposed this before any VM.
+Future work needs an explicitly authorized fixture repair and fresh probe plan.
+**Open questions:** that repair/authorization, then the unrehearsed timing/B/menu
+and physical gates. No widening token scope, image/pin change or firmware contract.
+
+Closing local checks: both stop/invariant replays passed; evidence helpers compiled;
+`git diff --cached --check` passed after display-only whitespace normalization.
+Staged gitleaks printed **no leaks found**; `gitleaks git . --log-opts HEAD
+--redact --no-banner` scanned **131 commits**, printed **no leaks found**. The local
+history scan uses only rewritten HEAD, never old refs. The final push below contains
+only documentation/evidence/replay helpers, with runtime/workflow/tests frozen at
+43e7656. Final privacy and complete-ledger read are reported on PR #11 after push.
