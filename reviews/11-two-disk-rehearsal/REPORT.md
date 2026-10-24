@@ -1,5 +1,7 @@
 # Package 11: two-disk install rehearsal and pinned media
 
+Latest 11m state: **IN PROGRESS; no dispatch yet.** Guard pagination now proves a complete unique-ID set against stable API total_count, with nine new regressions. The 11l route/BootNext/selector/workflow remains unchanged. One fresh source/privacy/guard, one probe, then one protected-second Part B on the same head are still required; all stop and privacy rules hold. Cap900, same ledger, five historical fulls and one-B allowance. PR stays draft pending actual acceptance.
+
 Latest 11l outcome: **STOPPED BEFORE PROBE — the fresh guard requires history pagination and wrote no authorization.** Four review fixes/source rules, 103 local tests and all32 original 11k BootNext checkpoint replays pass. Source privacy passed all three checks, no personal-term skip. **No 11l probe or Part B qualification dispatched.** 11k Part A remains qualified only with its earlier Windows-first timing; revised timing and B remain UNTESTED. Same ledger: **619/900 bookkeeping before closing, 5 historical full, 0/1 Part B**, plus closing privacy charged on PR #11. No guard bypass/pagination change; PR stays draft. Physical installation remains NOT RELEASED.
 
 Latest 11k outcome: **A PASSED BOTH ORDERS; B BLOCKED before menu selection; C pins retained.** The bounded read-only guard recovered seven intermittent 502s. Fresh probe 40117290487 and final full 40119526154 passed on source **2524823**; both ran 181 native tests. Both installed German checks and all seven pause/five pin checks passed; all **32** probe/full protected captures matched with **32 final zero-write records**. Part B has one checksum-matching stock entry but its bare BLS ID is rejected by the selector. No selector change, second probe or sixth full. Shared ledger **611/750 measured, 5/5 full**, with 14 closing minutes reserved; exact closing privacy proof/cost is recorded on PR #11 after the evidence push. Physical installation stays **NOT RELEASED**.
@@ -3509,3 +3511,96 @@ Original [PR privacy ZIP](artifacts/11l-source-privacy-40132617608-logs.zip) and
 [push privacy ZIP](artifacts/11l-source-privacy-40132613328-logs.zip) match their
 proof SHA-256; all raw/decoded credential scans pass. The privacy workflow and
 exclusions are unchanged. No Gradle daemon was started.
+
+## 11m: complete run-history pagination and continued Part B qualification (2026-10-24)
+
+### Before dispatch — guard fix and unchanged 11l walk-through
+
+First ran `git fetch` then `git pull --ff-only`: **Already up to date**, clean
+head **fd73329** (owner 11m brief). Read AGENTS/README, 11m and the complete 11l
+walk-through/stop; the four review fixes/source proof/BootNext rule remain intact.
+No 11m dispatch yet. No local VM, administrator/system-software, disk/firmware,
+Gradle or Minecraft action. PR #11 remains draft pending actual qualification.
+
+`rehearsal_guard.py` now pages the **same branch-filtered run listing**, through
+the unchanged 11k read-only GET retry. [GitHub's endpoint documentation](https://docs.github.com/en/rest/actions/workflow-runs#list-workflow-runs-for-a-repository)
+defines page/per_page(max100); [pagination documentation](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api)
+explains why a single response is a subset. The branch-filtered endpoint documents
+a 1,000-result ceiling; if the API truncates before its own total_count, the guard
+will fail rather than call the subset complete. The independent hard limit is
+**20 pages**; the same filters/start and all accounting remain unchanged.
+
+For one complete snapshot, every page must have the **same nonnegative integer
+total_count**, a correctly sized list and valid unique integer run IDs. Require
+each full page100 and the exact remaining final count; reject duplicates within
+or across pages, missing/malformed IDs, missing/excess rows, empty intermediate
+pages, changed counts and page-limit exhaustion. The complete unique set must
+equal total_count, including runs older than the allowance; only then apply the
+unchanged start filter/job rounding/full/B counts. Parse/4xx/unknown errors fail
+immediately; page5xx/recognized connection failures retain five transport
+attempts and10/20/40/60 waits. Exhaustion never authorizes a partial ledger.
+
+**JUDGMENT-CALL:** use **zero** complete fresh re-reads on an inconsistent snapshot.
+11m permits at most one, so immediate refusal is the conservative allowed choice.
+No stitching, cached response, skipped run or count estimate. Each successful
+listing returns `history` with pages/IDs/total_count/page details/full ID set;
+main requires that proof before writing authorization. Per-page and completion
+events go to stderr. CI uses this same guard and embeds the proof in its artifact.
+All real reads this round will be tabulated with their original receipt/log.
+
+Nine new regressions passed: exact100+23 union; the actual 11l boundary with an
+allowance run on page2 and unchanged101-minute fixture accounting; changed
+total_count, duplicate/missing IDs/rows and empty intermediate pages with **no
+authorization**; malformed total_count/ID; page2 502→success; five502s/no
+authorization; immediate404; hard page limit; and genuinely empty total0.
+The **four existing budget/time/full/B tests are byte-identical and pass**.
+Existing retry assertions are unchanged; their mocked listing now supplies the
+required API total_count and mocked authorization supplies the proof, with mock
+stderr captured so synthetic reads cannot be mistaken for real CI guard reads.
+
+Local focused suite: **112 tests in1.828s / OK**, [output](logs/11m/local-tests.txt).
+[Invariant replay](../../os/manifest/ci/11m/invariants.json) verifies the 11l route,
+workflow, selector, BootNext/audit, stock probe/auth, owner scripts, base/release,
+privacy workflow/exclusions and budget tests remain byte-identical to **8159219**.
+The 11k retry/error parser, job rounding and same-head probe check are unchanged.
+All **32 original 11k raw/JSON BootNext absences** replay without invented old
+write authorizations. No runtime or firmware rule beyond guard pagination changed.
+
+**The entire nine-step 11l walk-through above applies unchanged before dispatch.**
+In particular: source privacy then fresh complete guard; one fresh both-order
+review-only probe on the new head (actual source/module/German/cached-version/
+temporary-grubenv/OCR/real-pause/failure-counter/detached-marker checks); original
+probe ZIP digest and explicit same-head ID gate; one protected-second install;
+Linux-default first/hardware-init boot with no BootNext; installed German read
+before first-login pause/pin; exact Windows-first restoration only afterward;
+attached unattended Windows marker then detached marker; reattach, pause/pin,
+signed switch/identity inspection, AresOS booted/default; checksum-only actual BLS
+identity, source-verified order and exact ordered/stable OCR before selection keys;
+only authorized unavailable/undrivable-menu fallback with real ID; recovered stock,
+identity-checked promotion and a second unattended **Linux** stock boot (recorded
+EFI one-time Linux/F12 stand-in, no GRUB choice). Windows stays firmware default.
+Every boot's prepared BootNext receipt and consumed/absent checkpoint, all protected
+bytes/GPT/EFI, device/NVRAM/OVMF/Linux position, exact Windows identity/order,
+failure counters before termination and raw nonboot-variable evidence stay strict.
+
+The new Windows-first timing will run **protected-second only**. 11k's both-order
+A evidence used the earlier timing; this run does not re-rehearse its policy/tty3/
+normal rollback/default undo or claim new timing passed both orders. Physical
+media/laptop/typing/manual menu/novice gates remain open. No image rebuild,
+publish, repin, visibility/security change or firmware exemption. Owner GHCR
+secret remains Actions-dispatch-only, pinned-image-read only, root0600 outside
+workspace, read-only guest share, zero owner-token API and always cleanup.
+
+Budget: same **2026-10-23T16:21:00Z** start, **900** cap, **5 historical full** and
+**one B** allowance. Actual 11l closure was **622** including its privacy; owner
+11m/source privacy also count. Follow the required order: push fix, source privacy,
+then a fresh guard reserving **186=42 probe+130 B+14 closing**. Probe job40 and B
+job130/VM106 unchanged. One probe, one same-head B, no intervening source push,
+no ordinary full, second probe or second B. A guard/probe-covered failure still
+stops/report; no bookkeeping substitute. Initial real pages/minutes will be
+recorded after the required push/privacy gate, not inferred before it.
+
+**Done:** pagination/proof/regressions and invariant replay. **Not verified:**
+new real guard, source privacy, probe or protected-second timing/menu/promotion.
+**PLAN-GAP:** none new; 11m explicitly authorizes the pagination needed at 11l's
+stop. **Open questions:** actual qualification and retained physical gates.

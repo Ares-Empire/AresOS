@@ -38,8 +38,9 @@ class ReadRetryTest(unittest.TestCase):
                      created_at=guard.START, status='completed', conclusion='success') for n in (1, 2)]
         jobs = dict(jobs=[dict(conclusion='success', started_at=guard.START,
                               completed_at='2026-10-23T16:22:01Z'), dict(conclusion='skipped')])
-        responses = [json.dumps(dict(workflow_runs=runs)).encode(), json.dumps(jobs).encode(), json.dumps(jobs).encode()]
-        with patch.object(guard.subprocess, 'check_output', side_effect=responses), patch.object(guard.time, 'sleep') as sleep:
+        responses = [json.dumps(dict(total_count=len(runs), workflow_runs=runs)).encode(), json.dumps(jobs).encode(), json.dumps(jobs).encode()]
+        with patch.object(guard.subprocess, 'check_output', side_effect=responses), patch.object(guard.time, 'sleep') as sleep, \
+             contextlib.redirect_stderr(io.StringIO()):
             clean = guard.budget(182)
             sleep.assert_not_called()
         log = io.StringIO()
@@ -111,7 +112,8 @@ class ReadRetryTest(unittest.TestCase):
             try:
                 os.chdir(directory)
                 with patch.dict(os.environ, environment), patch.object(sys, 'argv', ['guard', 'ci', '182']), \
-                     patch.object(guard, 'budget', return_value=dict(consumed_minutes=464, full_dispatched=5, part_b_dispatched=1)), \
+                     patch.object(guard, 'budget', return_value=dict(consumed_minutes=464, full_dispatched=5, part_b_dispatched=1,
+                         history=dict(complete=True, ids_count=5, total_count=5))), \
                      patch.object(guard.subprocess, 'check_output', side_effect=responses) as get, \
                      patch.object(guard.time, 'sleep') as sleep, contextlib.redirect_stdout(io.StringIO()), \
                      contextlib.redirect_stderr(io.StringIO()):

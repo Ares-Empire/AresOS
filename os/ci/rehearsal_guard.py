@@ -20,6 +20,8 @@ FULL_CAP = 5
 PART_B_CAP = 1
 RETRY_WAITS = (10, 20, 40, 60)
 READ_RETRIES = []
+RUN_HISTORY_PATH = f'actions/runs?branch={BRANCH}&per_page=100'
+HISTORY_PAGE_LIMIT = 20
 
 
 def failure_status(stderr):
@@ -59,7 +61,45 @@ def read_only(path):
 
 
 def api(path):
+    if path == RUN_HISTORY_PATH:
+        return run_history()
     return json.loads(read_only(f'repos/{REPOSITORY}/{path}'))
+
+
+def run_history():
+    """Require one complete, consistent listing; never stitch shifted snapshots."""
+    runs, pages, seen = [], [], set()
+    total = None
+    for page in range(1, HISTORY_PAGE_LIMIT + 1):
+        path = f'{RUN_HISTORY_PATH}&page={page}'
+        response = json.loads(read_only(f'repos/{REPOSITORY}/{path}'))
+        assert isinstance(response, dict), 'STOP: malformed run history response'
+        count, batch = response.get('total_count'), response.get('workflow_runs')
+        assert type(count) is int and count >= 0 and isinstance(batch, list), 'STOP: missing or malformed history total_count/runs'
+        print('GUARD_HISTORY_PAGE ' + json.dumps(dict(page=page, path=path,
+              total_count=count, returned=len(batch))), file=sys.stderr, flush=True)
+        if total is None:
+            total = count
+        assert count == total, 'STOP: inconsistent history total_count; pages shifted'
+        assert len(batch) <= 100, 'STOP: oversized history page'
+        assert batch or len(runs) == total, 'STOP: empty history page before the end'
+        assert len(batch) == min(100, total - len(runs)), 'STOP: missing or excess history ids/page length'
+        ids = [run.get('id') if isinstance(run, dict) else None for run in batch]
+        assert all(type(run_id) is int and run_id > 0 for run_id in ids), 'STOP: missing or malformed history run id'
+        assert len(set(ids)) == len(ids) and not seen.intersection(ids), 'STOP: duplicate history run id; pages shifted'
+        seen.update(ids)
+        runs.extend(batch)
+        pages.append(dict(page=page, returned=len(batch), total_count=count,
+                          ids_sha256=hashlib.sha256(json.dumps(ids, separators=(',', ':')).encode()).hexdigest()))
+        if len(runs) == total:
+            assert len(seen) == total, 'STOP: unique history ids do not match total_count'
+            proof = dict(complete=True, pages_read=len(pages), ids_count=len(seen), total_count=total,
+                         page_limit=HISTORY_PAGE_LIMIT, snapshot_reads=1, pages=pages,
+                         run_ids=[run['id'] for run in runs])
+            print('GUARD_HISTORY_COMPLETE ' + json.dumps({k: proof[k] for k in
+                  ('pages_read', 'ids_count', 'total_count', 'snapshot_reads')}), file=sys.stderr, flush=True)
+            return dict(workflow_runs=runs, history=proof)
+    raise AssertionError('STOP: history page limit reached before completeness')
 
 
 def job_minutes(job):
@@ -72,8 +112,8 @@ def job_minutes(job):
 
 def budget(reserve, current=None):
     # Push/PR privacy checks consume the same account minutes as VM dispatches.
-    runs = api(f'actions/runs?branch={BRANCH}&per_page=100')['workflow_runs']
-    assert len(runs) < 100 or runs[-1]['created_at'] < START, 'Budget history requires pagination; refuse an incomplete ledger'
+    listing = api(RUN_HISTORY_PATH)
+    runs = listing['workflow_runs']
     records = []
     full = 0
     part_b = 0
@@ -96,7 +136,8 @@ def budget(reserve, current=None):
     assert part_b <= PART_B_CAP, 'STOP: Part B qualification allowance exhausted'
     return dict(allowance='11c', start=START, cap=MINUTE_CAP, full_cap=FULL_CAP, full_dispatched=full,
                 part_b_cap=PART_B_CAP, part_b_dispatched=part_b,
-                consumed_minutes=consumed, reserved_minutes=reserve, runs=records)
+                consumed_minutes=consumed, reserved_minutes=reserve, runs=records,
+                history=listing.get('history'))
 
 
 def require_probe(run, sha):
@@ -114,6 +155,8 @@ def main():
     reserve = int(sys.argv[2])
     current = os.environ.get('GITHUB_RUN_ID') if mode == 'ci' else None
     result = budget(reserve, current)
+    history = result.get('history')
+    assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
     if mode == 'part-b':
         assert result['part_b_dispatched'] < PART_B_CAP, 'STOP: no Part B qualification dispatch remains'
     if mode == 'ci' and os.environ.get('REHEARSAL_MODE') == 'part-b':
