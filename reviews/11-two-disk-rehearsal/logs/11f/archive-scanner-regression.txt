@@ -1,1 +1,1 @@
-ASCII SHA512/rounds/yescrypt hashes and raw/decoded token fixtures rejected; real compressed PNG false positive rejected as a credential.
+ASCII SHA512/rounds/yescrypt hashes and raw/decoded token fixtures detected; real compressed PNG has no credential match.
