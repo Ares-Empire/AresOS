@@ -2,7 +2,7 @@
 
 The AresOS emergency card. **Keep it on your phone.** If AresOS is broken, you can't read it on the laptop.
 
-This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md, and this card tells you which section to open. The 2026-10-24 [11d rehearsal](../reviews/11-two-disk-rehearsal/REPORT.md#11d-owner-read-only-token-and-continued-qualification-2026-10-24) reached the signed release and previewed the real installer in both drive orders. It stopped before installation because reverse-order firmware changed automatic boot entries beyond the allowed rule. The protected disk and original Windows entry stayed unchanged, but the failed probe authorizes no full run. Installation and GRUB recovery promotion remain unqualified. The UNTESTED recovery gate below stays open.
+This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md, and this card tells you which section to open. The 2026-10-24 [11e rehearsal](../reviews/11-two-disk-rehearsal/REPORT.md#11e-firmware-device-set-rule-and-continued-installation-qualification-2026-10-24) completed a first VM installation and booted the Windows marker with Linux detached. It then stopped because restoring Windows as the default changed the relative order of two entries, which the current audit rule forbids. Protected bytes and the original Windows entry stayed unchanged. The complete install/recovery/undo sequence and GRUB recovery promotion remain unqualified. The UNTESTED recovery gate below stays open.
 
 ## The three rules
 

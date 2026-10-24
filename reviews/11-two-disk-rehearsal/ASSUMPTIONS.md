@@ -544,3 +544,17 @@ rather than whether it previously held Linux. A target-ESP Linux entry may be
 re-created at a former automatic number; the regression now covers that case
 while preserving its relative position and rejecting takeover of fixed entries.
 The corrected commit requires a new complete probe before any full dispatch.
+
+Probe 2 (`40044393400`, source `a353042`) completed both orders, six unchanged
+protected captures/final zero-write records and exactly five device events.
+The same-source full `40046420672` completed the first real installation on
+the target ESP and booted the detached Windows marker. The install checkpoint
+took 25m08s after the baseline checkpoint, including live UI/shutdown/audit.
+No complete two-order/B timing has been qualified.
+
+The full audit then rejected the required Windows-first action: non-auto order
+changed from Bazzite/Windows/UiApp/Shell to Windows/Bazzite/UiApp/Shell. Windows
+and Linux entry payloads and protected bytes remained identical; all three full
+final counters were zero. This conflicts with 11e's strict relative-order rule.
+The run stopped; no checkpoint was moved, rule widened or additional VM run
+attempted. The integrator must settle that boundary before new qualification.

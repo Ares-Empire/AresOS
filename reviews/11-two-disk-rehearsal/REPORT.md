@@ -1,9 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-11e continuation: the integrator's device-set rule passes the retained first-
-and reverse-order stores and 58 focused regressions. Fresh probe/full evidence
-is pending; no installation gate is released. The shared ledger starts this
-continuation at 70/330 minutes, including the new brief's two privacy jobs.
+Latest 11e outcome: **STOPPED after first real install — Windows-default restoration violates the strict non-firmware relative-order rule. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh both-order probe passed; 140 native regressions passed in probe and full. All nine reached protected captures/counters were unchanged/zero, but the full audit failed. Shared cost: **142/330 measured + at most 14 closing privacy minutes, 1/3 full runs**. See [11e](#11e-firmware-device-set-rule-and-continued-installation-qualification-2026-10-24).
 
 Latest 11d outcome: **STOPPED at reverse-order detached firmware audit — automatic entry changed and an attached-device entry disappeared. A OPEN, B UNTESTED, C pins retained.** The owner token closed the release-access blocker; 133 native regressions passed. Protected bytes and Windows entry stayed unchanged, with six zero-write records, but the failed probe authorizes no full run. Shared 11c/11d measured cost is **66/330 minutes**, plus at most 14 reserved for closing privacy checks; **0/3 full runs**. See [11d](#11d-owner-read-only-token-and-continued-qualification-2026-10-24).
 
@@ -992,3 +989,262 @@ contract, or a separately authorized contract decision with exact regressions
 and evidence. This run makes neither change. Parts A/B still need fresh
 qualification; spare minutes do not bypass the stop. PR #11 stays draft,
 branch pushes are fast-forward only, and nothing is merged.
+
+## 11e: firmware device-set rule and continued installation qualification (2026-10-24)
+
+**STOPPED after the first real install and detached Windows marker — required
+Windows-default restoration conflicts with the strict non-firmware order rule.
+A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh both-order probe passed.
+Full run [40046420672](https://github.com/Ares-Empire/AresOS/actions/runs/40046420672)
+on the exact same source **`a353042e6f996d26a9ad746b616dce1a6394e1ae`** completed
+the first real Web UI install on the target's own ESP. The protected disk and
+Windows entry stayed unchanged; the detached Windows marker booted. The ensuing
+audit rejected the Windows/Bazzite relative-order change. No check was widened,
+no further VM/probe/full/checks-only job followed, and PR #11 stays draft.
+
+### Done
+
+- `os/ci/disk_audit.py`: implements the explicit 11e device-set decision. Every
+  exact-GUID automatic option, including unchanged options, must resolve to
+  hardware attached in its own per-boot QMP record. The saved MAC/IP/empty-URI
+  HTTP options resolve to their NIC PCI address; unsupported paths fail. Number,
+  description, position and the presence of an option for each attached device
+  are not identity requirements. Taking a non-auto option's number still fails.
+- Stage records retain raw option changes, both complete BootOrders and ownership
+  inventories. Device events record removals/additions/relabels/renumbers. Pairing
+  prefers unchanged numbers, then remaining options on the same physical device;
+  original stores stay authoritative when one NIC has multiple options. The real
+  reverse transition is exactly DVD removal, target removal and protected-option
+  relabel/renumber Boot0004 → Boot0002. Historical evidence is unchanged.
+- Windows entry bytes/number/default, protected bytes/GPT/EFI/counters and
+  non-auto relative order stay strict. Linux additions/changes/recreation require
+  the actual target ESP number, GUID/bounds and Fedora shim/GRUB loader. A
+  recreation may use a former auto number but retains its logical fixed-order
+  position. Wrong ESP/loader, standalone Linux removal and GUID-plus-extra fail.
+- `two_disk_vm.py`, `rehearsal_guard.py`: fresh records use the set audit, and the
+  same-source complete probe proof requires `firmware_rule=11e-device-set`.
+  The original 330-minute/three-full allowance, 11d token boundary, original
+  signature identity, digest and runtime-equivalence checks are unchanged.
+- Tests and `replay-11e-firmware.py` cover the real before/after stores and all
+  required rejection cases. Capture/verifier helpers retain API digest receipts,
+  exact original ZIPs, raw stores, per-boot QMP and screenshots. The verifier's
+  post-stop change only records the original strict rejection and its inputs;
+  it still exits **1**. No VM policy or test was relaxed after the stop.
+- INSTALL and EMERGENCY describe the latest blocker and leave installation and
+  GRUB gates open. Protected audit/raw-store functions are byte-identical to
+  the pre-11e source. Owner auth, workflow, fixture, runtime, image/base/key/lock,
+  release/media pins, mod and historical evidence are unchanged. Privacy files
+  remain identical to main. No image rebuild, publish or visibility change.
+
+### Verified
+
+First commands `git fetch` and `git pull --ff-only` completed; pull printed
+`Already up to date.` All pushes are normal fast-forward branch pushes. No
+force-push, pre-rewrite ref push, main push, merge or rebase was used.
+
+| Gate | Result and evidence |
+|---|---|
+| Historical set rule and negatives | **PASS** [replay receipt](../../os/manifest/ci/11e/firmware-set-replays.json): 11b/11c first order and 11d first order each two removals; 11d reverse exactly three device events. 58 focused tests cover detached/unknown devices, takeover of Windows/Linux/fixed numbers, Windows mutation/renumber/default, other non-auto mutation/addition/order, wrong Linux ESP/loader and GUID-plus-extra. |
+| Fresh probe before full | **PASS** [40044393400](https://github.com/Ares-Empire/AresOS/actions/runs/40044393400), [complete proof](../../os/manifest/ci/11e/probe-2/two-disk/probe-result.json), source `a353042e6f996d26a9ad746b616dce1a6394e1ae`. Both actual reviews, backend/keymap choices and detached markers passed; full used this exact source and probe ID. |
+| Native/source/firmware checks | **PASS** probe: 140 tests in 3.545s; full: 140 in 4.269s, both `OK`. Python compilation/Bash syntax, unchanged runtime-equivalence checks and exact OVMF GUID source predicate/baselines passed in both jobs. |
+| Owner-token reads/signature/cleanup | **PASS reached stages** original pinned manifest/all layers/digest, original signature verifier in both probe guests and full live guest; root-only read-only 9p auth mount. [Probe cleanup](../../os/manifest/ci/11e/probe-2/owner-auth-cleanup.json) and [full cleanup](../../os/manifest/ci/11e/full-1/owner-auth-cleanup.json) removed the host file before upload. Zero owner-token API calls. Visibility metadata explicitly unverified from the org. |
+| Complete pinned live ISO | **PASS twice**, 9,068,650,496 bytes match existing SHA-256 `776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6` and fresh official checksum. No media/image substitution. |
+| Real installation, protected first | **PASS installation checkpoint only** [result](../../os/manifest/ci/11e/full-1/two-disk/protected-first-install-result.json), [new target ESP/EFI files](../../os/manifest/ci/11e/full-1/two-disk/protected-first-install-target-efi.json), [completed UI](screenshots/11e-full-1-two-disk-installation-complete.png). New Bazzite Boot000A targets only target ESP `8f0f45ad-95be-4c15-a55b-9ed0352ea077`, partition 1, start 2048, 1,228,800 sectors, `\EFI\fedora\shimx64.efi`. Protected disk unchanged, zero writes. |
+| First post-install Windows without Linux | **Marker PASS, combined NVRAM gate FAIL** [frame](screenshots/11e-full-1-two-disk-after-install-without-linux-windows-marker.png), [raw before](../../os/manifest/ci/11e/full-1/two-disk/protected-first-install-vars.fd), [raw after](../../os/manifest/ci/11e/full-1/two-disk/after-install-without-linux-vars.fd), [failure analysis/QMP/hash bindings](../../os/manifest/ci/11e/full-stop-analysis.json). Windows entry unchanged and first afterward; non-auto relative order changed. |
+| Protected disk/counters through reached stages | **PASS all nine reached captures** [verification](../../os/manifest/ci/11e/evidence-verification.json): six probe + three full captures match their own run's baseline, nine final counters `wr_bytes=0`, `wr_operations=0`, no missing final counter. Full protected baseline SHA-256 `a63253537257b6c2ad856b77cff43506940b0457e1d3605e5fc9014bb0a2b652`; probe baseline `a11e6ce1947615205b4d4a95d4d10951a57c7a6fdd00651aa56b53316c3dea34`. Independent fixtures have independent baseline GUIDs/hashes. |
+| A: both full drive-order sequences | **NOT QUALIFIED**: stopped before the first installed Linux boot/switch/policy/tty3/rollback/default undo. Reverse installation and both post-undo detached boots were not reached. Preview/marker subsets do not satisfy A. |
+| B: GRUB stock selection/promotion/unattended stock | **UNTESTED / BLOCKED** by A's non-auto-order PLAN-GAP and absent qualified installed-target sequence. No menu/promotion proof claimed. |
+| C: media pins | **RETAINED**; fresh complete live ISO verified twice. Physical media/writer/followability remain OPEN. |
+| Privacy | Both source `a353042` [push](https://github.com/Ares-Empire/AresOS/actions/runs/40044245505) / [PR](https://github.com/Ares-Empire/AresOS/actions/runs/40044249975) scans green. Final closing scan results/URLs and exact actual cost are recorded in PR #11 after the final push. |
+
+The original 11d token exception remains narrow: Actions secret `GHCR_READ_TOKEN`,
+username `carlsenares`, owner-declared classic `read:packages`, 30-day expiry,
+only `ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402`
+and its associated signature reads. Only dispatch probe/full creation receives
+the secret in env; the file stays under RUNNER_TEMP, root-owned 0600 in a 0700
+directory outside workspace/artifacts. No other package, owner API, credential
+fallback or mutation. Client diagnostics are private; artifact capture and
+verification scan raw bytes and encoded credential patterns, including binary
+entries. No value is retained. Original old-source signature identity and
+issuer stay as recorded in release.json; no image/key/runtime change.
+
+### Set-rule changes and rejection per stage
+
+| Run / order / stage | Protected bytes / final writes | Recorded device/entry changes |
+|---|---|---|
+| Probe 2 / first / baseline-firmware | MATCH; 0 bytes / 0 operations | Baseline exact-GUID ownership and QMP binding established. |
+| Probe 2 / first / live-ui-probe | MATCH; 0 / 0 | No firmware changes. |
+| Probe 2 / first / detached Windows | MATCH; 0 / 0 | DVD Boot0002 removed (`pci:00:1f.2/sata:0:65535:0`); empty target Boot0004 removed (`pci:00:03.0`). |
+| Probe 2 / reverse / baseline-firmware | MATCH; 0 / 0 | Baseline established; target PCI 2.0, protected PCI 3.0. |
+| Probe 2 / reverse / live-ui-probe | MATCH; 0 / 0 | No firmware changes. |
+| Probe 2 / reverse / detached Windows | MATCH; 0 / 0 | Target Boot0003 removed (`pci:00:02.0`); protected PCI 3.0 relabeled/renumbered Boot0004 → Boot0002; DVD Boot0002 removed. Exactly three events. |
+| Full 1 / first / baseline-firmware | MATCH; 0 / 0 | Baseline established. |
+| Full 1 / first / protected-first-install | MATCH; 0 / 0 | No firmware-owned changes. Separate Bazzite Boot000A added on target ESP, before Windows in BootOrder. Existing non-auto relative order preserved. |
+| Full 1 / first / after-install-without-linux | MATCH; 0 / 0 | **REJECTED**. Raw DVD Boot0002 and target Boot0004 removals fit the device set, but required Windows-first restoration swaps Windows/Bazzite relative order. No accepted NVRAM diff or exemption for the rejected stage. Complete raw stores/QMP retained. |
+
+Every accepted event records device, old/new option numbers/descriptions and
+exact 16-byte GUID. Both ownership inventories and entire BootOrders are retained;
+each remaining auto option names attached hardware. Nothing is ignored silently.
+The rejected stage has derived failure analysis, not a fabricated passing diff.
+
+The runner's actual failure was:
+
+```text
+AssertionError: PLAN-GAP: relative order of non-firmware entries changed
+```
+
+After installation the non-auto order was
+`[Boot000A Bazzite, Boot0000 Windows, Boot0001 UiApp, Boot0009 Shell]`.
+The guide's `restore_windows_order()` step made it
+`[Boot0000 Windows, Boot000A Bazzite, Boot0001 UiApp, Boot0009 Shell]`.
+Windows and Bazzite option payloads did not change. Windows booted independently
+from protected ESP `a3411a72-39f2-44cc-9cc1-5e18ecd9f26b`, BootCurrent=0000,
+through `\EFI\Microsoft\Boot\bootmgfw.efi`. This is a file-backed marker fixture,
+not a real Windows OS test. Full before/after orders and raw hashes are in the
+failure analysis. No record was reordered or rewritten to pass the policy.
+
+### Commands and retained evidence
+
+```text
+git fetch; git pull --ff-only
+  Already up to date.
+python -X utf8 -m unittest discover -s os/tests -p test_disk_audit.py -v
+  18 in 0.367s, OK; after Linux recreation correction 18 in 0.278s, OK
+Focused discovery: test_two_disk_vm.py, test_installer_webui.py,
+test_firmware_contract.py, test_rehearsal_budget.py, test_rehearsal_auth.py
+  20 in 0.258s, 9 in 0.004s, 1 in 0.000s, 1 in 0.000s, 9 in 0.076s; all OK
+Python compilation of os/ci/*.py: passed
+python -X utf8 reviews/11-two-disk-rehearsal/replay-11e-firmware.py
+  11b-first-order: 2 changes; 11d-first-order: 2; 11d-reverse: 3; all passed
+Ubuntu probe and full (exact source a353042):
+  python3 -m unittest discover -s os/tests -v
+    140 in 3.545s / 140 in 4.269s; both OK
+  python3 -m py_compile os/ci/*.py os/ci/overlay/*.py; Bash syntax checks
+    exit 0 in both jobs
+  python3 os/ci/verify_release.py 39818554327
+    Qualified original release source; runtime payload unchanged
+  sudo -E python3 os/ci/rehearsal_auth.py create / preflight / pull
+    separate steps: temporary file created; exact digest verified; layers pulled
+  python3 os/ci/installer_inspect.py
+    complete ISO pin/checksum matched, both jobs
+  sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py probe
+    PROBE PASSED: both serial mappings, real UI through review, backend choices
+    and zero protected writes; no installation
+  sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py full
+    installation checkpoint passed; detached Windows marker booted
+    exit 1: PLAN-GAP: relative order of non-firmware entries changed
+  sudo -E python3 os/ci/rehearsal_auth.py cleanup (always)
+    runner-temporary auth file removed before artifact upload, both jobs
+python -X utf8 reviews/11-two-disk-rehearsal/verify-11e-evidence.py
+  exit 1; 9 matching offline captures, 9 zero-write records, 821 archive entries
+  original receipts/contents and raw/encoded credential scans verified
+  five accepted probe events; original full-stage policy rejection retained
+  only explicit probe proof qualifies; no full-result proof exists
+Local privacy before the report commit:
+  .work/11c/privacy-tool/unpacked/gitleaks.exe git . --pre-commit --staged --redact --no-banner --log-level info
+    exit 0; no leaks found
+  .work/11c/privacy-tool/unpacked/gitleaks.exe git . --log-opts HEAD --redact --no-banner --log-level info
+    exit 0; 99 rewritten-HEAD commits scanned, no leaks found
+```
+
+[Local logs](logs/11e/local-regressions.txt),
+[recreation regression](logs/11e/linux-recreation-regressions.txt),
+[probe log](logs/11e/probe-2.txt), [full log](logs/11e/full-1.txt),
+[verifier output](logs/11e/evidence-verification.txt),
+[unchanged-checks proof](logs/11e/scope-check.txt).
+No test or protected assertion was weakened/skipped/deleted. Only the explicit
+11e automatic-option semantics changed. No Gradle/Minecraft command or daemon
+was started; no daemon stop command was needed.
+The portable gitleaks 8.21.2 was already checksum-verified under ignored `.work/`;
+no system installation was made. The final report commit is scanned again before
+push, then the unchanged GitHub privacy workflow must pass on the final PR head.
+
+Original ZIPs (API digest receipts retained):
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| [Probe 2](artifacts/11e-probe-2-two-disk-evidence.zip) | 6,354,011 | `38eaac306a33795cde41e58b9d6ec1e0ff08c54583c281d50b492c999840130e` |
+| [Full 1](artifacts/11e-full-1-two-disk-evidence.zip) | 4,745,571 | `1570ab5cf82aa6af88f3e2763fba0d66f81dcc41659078cb817e9f5fec319854` |
+
+Original archive/log bytes are unchanged. Expanded display text alone normalizes
+line endings/trailing whitespace; the verifier compares its complete normalized
+content. Large squashfs inventories remain in original ZIPs. API identities use
+the rewrite's placeholders. Visually inspected both probe reviews/markers and
+the full [completed install](screenshots/11e-full-1-two-disk-installation-complete.png)
+and [post-install detached marker](screenshots/11e-full-1-two-disk-after-install-without-linux-windows-marker.png).
+Probe frames: [first review](screenshots/11e-probe-2-two-disk-review-full.png),
+[reverse review](screenshots/11e-probe-2-two-disk-protected-second-review-full.png),
+[first marker](screenshots/11e-probe-2-two-disk-probe-windows-without-linux-windows-marker.png),
+[reverse marker](screenshots/11e-probe-2-two-disk-protected-second-probe-windows-without-linux-windows-marker.png).
+Every page/transport difference remains recorded: original liveuser liveinst,
+unmodified pages driven by host Chromium over loopback relay, with live Firefox
+paused to preserve the installer lifecycle; root serial shutdown for offline
+audits. No D-Bus installation fallback or unsupported kickstart was used.
+
+### Minute ledger
+
+The allowance **never reset**: shared 11c/11d/11e start
+**2026-10-23T16:21:00Z**, **330 rounded minutes / 3 full runs**. Costs are ceilings
+per executed job, including privacy and cancelled jobs; skipped jobs count zero.
+[Full machine-readable ledger](../../os/manifest/ci/11e/final-budget.json)
+lists every branch run/source/conclusion/cost. This is the brief's quota proxy,
+not an invoice.
+
+| Run(s) | Outcome | Rounded minutes |
+|---|---|---:|
+| Prior 11c/11d through closing 40041843056 / 40041848828 | Actual carry-forward, including closing privacy pair | 68 |
+| 40042782486 / 40042788594 | New 11e brief push / PR privacy, green | 2 |
+| 40043521223 / 40043526075, source 0aa50ca | First set-rule source push / PR privacy, green | 2 |
+| 40043692406, source 0aa50ca | Cancelled setup after Linux-recreation source review; credentials/ISO/VM skipped, cleanup/upload passed | 7 |
+| 40044245505 / 40044249975, source a353042 | Recreation-fix push / PR privacy, green | 2 |
+| 40044393400, source a353042 | Complete same-source both-order probe, passed | 22 |
+| 40046420672, source a353042 | Full 1: first install/marker reached; non-auto order assertion failed; mandatory stop; cleanup/upload passed | 39 |
+| **Measured before closing push** | **1/3 full runs** | **142/330** |
+| Closing push + PR privacy pair | Reserved: five-minute watchdog plus two-minute cleanup allowance per job | **at most 14** |
+| **Bound including closing checks** | Final exact actual total and scan URLs in PR #11 | **at most 156/330** |
+
+The final PR description closes this reservation with actual completed check
+minutes, avoiding another evidence-only push/scan loop. At least 174 minutes
+remain unused inside this bound; the contract stop, not budget exhaustion,
+prevented continuation. No later VM/full/checks-only dispatch occurred. The guard
+initially refused a reservation while a source privacy job was active; no run
+was dispatched until that cost was known.
+
+### Not verified
+
+No installed Linux boot, installed UID/groups/keymap/encryption verification,
+AresOS switch/policy/real tty3 recovery, rollback or default undo was reached.
+Reverse actual installation, complete A in either order, post-undo Windows
+independence and Part B remain unqualified. Live auth/signature proof does not
+qualify installed-target transport. Hardware, physical keyboards/USBs, writer,
+novice followability, Lenovo fitting and real Windows/BitLocker/firmware helpers
+remain human release gates. **Physical installation is NOT RELEASED.**
+
+### JUDGMENT-CALL
+
+Set semantics are the integrator's explicit decision. Event pairing on one
+device is presentation only; both raw stores and every option/order/device
+inventory remain available. No new product-feel or hard-to-undo choice was made.
+The Windows-default requirement and strict non-auto order were both preserved;
+their observed conflict is left for the integrator, not silently resolved here.
+
+### PLAN-GAP
+
+11e says: “Entries that aren't firmware-owned keep their relative order in
+BootOrder.” The actual installer prepends the new Bazzite entry, making Linux
+first. Briefs 11/11c and the guide require restoring Windows-first; doing so swaps
+the relative positions of two non-auto entries. The marker boots and protected
+bytes/Windows entry are correct, but the combined transition violates that
+explicit rule. This is a conflict between the required guide action/checkpoint
+and the strict order rule, not another unrecognized auto-option renumbering.
+The run therefore stops. Removing Linux from that comparison, hiding the
+post-install store or moving a checkpoint to conceal the change is not an
+authorized fix. No such change or retry was made.
+
+### Open questions
+
+Should Windows-default restoration have an explicit permitted Linux-order
+transition, or should the installation/checkpoint contract establish Windows-
+first at a different defined boundary? This needs an integrator decision and
+fresh same-source qualification under the still-shared allowance. This run
+chooses neither. Acceptance is not met; PR #11 stays draft and nothing is merged.
