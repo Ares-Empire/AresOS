@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "path": "QMP Home, Down x1, Enter after exact ordered OCR",
+  "recorded_stock_checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+  "stock_previous_index": 1,
+  "stock_now_booted_first": true,
+  "unattended_second_boot": true
+}

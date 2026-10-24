@@ -1,0 +1,25 @@
+{
+  "total_count": 1,
+  "artifacts": [
+    {
+      "id": 12577405738,
+      "node_id": "MDg6QXJ0aWZhY3QxMjU3NzQwNTczOA==",
+      "name": "release-inputs",
+      "size_in_bytes": 31341,
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/artifacts/12577405738",
+      "archive_download_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/artifacts/12577405738/zip",
+      "expired": false,
+      "digest": "sha256:10ec73067758829ab4fda196324e31ba38288b693a750b76d8a39001d9dff6f1",
+      "created_at": "2026-10-24T22:05:15Z",
+      "updated_at": "2026-10-24T22:05:15Z",
+      "expires_at": "2026-10-27T22:05:14Z",
+      "workflow_run": {
+        "id": 40136982269,
+        "repository_id": 1428762847,
+        "head_repository_id": 1428762847,
+        "head_branch": "pkg/11-two-disk-rehearsal",
+        "head_sha": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760"
+      }
+    }
+  ]
+}

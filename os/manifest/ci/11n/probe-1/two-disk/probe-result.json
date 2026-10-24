@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "installed": false,
+  "both_orders": true,
+  "review_validated": true,
+  "detached_windows": true,
+  "target_reset": true,
+  "owner_auth_read_only": true,
+  "signature_verified": true,
+  "firmware_rule": "11f-linux-position",
+  "stock_recipe_probe": true,
+  "failure_counter_probe": true,
+  "read_only_keyboard_proof": true,
+  "installed_keyboard_reader_probe": true,
+  "part_b_tools_probe": true,
+  "stock_idle_source_verified": true,
+  "bootnext_checked": true,
+  "bootloader_source_verified": true,
+  "commit": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760"
+}

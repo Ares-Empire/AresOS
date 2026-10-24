@@ -1,0 +1,36 @@
+{
+  "xlayouts": [
+    "de"
+  ],
+  "model_keymap": "",
+  "layout_switching_options": [],
+  "live_localed": {
+    "keymap": "us",
+    "layouts_variants": [
+      "de"
+    ],
+    "options": []
+  },
+  "module_before": {
+    "XLayouts": [
+      "de"
+    ],
+    "VirtualConsoleKeymap": "",
+    "LayoutSwitchOptions": []
+  },
+  "module_after": {
+    "XLayouts": [
+      "de"
+    ],
+    "VirtualConsoleKeymap": "",
+    "LayoutSwitchOptions": []
+  },
+  "module_configuration_unchanged": true,
+  "read_only": true,
+  "same_installation_resolver": true,
+  "installation_task_source": "    def run(self):\n        x_layouts = self._x_layouts\n        vc_keymap = self._vc_keymap\n\n        if not self._x_layouts or not self._vc_keymap:\n            x_layouts, vc_keymap = get_missing_keyboard_configuration(\n                self._localed_wrapper,\n                self._x_layouts,\n                self._vc_keymap\n            )\n\n        if x_layouts:\n            write_x_configuration(\n                self._localed_wrapper,\n                x_layouts,\n                self._switch_options,\n                X_CONF_DIR,\n                self._sysroot\n            )\n        if vc_keymap:\n            write_vc_configuration(\n                vc_keymap,\n                self._sysroot\n            )\n",
+  "installation_source_sha256": "f3a348993523390c757aeab826a86110f9c92f817372173f91af2b06c34381db",
+  "switch_options_property": "LayoutSwitchOptions",
+  "interface_source_sha256": "28f67133ed97b6d6030c7055bad7548b0919459405e054f5505acc1a6ce16732",
+  "switch_options_getter_source": "    @property\n    def LayoutSwitchOptions(self) -> List[Str]:\n        \"\"\"List of options for layout switching\"\"\"\n        return self.implementation.switch_options\n"
+}

@@ -1,0 +1,433 @@
+{
+  "status": "source-byte-equivalence-only",
+  "qualified_source": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+  "payload_files_unchanged": [
+    {
+      "path": ".github/workflows/os-image.yml",
+      "sha256": "89dc65cbbfa4066bd82c5a93de520262e8dce674f0541245ccaa39e09be4363b"
+    },
+    {
+      "path": ".github/workflows/privacy-check.yml",
+      "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2"
+    },
+    {
+      "path": ".gitleaks.toml",
+      "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742"
+    },
+    {
+      "path": ".gitleaksignore",
+      "sha256": "696095491f29162d4bf1bf3d43972817e3df1b9913857c182a03223067bdc2a8"
+    },
+    {
+      "path": "os/Containerfile",
+      "sha256": "715b9215fb8e1bfefa38c7de883c7dd3f9d03476d7b0e43881de8710afc523cf"
+    },
+    {
+      "path": "os/ci/activation_audit.py",
+      "sha256": "51dca27617256c32609fa3b72034123fa503c231a400cc6695dca5e4661c1dd0"
+    },
+    {
+      "path": "os/ci/activation_canaries.py",
+      "sha256": "cd6f3d4b913338a254724306f5cf8c53f7716cef28f11f5a4ba2e6904b8113cd"
+    },
+    {
+      "path": "os/ci/channel.py",
+      "sha256": "8c2f9e63f1e2908ee97ef3af0cf07a154efd5ffa4eb90d621a24c210b958b8af"
+    },
+    {
+      "path": "os/ci/disk_audit.py",
+      "sha256": "4974679af712ccb8b8e610063ec62dab68bc97be8ab9bf3e2f4e7c14d6752746"
+    },
+    {
+      "path": "os/ci/firmware_contract.py",
+      "sha256": "9c47abc60a3413930411c4551ec50dbb85cda9fb2d719e04d2938da889df413d"
+    },
+    {
+      "path": "os/ci/greeter.py",
+      "sha256": "661741f8506495c1043aa703c14d14e33093abac687681efb2c8041292ba9f86"
+    },
+    {
+      "path": "os/ci/greeter_probe.py",
+      "sha256": "f903d01ec9d88727baa53cb0dc1681acac6d0c4b4d0f9347405cbf65cff003b0"
+    },
+    {
+      "path": "os/ci/grub_bls.py",
+      "sha256": "5e6aa9fdd411cf8cbd37f0174bd147892ce9cb7d176b70534d61664b6dc7a36b"
+    },
+    {
+      "path": "os/ci/install-tools.sh",
+      "sha256": "a7f1d0976e6ae12885faa30c52c49cc9d372bdcfdf36368514337f76ab00575b"
+    },
+    {
+      "path": "os/ci/installer_inspect.py",
+      "sha256": "15f720754d405e37cfd18fffa3e1d9ecbfd7b7b4f6d9cec06778c31f85ba4615"
+    },
+    {
+      "path": "os/ci/installer_webui.py",
+      "sha256": "3c2ae47142d3cf7cc2a511ec396750eb9ffb525c648244fff579f2ceca7f978d"
+    },
+    {
+      "path": "os/ci/keyboard_proof.py",
+      "sha256": "cf7e3ecc25fee8b738b5f84f0b304083339c77ee57f0b1736aaf2c4f34b4ce28"
+    },
+    {
+      "path": "os/ci/metrics.py",
+      "sha256": "720d486ff4dec678b95b6c53e487ef4acea47880c497771917e9587695be7901"
+    },
+    {
+      "path": "os/ci/offline_journal.py",
+      "sha256": "d639f9ca220b61f74b503c7cda6dbd63074b47946f22bffe1e1218d877711b22"
+    },
+    {
+      "path": "os/ci/overlay/Containerfile",
+      "sha256": "6db78629dec873778c17123c96d1c7e5658a7400e1f97182870d4342f6d0894e"
+    },
+    {
+      "path": "os/ci/overlay/aresos-ci.service",
+      "sha256": "a4a01626697998f21ef4c8f7250a903537ef2fdca967b9ef2130123f593b7117"
+    },
+    {
+      "path": "os/ci/overlay/checks.py",
+      "sha256": "0411a6548883dac30cf9b75aa875457ba8961f077d06053642ccdd792329f853"
+    },
+    {
+      "path": "os/ci/overlay/journal-debug.conf",
+      "sha256": "3fa6480c36f0f8c6533b370e4e8aed0566f2c278f27db9b5b0820e8527375466"
+    },
+    {
+      "path": "os/ci/overlay/logind-debug.conf",
+      "sha256": "127a5a89d99fc3829b1a3234b45566b00555860e92317ea8317e635f15040ab7"
+    },
+    {
+      "path": "os/ci/overlay/pam_check.py",
+      "sha256": "5ede303496247609dd80f2c30b4a0ab409303641f3e809ba274fe9d8af520283"
+    },
+    {
+      "path": "os/ci/overlay/routine.service",
+      "sha256": "51c66d1595f5a3eafbcb1ee49ae2e18fa3996cbb67800077b08dd42595db3493"
+    },
+    {
+      "path": "os/ci/overlay/routine.timer",
+      "sha256": "7a14bdf25045b757d669ddc5ba67918fd1384e644a24fe544469d32ade07624f"
+    },
+    {
+      "path": "os/ci/overlay/static-canary.service",
+      "sha256": "51c66d1595f5a3eafbcb1ee49ae2e18fa3996cbb67800077b08dd42595db3493"
+    },
+    {
+      "path": "os/ci/overlay/updater-generator",
+      "sha256": "13cee395be9ec539323a642326fd9bf63085336b7fecbdb2b72c69b2026010b5"
+    },
+    {
+      "path": "os/ci/overlay/updater_regressions.py",
+      "sha256": "8e70e08ca51c982a599a84fde8db5ceb1b2dd4d13a8d6cf74fc30ec09cdef0ae"
+    },
+    {
+      "path": "os/ci/parser-preflight.sh",
+      "sha256": "79a9f5e48e97c51e3bf1ce692176864f9cc6b8d838f1e23222f7bc4dbeb64da7"
+    },
+    {
+      "path": "os/ci/parser_preflight.py",
+      "sha256": "763b864e9fb11326123ac59945b6453ddcc5b63a436d0278c25ac43deb1872af"
+    },
+    {
+      "path": "os/ci/prepare-disk.py",
+      "sha256": "17f92d080ff492100fd4993ad7a95a388b7e5a7c7f6ad0d839bbf9558fa57121"
+    },
+    {
+      "path": "os/ci/prepare_two_disks.py",
+      "sha256": "343a70f8f3a1e47b4e8da62565817d43ffea451c1efc643ad0ae1865b8233db6"
+    },
+    {
+      "path": "os/ci/publish.sh",
+      "sha256": "9fe427e87407b91d5c498c741e6ddc777a79f054103f918a6e492688fd002c2a"
+    },
+    {
+      "path": "os/ci/qmp.py",
+      "sha256": "06d37c475b63e66caa171556a51fe752383ad15c273c74b3f8a86f3dfe643704"
+    },
+    {
+      "path": "os/ci/rehearsal_auth.py",
+      "sha256": "195d00948ace5a2ebb7167c1c51ac7546c347b0c20f2790330a00e245b79d5bc"
+    },
+    {
+      "path": "os/ci/rehearsal_guard.py",
+      "sha256": "e52d2bebe3813d350cbbc26861258af5fdbdd0e295cd5da0f5682d211a8b959b"
+    },
+    {
+      "path": "os/ci/release-inputs.py",
+      "sha256": "f4f82511f8e2debe172b26d22b97a4dab932450d34cc8be4a3353f5a354f143e"
+    },
+    {
+      "path": "os/ci/serial_console.py",
+      "sha256": "8fed6d24fb29ec65d5641a3adf3b2fd272fbaa5541d4802880630cd6246bc3b6"
+    },
+    {
+      "path": "os/ci/stock_probe.py",
+      "sha256": "ca8c97f9c795e7e51a65ac5090eaf54ef5209e9ff4300c9cb1fdd9b6f539d22e"
+    },
+    {
+      "path": "os/ci/switch_vm.py",
+      "sha256": "9e3fc6cb82e432a684d46e6f08777891c8e6835c9595f803532c7c3e61775aa6"
+    },
+    {
+      "path": "os/ci/toolchain.json",
+      "sha256": "21be54e8cbcf29447708e79ddf2c3547bc16b43d2a913e450279fd6aa82ceadd"
+    },
+    {
+      "path": "os/ci/tty_password.py",
+      "sha256": "c1c96418bb566f0dc43ccda295fb612b6344543d38908b3c85720268c254c346"
+    },
+    {
+      "path": "os/ci/two_disk_vm.py",
+      "sha256": "3432126e0b64796b0a64faa87fc65b845041e91f6d48bd08c73bc0f57dabe3be"
+    },
+    {
+      "path": "os/ci/verify_release.py",
+      "sha256": "9d9f501f119675e06074cef317b79edaf2b2cd0271b40030989903eea674ea72"
+    },
+    {
+      "path": "os/ci/vm.py",
+      "sha256": "22e33809c0364b15a681817226df2abd85e35069ae3a0d4d544431d6d635c08e"
+    },
+    {
+      "path": "os/ci/windows_marker.c",
+      "sha256": "c25ab95c3e410a4fc7bcf61a73b8ec700e50c32e6e5d8fa918de6595acfb99b2"
+    },
+    {
+      "path": "os/config/etc/UPower/UPower.conf",
+      "sha256": "3f54a2c25c117b023a66e34d84ff6a75db0fac163f2a244671ebf665da56715a"
+    },
+    {
+      "path": "os/config/etc/greetd/config.toml",
+      "sha256": "0a37cb3dde398987c30494570fc5e1053748ae0e2acb5f3c38277699234e4599"
+    },
+    {
+      "path": "os/config/etc/profile.d/aresos.sh",
+      "sha256": "820dfd5e667f3d75ab4949425ee1cfb3253e271b3b87ce4de3c0503a9e3f9633"
+    },
+    {
+      "path": "os/config/etc/rpm-ostreed.conf",
+      "sha256": "65e580bb871c3daa1667f1589778c823b29a3b654ead173edb4b116d27749283"
+    },
+    {
+      "path": "os/config/etc/systemd/journald.conf.d/90-aresos.conf",
+      "sha256": "beb4bc5630ee1f798e7abe8ab27a5dfc293edc08188def6c7120556cab1c64aa"
+    },
+    {
+      "path": "os/config/etc/systemd/logind.conf.d/90-aresos.conf",
+      "sha256": "7d656bd7cab3df085887be6bbb2c990c4823ed0fe75778bf4623913138e7536a"
+    },
+    {
+      "path": "os/config/etc/systemd/sleep.conf.d/90-aresos.conf",
+      "sha256": "201ae7e7fdeb50e61ae2fa86dfd6cbd6144cda46ea556d642d70efcceb47aeee"
+    },
+    {
+      "path": "os/config/etc/uupd/config.json",
+      "sha256": "630fdb8622ffac09f8081a28a1ccc9f75acbfb42609c675bd428861ad985921b"
+    },
+    {
+      "path": "os/config/usr/bin/aresos-session",
+      "sha256": "0644b36a2bee814a53d3e39a57a1247f69eb1ef26a1d781a652dc3bdd7027fc8"
+    },
+    {
+      "path": "os/config/usr/bin/aresos-terminal",
+      "sha256": "a9167a3b863e3f246bfa7d9da5d9453421339bbb49e82c1973c32880f6224386"
+    },
+    {
+      "path": "os/config/usr/lib/sysusers.d/aresos.conf",
+      "sha256": "90a506dbf620f53f6ff0c9b621419893a809c3bd9b4ab52b8364b8e3b98e2e1e"
+    },
+    {
+      "path": "os/config/usr/lib/tmpfiles.d/aresos-inherited-homebrew.conf",
+      "sha256": "39e21c4261e9180a377e63b89c17773c31ada3296b5805b2665da4014cbb17b8"
+    },
+    {
+      "path": "os/config/usr/lib/tmpfiles.d/aresos.conf",
+      "sha256": "a724be0f9541409e1763e6822a0a058411ea9d4a354d1311e4a7fdb879e1ad71"
+    },
+    {
+      "path": "os/config/usr/share/aresos/bashrc",
+      "sha256": "5ca87acb8e0bbb4c40b8ef74cc31851dfa7952fdeb2e05daa5449e19426607fc"
+    },
+    {
+      "path": "os/config/usr/share/aresos/labwc/autostart",
+      "sha256": "9fb33144e70aff6a97111c136fcb6983f77960d0a2253e9a55174a32e014dfec"
+    },
+    {
+      "path": "os/config/usr/share/aresos/labwc/rc.xml",
+      "sha256": "bb447ed0b6374135ec99870bcb457cafca7506b55fef02720b6a277758a8a302"
+    },
+    {
+      "path": "os/config/usr/share/polkit-1/rules.d/00-aresos-maintenance.rules",
+      "sha256": "8da0e84fac55764af7dfaf1ddddf79dd17951284918e275cefce75c7ea274582"
+    },
+    {
+      "path": "os/keys/bazzite.pub",
+      "sha256": "af78ecfda6eb21c35195af3739341715e9cfc3f2f5911dd9c10b0670547bf6e8"
+    },
+    {
+      "path": "os/manifest/base.json",
+      "sha256": "750558b95a7bfb8b6121361935ec5b0bf68de6bc4b127fca00606a5d0d6383ec"
+    },
+    {
+      "path": "os/manifest/installer-isos.json",
+      "sha256": "571be37257a0940bceaef01a33f6db5d53bd55de257aab452038216b63b3cfc1"
+    },
+    {
+      "path": "os/manifest/release.json",
+      "sha256": "4447a6cd8929e61667e700d9757c98efbe3432a341491ebbea3f466ba83c0126"
+    },
+    {
+      "path": "os/release/default-stock.sh",
+      "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6"
+    },
+    {
+      "path": "os/release/pause-stock-updates.sh",
+      "sha256": "48380c070174170d96b0f61c5067887e6a36839ffab2c2b25d06944f72bcc2d7"
+    },
+    {
+      "path": "os/release/pin-stock.sh",
+      "sha256": "ee2a5c15d89b063864c47dfb603265d8d785329599187c7471c7204a6f381330"
+    },
+    {
+      "path": "os/release/rollback.sh",
+      "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8"
+    },
+    {
+      "path": "os/release/stock-session.sh",
+      "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a"
+    },
+    {
+      "path": "os/release/switch.sh",
+      "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c"
+    },
+    {
+      "path": "os/release/verify.sh",
+      "sha256": "55947bd644f9741d613dfd9fc2b88aba6e4465a68747ed25c648e59fe95064a3"
+    },
+    {
+      "path": "os/tests/audit.py",
+      "sha256": "b528a2b303efecffb412bf63516b18af541b1a6eaef28195bb5a0283eca13d66"
+    },
+    {
+      "path": "os/tests/fixtures/11i-pause-stock-updates.sh",
+      "sha256": "b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5"
+    },
+    {
+      "path": "os/tests/guest.sh",
+      "sha256": "f648260cf138e7199e8cb171c0da5eba4f36ae7cd78cd1d1da238232a2e3f3ad"
+    },
+    {
+      "path": "os/tests/inherited-homebrew.sh",
+      "sha256": "7e951f8512451888020a52f4ddc574e849a23fe856d2c9c207d3122169ec7708"
+    },
+    {
+      "path": "os/tests/power-events.py",
+      "sha256": "7c09d6877aa2320229a210fd2fd0e17f1ca67c48a22320eb2ad0dab62be4fd5d"
+    },
+    {
+      "path": "os/tests/test_audit.py",
+      "sha256": "db62606c583698878f0013871b2382006827a4679eb78926139ab27bc237ca37"
+    },
+    {
+      "path": "os/tests/test_channel.py",
+      "sha256": "c53caad511aa4db37dc07b9a143d03697c4d785f552eb40f30b1c7adcd8d1e60"
+    },
+    {
+      "path": "os/tests/test_default_stock.py",
+      "sha256": "606ef954d199a8ffacfef1e4f4f8dd58901a06459606e5077246043b13567439"
+    },
+    {
+      "path": "os/tests/test_disk_audit.py",
+      "sha256": "5c8d880d59b846d6b5d970d4583d10ac80b518300a3b7addab446dbe32589da8"
+    },
+    {
+      "path": "os/tests/test_firmware_contract.py",
+      "sha256": "bb3ee6317a9fb9cf61ce987d223c9ed77de2fc2f56020bd0be6604f2953a4eef"
+    },
+    {
+      "path": "os/tests/test_greeter.py",
+      "sha256": "a9a949ac3ea74d77353b40cef3db7b7c96ae1ef919e1ada93ff907de63bbf5ec"
+    },
+    {
+      "path": "os/tests/test_greeter_probe.py",
+      "sha256": "5bff054c0db825477e3df0b6ccb14be702de9dacc01fe29d1b73ad649ac84ba0"
+    },
+    {
+      "path": "os/tests/test_grub_bls.py",
+      "sha256": "bce0e162f71c0ea17f68ed020858f850dea36815354b83794c353ce10e959225"
+    },
+    {
+      "path": "os/tests/test_inherited_homebrew.py",
+      "sha256": "b263abc37414c90d0063db3ea9bf092ca1f4819676356871ecd60add9bbf265b"
+    },
+    {
+      "path": "os/tests/test_installer_webui.py",
+      "sha256": "84aed1a4c9415032d113c29f090c932f914e20250694dd6c73eb8d41cc891c7d"
+    },
+    {
+      "path": "os/tests/test_keyboard_proof.py",
+      "sha256": "13b0c7c8045c0e7ad01c3030d682295b74af1e6e76d88cef03ec397bf2f4d8c9"
+    },
+    {
+      "path": "os/tests/test_offline_journal.py",
+      "sha256": "68d869573229ca3526b40c3ede92b872a9c31d0cae439aaed6479dc775818486"
+    },
+    {
+      "path": "os/tests/test_rehearsal_auth.py",
+      "sha256": "f3be2b231fbdcdabe9b1df6d69953dc9dd62096e9a48832ddcc57c649e1a04fd"
+    },
+    {
+      "path": "os/tests/test_rehearsal_budget.py",
+      "sha256": "1fc4c4165ba01d00394a766916a5d9e174f8c9ae1e3174003df3fd7927077e2d"
+    },
+    {
+      "path": "os/tests/test_rehearsal_history.py",
+      "sha256": "ce8423764035212ada620065a0ddd2f504943abdc1e41ec546d5080ae6763760"
+    },
+    {
+      "path": "os/tests/test_rehearsal_retry.py",
+      "sha256": "e2a9fee701ba15e0387b584d2354003e915e297fc471d1fa3aabe190d6bed7ee"
+    },
+    {
+      "path": "os/tests/test_serial_console.py",
+      "sha256": "ebe9f9cd8712b5d89ec5a9fe371c15b3b6bef6b69fa056c60117d68af6345872"
+    },
+    {
+      "path": "os/tests/test_shell_assertions.py",
+      "sha256": "250ccaeceaef057e1614731be4f363dc06676c87a5c3fdd4e60d1dac60ec98f5"
+    },
+    {
+      "path": "os/tests/test_stock_idle.py",
+      "sha256": "a75a5457df28fb53c912f65a87fa26f82f91efc13dc3d007252d251a8a7d7c4c"
+    },
+    {
+      "path": "os/tests/test_stock_prepare.py",
+      "sha256": "6df533ef75996485b92bbec0730c68f871ae22d095bf30f6893420d03346152a"
+    },
+    {
+      "path": "os/tests/test_stock_probe.py",
+      "sha256": "bf303bf0f94f858f02563713110eb5b78fce20f0b54dfc5e112fff98542f38f4"
+    },
+    {
+      "path": "os/tests/test_switch.py",
+      "sha256": "5d3fde9c9b31a48fbebd477356d95eb8bd8039ae4e9c0c030535eaf774f3c549"
+    },
+    {
+      "path": "os/tests/test_sysusers.py",
+      "sha256": "02cc277cde88610f556daf11b3cf00f9825b4d515dd560f7f3535086e01ca860"
+    },
+    {
+      "path": "os/tests/test_tty_password.py",
+      "sha256": "314d60814b1dcc4fbedb23860f302c8c350ecf100c2b7cfd13d8f2233c8d411b"
+    },
+    {
+      "path": "os/tests/test_two_disk_vm.py",
+      "sha256": "091e01728b548c4928393ef0df156e62acca58cfbb527e5eabcba8122ca84002"
+    }
+  ],
+  "all_owner_bash_blocks_unchanged": true,
+  "exact_switch_block_and_equality_test_unchanged": true,
+  "limit": "This proves source equivalence, not a VM outcome. Qualification requires the retained run receipts and inspection."
+}

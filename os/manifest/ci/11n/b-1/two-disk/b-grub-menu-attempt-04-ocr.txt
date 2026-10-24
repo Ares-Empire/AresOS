@@ -1,0 +1,5 @@
+GRUB version 2.12
+Bazzite (ostree:0)
+Use the 4 and ¥ keys to select uhich entry is highlighted.
+Press enter to boot the selected 0S, ‘e’ to edit the conmands before booting or ‘c’ for
+a command-line. ESC to return previous menu.

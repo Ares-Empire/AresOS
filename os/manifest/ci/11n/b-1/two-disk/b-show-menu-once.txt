@@ -1,0 +1,10 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+boot_success=1
+menu_show_once=1
+
+ARESOS_CMD_DONE:0

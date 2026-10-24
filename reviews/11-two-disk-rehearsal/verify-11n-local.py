@@ -38,6 +38,14 @@ unchanged = ['os/release/switch.sh', 'docs/INSTALL.md', 'os/tests/test_grub_bls.
 hashes = []
 for name in unchanged:
     raw = pathlib.Path(name).read_bytes().replace(b'\r\n', b'\n')
+    if name == 'docs/INSTALL.md':
+        # The completed report may update qualification prose after the runs.
+        # Replay the full pre-dispatch guide from its actual tested Git blob;
+        # every executable block in the final guide must still be identical.
+        tested = subprocess.check_output(['git', 'show', '46dc2dd:' + name])
+        blocks = lambda content: re.findall(rb'^```bash\n(.*?)\n```', content, re.M | re.S)
+        assert blocks(raw) == blocks(tested)
+        raw = tested
     assert raw == subprocess.check_output(['git', 'show', '04ae68d:' + name]), name
     hashes.append(dict(path=name, sha256=hashlib.sha256(raw).hexdigest()))
 directory = pathlib.Path('os/manifest/ci/11n'); directory.mkdir(parents=True, exist_ok=True)
@@ -47,6 +55,7 @@ result = dict(status='local-discovery-complete-with-explicit-environment-limits'
               windows_greeter_passed=4, combined_locally_passed=196, native_ci_still_required=5,
               changed_fixture_and_five_negative_cases_passed=True,
               native_before_probe_plan='Existing checks_only dispatch on the tested source,15-minute timeout reserved separately; complete201 tests must pass before probe.',
+              owner_guide_limit='Full tested46dc2dd guide equals04ae68d; final executable blocks must match, qualification prose may be updated.',
               unchanged_files=hashes)
 (directory / 'local-tests.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
 for path in logs.glob('local-*.txt'):

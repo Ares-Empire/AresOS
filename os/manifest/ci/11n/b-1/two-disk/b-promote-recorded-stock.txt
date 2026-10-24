@@ -1,0 +1,13 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+⠁ Waiting for sysroot lock...
+[2KTransaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0
+Default is the identity-checked booted stock deployment: aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71
+
+ARESOS_CMD_DONE:0

@@ -1,0 +1,54 @@
+{
+  "eb704011-1402-11d3-8e77-00a0c969723b/MTC": {
+    "before": {
+      "attributes": 7,
+      "sha256": "26b25d457597a7b0463f9620f666dd10aa2c4373a505967c7c8d70922a2d6ece",
+      "bytes": 4
+    },
+    "after": {
+      "attributes": 7,
+      "sha256": "9d9f290527a6be626a8f5985b26e19b237b44872b03631811df4416fc1713178",
+      "bytes": 4
+    }
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0002": {
+    "before": {
+      "attributes": 7,
+      "sha256": "dc109c519d4650934bd843faa54c7c2cf0145d7b56cc4a4125c16d15254c1f75",
+      "bytes": 108
+    },
+    "after": null
+  },
+  "605dab50-e046-4300-abb6-3dd810dd8b23/SbatLevel": {
+    "before": null,
+    "after": {
+      "attributes": 3,
+      "sha256": "8135277523da84ec6f5a4b86f97da3442134a133e4ff1fd2e9e2f58049dda240",
+      "bytes": 18
+    }
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/BootOrder": {
+    "before": {
+      "attributes": 7,
+      "sha256": "b36996ab530b11ba2ff2f192f297c80111e8ff04f8d5d9493cfe957c32c75bee",
+      "bytes": 22
+    },
+    "after": {
+      "attributes": 7,
+      "sha256": "b00b733f2b0c0c5aa3556f1c8af205b68f29d6c4aa8bd0afcb4aa35c2fe9f6be",
+      "bytes": 20
+    }
+  },
+  "fab7e9e1-39dd-4f2b-8408-e20e906cb6de/HDDP": {
+    "before": {
+      "attributes": 3,
+      "sha256": "2facc8ed7195a5db8727a373306f90a4fe8509f1c19702d93ee88b86921fa4d2",
+      "bytes": 64
+    },
+    "after": {
+      "attributes": 3,
+      "sha256": "a24fffce2b16f029c0bfbc4412fcc276c9a59f0cde421049c0ddf819760eb646",
+      "bytes": 128
+    }
+  }
+}

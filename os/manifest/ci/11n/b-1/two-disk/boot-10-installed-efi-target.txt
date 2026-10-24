@@ -1,0 +1,102 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+TARGET SOURCE   FSTYPE OPTIONS
+/boot/efi
+       /dev/vda1
+                vfat   rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=
+{
+   "blockdevices": [
+      {
+         "name": "sr0",
+         "type": "rom",
+         "serial": "QM00005",
+         "partuuid": null,
+         "parttype": null,
+         "mountpoints": []
+      },{
+         "name": "zram0",
+         "type": "disk",
+         "serial": null,
+         "partuuid": null,
+         "parttype": null,
+         "mountpoints": [
+             "[SWAP]"
+         ]
+      },{
+         "name": "vda",
+         "type": "disk",
+         "serial": "CRUCIAL-TARGET",
+         "partuuid": null,
+         "parttype": null,
+         "mountpoints": []
+      },{
+         "name": "vda1",
+         "type": "part",
+         "serial": null,
+         "partuuid": "4a583675-c525-4866-a070-9991639042ee",
+         "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+         "mountpoints": [
+             "/boot/efi"
+         ]
+      },{
+         "name": "vda2",
+         "type": "part",
+         "serial": null,
+         "partuuid": "a01a366b-749a-481a-b118-2c3b49508a05",
+         "parttype": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+         "mountpoints": [
+             "/boot"
+         ]
+      },{
+         "name": "vda3",
+         "type": "part",
+         "serial": null,
+         "partuuid": "5cc948ad-12cd-4a9a-84ff-4b4ae6530c2c",
+         "parttype": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+         "mountpoints": [
+             "/var/home", "/var", "/sysroot/ostree/deploy/default/var", "/sysroot", "/etc"
+         ]
+      },{
+         "name": "vdb",
+         "type": "disk",
+         "serial": "MICRON-KEEP",
+         "partuuid": null,
+         "parttype": null,
+         "mountpoints": []
+      },{
+         "name": "vdb1",
+         "type": "part",
+         "serial": null,
+         "partuuid": "295a8bd3-d3e0-4638-91cb-51e1ba5f9eb4",
+         "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+         "mountpoints": []
+      },{
+         "name": "vdb2",
+         "type": "part",
+         "serial": null,
+         "partuuid": "bb28906f-e15e-47d1-a4af-b6360531da6a",
+         "parttype": "e3c9e316-0b5c-4db8-817d-f92df00215ae",
+         "mountpoints": []
+      },{
+         "name": "vdb3",
+         "type": "part",
+         "serial": null,
+         "partuuid": "a4b3ac67-32a4-4fff-ac16-d83705c7e688",
+         "parttype": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7",
+         "mountpoints": []
+      },{
+         "name": "vdb4",
+         "type": "part",
+         "serial": null,
+         "partuuid": "0d651a17-800d-4579-8972-adeb7154a026",
+         "parttype": "de94bba4-06d1-4d40-a16a-bfd50179d6ac",
+         "mountpoints": []
+      }
+   ]
+}
+
+ARESOS_CMD_DONE:0

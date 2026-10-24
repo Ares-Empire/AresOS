@@ -1,0 +1,151 @@
+]3008;end=ebdcd88b-3042-4efb-a750-6bd419df3c5c;exit=success\]3008;start=9c28a5e4-a45c-4296-9f40-709fd686f22f;type=shell;machineid=bd34b8dcbe1b4583b7f2d4d4797283b4;user=root;hostname=localhost-live;bootid=e9ea5d4f-5701-4853-9aee-840ddf066c0b;pid=2280;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=95647cbb-4e3e-4976-9bc6-d5051a6ec471;type=command;machineid=bd34b8dcbe1b4583b7f2d4d4797283b4;user=root;hostname=localhost-live;bootid=e9ea5d4f-5701-4853-9aee-840ddf066c0b;pid=2280;cwd=/root\/usr/sbin/systemctl
+/usr/sbin/rpm-ostree
+/usr/sbin/bootc
+/usr/sbin/ostree
+/usr/sbin/pgrep
+/usr/sbin/runuser
+/usr/sbin/getent
+/usr/sbin/python3
+/usr/sbin/grub2-reboot
+/usr/sbin/grub2-editenv
+  -p, --pending             Remove pending deployment
+  --json                        Output JSON
+  -J, --jsonpath=EXPRESSION     Filter JSONPath expression
+Usage:
+  ostree admin pin [OPTION…] INDEX
+
+Change the "pinning" state of a deployment, INDEX can be >= 0 or one of booted, pending or rollback strings
+
+Help Options:
+  -h, --help         Show help options
+
+Application Options:
+  --sysroot=PATH     Create a new OSTree sysroot at PATH
+  -u, --unpin        Unset pin
+  -v, --verbose      Print debug information during command processing
+  --version          Print version information and exit
+
+Usage:
+  ostree admin set-default [OPTION���] INDEX
+
+Make deployment INDEX the default
+
+Help Options:
+  -h, --help         Show help options
+
+Application Options:
+  --sysroot=PATH     Create a new OSTree sysroot at PATH
+  -v, --verbose      Print debug information during command processing
+  --version          Print version information and exit
+
+Usage: grub2-reboot [OPTION] MENU_ENTRY
+Set the default boot menu entry for GRUB, for the next boot only.
+  -h, --help              print this message and exit
+  -V, --version           print the version information and exit
+  --boot-directory=DIR    expect GRUB images under the directory DIR/grub2
+                          instead of the /boot/grub2 directory
+
+MENU_ENTRY is a number, a menu item title or a menu item identifier. Please note that menu items in
+submenus or sub-submenus require specifying the submenu components and then the
+menu item component. The titles should be separated using the greater-than
+character (>) with no extra spaces. Depending on your shell some characters including > may need escaping. More information about this is available
+in the GRUB Manual in the section about the 'default' command.
+
+NOTE: In cases where GRUB cannot write to the environment block, such as when it is stored on an MDRAID or LVM device, the chosen boot menu entry will remain the default even after reboot.
+
+Report bugs to <bug-grub@gnu.org>.
+Usage: grub2-editenv [OPTION...] FILENAME COMMAND
+
+Tool to edit environment block.
+
+ Commands:
+  create                     Create a blank environment block file.
+  incr [NAME ...]            Increase value of integer variables.
+  list                       List the current variables.
+  set [NAME=VALUE ...]       Set variables.
+  unset [NAME ...]           Delete variables.
+
+ Options:
+  -?, --help                 give this help list
+      --usage                give a short usage message
+  -v, --verbose              print verbose messages.
+  -V, --version              print program version
+
+If FILENAME is `-', the default value /boot/grub2/grubenv is used.
+
+There is no `delete' command; if you want to delete the whole environment
+block, use `rm /boot/grub2/grubenv'.
+
+Report bugs to <bug-grub@gnu.org>.
+menu_show_once=1
+next_entry=ostree-1
+Display status.
+
+Shows bootc system state. Outputs YAML by default, human-readable if terminal detected.
+
+Usage: bootc status [OPTIONS]
+
+Options:
+      --format <FORMAT>
+          The output format
+
+          Possible values:
+          - humanreadable: Output in Human Readable format
+          - yaml:          Output in YAML format
+          - json:          Output in JSON format
+
+      --format-version <FORMAT_VERSION>
+          The desired format version. There is currently one supported version, which is exposed as
+          both `0` and `1`. Pass this option to explicitly request it; it is possible that another
+          future version 2 or newer will be supported in the future
+
+      --booted
+          Only display status for the booted deployment
+
+  -v, --verbose
+          Include additional fields in human readable format
+
+  -h, --help
+          Print help (see a summary with '-h')
+Usage:
+  rpm-ostree cancel [OPTION…]
+
+Cancel an active transaction
+
+Help Options:
+  -h, --help            Show help options
+
+Application Options:
+  --sysroot=SYSROOT     Use system root SYSROOT (default: /)
+  --peer                Force a peer-to-peer connection instead of using the system message bus
+  --version             Print version information and exit
+  -q, --quiet           Avoid printing most informational messages
+
+ARESOS_STOCK_IDLE_SOURCE_CHECK {"versions": {"rpm-ostree": "2026.3", "uupd": "1.5.0"}, "bootloader_versions": {"ostree": "2026.4-1.fc44", "grub2-common": "2.12-66.fc44"}, "service": "[Unit]\nDescription=rpm-ostree System Management Daemon\nDocumentation=man:rpm-ostree(1)\nConditionPathExists=/ostree\nRequiresMountsFor=/boot\n\n[Service]\n# See similar code in rpm-ostree-countme.service\nUser=rpm-ostree\nDynamicUser=yes\n# As of right now, our primary API is DBus.  But see also https://github.com/coreos/rpm-ostree/issues/3850\nType=dbus\nBusName=org.projectatomic.rpmostree1\n# To use the read-only sysroot bits\nMountFlags=slave\n# We have no business accessing /var/roothome or /var/home.  In general\n# the ostree design clearly avoids touching those, but since systemd offers\n# us easy tools to toggle on protection, let's use them.  In the future\n# it'd be nice to do something like using DynamicUser=yes for the main service,\n# and have a system rpm-ostreed-transaction.service that runs privileged\n# but as a subprocess.\nProtectHome=true\nNotifyAccess=main\n# Significantly bump this timeout from the default because\n# we do a lot of stuff on daemon startup.\nTimeoutStartSec=5m\n# We start this main process with full privileges; it may spawn unprivileged processes\n# with the rpm-ostree user.\nExecStart=+rpm-ostree start-daemon\nExecReload=rpm-ostree reload\n# disable/enable downloading filelists\nEnvironment=\"DOWNLOAD_FILELISTS=false\"\n", "daemon_comm": "rpm-ostree", "daemon_command": ["rpm-ostree", "start-daemon"], "binaries": {"rpm-ostree": "9968f4cd00fe59ca54975af02722952f57c89cf094ea5ce776dd31aa878b1597", "uupd": "402479f7c85c98bcc7a38d1da86bcc5f9f9628406b09627513e5edbd5d882e48"}, "transaction_shape": "null or three-string active transaction tuple; rpm-ostree v2026.3 source", "cancel": "one active transaction cancellation; waits until active path changes", "uupd": "v1.5.0: bootc upgrade --quiet --progress-fd 3 when compatible; rpm-ostree upgrade fallback"}
+CACHED_STOCK_CLI_HELP_PASSED
+
+/usr/bin/grub2-probe: error: failed to get canonical path of `tmpfs'.
+
+ARESOS_CACHED_STOCK_CLI_PROBE {"status": "passed", "digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151", "image_id": "0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431", "pull": "never", "network": "none", "read_only": true, "owner_credentials_mounted": false, "part_b_cli_help": true, "temporary_grubenv_bare_id": true, "stock_idle_source_verified": true, "idle_source": {"versions": {"rpm-ostree": "2026.3", "uupd": "1.5.0"}, "bootloader_versions": {"ostree": "2026.4-1.fc44", "grub2-common": "2.12-66.fc44"}, "service": "[Unit]\nDescription=rpm-ostree System Management Daemon\nDocumentation=man:rpm-ostree(1)\nConditionPathExists=/ostree\nRequiresMountsFor=/boot\n\n[Service]\n# See similar code in rpm-ostree-countme.service\nUser=rpm-ostree\nDynamicUser=yes\n# As of right now, our primary API is DBus.  But see also https://github.com/coreos/rpm-ostree/issues/3850\nType=dbus\nBusName=org.projectatomic.rpmostree1\n# To use the read-only sysroot bits\nMountFlags=slave\n# We have no business accessing /var/roothome or /var/home.  In general\n# the ostree design clearly avoids touching those, but since systemd offers\n# us easy tools to toggle on protection, let's use them.  In the future\n# it'd be nice to do something like using DynamicUser=yes for the main service,\n# and have a system rpm-ostreed-transaction.service that runs privileged\n# but as a subprocess.\nProtectHome=true\nNotifyAccess=main\n# Significantly bump this timeout from the default because\n# we do a lot of stuff on daemon startup.\nTimeoutStartSec=5m\n# We start this main process with full privileges; it may spawn unprivileged processes\n# with the rpm-ostree user.\nExecStart=+rpm-ostree start-daemon\nExecReload=rpm-ostree reload\n# disable/enable downloading filelists\nEnvironment=\"DOWNLOAD_FILELISTS=false\"\n", "daemon_comm": "rpm-ostree", "daemon_command": ["rpm-ostree", "start-daemon"], "binaries": {"rpm-ostree": "9968f4cd00fe59ca54975af02722952f57c89cf094ea5ce776dd31aa878b1597", "uupd": "402479f7c85c98bcc7a38d1da86bcc5f9f9628406b09627513e5edbd5d882e48"}, "transaction_shape": "null or three-string active transaction tuple; rpm-ostree v2026.3 source", "cancel": "one active transaction cancellation; waits until active path changes", "uupd": "v1.5.0: bootc upgrade --quiet --progress-fd 3 when compatible; rpm-ostree upgrade fallback"}}
+
+ARESOS_CMD_DONE:0

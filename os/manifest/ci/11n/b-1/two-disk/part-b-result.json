@@ -1,0 +1,13 @@
+{
+  "part_b": "passed",
+  "order": "protected-second",
+  "installed_keyboard_german": true,
+  "first_stock_firmware_default": true,
+  "windows_default_after_first_login_pin": true,
+  "unattended_windows_marker": true,
+  "detached_windows_marker": true,
+  "rollback_and_default_undo_repeated": false,
+  "part_a_evidence": "11k full40119526154; both orders; earlier Windows-first timing",
+  "part_b_evidence": "grub-promotion.json",
+  "commit": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760"
+}

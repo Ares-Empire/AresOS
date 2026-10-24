@@ -20,6 +20,7 @@
   "native_ci_still_required": 5,
   "changed_fixture_and_five_negative_cases_passed": true,
   "native_before_probe_plan": "Existing checks_only dispatch on the tested source,15-minute timeout reserved separately; complete201 tests must pass before probe.",
+  "owner_guide_limit": "Full tested46dc2dd guide equals04ae68d; final executable blocks must match, qualification prose may be updated.",
   "unchanged_files": [
     {
       "path": "os/release/switch.sh",

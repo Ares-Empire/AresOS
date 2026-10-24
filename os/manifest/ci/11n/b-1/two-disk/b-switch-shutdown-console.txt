@@ -1,0 +1,32 @@
+?2004hARESOS_ROOT> [?2004l
+
+
+Broadcast message from root@bazzite on pts/0 (Sun 2026-10-25 01:18:04 CEST):
+
+The system will reboot now!
+
+[?2004hARESOS_ROOT> ]3008;end=1de7c89f1529459fbd41c185271829c2\]3008;end=52d40714a29141c588e61b67ad79b05f\[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H]3008;end=24d7fa2237744f8d99691cbfa536748e\[  187.080765] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[  187.085745] systemd-shutdown[1]: Unmounting file systems.
+[  187.088667] (sd-umount)[2336]: Unmounting '/run/credentials/systemd-journald.service'.
+[  187.091373] (sd-remount)[2337]: Remounting '/sysroot' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  187.105854] (sd-umount)[2339]: Unmounting '/sysroot'.
+[  187.108560] (sd-remount)[2340]: Remounting '/etc' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  187.112391] (sd-umount)[2341]: Unmounting '/etc'.
+[  187.114048] systemd-shutdown[1]: All filesystems unmounted.
+[  187.115452] systemd-shutdown[1]: Deactivating swaps.
+[  187.116689] systemd-shutdown[1]: All swaps deactivated.
+[  187.117970] systemd-shutdown[1]: Detaching loop devices.
+[  187.119607] systemd-shutdown[1]: All loop devices detached.
+[  187.120978] systemd-shutdown[1]: Stopping MD devices.
+[  187.122371] systemd-shutdown[1]: All MD devices stopped.
+[  187.123675] systemd-shutdown[1]: Detaching DM devices.
+[  187.125068] systemd-shutdown[1]: All DM devices detached.
+[  187.126366] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[  187.128631] watchdog: watchdog0: watchdog did not stop!
+[  187.143314] systemd-shutdown[1]: Syncing filesystems and block devices.
+[  187.144945] systemd-shutdown[1]: Rebooting.
+[  187.156347] Console: switching to colour dummy device 80x25
+[  187.189454] ACPI: PM: Preparing to enter system sleep state S5
+[  187.190760] kvm: exiting hardware virtualization
+[  187.191807] reboot: Restarting system
+[  187.192664] reboot: machine restart

@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "present": false,
+  "consumed": true,
+  "boot": 10,
+  "authorization": "boot-10-bootnext.json",
+  "windows_default": true
+}

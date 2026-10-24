@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11n state: **IN PROGRESS; no dispatch yet.** The switch fixture now supplies safe prerequisites while executing the unchanged exact owner block; injected42 and all five negative cases passed in WSL. Complete local discovery attempted201 tests:193 passed,8 unique environment limitations (Pillow3, forbidden elevation4, DrvFS mode0600 check1); Windows Pillow independently passed all4 greeter tests, giving196 unique local passes. Full native CI is required before the new probe. Same900-minute ledger, five historical fulls/one B; one additional15-minute no-VM regression reservation, then exactly one fresh probe and one same-head protected-second B if all gates pass. PR stays draft pending actual acceptance.
+Latest 11n outcome: **NATIVE201, FRESH PROBE AND PART B PASSED** on **46dc2dd**, one protected-second qualification run. Safe fixture prerequisites/five negatives preserve the exact owner block. Native-only40136982269 passed201 tests before probe40137250974; Part B40139324523 passed on the same head. All16 new protected captures matched with16 final zero writes;4 Linux BootNext writes were consumed. Revised first-login/Windows-first timing, installed German files, menu/OCR selection, promotion and second stock boot passed in protected-second only. **Visual limit:** the named selected snapshot still highlights row0; actual stock selection is proved by keys plus booted checksum/nonzero index, without fallback. Loaded console map/physical typing remain unverified (BLS includes `vconsole.keymap=us`). Ledger **718/900 before closing**,5 historical full/1 B. Final privacy/cost goes on PR #11; readiness only after final checks. Physical installation NOT RELEASED.
 
 Latest 11m outcome: **STOPPED at the single fresh probe's native regression gate, before credentials or any VM.** Complete history pagination passed locally and in CI (2 pages, 130 unique IDs = total_count130 in CI, zero retries). Probe **40134595231** on **43e7656** ran **200 tests: 199 passed, 1 failed**. The owner switch block's account prerequisite is not mocked by the older transaction-failure fixture, which exits before its injected bootc failure. No second probe or Part B dispatched; no runtime/test fix after the stop. New timing, prospective BootNext and GRUB recovery remain UNTESTED. Same ledger **633/900 before closing**, five historical fulls, zero B. Final evidence-head privacy/cost goes on PR #11 after push. **Draft retained; physical installation NOT RELEASED.**
 
@@ -3932,3 +3932,275 @@ owner-block equality, complementary Windows greeter run, invariant replay.
 receipts/menu/timing. **PLAN-GAP:** local DrvFS/Pillow/elevation limitations are
 listed and assigned native CI; no product-plan change. **Open questions:** actual
 qualification outcomes and retained physical gates. PR remains draft; never merge.
+
+### Actual source/guard gate — BEFORE NATIVE DISPATCH
+
+Source **46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760** pushed fast-forward. Source
+privacy [40136731776](https://github.com/Ares-Empire/AresOS/actions/runs/40136731776)
+and [40136725728](https://github.com/Ares-Empire/AresOS/actions/runs/40136725728)
+passed all three individual checks and complete original logs, no errors or
+PRIVATE_TERMS skip. [Proof](../../os/manifest/ci/11n/source-privacy-proof.json).
+
+Fresh guard **`python os/ci/rehearsal_guard.py probe 201`** passed: **2 pages
+(100+36),136 unique IDs=API total_count136**, one snapshot, zero retries.
+[Receipt](../../os/manifest/ci/11n/before-native-budget.json),
+[original stderr](logs/11n/before-native-guard.txt). Actual **644/900**, five
+historical fulls, zero B; reserve201 gives845≤900. The644 includes prior637,
+owner11n privacy4(2+2), source privacy3(2+1). Same start/ledger, no reset.
+Remote PR head confirmed46dc2dd; unchanged runtime and exact owner block. The
+whole local suite and limitations above are recorded before **any** dispatch.
+Only the planned single no-VM native regression job is next; no probe yet.
+
+### Complete native suite passed / fresh guard — BEFORE PROBE DISPATCH
+
+The one [native-only run40136982269](https://github.com/Ares-Empire/AresOS/actions/runs/40136982269)
+completed successfully on exact **46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760**:
+**201 tests in3.621s / OK**, including every local environment-limited test, the
+repaired transaction fixture, all five negative cases and exact block equality.
+Python compilation/Bash syntax, live hosted system-manager query and public
+candidate signature/metadata checks passed. Image/switch/rehearsal jobs all skipped;
+no VM or owner token, no layer download or actual pin change. Actual rounded cost
+**1 minute**, within15 reserved. All tests touched or whose inputs changed in
+11l–11n have now passed on native Linux **before the probe**.
+
+[Native proof/all201 IDs](../../os/manifest/ci/11n/native-proof.json),
+[original complete logs](artifacts/11n-native-1-workflow-logs.zip),
+[original artifact](artifacts/11n-native-1-release-inputs.zip),
+[API metadata](../../os/manifest/ci/11n/native-1/). Original artifact46dc2dd binding
+and server digest match:31,341 bytes, SHA256
+`10ec73067758829ab4fda196324e31ba38288b693a750b76d8a39001d9dff6f1`;
+log ZIP45,076 bytes, SHA256
+`f75bf54fe7a68d3e5fdab8d2d61c8eb278c2f2513a4a3c36c30fb33ea91a92a0`.
+Archive/raw/base64 credential scans passed. `verify-11n-native.py` independently
+requires all201 unique passing IDs and the entire successful no-VM job.
+
+Fresh **`rehearsal_guard.py probe 186`** passed: **2 pages (100+37),137 unique
+IDs=total_count137**, one snapshot, zero retries. Actual **645/900**, reserve186,
+total831≤900; five historical fulls, zero B.
+[Receipt](../../os/manifest/ci/11n/before-probe-budget.json),
+[original stderr](logs/11n/before-probe-guard.txt). Complete ledger adds only the
+native1-minute job to644. Remote head still46dc2dd, no changed runtime/test/workflow/
+owner block. Source privacy remains all3 passed with no personal-terms skip.
+The entire nine-step walk-through above remains unchanged. Only the **one fresh
+probe** is next; B/new timing/menu/promotion still unqualified.
+
+### Probe passed and audited / fresh B guard — BEFORE PART B DISPATCH
+
+The single [probe40137250974](https://github.com/Ares-Empire/AresOS/actions/runs/40137250974)
+passed on exact **46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760**, attempt1.
+Its native suite again passed **201 tests in5.125s / OK**. Job22:08:19–22:33:36 UTC
+costs **26 rounded minutes**. Original [artifact](artifacts/11n-probe-1-two-disk-evidence.zip)
+is6,429,428 bytes, server-bound SHA256
+`68354ec77f7dbc32178004516c07c0a3af8267f20f14f6f3ed9536fc52bfb147`;
+[original log ZIP](artifacts/11n-probe-1-workflow-logs.zip) is172,440 bytes, SHA256
+`de41e57a261c93ec28b9df199976cceaa803f22f7fca8a8b337b9f7a63cf40a2`.
+All original ZIPs/raw and decoded credential checks, server digest and source/run
+bindings verified. Owner exact manifest/layer/signature reads and always-cleanup
+passed, zero owner-token API calls and no credential copy into retained evidence.
+
+**Visually inspected both actual review screens:**
+[protected-first](screenshots/11n-probe-1-two-disk-review-storage-and-efi.png)
+shows target**vdb**, [protected-second](screenshots/11n-probe-1-two-disk-protected-second-review-storage-and-efi.png)
+shows target**vda**. Both have a new629MB target EFI at `/boot/efi`,2.15GB target
+ext4 `/boot`, and target Btrfs root/home/var only; no protected-disk row. Install
+button remains unpressed. Browser/transport difference is unchanged host Chromium
+→ QEMU loopback/guest Web UI server; real installer pages, no backend fallback.
+
+[Independent replay](../../os/manifest/ci/11n/evidence-verification.json): **6/6
+offline protected captures matched;6/6 final counters zero;6 prepared/post-boot
+BootNext receipts passed**, no incomplete stage. Probe writes no BootNext;
+prospective installed Linux selections still await B. The five firmware set
+events and no Linux moves match the existing contract; post-baseline nonboot
+diffs are only the historical MTC class. [Per-stage table](../../os/manifest/ci/11n/stage-table.md).
+Read-only German/module/source proof, synthetic installed-reader transport,
+real unit pause twice, idle-source/daemon, failure-counter fixture and actual OCR
+tool passed in both orders. Cached pinned stock confirms **OSTree2026.4-1.fc44 /
+grub2-common2.12-66.fc44**, rpm-ostree2026.3/uupd1.5.0, and actual bare-ID temporary
+grubenv round trip. These do not claim a real installed keymap or B menu yet.
+
+Probe CI's own guard proves **2 pages(100+38),138 unique IDs=total_count138**,
+645 spent/42 reserved (active current job excluded), zero retries. It uses the
+same paginated guard. [Receipt](../../os/manifest/ci/11n/probe-1/11c-dispatch-authorization.json).
+
+Required fresh **`rehearsal_guard.py part-b 144`** passed after complete artifact
+inspection: **2 pages(100+38),138 unique IDs=total_count138**, **671/900 minutes**,5
+historical fulls,0/1 B, zero retries; reserve144 gives**815≤900**.
+[JSON](../../os/manifest/ci/11n/before-b-budget.json), [stderr](logs/11n/before-b-guard.txt),
+[all real guard replays](../../os/manifest/ci/11n/guard-replays.json).
+Remote head remains46dc2dd; runtime/tests/workflow/owner block have no uncommitted
+changes and no source push occurred. Source privacy is all3 passed/no terms skip.
+Only the **one protected-second Part B** with explicit probe ID40137250974 is next,
+following the unchanged nine-step walk-through above. No ordinary full/second
+probe/second B. Actual new timing/installed German/menu/selection/promotion remains
+unqualified until that single B's evidence, or a precise blocker, is inspected.
+
+### Actual Part B result, inspection and closing evidence
+
+The single [Part B40139324523](https://github.com/Ares-Empire/AresOS/actions/runs/40139324523)
+**PASSED**, attempt1, exact source**46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760**,
+after the passing same-head probe. Job22:37:06–23:23:12 UTC costs **47 rounded
+minutes**. Its complete native suite passed **201 tests in4.368s / OK**.
+[Part B result](../../os/manifest/ci/11n/b-1/two-disk/part-b-result.json),
+[promotion result](../../os/manifest/ci/11n/b-1/two-disk/grub-promotion.json).
+No second probe/B, ordinary full, runtime/test patch or intervening source push.
+
+| Original Part B archive | Bytes | SHA-256 |
+|---|---:|---|
+| [Server-bound artifact ZIP](artifacts/11n-b-1-two-disk-evidence.zip) | 5,762,812 | `367fac7746c30b384fb4bcae9390d3474d00651b0abea946e236e86aac650f57` |
+| [Complete workflow log ZIP](artifacts/11n-b-1-workflow-logs.zip) | 172,401 | `309f680ea58b70f8a9b8f4328b48012c17a5fe3f0c5754c9070ffc94495527e2` |
+
+The [real install review](screenshots/11n-b-1-two-disk-review-storage-and-efi.png)
+was visually inspected: targetvda only, new629MB EFI/2.15GB boot/Btrfs root/home/var,
+no protected row. Real Web UI, unchanged host Chromium/loopback transport; no backend
+fallback. Original ZIP/server digests and extracted raw FD/JSON/PNG equality replay
+successfully. Probe/B exact manifest/layer/signature reads and always-cleanup passed;
+owner-token API calls**0**, no credential copy in evidence, no local owner-token read,
+image rebuild/publish/repin or visibility/signature-policy change. Privacy's original
+source ZIPs independently pass hashes, all3 unconditional commands, no terms skip
+and raw/base64 credential scans. No exclusion or privacy configuration changed.
+
+| B boot | Actual reached stage | Prepared BootNext / checkpoint |
+|---:|---|---|
+| 1 | Baseline Windows marker | None; original Windows entry. |
+| 2 | Protected-second install | None; target Linux added at BootOrder index0. |
+| 3 | Known orderly stock hardware-init reboot | **None**, Linux firmware default; separate reset audit/final zero counter. |
+| 4 | Installed stock: keyboard → pause/pin | **None**, Linux firmware default. |
+| 5 | After pin, exact Windows-first restoration; attached unattended Windows marker | **None**. Exact stable move, Linux index0→1. |
+| 6 | Detached-target Windows marker | **None**, Windows first. |
+| 7 | Reattached stock → signed switch | `Boot000A`, value`0a00`, attrs7; consumed. |
+| 8 | AresOS booted/default0; BLS/menu preparation | Same validated Linux selection; consumed. |
+| 9 | Actual previous-stock menu boot → promote | Same Linux selection; consumed. Stock booted/index1 while AresOS default0. |
+| 10 | Second unattended Linux stock boot, no GRUB choice | Same Linux selection; consumed. Exact stock booted/default0; rendered greeter. |
+
+All **10 B +6 probe captures match with16 final zero-write records**, including
+the init reset. All16 prepared/post-boot BootNext receipts pass; **4 Linux writes**,
+all consumed; no Windows override/stale/unknown/malformed value. All contexts bind
+boot/purpose/mode/order/store/destination and target ESP. Windows first from boot5
+onward; no source rule widened. The10 firmware set events are5 probe+5 B, plus
+the2 B Linux-position events (addition→0, restoration0→1). Raw nonboot changes
+remain only the four existing GUID-bound MokTimeout/SbatLevel/MTC/HDDP classes.
+[Per-stage events/counters](../../os/manifest/ci/11n/stage-table.md),
+[independent full replay](../../os/manifest/ci/11n/evidence-verification.json).
+No incomplete stage, missing final counter or new firmware exemption.
+
+[Installed keyboard result](../../os/manifest/ci/11n/b-1/two-disk/installed-keyboard-result.json)
+is actual root`/`, protected-second boot4: console`de`, X11`de`, expected/observed
+options`[]`, read before pause. All **3 pauses** export inactive/failed unit states
+and SubStates, transaction observed/null, no client, one real `rpm-ostree start-daemon`
+process excluded by its daemon cgroup. No cancel ran. Both pins have no staged
+deployment or discard, same checksum
+`aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71`
+and base digest`sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151`.
+Real cancellation/discard remains unexercised; existing replay/negative tests cover
+those paths. Detailed actual unit/process/cgroup/decision values are retained in
+the replay JSON and original first-stock-pause/first-stock-pin/b-pin-stock transcripts.
+
+### Menu/OCR/selection: functional pass, highlighted-frame limit
+
+Stock resolves uniquely to checksum`aa669e…0c71`, serial1, bare ID**ostree-1**,
+title**Bazzite (ostree:1)**, version1 and menu position**1**. AresOS is bare
+ostree-2/title(ostree:0)/version2/default0. Actual BLS/status order matches the
+pinned source rule. Visually inspected full [menu05](screenshots/11n-b-1-two-disk-b-grub-menu-attempt-05.png),
+byte-identical menu06 and [named selected frame](screenshots/11n-b-1-two-disk-b-grub-recorded-stock-selected.png).
+[OCR05](../../os/manifest/ci/11n/b-1/two-disk/b-grub-menu-attempt-05-ocr.txt) and
+[OCR06](../../os/manifest/ci/11n/b-1/two-disk/b-grub-menu-attempt-06-ocr.txt) show
+the exact ordered titles0 then1. Agreement was required **before any selection key**;
+[selection receipt](../../os/manifest/ci/11n/b-1/two-disk/b-grub-selection.json)
+records **Home, Down, Enter**. **No fallback** or guessed identity/position.
+
+**The selected PNG is inconclusive:** byte-identical to pre-key05/06, still
+highlighting row0. It does **not** visually prove row1 highlight. Shared SHA256
+`7b377e51fe6a506a29720aa3b4dc4440b361b981858b31a344336f6420cb30c8`.
+Capture latency is possible, not proven. No image edited/replaced/regenerated or
+claimed as visual proof of stock highlight. [Inspection receipt](../../os/manifest/ci/11n/visual-inspection.json).
+
+Actual stock selection is independently proved: recovered booted stock checksum/
+digest at **index1**, while AresOS checksum
+`43853db13f424f8409a2781cc463a385d3f5003f741b11d632eaf86a5fd93adb`
+remains **default0/not booted**. Identity-checked promotion then makes stock0;
+the next unattended Linux boot is stock booted0/pinned, exact digest, no staged/
+queued deployment. The [second stock greeter](screenshots/11n-b-1-two-disk-b-unattended-stock.png)
+was visually inspected and is rendered. All six original attempt frames/OCR,
+the selected PNG and deployment receipts remain intact.
+
+### Every real guard read / shared budget
+
+| Real read | Pages / returned | Unique IDs=total_count | Spent / reserve | Full / B | Retries |
+|---|---|---:|---:|---|---:|
+| Before native-only | 2 /100+36 | 136=136 | 644 /201 | 5 /0 | 0 |
+| Before probe | 2 /100+37 | 137=137 | 645 /186 | 5 /0 | 0 |
+| Probe CI, current excluded from spent | 2 /100+38 | 138=138 | 645 /42 | 5 /0 | 0 |
+| Before B | 2 /100+38 | 138=138 | 671 /144 | 5 /0 | 0 |
+| B CI, current excluded from spent | 2 /100+39 | 139=139 | 671 /130 | 5 /1 | 0 |
+| After B, bookkeeping only | 2 /100+39 | 139=139 | **718 /14** | **5 /1** | 0 |
+| Final after evidence-head privacy | Pages/IDs/count/retries/exact cost on [PR #11](https://github.com/Ares-Empire/AresOS/pull/11) after push; no further dispatch |
+
+One complete snapshot per read; exact page sizes, full unique ID sets and ordered
+hashes match stable API counts. **No actual retry this round**; mock502 test output
+is not a real read. [Six guard replays](../../os/manifest/ci/11n/guard-replays.json),
+[after-B JSON](../../os/manifest/ci/11n/after-b-budget.json)/[stderr](logs/11n/after-b-guard.txt).
+Closing guard reads are bookkeeping, never another probe dispatch or permission
+to bypass the exhausted B allowance.
+
+| Same-ledger addition | Rounded minutes |
+|---|---:|
+| Actual11m closure, including its failed probe | 637 |
+| Owner11n privacy | +4 |
+| Source privacy | +3 |
+| Native-only suite | +1 |
+| Single probe | +26 |
+| Single Part B | +47 |
+| Actual before final privacy | **718 /900** |
+| Closing reservation | ≤14; upper bound**732≤900** |
+| Exact closure | PR #11 after final checks/read, avoiding a commit/privacy loop |
+
+START2026-10-23T16:21:00Z unchanged;5 historical fulls, exactly1 B. No reset,
+second probe/B, ordinary full, force push or merge. Final evidence-head privacy
+must pass all3/no terms skip before readiness; original ZIP hashes and actual
+closing cost go on the PR after push.
+
+**Done:** safe fixture/five negatives, unchanged owner block; whole local discovery
+and explicit limitations, whole native201 before probe, one same-head probe/B,
+original evidence and independent replays, honest owner gates. `verify-11n-source.py`
+binds106 unchanged runtime/workflow/test/security/pin files and all executable
+owner blocks to46dc2dd; later edits are qualification prose/evidence/review helpers.
+No product source/test fix after dispatch.
+
+**Verified:** local201 attempted (193 WSL pass/8 limitations), Windows greeter4
+pass (196 unique local passes), native201/3.621s/OK before probe, probe201/5.125s/OK,
+B201/4.368s/OK; exact-block match, all16 audit/counter/BootNext checks, actual timing/
+installed-file/pause/pin/menu/stock-selection/promotion/second-boot predicates above.
+Historical32 BootNext absence replays remain historical; no old write receipt invented.
+
+**Not verified:** row1 highlight after Down; loaded console map/physical German
+typing (required installed files/options pass, but retained BLS contains
+`vconsole.keymap=us`); physical laptop/Windows/SSD/GPU/media/manual GRUB/followability.
+New timing ran **protected-second only**;11k Part A remains both-order evidence
+with earlier timing. No rollback/default undo/policy/tty3 repetition here.
+Physical installation remains **NOT RELEASED**.
+
+**JUDGMENT-CALL:** functional B is established by the actual nonzero-index stock
+boot with AresOS still default, promotion and second stock boot; preserve the
+inconclusive highlighted frame rather than claim it proves row1 or spend an
+unauthorized rerun. Future capture synchronization needs review/new authorization;
+no runtime fix here. The additional safe native-only gate cost1/15 reserved minutes,
+covering unsupported local tests before the probe without local elevation/assertion changes.
+
+**PLAN-GAP:** the selected-frame name overstates its visual evidence; timing needs
+future investigation if post-key highlight proof is required. German file checks
+do not prove loaded map/physical typing; the US BLS argument is preserved for owner
+review, not silently changed or interpreted as loaded-map proof. No mismatch in
+the required installed files/options was observed. **Open questions:** capture
+synchronization, loaded console/German physical input and remaining real-media/
+laptop/followability gates. Final privacy/readiness recorded on PR after push.
+No Gradle daemon started; never merge.
+
+Closing checks: source/native/guard/archive/visual/privacy replays and helper
+compilation passed. Staged gitleaks printed **no leaks found**; rewritten-HEAD
+history gitleaks scanned **134 commits**, **no leaks found**. No old refs scanned
+or pushed. Full staged diff check reports15 trailing-whitespace lines in the
+byte-preserved upstream `native-1/iso-picker.js`; it remains identical to the
+original ZIP. The authored-file diff check excluding only that original-source
+display file is clean. No privacy or functional check is excluded/changed; all
+201-test native suites remain green. Final push/privacy/closing-read proof is
+recorded on PR #11 after checks finish.

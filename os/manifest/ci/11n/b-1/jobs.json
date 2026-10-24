@@ -1,0 +1,234 @@
+{
+  "total_count": 4,
+  "jobs": [
+    {
+      "id": 121007511526,
+      "run_id": 40139324523,
+      "workflow_name": "Two-disk rehearsal (part-b)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40139324523",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcLJwX5g",
+      "head_sha": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/121007511526",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40139324523/job/121007511526",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-24T22:37:04Z",
+      "started_at": "2026-10-24T22:37:06Z",
+      "completed_at": "2026-10-24T23:23:12Z",
+      "name": "Pinned live ISO inspection and two-disk rehearsal",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-24T22:37:07Z",
+          "completed_at": "2026-10-24T22:37:09Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-24T22:37:09Z",
+          "completed_at": "2026-10-24T22:37:17Z"
+        },
+        {
+          "name": "Reserve the separate 11c minute budget (including privacy checks)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-24T22:37:17Z",
+          "completed_at": "2026-10-24T22:38:08Z"
+        },
+        {
+          "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-24T22:38:08Z",
+          "completed_at": "2026-10-24T22:40:12Z"
+        },
+        {
+          "name": "Qualify tools, regressions, rewritten release identity and private access",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-24T22:40:12Z",
+          "completed_at": "2026-10-24T22:42:35Z"
+        },
+        {
+          "name": "Create runner-temporary pinned-image credentials",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-24T22:42:35Z",
+          "completed_at": "2026-10-24T22:42:35Z"
+        },
+        {
+          "name": "Verify exact private manifest with owner read-only credentials",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-24T22:42:35Z",
+          "completed_at": "2026-10-24T22:42:36Z"
+        },
+        {
+          "name": "Qualify the exact pinned layer pull without installing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-24T22:42:36Z",
+          "completed_at": "2026-10-24T22:43:46Z"
+        },
+        {
+          "name": "Inspect the exact pinned live ISO before assuming an installer path",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-24T22:43:46Z",
+          "completed_at": "2026-10-24T22:49:14Z"
+        },
+        {
+          "name": "Prepare disposable file disks and qualify the real live environment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-24T22:49:14Z",
+          "completed_at": "2026-10-24T23:23:07Z"
+        },
+        {
+          "name": "Remove owner registry credentials",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-24T23:23:07Z",
+          "completed_at": "2026-10-24T23:23:08Z"
+        },
+        {
+          "name": "Bound retained evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-24T23:23:08Z",
+          "completed_at": "2026-10-24T23:23:08Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-24T23:23:08Z",
+          "completed_at": "2026-10-24T23:23:10Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-24T23:23:10Z",
+          "completed_at": "2026-10-24T23:23:11Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-24T23:23:11Z",
+          "completed_at": "2026-10-24T23:23:11Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/121007511526",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000319,
+      "runner_name": "GitHub Actions 1000000319",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121007512386,
+      "run_id": 40139324523,
+      "workflow_name": "Two-disk rehearsal (part-b)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40139324523",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcLJwbQg",
+      "head_sha": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/121007512386",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40139324523/job/121007512386",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-24T22:37:05Z",
+      "started_at": "2026-10-24T22:37:05Z",
+      "completed_at": "2026-10-24T22:37:04Z",
+      "name": "Regression checks only (no image build or VM)",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/121007512386",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 121007512581,
+      "run_id": 40139324523,
+      "workflow_name": "Two-disk rehearsal (part-b)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40139324523",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcLJwcBQ",
+      "head_sha": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/121007512581",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40139324523/job/121007512581",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-24T22:37:05Z",
+      "started_at": "2026-10-24T22:37:05Z",
+      "completed_at": "2026-10-24T22:37:04Z",
+      "name": "Published-image switch and rollback",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/121007512581",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 121007512749,
+      "run_id": 40139324523,
+      "workflow_name": "Two-disk rehearsal (part-b)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40139324523",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcLJwcrQ",
+      "head_sha": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/121007512749",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40139324523/job/121007512749",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-24T22:37:05Z",
+      "started_at": "2026-10-24T22:37:05Z",
+      "completed_at": "2026-10-24T22:37:04Z",
+      "name": "image",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/121007512749",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

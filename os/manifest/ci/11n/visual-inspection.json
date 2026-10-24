@@ -1,0 +1,31 @@
+{
+  "status": "inspected-with-explicit-visual-limit",
+  "screenshots": {
+    "probe-1/two-disk/review-storage-and-efi.png": "df2e5444fcbe0efd69a3e6bd3fa77051d19a32a13c2f10dc97e888988ffe71cc",
+    "probe-1/two-disk/protected-second/review-storage-and-efi.png": "82dc1b6fff002039d0da9a7917a945550eacaec5cffe2b6f47e834047bef4699",
+    "b-1/two-disk/review-storage-and-efi.png": "a96cb9505857bac1810e4272a642218eaa0c4a20e34fbb8862cdb0cfa25876e8",
+    "b-1/two-disk/b-grub-menu-attempt-05.png": "7b377e51fe6a506a29720aa3b4dc4440b361b981858b31a344336f6420cb30c8",
+    "b-1/two-disk/b-grub-menu-attempt-06.png": "7b377e51fe6a506a29720aa3b4dc4440b361b981858b31a344336f6420cb30c8",
+    "b-1/two-disk/b-grub-recorded-stock-selected.png": "7b377e51fe6a506a29720aa3b4dc4440b361b981858b31a344336f6420cb30c8",
+    "b-1/two-disk/b-unattended-stock.png": "297a55661b79fc2c5181d40c55a5ce8a1c69b80a55a11b3fca67a6b6f8ce10b0"
+  },
+  "review_targets": {
+    "probe protected-first": "vdb",
+    "probe protected-second": "vda",
+    "Part B protected-second": "vda"
+  },
+  "review": "Each shows target-only new EFI/boot/Btrfs root/home/var; no protected-disk storage row.",
+  "menu_titles_visually_seen": [
+    "Bazzite (ostree:0)",
+    "Bazzite (ostree:1)"
+  ],
+  "menu_order_and_ocr_agree": true,
+  "menu_highlight_visually_seen": 0,
+  "selected_snapshot_identical_to_pre_key_frames": true,
+  "stock_highlight_visual_proof": false,
+  "selected_snapshot_limit": "The named selected frame still highlights row0; it cannot prove row1 highlight. Capture latency is possible but not proven.",
+  "functional_selection": "Recorded Home/Down/Enter; no fallback. Runtime booted checksum at nonzero stock index while AresOS remained default0, then promotion/second stock boot passed.",
+  "second_stock_greeter_visually_rendered": true,
+  "keyboard_limit": "Installed German files/options passed; this run did not inspect the loaded console map or exercise physical German typing. Retained BLS includes vconsole.keymap=us; no claim that this proves the loaded map.",
+  "physical_installation_released": false
+}
