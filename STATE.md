@@ -27,6 +27,7 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
   - **Image seal** (owner OK 2026-10-22): keyless signing. Sigstore's public log shows the repo/workflow identity and the image digest; the image stays private.
   - **Laptop pull token** (owner OK 2026-10-22): a classic, read-only `read:packages` GitHub token, created by the owner on install day.
   - **GRUB recovery** (owner OK 2026-10-22): the identity-checked "make the backup Bazzite the default" step stays marked UNTESTED until a rehearsal proves it.
+  - **Backup Bazzite stays frozen** (owner OK 2026-10-24, package 11's JUDGMENT-CALL): the stock copy's automatic updates are switched off at the first login and stay off for the whole trial, so the fallback is exactly the tested version. One command in INSTALL.md turns them back on if the owner returns to plain Bazzite for good.
   - **Emergency path:** Windows stays the boot default for the first trial. F12 → Windows Boot Manager is the intended way back (the Micron is never written), and `docs/EMERGENCY.md` covers the rest.
   - **Windows encryption is OFF** (checked 2026-10-23 without admin). Install day still runs `manage-bde -status C:` in Terminal (Administrator).
   - Secure Boot is off on the laptop, so no MOK step.
@@ -35,7 +36,7 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- **Package 11** (two-disk install rehearsal, GRUB recovery promotion, pinned media): media pins done. 11b drove the real installer pages and stopped on a firmware-entry rule. **11c** has been running since 2026-10-23 18:21 with a narrow rule for firmware-owned entries, followed by the real installs. See `HANDOFF.md`.
+- **Package 11** (two-disk install rehearsal, GRUB recovery promotion, pinned media; PR #11): media pins done. **11k (2026-10-24) passed Part A in both drive orders** (real installer, Windows disk never written). Part B (GRUB recovery) stopped on a harness bug. The fresh review said CHANGES-NEEDED (four should-fix). **11l** fixes those and runs one Part B qualification. **The owner pre-approved the merge (2026-10-24) once 11l's acceptance is met and the fix re-review says SAFE.** See `HANDOFF.md`.
 
 ## Waiting on the owner
 
