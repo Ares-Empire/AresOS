@@ -70,7 +70,7 @@ def validate_keyboard_proof(proof):
     assert proof['xlayouts'] == ['de'] and proof['model_keymap'] in ('', 'de')
     assert proof['read_only'] and proof['same_installation_resolver']
     assert proof['module_configuration_unchanged'] and proof['module_before'] == proof['module_after']
-    assert proof['layout_switching_options'] == proof['module_before']['LayoutSwitchingOptions']
+    assert proof['layout_switching_options'] == proof['module_before']['LayoutSwitchOptions']
 
 
 def read_keyboard(guest):
@@ -79,11 +79,13 @@ def read_keyboard(guest):
     live = next(i for i in json.loads(pathlib.Path('os/manifest/installer-isos.json').read_text()) if i['kind'] == 'live')
     assert receipt['iso_sha256'] == live['sha256']
     expected, = [item['sha256'] for item in receipt['sources'] if item['path'].endswith('/installation.py')]
+    interface, = [item['sha256'] for item in receipt['sources'] if item['path'].endswith('/localization_interface.py')]
     script = pathlib.Path('os/ci/keyboard_proof.py').read_text()
-    script += '\nprint(json.dumps(read_only_proof(' + repr(expected) + ')))\n'
+    script += '\nprint(json.dumps(read_only_proof(' + repr(expected) + ', ' + repr(interface) + ')))\n'
     proof = guest.capture_json('webui-keyboard-proof', framed('python3 -c ' + shlex.quote(script)))
     validate_keyboard_proof(proof)
     assert proof['installation_source_sha256'] == expected
+    assert proof['interface_source_sha256'] == interface
     return proof
 
 

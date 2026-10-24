@@ -41,7 +41,7 @@ class ReviewBoundaryTest(unittest.TestCase):
                 completion_selectors(dict(sources, **{name: sources[name].replace(before, after)}))
 
     def test_read_only_module_proof_rejects_wrong_choices_and_changed_module(self):
-        settings = dict(XLayouts=['de'], VirtualConsoleKeymap='', LayoutSwitchingOptions=[])
+        settings = dict(XLayouts=['de'], VirtualConsoleKeymap='', LayoutSwitchOptions=[])
         proof = dict(xlayouts=['de'], model_keymap='', layout_switching_options=[],
                      module_before=settings, module_after=settings,
                      same_installation_resolver=True, read_only=True,
@@ -50,7 +50,7 @@ class ReviewBoundaryTest(unittest.TestCase):
         for key, wrong in [('model_keymap', 'us'), ('xlayouts', ['us']),
                            ('same_installation_resolver', False), ('read_only', False),
                            ('module_configuration_unchanged', False),
-                           ('module_after', dict(settings, LayoutSwitchingOptions=['caps:escape']))]:
+                           ('module_after', dict(settings, LayoutSwitchOptions=['caps:escape']))]:
             with self.assertRaises(AssertionError):
                 validate_keyboard_proof(dict(proof, **{key: wrong}))
 

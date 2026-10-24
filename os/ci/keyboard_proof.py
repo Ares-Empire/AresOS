@@ -11,7 +11,7 @@ def module_settings(address):
     service = 'org.fedoraproject.Anaconda.Modules.Localization'
     result = {}
     for name, kind in [('XLayouts', 'as'), ('VirtualConsoleKeymap', 's'),
-                       ('LayoutSwitchingOptions', 'as')]:
+                       ('LayoutSwitchOptions', 'as')]:
         raw = subprocess.check_output(['busctl', '--address=' + address, 'get-property', service,
             '/org/fedoraproject/Anaconda/Modules/Localization', service, name], text=True).strip()
         parts = shlex.split(raw)
@@ -25,13 +25,18 @@ def module_settings(address):
     return result
 
 
-def read_only_proof(expected_source_sha256):
+def read_only_proof(expected_source_sha256, expected_interface_sha256):
     address = pathlib.Path('/run/anaconda/bus.address').read_text().strip()
     before = module_settings(address)
     assert before['XLayouts'] == ['de'], 'Wrong committed German X layout'
     assert before['VirtualConsoleKeymap'] in ('', 'de'), 'Wrong explicit console keymap'
     from pyanaconda.modules.localization.installation import KeyboardInstallationTask
     from pyanaconda.modules.localization.localed import LocaledWrapper
+    from pyanaconda.modules.localization.localization_interface import LocalizationInterface
+    interface_sha = hashlib.sha256(pathlib.Path(inspect.getfile(LocalizationInterface)).read_bytes()).hexdigest()
+    assert interface_sha == expected_interface_sha256, 'Localization interface differs from extracted ISO'
+    getter = inspect.getsource(LocalizationInterface.LayoutSwitchOptions.fget)
+    assert 'return self.implementation.switch_options' in getter, 'Switch-options property no longer names module settings'
     source = inspect.getsource(KeyboardInstallationTask.run)
     source_sha = hashlib.sha256(pathlib.Path(inspect.getfile(KeyboardInstallationTask)).read_bytes()).hexdigest()
     assert source_sha == expected_source_sha256, 'Keyboard installation source differs from extracted ISO'
@@ -42,10 +47,12 @@ def read_only_proof(expected_source_sha256):
     after = module_settings(address)
     assert before == after, 'Proof changed the installer choices'
     return dict(xlayouts=before['XLayouts'], model_keymap=before['VirtualConsoleKeymap'],
-        layout_switching_options=before['LayoutSwitchingOptions'], live_localed=live,
+        layout_switching_options=before['LayoutSwitchOptions'], live_localed=live,
         module_before=before, module_after=after, module_configuration_unchanged=True,
         read_only=True, same_installation_resolver=same_resolver,
-        installation_task_source=source, installation_source_sha256=source_sha)
+        installation_task_source=source, installation_source_sha256=source_sha,
+        switch_options_property='LayoutSwitchOptions', interface_source_sha256=interface_sha,
+        switch_options_getter_source=getter)
 
 
 def read_files(root):

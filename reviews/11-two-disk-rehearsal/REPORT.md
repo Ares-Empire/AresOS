@@ -2345,3 +2345,35 @@ reservation. This is 11h's actual closing 338 plus two integrator-brief privacy
 jobs. Historical 11g evidence re-verification passed with exactly its existing
 10 matching offline stages, 10 final zero counters and only probe 3 qualified.
 Final local diff and staged privacy scan must pass before the source push.
+
+
+### Before probe 2 — interface-name correction and refreshed walk-through
+
+Probe 1 **40102376139**, source **90be8d8**, was canceled during disposable-runner
+qualification, before auth creation, ISO inspection, fixture preparation or VM.
+A source review found that the brief's `LayoutSwitchingOptions` name differs from
+the actual upstream interface **`LayoutSwitchOptions`**, whose getter returns the
+module's `switch_options`. Initial code followed the brief's spelling; that would
+have failed the bus read. Cancellation prevents spending a live boot on that known
+assumption. It is not a passing probe and authorizes no full run.
+
+The complete stage table above is unchanged. Before the next dispatch: inspector
+also extracts `localization_interface.py` from the whole-hash-verified ISO. The
+live proof reads `LayoutSwitchOptions`, hashes that exact interface module against
+its extraction receipt, checks the getter maps to `implementation.switch_options`,
+and records the actual API name, source SHA and getter. The stable JSON field
+`layout_switching_options` carries the brief's intended setting. A name/hash/getter
+mismatch fails the probe; no fallback, default or invented empty options. Tests use
+the actual API name and still trap all setters. After correction: **44 tests in
+0.393s / OK**, compilation passed. No stage, firmware rule, file requirement, token
+scope or installation acceptance changed. This is a nonblocking terminology
+PLAN-GAP resolved by binding the intended value to source and checking it in the
+probe; it is not permission to read live options instead of module options.
+
+
+Probe 1's always-cleanup passed and its original archive is retained/scanned;
+credential/preflight/pull and VM stages were skipped. Its actual rounded cost is
+**3 minutes**, so the fresh pre-probe-2 guard measures **345/750, 3/5 full**, 42
+reserved. Collector verification reports no stages/counters/qualifications and no
+incomplete reached stage; a canceled setup is never treated as a successful probe.
+Both initial-source privacy checks passed all three checks without skipping terms.

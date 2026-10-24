@@ -712,3 +712,10 @@ that order's module record before pin or Windows reboot. Probe exercises the exa
 reader with explicit non-installed temporary fixtures only. No audit/firmware/image/
 token-policy change. Same ledger, 750m/5 full total; fresh same-commit probe required.
 All original stop rules hold, including keyboard mismatch as product failure.
+
+
+Before 11i probe 2, canceled setup-only probe 1 after finding the DBus spelling is
+LayoutSwitchOptions (module.switch_options), not the brief's LayoutSwitchingOptions.
+New inspector/proof bind the exact ISO interface file SHA and getter to that value;
+unknown/different property or hash fails closed. Complete stage walk-through and
+all acceptance/firmware/token rules unchanged. No VM or owner token in probe 1.

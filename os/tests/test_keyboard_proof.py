@@ -20,6 +20,12 @@ class InstallationTask:
         write_vc_configuration()
 
 
+class LocalizationInterface:
+    @property
+    def LayoutSwitchOptions(self):
+        return self.implementation.switch_options
+
+
 class KeyboardProofTest(unittest.TestCase):
     def test_proof_only_reads_bus_and_localed_even_with_nonempty_live_options(self):
         wrapper = Mock()
@@ -31,18 +37,19 @@ class KeyboardProofTest(unittest.TestCase):
             getattr(wrapper, method).side_effect = AssertionError('Localed setter reached: ' + method)
         modules = {
             'pyanaconda.modules.localization.installation': types.SimpleNamespace(KeyboardInstallationTask=InstallationTask),
-            'pyanaconda.modules.localization.localed': types.SimpleNamespace(LocaledWrapper=lambda: wrapper)}
+            'pyanaconda.modules.localization.localed': types.SimpleNamespace(LocaledWrapper=lambda: wrapper),
+            'pyanaconda.modules.localization.localization_interface': types.SimpleNamespace(LocalizationInterface=LocalizationInterface)}
         digest = hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()
-        values = dict(XLayouts='as 1 "de"', VirtualConsoleKeymap='s ""', LayoutSwitchingOptions='as 0')
+        values = dict(XLayouts='as 1 "de"', VirtualConsoleKeymap='s ""', LayoutSwitchOptions='as 0')
         with patch.dict(sys.modules, modules), patch.object(keyboard.pathlib.Path, 'read_text', return_value='unix:path=/fixture'), \
              patch.object(keyboard.subprocess, 'check_output', side_effect=lambda command, **kw: values[command[-1]]) as bus:
-            proof = keyboard.read_only_proof(digest)
+            proof = keyboard.read_only_proof(digest, digest)
             self.assertEqual(bus.call_count, 6)
             with self.assertRaisesRegex(AssertionError, 'differs from extracted ISO'):
-                keyboard.read_only_proof('0' * 64)
-            settings = dict(XLayouts=['de'], VirtualConsoleKeymap='', LayoutSwitchingOptions=[])
-            with patch.object(keyboard, 'module_settings', side_effect=[settings, dict(settings, LayoutSwitchingOptions=['caps:escape'])]), self.assertRaisesRegex(AssertionError, 'Proof changed'):
-                keyboard.read_only_proof(digest)
+                keyboard.read_only_proof('0' * 64, digest)
+            settings = dict(XLayouts=['de'], VirtualConsoleKeymap='', LayoutSwitchOptions=[])
+            with patch.object(keyboard, 'module_settings', side_effect=[settings, dict(settings, LayoutSwitchOptions=['caps:escape'])]), self.assertRaisesRegex(AssertionError, 'Proof changed'):
+                keyboard.read_only_proof(digest, digest)
         self.assertEqual(proof['live_localed']['options'], ['caps:escape'])
         self.assertTrue(proof['read_only'] and proof['module_configuration_unchanged'])
         self.assertNotIn('live_configuration_restored', proof)
@@ -51,16 +58,16 @@ class KeyboardProofTest(unittest.TestCase):
             getattr(wrapper, method).assert_not_called()
 
     def test_wrong_module_layout_or_console_and_changed_switch_options_fail(self):
-        settings = dict(XLayouts=['de'], VirtualConsoleKeymap='', LayoutSwitchingOptions=[])
+        settings = dict(XLayouts=['de'], VirtualConsoleKeymap='', LayoutSwitchOptions=[])
         with patch.object(keyboard.pathlib.Path, 'read_text', return_value='fixture'):
             for wrong in (dict(settings, XLayouts=['us']), dict(settings, VirtualConsoleKeymap='us')):
                 with patch.object(keyboard, 'module_settings', return_value=wrong), self.assertRaises(AssertionError):
-                    keyboard.read_only_proof('unused')
+                    keyboard.read_only_proof('unused', 'unused')
         # The host validator independently rejects any changed module property.
         from installer_webui import validate_keyboard_proof
         proof = dict(xlayouts=['de'], model_keymap='', layout_switching_options=[], read_only=True,
                      same_installation_resolver=True, module_configuration_unchanged=True,
-                     module_before=settings, module_after=dict(settings, LayoutSwitchingOptions=['caps:escape']))
+                     module_before=settings, module_after=dict(settings, LayoutSwitchOptions=['caps:escape']))
         with self.assertRaises(AssertionError):
             validate_keyboard_proof(proof)
 

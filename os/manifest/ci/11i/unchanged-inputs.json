@@ -1,0 +1,42 @@
+[
+  {
+    "path": ".github/workflows/privacy-check.yml",
+    "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2",
+    "unchanged_from": "origin/main"
+  },
+  {
+    "path": ".gitleaks.toml",
+    "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742",
+    "unchanged_from": "origin/main"
+  },
+  {
+    "path": ".gitleaksignore",
+    "sha256": "696095491f29162d4bf1bf3d43972817e3df1b9913857c182a03223067bdc2a8",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/ci/disk_audit.py",
+    "sha256": "962fc6153cd397e5612e3c847f4dcbb709562e03030e77941ec587a9178821e3",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/Containerfile",
+    "sha256": "715b9215fb8e1bfefa38c7de883c7dd3f9d03476d7b0e43881de8710afc523cf",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/manifest/base.json",
+    "sha256": "750558b95a7bfb8b6121361935ec5b0bf68de6bc4b127fca00606a5d0d6383ec",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/manifest/release.json",
+    "sha256": "4447a6cd8929e61667e700d9757c98efbe3432a341491ebbea3f466ba83c0126",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/manifest/installer-isos.json",
+    "sha256": "571be37257a0940bceaef01a33f6db5d53bd55de257aab452038216b63b3cfc1",
+    "unchanged_from": "4aeeec6"
+  }
+]

@@ -83,10 +83,10 @@ def main():
                 'var/lib/containers/storage/overlay-images/images.json')
                 or re.fullmatch(r'usr/libexec/livesys/[^/]+', path)
                 or re.fullmatch(r'usr/lib64/python3\.[0-9]+/site-packages/pyanaconda/modules/localization/'
-                                r'(localed|utils|installation)\.py', path)]
+                                r'(localed|utils|installation|localization_interface)\.py', path)]
             localization = [path for path in selected if '/pyanaconda/modules/localization/' in path]
             assert {path.rsplit('/', 1)[1] for path in localization} == {
-                'localed.py', 'utils.py', 'installation.py'}, 'Pinned localization source unavailable: STOP'
+                'localed.py', 'utils.py', 'installation.py', 'localization_interface.py'}, 'Pinned localization source unavailable: STOP'
             localization_sources = []
             for path in selected:
                 raw = subprocess.check_output(['unsquashfs', '-cat', str(squash), path])

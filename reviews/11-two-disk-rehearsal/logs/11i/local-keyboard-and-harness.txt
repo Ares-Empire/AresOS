@@ -44,6 +44,6 @@ test_unexpected_qemu_exit_records_unavailable_counter_without_termination (test_
 test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output (test_two_disk_vm.TwoDiskHarnessTest.test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output) ... ok
 
 ----------------------------------------------------------------------
-Ran 44 tests in 0.371s
+Ran 44 tests in 0.393s
 
 OK

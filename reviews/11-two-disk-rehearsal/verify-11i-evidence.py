@@ -210,6 +210,8 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
         proof = read(keyboard)
         expected, = [item['sha256'] for item in receipt['sources'] if item['path'].endswith('/installation.py')]
         assert proof['installation_source_sha256'] == expected
+        interface, = [item['sha256'] for item in receipt['sources'] if item['path'].endswith('/localization_interface.py')]
+        assert proof['interface_source_sha256'] == interface and proof['switch_options_property'] == 'LayoutSwitchOptions'
     for installed in run.rglob('installed-keyboard-result.json'):
         proof = read(installed)
         choices = read(installed.parent / 'webui-keyboard-proof.json')
