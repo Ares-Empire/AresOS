@@ -125,12 +125,13 @@
   "aresos_switch_started": false,
   "part_a": "not qualified",
   "part_b": "untested",
+  "input_format": "LF-normalized display text as committed; other input bytes exact; original ZIP receipts unchanged",
   "inputs": {
     "os/release/pin-stock.sh": "fe42a8ef9a42424a4d865cfb7793329aed69ce072aa79ce81e4bb095c4dc33d8",
     "os/ci/switch_vm.py": "c99d644d4ebac38dddc1ce021af726d7fb973c5f86236d8e5434ee3740ebd022",
-    "os/manifest/ci/11f/full-2/two-disk/pin-stock.txt": "3ef25c91f7f294a997847db53ede810edf5a6187356ae0a85acf8431587a776d",
+    "os/manifest/ci/11f/full-2/two-disk/pin-stock.txt": "deec8afd92b96fb2185f5d7289e9854ede5e0421f4ea89eefe4a8806b5c5981c",
     "os/manifest/ci/11f/full-2/two-disk/stock-status.json": "1659b1546aa362986bc6eeb6d64d2092ea60676d93f111b8f8cf1dfd1702f589",
-    "os/manifest/ci/11f/full-2/two-disk/stock-initialization-0-boot-console.txt": "df704432e8fa229678061116e828c7d2857082dc8f8bea638a9bf712df837ad7",
-    "os/manifest/ci/11f/full-2/two-disk/stock-boot-console.txt": "b10d8d180a4fcddbadc46f3804272bd5a87f80a426588ae0382de45de4da623d"
+    "os/manifest/ci/11f/full-2/two-disk/stock-initialization-0-boot-console.txt": "65060981c4611369c2681853934c8bcc5f4639bd5d62ec1e528c492495386f3e",
+    "os/manifest/ci/11f/full-2/two-disk/stock-boot-console.txt": "91812f6d1ab93736c952a4bbd67ca8bb38373094179292d358b83160b6d41b8e"
   }
 }

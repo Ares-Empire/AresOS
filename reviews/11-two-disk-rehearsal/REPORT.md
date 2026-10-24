@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **227/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
+Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **229/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
 
 Latest 11e outcome: **STOPPED after first real install — Windows-default restoration violates the strict non-firmware relative-order rule. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh both-order probe passed; 140 native regressions passed in probe and full. All nine reached protected captures/counters were unchanged/zero, but the full audit failed. Shared cost: **142/330 measured + at most 14 closing privacy minutes, 1/3 full runs**. See [11e](#11e-firmware-device-set-rule-and-continued-installation-qualification-2026-10-24).
 
@@ -1483,7 +1483,7 @@ executed. It does not simulate a successful guest switch.
 | Protected bytes / zero writes | **11 matching offline captures, 10 final zero-write records, 1 missing final counter**. [Strict verification](../../os/manifest/ci/11f/evidence-verification.json) exits 1, names missing stock record and qualifies only the probe. Full protected baseline `21b8bd6297cb98c5a470f81d141010bdb5bc96407182e45d2b63e21bd888156c`; probe baseline `2214f732ad8dd74811ee5b071e82e8b2ceb3966c644137a85383c7b17123c5ae`. These are independent fixtures; comparisons are within each run. |
 | Complete Part A, both orders | **NOT QUALIFIED** no switch/policy/tty3/rollback/default undo or reverse full sequence; post-undo Windows independence untested. |
 | Part B / physical-media followability | **UNTESTED / OPEN** blocked by incomplete A. No hardware/laptop-disk test. |
-| Privacy | Source push [40051917073](https://github.com/Ares-Empire/AresOS/actions/runs/40051917073) and PR [40051921449](https://github.com/Ares-Empire/AresOS/actions/runs/40051921449) green; private-term step actually ran. Final push/PR pair is reserved below; exact closing results/total are recorded on [PR #11](https://github.com/Ares-Empire/AresOS/pull/11). |
+| Privacy | Source push [40051917073](https://github.com/Ares-Empire/AresOS/actions/runs/40051917073) and PR [40051921449](https://github.com/Ares-Empire/AresOS/actions/runs/40051921449) green; private-term step actually ran. First report push [40058505932](https://github.com/Ares-Empire/AresOS/actions/runs/40058505932) / PR [40058509349](https://github.com/Ares-Empire/AresOS/actions/runs/40058509349) also passed with private terms checked. Final receipt push/PR pair is reserved below; exact closing results/total are recorded on [PR #11](https://github.com/Ares-Empire/AresOS/pull/11). |
 
 #### Per-stage firmware and Linux position events
 
@@ -1519,7 +1519,7 @@ The stock failure-stage NVRAM diff passed independently of the missing counter.
   passed, then **Guest command failed: pin-stock, exit 1**. Always-cleanup and
   upload passed. [Full log](logs/11f/full-2.txt), [probe log](logs/11f/probe-1.txt).
 - `python -X utf8 reviews/11-two-disk-rehearsal/verify-11f-evidence.py`:
-  **11 matching offline stages; 10 zero-write records; 791 archived entries
+  **11 matching offline stages; 10 zero-write records; 809 archived entries
   scanned; 1 incomplete (No final write counter); exit 1**. This is the expected
   strict rejection of incomplete full evidence, not a green full result.
 - `python -X utf8 reviews/11-two-disk-rehearsal/regress-11f-archive-scanner.py`: valid ASCII SHA512/rounds/yescrypt and raw/decoded token fixtures detected; real compressed PNG has no credential match.
@@ -1559,9 +1559,10 @@ recorded above; it is not a token-verified billing fact.
 | New source push + PR privacy | 2 |
 | Probe 40052069600 (25.167 actual minutes) | 26 |
 | Full 40054116223 (52.450 actual minutes) | 53 |
-| **Measured before final push** | **227 / 600** |
-| Closing push + PR privacy, five-minute watchdog + two-minute cleanup reserve each | **at most 14** |
-| **Conservative closing bound** | **241 / 600; 2 / 3 full runs** |
+| First report push/PR privacy 40058505932 / 40058509349, green | 2 |
+| **Measured before final receipt push** | **229 / 600** |
+| Final receipt push + PR privacy, five-minute watchdog + two-minute cleanup reserve each | **at most 14** |
+| **Conservative closing bound** | **243 / 600; 2 / 3 full runs** |
 
 [Complete machine-readable ledger](../../os/manifest/ci/11f/final-budget.json).
 Pre-probe reserved 42 at 148 measured; pre-full reserved 182 at 174 measured;
@@ -1600,3 +1601,11 @@ final documentation scans used gitleaks 8.21.2 with redaction and found no leaks
 Rewritten HEAD history was scanned without local pre-rewrite refs; no-reply
 email validation passed. The final push/PR privacy pair is monitored and its
 exact final ledger is recorded in PR #11 as described above.
+
+Final receipt check: three derived text input hashes originally used working-tree
+CRLF. The stock-stop replay now hashes the normalized LF display representation
+that Git stores. Every stock-stop and firmware-replay input SHA-256 was checked
+against the committed Git blobs and matched. Original ZIP/FD/JSON/PNG bytes and
+all VM results are unchanged. The extra receipt/privacy commit costs another
+push/PR pair; the measured ledger above includes the first pair, and the final
+pair remains within the new 14-minute reserve. [Receipt proof](logs/11f/input-receipt-check.txt).

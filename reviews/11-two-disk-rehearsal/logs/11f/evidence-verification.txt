@@ -1,11 +1,13 @@
 full-2 failure
 probe-1 success
+report-pr success
+report-push success
 source-pr success
 source-push success
 {
   "matching_offline_stages": 11,
   "zero_write_records": 10,
-  "archived_records_scanned": 791,
+  "archived_records_scanned": 809,
   "incomplete": [
     {
       "stage": "full-2/two-disk/switch-sequence-stock-protected.json",

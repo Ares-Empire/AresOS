@@ -34,6 +34,13 @@ assert any(d['staged'] for d in deployments)
 assert not (folder/'switch-inspection.json').exists()
 assert not (folder/'verify-published-signature.txt').exists()
 paths=[script,root/'os/ci/switch_vm.py',folder/'pin-stock.txt',folder/'stock-status.json',folder/'stock-initialization-0-boot-console.txt',folder/'stock-boot-console.txt']
+def input_digest(path):
+    raw=path.read_bytes()
+    if path.suffix == '.txt':
+        # Display captures are normalized before Git stores them with LF.
+        raw=('\n'.join(line.rstrip() for line in raw.decode('utf-8').splitlines()).rstrip()+'\n').encode()
+    return hashlib.sha256(raw).hexdigest()
+
 record=dict(status='stopped',qualified=False,run=40054116223,source='1b00581df4b9871c9880db67e3f54ed2b82fb487',
     failure='pin-stock exit 1: pending staged upstream deployment; unchanged no-staged guard refused before pin or AresOS switch',
     command_replay='passed: same real rpm-ostree status triggers AssertionError; no ostree pin command executed',
@@ -42,7 +49,8 @@ record=dict(status='stopped',qualified=False,run=40054116223,source='1b00581df4b
     updater_causation='Inferred from uupd startup plus newer staged stock; no updater journal was collected',
     final_stock_zero_write_proof=False,reason='Host-terminated failure-close session has no stock-blockstats.json',
     aresos_switch_started=False,part_a='not qualified',part_b='untested',
-    inputs={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in paths})
+    input_format='LF-normalized display text as committed; other input bytes exact; original ZIP receipts unchanged',
+    inputs={p.relative_to(root).as_posix():input_digest(p) for p in paths})
 (root/'os/manifest/ci/11f/full-stop-analysis.json').write_text(json.dumps(record,indent=2)+'\n',encoding='utf-8')
 print(record['command_replay'])
 print('Pinned stock booted; newer upstream stock staged; no AresOS switch or installed signature read reached.')
