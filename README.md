@@ -76,6 +76,33 @@ World settings:
 
 Textures come from the user's own Minecraft install (nothing copied into this repo). The old 1.8.9 look is available through the built-in "Programmer Art" resource pack.
 
+## Desktop and companion (owner ideas, 2026-10-24)
+
+To try and tune once AresOS runs on the laptop. Not frozen; real use decides what changes.
+
+- **Windows are free.** Two apps side by side, a small window, or fullscreen. Not always fullscreen.
+- **Behind a small window: the companion's home.** A still picture, not the live Minecraft world. When an app goes small, the companion walks into its home. When the app goes fullscreen again, it comes back out.
+- **Minecraft doesn't draw behind apps.** It stays open but paused while an app is open, so the hub comes back instantly. Measure its memory cost on the laptop.
+- **The wheel.** Hold a key, and open apps appear in a circle around the mouse. Flick to one to switch. A **"+"** spot is always there and opens a nice app menu, sorted by favourites.
+- **Home key.** One key always goes back to the hub. Apps stay open.
+- **Rooms** (saved app arrangements, e.g. a browser left and a writer right). Good idea, but the Minecraft design for them is still open.
+- **Search** like macOS Spotlight is needed. Its design is open.
+- **The companion.** A small, "alive" character on the desktop:
+  - It perches on things (like a browser's address bar) and walks between spots with animations.
+  - It has idle gimmicks (sunglasses, a chair) and a thinking animation.
+  - It moves to wherever it's working.
+  - A hotkey opens a small chat bar. It sees the screen when asked, and can do things, with a confirmation before anything that can't be undone.
+  - In the hub it's a creature that walks around and can be chatted with. Give it a task and it walks into the app's logo, the app opens, and the desktop companion takes over inside the app.
+  - It starts automatically, can be switched off, and we build it ourselves, animations included, so other companions are easy to add.
+  - The owner's companion is Claude's crab. Its art and anything personal live in a separate private add-on, never in this repo.
+- **AI-native extras (ideas):**
+  - a help command that starts Claude Code with the system's details already loaded, which also works from the recovery login
+  - AI piglin shopkeepers that find and install apps
+  - "build me an app", which adds a new logo to the hub
+- **Open:**
+  - The window system. labwc doesn't tell other programs where windows are, but the companion, the wheel and rooms need that. KDE's KWin (already in Bazzite) is the main alternative.
+  - Keeping the repo publishable: no personal data, and no Anthropic art.
+
 ## Phases
 
 AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code on Windows and on AresOS. Only how apps get launched differs.
