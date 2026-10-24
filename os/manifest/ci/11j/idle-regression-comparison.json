@@ -1,0 +1,122 @@
+{
+  "processes": [
+    {
+      "pid": 101,
+      "exe": "/usr/bin/rpm-ostree",
+      "cmdline": [
+        "rpm-ostree",
+        "start-daemon"
+      ],
+      "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+      "excluded_as_daemon": true
+    }
+  ],
+  "historical_source": "f1a237dda5c11cf3e981b97fbf026eef2384ddb1",
+  "historical_fixture_sha256": "b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5",
+  "old_result": "failed",
+  "old_error": "Updater/deployment transaction did not become idle",
+  "new_result": "passed",
+  "new_receipt": {
+    "status": "passed",
+    "units": [
+      {
+        "scope": "system",
+        "present": [
+          "uupd.service",
+          "uupd.timer",
+          "rpm-ostreed-automatic.service",
+          "rpm-ostreed-automatic.timer"
+        ],
+        "absent": [
+          "uupd-manual.service",
+          "bootc-fetch-apply-updates.service",
+          "bootc-fetch-apply-updates.timer",
+          "bootc-update.service",
+          "bootc-update.timer",
+          "systemd-sysupdate.service",
+          "systemd-sysupdate.timer",
+          "systemd-sysupdate-reboot.service",
+          "systemd-sysupdate-reboot.timer",
+          "systemd-sysupdated.service",
+          "dbus-org.freedesktop.sysupdate1.service",
+          "dnf-automatic.service",
+          "dnf-automatic.timer",
+          "dnf5-automatic.service",
+          "dnf5-automatic.timer",
+          "dnf5-offline-transaction.service",
+          "packagekit.service",
+          "packagekit-offline-update.service"
+        ],
+        "timers": {
+          "uupd.timer": "disabled",
+          "rpm-ostreed-automatic.timer": "disabled"
+        }
+      },
+      {
+        "scope": "user",
+        "present": [],
+        "absent": [
+          "uupd.service",
+          "uupd.timer"
+        ],
+        "timers": {}
+      }
+    ],
+    "transactions_idle": true,
+    "service_masks": "runtime",
+    "timer_disable": "persistent",
+    "decision": {
+      "units": [
+        {
+          "scope": 0,
+          "name": "uupd.service",
+          "LoadState": "loaded",
+          "ActiveState": "inactive",
+          "SubState": "dead"
+        },
+        {
+          "scope": 0,
+          "name": "uupd.timer",
+          "LoadState": "loaded",
+          "ActiveState": "inactive",
+          "SubState": "dead"
+        },
+        {
+          "scope": 0,
+          "name": "rpm-ostreed-automatic.service",
+          "LoadState": "loaded",
+          "ActiveState": "inactive",
+          "SubState": "dead"
+        },
+        {
+          "scope": 0,
+          "name": "rpm-ostreed-automatic.timer",
+          "LoadState": "loaded",
+          "ActiveState": "inactive",
+          "SubState": "dead"
+        }
+      ],
+      "transaction": null,
+      "transaction_observed": true,
+      "processes": [
+        {
+          "pid": 101,
+          "exe": "/usr/bin/rpm-ostree",
+          "cmdline": [
+            "rpm-ostree",
+            "start-daemon"
+          ],
+          "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+          "excluded_as_daemon": true
+        }
+      ],
+      "units_inactive": true,
+      "transaction_idle": true,
+      "clients_idle": true,
+      "cancel": {
+        "ran": false,
+        "transaction": null
+      }
+    }
+  }
+}

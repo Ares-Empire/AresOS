@@ -1,0 +1,11 @@
+podman=4.9.3+ds1-1ubuntu0.2
+skopeo=1.13.3+ds1-2ubuntu0.24.04.3
+qemu-system-x86=1:8.2.2+ds-0ubuntu1.18
+qemu-system-data=1:8.2.2+ds-0ubuntu1.18
+qemu-system-common=1:8.2.2+ds-0ubuntu1.18
+qemu-utils=1:8.2.2+ds-0ubuntu1.18
+qemu-block-extra=1:8.2.2+ds-0ubuntu1.18
+ovmf=2024.02-2ubuntu0.10
+seabios=1.16.3-2
+ipxe-qemu=1.21.1+git-20220113.fbbdc3926-0ubuntu2
+python3-pil=10.2.0-1ubuntu1.3

@@ -1,0 +1,86 @@
+{
+  "status": "local-discovery-complete-with-explicit-environment-limits",
+  "discovered": 201,
+  "wsl_passed": 193,
+  "wsl_unavailable": {
+    "test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline": "WSL has no Pillow; passed using existing Windows Pillow12.2.0",
+    "test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters": "WSL has no Pillow; passed using existing Windows Pillow12.2.0",
+    "test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence": "WSL has no Pillow; passed using existing Windows Pillow12.2.0",
+    "test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created": "Requires sudo/systemd-tmpfiles on temporary fixture; local elevation blocked",
+    "test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently": "Requires sudo/chown/setpriv and POSIX ACLs on temporary fixture; local elevation blocked",
+    "test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask": "Requires sudo/chown/setpriv and POSIX ACLs on temporary fixture; local elevation blocked",
+    "test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently": "Requires sudo/systemd-sysusers on temporary fixture; local elevation blocked",
+    "test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload": "DrvFS reports0777 after requested0600; requires native POSIX filesystem, no assertion change"
+  },
+  "failures": 2,
+  "errors": 9,
+  "explanation": "Eight unique tests; inherited-Homebrew cleanup errors repeat some tests. No tests skipped or weakened.",
+  "windows_greeter_passed": 4,
+  "combined_locally_passed": 196,
+  "native_ci_still_required": 5,
+  "changed_fixture_and_five_negative_cases_passed": true,
+  "native_before_probe_plan": "Existing checks_only dispatch on the tested source,15-minute timeout reserved separately; complete201 tests must pass before probe.",
+  "owner_guide_limit": "Full tested46dc2dd guide equals04ae68d; final executable blocks must match, qualification prose may be updated.",
+  "unchanged_files": [
+    {
+      "path": "os/release/switch.sh",
+      "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c"
+    },
+    {
+      "path": "docs/INSTALL.md",
+      "sha256": "ee2fa407e8fbf726e678c84ed944d2e6be907dcce5fb7fb76a9c889b77d0262d"
+    },
+    {
+      "path": "os/tests/test_grub_bls.py",
+      "sha256": "bce0e162f71c0ea17f68ed020858f850dea36815354b83794c353ce10e959225"
+    },
+    {
+      "path": "os/ci/rehearsal_guard.py",
+      "sha256": "e52d2bebe3813d350cbbc26861258af5fdbdd0e295cd5da0f5682d211a8b959b"
+    },
+    {
+      "path": "os/ci/two_disk_vm.py",
+      "sha256": "3432126e0b64796b0a64faa87fc65b845041e91f6d48bd08c73bc0f57dabe3be"
+    },
+    {
+      "path": "os/ci/disk_audit.py",
+      "sha256": "4974679af712ccb8b8e610063ec62dab68bc97be8ab9bf3e2f4e7c14d6752746"
+    },
+    {
+      "path": "os/ci/grub_bls.py",
+      "sha256": "5e6aa9fdd411cf8cbd37f0174bd147892ce9cb7d176b70534d61664b6dc7a36b"
+    },
+    {
+      "path": "os/ci/stock_probe.py",
+      "sha256": "ca8c97f9c795e7e51a65ac5090eaf54ef5209e9ff4300c9cb1fdd9b6f539d22e"
+    },
+    {
+      "path": "os/ci/rehearsal_auth.py",
+      "sha256": "195d00948ace5a2ebb7167c1c51ac7546c347b0c20f2790330a00e245b79d5bc"
+    },
+    {
+      "path": ".github/workflows/os-image.yml",
+      "sha256": "89dc65cbbfa4066bd82c5a93de520262e8dce674f0541245ccaa39e09be4363b"
+    },
+    {
+      "path": ".github/workflows/privacy-check.yml",
+      "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2"
+    },
+    {
+      "path": ".gitleaks.toml",
+      "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742"
+    },
+    {
+      "path": ".gitleaksignore",
+      "sha256": "696095491f29162d4bf1bf3d43972817e3df1b9913857c182a03223067bdc2a8"
+    },
+    {
+      "path": "os/manifest/base.json",
+      "sha256": "750558b95a7bfb8b6121361935ec5b0bf68de6bc4b127fca00606a5d0d6383ec"
+    },
+    {
+      "path": "os/manifest/release.json",
+      "sha256": "4447a6cd8929e61667e700d9757c98efbe3432a341491ebbea3f466ba83c0126"
+    }
+  ]
+}

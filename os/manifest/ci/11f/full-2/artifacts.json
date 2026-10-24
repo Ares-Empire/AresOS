@@ -1,0 +1,25 @@
+{
+  "total_count": 1,
+  "artifacts": [
+    {
+      "id": 12546008012,
+      "node_id": "MDg6QXJ0aWZhY3QxMjU0NjAwODAxMg==",
+      "name": "two-disk-evidence",
+      "size_in_bytes": 5585886,
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/artifacts/12546008012",
+      "archive_download_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/artifacts/12546008012/zip",
+      "expired": false,
+      "digest": "sha256:b77bed201bc41f768b13edb8d825c39b42308c56f93077a0cb0d5b03a8c55a08",
+      "created_at": "2026-10-24T03:18:08Z",
+      "updated_at": "2026-10-24T03:18:08Z",
+      "expires_at": "2026-10-27T03:18:06Z",
+      "workflow_run": {
+        "id": 40054116223,
+        "repository_id": 1428762847,
+        "head_repository_id": 1428762847,
+        "head_branch": "pkg/11-two-disk-rehearsal",
+        "head_sha": "1b00581df4b9871c9880db67e3f54ed2b82fb487"
+      }
+    }
+  ]
+}

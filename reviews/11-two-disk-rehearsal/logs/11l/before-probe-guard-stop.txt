@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\ci\rehearsal_guard.py", line 158, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\ci\rehearsal_guard.py", line 116, in main
+    result = budget(reserve, current)
+  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\ci\rehearsal_guard.py", line 76, in budget
+    assert len(runs) < 100 or runs[-1]['created_at'] < START, 'Budget history requires pagination; refuse an incomplete ledger'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Budget history requires pagination; refuse an incomplete ledger

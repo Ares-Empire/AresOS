@@ -1,0 +1,20 @@
+{
+  "iso_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "sources": [
+    {
+      "path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/installation.py",
+      "bytes": 9483,
+      "sha256": "f3a348993523390c757aeab826a86110f9c92f817372173f91af2b06c34381db"
+    },
+    {
+      "path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/localed.py",
+      "bytes": 17659,
+      "sha256": "f0f8eb597455f88e656c81c9bcb3f3636418a6d92883b2c9ef4f9c012292a8af"
+    },
+    {
+      "path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/utils.py",
+      "bytes": 3498,
+      "sha256": "9131865a34cb8e978d34083f9c981e84401fbf9852f7ca4f213b2dc9abb001e1"
+    }
+  ]
+}

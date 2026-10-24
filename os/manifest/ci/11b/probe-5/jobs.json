@@ -1,0 +1,194 @@
+{
+  "total_count": 4,
+  "jobs": [
+    {
+      "id": 120177227183,
+      "run_id": 39880735063,
+      "workflow_name": "Two-disk rehearsal (probe)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39880735063",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAb-x71rw",
+      "head_sha": "60758f6919d997982e4281e86001c9b7086621a8",
+      "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/120177227183",
+      "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39880735063/job/120177227183",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-23T00:52:54Z",
+      "started_at": "2026-10-23T00:52:56Z",
+      "completed_at": "2026-10-23T01:07:01Z",
+      "name": "Pinned live ISO inspection and two-disk rehearsal",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-23T00:52:57Z",
+          "completed_at": "2026-10-23T00:52:58Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-23T00:52:58Z",
+          "completed_at": "2026-10-23T00:53:03Z"
+        },
+        {
+          "name": "Reserve the 11b minute budget",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-23T00:53:03Z",
+          "completed_at": "2026-10-23T00:53:08Z"
+        },
+        {
+          "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-23T00:53:08Z",
+          "completed_at": "2026-10-23T00:54:41Z"
+        },
+        {
+          "name": "Inspect the exact pinned live ISO before assuming an installer path",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-23T00:54:41Z",
+          "completed_at": "2026-10-23T00:59:59Z"
+        },
+        {
+          "name": "Prepare disposable file disks and qualify the real live environment",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 6,
+          "started_at": "2026-10-23T00:59:59Z",
+          "completed_at": "2026-10-23T01:06:57Z"
+        },
+        {
+          "name": "Bound retained evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-23T01:06:57Z",
+          "completed_at": "2026-10-23T01:06:57Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-23T01:06:57Z",
+          "completed_at": "2026-10-23T01:07:00Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-23T01:07:00Z",
+          "completed_at": "2026-10-23T01:07:00Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-23T01:07:00Z",
+          "completed_at": "2026-10-23T01:07:00Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/120177227183",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000155,
+      "runner_name": "GitHub Actions 1000000155",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 120177228779,
+      "run_id": 39880735063,
+      "workflow_name": "Two-disk rehearsal (probe)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39880735063",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAb-x776w",
+      "head_sha": "60758f6919d997982e4281e86001c9b7086621a8",
+      "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/120177228779",
+      "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39880735063/job/120177228779",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-23T00:52:54Z",
+      "started_at": "2026-10-23T00:52:54Z",
+      "completed_at": "2026-10-23T00:52:54Z",
+      "name": "Regression checks only (no image build or VM)",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/120177228779",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 120177229056,
+      "run_id": 39880735063,
+      "workflow_name": "Two-disk rehearsal (probe)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39880735063",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAb-x79AA",
+      "head_sha": "60758f6919d997982e4281e86001c9b7086621a8",
+      "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/120177229056",
+      "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39880735063/job/120177229056",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-23T00:52:54Z",
+      "started_at": "2026-10-23T00:52:54Z",
+      "completed_at": "2026-10-23T00:52:54Z",
+      "name": "Published-image switch and rollback",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/120177229056",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 120177229351,
+      "run_id": 39880735063,
+      "workflow_name": "Two-disk rehearsal (probe)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/carlsenares/AresOS/actions/runs/39880735063",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAb-x7-Jw",
+      "head_sha": "60758f6919d997982e4281e86001c9b7086621a8",
+      "url": "https://api.github.com/repos/carlsenares/AresOS/actions/jobs/120177229351",
+      "html_url": "https://github.com/carlsenares/AresOS/actions/runs/39880735063/job/120177229351",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-23T00:52:54Z",
+      "started_at": "2026-10-23T00:52:54Z",
+      "completed_at": "2026-10-23T00:52:54Z",
+      "name": "image",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/carlsenares/AresOS/check-runs/120177229351",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

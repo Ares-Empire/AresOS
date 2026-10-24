@@ -1,0 +1,3 @@
+Evidence consistency passed: 64 JSON reads, 16 archive hashes, 56 local links; unchanged runtime/mod; budget 59/450 rounded minutes
+Full run failed before installation; four protected snapshots and original Windows entry match; two final zero-write snapshots; no install/reverse/GRUB qualification claimed; original screenshots/OVMF stores preserved
+File checks only; no additional VM, image build, Gradle or Minecraft run

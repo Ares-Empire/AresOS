@@ -1,0 +1,17 @@
+[?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=3f19bd9e-e050-410c-8a00-470d5415c13f;type=command;machineid=96f164c7a28f486f8257cd2b2aa7bd3f;user=root;hostname=localhost-live;bootid=956c0830-373b-4ddd-a4d2-1bd356345412;pid=2297;cwd=/root\cat: /tmp/rehearsal-webui-launch.log: No such file or directory
+-- No entries --
+State     Recv-Q    Send-Q       Local Address:Port        Peer Address:Port    Process
+LISTEN    0         4096             127.0.0.1:631              0.0.0.0:*        users:(("cupsd",pid=2612,fd=8))
+LISTEN    0         4096         127.0.0.53%lo:53               0.0.0.0:*        users:(("systemd-resolve",pid=937,fd=20))
+LISTEN    0         4096            127.0.0.54:53               0.0.0.0:*        users:(("systemd-resolve",pid=937,fd=22))
+LISTEN    0         4096               0.0.0.0:5355             0.0.0.0:*        users:(("systemd-resolve",pid=937,fd=13))
+LISTEN    0         4096                  [::]:5355                [::]:*        users:(("systemd-resolve",pid=937,fd=15))
+LISTEN    0         4096                 [::1]:631                 [::]:*        users:(("cupsd",pid=2612,fd=7))
+
+ARESOS_CMD_DONE:1

@@ -1,0 +1,54 @@
+[?2004l
+
+[?2004h[?2004l
+
+
+]3008;end=47ae476c-3958-481a-8a63-2b9d8cdbeb71;exit=failure;status=130;signal=SIGINT\]3008;start=63b81689-d10d-44a0-8c25-67587ebb4b96;type=shell;machineid=03516d11367244028cc39c496d3c7b62;user=root;hostname=localhost-live;bootid=84872852-6d26-4ae7-b8fc-a0f466dd7598;pid=2304;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=0de633b8-7339-4187-81d0-bec80dade4f9;type=command;machineid=03516d11367244028cc39c496d3c7b62;user=root;hostname=localhost-live;bootid=84872852-6d26-4ae7-b8fc-a0f466dd7598;pid=2304;cwd=/root\failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+Warning: The unit file, source configuration file or drop-ins of webui-cockpit-ws.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+Home directory /var/home/liveuser already exists.
+failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+No default browser set in anaconda.conf, using firefox.
+Using default browser: firefox
+Using Firefox browser command: /usr/bin/env MOZ_APP_TITLE= MOZ_APP_REMOTINGNAME=liveinst MOZ_GTK_TITLEBAR_DECORATION=client /usr/bin/firefox --new-instance --profile /run/user/1000/anaconda/firefox-profile
+restorecon: SELinux: Could not get canonical path for /var/home/liveuser/.config/mozilla/firefox/*/gmp-widevinecdm/* restorecon: No such file or directory.
+Starting installer, one moment...
+terminal size detection failed, using default width
+anaconda 44.30-2.fc44 for Bazzite 44 started.
+ * installation log files are stored in /tmp during the installation
+ * shell is available on TTY2 and in second TMUX pane (ctrl+b, then press 2)
+ * when reporting a bug add logs from /tmp as separate text/plain attachments
+01:05:20 Running pre-installation scripts
+Oct 23 01:04:57 localhost-live systemd[1]: Started webui-cockpit-ws.service - Cockpit Web Service for Anaconda Installer.
+State     Recv-Q    Send-Q       Local Address:Port        Peer Address:Port    Process
+LISTEN    0         4096               0.0.0.0:5355             0.0.0.0:*        users:(("systemd-resolve",pid=934,fd=13))
+LISTEN    0         4096            127.0.0.54:53               0.0.0.0:*        users:(("systemd-resolve",pid=934,fd=22))
+LISTEN    0         4096         127.0.0.53%lo:53               0.0.0.0:*        users:(("systemd-resolve",pid=934,fd=20))
+LISTEN    0         10               127.0.0.1:80               0.0.0.0:*        users:(("cockpit-ws",pid=3277,fd=4))
+LISTEN    0         5                  0.0.0.0:8080             0.0.0.0:*        users:(("python3",pid=4140,fd=3))
+LISTEN    0         4096             127.0.0.1:631              0.0.0.0:*        users:(("cupsd",pid=2595,fd=8))
+LISTEN    0         4096                 [::1]:631                 [::]:*        users:(("cupsd",pid=2595,fd=7))
+LISTEN    0         4096                  [::]:5355                [::]:*        users:(("systemd-resolve",pid=934,fd=15))
+LISTEN    0         50                       *:1716                   *:*        users:(("kdeconnectd",pid=2715,fd=17))
+3273 /usr/bin/bash /usr/libexec/anaconda/webui-desktop -t live
+3274 /usr/bin/python3 /sbin/anaconda --liveinst --graphical
+3280 /usr/bin/bash /usr/libexec/anaconda/cockpit-coproc-wrapper.sh 127.0.0.1
+3330 dbus-daemon --print-address --syslog --config-file=/usr/share/anaconda/dbus/anaconda-bus.conf
+3333 python3 -m pyanaconda.modules.boss
+3352 /usr/lib64/firefox/firefox --new-instance --profile /run/user/1000/anaconda/firefox-profile http://127.0.0.1/cockpit/@localhost/anaconda-webui/index.html
+3385 python3 -m pyanaconda.modules.network
+3389 python3 -m pyanaconda.modules.services
+3393 python3 -m pyanaconda.modules.storage
+3397 python3 -m pyanaconda.modules.users
+3403 python3 -m pyanaconda.modules.security
+3411 python3 -m pyanaconda.modules.localization
+3413 python3 -m pyanaconda.modules.payloads
+3415 python3 -m pyanaconda.modules.runtime
+3417 python3 -m pyanaconda.modules.timezone
+
+ARESOS_CMD_DONE:0

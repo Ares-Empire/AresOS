@@ -1,0 +1,7 @@
+859cb7e29723d1ca2f6bec025405b7ed6ea3040709ed129d7fed5f8fca92d2ca  /usr/bin/podman
+1802f4706bb0f3f5a7a43e61c6ecef2adcfff567d454eb0052aeb5769885302c  /usr/bin/skopeo
+8a35ccba41582fc6c38b9df85fc9e35fa1d42f414d2d7d8090ee9b2f5e7c0854  /usr/bin/qemu-system-x86_64
+634320b91165669917123e8e79cce1c4d00cee0a4aa4d662d7c0a8186479b3fb  /usr/bin/qemu-img
+61f2c1bc8fd801d817a969cbebc15de51bcccd77ba05747d38b41ca5c54d8423  /usr/bin/qemu-nbd
+ad23261d43116abc3747d59a7837fbf578c9586a8993f4eeba064cd07eccb083  /usr/share/OVMF/OVMF_CODE_4M.fd
+5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e  /usr/share/OVMF/OVMF_VARS_4M.fd

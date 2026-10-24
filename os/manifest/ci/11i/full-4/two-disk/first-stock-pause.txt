@@ -1,0 +1,47 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+Created symlink '/run/systemd/system/uupd.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/uupd-manual.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/rpm-ostreed-automatic.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/bootc-fetch-apply-updates.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/systemd-sysupdate.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/systemd-sysupdate-reboot.service' ��� '/dev/null'.
+
+Created symlink '/run/systemd/system/systemd-sysupdated.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/dbus-org.freedesktop.sysupdate1.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/dnf5-offline-transaction.service' ��� '/dev/null'.
+
+[0;1;38:5:185mMasking 'uupd.service', but its triggering units are still active:[0m
+
+[0;1;38:5:185muupd.timer[0m
+
+Removed '/etc/systemd/system/timers.target.wants/uupd.timer'.
+
+STOP: stock updaters could not be paused. See EMERGENCY.md / get help. Updater/deployment transaction did not become idle
+
+ARESOS_CMD_DONE:1

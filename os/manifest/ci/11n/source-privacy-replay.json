@@ -1,0 +1,20 @@
+[
+  {
+    "run": 40136731776,
+    "head": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+    "status": "passed",
+    "all_three_checks": true,
+    "personal_terms_enabled": true,
+    "archive_records_scanned": 9,
+    "zip_sha256": "a235daa3fece1ecdd0f1d8df0a4dabd473718f33a8038ddad5faa43ae890c982"
+  },
+  {
+    "run": 40136725728,
+    "head": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+    "status": "passed",
+    "all_three_checks": true,
+    "personal_terms_enabled": true,
+    "archive_records_scanned": 9,
+    "zip_sha256": "53a9261101555ef837d34b2c452ae7176ebe3b38afa24e89f06ec84964cfa643"
+  }
+]

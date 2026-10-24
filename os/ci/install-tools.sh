@@ -7,6 +7,7 @@ mkdir -p "$directory/lists/partial"
 repository=$(jq -r .repository os/ci/toolchain.json)
 while read -r suite; do
     printf 'deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg check-valid-until=no] %s %s main universe restricted multiverse\n' "$repository" "$suite"
+    printf 'deb-src [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg check-valid-until=no] %s %s main universe restricted multiverse\n' "$repository" "$suite"
 done < <(jq -r '.suites[]' os/ci/toolchain.json) > "$directory/sources.list"
 printf 'Package: *\nPin: release o=Ubuntu\nPin-Priority: 1001\n' > "$directory/preferences"
 options=(-o "Dir::Etc::sourcelist=$directory/sources.list" -o Dir::Etc::sourceparts=-
@@ -42,3 +43,12 @@ sha256sum /usr/bin/podman /usr/bin/skopeo /usr/bin/qemu-system-x86_64 /usr/bin/q
     modinfo kvm || true
     modinfo nbd || true
 } > evidence/host-platform.txt
+
+# Use the patched source for the exact installed binary, authenticated by the
+# same dated Ubuntu indexes. This downloads/extracts source, never builds it.
+sudo apt-get "${options[@]}" install -y --no-install-recommends dpkg-dev python3-yaml
+source_directory="$PWD/.work/edk2-source"
+mkdir -p "$source_directory"
+source_version=$(dpkg-query -W -f='${source:Version}' ovmf)
+(cd "$source_directory"; apt-get "${options[@]}" source "edk2=$source_version")
+python3 os/ci/firmware_contract.py "$source_directory"

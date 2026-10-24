@@ -1,0 +1,22 @@
+]3008;end=acf09b74-49c6-41a5-9baa-801f36b07933;exit=success\]3008;start=919fd1f2-3649-42c0-8482-3b0b35dc8dbb;type=shell;machineid=c44b1b9b6d334a80a9335a81e53d5506;user=root;hostname=localhost-live;bootid=9d113f90-e821-45a6-9fd9-d8fff52004bb;pid=2298;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=a8c64dc4-ff8f-4466-b4b3-a98d9ea2da02;type=command;machineid=c44b1b9b6d334a80a9335a81e53d5506;user=root;hostname=localhost-live;bootid=9d113f90-e821-45a6-9fd9-d8fff52004bb;pid=2298;cwd=/root\[   45.193892] async_tx: api initialized (async)
+[   45.776443] device-mapper: multipath round-robin: version 1.2.0 loaded
+[   46.344509] Loading iSCSI transport class v2.0-870.
+[   46.632155] iscsi: registered transport (tcp)
+[   46.769347] No iBFT detected.
+cat: /tmp/anaconda-atspibusaddr: No such file or directory
+failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+Warning: The unit file, source configuration file or drop-ins of webui-cockpit-ws.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+Home directory /var/home/liveuser already exists.
+failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+2955 /usr/bin/bash /usr/libexec/anaconda/webui-desktop -t live
+2957 /usr/bin/python3 /sbin/anaconda --liveinst --graphical
+2964 /usr/bin/bash /usr/libexec/anaconda/cockpit-coproc-wrapper.sh 127.0.0.1
+3079 /usr/bin/bash /usr/libexec/anaconda/webui-desktop -t live
+
+ARESOS_CMD_DONE:0

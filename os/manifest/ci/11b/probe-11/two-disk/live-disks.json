@@ -1,0 +1,100 @@
+{
+  "blockdevices": [
+    {
+      "name": "loop0",
+      "type": "loop",
+      "size": 8649285632,
+      "serial": null,
+      "partuuid": null,
+      "fstype": "squashfs",
+      "mountpoints": [
+        "/run/rootfsbase"
+      ]
+    },
+    {
+      "name": "sr0",
+      "type": "rom",
+      "size": 9068650496,
+      "serial": "QM00001",
+      "partuuid": null,
+      "fstype": "iso9660",
+      "mountpoints": [
+        "/run/initramfs/live"
+      ]
+    },
+    {
+      "name": "sr1",
+      "type": "rom",
+      "size": 1073741312,
+      "serial": "QM00005",
+      "partuuid": null,
+      "fstype": null,
+      "mountpoints": []
+    },
+    {
+      "name": "zram0",
+      "type": "disk",
+      "size": 3095920640,
+      "serial": null,
+      "partuuid": null,
+      "fstype": "swap",
+      "mountpoints": [
+        "[SWAP]"
+      ]
+    },
+    {
+      "name": "vda",
+      "type": "disk",
+      "size": 53687091200,
+      "serial": "MICRON-KEEP",
+      "partuuid": null,
+      "fstype": null,
+      "mountpoints": []
+    },
+    {
+      "name": "vda1",
+      "type": "part",
+      "size": 272629760,
+      "serial": null,
+      "partuuid": "7c0a0246-ee3e-4923-9f9d-fa9bc78c85d5",
+      "fstype": "vfat",
+      "mountpoints": []
+    },
+    {
+      "name": "vda2",
+      "type": "part",
+      "size": 16777216,
+      "serial": null,
+      "partuuid": "87500bad-7b7d-4755-9e4c-15b0a9ba1884",
+      "fstype": null,
+      "mountpoints": []
+    },
+    {
+      "name": "vda3",
+      "type": "part",
+      "size": 52322876928,
+      "serial": null,
+      "partuuid": "5def1f6c-5fa7-438e-bb9e-9b340bed2bd8",
+      "fstype": "ntfs",
+      "mountpoints": []
+    },
+    {
+      "name": "vda4",
+      "type": "part",
+      "size": 1073724928,
+      "serial": null,
+      "partuuid": "84e33d2a-28ca-47ef-9b33-7aa8cd742f93",
+      "fstype": "ntfs",
+      "mountpoints": []
+    },
+    {
+      "name": "vdb",
+      "type": "disk",
+      "size": 52613349376,
+      "serial": "CRUCIAL-TARGET",
+      "partuuid": null,
+      "fstype": null,
+      "mountpoints": []
+    }
+  ]
+}

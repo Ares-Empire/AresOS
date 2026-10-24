@@ -1,0 +1,1223 @@
+2026-10-22T22:30:57.2734069Z Current runner version: '2.338.0'
+2026-10-22T22:30:57.2771769Z ##[group]Runner Image Provisioner
+2026-10-22T22:30:57.2773371Z Hosted Compute Agent
+2026-10-22T22:30:57.2774643Z Version: 20261012.601
+2026-10-22T22:30:57.2775908Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-22T22:30:57.2777151Z Build Date: 2026-10-12T17:48:21Z
+2026-10-22T22:30:57.2778387Z Worker ID: {3b683f09-3897-4d8f-849d-38880317cfa1}
+2026-10-22T22:30:57.2779584Z Region: westus2
+2026-10-22T22:30:57.2780473Z Cloud: Azure
+2026-10-22T22:30:57.2781556Z ##[endgroup]
+2026-10-22T22:30:57.2784530Z ##[group]Operating System
+2026-10-22T22:30:57.2785727Z Ubuntu
+2026-10-22T22:30:57.2786614Z 24.04.5
+2026-10-22T22:30:57.2787439Z LTS
+2026-10-22T22:30:57.2788443Z ##[endgroup]
+2026-10-22T22:30:57.2789490Z ##[group]Runner Image
+2026-10-22T22:30:57.2790677Z Image: ubuntu-24.04
+2026-10-22T22:30:57.2791715Z Version: 20261012.334.1
+2026-10-22T22:30:57.2794001Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-22T22:30:57.2797304Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-22T22:30:57.2799336Z ##[endgroup]
+2026-10-22T22:30:57.2801565Z ##[group]GITHUB_TOKEN Permissions
+2026-10-22T22:30:57.2805102Z Actions: read
+2026-10-22T22:30:57.2806214Z Contents: read
+2026-10-22T22:30:57.2807673Z Metadata: read
+2026-10-22T22:30:57.2808613Z Packages: read
+2026-10-22T22:30:57.2809452Z ##[endgroup]
+2026-10-22T22:30:57.2812663Z Secret source: Actions
+2026-10-22T22:30:57.2814661Z Cache mode: write
+2026-10-22T22:30:57.2817243Z Prepare workflow directory
+2026-10-22T22:30:57.3335069Z Prepare all required actions
+2026-10-22T22:30:57.3409437Z Getting action download info
+2026-10-22T22:30:57.7627345Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-22T22:30:57.8758199Z Download action repository 'ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6' (SHA:695eb75bc387dbcd9685a8e72d23439d8686cba6)
+2026-10-22T22:30:58.0328631Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-22T22:30:58.2728737Z Complete job name: Pinned live ISO inspection and two-disk rehearsal
+2026-10-22T22:30:58.3524653Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-10-22T22:30:58.3525854Z with:
+2026-10-22T22:30:58.3526355Z   repository: carlsenares/AresOS
+2026-10-22T22:30:58.3530181Z   token: ***
+2026-10-22T22:30:58.3530668Z   ssh-strict: true
+2026-10-22T22:30:58.3531147Z   ssh-user: git
+2026-10-22T22:30:58.3531632Z   persist-credentials: true
+2026-10-22T22:30:58.3532157Z   clean: true
+2026-10-22T22:30:58.3532634Z   sparse-checkout-cone-mode: true
+2026-10-22T22:30:58.3533195Z   fetch-depth: 1
+2026-10-22T22:30:58.3533659Z   fetch-tags: false
+2026-10-22T22:30:58.3534319Z   show-progress: true
+2026-10-22T22:30:58.3534824Z   lfs: false
+2026-10-22T22:30:58.3535311Z   submodules: false
+2026-10-22T22:30:58.3535812Z   set-safe-directory: true
+2026-10-22T22:30:58.3536357Z   allow-unsafe-pr-checkout: false
+2026-10-22T22:30:58.3537197Z ##[endgroup]
+2026-10-22T22:30:58.4749242Z Syncing repository: carlsenares/AresOS
+2026-10-22T22:30:58.4754673Z ##[group]Getting Git version info
+2026-10-22T22:30:58.4756229Z Working directory is '/home/runner/work/AresOS/AresOS'
+2026-10-22T22:30:58.4758392Z [command]/usr/bin/git version
+2026-10-22T22:30:58.4912531Z git version 2.55.0
+2026-10-22T22:30:58.4965863Z ##[endgroup]
+2026-10-22T22:30:58.4973732Z Temporarily overriding HOME='/home/runner/work/_temp/da6f95d7-5840-4dc0-8797-58a061233d37' before making global git config changes
+2026-10-22T22:30:58.4977091Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T22:30:58.4979315Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/AresOS/AresOS
+2026-10-22T22:30:58.5050203Z Deleting the contents of '/home/runner/work/AresOS/AresOS'
+2026-10-22T22:30:58.5052694Z ##[group]Initializing the repository
+2026-10-22T22:30:58.5054492Z [command]/usr/bin/git init /home/runner/work/AresOS/AresOS
+2026-10-22T22:30:58.5195796Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-22T22:30:58.5215385Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-22T22:30:58.5223686Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-22T22:30:58.5225660Z hint: call:
+2026-10-22T22:30:58.5244975Z hint:
+2026-10-22T22:30:58.5253267Z hint: 	git config --global init.defaultBranch <name>
+2026-10-22T22:30:58.5255195Z hint:
+2026-10-22T22:30:58.5257052Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-22T22:30:58.5260639Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-22T22:30:58.5266014Z hint:
+2026-10-22T22:30:58.5283333Z hint: 	git branch -m <name>
+2026-10-22T22:30:58.5296492Z hint:
+2026-10-22T22:30:58.5298033Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-22T22:30:58.5300302Z Initialized empty Git repository in /home/runner/work/AresOS/AresOS/.git/
+2026-10-22T22:30:58.5304030Z [command]/usr/bin/git remote add origin https://github.com/carlsenares/AresOS
+2026-10-22T22:30:58.5308021Z ##[endgroup]
+2026-10-22T22:30:58.5309492Z ##[group]Disabling automatic garbage collection
+2026-10-22T22:30:58.5310950Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-22T22:30:58.5343610Z ##[endgroup]
+2026-10-22T22:30:58.5345901Z ##[group]Setting up auth
+2026-10-22T22:30:58.5357233Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T22:30:58.5439980Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T22:30:58.5976315Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T22:30:58.6013162Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T22:30:58.6279738Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T22:30:58.6312907Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T22:30:58.6553862Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-22T22:30:58.6626478Z ##[endgroup]
+2026-10-22T22:30:58.6640748Z ##[group]Fetching the repository
+2026-10-22T22:30:58.6656776Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +c5548f4fb5620b59c11a17012fd95c8db13d7a7c:refs/remotes/origin/pkg/11-two-disk-rehearsal
+2026-10-22T22:31:00.9782938Z From https://github.com/carlsenares/AresOS
+2026-10-22T22:31:00.9795607Z  * [new ref]         c5548f4fb5620b59c11a17012fd95c8db13d7a7c -> origin/pkg/11-two-disk-rehearsal
+2026-10-22T22:31:00.9799504Z ##[endgroup]
+2026-10-22T22:31:00.9800681Z ##[group]Determining the checkout info
+2026-10-22T22:31:00.9801878Z ##[endgroup]
+2026-10-22T22:31:00.9817104Z [command]/usr/bin/git sparse-checkout disable
+2026-10-22T22:31:00.9916612Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-22T22:31:00.9940460Z ##[group]Checking out the ref
+2026-10-22T22:31:00.9946363Z [command]/usr/bin/git checkout --progress --force -B pkg/11-two-disk-rehearsal refs/remotes/origin/pkg/11-two-disk-rehearsal
+2026-10-22T22:31:01.8651410Z Switched to a new branch 'pkg/11-two-disk-rehearsal'
+2026-10-22T22:31:01.8657977Z branch 'pkg/11-two-disk-rehearsal' set up to track 'origin/pkg/11-two-disk-rehearsal'.
+2026-10-22T22:31:01.8739996Z ##[endgroup]
+2026-10-22T22:31:01.8787141Z [command]/usr/bin/git log -1 --format=%H
+2026-10-22T22:31:01.8819738Z c5548f4fb5620b59c11a17012fd95c8db13d7a7c
+2026-10-22T22:31:01.9074679Z ##[group]Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+2026-10-22T22:31:01.9075204Z with:
+2026-10-22T22:31:01.9075416Z   extra-squeeze: true
+2026-10-22T22:31:01.9075640Z ##[endgroup]
+2026-10-22T22:31:01.9131118Z ##[start-action display=Disk space report before modification;id=__ublue-os_remove-unwanted-software.__run]
+2026-10-22T22:31:01.9193318Z ##[group]Run echo "==> Available space before cleanup"
+2026-10-22T22:31:01.9193786Z [36;1mecho "==> Available space before cleanup"[0m
+2026-10-22T22:31:01.9194313Z [36;1mdf -h[0m
+2026-10-22T22:31:01.9194549Z [36;1m# Remove swapfile (3gb)[0m
+2026-10-22T22:31:01.9194871Z [36;1m# swapoff is required for arm, but not for x64?[0m
+2026-10-22T22:31:01.9195277Z [36;1msudo swapoff -a || true; sudo rm -f /swapfile || true[0m
+2026-10-22T22:31:01.9195637Z [36;1m# Remove toolchains, browsers[0m
+2026-10-22T22:31:01.9195950Z [36;1mshopt -s nullglob[0m
+2026-10-22T22:31:01.9196192Z [36;1mEXTRAPKG=""[0m
+2026-10-22T22:31:01.9196469Z [36;1mif [ "true" = "true" ]; then[0m
+2026-10-22T22:31:01.9196854Z [36;1m  # These have a lot of small files and are a bit slower to remove[0m
+2026-10-22T22:31:01.9197345Z [36;1m  EXTRAPKG="/usr/share/miniconda /opt/hostedtoolcache"[0m
+2026-10-22T22:31:01.9197695Z [36;1mfi[0m
+2026-10-22T22:31:01.9198018Z [36;1mprintf '%s\0' /opt/PyPy /opt/az /opt/node/ /opt/pipx /opt/go /opt/Ruby \[0m
+2026-10-22T22:31:01.9198553Z [36;1m    /usr/lib/llvm-* /usr/local/julia* /usr/local/lib/android /usr/share/dotnet \[0m
+2026-10-22T22:31:01.9199100Z [36;1m    /usr/share/swift /usr/local/.ghcup /usr/lib/firefox /opt/google/chrome \[0m
+2026-10-22T22:31:01.9199528Z [36;1m    /opt/microsoft/msedge $EXTRAPKG \[0m
+2026-10-22T22:31:01.9199841Z [36;1m    | sudo xargs -0 -n1 -P4 rm -rf[0m
+2026-10-22T22:31:01.9200158Z [36;1mecho "==> Available space after cleanup"[0m
+2026-10-22T22:31:01.9200460Z [36;1mdf -h[0m
+2026-10-22T22:31:01.9468598Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-22T22:31:01.9469065Z ##[endgroup]
+2026-10-22T22:31:01.9585800Z ==> Available space before cleanup
+2026-10-22T22:31:01.9869956Z Filesystem      Size  Used Avail Use% Mounted on
+2026-10-22T22:31:01.9870834Z /dev/root        72G   59G   13G  82% /
+2026-10-22T22:31:01.9871787Z tmpfs           3.9G   84K  3.9G   1% /dev/shm
+2026-10-22T22:31:01.9872634Z tmpfs           1.6G 1008K  1.6G   1% /run
+2026-10-22T22:31:01.9873418Z tmpfs           5.0M     0  5.0M   0% /run/lock
+2026-10-22T22:31:01.9874548Z efivarfs        128M   32K  128M   1% /sys/firmware/efi/efivars
+2026-10-22T22:31:01.9875456Z /dev/sda16      881M   64M  756M   8% /boot
+2026-10-22T22:31:01.9876206Z /dev/sda15      105M  6.2M   99M   6% /boot/efi
+2026-10-22T22:31:01.9975567Z tmpfs           794M   12K  794M   1% /run/user/1001
+2026-10-22T22:32:35.2508205Z ==> Available space after cleanup
+2026-10-22T22:32:35.2522935Z Filesystem      Size  Used Avail Use% Mounted on
+2026-10-22T22:32:35.2523714Z /dev/root        72G   21G   52G  29% /
+2026-10-22T22:32:35.2525052Z tmpfs           3.9G   84K  3.9G   1% /dev/shm
+2026-10-22T22:32:35.2527792Z tmpfs           1.6G 1008K  1.6G   1% /run
+2026-10-22T22:32:35.2529195Z tmpfs           5.0M     0  5.0M   0% /run/lock
+2026-10-22T22:32:35.2529977Z efivarfs        128M   32K  128M   1% /sys/firmware/efi/efivars
+2026-10-22T22:32:35.2530578Z /dev/sda16      881M   64M  756M   8% /boot
+2026-10-22T22:32:35.2531070Z /dev/sda15      105M  6.2M   99M   6% /boot/efi
+2026-10-22T22:32:35.2531600Z tmpfs           794M   12K  794M   1% /run/user/1001
+2026-10-22T22:32:35.2549988Z ##[end-action id=__ublue-os_remove-unwanted-software.__run;outcome=success;conclusion=success;duration_ms=93341]
+2026-10-22T22:32:35.2591494Z ##[group]Run set -euo pipefail
+2026-10-22T22:32:35.2591829Z [36;1mset -euo pipefail[0m
+2026-10-22T22:32:35.2592181Z [36;1mmkdir -p evidence/installer .work/installer[0m
+2026-10-22T22:32:35.2592502Z [36;1msudo apt-get update -qq[0m
+2026-10-22T22:32:35.2593084Z [36;1msudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools[0m
+2026-10-22T22:32:35.2593544Z [36;1mpython3 os/ci/installer_inspect.py[0m
+2026-10-22T22:32:35.2649980Z shell: /usr/bin/bash -e {0}
+2026-10-22T22:32:35.2650245Z ##[endgroup]
+2026-10-22T22:32:40.0810165Z Reading package lists...
+2026-10-22T22:32:40.2685197Z Building dependency tree...
+2026-10-22T22:32:40.2694135Z Reading state information...
+2026-10-22T22:32:40.4268269Z squashfs-tools is already the newest version (1:4.6.1-1build1).
+2026-10-22T22:32:40.4269298Z squashfs-tools set to manually installed.
+2026-10-22T22:32:40.4270184Z The following NEW packages will be installed:
+2026-10-22T22:32:40.4273007Z   libarchive-tools
+2026-10-22T22:32:40.4448927Z 0 upgraded, 1 newly installed, 0 to remove and 99 not upgraded.
+2026-10-22T22:32:40.4449771Z Need to get 72.5 kB of archives.
+2026-10-22T22:32:40.4450392Z After this operation, 248 kB of additional disk space will be used.
+2026-10-22T22:32:40.4454708Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-22T22:32:40.5335103Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 libarchive-tools amd64 3.7.2-2ubuntu0.9 [72.5 kB]
+2026-10-22T22:32:40.7840569Z Fetched 72.5 kB in 0s (714 kB/s)
+2026-10-22T22:32:40.8065825Z Selecting previously unselected package libarchive-tools.
+2026-10-22T22:32:40.8330720Z (Reading database ...
+2026-10-22T22:32:40.8333411Z (Reading database ... 5%
+2026-10-22T22:32:40.8334039Z (Reading database ... 10%
+2026-10-22T22:32:40.8334920Z (Reading database ... 15%
+2026-10-22T22:32:40.8335354Z (Reading database ... 20%
+2026-10-22T22:32:40.8335757Z (Reading database ... 25%
+2026-10-22T22:32:40.8336141Z (Reading database ... 30%
+2026-10-22T22:32:40.8336547Z (Reading database ... 35%
+2026-10-22T22:32:40.8336927Z (Reading database ... 40%
+2026-10-22T22:32:40.8337304Z (Reading database ... 45%
+2026-10-22T22:32:40.8337689Z (Reading database ... 50%
+2026-10-22T22:32:40.8388791Z (Reading database ... 55%
+2026-10-22T22:32:40.9241288Z (Reading database ... 60%
+2026-10-22T22:32:41.1158143Z (Reading database ... 65%
+2026-10-22T22:32:41.3211605Z (Reading database ... 70%
+2026-10-22T22:32:41.5093601Z (Reading database ... 75%
+2026-10-22T22:32:41.6243593Z (Reading database ... 80%
+2026-10-22T22:32:41.7195562Z (Reading database ... 85%
+2026-10-22T22:32:41.8447525Z (Reading database ... 90%
+2026-10-22T22:32:41.9677113Z (Reading database ... 95%
+2026-10-22T22:32:41.9677871Z (Reading database ... 100%
+2026-10-22T22:32:41.9678816Z (Reading database ... 203540 files and directories currently installed.)
+2026-10-22T22:32:41.9723015Z Preparing to unpack .../libarchive-tools_3.7.2-2ubuntu0.9_amd64.deb ...
+2026-10-22T22:32:41.9746418Z Unpacking libarchive-tools (3.7.2-2ubuntu0.9) ...
+2026-10-22T22:32:42.0153758Z Setting up libarchive-tools (3.7.2-2ubuntu0.9) ...
+2026-10-22T22:32:42.0181195Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-22T22:32:42.0202753Z Not building database; man-db/auto-update is not 'true'.
+2026-10-22T22:32:42.6345196Z
+2026-10-22T22:32:42.6345940Z Running kernel seems to be up-to-date.
+2026-10-22T22:32:42.6346760Z
+2026-10-22T22:32:42.6347112Z No services need to be restarted.
+2026-10-22T22:32:42.6347588Z
+2026-10-22T22:32:42.6347944Z No containers need to be restarted.
+2026-10-22T22:32:42.6348412Z
+2026-10-22T22:32:42.6348795Z No user sessions are running outdated binaries.
+2026-10-22T22:32:42.6349325Z
+2026-10-22T22:32:42.6349807Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-22T22:36:07.4367356Z Pinned live ISO download verified: 776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6 (9068650496 bytes)
+2026-10-22T22:36:07.5204692Z .
+2026-10-22T22:36:07.5205191Z boot
+2026-10-22T22:36:07.5209335Z boot/grub2
+2026-10-22T22:36:07.5209828Z EFI
+2026-10-22T22:36:07.5210226Z EFI/BOOT
+2026-10-22T22:36:07.5210575Z EFI/fedora
+2026-10-22T22:36:07.5210900Z images
+2026-10-22T22:36:07.5211251Z images/pxeboot
+2026-10-22T22:36:07.5211877Z LiveOS
+2026-10-22T22:36:07.5212199Z boot.catalog
+2026-10-22T22:36:07.5212546Z boot/grub2/grub.cfg
+2026-10-22T22:36:07.5212914Z EFI/BOOT/BOOTIA32.EFI
+2026-10-22T22:36:07.5213302Z EFI/fedora/shimia32.efi
+2026-10-22T22:36:07.5213692Z EFI/BOOT/BOOTX64.EFI
+2026-10-22T22:36:07.5214074Z EFI/fedora/shim.efi
+2026-10-22T22:36:07.5214685Z EFI/fedora/shimx64.efi
+2026-10-22T22:36:07.5215064Z EFI/BOOT/fbia32.efi
+2026-10-22T22:36:07.5215420Z EFI/BOOT/fbx64.efi
+2026-10-22T22:36:07.5215765Z EFI/BOOT/grub.cfg
+2026-10-22T22:36:07.5216125Z EFI/fedora/BOOTIA32.CSV
+2026-10-22T22:36:07.5216510Z EFI/fedora/BOOTX64.CSV
+2026-10-22T22:36:07.5216889Z EFI/fedora/gcdx64.efi
+2026-10-22T22:36:07.5217253Z EFI/fedora/grub.cfg
+2026-10-22T22:36:07.5217609Z EFI/fedora/grubia32.efi
+2026-10-22T22:36:07.5218007Z EFI/fedora/grubx64.efi
+2026-10-22T22:36:07.5218389Z EFI/fedora/mmia32.efi
+2026-10-22T22:36:07.5218764Z EFI/fedora/mmx64.efi
+2026-10-22T22:36:07.5219136Z images/pxeboot/initrd.img
+2026-10-22T22:36:07.5219547Z images/pxeboot/vmlinuz
+2026-10-22T22:36:07.5219925Z LiveOS/squashfs.img
+2026-10-22T22:36:07.5220130Z
+2026-10-22T22:36:07.5242856Z boot/grub2/grub.cfg
+2026-10-22T22:36:07.5243428Z set timeout=3
+2026-10-22T22:36:07.5243921Z set default="0"
+2026-10-22T22:36:07.5244734Z set menu_auto_hide=false
+2026-10-22T22:36:07.5245131Z
+2026-10-22T22:36:07.5245692Z function load_video {
+2026-10-22T22:36:07.5246231Z   insmod all_video
+2026-10-22T22:36:07.5246807Z }
+2026-10-22T22:36:07.5247194Z
+2026-10-22T22:36:07.5247498Z load_video
+2026-10-22T22:36:07.5248022Z set gfxpayload=keep
+2026-10-22T22:36:07.5248572Z insmod gzio
+2026-10-22T22:36:07.5249080Z insmod part_gpt
+2026-10-22T22:36:07.5249622Z insmod chain
+2026-10-22T22:36:07.5250006Z
+2026-10-22T22:36:07.5250414Z search --no-floppy --set=root -l 'Bazzite-Live'
+2026-10-22T22:36:07.5251190Z menuentry 'Launch Bazzite Installer' {
+2026-10-22T22:36:07.5252192Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image
+2026-10-22T22:36:07.5253241Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:36:07.5253867Z }
+2026-10-22T22:36:07.5255094Z menuentry 'Launch Bazzite Installer (Basic Graphics Mode)' {
+2026-10-22T22:36:07.5256312Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image nomodeset
+2026-10-22T22:36:07.5257439Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:36:07.5258142Z }
+2026-10-22T22:36:07.5258449Z
+2026-10-22T22:36:07.5280421Z EFI/BOOT/grub.cfg
+2026-10-22T22:36:07.5305170Z set timeout=3
+2026-10-22T22:36:07.5305872Z set default="0"
+2026-10-22T22:36:07.5306469Z set menu_auto_hide=false
+2026-10-22T22:36:07.5306951Z
+2026-10-22T22:36:07.5307230Z function load_video {
+2026-10-22T22:36:07.5307613Z   insmod all_video
+2026-10-22T22:36:07.5307942Z }
+2026-10-22T22:36:07.5308169Z
+2026-10-22T22:36:07.5308496Z load_video
+2026-10-22T22:36:07.5309044Z set gfxpayload=keep
+2026-10-22T22:36:07.5309591Z insmod gzio
+2026-10-22T22:36:07.5310084Z insmod part_gpt
+2026-10-22T22:36:07.5310650Z insmod chain
+2026-10-22T22:36:07.5311026Z
+2026-10-22T22:36:07.5311398Z search --no-floppy --set=root -l 'Bazzite-Live'
+2026-10-22T22:36:07.5312273Z menuentry 'Launch Bazzite Installer' {
+2026-10-22T22:36:07.5313359Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image
+2026-10-22T22:36:07.5314791Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:36:07.5315495Z }
+2026-10-22T22:36:07.5316233Z menuentry 'Launch Bazzite Installer (Basic Graphics Mode)' {
+2026-10-22T22:36:07.5317459Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image nomodeset
+2026-10-22T22:36:07.5318609Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:36:07.5319267Z }
+2026-10-22T22:36:07.5319652Z
+2026-10-22T22:36:07.5320101Z EFI/fedora/grub.cfg
+2026-10-22T22:36:07.5320943Z set timeout=3
+2026-10-22T22:36:07.5321545Z set default="0"
+2026-10-22T22:36:07.5322125Z set menu_auto_hide=false
+2026-10-22T22:36:07.5322589Z
+2026-10-22T22:36:07.5322944Z function load_video {
+2026-10-22T22:36:07.5323770Z   insmod all_video
+2026-10-22T22:36:07.5324652Z }
+2026-10-22T22:36:07.5325217Z
+2026-10-22T22:36:07.5327857Z load_video
+2026-10-22T22:36:07.5328454Z set gfxpayload=keep
+2026-10-22T22:36:07.5329047Z insmod gzio
+2026-10-22T22:36:07.5329591Z insmod part_gpt
+2026-10-22T22:36:07.5330144Z insmod chain
+2026-10-22T22:36:07.5330537Z
+2026-10-22T22:36:07.5330945Z search --no-floppy --set=root -l 'Bazzite-Live'
+2026-10-22T22:36:07.5331685Z menuentry 'Launch Bazzite Installer' {
+2026-10-22T22:36:07.5332677Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image
+2026-10-22T22:36:07.5333717Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:36:07.5335014Z }
+2026-10-22T22:36:07.5335659Z menuentry 'Launch Bazzite Installer (Basic Graphics Mode)' {
+2026-10-22T22:36:07.5336873Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image nomodeset
+2026-10-22T22:36:07.5337979Z   initrd /images/pxeboot/initrd.img
+2026-10-22T22:36:07.5338595Z }
+2026-10-22T22:36:07.5338959Z
+2026-10-22T22:37:58.9044988Z dr-xr-xr-x root/root               269 2026-10-13 02:28 squashfs-root
+2026-10-22T22:37:58.9045900Z lrwxrwxrwx root/root                 7 1970-01-01 00:00 squashfs-root/bin -> usr/bin
+2026-10-22T22:37:58.9047005Z drwxr-xr-x root/root                39 2026-10-13 02:20 squashfs-root/boot
+2026-10-22T22:37:58.9048108Z drwxr-xr-x root/root                26 2026-10-13 02:20 squashfs-root/boot/efi
+2026-10-22T22:37:58.9049168Z drwxr-xr-x root/root                41 1970-01-01 00:00 squashfs-root/boot/efi/EFI
+2026-10-22T22:37:58.9050181Z drwxr-xr-x root/root                89 1970-01-01 00:00 squashfs-root/boot/efi/EFI/BOOT
+2026-10-22T22:37:58.9051714Z -rwx------ root/root            806195 1970-01-01 00:00 squashfs-root/boot/efi/EFI/BOOT/BOOTIA32.EFI
+2026-10-22T22:37:58.9052931Z -rwx------ root/root           1036008 1970-01-01 00:00 squashfs-root/boot/efi/EFI/BOOT/BOOTX64.EFI
+2026-10-22T22:37:58.9054249Z -rwx------ root/root             91584 1970-01-01 00:00 squashfs-root/boot/efi/EFI/BOOT/fbia32.efi
+2026-10-22T22:37:58.9055494Z -rwx------ root/root           4153768 2026-10-13 02:20 squashfs-root/boot/efi/EFI/BOOT/fbx64.efi
+2026-10-22T22:37:58.9056875Z drwxr-xr-x root/root               201 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora
+2026-10-22T22:37:58.9057997Z -rw------- root/root               112 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/BOOTIA32.CSV
+2026-10-22T22:37:58.9059153Z -rw------- root/root               110 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/BOOTX64.CSV
+2026-10-22T22:37:58.9060304Z -rwx------ root/root           4153768 2026-09-29 00:00 squashfs-root/boot/efi/EFI/fedora/gcdx64.efi
+2026-10-22T22:37:58.9061495Z -rwx------ root/root           3084712 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/grubia32.efi
+2026-10-22T22:37:58.9063221Z -rwx------ root/root           4153768 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/grubx64.efi
+2026-10-22T22:37:58.9064580Z -rwx------ root/root            695024 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/mmia32.efi
+2026-10-22T22:37:58.9065762Z -rwx------ root/root            874360 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/mmx64.efi
+2026-10-22T22:37:58.9066908Z -rwx------ root/root           1036008 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/shim.efi
+2026-10-22T22:37:58.9068057Z -rwx------ root/root            806195 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/shimia32.efi
+2026-10-22T22:37:58.9069231Z -rwx------ root/root           1036008 1970-01-01 00:00 squashfs-root/boot/efi/EFI/fedora/shimx64.efi
+2026-10-22T22:37:58.9070298Z drwxr-xr-x root/root                28 2026-10-13 02:20 squashfs-root/boot/grub2
+2026-10-22T22:37:58.9071578Z drwx------ root/root                34 2026-10-13 02:20 squashfs-root/boot/grub2/fonts
+2026-10-22T22:37:58.9072694Z -rwx------ root/root           2394108 2026-09-29 00:00 squashfs-root/boot/grub2/fonts/unicode.pf2
+2026-10-22T22:37:58.9073728Z drwxr-xr-x root/root                 3 1970-01-01 00:00 squashfs-root/dev
+2026-10-22T22:37:58.9075188Z drwxr-xr-x root/root              4712 2026-10-13 02:20 squashfs-root/etc
+2026-10-22T22:37:58.9076147Z -rw-r--r-- root/root              5977 1970-01-01 00:00 squashfs-root/etc/DIR_COLORS
+2026-10-22T22:37:58.9077206Z -rw-r--r-- root/root              6059 1970-01-01 00:00 squashfs-root/etc/DIR_COLORS.lightbgcolor
+2026-10-22T22:37:58.9078288Z drwxr-xr-x root/root                35 1970-01-01 00:00 squashfs-root/etc/GNUstep
+2026-10-22T22:37:58.9079339Z -rw-r--r-- root/root              6435 1970-01-01 00:00 squashfs-root/etc/GNUstep/GNUstep.conf
+2026-10-22T22:37:58.9080391Z -rw-r--r-- root/root                94 1970-01-01 00:00 squashfs-root/etc/GREP_COLORS
+2026-10-22T22:37:58.9081418Z drwxr-xr-x root/root               328 1970-01-01 00:00 squashfs-root/etc/ImageMagick-7
+2026-10-22T22:37:58.9082367Z -rw-r--r-- root/root              1383 1970-01-01 00:00 squashfs-ro
+2026-10-22T22:37:59.1549683Z etc/anaconda/conf.d/anaconda.conf
+2026-10-22T22:37:59.1551527Z [Payload]
+2026-10-22T22:37:59.1552264Z flatpak_remote = flathub https://dl.flathub.org/repo/
+2026-10-22T22:37:59.1553022Z
+2026-10-22T22:37:59.1599530Z etc/anaconda/profile.d/bazzite.conf
+2026-10-22T22:37:59.1601517Z # Anaconda configuration file for bazzite
+2026-10-22T22:37:59.1602046Z
+2026-10-22T22:37:59.1602481Z [Profile]
+2026-10-22T22:37:59.1603040Z # Define the profile.
+2026-10-22T22:37:59.1603740Z profile_id = bazzite
+2026-10-22T22:37:59.1604476Z
+2026-10-22T22:37:59.1604850Z [Profile Detection]
+2026-10-22T22:37:59.1605450Z # Match os-release values
+2026-10-22T22:37:59.1606063Z os_id = bazzite
+2026-10-22T22:37:59.1606465Z
+2026-10-22T22:37:59.1606802Z [Network]
+2026-10-22T22:37:59.1607366Z default_on_boot = FIRST_WIRED_WITH_LINK
+2026-10-22T22:37:59.1607894Z
+2026-10-22T22:37:59.1608264Z [Bootloader]
+2026-10-22T22:37:59.1608809Z efi_dir = fedora
+2026-10-22T22:37:59.1609336Z menu_auto_hide = True
+2026-10-22T22:37:59.1609750Z
+2026-10-22T22:37:59.1610057Z [Storage]
+2026-10-22T22:37:59.1610548Z default_scheme = BTRFS
+2026-10-22T22:37:59.1611163Z btrfs_compression = zstd:1
+2026-10-22T22:37:59.1611786Z default_partitioning =
+2026-10-22T22:37:59.1612385Z     /     (min 1 GiB, max 70 GiB)
+2026-10-22T22:37:59.1613028Z     /home (min 500 MiB, free 50 GiB)
+2026-10-22T22:37:59.1613648Z     /var  (btrfs)
+2026-10-22T22:37:59.1614042Z
+2026-10-22T22:37:59.1614769Z [User Interface]
+2026-10-22T22:37:59.1615370Z hidden_webui_pages =
+2026-10-22T22:37:59.1615926Z     network
+2026-10-22T22:37:59.1616293Z
+2026-10-22T22:37:59.1616616Z [Localization]
+2026-10-22T22:37:59.1617350Z use_geolocation = False
+2026-10-22T22:37:59.1627679Z
+2026-10-22T22:37:59.1656550Z etc/sysconfig/livesys
+2026-10-22T22:37:59.1658444Z # Session type for desktop environment livesys setup
+2026-10-22T22:37:59.1659217Z livesys_session=kde
+2026-10-22T22:37:59.1659695Z
+2026-10-22T22:37:59.1716017Z usr/bin/liveinst
+2026-10-22T22:37:59.1716623Z #!/usr/bin/bash
+2026-10-22T22:37:59.1718286Z #
+2026-10-22T22:37:59.1718902Z # Simple script to kick off an install from a live CD
+2026-10-22T22:37:59.1719678Z #
+2026-10-22T22:37:59.1720404Z # Copyright (C) 2007  Red Hat, Inc.  All rights reserved.
+2026-10-22T22:37:59.1721180Z #
+2026-10-22T22:37:59.1721880Z # This program is free software; you can redistribute it and/or modify
+2026-10-22T22:37:59.1722892Z # it under the terms of the GNU General Public License as published by
+2026-10-22T22:37:59.1723908Z # the Free Software Foundation; either version 2 of the License, or
+2026-10-22T22:37:59.1725132Z # (at your option) any later version.
+2026-10-22T22:37:59.1725776Z #
+2026-10-22T22:37:59.1726421Z # This program is distributed in the hope that it will be useful,
+2026-10-22T22:37:59.1727333Z # but WITHOUT ANY WARRANTY; without even the implied warranty of
+2026-10-22T22:37:59.1728708Z # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+2026-10-22T22:37:59.1729613Z # GNU General Public License for more details.
+2026-10-22T22:37:59.1730291Z #
+2026-10-22T22:37:59.1730944Z # You should have received a copy of the GNU General Public License
+2026-10-22T22:37:59.1732286Z # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+2026-10-22T22:37:59.1733159Z #
+2026-10-22T22:37:59.1734921Z
+2026-10-22T22:37:59.1735549Z BACKEND_READY_FLAG=/run/anaconda/backend_ready
+2026-10-22T22:37:59.1736698Z
+2026-10-22T22:37:59.1737133Z WAYLAND_DISPLAY_SOCKET=/tmp/anaconda-wldisplay
+2026-10-22T22:37:59.1738561Z ATSPI_BUSADDR=/tmp/anaconda-atspibusaddr
+2026-10-22T22:37:59.1739086Z
+2026-10-22T22:37:59.1739259Z
+2026-10-22T22:37:59.1739833Z # Start locale1-x11-sync.service unit to enable Anaconda to control keyboard layouts
+2026-10-22T22:37:59.1741478Z # This needs to be started only on X11 based systems
+2026-10-22T22:37:59.1742218Z start_locale_sync_unit() {
+2026-10-22T22:37:59.1756405Z     if [ -z "${WAYLAND_DISPLAY}" ] && [ -n "${DISPLAY}" ] && [ -e "/usr/lib/systemd/user/locale1-x11-sync.service" ]; then
+2026-10-22T22:37:59.1757445Z         systemctl --user start locale1-x11-sync.service
+2026-10-22T22:37:59.1757951Z     fi
+2026-10-22T22:37:59.1758249Z }
+2026-10-22T22:37:59.1758414Z
+2026-10-22T22:37:59.1758558Z stop_locale_sync_unit() {
+2026-10-22T22:37:59.1759301Z     if [ -z "${WAYLAND_DISPLAY}" ] && [ -n "${DISPLAY}" ] && [ -e "/usr/lib/systemd/user/locale1-x11-sync.service" ]; then
+2026-10-22T22:37:59.1760257Z         systemctl --user stop locale1-x11-sync.service
+2026-10-22T22:37:59.1760781Z     fi
+2026-10-22T22:37:59.1761066Z }
+2026-10-22T22:37:59.1761219Z
+2026-10-22T22:37:59.1761453Z # Detect and save the wayland socket before re-exec
+2026-10-22T22:37:59.1761984Z if [ -n "$WAYLAND_DISPLAY" ]; then
+2026-10-22T22:37:59.1762488Z     if [ -e "$WAYLAND_DISPLAY_SOCKET" ]; then
+2026-10-22T22:37:59.1763003Z         rm -f "${WAYLAND_DISPLAY_SOCKET}"
+2026-10-22T22:37:59.1763430Z     fi
+2026-10-22T22:37:59.1763786Z     touch "${WAYLAND_DISPLAY_SOCKET}"
+2026-10-22T22:37:59.1764652Z     echo "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}" > ${WAYLAND_DISPLAY_SOCKET}
+2026-10-22T22:37:59.1765275Z fi
+2026-10-22T22:37:59.1765430Z
+2026-10-22T22:37:59.1765644Z # Detect and save the a11y bus path before re-exec
+2026-10-22T22:37:59.1766300Z if [ -n "$WAYLAND_DISPLAY" ] && [ -z "$AT_SPI_BUS_ADDRESS" ]; then
+2026-10-22T22:37:59.1766925Z     if [ -e "$ATSPI_BUSADDR" ]; then
+2026-10-22T22:37:59.1767369Z         rm -f "${ATSPI_BUSADDR}"
+2026-10-22T22:37:59.1767757Z     fi
+2026-10-22T22:37:59.1768098Z     _BUSCTL_OUTPUTREGEX='"([^"]+)"'
+2026-10-22T22:37:59.1769898Z     _ATSPIADDR="$( busctl call --user org.a11y.Bus /org/a11y/bus org.a11y.Bus GetAddress )"
+2026-10-22T22:37:59.1771184Z     # Check that the busctl call did not fail and grab expected output
+2026-10-22T22:37:59.1771845Z     # shellcheck disable=SC2181
+2026-10-22T22:37:59.1772388Z     if [ "$?" -eq 0 ] && [[ $_ATSPIADDR =~ $_BUSCTL_OUTPUTREGEX ]]; then
+2026-10-22T22:37:59.1772985Z         touch "${ATSPI_BUSADDR}"
+2026-10-22T22:37:59.1773428Z         echo "${BASH_REMATCH[1]}" > ${ATSPI_BUSADDR}
+2026-10-22T22:37:59.1773709Z     fi
+2026-10-22T22:37:59.1773880Z fi
+2026-10-22T22:37:59.1773979Z
+2026-10-22T22:37:59.1773989Z
+2026-10-22T22:37:59.1780614Z # The command needs to be run with root privileges, so if it was started
+2026-10-22T22:37:59.1781050Z # unprivileged, restart running as root.
+2026-10-22T22:37:59.1781338Z if [ "$(id -u)" -ne 0 ]; then
+2026-10-22T22:37:59.1781597Z     if [ -z "$WAYLAND_DISPLAY" ]; then
+2026-10-22T22:37:59.1781872Z         xhost +si:localuser:root
+2026-10-22T22:37:59.1782097Z     fi
+2026-10-22T22:37:59.1782196Z
+2026-10-22T22:37:59.1782285Z     start_locale_sync_unit
+2026-10-22T22:37:59.1782508Z     pkexec "$0" "$@"
+2026-10-22T22:37:59.1782721Z     ret=$?
+2026-10-22T22:37:59.1782912Z     stop_locale_sync_unit
+2026-10-22T22:37:59.1783050Z
+2026-10-22T22:37:59.1783127Z     exit $ret
+2026-10-22T22:37:59.1783302Z fi
+2026-10-22T22:37:59.1783393Z
+2026-10-22T22:37:59.1783706Z # pkexec clears the environment, so get it back
+2026-10-22T22:37:59.1784012Z if [ -n "${PKEXEC_UID}" ]; then
+2026-10-22T22:37:59.1784651Z     INSTALLER_USER=$(id -n -u "${PKEXEC_UID}")
+2026-10-22T22:37:59.1785319Z     readarray -t user_environment < <(pkexec --user "${INSTALLER_USER}" env XDG_RUNTIME_DIR="/run/user/${PKEXEC_UID}" systemctl --user show-environment)
+2026-10-22T22:37:59.1786039Z
+2026-10-22T22:37:59.1786158Z     for variable in "${user_environment[@]}"; do
+2026-10-22T22:37:59.1786445Z       export "${variable?}"
+2026-10-22T22:37:59.1786666Z     done
+2026-10-22T22:37:59.1786835Z fi
+2026-10-22T22:37:59.1786928Z
+2026-10-22T22:37:59.1787054Z # pkexec clears WAYLAND_DISPLAY from environment
+2026-10-22T22:37:59.1787419Z if [ -z "$WAYLAND_DISPLAY" ] && [ -e "$WAYLAND_DISPLAY_SOCKET" ]; then
+2026-10-22T22:37:59.1787800Z     WAYLAND_DISPLAY=$(cat "${WAYLAND_DISPLAY_SOCKET}")
+2026-10-22T22:37:59.1788096Z     export WAYLAND_DISPLAY
+2026-10-22T22:37:59.1788302Z fi
+2026-10-22T22:37:59.1788396Z
+2026-10-22T22:37:59.1788538Z # needed to enable a11y features on Wayland environments
+2026-10-22T22:37:59.1788910Z if [ -n "$WAYLAND_DISPLAY" ] && [ -z "$AT_SPI_BUS_ADDRESS" ]; then
+2026-10-22T22:37:59.1789259Z     AT_SPI_BUS_ADDRESS=$(cat "${ATSPI_BUSADDR}")
+2026-10-22T22:37:59.1789545Z     export AT_SPI_BUS_ADDRESS
+2026-10-22T22:37:59.1789760Z fi
+2026-10-22T22:37:59.1789849Z
+2026-10-22T22:37:59.1790011Z # use the correct home and config directories for system settings
+2026-10-22T22:37:59.1790355Z PKEXEC_USER=$(id -un "${PKEXEC_UID}")
+2026-10-22T22:37:59.1790634Z HOME=$(bash -c "cd ~${PKEXEC_USER} && pwd")
+2026-10-22T22:37:59.1790897Z export HOME
+2026-10-22T22:37:59.1791091Z XDG_CONFIG_HOME="${HOME}/.config"
+2026-10-22T22:37:59.1791330Z export XDG_CONFIG_HOME
+2026-10-22T22:37:59.1791464Z
+2026-10-22T22:37:59.1791650Z # Prevent multiple instances (rhbz#2440264): only one installer at a time
+2026-10-22T22:37:59.1792037Z LIVEINST_LOCK=/run/anaconda/liveinst.lock
+2026-10-22T22:37:59.1792307Z mkdir -p /run/anaconda
+2026-10-22T22:37:59.1792522Z exec 9>"${LIVEINST_LOCK}"
+2026-10-22T22:37:59.1792737Z if ! flock -n 9; then
+2026-10-22T22:37:59.1792959Z     title="Installer already running"
+2026-10-22T22:37:59.1793345Z     text="The installer is already running. Please use the existing installer window."
+2026-10-22T22:37:59.1793759Z     if which zenity &>/dev/null; then
+2026-10-22T22:37:59.1794411Z         zenity --info --no-markup --title="$title" --text="$text"
+2026-10-22T22:37:59.1795021Z     else
+2026-10-22T22:37:59.1799177Z         echo "$title: $text" >&2
+2026-10-22T22:37:59.1799623Z     fi
+2026-10-22T22:37:59.1799951Z     exit 0
+2026-10-22T22:37:59.1800543Z fi
+2026-10-22T22:37:59.1800727Z
+2026-10-22T22:37:59.1801098Z # Allow running another command in the place of anaconda, but in this same
+2026-10-22T22:37:59.1801847Z # environment.  This allows storage testing to make use of all the module
+2026-10-22T22:37:59.1802256Z # loading and lvm control in this file, too.
+2026-10-22T22:37:59.1802598Z ANACONDA="${LIVECMD:=anaconda --liveinst --graphical}"
+2026-10-22T22:37:59.1802827Z
+2026-10-22T22:37:59.1802984Z # load modules that would get loaded by the initramfs (#230945)
+2026-10-22T22:37:59.1803861Z for i in raid0 raid1 raid5 raid6 raid456 raid10 dm-mod dm-zero dm-mirror dm-snapshot dm-multipath dm-round-robin vfat dm-crypt cbc sha256 lrw xts iscsi_tcp iscsi_ibft; do /sbin/modprobe $i 2>/dev/null ; done
+2026-10-22T22:37:59.1804990Z
+2026-10-22T22:37:59.1805110Z if [ -f /etc/system-release ]; then
+2026-10-22T22:37:59.1805386Z     export ANACONDA_PRODUCTNAME
+2026-10-22T22:37:59.1805746Z     ANACONDA_PRODUCTNAME=$(sed -r -e 's/ *release.*//' /etc/system-release)
+2026-10-22T22:37:59.1806137Z     export ANACONDA_PRODUCTVERSION
+2026-10-22T22:37:59.1806507Z     ANACONDA_PRODUCTVERSION=$(sed -r -e 's/^.* ([0-9\.]+).*$/\1/' /etc/system-release)
+2026-10-22T22:37:59.1806882Z fi
+2026-10-22T22:37:59.1806978Z
+2026-10-22T22:37:59.1807150Z RELEASE=$(rpm -q --qf '%{Release}' --whatprovides system-release)
+2026-10-22T22:37:59.1807662Z if [ "${RELEASE:0:2}" = "0." ]; then
+2026-10-22T22:37:59.1807937Z     export ANACONDA_ISFINAL="false"
+2026-10-22T22:37:59.1808171Z else
+2026-10-22T22:37:59.1808353Z     export ANACONDA_ISFINAL="true"
+2026-10-22T22:37:59.1808578Z fi
+2026-10-22T22:37:59.1808786Z
+2026-10-22T22:37:59.1808892Z export PATH=/sbin:/usr/sbin:$PATH
+2026-10-22T22:37:59.1809060Z
+2026-10-22T22:37:59.1809163Z if [ -x /usr/sbin/getenforce ]; then
+2026-10-22T22:37:59.1809427Z     current=$(/usr/sbin/getenforce)
+2026-10-22T22:37:59.1809671Z     /usr/sbin/setenforce 0
+2026-10-22T22:37:59.1809875Z fi
+2026-10-22T22:37:59.1809967Z
+2026-10-22T22:37:59.1810064Z if (! sestatus | grep -q enabled) then
+2026-10-22T22:37:59.1810333Z     ANACONDA="$ANACONDA --noselinux"
+2026-10-22T22:37:59.1810564Z fi
+2026-10-22T22:37:59.1810653Z
+2026-10-22T22:37:59.1810744Z # Process cmdline args
+2026-10-22T22:37:59.1810985Z for opt in $(cat /proc/cmdline) "$@"; do
+2026-10-22T22:37:59.1811240Z     case $opt in
+2026-10-22T22:37:59.1811427Z     updates=*)
+2026-10-22T22:37:59.1811631Z         UPDATES="${opt#updates=}"
+2026-10-22T22:37:59.1811858Z         ;;
+2026-10-22T22:37:59.1812036Z     --updates=*)
+2026-10-22T22:37:59.1812239Z         UPDATES="${opt#--updates=}"
+2026-10-22T22:37:59.1812479Z         ;;
+2026-10-22T22:37:59.1812671Z     inst.updates=*)
+2026-10-22T22:37:59.1812890Z         UPDATES="${opt#inst.updates=}"
+2026-10-22T22:37:59.1813128Z         ;;
+2026-10-22T22:37:59.1813305Z     --inst.updates=*)
+2026-10-22T22:37:59.1813525Z         UPDATES="${opt#--inst.updates=}"
+2026-10-22T22:37:59.1813770Z         ;;
+2026-10-22T22:37:59.1813943Z     --updates)
+2026-10-22T22:37:59.1828398Z         title="updates error"
+2026-10-22T22:37:59.1828821Z         text="liveinst requires --updates=<url> instead of --updates <url>"
+2026-10-22T22:37:59.1829220Z         if which zenity &> /dev/null; then
+2026-10-22T22:37:59.1829562Z             zenity --error --no-markup --title="$title" --text="$text"
+2026-10-22T22:37:59.1829893Z         else
+2026-10-22T22:37:59.1830094Z             echo "$title" >&2
+2026-10-22T22:37:59.1830322Z             echo "$text" >&2
+2026-10-22T22:37:59.1830532Z         fi
+2026-10-22T22:37:59.1830704Z         exit 1
+2026-10-22T22:37:59.1830879Z         ;;
+2026-10-22T22:37:59.1831235Z     ks=*|kickstart=*|--ks=*|--kickstart=*|inst.ks=*|--inst.ks=*|inst.kickstart=*|--inst-kickstart=*)
+2026-10-22T22:37:59.1831688Z         title="Configuration not supported"
+2026-10-22T22:37:59.1832310Z         text="Kickstart is not supported on Live ISO installs, please use netinstall or standard ISO.  This installation will continue interactively."
+2026-10-22T22:37:59.1832920Z         if which zenity &> /dev/null; then
+2026-10-22T22:37:59.1833235Z             zenity --warning --title="$title" --text="$text"
+2026-10-22T22:37:59.1833524Z          else
+2026-10-22T22:37:59.1833711Z             echo "$title" >&2
+2026-10-22T22:37:59.1833931Z             echo "$text" >&2
+2026-10-22T22:37:59.1834518Z          fi
+2026-10-22T22:37:59.1834842Z         ;;
+2026-10-22T22:37:59.1835178Z     rescue|--rescue)
+2026-10-22T22:37:59.1835595Z         title="Configuration not supported"
+2026-10-22T22:37:59.1836548Z         text="Rescue mode is not supported on live media.  Please use the normal system tools to recover your system."
+2026-10-22T22:37:59.1837461Z         if which zenity &> /dev/null; then
+2026-10-22T22:37:59.1838082Z             zenity --warning --title="$title" --text="$text"
+2026-10-22T22:37:59.1838590Z          else
+2026-10-22T22:37:59.1838909Z             echo "$title" >&2
+2026-10-22T22:37:59.1839297Z             echo "$text" >&2
+2026-10-22T22:37:59.1839663Z          fi
+2026-10-22T22:37:59.1839952Z          exit 1
+2026-10-22T22:37:59.1840254Z         ;;
+2026-10-22T22:37:59.1840747Z     rdp|rdp.username|rdp.password|--rdp|--rdp.username|--rdp.password)
+2026-10-22T22:37:59.1841398Z         title="Configuration not supported"
+2026-10-22T22:37:59.1841931Z         text="RDP is not supported on live media."
+2026-10-22T22:37:59.1842448Z         if which zenity &> /dev/null; then
+2026-10-22T22:37:59.1843190Z             zenity --warning --title="$title" --text="$text"
+2026-10-22T22:37:59.1843716Z          else
+2026-10-22T22:37:59.1844035Z             echo "$title" >&2
+2026-10-22T22:37:59.1845561Z             echo "$text" >&2
+2026-10-22T22:37:59.1846286Z          fi
+2026-10-22T22:37:59.1846584Z          exit 1
+2026-10-22T22:37:59.1846889Z         ;;
+2026-10-22T22:37:59.1847173Z     esac
+2026-10-22T22:37:59.1847455Z done
+2026-10-22T22:37:59.1847621Z
+2026-10-22T22:37:59.1847886Z # unmount anything that shouldn't be mounted prior to install
+2026-10-22T22:37:59.1848481Z anaconda-cleanup "$ANACONDA" "$@"
+2026-10-22T22:37:59.1848772Z
+2026-10-22T22:37:59.1848939Z # Set up the updates, if provided.
+2026-10-22T22:37:59.1849375Z if [ -n "$UPDATES" ]; then
+2026-10-22T22:37:59.1849787Z     curl -o /tmp/updates.img "$UPDATES"
+2026-10-22T22:37:59.1850096Z
+2026-10-22T22:37:59.1850447Z     # We officially support two updates.img formats:  a filesystem image, and
+2026-10-22T22:37:59.1851108Z     # a compressed cpio blob.
+2026-10-22T22:37:59.1851664Z     if (file /tmp/updates.img | grep -q 'gzip compressed data'); then
+2026-10-22T22:37:59.1894818Z         ( cd / ; gzip -dc /tmp/updates.img | cpio -idu )
+2026-10-22T22:37:59.1895148Z     else
+2026-10-22T22:37:59.1895365Z         mkdir /tmp/updates.disk
+2026-10-22T22:37:59.1895665Z         mount -t auto /tmp/updates.img /tmp/updates.disk
+2026-10-22T22:37:59.1895991Z         cp -Rt / /tmp/updates.disk/*
+2026-10-22T22:37:59.1896253Z         umount /tmp/updates.disk
+2026-10-22T22:37:59.1896493Z         rmdir /tmp/updates.disk
+2026-10-22T22:37:59.1896718Z     fi
+2026-10-22T22:37:59.1896826Z
+2026-10-22T22:37:59.1896898Z fi
+2026-10-22T22:37:59.1897002Z
+2026-10-22T22:37:59.1897095Z start_anaconda_web_ui() {
+2026-10-22T22:37:59.1897407Z     # remove flag file about initialized backend it shouldn't exists
+2026-10-22T22:37:59.1897810Z     # if the file existed before it might be a broken cleanup
+2026-10-22T22:37:59.1898136Z     if [ -e "$BACKEND_READY_FLAG" ]; then
+2026-10-22T22:37:59.1898638Z         echo "Anaconda backend flag file still exists! Probably a problem with cleanup. Removing now!" >&2
+2026-10-22T22:37:59.1899133Z         rm -f "$BACKEND_READY_FLAG" 2>/dev/null
+2026-10-22T22:37:59.1899399Z     fi
+2026-10-22T22:37:59.1899633Z     # early execution of Firefox to reduce starting time
+2026-10-22T22:37:59.1899940Z     mkdir -p /run/anaconda
+2026-10-22T22:37:59.1900212Z     /usr/libexec/anaconda/webui-desktop -t live &
+2026-10-22T22:37:59.1900534Z     echo -n "$!" > /run/anaconda/webui_script.pid
+2026-10-22T22:37:59.1900800Z }
+2026-10-22T22:37:59.1900893Z
+2026-10-22T22:37:59.1900981Z start_anaconda() {
+2026-10-22T22:37:59.1901241Z     # start Firefox to use Anaconda Web UI if it is installed
+2026-10-22T22:37:59.1901601Z     if [ -e "/usr/share/cockpit/anaconda-webui" ]; then
+2026-10-22T22:37:59.1901904Z         start_anaconda_web_ui
+2026-10-22T22:37:59.1902120Z     fi
+2026-10-22T22:37:59.1902306Z     # start Anaconda main process
+2026-10-22T22:37:59.1902545Z     $ANACONDA "$@"
+2026-10-22T22:37:59.1902741Z }
+2026-10-22T22:37:59.1902832Z
+2026-10-22T22:37:59.1902998Z # If no wayland socket is set, force x11 so that it loads correctly
+2026-10-22T22:37:59.1903348Z if [ -z "$WAYLAND_DISPLAY" ]; then
+2026-10-22T22:37:59.1903604Z     export GDK_BACKEND=x11
+2026-10-22T22:37:59.1903817Z fi
+2026-10-22T22:37:59.1903908Z
+2026-10-22T22:37:59.1904002Z if [ -x /usr/bin/udisks ]; then
+2026-10-22T22:37:59.1904687Z     /usr/bin/udisks --inhibit -- start_anaconda "$@"
+2026-10-22T22:37:59.1905205Z else
+2026-10-22T22:37:59.1905421Z     start_anaconda "$@"
+2026-10-22T22:37:59.1905626Z fi
+2026-10-22T22:37:59.1905725Z
+2026-10-22T22:37:59.1905872Z if [ -e /tmp/updates.img ]; then rm /tmp/updates.img; fi
+2026-10-22T22:37:59.1906298Z
+2026-10-22T22:37:59.1906467Z rm -f /dev/.in_sysinit 2>/dev/null
+2026-10-22T22:37:59.1906756Z
+2026-10-22T22:37:59.1906920Z if [ -n "$current" ]; then
+2026-10-22T22:37:59.1907164Z     /usr/sbin/setenforce "$current"
+2026-10-22T22:37:59.1907398Z fi
+2026-10-22T22:37:59.1907498Z
+2026-10-22T22:37:59.1908001Z usr/lib/os-release
+2026-10-22T22:37:59.1908328Z NAME="Bazzite"
+2026-10-22T22:37:59.1908534Z VERSION="44.20261012.0 (Kinoite)"
+2026-10-22T22:37:59.1908773Z RELEASE_TYPE=stable
+2026-10-22T22:37:59.1908978Z ID=bazzite
+2026-10-22T22:37:59.1909460Z ID_LIKE="fedora"
+2026-10-22T22:37:59.1909757Z VERSION_ID=44
+2026-10-22T22:37:59.1909957Z VERSION_CODENAME="Kinoite"
+2026-10-22T22:37:59.1910186Z PRETTY_NAME="Bazzite"
+2026-10-22T22:37:59.1910401Z ANSI_COLOR="0;38;2;138;43;226"
+2026-10-22T22:37:59.1910628Z LOGO=bazzite-logo
+2026-10-22T22:37:59.1910853Z CPE_NAME="cpe:/o:universal-blue:bazzite:44"
+2026-10-22T22:37:59.1911136Z DEFAULT_HOSTNAME="bazzite"
+2026-10-22T22:37:59.1911375Z HOME_URL="https://bazzite.gg"
+2026-10-22T22:37:59.1911660Z DOCUMENTATION_URL="https://docs.bazzite.gg"
+2026-10-22T22:37:59.1911989Z SUPPORT_URL="https://discord.bazzite.gg"
+2026-10-22T22:37:59.1912338Z BUG_REPORT_URL="https://github.com/ublue-os/bazzite/issues/"
+2026-10-22T22:37:59.1912667Z SUPPORT_END=2027-05-19
+2026-10-22T22:37:59.1912885Z VARIANT="Kinoite"
+2026-10-22T22:37:59.1913081Z VARIANT_ID=bazzite
+2026-10-22T22:37:59.1913284Z OSTREE_VERSION='44.20261012.0'
+2026-10-22T22:37:59.1913520Z BUILD_ID="Stable (F44.20261012)"
+2026-10-22T22:37:59.1913785Z BOOTLOADER_NAME="Bazzite Stable (F44.20261012)"
+2026-10-22T22:37:59.1915685Z IMAGE_ID="bazzite-44.20261012"
+2026-10-22T22:37:59.1915962Z
+2026-10-22T22:37:59.1916419Z usr/libexec/livesys/functions
+2026-10-22T22:37:59.1916998Z #!/bin/sh
+2026-10-22T22:37:59.1917651Z # Functions to be used with livesys-* scripts
+2026-10-22T22:37:59.1918178Z
+2026-10-22T22:37:59.1918518Z # Check if gettext exists
+2026-10-22T22:37:59.1919085Z if ! type gettext > /dev/null 2>&1; then
+2026-10-22T22:37:59.1919891Z   # If not, create a dummy function that returns the input verbatim
+2026-10-22T22:37:59.1920687Z   gettext() { printf '%s' "$1"; }
+2026-10-22T22:37:59.1921288Z fi
+2026-10-22T22:37:59.1921590Z
+2026-10-22T22:37:59.1922033Z # returns OK if $1 contains literal string $2 (and isn't empty)
+2026-10-22T22:37:59.1922747Z strstr() {
+2026-10-22T22:37:59.1923236Z     [ "${1##*"$2"*}" != "$1" ]
+2026-10-22T22:37:59.1923725Z }
+2026-10-22T22:37:59.1924039Z
+2026-10-22T22:37:59.1924662Z # Run some action. Log its output.
+2026-10-22T22:37:59.1925266Z action() {
+2026-10-22T22:37:59.1925706Z     local STRING rc
+2026-10-22T22:37:59.1926104Z
+2026-10-22T22:37:59.1926348Z     STRING=$1
+2026-10-22T22:37:59.1926848Z     printf '%s' "$(gettext "${STRING} ")"
+2026-10-22T22:37:59.1927429Z     shift
+2026-10-22T22:37:59.1927902Z     if "$@"; then
+2026-10-22T22:37:59.1928372Z         success "$(gettext "${STRING} ")"
+2026-10-22T22:37:59.1928958Z     else
+2026-10-22T22:37:59.1929406Z         failure "$(gettext "${STRING} ")"
+2026-10-22T22:37:59.1929997Z     fi
+2026-10-22T22:37:59.1930401Z     rc=$?
+2026-10-22T22:37:59.1930848Z     printf '\n'
+2026-10-22T22:37:59.1931297Z     return $rc
+2026-10-22T22:37:59.1931774Z }
+2026-10-22T22:37:59.1932052Z
+2026-10-22T22:37:59.1932511Z # verbose ->> very (very!) old bootup look (prior to RHL-6.0?)
+2026-10-22T22:37:59.1933206Z # color ->> default bootup look
+2026-10-22T22:37:59.1933923Z # other ->> default bootup look without ANSI colors or positioning
+2026-10-22T22:37:59.1935099Z BOOTUP=color
+2026-10-22T22:37:59.1936742Z # Column to start "[  OK  ]" label in:
+2026-10-22T22:37:59.1937328Z RES_COL=60
+2026-10-22T22:37:59.1937863Z # terminal sequence to move to that column:
+2026-10-22T22:37:59.1938546Z MOVE_TO_COL="printf \\033[${RES_COL}G"
+2026-10-22T22:37:59.1939288Z # Terminal sequence to set color to a 'success' (bright green):
+2026-10-22T22:37:59.1939987Z SETCOLOR_SUCCESS="printf \\033[1;32m"
+2026-10-22T22:37:59.1940694Z # Terminal sequence to set color to a 'failure' (bright red):
+2026-10-22T22:37:59.1941378Z SETCOLOR_FAILURE="printf \\033[1;31m"
+2026-10-22T22:37:59.1942102Z # Terminal sequence to set color to a 'warning' (bright yellow):
+2026-10-22T22:37:59.1942798Z SETCOLOR_WARNING="printf \\033[1;33m"
+2026-10-22T22:37:59.1943441Z # Terminal sequence to reset to the default color:
+2026-10-22T22:37:59.1944620Z SETCOLOR_NORMAL="printf \\033[0;39m"
+2026-10-22T22:37:59.1945187Z
+2026-10-22T22:37:59.1945450Z # NOTE: /dev/ttyS* is serial console.
+2026-10-22T22:37:59.1946127Z # 'not a tty' is reported when executed under systemd service units
+2026-10-22T22:37:59.1947223Z # where /dev/null is associated with standard input
+2026-10-22T22:37:59.1947703Z
+2026-10-22T22:37:59.1947988Z test_tty=$(LC_ALL=C tty)
+2026-10-22T22:37:59.1948462Z case "$test_tty" in
+2026-10-22T22:37:59.1948960Z     /dev/ttyS* | 'not a tty')
+2026-10-22T22:37:59.1949445Z         BOOTUP=serial
+2026-10-22T22:37:59.1949928Z         MOVE_TO_COL=
+2026-10-22T22:37:59.1950368Z         SETCOLOR_SUCCESS=
+2026-10-22T22:37:59.1950888Z         SETCOLOR_FAILURE=
+2026-10-22T22:37:59.1951389Z         SETCOLOR_WARNING=
+2026-10-22T22:37:59.1951905Z         SETCOLOR_NORMAL=
+2026-10-22T22:37:59.1952356Z         ;;
+2026-10-22T22:37:59.1952790Z esac
+2026-10-22T22:37:59.1953050Z
+2026-10-22T22:37:59.1953349Z # Log that something succeeded
+2026-10-22T22:37:59.1953852Z success() {
+2026-10-22T22:37:59.1954595Z     [ "$BOOTUP" != "verbose" ] && echo_success
+2026-10-22T22:37:59.1955162Z     return 0
+2026-10-22T22:37:59.1955609Z }
+2026-10-22T22:37:59.1955866Z
+2026-10-22T22:37:59.1956147Z # Log that something failed
+2026-10-22T22:37:59.1956629Z failure() {
+2026-10-22T22:37:59.1957081Z     local rc=$?
+2026-10-22T22:37:59.1957526Z     [ "$BOOTUP" != "verbose" ] && echo_failure
+2026-10-22T22:37:59.1958194Z     [ -x /bin/plymouth ] && /bin/plymouth --details
+2026-10-22T22:37:59.1958806Z     return $rc
+2026-10-22T22:37:59.1959270Z }
+2026-10-22T22:37:59.1959570Z
+2026-10-22T22:37:59.1959839Z echo_success() {
+2026-10-22T22:37:59.1960328Z     [ "$BOOTUP" = "color" ] && $MOVE_TO_COL
+2026-10-22T22:37:59.1960950Z     printf '%s' "["
+2026-10-22T22:37:59.1961434Z     [ "$BOOTUP" = "color" ] && $SETCOLOR_SUCCESS
+2026-10-22T22:37:59.1962094Z     printf '%s' "$(gettext "  OK  ")"
+2026-10-22T22:37:59.1962689Z     [ "$BOOTUP" = "color" ] && $SETCOLOR_NORMAL
+2026-10-22T22:37:59.1963341Z     printf '%s' "]"
+2026-10-22T22:37:59.1963785Z     printf '\r'
+2026-10-22T22:37:59.1964560Z     return 0
+2026-10-22T22:37:59.1965604Z }
+2026-10-22T22:37:59.1965875Z
+2026-10-22T22:37:59.1966099Z echo_failure() {
+2026-10-22T22:37:59.1966568Z     [ "$BOOTUP" = "color" ] && $MOVE_TO_COL
+2026-10-22T22:37:59.1967112Z     printf '%s' "["
+2026-10-22T22:37:59.1967632Z     [ "$BOOTUP" = "color" ] && $SETCOLOR_FAILURE
+2026-10-22T22:37:59.1968217Z     printf '%s' "$(gettext "FAILED")"
+2026-10-22T22:37:59.1968826Z     [ "$BOOTUP" = "color" ] && $SETCOLOR_NORMAL
+2026-10-22T22:37:59.1969379Z     printf '%s' "]"
+2026-10-22T22:37:59.1969852Z     printf '\r'
+2026-10-22T22:37:59.1970263Z     return 1
+2026-10-22T22:37:59.1970701Z }
+2026-10-22T22:37:59.1970947Z
+2026-10-22T22:37:59.1971214Z fscheck() {
+2026-10-22T22:37:59.1971617Z     local fstype="$1"
+2026-10-22T22:37:59.1972089Z     local fs="$2"
+2026-10-22T22:37:59.1972528Z     local d="${3:-$2}"
+2026-10-22T22:37:59.1973058Z     umount "$fs" >/dev/null 2>&1 || :
+2026-10-22T22:37:59.1974048Z     case "$fstype" in
+2026-10-22T22:37:59.1974955Z         ext[432])
+2026-10-22T22:37:59.1975379Z             printf '\n'
+2026-10-22T22:37:59.1975921Z             flock "$d" e2fsck -yfv "$fs" || :
+2026-10-22T22:37:59.1976527Z             ;;
+2026-10-22T22:37:59.1977013Z         vfat|msdos)
+2026-10-22T22:37:59.1977441Z             printf '\n'
+2026-10-22T22:37:59.1977971Z             flock "$d" fsck.fat -avVw "$fs"
+2026-10-22T22:37:59.1978561Z             ;;
+2026-10-22T22:37:59.1979076Z         btrfs)
+2026-10-22T22:37:59.1979640Z             printf '# btrfs check -p --repair --force'
+2026-10-22T22:37:59.1980499Z             flock "$d" btrfs check -p --repair --force "$fs"
+2026-10-22T22:37:59.1982379Z             ;;
+2026-10-22T22:37:59.1982887Z         xfs)
+2026-10-22T22:37:59.1983377Z             printf '\n# xfs_repair -v'
+2026-10-22T22:37:59.1984332Z             flock "$d" xfs_repair -v "$fs"
+2026-10-22T22:37:59.1984989Z             ;;
+2026-10-22T22:37:59.1985513Z         f2fs)
+2026-10-22T22:37:59.1986213Z             printf '# fsck.f2fs -afy'
+2026-10-22T22:37:59.1986908Z             flock "$d" fsck.f2fs -afy "$fs"
+2026-10-22T22:37:59.1987499Z             ;;
+2026-10-22T22:37:59.1987994Z         *)
+2026-10-22T22:37:59.1988837Z             printf "\n\tERROR:   Filesystem checking for '%s' is not\n \
+2026-10-22T22:37:59.1989626Z                 available.\n" "$fstype"
+2026-10-22T22:37:59.1990168Z     esac
+2026-10-22T22:37:59.1990623Z }
+2026-10-22T22:37:59.1990900Z
+2026-10-22T22:37:59.1991061Z
+2026-10-22T22:37:59.1991366Z usr/libexec/livesys/livesys-late
+2026-10-22T22:37:59.1991935Z #!/usr/bin/sh
+2026-10-22T22:37:59.1992359Z #
+2026-10-22T22:37:59.1992843Z # live: Late init script for live image
+2026-10-22T22:37:59.1993439Z # SPDX-License-Identifier: GPL-3.0-or-later
+2026-10-22T22:37:59.1993937Z
+2026-10-22T22:37:59.1994431Z cmdline=$(cat /proc/cmdline)' '
+2026-10-22T22:37:59.1994853Z
+2026-10-22T22:37:59.1995201Z if [ "${cmdline##* rd.live.debug[= ]}" != "$cmdline" ] ||
+2026-10-22T22:37:59.1995952Z     [ "${cmdline##* rdlivedebug[= ]}" != "$cmdline" ]; then
+2026-10-22T22:37:59.1996711Z     exec > /run/initramfs/livesys-late.$$.out 2>&1
+2026-10-22T22:37:59.1997321Z     set -x
+2026-10-22T22:37:59.1997801Z     if [ "$BASH" ]; then
+2026-10-22T22:37:59.1998292Z         export \
+2026-10-22T22:37:59.1999523Z             PS4='+ (${BASH_SOURCE}@${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+2026-10-22T22:37:59.2000240Z     else
+2026-10-22T22:37:59.2001533Z         export PS4='+ (${0##*/}@${LINENO}): '
+2026-10-22T22:37:59.2002092Z     fi
+2026-10-22T22:37:59.2002526Z fi
+2026-10-22T22:37:59.2002780Z
+2026-10-22T22:37:59.2003134Z { [ "${cmdline##* rd.live.image[= ]}" = "$cmdline" ] &&
+2026-10-22T22:37:59.2003786Z     [ "${cmdline##* liveimg[= ]}" = "$cmdline" ]; } ||
+2026-10-22T22:37:59.2004839Z     [ -e /.liveimg-late-configured ] && exit 0
+2026-10-22T22:37:59.2005297Z
+2026-10-22T22:37:59.2005603Z : > /.liveimg-late-configured
+2026-10-22T22:37:59.2005966Z
+2026-10-22T22:37:59.2006300Z # read some variables out of /proc/cmdline
+2026-10-22T22:37:59.2006857Z cut=${cmdline##* ks=}
+2026-10-22T22:37:59.2007441Z [ ${#cut} -ne ${#cmdline} ] && ks=--kickstart="${cut%% *}"
+2026-10-22T22:37:59.2007922Z
+2026-10-22T22:37:59.2008211Z cut=${cmdline##* xdriver=}
+2026-10-22T22:37:59.2008746Z [ ${#cut} -ne ${#cmdline} ] && xdriver="${cut%% *}"
+2026-10-22T22:37:59.2009243Z
+2026-10-22T22:37:59.2009542Z # if liveinst or textinst is given, start anaconda
+2026-10-22T22:37:59.2010202Z if [ "${cmdline##* liveinst }" != "$cmdline" ]; then
+2026-10-22T22:37:59.2010818Z    plymouth --quit
+2026-10-22T22:37:59.2011316Z    /usr/sbin/liveinst "$ks"
+2026-10-22T22:37:59.2011786Z fi
+2026-10-22T22:37:59.2012282Z if [ "${cmdline##* textinst }" != "$cmdline" ]; then
+2026-10-22T22:37:59.2012875Z    plymouth --quit
+2026-10-22T22:37:59.2013383Z    /usr/sbin/liveinst --text "$ks"
+2026-10-22T22:37:59.2013886Z fi
+2026-10-22T22:37:59.2014546Z
+2026-10-22T22:37:59.2014875Z # configure X, allowing user to override xdriver
+2026-10-22T22:37:59.2015500Z if [ "$xdriver" ]; then
+2026-10-22T22:37:59.2016029Z    cat > /etc/X11/xorg.conf.d/00-xdriver.conf <<FOE
+2026-10-22T22:37:59.2016664Z Section "Device"
+2026-10-22T22:37:59.2017104Z 	Identifier	"Videocard0"
+2026-10-22T22:37:59.2017621Z 	Driver	"$xdriver"
+2026-10-22T22:37:59.2018050Z EndSection
+2026-10-22T22:37:59.2018485Z FOE
+2026-10-22T22:37:59.2018853Z fi
+2026-10-22T22:37:59.2019157Z
+2026-10-22T22:37:59.2019562Z # allow extra stuff to be defined for derived spins (e.g., fedora labs)
+2026-10-22T22:37:59.2020399Z if [ -f /var/lib/livesys/livesys-session-late-extra ]; then
+2026-10-22T22:37:59.2021111Z   . /var/lib/livesys/livesys-session-late-extra
+2026-10-22T22:37:59.2021785Z fi
+2026-10-22T22:37:59.2022045Z
+2026-10-22T22:37:59.2022220Z
+2026-10-22T22:37:59.2039827Z usr/libexec/livesys/livesys-main
+2026-10-22T22:37:59.2040545Z #!/usr/bin/sh
+2026-10-22T22:37:59.2041057Z #
+2026-10-22T22:37:59.2041546Z # live: Init script for live image
+2026-10-22T22:37:59.2042149Z # SPDX-License-Identifier: GPL-3.0-or-later
+2026-10-22T22:37:59.2042890Z
+2026-10-22T22:37:59.2043269Z . /usr/libexec/livesys/functions
+2026-10-22T22:37:59.2043749Z
+2026-10-22T22:37:59.2044350Z cmdline=$(cat /proc/cmdline)' '
+2026-10-22T22:37:59.2044944Z
+2026-10-22T22:37:59.2045335Z if [ "${cmdline##* rd.live.debug[= ]}" != "$cmdline" ] ||
+2026-10-22T22:37:59.2046396Z     [ "${cmdline##* rdlivedebug[= ]}" != "$cmdline" ]; then
+2026-10-22T22:37:59.2047198Z     exec > /run/initramfs/livesys-main.$$.out 2>&1
+2026-10-22T22:37:59.2047884Z     set -x
+2026-10-22T22:37:59.2048397Z     if [ "$BASH" ]; then
+2026-10-22T22:37:59.2048960Z         export \
+2026-10-22T22:37:59.2049644Z             PS4='+ (${BASH_SOURCE}@${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+2026-10-22T22:37:59.2050424Z     else
+2026-10-22T22:37:59.2050918Z         export PS4='+ (${0##*/}@${LINENO}): '
+2026-10-22T22:37:59.2051553Z     fi
+2026-10-22T22:37:59.2052039Z fi
+2026-10-22T22:37:59.2052363Z
+2026-10-22T22:37:59.2052733Z { [ "${cmdline##* rd.live.image[= ]}" = "$cmdline" ] &&
+2026-10-22T22:37:59.2053486Z     [ "${cmdline##* liveimg[= ]}" = "$cmdline" ]; } && exit 0
+2026-10-22T22:37:59.2054044Z
+2026-10-22T22:37:59.2054561Z autouser=1
+2026-10-22T22:37:59.2055088Z if [ -f /etc/sysconfig/livesys ]; then
+2026-10-22T22:37:59.2055735Z   . /etc/sysconfig/livesys
+2026-10-22T22:37:59.2056152Z
+2026-10-22T22:37:59.2056644Z   if [ "${livesys_session}" = "gnome" -a -d /var/lib/gnome-initial-setup/ ]; then
+2026-10-22T22:37:59.2057472Z       autouser=0
+2026-10-22T22:37:59.2057954Z   fi
+2026-10-22T22:37:59.2058427Z fi
+2026-10-22T22:37:59.2058775Z
+2026-10-22T22:37:59.2059131Z [ -e /.liveimg-configured ] && configdone=1
+2026-10-22T22:37:59.2060737Z
+2026-10-22T22:37:59.2061051Z livedir="LiveOS"
+2026-10-22T22:37:59.2061582Z cut=${cmdline##* rd.live.dir[= ]}
+2026-10-22T22:37:59.2062205Z [ ${#cut} -ne ${#cmdline} ] && livedir=${cut%% *}
+2026-10-22T22:37:59.2062824Z len=${#cut}
+2026-10-22T22:37:59.2063286Z cut=${cut##* live_dir[= ]}
+2026-10-22T22:37:59.2063828Z [ ${#cut} -ne $len ] && livedir=${cut%% *}
+2026-10-22T22:37:59.2064606Z
+2026-10-22T22:37:59.2064910Z # enable swapfile if it exists
+2026-10-22T22:37:59.2065484Z strstr "$cmdline" ' noswap ' || {
+2026-10-22T22:37:59.2066140Z   [ -f /run/initramfs/live/"${livedir}"/swap.img ] &&
+2026-10-22T22:37:59.2067034Z   action "Enabling swap file" swapon /run/initramfs/live/"${livedir}"/swap.img ;}
+2026-10-22T22:37:59.2067716Z
+2026-10-22T22:37:59.2068016Z mountPersistentHome() {
+2026-10-22T22:37:59.2068548Z   # support label/uuid
+2026-10-22T22:37:59.2069091Z   if [ "${homedev##LABEL=}" != "$homedev" ] ||
+2026-10-22T22:37:59.2069732Z     [ "${homedev##UUID=}" != "$homedev" ]; then
+2026-10-22T22:37:59.2070382Z     homedev=$(blkid -o device -t "$homedev")
+2026-10-22T22:37:59.2070978Z   fi
+2026-10-22T22:37:59.2071281Z
+2026-10-22T22:37:59.2071678Z   # if we're given a file rather than a blockdev, loop mount it
+2026-10-22T22:37:59.2072408Z   if [ "${homedev##mtd}" != "$homedev" ]; then
+2026-10-22T22:37:59.2073193Z     # mtd devs don't have a block device but get magic-mounted with -t jffs2
+2026-10-22T22:37:59.2073970Z     mountopts="-t jffs2"
+2026-10-22T22:37:59.2074760Z   elif [ ! -b "$homedev" ]; then
+2026-10-22T22:37:59.2075434Z     if [ "${homedev##/run/initramfs/live}" != "$homedev" ]; then
+2026-10-22T22:37:59.2076364Z       action "Remounting live store r/w" mount -o remount,rw /run/initramfs/live
+2026-10-22T22:37:59.2077158Z     fi
+2026-10-22T22:37:59.2077637Z     homedev=$(losetup -f --show "$homedev")
+2026-10-22T22:37:59.2078224Z   fi
+2026-10-22T22:37:59.2078762Z   homefs=$(blkid -s TYPE -o value "$homedev" 2>/dev/null)
+2026-10-22T22:37:59.2079306Z
+2026-10-22T22:37:59.2079612Z   # if it's encrypted, we need to unlock it
+2026-10-22T22:37:59.2080240Z   if [ "$homefs" = "crypto_LUKS" ]; then
+2026-10-22T22:37:59.2080811Z     echo
+2026-10-22T22:37:59.2081294Z     echo "Setting up encrypted /home device"
+2026-10-22T22:37:59.2082225Z     plymouth ask-for-password --command="cryptsetup luksOpen $homedev EncHome"
+2026-10-22T22:37:59.2083137Z     homedev=/dev/mapper/EncHome
+2026-10-22T22:37:59.2083894Z   fi
+2026-10-22T22:37:59.2084875Z   if [ "$homedev" ] && [ "${cmdline##* rd.skipfsck[= ]}" = "$cmdline" ]; then
+2026-10-22T22:37:59.2085809Z     action "Checking home filesystem" fscheck "$homefs" "$homedev"
+2026-10-22T22:37:59.2087027Z   fi
+2026-10-22T22:37:59.2087378Z
+2026-10-22T22:37:59.2087625Z   # and finally do the mount
+2026-10-22T22:37:59.2088036Z   mount ${mountopts:+$mountopts} "$homedev" /home
+2026-10-22T22:37:59.2088528Z   # if we have /home under what's passed for persistent home, then
+2026-10-22T22:37:59.2093333Z   # we should make that the real /home.  useful for mtd device on olpc
+2026-10-22T22:37:59.2097832Z   [ -d /home/home ] && mount --bind /home/home /home
+2026-10-22T22:37:59.2098718Z   [ -x /sbin/restorecon ] && /sbin/restorecon /home
+2026-10-22T22:37:59.2099510Z   [ -d /home/liveuser ] && USERADDARGS="-M"
+2026-10-22T22:37:59.2100164Z }
+2026-10-22T22:37:59.2100489Z
+2026-10-22T22:37:59.2100815Z cut=${cmdline##* persistenthome[= ]}
+2026-10-22T22:37:59.2101412Z if [ ${#cut} -ne ${#cmdline} ]; then
+2026-10-22T22:37:59.2102062Z   homedev=${cut%% *}
+2026-10-22T22:37:59.2102749Z elif [ -e /run/initramfs/live/"${livedir}"/home.img ]; then
+2026-10-22T22:37:59.2103682Z   homedev=/run/initramfs/live/"${livedir}"/home.img
+2026-10-22T22:37:59.2104754Z fi
+2026-10-22T22:37:59.2105127Z
+2026-10-22T22:37:59.2105609Z # if we have a persistent /home, then we want to go ahead and mount it
+2026-10-22T22:37:59.2106566Z { ! strstr "$cmdline" nopersistenthome && [ "$homedev" ]; } &&
+2026-10-22T22:37:59.2107443Z   action "Mounting persistent /home" mountPersistentHome
+2026-10-22T22:37:59.2108063Z
+2026-10-22T22:37:59.2108382Z [ "$configdone" ] && exit 0
+2026-10-22T22:37:59.2108806Z
+2026-10-22T22:37:59.2109225Z ###################  Code below runs only on first boot #####################
+2026-10-22T22:37:59.2109836Z
+2026-10-22T22:37:59.2110162Z # add liveuser user with no passwd
+2026-10-22T22:37:59.2110822Z if [ "${autouser}" -eq "1" ]; then
+2026-10-22T22:37:59.2111741Z   action "Adding live user" useradd ${USERADDARGS:+"$USERADDARGS"} -c "Live System User" liveuser
+2026-10-22T22:37:59.2112699Z   passwd -d liveuser > /dev/null
+2026-10-22T22:37:59.2113316Z   usermod -aG wheel liveuser > /dev/null
+2026-10-22T22:37:59.2113914Z fi
+2026-10-22T22:37:59.2114678Z
+2026-10-22T22:37:59.2114995Z # Remove root password lock
+2026-10-22T22:37:59.2115579Z passwd -d root > /dev/null
+2026-10-22T22:37:59.2115991Z
+2026-10-22T22:37:59.2116315Z # turn off firstboot for livecd boots
+2026-10-22T22:37:59.2117118Z systemctl --no-reload disable firstboot-text.service 2> /dev/null || :
+2026-10-22T22:37:59.2118220Z systemctl --no-reload disable firstboot-graphical.service 2> /dev/null || :
+2026-10-22T22:37:59.2120164Z systemctl stop firstboot-text.service 2> /dev/null || :
+2026-10-22T22:37:59.2121026Z systemctl stop firstboot-graphical.service 2> /dev/null || :
+2026-10-22T22:37:59.2121623Z
+2026-10-22T22:37:59.2121942Z # don't use prelink on a running live image
+2026-10-22T22:37:59.2122826Z sed -i 's/PRELINKING=yes/PRELINKING=no/' /etc/sysconfig/prelink >/dev/null 2>&1 || :
+2026-10-22T22:37:59.2123543Z
+2026-10-22T22:37:59.2123837Z # turn off mdmonitor by default
+2026-10-22T22:37:59.2124853Z systemctl --no-reload disable mdmonitor.service 2> /dev/null || :
+2026-10-22T22:37:59.2125827Z systemctl --no-reload disable mdmonitor-takeover.service 2> /dev/null || :
+2026-10-22T22:37:59.2126709Z systemctl stop mdmonitor.service 2> /dev/null || :
+2026-10-22T22:37:59.2127511Z systemctl stop mdmonitor-takeover.service 2> /dev/null || :
+2026-10-22T22:37:59.2128107Z
+2026-10-22T22:37:59.2128498Z # don't start cron/at as they tend to spawn things which are
+2026-10-22T22:37:59.2129271Z # disk intensive that are painful on a live image
+2026-10-22T22:37:59.2130064Z systemctl --no-reload disable crond.service 2> /dev/null || :
+2026-10-22T22:37:59.2130909Z systemctl --no-reload disable atd.service 2> /dev/null || :
+2026-10-22T22:37:59.2131671Z systemctl stop crond.service 2> /dev/null || :
+2026-10-22T22:37:59.2132545Z systemctl stop atd.service 2> /dev/null || :
+2026-10-22T22:37:59.2133059Z
+2026-10-22T22:37:59.2133358Z # turn off abrtd on a live image
+2026-10-22T22:37:59.2134055Z systemctl --no-reload disable abrtd.service 2> /dev/null || :
+2026-10-22T22:37:59.2135194Z systemctl stop abrtd.service 2> /dev/null || :
+2026-10-22T22:37:59.2135911Z
+2026-10-22T22:37:59.2136314Z # Don't sync the system clock when running live (RHBZ #1018162)
+2026-10-22T22:37:59.2137050Z sed -i 's/rtcsync//' /etc/chrony.conf
+2026-10-22T22:37:59.2137506Z
+2026-10-22T22:37:59.2137839Z # add static hostname to work around xauth bug
+2026-10-22T22:37:59.2138564Z # https://bugzilla.redhat.com/show_bug.cgi?id=679486
+2026-10-22T22:37:59.2139318Z # the hostname must be something else than 'localhost'
+2026-10-22T22:37:59.2140150Z # https://bugzilla.redhat.com/show_bug.cgi?id=1370222
+2026-10-22T22:37:59.2140931Z hostnamectl set-hostname "localhost-live"
+2026-10-22T22:37:59.2141467Z
+2026-10-22T22:37:59.2141758Z if [ "${livesys_session}" ]; then
+2026-10-22T22:37:59.2142564Z   if [ -f "/usr/libexec/livesys/sessions.d/livesys-${livesys_session}" ]; then
+2026-10-22T22:37:59.2143580Z     . /usr/libexec/livesys/sessions.d/"livesys-${livesys_session}"
+2026-10-22T22:37:59.2144754Z   fi
+2026-10-22T22:37:59.2145194Z fi
+2026-10-22T22:37:59.2145641Z
+2026-10-22T22:37:59.2146124Z # allow extra stuff to be defined for derived spins (e.g., fedora labs)
+2026-10-22T22:37:59.2146837Z if [ -f /var/lib/livesys/livesys-session-extra ]; then
+2026-10-22T22:37:59.2147302Z   . /var/lib/livesys/livesys-session-extra
+2026-10-22T22:37:59.2147673Z fi
+2026-10-22T22:37:59.2147977Z
+2026-10-22T22:37:59.2148412Z # make sure to set the right permissions and selinux contexts
+2026-10-22T22:37:59.2149008Z if [ -d /home/liveuser ]; then
+2026-10-22T22:37:59.2149462Z     chown -R liveuser:liveuser /home/liveuser/
+2026-10-22T22:37:59.2149947Z     restorecon -RF /home/liveuser/
+2026-10-22T22:37:59.2150359Z fi
+2026-10-22T22:37:59.2150520Z
+2026-10-22T22:37:59.2150865Z #>>>>> Mark things as configured and keep this at the end of this script. <<<<<
+2026-10-22T22:37:59.2151518Z : > /.liveimg-configured
+2026-10-22T22:37:59.2151759Z
+2026-10-22T22:37:59.2151764Z
+2026-10-22T22:37:59.2151949Z usr/share/anaconda/interactive-defaults.ks
+2026-10-22T22:37:59.2152521Z # Kickstart defaults file for an interactive install.
+2026-10-22T22:37:59.2153214Z # This is not loaded if a kickstart file is provided on the command line.
+2026-10-22T22:37:59.2153797Z #
+2026-10-22T22:37:59.2154282Z # WARNING:
+2026-10-22T22:37:59.2155178Z #
+2026-10-22T22:37:59.2156021Z #   This file is deprecated and will be removed in in the future.
+2026-10-22T22:37:59.2156673Z #   Use the Anaconda configuration files instead.
+2026-10-22T22:37:59.2157138Z #
+2026-10-22T22:37:59.2157294Z
+2026-10-22T22:37:59.2157438Z # Create log directory
+2026-10-22T22:37:59.2157823Z %pre
+2026-10-22T22:37:59.2158157Z mkdir -p /tmp/anacoda_custom_logs
+2026-10-22T22:37:59.2158556Z %end
+2026-10-22T22:37:59.2158716Z
+2026-10-22T22:37:59.2159035Z # Check if there is a bitlocker partition and ask the user to disable it
+2026-10-22T22:37:59.2159862Z %pre --erroronfail --log=/tmp/anacoda_custom_logs/detect_bitlocker.log
+2026-10-22T22:37:59.2160565Z DOCS_QR=/tmp/detect_bitlocker_qr.png
+2026-10-22T22:37:59.2161424Z IS_BITLOCKER=$(lsblk -o FSTYPE --json | jq '.blockdevices | map(select(.fstype == "BitLocker")) | . != []')
+2026-10-22T22:37:59.2162387Z { WARNING_MSG="$(</dev/stdin)"; } << 'WARNINGEOF'
+2026-10-22T22:37:59.2163020Z <span size="x-large">Windows Bitlocker partition detected</span>
+2026-10-22T22:37:59.2163411Z
+2026-10-22T22:37:59.2163540Z It might interrupt the installation process.
+2026-10-22T22:37:59.2163888Z In such case, please, do <b>one</b> of the following:
+2026-10-22T22:37:59.2164791Z     a) Disconnect its storage drive.
+2026-10-22T22:37:59.2165260Z     b) Disable Bitlocker in Windows.
+2026-10-22T22:37:59.2165703Z     c) Delete it in GNOME Disks.
+2026-10-22T22:37:59.2165971Z
+2026-10-22T22:37:59.2166097Z Do you wish to continue?
+2026-10-22T22:37:59.2166460Z WARNINGEOF
+2026-10-22T22:37:59.2166881Z
+2026-10-22T22:37:59.2167165Z if [[ $IS_BITLOCKER =~ true ]]; then
+2026-10-22T22:37:59.2167817Z     qrencode -o $DOCS_QR "https://www.wikihow.com/Turn-Off-BitLocker"
+2026-10-22T22:37:59.2168614Z     _EXITLOCK=1
+2026-10-22T22:37:59.2169176Z     _RETCODE=0
+2026-10-22T22:37:59.2169573Z     while [[ $_EXITLOCK -ne 0 ]]; do
+2026-10-22T22:37:59.2170949Z         run0 --user=liveuser yad             --on-top             --timeout=10             --image=$DOCS_QR             --text="$WARNING_MSG"             --button="Yes, I'm aware, continue":0 --button="Cancel installation":10
+2026-10-22T22:37:59.2172248Z         _RETCODE=$?
+2026-10-22T22:37:59.2172611Z         case $_RETCODE in
+2026-10-22T22:37:59.2173098Z             0) _EXITLOCK=0; ;;
+2026-10-22T22:37:59.2173624Z             10) _EXITLOCK=0; pkill liveinst; pkill firefox; exit 0 ;;
+2026-10-22T22:37:59.2174581Z         esac
+2026-10-22T22:37:59.2174903Z     done
+2026-10-22T22:37:59.2175204Z fi
+2026-10-22T22:37:59.2175506Z %end
+2026-10-22T22:37:59.2175682Z
+2026-10-22T22:37:59.2175979Z # Remove the efi dir, must match efi_dir from the profile config
+2026-10-22T22:37:59.2176580Z %pre-install --erroronfail
+2026-10-22T22:37:59.2177008Z rm -rf /mnt/sysroot/boot/efi/EFI/fedora
+2026-10-22T22:37:59.2177446Z %end
+2026-10-22T22:37:59.2177613Z
+2026-10-22T22:37:59.2177783Z # Relabel the boot partition for the
+2026-10-22T22:37:59.2178449Z %pre-install --erroronfail --log=/tmp/anacoda_custom_logs/repartitioning.log
+2026-10-22T22:37:59.2179114Z set -x
+2026-10-22T22:37:59.2179662Z xboot_dev=$(findmnt -o SOURCE --nofsroot --noheadings -f --target /mnt/sysroot/boot)
+2026-10-22T22:37:59.2180372Z if [[ -z $xboot_dev ]]; then
+2026-10-22T22:37:59.2180779Z   echo "ERROR: xboot_dev not found"
+2026-10-22T22:37:59.2181193Z   exit 1
+2026-10-22T22:37:59.2181479Z fi
+2026-10-22T22:37:59.2181805Z e2label "$xboot_dev" "bazzite_xboot"
+2026-10-22T22:37:59.2182555Z %end
+2026-10-22T22:37:59.2182734Z
+2026-10-22T22:37:59.2182920Z # Open a dialog with the installation logs
+2026-10-22T22:37:59.2183407Z %onerror
+2026-10-22T22:37:59.2186151Z run0 --user=liveuser yad     --timeout=0     --text-info     --no-buttons     --width=600     --height=400     --text="An error occurred during installation. Please report this issue to the developers."     < /tmp/anaconda.log
+2026-10-22T22:37:59.2187656Z %end
+2026-10-22T22:37:59.2187824Z
+2026-10-22T22:37:59.2188527Z ostreecontainer --url=ghcr.io/ublue-os/bazzite-nvidia-open:stable --transport=containers-storage --no-signature-verification
+2026-10-22T22:37:59.2189731Z %include /usr/share/anaconda/post-scripts/install-configure-upgrade.ks
+2026-10-22T22:37:59.2190564Z %include /usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks
+2026-10-22T22:37:59.2191321Z %include /usr/share/anaconda/post-scripts/install-flatpaks.ks
+2026-10-22T22:37:59.2192077Z %include /usr/share/anaconda/post-scripts/restore-selinux-labels.ks
+2026-10-22T22:37:59.2192861Z %include /usr/share/anaconda/post-scripts/secureboot-enroll-key.ks
+2026-10-22T22:37:59.2193603Z %include /usr/share/anaconda/post-scripts/secureboot-docs.ks
+2026-10-22T22:37:59.2194034Z
+2026-10-22T22:37:59.2194039Z
+2026-10-22T22:37:59.2194680Z usr/share/anaconda/post-scripts/install-configure-upgrade.ks
+2026-10-22T22:37:59.2195436Z %post --erroronfail --log=/tmp/anacoda_custom_logs/bootc-switch.log
+2026-10-22T22:37:59.2196620Z bootc switch --mutate-in-place --enforce-container-sigpolicy --transport registry ghcr.io/ublue-os/bazzite-nvidia-open:stable
+2026-10-22T22:37:59.2197619Z %end
+2026-10-22T22:37:59.2197791Z
+2026-10-22T22:37:59.2217287Z usr/share/anaconda/post-scripts/secureboot-docs.ks
+2026-10-22T22:37:59.2219659Z %post --nochroot --log=/tmp/anacoda_custom_logs/secureboot-docs.log
+2026-10-22T22:37:59.2220648Z SECUREBOOT_KEY="/usr/share/ublue-os/sb_pubkey.der"
+2026-10-22T22:37:59.2221580Z SECUREBOOT_DOC_URL="https://docs.bazzite.gg/sb"
+2026-10-22T22:37:59.2222463Z SECUREBOOT_DOC_URL_QR="/usr/share/ublue-os/secure_boot_qr.png"
+2026-10-22T22:37:59.2223122Z
+2026-10-22T22:37:59.2225392Z LC_ALL=C mokutil -t "$SECUREBOOT_KEY" | grep -q "is already in the enrollment request" &&     run0 --user=liveuser yad --timeout=0 --on-top --button=Ok:0 --image="$SECUREBOOT_DOC_URL_QR" --text="<b>Secure Boot Key added:</b>\nPlease check the documentation to finish enrolling the key\n$SECUREBOOT_DOC_URL"
+2026-10-22T22:37:59.2227768Z %end
+2026-10-22T22:37:59.2228119Z
+2026-10-22T22:37:59.2265892Z usr/share/anaconda/post-scripts/secureboot-enroll-key.ks
+2026-10-22T22:37:59.2266992Z %post --erroronfail --nochroot --log=/tmp/anacoda_custom_logs/secureboot-enroll-key.log
+2026-10-22T22:37:59.2267916Z set -oue pipefail
+2026-10-22T22:37:59.2268338Z
+2026-10-22T22:37:59.2268717Z readonly ENROLLMENT_PASSWORD="universalblue"
+2026-10-22T22:37:59.2269634Z readonly SECUREBOOT_KEY="/usr/share/ublue-os/sb_pubkey.der"
+2026-10-22T22:37:59.2270324Z
+2026-10-22T22:37:59.2270672Z if [[ ! -d "/sys/firmware/efi" ]]; then
+2026-10-22T22:37:59.2271457Z 	echo "EFI mode not detected. Skipping key enrollment."
+2026-10-22T22:37:59.2272201Z 	exit 0
+2026-10-22T22:37:59.2272700Z fi
+2026-10-22T22:37:59.2273059Z
+2026-10-22T22:37:59.2273389Z if [[ ! -f "$SECUREBOOT_KEY" ]]; then
+2026-10-22T22:37:59.2274385Z 	echo "Secure boot key not provided: $SECUREBOOT_KEY"
+2026-10-22T22:37:59.2275190Z 	exit 0
+2026-10-22T22:37:59.2275663Z fi
+2026-10-22T22:37:59.2275977Z
+2026-10-22T22:37:59.2276377Z SYS_ID="$(cat /sys/devices/virtual/dmi/id/product_name)"
+2026-10-22T22:37:59.2277169Z if [[ ":Jupiter:Galileo:" =~ ":$SYS_ID:" ]]; then
+2026-10-22T22:37:59.2277982Z 	echo "Steam Deck hardware detected. Skipping key enrollment."
+2026-10-22T22:37:59.2278748Z 	exit 0
+2026-10-22T22:37:59.2279206Z fi
+2026-10-22T22:37:59.2279530Z
+2026-10-22T22:37:59.2279837Z mokutil --timeout -1 || :
+2026-10-22T22:37:59.2280714Z echo -e "$ENROLLMENT_PASSWORD\n$ENROLLMENT_PASSWORD" | mokutil --import "$SECUREBOOT_KEY" || :
+2026-10-22T22:37:59.2281652Z %end
+2026-10-22T22:37:59.2281983Z
+2026-10-22T22:37:59.2317092Z var/lib/containers/storage/overlay-images/images.json
+2026-10-22T22:37:59.2328306Z [{"id":"0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431","digest":"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","names":["ghcr.io/ublue-os/bazzite-nvidia-open:stable"],"names-history":["ghcr.io/ublue-os/bazzite-nvidia-open:stable"],"layer":"9d37c429380960079cd52a81d0a6244a24bfdca95d7c5573f25ec7b18cc4c0a3","metadata":"{\"signature-sizes\":[1643],\"signatures-sizes\":{\"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151\":[1643]}}","big-data-names":["sha256:0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431","manifest-sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","manifest","signatures","signature-ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"],"big-data-sizes":{"manifest":65199,"manifest-sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151":65199,"sha256:0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431":20795,"signature-ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151":1643,"signatures":1643},"big-data-digests":{"manifest":"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","manifest-sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151":"sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151","sha256:0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431":"sha256:0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431","signature-ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151":"sha256:1ca59b4fb033cb653a04041ee09b3b52bf79b5473b9fa18392ae5dfb97b993c0","signatures":"sha256:1ca59b4fb033cb653a04041ee09b3b52bf79b5473b9fa18392ae5dfb97b993c0"},"created":"2026-10-13T00:06:38Z"}]
+2026-10-22T22:37:59.2723385Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-10-22T22:37:59.2723866Z with:
+2026-10-22T22:37:59.2724250Z   name: two-disk-evidence
+2026-10-22T22:37:59.2724493Z   path: evidence/
+2026-10-22T22:37:59.2724699Z   retention-days: 3
+2026-10-22T22:37:59.2724909Z   if-no-files-found: error
+2026-10-22T22:37:59.2725141Z   compression-level: 6
+2026-10-22T22:37:59.2725363Z   overwrite: false
+2026-10-22T22:37:59.2725576Z   include-hidden-files: false
+2026-10-22T22:37:59.2725808Z ##[endgroup]
+2026-10-22T22:37:59.8297173Z (node:2958) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-22T22:37:59.8308784Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-22T22:37:59.8319137Z With the provided path, there will be 21 files uploaded
+2026-10-22T22:37:59.8320575Z Artifact name is valid!
+2026-10-22T22:37:59.8321294Z Root directory input is valid!
+2026-10-22T22:38:00.1467407Z Beginning upload of artifact content to blob storage
+2026-10-22T22:38:00.6091287Z (node:2958) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-22T22:38:01.3669336Z Uploaded bytes 2785628
+2026-10-22T22:38:01.4406246Z Finished uploading artifact content to blob storage!
+2026-10-22T22:38:01.4408034Z SHA256 digest of uploaded artifact zip is 1d5ee17a0db959d16ff9a9b30fca70a8e4478d4e8a49fa8be2f406f7a69b3f6b
+2026-10-22T22:38:01.4410688Z Finalizing artifact upload
+2026-10-22T22:38:01.9116639Z Artifact two-disk-evidence.zip successfully finalized. Artifact ID 12463388998
+2026-10-22T22:38:01.9118350Z Artifact two-disk-evidence has been successfully uploaded! Final size is 2785628 bytes. Artifact ID is 12463388998
+2026-10-22T22:38:01.9125404Z Artifact download URL: https://github.com/carlsenares/AresOS/actions/runs/39865512476/artifacts/12463388998
+2026-10-22T22:38:01.9356803Z Post job cleanup.
+2026-10-22T22:38:02.0275513Z [command]/usr/bin/git version
+2026-10-22T22:38:02.0366698Z git version 2.55.0
+2026-10-22T22:38:02.0405068Z Temporarily overriding HOME='/home/runner/work/_temp/004cfb5a-1ec2-41cb-9b11-c03f0111dfac' before making global git config changes
+2026-10-22T22:38:02.0406517Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T22:38:02.0407615Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/AresOS/AresOS
+2026-10-22T22:38:02.0471614Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T22:38:02.0530038Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T22:38:02.0899342Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T22:38:02.0944980Z http.https://github.com/.extraheader
+2026-10-22T22:38:02.0950930Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-22T22:38:02.1016614Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T22:38:02.1484042Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T22:38:02.1555952Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T22:38:02.2478361Z Cleaning up orphan processes
+2026-10-22T22:38:02.2847205Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

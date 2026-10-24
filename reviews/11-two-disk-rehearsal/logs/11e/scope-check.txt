@@ -1,0 +1,3 @@
+Protected hash/GPT/EFI/write-counter/raw-store audit functions are byte-identical.
+Owner auth, workflow, disk fixture, runtime, release/media pins, mod and historical evidence unchanged.
+Privacy workflow/config match main exactly.

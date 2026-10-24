@@ -1,0 +1,2 @@
+All 11f stock-stop and firmware replay input SHA-256 receipts match committed Git blobs.
+First closing push and PR privacy checks passed; private terms were not skipped.

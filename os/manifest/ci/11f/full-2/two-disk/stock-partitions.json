@@ -1,0 +1,103 @@
+{
+  "blockdevices": [
+    {
+      "name": "sr0",
+      "type": "rom",
+      "start": null,
+      "size": 1073741312,
+      "partuuid": null,
+      "parttype": null,
+      "uuid": null
+    },
+    {
+      "name": "zram0",
+      "type": "disk",
+      "start": null,
+      "size": 3094872064,
+      "partuuid": null,
+      "parttype": null,
+      "uuid": "ac843d1d-1cd1-4330-9cdd-47e707697816"
+    },
+    {
+      "name": "vda",
+      "type": "disk",
+      "start": null,
+      "size": 53687091200,
+      "partuuid": null,
+      "parttype": null,
+      "uuid": null
+    },
+    {
+      "name": "vda1",
+      "type": "part",
+      "start": 2048,
+      "size": 272629760,
+      "partuuid": "502be12e-acb6-476a-956e-c0de6963bf47",
+      "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+      "uuid": "B610-DDA9"
+    },
+    {
+      "name": "vda2",
+      "type": "part",
+      "start": 534528,
+      "size": 16777216,
+      "partuuid": "7ba02731-0a4c-433d-a81f-1c03133fd2f7",
+      "parttype": "e3c9e316-0b5c-4db8-817d-f92df00215ae",
+      "uuid": null
+    },
+    {
+      "name": "vda3",
+      "type": "part",
+      "start": 567296,
+      "size": 52322876928,
+      "partuuid": "5513e38a-a903-4b8b-bb1e-5e54e6fdbef3",
+      "parttype": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7",
+      "uuid": "30E56BA36A60FB01"
+    },
+    {
+      "name": "vda4",
+      "type": "part",
+      "start": 102760448,
+      "size": 1073724928,
+      "partuuid": "0f840da4-8ca2-41d3-9f8d-3d3e2b46c255",
+      "parttype": "de94bba4-06d1-4d40-a16a-bfd50179d6ac",
+      "uuid": "5EA053491EF73865"
+    },
+    {
+      "name": "vdb",
+      "type": "disk",
+      "start": null,
+      "size": 52613349376,
+      "partuuid": null,
+      "parttype": null,
+      "uuid": null
+    },
+    {
+      "name": "vdb1",
+      "type": "part",
+      "start": 2048,
+      "size": 629145600,
+      "partuuid": "611d132e-8cb8-4609-9588-a73834273aa5",
+      "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+      "uuid": "C433-EEFD"
+    },
+    {
+      "name": "vdb2",
+      "type": "part",
+      "start": 1230848,
+      "size": 2147483648,
+      "partuuid": "ffef08a8-0e30-448f-9322-961d42b058b3",
+      "parttype": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+      "uuid": "d7c5b57f-b89d-433f-8ce9-947017619122"
+    },
+    {
+      "name": "vdb3",
+      "type": "part",
+      "start": 5425152,
+      "size": 49834622976,
+      "partuuid": "80e504d5-525a-4a03-a986-97ecaf5f8ebd",
+      "parttype": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+      "uuid": "239c25dd-12ab-4ce9-8d68-14250bafab29"
+    }
+  ]
+}

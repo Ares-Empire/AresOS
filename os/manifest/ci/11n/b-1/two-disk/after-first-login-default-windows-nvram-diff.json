@@ -1,0 +1,101 @@
+{
+  "from_stage": "stock-before-windows",
+  "rule": "11f-linux-position",
+  "changes": {
+    "BootOrder": {
+      "before": {
+        "attributes": 7,
+        "hex": "0a00000001000300040005000600070008000900"
+      },
+      "after": {
+        "attributes": 7,
+        "hex": "00000a0001000300040005000600070008000900"
+      }
+    }
+  },
+  "firmware_changes": [],
+  "linux_position_changes": [
+    {
+      "option": "Boot000A",
+      "old_index": 0,
+      "new_index": 1,
+      "reason": "11f target-ESP Fedora loader position is not judged"
+    }
+  ],
+  "firmware_before": {
+    "Boot0003": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:02.0"
+    },
+    "Boot0004": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:03.0"
+    },
+    "Boot0005": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0006": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0007": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0008": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    }
+  },
+  "firmware_after": {
+    "Boot0003": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:02.0"
+    },
+    "Boot0004": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:03.0"
+    },
+    "Boot0005": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0006": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0007": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0008": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    }
+  },
+  "order_before": [
+    "Boot000A",
+    "Boot0000",
+    "Boot0001",
+    "Boot0003",
+    "Boot0004",
+    "Boot0005",
+    "Boot0006",
+    "Boot0007",
+    "Boot0008",
+    "Boot0009"
+  ],
+  "order_after": [
+    "Boot0000",
+    "Boot000A",
+    "Boot0001",
+    "Boot0003",
+    "Boot0004",
+    "Boot0005",
+    "Boot0006",
+    "Boot0007",
+    "Boot0008",
+    "Boot0009"
+  ]
+}

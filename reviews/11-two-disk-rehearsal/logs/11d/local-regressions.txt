@@ -1,0 +1,135 @@
+python -X utf8 -m unittest discover -s os/tests -p test_rehearsal_auth.py -v
+test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload) ... ok
+test_cleanup_refuses_unexpected_files_in_the_temporary_directory (test_rehearsal_auth.OwnerAuthTest.test_cleanup_refuses_unexpected_files_in_the_temporary_directory) ... ok
+test_failed_layer_pull_has_no_retry_or_credential_diagnostics (test_rehearsal_auth.OwnerAuthTest.test_failed_layer_pull_has_no_retry_or_credential_diagnostics) ... ok
+test_guest_uses_only_a_read_only_share_not_an_encoded_secret_command (test_rehearsal_auth.OwnerAuthTest.test_guest_uses_only_a_read_only_share_not_an_encoded_secret_command) ... ok
+test_missing_secret_wrong_event_or_mode_and_workspace_path_fail_closed (test_rehearsal_auth.OwnerAuthTest.test_missing_secret_wrong_event_or_mode_and_workspace_path_fail_closed) ... ok
+test_preflight_accepts_only_the_pinned_digest_and_discards_error_output (test_rehearsal_auth.OwnerAuthTest.test_preflight_accepts_only_the_pinned_digest_and_discards_error_output) ... ok
+test_registry_diagnostics_are_never_written_to_public_console_evidence (test_rehearsal_auth.OwnerAuthTest.test_registry_diagnostics_are_never_written_to_public_console_evidence) ... ok
+test_secret_is_only_referenced_in_the_dispatch_probe_full_create_step (test_rehearsal_auth.OwnerAuthTest.test_secret_is_only_referenced_in_the_dispatch_probe_full_create_step) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.075s
+
+OK
+
+python -X utf8 -m unittest discover -s os/tests -p test_disk_audit.py -v
+test_any_offline_disk_gpt_or_efi_difference_fails (test_disk_audit.DiskAuditTest.test_any_offline_disk_gpt_or_efi_difference_fails) ... ok
+test_auto_addition_requires_attached_device_and_cannot_change_existing_entry (test_disk_audit.DiskAuditTest.test_auto_addition_requires_attached_device_and_cannot_change_existing_entry) ... ok
+test_auto_removal_requires_the_exact_detached_hardware_not_its_label (test_disk_audit.DiskAuditTest.test_auto_removal_requires_the_exact_detached_hardware_not_its_label) ... ok
+test_efi_entry_resolves_gpt_partition_guid_boundaries_and_actual_loader (test_disk_audit.DiskAuditTest.test_efi_entry_resolves_gpt_partition_guid_boundaries_and_actual_loader) ... ok
+test_every_non_exempt_mutation_remains_a_failure (test_disk_audit.DiskAuditTest.test_every_non_exempt_mutation_remains_a_failure) ... ok
+test_gpt_checks_primary_backup_crc_identity_and_exact_boundaries (test_disk_audit.DiskAuditTest.test_gpt_checks_primary_backup_crc_identity_and_exact_boundaries) ... ok
+test_lost_modified_or_unordered_windows_and_non_linux_addition_fail (test_disk_audit.DiskAuditTest.test_lost_modified_or_unordered_windows_and_non_linux_addition_fail) ... ok
+test_only_linux_reordering_and_the_target_esp_are_permitted (test_disk_audit.DiskAuditTest.test_only_linux_reordering_and_the_target_esp_are_permitted) ... ok
+test_probe_11_raw_stores_exempt_exactly_two_device_removals (test_disk_audit.DiskAuditTest.test_probe_11_raw_stores_exempt_exactly_two_device_removals) ... ok
+test_real_edk2_records_replace_deleted_values_and_preserve_windows_payload (test_disk_audit.DiskAuditTest.test_real_edk2_records_replace_deleted_values_and_preserve_windows_payload) ... ok
+test_write_even_if_bytes_later_restored_or_device_missing_is_a_failure (test_disk_audit.DiskAuditTest.test_write_even_if_bytes_later_restored_or_device_missing_is_a_failure) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.237s
+
+OK
+
+python -X utf8 -m unittest discover -s os/tests -p test_two_disk_vm.py -v
+test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart (test_two_disk_vm.TwoDiskHarnessTest.test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart) ... ok
+test_actual_iso_help_blocks_unsupported_live_kickstart_before_installation (test_two_disk_vm.TwoDiskHarnessTest.test_actual_iso_help_blocks_unsupported_live_kickstart_before_installation) ... ok
+test_bls_export_is_one_quoted_command_and_parses_real_files (test_two_disk_vm.TwoDiskHarnessTest.test_bls_export_is_one_quoted_command_and_parses_real_files) ... ok
+test_bls_ostree_option_never_consumes_the_next_line_or_accepts_ambiguity (test_two_disk_vm.TwoDiskHarnessTest.test_bls_ostree_option_never_consumes_the_next_line_or_accepts_ambiguity) ... ok
+test_failed_diagnostic_cannot_skip_orderly_shutdown_or_suppress_write_failure (test_two_disk_vm.TwoDiskHarnessTest.test_failed_diagnostic_cannot_skip_orderly_shutdown_or_suppress_write_failure) ... ok
+test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit (test_two_disk_vm.TwoDiskHarnessTest.test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit) ... ok
+test_german_console_input_translates_the_actual_recovery_commands (test_two_disk_vm.TwoDiskHarnessTest.test_german_console_input_translates_the_actual_recovery_commands) ... ok
+test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown (test_two_disk_vm.TwoDiskHarnessTest.test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown) ... ok
+test_installer_transport_is_forwarded_only_in_live_mode_on_host_loopback (test_two_disk_vm.TwoDiskHarnessTest.test_installer_transport_is_forwarded_only_in_live_mode_on_host_loopback) ... ok
+test_iso_contains_parser_modules_but_not_the_assumed_validator_executable (test_two_disk_vm.TwoDiskHarnessTest.test_iso_contains_parser_modules_but_not_the_assumed_validator_executable) ... ok
+test_kickstart_limits_clear_selection_and_bootloader_to_recorded_target (test_two_disk_vm.TwoDiskHarnessTest.test_kickstart_limits_clear_selection_and_bootloader_to_recorded_target) ... ok
+test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file (test_two_disk_vm.TwoDiskHarnessTest.test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file) ... ok
+test_qmp_inventory_verifies_pci_bindings_and_keeps_detached_target_slot_empty (test_two_disk_vm.TwoDiskHarnessTest.test_qmp_inventory_verifies_pci_bindings_and_keeps_detached_target_slot_empty) ... ok
+test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk (test_two_disk_vm.TwoDiskHarnessTest.test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk) ... ok
+test_recorded_stock_bls_entry_does_not_assume_the_installer_os_name (test_two_disk_vm.TwoDiskHarnessTest.test_recorded_stock_bls_entry_does_not_assume_the_installer_os_name) ... ok
+test_target_reset_refuses_an_open_file_and_preserves_it (test_two_disk_vm.TwoDiskHarnessTest.test_target_reset_refuses_an_open_file_and_preserves_it) ... ok
+test_timed_out_public_command_preserves_only_its_redacted_partial_output (test_two_disk_vm.TwoDiskHarnessTest.test_timed_out_public_command_preserves_only_its_redacted_partial_output) ... ok
+test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach (test_two_disk_vm.TwoDiskHarnessTest.test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach) ... ok
+test_ui_salted_password_hash_is_redacted_without_knowing_its_salt (test_two_disk_vm.TwoDiskHarnessTest.test_ui_salted_password_hash_is_redacted_without_knowing_its_salt) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 0.257s
+
+OK
+
+python -X utf8 -m unittest discover -s os/tests -p test_installer_webui.py -v
+test_actual_short_transfer_is_not_mistaken_for_a_complete_new_iso (test_installer_webui.DownloadCompletenessTest.test_actual_short_transfer_is_not_mistaken_for_a_complete_new_iso) ... ok
+test_complete_transfer_still_requires_the_exact_pin (test_installer_webui.DownloadCompletenessTest.test_complete_transfer_still_requires_the_exact_pin) ... ok
+test_full_run_rejects_failed_stale_or_different_workflow_probe (test_installer_webui.ProbeAuthorizationTest.test_full_run_rejects_failed_stale_or_different_workflow_probe) ... ok
+test_minute_ledger_rounds_each_executed_job_up (test_installer_webui.ProbeAuthorizationTest.test_minute_ledger_rounds_each_executed_job_up) ... ok
+test_actual_modal_requires_only_german_before_next_commits_it (test_installer_webui.ReviewBoundaryTest.test_actual_modal_requires_only_german_before_next_commits_it) ... ok
+test_completion_selectors_follow_actual_dynamic_class_and_modal_sources (test_installer_webui.ReviewBoundaryTest.test_completion_selectors_follow_actual_dynamic_class_and_modal_sources) ... ok
+test_empty_model_console_requires_real_installer_conversion_and_generated_file (test_installer_webui.ReviewBoundaryTest.test_empty_model_console_requires_real_installer_conversion_and_generated_file) ... ok
+test_probe_navigation_refuses_the_destructive_install_button (test_installer_webui.ReviewBoundaryTest.test_probe_navigation_refuses_the_destructive_install_button) ... ok
+test_requires_only_target_rows_and_a_new_target_efi_in_both_orders (test_installer_webui.ReviewBoundaryTest.test_requires_only_target_rows_and_a_new_target_efi_in_both_orders) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.003s
+
+OK
+
+python -X utf8 -m unittest discover -s os/tests -p test_rehearsal_budget.py -v
+test_allowance_includes_privacy_push_and_pr_jobs_and_excludes_old_runs (test_rehearsal_budget.BudgetTest.test_allowance_includes_privacy_push_and_pr_jobs_and_excludes_old_runs) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+
+python -X utf8 -m unittest discover -s os/tests -p test_firmware_contract.py -v
+test_source_predicate_requires_both_exact_guid_and_exact_size (test_firmware_contract.FirmwareContractTest.test_source_predicate_requires_both_exact_guid_and_exact_size) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+
+Python compilation of every os/ci/*.py: exit 0
+
+After root-ownership correction:
+test_auth_file_rejects_runner_uid_and_relaxed_permissions (test_rehearsal_auth.OwnerAuthTest.test_auth_file_rejects_runner_uid_and_relaxed_permissions) ... ok
+test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload) ... ok
+test_cleanup_refuses_unexpected_files_in_the_temporary_directory (test_rehearsal_auth.OwnerAuthTest.test_cleanup_refuses_unexpected_files_in_the_temporary_directory) ... ok
+test_failed_layer_pull_has_no_retry_or_credential_diagnostics (test_rehearsal_auth.OwnerAuthTest.test_failed_layer_pull_has_no_retry_or_credential_diagnostics) ... ok
+test_guest_uses_only_a_read_only_share_not_an_encoded_secret_command (test_rehearsal_auth.OwnerAuthTest.test_guest_uses_only_a_read_only_share_not_an_encoded_secret_command) ... ok
+test_missing_secret_wrong_event_or_mode_and_workspace_path_fail_closed (test_rehearsal_auth.OwnerAuthTest.test_missing_secret_wrong_event_or_mode_and_workspace_path_fail_closed) ... ok
+test_preflight_accepts_only_the_pinned_digest_and_discards_error_output (test_rehearsal_auth.OwnerAuthTest.test_preflight_accepts_only_the_pinned_digest_and_discards_error_output) ... ok
+test_registry_diagnostics_are_never_written_to_public_console_evidence (test_rehearsal_auth.OwnerAuthTest.test_registry_diagnostics_are_never_written_to_public_console_evidence) ... ok
+test_secret_is_only_referenced_in_the_dispatch_probe_full_create_step (test_rehearsal_auth.OwnerAuthTest.test_secret_is_only_referenced_in_the_dispatch_probe_full_create_step) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.065s
+
+OK
+
+After real QMP replay correction:
+test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart (test_two_disk_vm.TwoDiskHarnessTest.test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart) ... ok
+test_actual_iso_help_blocks_unsupported_live_kickstart_before_installation (test_two_disk_vm.TwoDiskHarnessTest.test_actual_iso_help_blocks_unsupported_live_kickstart_before_installation) ... ok
+test_bls_export_is_one_quoted_command_and_parses_real_files (test_two_disk_vm.TwoDiskHarnessTest.test_bls_export_is_one_quoted_command_and_parses_real_files) ... ok
+test_bls_ostree_option_never_consumes_the_next_line_or_accepts_ambiguity (test_two_disk_vm.TwoDiskHarnessTest.test_bls_ostree_option_never_consumes_the_next_line_or_accepts_ambiguity) ... ok
+test_failed_diagnostic_cannot_skip_orderly_shutdown_or_suppress_write_failure (test_two_disk_vm.TwoDiskHarnessTest.test_failed_diagnostic_cannot_skip_orderly_shutdown_or_suppress_write_failure) ... ok
+test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit (test_two_disk_vm.TwoDiskHarnessTest.test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit) ... ok
+test_german_console_input_translates_the_actual_recovery_commands (test_two_disk_vm.TwoDiskHarnessTest.test_german_console_input_translates_the_actual_recovery_commands) ... ok
+test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown (test_two_disk_vm.TwoDiskHarnessTest.test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown) ... ok
+test_installer_transport_is_forwarded_only_in_live_mode_on_host_loopback (test_two_disk_vm.TwoDiskHarnessTest.test_installer_transport_is_forwarded_only_in_live_mode_on_host_loopback) ... ok
+test_iso_contains_parser_modules_but_not_the_assumed_validator_executable (test_two_disk_vm.TwoDiskHarnessTest.test_iso_contains_parser_modules_but_not_the_assumed_validator_executable) ... ok
+test_kickstart_limits_clear_selection_and_bootloader_to_recorded_target (test_two_disk_vm.TwoDiskHarnessTest.test_kickstart_limits_clear_selection_and_bootloader_to_recorded_target) ... ok
+test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file (test_two_disk_vm.TwoDiskHarnessTest.test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file) ... ok
+test_qmp_inventory_verifies_pci_bindings_and_keeps_detached_target_slot_empty (test_two_disk_vm.TwoDiskHarnessTest.test_qmp_inventory_verifies_pci_bindings_and_keeps_detached_target_slot_empty) ... ok
+test_real_qmp_ide_id_is_bare_while_virtio_uses_a_backend_path (test_two_disk_vm.TwoDiskHarnessTest.test_real_qmp_ide_id_is_bare_while_virtio_uses_a_backend_path) ... ok
+test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk (test_two_disk_vm.TwoDiskHarnessTest.test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk) ... ok
+test_recorded_stock_bls_entry_does_not_assume_the_installer_os_name (test_two_disk_vm.TwoDiskHarnessTest.test_recorded_stock_bls_entry_does_not_assume_the_installer_os_name) ... ok
+test_target_reset_refuses_an_open_file_and_preserves_it (test_two_disk_vm.TwoDiskHarnessTest.test_target_reset_refuses_an_open_file_and_preserves_it) ... ok
+test_timed_out_public_command_preserves_only_its_redacted_partial_output (test_two_disk_vm.TwoDiskHarnessTest.test_timed_out_public_command_preserves_only_its_redacted_partial_output) ... ok
+test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach (test_two_disk_vm.TwoDiskHarnessTest.test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach) ... ok
+test_ui_salted_password_hash_is_redacted_without_knowing_its_salt (test_two_disk_vm.TwoDiskHarnessTest.test_ui_salted_password_hash_is_redacted_without_knowing_its_salt) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.274s
+
+OK

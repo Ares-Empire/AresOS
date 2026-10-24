@@ -1,0 +1,1080 @@
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: loading Boot000A "Bazzite" from HD(1,GPT,4575AEBF-4366-4714-83BB-A0D885FD9323,0x800,0x12C000)/\EFI\fedora\shimx64.efi
+BdsDxe: starting Boot000A "Bazzite" from HD(1,GPT,4575AEBF-4366-4714-83BB-A0D885FD9323,0x800,0x12C000)/\EFI\fedora\shimx64.efi
+[0m[30m[40m[2J[01;01H[0m[37m[40m[02;42HGRUB version 2.12
+
+
+[04;02H������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������[05;02H������[06;02H������[07;02H������[08;02H������[09;02H������[10;02H������[11;02H������[12;02H������[13;02H������[14;02H������[15;02H������[16;02H������[17;02H������[18;02H������[19;02H������[20;02H������[21;02H������[22;02H������[23;02H������[24;02H����������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������[25;02H[26;02H     Use the ��� and ��� keys to select which entry is highlighted.
+
+      Press enter to boot the selected OS, `e' to edit the commands before booting or `c' for
+
+      a command-line. ESC to return previous menu.                                             [0m[30m[47m[05;03H*Bazzite (ostree:0)                                                                             [0m[37m[40m[06;03H Bazzite (ostree:1)                                                                             [07;03H UEFI Firmware Settings                                                                         [08;03H                                                                                                [09;03H                                                                                                [10;03H                                                                                                [11;03H                                                                                                [12;03H                                                                                                [13;03H                                                                                                [14;03H                                                                                                [15;03H                                                                                                [16;03H                                                                                                [17;03H                                                                                                [18;03H                                                                                                [19;03H                                                                                                [20;03H                                                                                                [21;03H                                                                                                [22;03H                                                                                                [23;03H                                                                                                 [29;01H   The highlighted entry will be executed automatically in 1s.                                     [29;01H   The highlighted entry will be executed automatically in 0s.                                     [0m[30m[40m[2J[01;01H[0m[37m[40m[0m[30m[40m[2J[01;01H[0m[37m[40m  Booting `Bazzite (ostree:0)'
+
+
+[    0.000000] Linux version 7.2.9-ogc3.1.fc44.x86_64 (root@581607306d9b) (gcc (GCC) 16.2.1 20260819 (Red Hat 16.2.1-2), GNU ld version 2.46.1-1.fc44) #1 SMP PREEMPT_DYNAMIC Mon Oct 12 22:17:26 UTC 2026
+[    0.000000] Command line: BOOT_IMAGE=(hd1,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=8b381f06-01fd-4f46-bfcd-3cd0c4998e1c vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009ffff]  System RAM
+[    0.000000] BIOS-e820: [gap 0x00000000000a0000-0x00000000000fffff]
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x00000000007fffff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x0000000000800000-0x0000000000807fff]  ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x0000000000808000-0x000000000080afff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000000080b000-0x000000000080bfff]  ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x000000000080c000-0x000000000080ffff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x0000000000810000-0x00000000008fffff]  ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x0000000000900000-0x000000007ed3efff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000007ed3f000-0x000000007edfffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x000000007ee00000-0x000000007f8ecfff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000007f8ed000-0x000000007fb6cfff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x000000007fb6d000-0x000000007fb7efff]  ACPI data
+[    0.000000] BIOS-e820: [mem 0x000000007fb7f000-0x000000007fbfefff]  ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x000000007fbff000-0x000000007feebfff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000007feec000-0x000000007ff6ffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x000000007ff70000-0x000000007fffffff]  ACPI NVS
+[    0.000000] BIOS-e820: [gap 0x0000000080000000-0x00000000dfffffff]
+[    0.000000] BIOS-e820: [mem 0x00000000e0000000-0x00000000efffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000f0000000-0x00000000feffbfff]
+[    0.000000] BIOS-e820: [mem 0x00000000feffc000-0x00000000feffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000ff000000-0x00000000ffbfffff]
+[    0.000000] BIOS-e820: [mem 0x00000000ffc00000-0x00000000ffffffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x0000000100000000-0x00000001ffffffff]  System RAM
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] efi: EFI v2.7 by Ubuntu distribution of EDK II
+[    0.000000] efi: SMBIOS=0x7f988000 SMBIOS 3.0=0x7f986000 ACPI=0x7fb7e000 ACPI 2.0=0x7fb7e014 MEMATTR=0x7dc97198 MOKvar=0x7f981000
+[    0.000000] efi: Remove mem140: MMIO range=[0xffc00000-0xffffffff] (4MB) from e820 map
+[    0.000000] DMI: SMBIOS 3.0.0 present.
+[    0.000000] DMI: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 2024.02-2ubuntu0.10 09/23/2026
+[    0.000000] DMI: Memory slots populated: 1/1
+[    0.000000] Hypervisor detected: KVM
+[    0.000000] last_pfn = 0x7feec max_arch_pfn = 0x10000000000
+[    0.000000] kvm-clock: Using msrs 4b564d01 and 4b564d00
+[    0.000000] kvm-clock: using sched offset of 7018482801 cycles
+[    0.000002] clocksource: kvm-clock: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns
+[    0.000005] tsc: Detected 2299.998 MHz processor
+[    0.000326] last_pfn = 0x200000 max_arch_pfn = 0x10000000000
+[    0.000471] MTRR map: 4 entries (2 fixed + 2 variable; max 18), built from 8 variable MTRRs
+[    0.000477] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT
+[    0.000651] last_pfn = 0x7feec max_arch_pfn = 0x10000000000
+[    0.007211] Using GB pages for direct mapping
+[    0.007424] Secure boot disabled
+[    0.007425] RAMDISK: [mem 0x661cf000-0x743eafff]
+[    0.007433] ACPI: Early table checksum verification disabled
+[    0.007434] ACPI: RSDP 0x000000007FB7E014 000024 (v02 BOCHS )
+[    0.007437] ACPI: XSDT 0x000000007FB7D0E8 000054 (v01 BOCHS  BXPC     00000001      01000013)
+[    0.007442] ACPI: FACP 0x000000007FB79000 0000F4 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.007446] ACPI: DSDT 0x000000007FB7A000 002142 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.007448] ACPI: FACS 0x000000007FBDD000 000040
+[    0.007450] ACPI: APIC 0x000000007FB78000 000080 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.007452] ACPI: HPET 0x000000007FB77000 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.007454] ACPI: MCFG 0x000000007FB76000 00003C (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.007457] ACPI: WAET 0x000000007FB75000 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.007459] ACPI: BGRT 0x000000007FB74000 000038 (v01 INTEL  EDK2     00000002      01000013)
+[    0.007460] ACPI: Reserving FACP table memory at [mem 0x7fb79000-0x7fb790f3]
+[    0.007462] ACPI: Reserving DSDT table memory at [mem 0x7fb7a000-0x7fb7c141]
+[    0.007462] ACPI: Reserving FACS table memory at [mem 0x7fbdd000-0x7fbdd03f]
+[    0.007463] ACPI: Reserving APIC table memory at [mem 0x7fb78000-0x7fb7807f]
+[    0.007464] ACPI: Reserving HPET table memory at [mem 0x7fb77000-0x7fb77037]
+[    0.007464] ACPI: Reserving MCFG table memory at [mem 0x7fb76000-0x7fb7603b]
+[    0.007465] ACPI: Reserving WAET table memory at [mem 0x7fb75000-0x7fb75027]
+[    0.007465] ACPI: Reserving BGRT table memory at [mem 0x7fb74000-0x7fb74037]
+[    0.008343] No NUMA configuration found
+[    0.008343] Faking a node at [mem 0x0000000000000000-0x00000001ffffffff]
+[    0.008356] NODE_DATA(0) allocated [mem 0x1fffd4f80-0x1ffffffff]
+[    0.011388] ACPI: PM-Timer IO Port: 0x608
+[    0.011413] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])
+[    0.011489] IOAPIC[0]: apic_id 0, version 17, address 0xfec00000, GSI 0-23
+[    0.011491] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    0.011493] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)
+[    0.011494] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.011494] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)
+[    0.011495] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)
+[    0.011498] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.011499] ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    0.011517] TSC deadline timer available
+[    0.011519] CPU topo: Max. logical packages:   1
+[    0.011520] CPU topo: Max. logical nodes:      1
+[    0.011520] CPU topo: Num. nodes per package:  1
+[    0.011522] CPU topo: Max. logical dies:       1
+[    0.011522] CPU topo: Max. dies per package:   1
+[    0.011525] CPU topo: Max. threads per core:   1
+[    0.011525] CPU topo: Num. cores per package:     2
+[    0.011525] CPU topo: Num. threads per package:   2
+[    0.011526] CPU topo: Allowing 2 present CPUs plus 0 hotplug CPUs
+[    0.011550] kvm-guest: APIC: eoi() replaced with kvm_guest_apic_eoi_write()
+[    0.011576] kvm-guest: KVM setup pv remote TLB flush
+[    0.011592] kvm-guest: setup PV sched yield
+[    0.011603] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.011605] PM: hibernation: Registered nosave memory: [mem 0x000a0000-0x000fffff]
+[    0.011606] PM: hibernation: Registered nosave memory: [mem 0x00800000-0x00807fff]
+[    0.011607] PM: hibernation: Registered nosave memory: [mem 0x0080b000-0x0080bfff]
+[    0.011608] PM: hibernation: Registered nosave memory: [mem 0x00810000-0x008fffff]
+[    0.011609] PM: hibernation: Registered nosave memory: [mem 0x7dc9d000-0x7dca5fff]
+[    0.011611] PM: hibernation: Registered nosave memory: [mem 0x7ed3f000-0x7edfffff]
+[    0.011612] PM: hibernation: Registered nosave memory: [mem 0x7f8ed000-0x7fbfefff]
+[    0.011613] PM: hibernation: Registered nosave memory: [mem 0x7feec000-0xffffffff]
+[    0.011614] [gap 0x80000000-0xdfffffff] available for PCI devices
+[    0.011616] Booting paravirtualized kernel on KVM
+[    0.011617] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    0.022298] Zone ranges:
+[    0.022300]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.022302]   DMA32    [mem 0x0000000001000000-0x00000000ffffffff]
+[    0.022304]   Normal   [mem 0x0000000100000000-0x00000001ffffffff]
+[    0.022305]   Device   empty
+[    0.022306] Movable zone start for each node
+[    0.022307] Early memory node ranges
+[    0.022308]   node   0: [mem 0x0000000000001000-0x000000000009ffff]
+[    0.022309]   node   0: [mem 0x0000000000100000-0x00000000007fffff]
+[    0.022310]   node   0: [mem 0x0000000000808000-0x000000000080afff]
+[    0.022310]   node   0: [mem 0x000000000080c000-0x000000000080ffff]
+[    0.022311]   node   0: [mem 0x0000000000900000-0x000000007ed3efff]
+[    0.022311]   node   0: [mem 0x000000007ee00000-0x000000007f8ecfff]
+[    0.022312]   node   0: [mem 0x000000007fbff000-0x000000007feebfff]
+[    0.022313]   node   0: [mem 0x0000000100000000-0x00000001ffffffff]
+[    0.022314] Initmem setup node 0 [mem 0x0000000000001000-0x00000001ffffffff]
+[    0.024543] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.024559] On node 0, zone DMA: 96 pages in unavailable ranges
+[    0.024560] On node 0, zone DMA: 8 pages in unavailable ranges
+[    0.024560] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.024575] On node 0, zone DMA: 240 pages in unavailable ranges
+[    0.052520] On node 0, zone DMA32: 193 pages in unavailable ranges
+[    0.052532] On node 0, zone DMA32: 786 pages in unavailable ranges
+[    0.101096] On node 0, zone Normal: 276 pages in unavailable ranges
+[    0.101122] setup_percpu: NR_CPUS:8192 nr_cpumask_bits:2 nr_cpu_ids:2 nr_node_ids:1
+[    0.103054] percpu: Embedded 85 pages/cpu s225280 r8192 d114688 u1048576
+[    0.103148] kvm-guest: PV spinlocks enabled
+[    0.103151] PV qspinlock hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.103154] Kernel command line: BOOT_IMAGE=(hd1,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=8b381f06-01fd-4f46-bfcd-3cd0c4998e1c vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1
+[    0.103262] Unknown kernel command line parameters "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0", will be passed to user space.
+[    0.103274] random: crng init done
+[    0.103274] printk: log buffer data + meta data: 262144 + 1114112 = 1376256 bytes
+[    0.110901] Dentry cache hash table entries: 1048576 (order: 11, 8388608 bytes, linear)
+[    0.115310] Inode-cache hash table entries: 524288 (order: 10, 4194304 bytes, linear)
+[    0.115412] software IO TLB: area num 2.
+[    0.149896] Fallback order for Node 0: 0
+[    0.149901] Built 1 zonelists, mobility grouping on.  Total pages: 1571263
+[    0.149902] Policy zone: Normal
+[    0.152458] mem auto-init: stack:all(zero), heap alloc:on, heap free:off
+[    0.167265] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+[    0.182039] ftrace: allocating 65984 entries in 260 pages
+[    0.182041] ftrace: allocated 260 pages with 2 groups
+[    0.183960] Dynamic Preempt: lazy
+[    0.185299] rcu: Preemptible hierarchical RCU implementation.
+[    0.185300] rcu: 	RCU event tracing is enabled.
+[    0.185301] rcu: 	RCU restricting CPUs from NR_CPUS=8192 to nr_cpu_ids=2.
+[    0.185303] 	Trampoline variant of Tasks RCU enabled.
+[    0.185303] 	Rude variant of Tasks RCU enabled.
+[    0.185303] 	Tracing variant of Tasks RCU enabled.
+[    0.185304] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    0.185305] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+[    0.185315] RCU Tasks: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.185317] RCU Tasks Rude: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.190443] NR_IRQS: 524544, nr_irqs: 440, preallocated irqs: 16
+[    0.190735] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.190751] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    0.190893] kfence: initialized - using 2097152 bytes for 255 objects at 0x(____ptrval____)-0x(____ptrval____)
+[    0.190957] Console: colour dummy device 80x25
+[    0.190960] printk: legacy console [tty0] enabled
+[    0.191253] printk: legacy console [ttyS0] enabled
+[    0.571907] ACPI: Core revision 20260408
+[    0.573535] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns
+[    0.576598] APIC: Switch to symmetric I/O mode setup
+[    0.578980] x2apic enabled
+[    0.580774] APIC: Switched APIC routing to: physical x2apic
+[    0.582576] kvm-guest: APIC: send_IPI_mask() replaced with kvm_send_ipi_mask()
+[    0.584900] kvm-guest: APIC: send_IPI_mask_allbutself() replaced with kvm_send_ipi_mask_allbutself()
+[    0.587770] kvm-guest: setup PV IPIs
+[    0.591993] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    0.593939] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x212733415c7, max_idle_ns: 440795236380 ns
+[    0.597168] Calibrating delay loop (skipped) preset value.. 4599.99 BogoMIPS (lpj=2299998)
+[    0.599260] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.600521] Last level iTLB entries: 4KB 0, 2MB 0, 4MB 0
+[    0.601169] Last level dTLB entries: 4KB 0, 2MB 0, 4MB 0, 1GB 0
+[    0.603203] mitigations: Enabled attack vectors: user_kernel, user_user, guest_host, guest_guest, SMT mitigations: auto
+[    0.604171] Speculative Store Bypass: Vulnerable
+[    0.605176] Spectre V2 : Mitigation: Retpolines
+[    0.606169] RETBleed: Vulnerable
+[    0.607168] ITS: Mitigation: Aligned branch/return thunks
+[    0.608169] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.609170] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    0.610172] active return thunk: its_return_thunk
+[    0.612328] XFEATURE_XTILE_DATA: calculated size is 0 bytes, cpu state 8192 bytes
+[    0.613179] CPUID[0d, 00]: eax=000600e7 ebx=00002b00 ecx=00002b00 edx=00000000
+[    0.614178] CPUID[0d, 01]: eax=0000001f ebx=000029c0 ecx=00000000 edx=00000000
+[    0.615177] CPUID[0d, 02]: eax=00000100 ebx=00000240 ecx=00000000 edx=00000000
+[    0.616179] CPUID[0d, 03]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.617179] CPUID[0d, 04]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.618179] CPUID[0d, 05]: eax=00000040 ebx=00000440 ecx=00000000 edx=00000000
+[    0.619179] CPUID[0d, 06]: eax=00000200 ebx=00000480 ecx=00000000 edx=00000000
+[    0.620179] CPUID[0d, 07]: eax=00000400 ebx=00000680 ecx=00000000 edx=00000000
+[    0.621178] CPUID[0d, 08]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.622179] CPUID[0d, 09]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.623179] CPUID[0d, 0a]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.624178] CPUID[0d, 0b]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.625179] CPUID[0d, 0c]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.626179] CPUID[0d, 0d]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.627179] CPUID[0d, 0e]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.628179] CPUID[0d, 0f]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.629179] CPUID[0d, 10]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.630179] CPUID[0d, 11]: eax=00000040 ebx=00000ac0 ecx=00000002 edx=00000000
+[    0.631179] CPUID[0d, 12]: eax=00002000 ebx=00000b00 ecx=00000006 edx=00000000
+[    0.632179] CPUID[0d, 13]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.633181] CPUID[0d, 14]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.634179] CPUID[0d, 15]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.635179] CPUID[0d, 16]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.636179] CPUID[0d, 17]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.637179] CPUID[0d, 18]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.638179] CPUID[0d, 19]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.639179] CPUID[0d, 1a]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.640179] CPUID[0d, 1b]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.641178] CPUID[0d, 1c]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.642179] CPUID[0d, 1d]: eax=00000000 ebx=00000000 ecx=00000000 edx=00000000
+[    0.643170] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.644171] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.646170] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.647169] x86/fpu: Supporting XSAVE feature 0x020: 'AVX-512 opmask'
+[    0.648169] x86/fpu: Supporting XSAVE feature 0x040: 'AVX-512 Hi256'
+[    0.649169] x86/fpu: Supporting XSAVE feature 0x080: 'AVX-512 ZMM_Hi256'
+[    0.650169] x86/fpu: Supporting XSAVE feature 0x20000: 'AMX Tile config'
+[    0.651169] x86/fpu: Supporting XSAVE feature 0x40000: 'AMX Tile data'
+[    0.652169] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.653169] x86/fpu: xstate_offset[5]:  832, xstate_sizes[5]:   64
+[    0.654169] x86/fpu: xstate_offset[6]:  896, xstate_sizes[6]:  512
+[    0.655169] x86/fpu: xstate_offset[7]: 1408, xstate_sizes[7]: 1024
+[    0.656169] x86/fpu: xstate_offset[17]: 2432, xstate_sizes[17]:   64
+[    0.657169] x86/fpu: xstate_offset[18]: 2496, xstate_sizes[18]: 8192
+[    0.658169] x86/fpu: Enabled xstate features 0x600e7, context size is 10688 bytes, using 'compacted' format.
+[    0.685876] pid_max: default: 32768 minimum: 301
+[    0.686165] Yama: becoming mindful.
+[    0.686175] SELinux:  Initializing.
+[    0.688339] LSM support for eBPF active
+[    0.689188] landlock: Up and running.
+[    0.690567] Mount-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.691184] Mountpoint-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.692304] VFS: Finished mounting rootfs on nullfs
+[    0.693657] smpboot: CPU0: Intel INTEL(R) XEON(R) PLATINUM 8573C (family: 0x6, model: 0xcf, stepping: 0x2)
+[    0.694476] Performance Events: unsupported CPU family 6 model 207 no PMU driver, software events only.
+[    0.695307] signal: max sigframe size: 11952
+[    0.696230] rcu: Hierarchical SRCU implementation.
+[    0.697181] rcu: 	Max phase no-delay instances is 400.
+[    0.698234] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.705784] NMI watchdog: Perf NMI watchdog permanently disabled
+[    0.706242] smp: Bringing up secondary CPUs ...
+[    0.707441] smpboot: x86: Booting SMP configuration:
+[    0.708186] .... node  #0, CPUs:      #1
+[    0.711264] smp: Brought up 1 node, 2 CPUs
+[    0.713184] smpboot: Total of 2 processors activated (9199.99 BogoMIPS)
+[    0.714774] Memory: 5759708K/6285052K available (24901K kernel code, 4857K rwdata, 19100K rodata, 5376K init, 6052K bss, 517236K reserved, 0K cma-reserved)
+[    0.715609] devtmpfs: initialized
+[    0.716165] x86/mm: Memory block size: 128MB
+[    0.719183] ACPI: PM: Registering ACPI NVS region [mem 0x00800000-0x00807fff] (32768 bytes)
+[    0.722199] ACPI: PM: Registering ACPI NVS region [mem 0x0080b000-0x0080bfff] (4096 bytes)
+[    0.725180] ACPI: PM: Registering ACPI NVS region [mem 0x00810000-0x008fffff] (983040 bytes)
+[    0.728506] ACPI: PM: Registering ACPI NVS region [mem 0x7fb7f000-0x7fbfefff] (524288 bytes)
+[    0.732188] ACPI: PM: Registering ACPI NVS region [mem 0x7ff70000-0x7fffffff] (589824 bytes)
+[    0.736877] posixtimers hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    0.737187] futex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).
+[    0.739370] xor: automatically using best checksumming function   avx
+[    0.742747] PM: RTC time: 19:03:29, date: 2026-10-24
+[    0.745301] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.746165] DMA: preallocated 1024 KiB GFP_KERNEL pool for atomic allocations
+[    0.750600] DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    0.753294] DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    0.756199] audit: initializing netlink subsys (disabled)
+[    0.758213] audit: type=2000 audit(1792868610.036:1): state=initialized audit_enabled=0 res=1
+[    0.770770] thermal_sys: Registered thermal governor 'fair_share'
+[    0.770773] thermal_sys: Registered thermal governor 'bang_bang'
+[    0.771182] thermal_sys: Registered thermal governor 'step_wise'
+[    0.773179] thermal_sys: Registered thermal governor 'user_space'
+[    0.775202] cpuidle: using governor menu
+[    0.779379] Freeing SMP alternatives memory: 60K
+[    0.782954] efi: Freeing EFI boot services memory: 32876K
+[    0.784183] acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+[    0.787511] PCI: ECAM [mem 0xe0000000-0xefffffff] (base 0xe0000000) for domain 0000 [bus 00-ff]
+[    0.790195] PCI: Using configuration type 1 for base access
+[    0.792310] virt/tdx: TDX not supported by the host platform
+[    0.794230] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    0.798432] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    0.799184] HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    0.801225] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.802165] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.806980] raid6: using avx512x2 recovery algorithm
+[    0.810182] raid6: skipped pq benchmark and selected avx512x4
+[    0.813547] fbcon: Taking over console
+[    0.817213] ACPI: Added _OSI(Module Device)
+[    0.817215] ACPI: Added _OSI(Processor Device)
+[    0.817216] ACPI: Added _OSI(Processor Aggregator Device)
+[    0.829209] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    0.844181] ACPI: \_SB_: platform _OSC: OS support mask [006e7eff]
+[    0.845420] ACPI: Interpreter enabled
+[    0.846200] ACPI: PM: (supports S0 S3 S4 S5)
+[    0.847185] ACPI: Using IOAPIC for interrupt routing
+[    0.848359] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    0.849180] PCI: Ignoring E820 reservations for host bridge windows
+[    0.850352] ACPI: Enabled 2 GPEs in block 00 to 3F
+[    0.853955] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    0.854187] acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI EDR HPX-Type3]
+[    0.855251] acpi PNP0A08:00: _OSC: platform does not support [PCIeHotplug LTR DPC]
+[    0.856268] acpi PNP0A08:00: _OSC: OS now controls [SHPCHotplug PME AER PCIeCapability]
+[    0.857695] PCI host bridge to bus 0000:00
+[    0.858184] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    0.859179] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    0.860179] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    0.861179] pci_bus 0000:00: root bus resource [mem 0x80000000-0xdfffffff window]
+[    0.862179] pci_bus 0000:00: root bus resource [mem 0xf0000000-0xfebfffff window]
+[    0.863179] pci_bus 0000:00: root bus resource [mem 0x380000000000-0x3807ffffffff window]
+[    0.864179] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    0.865312] pci 0000:00:00.0: [8086:29c0] type 00 class 0x060000 conventional PCI endpoint
+[    0.869239] pci 0000:00:01.0: [1af4:1000] type 00 class 0x020000 conventional PCI endpoint
+[    0.875196] pci 0000:00:01.0: BAR 0 [io  0x61a0-0x61bf]
+[    0.876165] pci 0000:00:01.0: BAR 4 [mem 0x380000000000-0x380000003fff 64bit pref]
+[    0.878208] pci 0000:00:01.0: ROM [mem 0xfff80000-0xffffffff pref]
+[    0.883338] pci 0000:00:02.0: [1af4:1001] type 00 class 0x010000 conventional PCI endpoint
+[    0.887202] pci 0000:00:02.0: BAR 0 [io  0x6080-0x60ff]
+[    0.888210] pci 0000:00:02.0: BAR 1 [mem 0x80884000-0x80884fff]
+[    0.892277] pci 0000:00:02.0: BAR 4 [mem 0x380000004000-0x380000007fff 64bit pref]
+[    0.896322] pci 0000:00:03.0: [1af4:1001] type 00 class 0x010000 conventional PCI endpoint
+[    0.900197] pci 0000:00:03.0: BAR 0 [io  0x6000-0x607f]
+[    0.901165] pci 0000:00:03.0: BAR 1 [mem 0x80883000-0x80883fff]
+[    0.903301] pci 0000:00:03.0: BAR 4 [mem 0x380000008000-0x38000000bfff 64bit pref]
+[    0.908317] pci 0000:00:04.0: [1af4:1050] type 00 class 0x030000 conventional PCI endpoint
+[    0.912217] pci 0000:00:04.0: BAR 0 [mem 0x80000000-0x807fffff pref]
+[    0.913274] pci 0000:00:04.0: BAR 2 [mem 0x38000000c000-0x38000000ffff 64bit pref]
+[    0.917217] pci 0000:00:04.0: BAR 4 [mem 0x80882000-0x80882fff]
+[    0.919240] pci 0000:00:04.0: ROM [mem 0xffff0000-0xffffffff pref]
+[    0.922370] pci 0000:00:04.0: Video device with shadowed ROM at [mem 0x000c0000-0x000dffff]
+[    0.927306] pci 0000:00:05.0: [1b36:000d] type 00 class 0x0c0330 PCIe Root Complex Integrated Endpoint
+[    0.932778] pci 0000:00:05.0: BAR 0 [mem 0x380000014000-0x380000017fff 64bit]
+[    0.937391] pci 0000:00:06.0: [1af4:1009] type 00 class 0x000200 conventional PCI endpoint
+[    0.943197] pci 0000:00:06.0: BAR 0 [io  0x6140-0x617f]
+[    0.944211] pci 0000:00:06.0: BAR 1 [mem 0x80881000-0x80881fff]
+[    0.946301] pci 0000:00:06.0: BAR 4 [mem 0x380000010000-0x380000013fff 64bit pref]
+[    0.951608] pci 0000:00:1f.0: [8086:2918] type 00 class 0x060100 conventional PCI endpoint
+[    0.955555] pci 0000:00:1f.0: quirk: [io  0x0600-0x067f] claimed by ICH6 ACPI/GPIO/TCO
+[    0.959058] pci 0000:00:1f.2: [8086:2922] type 00 class 0x010601 conventional PCI endpoint
+[    0.964287] pci 0000:00:1f.2: BAR 4 [io  0x6180-0x619f]
+[    0.965165] pci 0000:00:1f.2: BAR 5 [mem 0x80880000-0x80880fff]
+[    0.968450] pci 0000:00:1f.3: [8086:2930] type 00 class 0x0c0500 conventional PCI endpoint
+[    0.972800] pci 0000:00:1f.3: BAR 4 [io  0x6100-0x613f]
+[    0.977438] ACPI: PCI: Interrupt link LNKA configured for IRQ 10
+[    0.979358] ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    0.981346] ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    0.984343] ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    0.986340] ACPI: PCI: Interrupt link LNKE configured for IRQ 10
+[    0.988358] ACPI: PCI: Interrupt link LNKF configured for IRQ 10
+[    0.991341] ACPI: PCI: Interrupt link LNKG configured for IRQ 11
+[    0.993343] ACPI: PCI: Interrupt link LNKH configured for IRQ 11
+[    0.995250] ACPI: PCI: Interrupt link GSIA configured for IRQ 16
+[    0.997190] ACPI: PCI: Interrupt link GSIB configured for IRQ 17
+[    1.000191] ACPI: PCI: Interrupt link GSIC configured for IRQ 18
+[    1.002189] ACPI: PCI: Interrupt link GSID configured for IRQ 19
+[    1.004188] ACPI: PCI: Interrupt link GSIE configured for IRQ 20
+[    1.006272] ACPI: PCI: Interrupt link GSIF configured for IRQ 21
+[    1.008189] ACPI: PCI: Interrupt link GSIG configured for IRQ 22
+[    1.010188] ACPI: PCI: Interrupt link GSIH configured for IRQ 23
+[    1.013184] iommu: Default domain type: Translated
+[    1.015181] iommu: DMA domain TLB invalidation policy: lazy mode
+[    1.017289] SCSI subsystem initialized
+[    1.019236] ACPI: bus type USB registered
+[    1.020199] usbcore: registered new interface driver usbfs
+[    1.023195] usbcore: registered new interface driver hub
+[    1.025188] usbcore: registered new device driver usb
+[    1.027218] pps_core: LinuxPPS API ver. 1 registered
+[    1.028178] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    1.032181] PTP clock support registered
+[    1.033193] EDAC MC: Ver: 3.0.0
+[    1.034797] efivars: Registered efivars operations
+[    1.037181] NetLabel: Initializing
+[    1.038196] NetLabel:  domain hash size = 128
+[    1.040179] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    1.042195] NetLabel:  unlabeled traffic allowed by default
+[    1.044182] mctp: management component transport protocol core
+[    1.046179] NET: Registered PF_MCTP protocol family
+[    1.048190] PCI: Using ACPI for IRQ routing
+[    1.205389] e820: register RAM buffer resource [mem 0x0080b000-0x008fffff]
+[    1.206201] e820: register RAM buffer resource [mem 0x00810000-0x008fffff]
+[    1.208179] e820: register RAM buffer resource [mem 0x7dc9d000-0x7fffffff]
+[    1.211178] e820: register RAM buffer resource [mem 0x7ed3f000-0x7fffffff]
+[    1.213186] e820: register RAM buffer resource [mem 0x7f8ed000-0x7fffffff]
+[    1.215178] e820: register RAM buffer resource [mem 0x7feec000-0x7fffffff]
+[    1.218211] pci 0000:00:04.0: vgaarb: setting as boot VGA device
+[    1.219165] pci 0000:00:04.0: vgaarb: bridge control possible
+[    1.219165] pci 0000:00:04.0: vgaarb: VGA device added: decodes=io+mem,owns=io+mem,locks=none
+[    1.225180] vgaarb: loaded
+[    1.226312] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0
+[    1.228179] hpet0: 3 comparators, 64-bit 100.000000 MHz counter
+[    1.234260] clocksource: Switched to clocksource kvm-clock
+[    1.236731] VFS: Disk quotas dquot_6.6.0
+[    1.238476] VFS: Dquot-cache hash table entries: 512 (4096 bytes)
+[    1.241154] acpi PNP0C01:00: Reserved [mem 0xe0000000-0xefffffff]
+[    1.243498] pnp: PnP ACPI init
+[    1.245387] pnp: PnP ACPI: found 4 devices
+[    1.255727] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    1.259355] NET: Registered PF_INET protocol family
+[    1.261860] IP idents hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    1.266595] tcp_listen_portaddr_hash hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    1.270088] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    1.273268] TCP established hash table entries: 65536 (order: 7, 524288 bytes, linear)
+[    1.276967] TCP bind hash table entries: 65536 (order: 9, 2097152 bytes, linear)
+[    1.280169] TCP: Hash tables configured (established 65536 bind 65536)
+[    1.282936] MPTCP token hash table entries: 8192 (order: 6, 196608 bytes, linear)
+[    1.286004] UDP hash table entries: 4096 (order: 6, 262144 bytes, linear)
+[    1.288815] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    1.291230] NET: Registered PF_XDP protocol family
+[    1.293222] pci 0000:00:01.0: ROM [mem 0xfff80000-0xffffffff pref]: can't claim; no compatible bridge window
+[    1.297173] pci 0000:00:01.0: ROM [mem 0x80800000-0x8087ffff pref]: assigned
+[    1.300089] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    1.302372] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    1.304953] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    1.307809] pci_bus 0000:00: resource 7 [mem 0x80000000-0xdfffffff window]
+[    1.310678] pci_bus 0000:00: resource 8 [mem 0xf0000000-0xfebfffff window]
+[    1.313524] pci_bus 0000:00: resource 9 [mem 0x380000000000-0x3807ffffffff window]
+[    1.317283] ACPI: \_SB_.GSIF: Enabled at IRQ 21
+[    1.321231] PCI: CLS 0 bytes, default 64
+[    1.323908] PCI-DMA: Using software bounce buffering for IO (SWIOTLB)
+[    1.325010] Trying to unpack rootfs image as initramfs...
+[    1.328162] software IO TLB: mapped [mem 0x0000000077eef000-0x000000007beef000] (64MB)
+[    1.338042] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x212733415c7, max_idle_ns: 440795236380 ns
+[    1.351520] Initialise system trusted keyrings
+[    1.355483] Key type blacklist registered
+[    1.358541] workingset: timestamp_bits=36 (anon: 31) max_order=21 bucket_order=0 (anon: 0)
+[    1.366372] integrity: Platform Keyring initialized
+[    1.370458] integrity: Machine keyring initialized
+[    1.374726] cryptd: max_cpu_qlen set to 1000
+[    1.391611] NET: Registered PF_ALG protocol family
+[    1.395663] Key type asymmetric registered
+[    1.398157] Asymmetric key parser 'x509' registered
+[    1.401639] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 244)
+[    1.407805] io scheduler mq-deadline registered
+[    1.409389] io scheduler kyber registered
+[    1.413156] io scheduler bfq registered
+[    1.417491] atomic64_test: passed for x86-64 platform with CX8 and with SSE
+[    1.422068] input: Power Button as /devices/platform/LNXPWRBN:00/input/input0
+[    1.428187] ACPI: button: Power Button [PWRF]
+[    1.436815] ACPI: \_SB_.GSIG: Enabled at IRQ 22
+[    1.444620] ACPI: \_SB_.GSIH: Enabled at IRQ 23
+[    1.451577] ACPI: \_SB_.GSIE: Enabled at IRQ 20
+[    1.462145] Serial: 8250/16550 driver, 32 ports, IRQ sharing enabled
+[    1.468505] 00:03: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    1.479200] Non-volatile memory driver v1.3
+[    1.483174] ACPI: bus type drm_connector registered
+[    1.488986] virtio_blk virtio1: 2/0/0 default/read/poll queues
+[    1.499145] virtio_blk virtio1: [vda] 104857600 512-byte logical blocks (53.7 GB/50.0 GiB)
+[    1.508635]  vda: vda1 vda2 vda3 vda4
+[    1.512558] virtio_blk virtio2: 2/0/0 default/read/poll queues
+[    1.520183] virtio_blk virtio2: [vdb] 102760448 512-byte logical blocks (52.6 GB/49.0 GiB)
+[    1.529586]  vdb: vdb1 vdb2 vdb3
+[    1.531300] Key type psk registered
+[    1.539606] ACPI: \_SB_.GSIA: Enabled at IRQ 16
+[    1.547902] ahci 0000:00:1f.2: AHCI vers 0001.0000, 32 command slots, 1.5 Gbps, SATA mode
+[    1.553092] ahci 0000:00:1f.2: 6/6 ports implemented (port mask 0x3f)
+[    1.559299] ahci 0000:00:1f.2: flags: 64bit ncq only
+[    1.570586] scsi host0: ahci
+[    1.575894] scsi host1: ahci
+[    1.579022] scsi host2: ahci
+[    1.582568] scsi host3: ahci
+[    1.585502] scsi host4: ahci
+[    1.588559] scsi host5: ahci
+[    1.589719] ata1: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880100 irq 30 lpm-pol 1
+[    1.595907] ata2: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880180 irq 30 lpm-pol 1
+[    1.614056] ata3: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880200 irq 30 lpm-pol 1
+[    1.623658] ata4: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880280 irq 30 lpm-pol 1
+[    1.630081] ata5: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880300 irq 30 lpm-pol 1
+[    1.633058] ata6: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880380 irq 30 lpm-pol 1
+[    1.636349] CAN device driver interface
+[    1.639120] xhci_hcd 0000:00:05.0: xHCI Host Controller
+[    1.641398] xhci_hcd 0000:00:05.0: new USB bus registered, assigned bus number 1
+[    1.645080] xhci_hcd 0000:00:05.0: hcc params 0x00087001 hci version 0x100 quirks 0x0000000000000010
+[    1.650349] xhci_hcd 0000:00:05.0: xHCI Host Controller
+[    1.652380] xhci_hcd 0000:00:05.0: new USB bus registered, assigned bus number 2
+[    1.655073] xhci_hcd 0000:00:05.0: Host supports USB 3.0 SuperSpeed
+[    1.657519] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 7.02
+[    1.660707] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.663480] usb usb1: Product: xHCI Host Controller
+[    1.665262] usb usb1: Manufacturer: Linux 7.2.9-ogc3.1.fc44.x86_64 xhci-hcd
+[    1.667778] usb usb1: SerialNumber: 0000:00:05.0
+[    1.669706] hub 1-0:1.0: USB hub found
+[    1.671564] hub 1-0:1.0: 4 ports detected
+[    1.674763] usb usb2: We don't know the algorithms for LPM for this host, disabling LPM.
+[    1.677824] usb usb2: New USB device found, idVendor=1d6b, idProduct=0003, bcdDevice= 7.02
+[    1.680820] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.683452] usb usb2: Product: xHCI Host Controller
+[    1.685207] usb usb2: Manufacturer: Linux 7.2.9-ogc3.1.fc44.x86_64 xhci-hcd
+[    1.687678] usb usb2: SerialNumber: 0000:00:05.0
+[    1.689599] hub 2-0:1.0: USB hub found
+[    1.691072] hub 2-0:1.0: 4 ports detected
+[    1.693043] usbcore: registered new interface driver usb-storage
+[    1.695308] usbcore: registered new interface driver usbserial_generic
+[    1.697648] usbserial: USB Serial support registered for generic
+[    1.700188] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12
+[    1.705468] serio: i8042 KBD port at 0x60,0x64 irq 1
+[    1.707288] serio: i8042 AUX port at 0x60,0x64 irq 12
+[    1.709269] mousedev: PS/2 mouse device common for all mice
+[    1.711532] rtc_cmos PNP0B00:00: RTC can wake from S4
+[    1.715185] rtc_cmos PNP0B00:00: registered as rtc0
+[    1.717307] rtc_cmos PNP0B00:00: setting system clock to 2026-10-24T19:03:30 UTC (1792868610)
+[    1.720633] rtc_cmos PNP0B00:00: alarms up to one day, y3k, 242 bytes nvram
+[    1.723251] device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+[    1.727606] device-mapper: uevent: version 1.0.3
+[    1.729392] device-mapper: ioctl: 4.50.0-ioctl (2025-04-28) initialised: dm-devel@lists.linux.dev
+[    1.732507] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input1
+[    1.737649] intel_pstate: CPU model not supported
+[    1.739808] simple-framebuffer simple-framebuffer.0: [drm] Registered 1 planes with drm panic
+[    1.748198] input: VirtualPS/2 VMware VMMouse as /devices/platform/i8042/serio1/input/input4
+[    1.755630] [drm] Initialized simpledrm 1.0.0 for simple-framebuffer.0 on minor 0
+[    1.770080] input: VirtualPS/2 VMware VMMouse as /devices/platform/i8042/serio1/input/input3
+[    1.793477] Console: switching to colour frame buffer device 160x50
+[    1.802557] simple-framebuffer simple-framebuffer.0: [drm] fb0: simpledrmdrmfb frame buffer device
+[    1.810817] hid: raw HID events driver (C) Jiri Kosina
+[    1.816609] usbcore: registered new interface driver usbhid
+[    1.821387] usbhid: USB HID core driver
+[    1.824142] drop_monitor: Initializing network drop monitor service
+[    1.830815] Initializing XFRM netlink socket
+[    1.835635] NET: Registered PF_INET6 protocol family
+[    1.841471] Segment Routing with IPv6
+[    1.842890] RPL Segment Routing with IPv6
+[    1.847319] In-situ OAM (IOAM) with IPv6
+[    1.851491] mip6: Mobile IPv6
+[    1.852635] NET: Registered PF_PACKET protocol family
+[    1.855724] can: controller area network core
+[    1.861207] NET: Registered PF_CAN protocol family
+[    1.866917] IPI shorthand broadcast: enabled
+[    1.875611] sched_clock: Marking stable (1477131031, 398415081)->(2109190043, -233643931)
+[    1.883475] registered taskstats version 1
+[    1.888307] Loading compiled-in X.509 certificates
+[    1.904080] Loaded X.509 cert 'Build time autogenerated kernel key: ba9b58361404c1dfe19f3169394b9ccc44cf6afe'
+[    1.922207] Demotion targets for Node 0: null
+[    1.927525] page_owner is disabled
+[    1.929001] usb 1-1: new high-speed USB device number 2 using xhci_hcd
+[    1.931450] Key type .fscrypt registered
+[    1.938020] Key type fscrypt-provisioning registered
+[    1.943663] Btrfs loaded, zoned=yes, fsverity=yes
+[    1.948169] Key type big_key registered
+[    1.955825] Key type encrypted registered
+[    1.959565] ima: No TPM chip found, activating TPM-bypass!
+[    1.967006] Loading compiled-in module X.509 certificates
+[    1.974669] Loaded X.509 cert 'Build time autogenerated kernel key: ba9b58361404c1dfe19f3169394b9ccc44cf6afe'
+[    1.983154] ima: Allocated hash algorithm: sha256
+[    1.988352] ata5: SATA link down (SStatus 0 SControl 300)
+[    1.993479] ima: No architecture policies found
+[    1.996574] ata2: SATA link down (SStatus 0 SControl 300)
+[    1.999679] evm: Initialising EVM extended attributes:
+[    2.003043] ata4: SATA link down (SStatus 0 SControl 300)
+[    2.005988] evm: security.selinux
+[    2.008346] evm: security.SMACK64 (disabled)
+[    2.010360] ata6: SATA link down (SStatus 0 SControl 300)
+[    2.010732] evm: security.SMACK64EXEC (disabled)
+[    2.017321] ata3: SATA link up 1.5 Gbps (SStatus 113 SControl 300)
+[    2.017729] evm: security.SMACK64TRANSMUTE (disabled)
+[    2.024826] evm: security.SMACK64MMAP (disabled)
+[    2.026698] ata3.00: ATAPI: QEMU DVD-ROM, 2.5+, max UDMA/100
+[    2.028126] evm: security.apparmor
+[    2.034455] ata3.00: applying bridge limits
+[    2.035071] evm: security.ima
+[    2.038931] ata1: SATA link down (SStatus 0 SControl 300)
+[    2.042262] evm: security.capability
+[    2.044972] ata3.00: configured for UDMA/100
+[    2.046299] evm: HMAC attrs: 0x1
+[    2.052354] scsi 2:0:0:0: CD-ROM            QEMU     QEMU DVD-ROM     2.5+ PQ: 0 ANSI: 5
+[    2.064104] alg: No test for 842 (842-scomp)
+[    2.072444] usb 1-1: New USB device found, idVendor=0627, idProduct=0001, bcdDevice= 0.00
+[    2.079182] usb 1-1: New USB device strings: Mfr=1, Product=4, SerialNumber=11
+[    2.083144] sr 2:0:0:0: [sr0] scsi3-mmc drive: 4x/4x cd/rw xa/form2 tray
+[    2.086254] usb 1-1: Product: QEMU USB Keyboard
+[    2.087748] alg: No test for mldsa87 (mldsa87-lib)
+[    2.088405] usb 1-1: Manufacturer: QEMU
+[    2.088407] usb 1-1: SerialNumber: 68284-0000:00:05.0-1
+[    2.105156] alg: No test for mldsa65 (mldsa65-lib)
+[    2.106169] clocksource: Watchdog remote CPU 1 read timed out
+[    2.109548] alg: No test for mldsa44 (mldsa44-lib)
+[    2.121719] input: QEMU QEMU USB Keyboard as /devices/pci0000:00/0000:00:05.0/usb1/1-1/1-1:1.0/0003:0627:0001.0001/input/input5
+[    2.139928] cdrom: Uniform CD-ROM driver Revision: 3.20
+[    2.157391] sr 2:0:0:0: Attached scsi generic sg0 type 5
+[    2.181477] PM:   Magic number: 14:358:92
+[    2.190615] hid-generic 0003:0627:0001.0001: input,hidraw0: USB HID v1.11 Keyboard [QEMU QEMU USB Keyboard] on usb-0000:00:05.0-1/input0
+[    2.194793]  container: hash matches
+[    2.208639] RAS: Correctable Errors collector initialized.
+[    2.225801] clk: Disabling unused clocks
+[    2.237959] PM: genpd: Disabling unused power domains
+[    2.816279] Freeing initrd memory: 231536K
+[    2.837209] Freeing unused decrypted memory: 2028K
+[    2.841312] Freeing unused kernel image (initmem) memory: 5376K
+[    2.843159] Write protecting the kernel read-only data: 47104k
+[    2.846331] Freeing unused kernel image (text/rodata gap) memory: 1720K
+[    2.849054] Freeing unused kernel image (rodata/data gap) memory: 1380K
+[    2.900795] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    2.902751] Run /init as init process
+P+q6E616D65\[    3.254401] fuse: init (API version 7.45)
+[    3.270284] systemd[1]: Successfully made /usr/ read-only.
+[6n[32766;32766H[6n[24;80H[!p]104\[0m[?7h[1G[0J[    3.275967] systemd[1]: systemd 259.9-1.fc44 running in system mode (+PAM +AUDIT +SELINUX -APPARMOR +IMA +IPE +SMACK +SECCOMP -GCRYPT +GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK +BTF +XKBCOMMON +UTMP +SYSVINIT +LIBARCHIVE)
+[    3.284314] systemd[1]: Detected virtualization kvm.
+[    3.286268] systemd[1]: Detected architecture x86-64.
+[    3.288158] systemd[1]: Running in initrd.
+[0;1;39mBooting initrd of [0m[0;38;2;138;43;226mBazzite dracut-108-8.fc44 (Initramfs)[0m[0;1;39m.[0m
+
+[    3.292284] systemd[1]: Initializing machine ID from random generator.
+[    3.294285] systemd[1]: No hostname configured, using default hostname.
+[    3.296512] systemd[1]: Hostname set to <bazzite>.
+]3008;start=80ab9a9dcba24e068d0e24d9224eaf0c;user=root;hostname=bazzite;machineid=9117504d83b8469794d4bc483dfbffae;bootid=83be6e0cf88b42ebb781c19e59e2a3a2;pid=1;pidfdid=1;comm=systemd;type=boot\[    3.370713] systemd[1]: bpf-restrict-fs: LSM BPF program attached
+[    3.425039] systemd[1]: /usr/lib/systemd/system/systemd-udevd.service:56: System call bpf cannot be resolved as libseccomp is not available, ignoring: Operation not supported
+[    3.444996] systemd[1]: Queued start job for default target initrd.target.
+[    3.455924] systemd[1]: Expecting device dev-disk-by\x2duuid-8b381f06\x2d01fd\x2d4f46\x2dbfcd\x2d3cd0c4998e1c.device - /dev/disk/by-uuid/8b381f06-01fd-4f46-bfcd-3cd0c4998e1c...
+         Expecting device [0;1;39mdev-disk-by\x2duu…[0m1f06-01fd-4f46-bfcd-3cd0c4998e1c...
+
+[    3.463115] systemd[1]: Reached target initrd-usr-fs.target - Initrd /usr File System.
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-usr-fs.target[0m - Initrd /usr File System.
+
+[    3.467842] systemd[1]: Reached target slices.target - Slice Units.
+[[0;32m  OK  [0m] Reached target [0;1;39mslices.target[0m - Slice Units.
+
+[    3.471453] systemd[1]: Reached target swap.target - Swaps.
+[[0;32m  OK  [0m] Reached target [0;1;39mswap.target[0m - Swaps.
+
+[    3.474823] systemd[1]: Reached target timers.target - Timer Units.
+[[0;32m  OK  [0m] Reached target [0;1;39mtimers.target[0m - Timer Units.
+
+[    3.479208] systemd[1]: Listening on pcscd.socket - PC/SC Smart Card Daemon Activation Socket (Dracut).
+[[0;32m  OK  [0m] Listening on [0;1;39mpcscd.socket[0m - PC/SC … Daemon Activation Socket (Dracut).
+
+[    3.485215] systemd[1]: Listening on systemd-journald-dev-log.socket - Journal Socket (/dev/log).
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-journald-dev-…socket[0m - Journal Socket (/dev/log).
+
+[    3.490311] systemd[1]: Listening on systemd-journald.socket - Journal Sockets.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-journald.socket[0m - Journal Sockets.
+
+[    3.495212] systemd[1]: Listening on systemd-udevd-control.socket - udev Control Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-udevd-control.socket[0m - udev Control Socket.
+
+[    3.503249] systemd[1]: Listening on systemd-udevd-kernel.socket - udev Kernel Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-udevd-kernel.socket[0m - udev Kernel Socket.
+
+[    3.510075] systemd[1]: Reached target sockets.target - Socket Units.
+[[0;32m  OK  [0m] Reached target [0;1;39msockets.target[0m - Socket Units.
+
+[    3.518263] systemd[1]: Starting kmod-static-nodes.service - Create List of Static Device Nodes...
+         Starting [0;1;39mkmod-static-nodes.service[0m…eate List of Static Device Nodes...
+
+[    3.526919] systemd[1]: memstrack.service - Memstrack Anylazing Service skipped, no trigger condition checks were met.
+[    3.534944] systemd[1]: Starting systemd-journald.service - Journal Service...
+         Starting [0;1;39msystemd-journald.service[0m - Journal Service...
+
+[    3.547312] systemd[1]: Starting systemd-modules-load.service - Load Kernel Modules...
+         Starting [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules...
+
+[    3.561231] systemd[1]: systemd-pcrphase-initrd.service - TPM PCR Barrier (initrd) skipped, unmet condition check ConditionSecurity=measured-uki
+[    3.568873] systemd-journald[197]: Collecting audit messages is disabled.
+[    3.576561] systemd[1]: Starting systemd-vconsole-setup.service - Virtual Console Setup...
+         Startin[    3.587389] i2c_dev: i2c /dev entries driver
+g [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup...
+
+[    3.593923] systemd[1]: Finished kmod-static-nodes.service - Create List of Static Device Nodes.
+[[0;32m  OK  [0m] Finished [0;1;39mkmod-static-nodes.service[0m…Create List of Static Device Nodes.
+
+[    3.606409] systemd[1]: Starting systemd-tmpfiles-setup-dev-early.service - Create Static Device Nodes in /dev gracefully...
+         Starting [0;1;39msystemd-tmpfiles-setup-de…[0m Device Nodes in /dev gracefully...
+
+[    3.629091] hid_fanatec: loading out-of-tree module taints kernel.
+[    3.632316] hid_fanatec: module verification failed: signature and/or required key missing - tainting kernel
+[    3.639341] systemd[1]: Started systemd-journald.service - Journal Service.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-journald.service[0m - Journal Service.
+
+[    3.653321] kvmfr: creating 0 static devices
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup-de…[0mic Device Nodes in /dev gracefully.
+
+         Starting [0;1;39msystemd-tmpfiles-setup-de…[0meate Static Device Nodes in /dev...
+
+[    3.663226] kvmfr: kvmfr_module_init: module loaded
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup-de…[0mCreate Static Device Nodes in /dev.
+
+[[0;32m  OK  [0m] Reached target [0;1;39mlocal-fs-pre.target[0m…Preparation for Local File Systems.
+
+[[0;32m  OK  [0m] Reached target [0;1;39mlocal-fs.target[0m - Local File Systems.
+
+         Starting [0;1;39msystemd-tmpfiles-setup.se…[0mate System Files and Directories...
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup.se…[0mreate System Files and Directories.
+
+[    3.723656] usbcore: registered new interface driver system76-io
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup.
+
+         Starting [0;1;39mdracut-cmdline-ask.servic…[0mor additional cmdline parameters...
+
+[    3.744368] system76: Model does not utilize this driver
+[    3.745291] mc: Linux media interface: v0.10
+[    3.765834] videodev: Linux video capture interface: v2.00
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-cmdline-ask.servic…[0m for additional cmdline parameters.
+
+         Starting [0;1;39mdracut-cmdline.service[0m - dracut cmdline hook...
+
+[    3.786141] v4l2-loopback driver version 0.15.4 loaded
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules.
+
+         Starting [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables...
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables.
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-cmdline.service[0m - dracut cmdline hook.
+
+         Starting [0;1;39mdracut-pre-udev.service[0m - dracut pre-udev hook...
+
+[    3.919175] VFIO - User Level meta-driver version: 0.3
+[[0m[0;31m*     [0m] (1 of 2) Job dracut-pre-udev.service/start running (2s / no limit)
+
+M
+[K[[0;1;31m*[0m[0;31m*    [0m] (1 of 2) Job dracut-pre-udev.service/start running (2s / no limit)
+
+M
+[K[[0;31m*[0;1;31m*[0m[0;31m*   [0m] (1 of 2) Job dracut-pre-udev.service/start running (3s / no limit)
+
+M
+[K[ [0;31m*[0;1;31m*[0m[0;31m*  [0m] (2 of 2) Job dev-disk-by\x2duuid-8b…vice/start running (3s / no limit)
+
+M
+[K[  [0;31m*[0;1;31m*[0m[0;31m* [0m] (2 of 2) Job dev-disk-by\x2duuid-8b…vice/start running (4s / no limit)
+
+M
+[K[   [0;31m*[0;1;31m*[0m[0;31m*[0m] (2 of 2) Job dev-disk-by\x2duuid-8b…vice/start running (4s / no limit)
+
+[    8.771619] amdgpu: Virtual CRAT table created for CPU
+[    8.774238] amdgpu: Topology: Add CPU node
+M
+[K[    [0;31m*[0;1;31m*[0m] (1 of 2) Job dracut-pre-udev.service/start running (5s / no limit)
+
+[    9.273953] nvidia-nvlink: Nvlink Core is being initialized, major device number 506
+[    9.277138] NVRM: No NVIDIA GPU found.
+[    9.292632] nvidia-nvlink: Unregistered Nvlink Core, major device number 506
+M
+[K[     [0;31m*[0m] (1 of 2) Job dracut-pre-udev.service/start running (5s / no limit)
+
+[    9.823863] nvidia-nvlink: Nvlink Core is being initialized, major device number 506
+[    9.826327] NVRM: No NVIDIA GPU found.
+[    9.835845] nvidia-nvlink: Unregistered Nvlink Core, major device number 506
+M
+[K[    [0;31m*[0;1;31m*[0m] (1 of 2) Job dracut-pre-udev.service/start running (6s / no limit)
+
+[   10.374636] nvidia-nvlink: Nvlink Core is being initialized, major device number 506
+[   10.377127] NVRM: No NVIDIA GPU found.
+[   10.386571] nvidia-nvlink: Unregistered Nvlink Core, major device number 506
+M
+[K[   [0;31m*[0;1;31m*[0m[0;31m*[0m] (2 of 2) Job dev-disk-by\x2duuid-8b…vice/start running (6s / no limit)
+
+M
+[K[  [0;31m*[0;1;31m*[0m[0;31m* [0m] (2 of 2) Job dev-disk-by\x2duuid-8b…vice/start running (7s / no limit)
+
+[   10.924877] nvidia-nvlink: Nvlink Core is being initialized, major device number 506
+[   10.927372] NVRM: No NVIDIA GPU found.
+[   10.937636] nvidia-nvlink: Unregistered Nvlink Core, major device number 506
+M
+[K[[0;32m  OK  [0m] Finished [0;1;39mdracut-pre-udev.service[0m - dracut pre-udev hook.
+
+[K         Starting [0;1;39msystemd-udevd.service[0m - R…ager for Device Events and Files...
+
+[[0;32m  OK  [0m] Started [0;1;39msystemd-udevd.service[0m - Ru…anager for Device Events and Files.
+
+         Starting [0;1;39mdracut-pre-trigger.service[0m - dracut pre-trigger hook...
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-pre-trigger.service[0m - dracut pre-trigger hook.
+
+         Starting [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices...
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices.
+
+         Starting [0;1;39mdracut-initqueue.service[0m - dracut initqueue hook...
+
+         Starting [0;1;39mplymouth-start.service[0m - Show Plymouth Boot Screen...
+
+[[0;32m  OK  [0m] Created slice [0;1;39msystem-modprobe.slice[0m - Slice /system/modprobe.
+
+
+         Mounting [0;1;39msys-kernel-config.mount[0m - Kernel Configuration File System...
+
+
+[[0;32m  OK  [0m] Started [0;1;39mplymouth-start.service[0m - Show Plymouth Boot Screen.
+
+
+[[0;32m  OK  [0m] Started [0;1;39msystemd-ask-password-plymo…[0mquests to Plymouth Directory Watch.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mcryptsetup.target[0m - Local Encrypted Volumes.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mpaths.target[0m - Path Units.
+
+
+[[0;32m  OK  [0m] Mounted [0;1;39msys-kernel-config.mount[0m - Kernel Configuration File System.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39msysinit.target[0m - System Initialization.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mbasic.target[0m - Basic System.
+
+
+[[0;32m  OK  [0m] Found device [0;1;39mdev-disk-by\x2duuid-8…[0m381f06-01fd-4f46-bfcd-3cd0c4998e1c.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-root-device.target[0m - Initrd Root Device.
+
+
+[0;21;39m[drm] pci: virtio-vga detected at 0000:00:04.0[0m
+[0;21;39mConsole: switching to colour dummy device 80x25[0m
+[0;21;39mvirtio-pci 0000:00:04.0: vgaarb: deactivate vga console[0m
+[0;21;39m[drm] features: -virgl +edid -resource_blob -host_visible[0m
+[0;21;39m[drm] features: -context_init -blob_alignment[0m
+[0;21;39m[drm] number of scanouts: 1[0m
+[0;21;39m[drm] number of cap sets: 0[0m
+[0;21;39mvirtio-pci 0000:00:04.0: [drm] Registered 1 planes with drm panic[0m
+[0;21;39m[drm] Initialized virtio_gpu 0.1.0 for 0000:00:04.0 on minor 1[0m
+[0;21;39mfbcon: virtio_gpudrmfb (fb0) is primary device[0m
+[0;21;39mConsole: switching to colour frame buffer device 160x50[0m
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup.
+
+
+         Stopping [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup...
+
+
+[0;21;39mvirtio-pci 0000:00:04.0: [drm] fb0: virtio_gpudrmfb frame buffer device[0m
+         Starting [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup...
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup.
+
+
+         Starting [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-initqueue.service[0m - dracut initqueue hook.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mremote-fs-pre.targe…[0mreparation for Remote File Systems.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mremote-cryptsetup.target[0m - Remote Encrypted Volumes.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mremote-fs.target[0m - Remote File Systems.
+
+
+         Starting [0;1;39mdracut-pre-mount.service[0m - dracut pre-mount hook...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-pre-mount.service[0m - dracut pre-mount hook.
+
+
+         Starting [0;1;39msystemd-fsck-root.service[0m…1f06-01fd-4f46-bfcd-3cd0c4998e1c...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-fsck-root.service[0m…381f06-01fd-4f46-bfcd-3cd0c4998e1c.
+
+
+         Mounting [0;1;39msysroot.mount[0m - /sysroot...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup.
+
+
+[0;21;39mBTRFS: device label bazzite devid 1 transid 231 /dev/vdb3 (253:19) scanned by mount (507)[0m
+[0;21;39mBTRFS info (device vdb3): first mount of filesystem 8b381f06-01fd-4f46-bfcd-3cd0c4998e1c[0m
+[0;21;39mBTRFS info (device vdb3): using crc32c checksum algorithm[0m
+[0;21;39mBTRFS info (device vdb3): turning on async discard[0m
+[0;21;39mBTRFS info (device vdb3): enabling free space tree[0m
+[[0;32m  OK  [0m] Mounted [0;1;39msysroot.mount[0m - /sysroot.
+
+
+         Starting [0;1;39mostree-prepare-root.service[0m - OSTree Prepare OS/...
+
+
+[0;21;39merofs (device 0:39): mounted with root inode @ nid 36.[0m
+[[0;32m  OK  [0m] Finished [0;1;39mostree-prepare-root.service[0m - OSTree Prepare OS/.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-root-fs.target[0m - Initrd Root File System.
+
+
+         Starting [0;1;39minitrd-parse-etc.service[0m …ints Configured in the Real Root...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39minitrd-parse-etc.service[0m …points Configured in the Real Root.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-fs.target[0m - Initrd File Systems.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd.target[0m - Initrd Default Target.
+
+
+         Starting [0;1;39mdracut-pre-pivot.service[0m …racut pre-pivot and cleanup hook...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-pre-pivot.service[0m - dracut pre-pivot and cleanup hook.
+
+
+         Starting [0;1;39minitrd-cleanup.service[0m - …ing Up and Shutting Down Daemons...
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mremote-cryptsetup.target[0m - Remote Encrypted Volumes.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mtimers.target[0m - Timer Units.
+
+
+[[0;32m  OK  [0m] Closed [0;1;39mpcscd.socket[0m - PC/SC Smart … Daemon Activation Socket (Dracut).
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-pre-pivot.service[0m - dracut pre-pivot and cleanup hook.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39minitrd.target[0m - Initrd Default Target.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mbasic.target[0m - Basic System.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39minitrd-root-device.target[0m - Initrd Root Device.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39minitrd-usr-fs.target[0m - Initrd /usr File System.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mpaths.target[0m - Path Units.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mremote-fs.target[0m - Remote File Systems.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mremote-fs-pre.targe…[0mreparation for Remote File Systems.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mslices.target[0m - Slice Units.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39msockets.target[0m - Socket Units.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39msysinit.target[0m - System Initialization.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mswap.target[0m - Swaps.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-pre-mount.service[0m - dracut pre-mount hook.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mcryptsetup.target[0m - Local Encrypted Volumes.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-initqueue.service[0m - dracut initqueue hook.
+
+
+         Starting [0;1;39mplymouth-switch-root.serv…e[0m - Plymouth switch root service...
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-tmpfiles-setup.ser…[0mreate System Files and Directories.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mlocal-fs.target[0m - Local File Systems.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mlocal-fs-pre.target[0m…Preparation for Local File Systems.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-pre-trigger.service[0m - dracut pre-trigger hook.
+
+
+         Stopping [0;1;39msystemd-udevd.service[0m - R…ager for Device Events and Files...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39minitrd-cleanup.service[0m - …aning Up and Shutting Down Daemons.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-udevd.service[0m - Ru…anager for Device Events and Files.
+
+
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-udevd-control.socket[0m - udev Control Socket.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-pre-udev.service[0m - dracut pre-udev hook.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-cmdline.service[0m - dracut cmdline hook.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-cmdline-ask.service[0m… for additional cmdline parameters.
+
+
+         Starting [0;1;39minitrd-udevadm-cleanup-db.service[0m - Cleanup udev Database...
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-tmpfiles-setup-dev…[0mCreate Static Device Nodes in /dev.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-tmpfiles-setup-dev…[0mic Device Nodes in /dev gracefully.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mkmod-static-nodes.service[0m …Create List of Static Device Nodes.
+
+
+[[0;32m  OK  [0m] Finished [0;1;39minitrd-udevadm-cleanup-db.service[0m - Cleanup udev Database.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-switch-root.target[0m - Switch Root.
+
+
+[[0;32m  OK  [0m] Finished [0;1;39mplymouth-switch-root.service[0m - Plymouth switch root service.
+
+
+         Starting [0;1;39minitrd-switch-root.service[0m - Switch Root...
+
+
+[0;21;39msystemd-journald[197]: Received SIGTERM from PID 1 (systemd).[0m
+[0;21;32maudit: type=1404 audit(1792868620.971:2): enforcing=1 old_enforcing=0 auid=4294967295 ses=4294967295 enabled=1 old-enabled=1 lsm=selinux res=1[0m
+[0;21;39mSELinux:  Permission firmware_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission kexec_image_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission kexec_initramfs_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission policy_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission x509_certificate_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission map_create_as in class bpf not defined in policy.[0m
+[0;21;39mSELinux:  Permission prog_load_as in class bpf not defined in policy.[0m
+[0;21;39mSELinux:  Permission allowed in class io_uring not defined in policy.[0m
+[0;21;39mSELinux:  Class memfd_file not defined in policy.[0m
+[0;21;39mSELinux: the above unknown classes and permissions will be allowed[0m
+[0;21;39mSELinux:  policy capability network_peer_controls=1[0m
+[0;21;39mSELinux:  policy capability open_perms=1[0m
+[0;21;39mSELinux:  policy capability extended_socket_class=1[0m
+[0;21;39mSELinux:  policy capability always_check_network=0[0m
+[0;21;39mSELinux:  policy capability cgroup_seclabel=1[0m
+[0;21;39mSELinux:  policy capability nnp_nosuid_transition=1[0m
+[0;21;39mSELinux:  policy capability genfs_seclabel_symlinks=1[0m
+[0;21;39mSELinux:  policy capability ioctl_skip_cloexec=0[0m
+[0;21;39mSELinux:  policy capability userspace_initial_context=0[0m
+[0;21;39mSELinux:  policy capability netlink_xperm=0[0m
+[0;21;39mSELinux:  policy capability netif_wildcard=0[0m
+[0;21;39mSELinux:  policy capability genfs_seclabel_wildcard=0[0m
+[0;21;39mSELinux:  policy capability functionfs_seclabel=0[0m
+[0;21;39mSELinux:  policy capability memfd_class=0[0m
+[0;21;39mSELinux:  policy capability bpf_token_perms=0[0m
+[0;21;32maudit: type=1403 audit(1792868621.091:3): auid=4294967295 ses=4294967295 lsm=selinux res=1[0m
+[0;21;39msystemd[1]: Successfully loaded SELinux policy in 121.165ms.[0m
+[0;21;39msystemd[1]: RTC configured in localtime, applying delta of 120 minutes to system time.[0m
+P+q6E616D65\[0;21;39mNET: Registered PF_VSOCK protocol family[0m
+[0;21;39msystemd[1]: Relabeled /dev/, /dev/shm/, /run/ in 10.025ms.[0m
+[6n[32766;32766H[6n[   13.127028] systemd[1]: systemd 259.9-1.fc44 running in system mode (+PAM +AUDIT +SELINUX -APPARMOR +IMA +IPE +SMACK +SECCOMP -GCRYPT +GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK +BTF +XKBCOMMON +UTMP +SYSVINIT +LIBARCHIVE)
+[   13.137782] systemd[1]: Detected virtualization kvm.
+[   13.141058] systemd[1]: Detected architecture x86-64.
+[   13.258345] systemd[1]: bpf-restrict-fs: LSM BPF program attached
+[2J[3J[-1;-1f[40m[2J[3J[-1;-1f[?25l[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m�� [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m��� [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m�� [39m[40m[-1;-1f[37m■ [33m■ [33m��� [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m��� [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m��� [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m��� [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m��� [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m�� [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m��� [33m■ [33m��� [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m�� [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m��� [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m��� [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[33m■ [37m��� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m�� [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m�� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m��� [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m�� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m�� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m��� [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m��� [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m�� [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [33m■ [33m■ [39m[2J[3J[-1;-1f[49m[2J[3J[-1;-1f[?25h[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H]3008;start=a2b25db8295f4aa082a2d6a98581f3ad;user=root;hostname=bazzite;machineid=7e4ee6a6209b4eceb0937d3af8fd72fe;bootid=83be6e0cf88b42ebb781c19e59e2a3a2;pid=1310;pidfdid=755;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=70968c3936394504b257d6240a5b55f4;type=service\P+q6E616D65\
+
+Bazzite
+Kernel 7.2.9-ogc3.1.fc44.x86_64 on x86_64 (ttyS0)
+
+Try contacting this VM's SSH server via 'ssh vsock%4294967295' from host.
+
+bazzite login:

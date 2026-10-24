@@ -1,0 +1,91 @@
+{
+  "blockdevices": [
+    {
+      "name": "loop0",
+      "type": "loop",
+      "size": 8649285632,
+      "serial": null,
+      "partuuid": null,
+      "fstype": "squashfs",
+      "mountpoints": [
+        "/run/rootfsbase"
+      ]
+    },
+    {
+      "name": "sr0",
+      "type": "rom",
+      "size": 9068650496,
+      "serial": "QM00001",
+      "partuuid": null,
+      "fstype": "iso9660",
+      "mountpoints": [
+        "/run/initramfs/live"
+      ]
+    },
+    {
+      "name": "zram0",
+      "type": "disk",
+      "size": 3095920640,
+      "serial": null,
+      "partuuid": null,
+      "fstype": "swap",
+      "mountpoints": [
+        "[SWAP]"
+      ]
+    },
+    {
+      "name": "vda",
+      "type": "disk",
+      "size": 53687091200,
+      "serial": "MICRON-KEEP",
+      "partuuid": null,
+      "fstype": null,
+      "mountpoints": []
+    },
+    {
+      "name": "vda1",
+      "type": "part",
+      "size": 272629760,
+      "serial": null,
+      "partuuid": "abe91e95-25c6-4ca9-a312-5aa1dac5fa3c",
+      "fstype": "vfat",
+      "mountpoints": []
+    },
+    {
+      "name": "vda2",
+      "type": "part",
+      "size": 16777216,
+      "serial": null,
+      "partuuid": "c99bf427-ffb4-49fc-b13d-6b23cd41d12b",
+      "fstype": null,
+      "mountpoints": []
+    },
+    {
+      "name": "vda3",
+      "type": "part",
+      "size": 52322876928,
+      "serial": null,
+      "partuuid": "fdd59828-1baf-414f-b53c-2295018f26bd",
+      "fstype": "ntfs",
+      "mountpoints": []
+    },
+    {
+      "name": "vda4",
+      "type": "part",
+      "size": 1073724928,
+      "serial": null,
+      "partuuid": "d6baffb9-3684-4370-937a-de9022957a44",
+      "fstype": "ntfs",
+      "mountpoints": []
+    },
+    {
+      "name": "vdb",
+      "type": "disk",
+      "size": 52613349376,
+      "serial": "CRUCIAL-TARGET",
+      "partuuid": null,
+      "fstype": null,
+      "mountpoints": []
+    }
+  ]
+}

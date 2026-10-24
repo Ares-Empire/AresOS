@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "image_id": "0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431",
+  "pull": "never",
+  "network": "none",
+  "read_only": true,
+  "owner_credentials_mounted": false,
+  "part_b_cli_help": true
+}

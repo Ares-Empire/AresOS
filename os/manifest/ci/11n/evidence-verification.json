@@ -1,0 +1,1171 @@
+{
+  "matching_offline_stages": 16,
+  "zero_write_records": 16,
+  "archived_records_scanned": 989,
+  "incomplete": [],
+  "firmware_events": [
+    {
+      "run": "b-1",
+      "folder": "two-disk",
+      "stage": "after-install-without-linux",
+      "device": "pci:00:02.0",
+      "before_option": "Boot0003",
+      "after_option": null,
+      "before_description": "UEFI Misc Device",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "b-1",
+      "folder": "two-disk",
+      "stage": "after-install-without-linux",
+      "device": "pci:00:03.0",
+      "before_option": "Boot0004",
+      "after_option": "Boot0002",
+      "before_description": "UEFI Misc Device 2",
+      "after_description": "UEFI Misc Device",
+      "action": "changed",
+      "relabeled": true,
+      "renumbered": true,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "b-1",
+      "folder": "two-disk",
+      "stage": "b-switch",
+      "device": "pci:00:02.0",
+      "before_option": null,
+      "after_option": "Boot0002",
+      "before_description": null,
+      "after_description": "UEFI Misc Device",
+      "action": "added",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "b-1",
+      "folder": "two-disk",
+      "stage": "b-switch",
+      "device": "pci:00:03.0",
+      "before_option": "Boot0002",
+      "after_option": "Boot0003",
+      "before_description": "UEFI Misc Device",
+      "after_description": "UEFI Misc Device 2",
+      "action": "changed",
+      "relabeled": true,
+      "renumbered": true,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "b-1",
+      "folder": "two-disk",
+      "stage": "boot-3-pre-login-reset",
+      "device": "pci:00:1f.2/sata:0:65535:0",
+      "before_option": "Boot0002",
+      "after_option": null,
+      "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-1",
+      "folder": "two-disk",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:03.0",
+      "before_option": "Boot0004",
+      "after_option": null,
+      "before_description": "UEFI Misc Device 2",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-1",
+      "folder": "two-disk",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:1f.2/sata:0:65535:0",
+      "before_option": "Boot0002",
+      "after_option": null,
+      "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-1",
+      "folder": "two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:02.0",
+      "before_option": "Boot0003",
+      "after_option": null,
+      "before_description": "UEFI Misc Device",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-1",
+      "folder": "two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:03.0",
+      "before_option": "Boot0004",
+      "after_option": "Boot0002",
+      "before_description": "UEFI Misc Device 2",
+      "after_description": "UEFI Misc Device",
+      "action": "changed",
+      "relabeled": true,
+      "renumbered": true,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-1",
+      "folder": "two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:1f.2/sata:0:65535:0",
+      "before_option": "Boot0002",
+      "after_option": null,
+      "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    }
+  ],
+  "linux_position_events": [
+    {
+      "run": "b-1",
+      "folder": "two-disk",
+      "stage": "after-first-login-default-windows",
+      "order_before": [
+        "Boot000A",
+        "Boot0000",
+        "Boot0001",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "order_after": [
+        "Boot0000",
+        "Boot000A",
+        "Boot0001",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "option": "Boot000A",
+      "old_index": 0,
+      "new_index": 1,
+      "reason": "11f target-ESP Fedora loader position is not judged"
+    },
+    {
+      "run": "b-1",
+      "folder": "two-disk",
+      "stage": "protected-second-install",
+      "order_before": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "order_after": [
+        "Boot000A",
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "option": "Boot000A",
+      "old_index": null,
+      "new_index": 0,
+      "reason": "11f target-ESP Fedora loader position is not judged"
+    }
+  ],
+  "windows_order_actions": [
+    {
+      "run": "b-1",
+      "path": "two-disk/after-first-login-pin-windows-order.json",
+      "before": [
+        "Boot000A",
+        "Boot0000",
+        "Boot0001",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "after": [
+        "Boot0000",
+        "Boot000A",
+        "Boot0001",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ]
+    },
+    {
+      "run": "probe-1",
+      "path": "two-disk/probe-windows-order.json",
+      "before": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "after": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ]
+    },
+    {
+      "run": "probe-1",
+      "path": "two-disk/protected-second/probe-windows-order.json",
+      "before": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "after": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ]
+    }
+  ],
+  "pause_decisions": [
+    {
+      "run": "b-1",
+      "path": "two-disk/b-pin-stock.txt",
+      "status": "passed",
+      "units": [
+        {
+          "scope": "system",
+          "present": [
+            "uupd.service",
+            "uupd-manual.service",
+            "uupd.timer",
+            "rpm-ostreed-automatic.service",
+            "rpm-ostreed-automatic.timer",
+            "bootc-fetch-apply-updates.service",
+            "bootc-fetch-apply-updates.timer",
+            "systemd-sysupdate.service",
+            "systemd-sysupdate.timer",
+            "systemd-sysupdate-reboot.service",
+            "systemd-sysupdate-reboot.timer",
+            "systemd-sysupdated.service",
+            "dbus-org.freedesktop.sysupdate1.service",
+            "dnf5-offline-transaction.service"
+          ],
+          "absent": [
+            "bootc-update.service",
+            "bootc-update.timer",
+            "dnf-automatic.service",
+            "dnf-automatic.timer",
+            "dnf5-automatic.service",
+            "dnf5-automatic.timer",
+            "packagekit.service",
+            "packagekit-offline-update.service"
+          ],
+          "timers": {
+            "uupd.timer": "disabled",
+            "rpm-ostreed-automatic.timer": "disabled",
+            "bootc-fetch-apply-updates.timer": "disabled",
+            "systemd-sysupdate.timer": "disabled",
+            "systemd-sysupdate-reboot.timer": "disabled"
+          }
+        },
+        {
+          "scope": "user",
+          "present": [],
+          "absent": [
+            "uupd.service",
+            "uupd.timer"
+          ],
+          "timers": {}
+        }
+      ],
+      "transactions_idle": true,
+      "service_masks": "runtime",
+      "timer_disable": "persistent",
+      "decision": {
+        "units": [
+          {
+            "scope": 0,
+            "name": "uupd.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "uupd-manual.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "uupd.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "rpm-ostreed-automatic.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "rpm-ostreed-automatic.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "bootc-fetch-apply-updates.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "bootc-fetch-apply-updates.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate-reboot.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate-reboot.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdated.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "dbus-org.freedesktop.sysupdate1.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "dnf5-offline-transaction.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          }
+        ],
+        "transaction": null,
+        "transaction_observed": true,
+        "processes": [
+          {
+            "pid": 1191,
+            "exe": "/usr/bin/rpm-ostree",
+            "cmdline": [
+              "rpm-ostree",
+              "start-daemon"
+            ],
+            "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+            "excluded_as_daemon": true
+          }
+        ],
+        "units_inactive": true,
+        "transaction_idle": true,
+        "clients_idle": true,
+        "cancel": {
+          "ran": false,
+          "transaction": null
+        }
+      }
+    },
+    {
+      "run": "b-1",
+      "path": "two-disk/first-stock-pause.txt",
+      "status": "passed",
+      "units": [
+        {
+          "scope": "system",
+          "present": [
+            "uupd.service",
+            "uupd-manual.service",
+            "uupd.timer",
+            "rpm-ostreed-automatic.service",
+            "rpm-ostreed-automatic.timer",
+            "bootc-fetch-apply-updates.service",
+            "bootc-fetch-apply-updates.timer",
+            "systemd-sysupdate.service",
+            "systemd-sysupdate.timer",
+            "systemd-sysupdate-reboot.service",
+            "systemd-sysupdate-reboot.timer",
+            "systemd-sysupdated.service",
+            "dbus-org.freedesktop.sysupdate1.service",
+            "dnf5-offline-transaction.service"
+          ],
+          "absent": [
+            "bootc-update.service",
+            "bootc-update.timer",
+            "dnf-automatic.service",
+            "dnf-automatic.timer",
+            "dnf5-automatic.service",
+            "dnf5-automatic.timer",
+            "packagekit.service",
+            "packagekit-offline-update.service"
+          ],
+          "timers": {
+            "uupd.timer": "disabled",
+            "rpm-ostreed-automatic.timer": "disabled",
+            "bootc-fetch-apply-updates.timer": "disabled",
+            "systemd-sysupdate.timer": "disabled",
+            "systemd-sysupdate-reboot.timer": "disabled"
+          }
+        },
+        {
+          "scope": "user",
+          "present": [],
+          "absent": [
+            "uupd.service",
+            "uupd.timer"
+          ],
+          "timers": {}
+        }
+      ],
+      "transactions_idle": true,
+      "service_masks": "runtime",
+      "timer_disable": "persistent",
+      "decision": {
+        "units": [
+          {
+            "scope": 0,
+            "name": "uupd.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "uupd-manual.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "uupd.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "rpm-ostreed-automatic.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "rpm-ostreed-automatic.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "bootc-fetch-apply-updates.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "bootc-fetch-apply-updates.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate-reboot.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate-reboot.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdated.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "dbus-org.freedesktop.sysupdate1.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "dnf5-offline-transaction.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          }
+        ],
+        "transaction": null,
+        "transaction_observed": true,
+        "processes": [
+          {
+            "pid": 1247,
+            "exe": "/usr/bin/rpm-ostree",
+            "cmdline": [
+              "rpm-ostree",
+              "start-daemon"
+            ],
+            "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+            "excluded_as_daemon": true
+          }
+        ],
+        "units_inactive": true,
+        "transaction_idle": true,
+        "clients_idle": true,
+        "cancel": {
+          "ran": false,
+          "transaction": null
+        }
+      }
+    },
+    {
+      "run": "b-1",
+      "path": "two-disk/first-stock-pin.txt",
+      "status": "passed",
+      "units": [
+        {
+          "scope": "system",
+          "present": [
+            "uupd.service",
+            "uupd-manual.service",
+            "uupd.timer",
+            "rpm-ostreed-automatic.service",
+            "rpm-ostreed-automatic.timer",
+            "bootc-fetch-apply-updates.service",
+            "bootc-fetch-apply-updates.timer",
+            "systemd-sysupdate.service",
+            "systemd-sysupdate.timer",
+            "systemd-sysupdate-reboot.service",
+            "systemd-sysupdate-reboot.timer",
+            "systemd-sysupdated.service",
+            "dbus-org.freedesktop.sysupdate1.service",
+            "dnf5-offline-transaction.service"
+          ],
+          "absent": [
+            "bootc-update.service",
+            "bootc-update.timer",
+            "dnf-automatic.service",
+            "dnf-automatic.timer",
+            "dnf5-automatic.service",
+            "dnf5-automatic.timer",
+            "packagekit.service",
+            "packagekit-offline-update.service"
+          ],
+          "timers": {
+            "uupd.timer": "disabled",
+            "rpm-ostreed-automatic.timer": "disabled",
+            "bootc-fetch-apply-updates.timer": "disabled",
+            "systemd-sysupdate.timer": "disabled",
+            "systemd-sysupdate-reboot.timer": "disabled"
+          }
+        },
+        {
+          "scope": "user",
+          "present": [],
+          "absent": [
+            "uupd.service",
+            "uupd.timer"
+          ],
+          "timers": {}
+        }
+      ],
+      "transactions_idle": true,
+      "service_masks": "runtime",
+      "timer_disable": "persistent",
+      "decision": {
+        "units": [
+          {
+            "scope": 0,
+            "name": "uupd.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "uupd-manual.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "uupd.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "rpm-ostreed-automatic.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "rpm-ostreed-automatic.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "bootc-fetch-apply-updates.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "bootc-fetch-apply-updates.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate-reboot.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdate-reboot.timer",
+            "LoadState": "loaded",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "systemd-sysupdated.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "dbus-org.freedesktop.sysupdate1.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          },
+          {
+            "scope": 0,
+            "name": "dnf5-offline-transaction.service",
+            "LoadState": "masked",
+            "ActiveState": "inactive",
+            "SubState": "dead"
+          }
+        ],
+        "transaction": null,
+        "transaction_observed": true,
+        "processes": [
+          {
+            "pid": 1247,
+            "exe": "/usr/bin/rpm-ostree",
+            "cmdline": [
+              "rpm-ostree",
+              "start-daemon"
+            ],
+            "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+            "excluded_as_daemon": true
+          }
+        ],
+        "units_inactive": true,
+        "transaction_idle": true,
+        "clients_idle": true,
+        "cancel": {
+          "ran": false,
+          "transaction": null
+        }
+      }
+    }
+  ],
+  "qualifications": [
+    {
+      "run": "b-1",
+      "kind": "part-b",
+      "source": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "part_b": "passed",
+      "order": "protected-second",
+      "installed_keyboard_german": true,
+      "first_stock_firmware_default": true,
+      "windows_default_after_first_login_pin": true,
+      "unattended_windows_marker": true,
+      "detached_windows_marker": true,
+      "rollback_and_default_undo_repeated": false,
+      "part_a_evidence": "11k full40119526154; both orders; earlier Windows-first timing",
+      "part_b_evidence": "grub-promotion.json",
+      "commit": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760"
+    },
+    {
+      "run": "probe-1",
+      "kind": "probe",
+      "source": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "status": "passed"
+    }
+  ],
+  "bootnext_checks": [
+    {
+      "folder": "b-1/two-disk",
+      "stage": "after-first-login-default-windows",
+      "boot": 5,
+      "purpose": "after-first-login-default-windows",
+      "written": false,
+      "destination": null,
+      "windows_default": true,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "b-1/two-disk",
+      "stage": "after-install-without-linux",
+      "boot": 6,
+      "purpose": "after-install-without-linux",
+      "written": false,
+      "destination": null,
+      "windows_default": true,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "b-1/two-disk",
+      "stage": "b-menu-preparation",
+      "boot": 8,
+      "purpose": "b-aresos",
+      "written": true,
+      "destination": "Boot000A",
+      "windows_default": true,
+      "status": "passed",
+      "present": false,
+      "consumed": true
+    },
+    {
+      "folder": "b-1/two-disk",
+      "stage": "b-recovered-stock",
+      "boot": 9,
+      "purpose": "b-grub-menu",
+      "written": true,
+      "destination": "Boot000A",
+      "windows_default": true,
+      "status": "passed",
+      "present": false,
+      "consumed": true
+    },
+    {
+      "folder": "b-1/two-disk",
+      "stage": "b-switch",
+      "boot": 7,
+      "purpose": "b-stock",
+      "written": true,
+      "destination": "Boot000A",
+      "windows_default": true,
+      "status": "passed",
+      "present": false,
+      "consumed": true
+    },
+    {
+      "folder": "b-1/two-disk",
+      "stage": "b-unattended-stock",
+      "boot": 10,
+      "purpose": "b-unattended-stock",
+      "written": true,
+      "destination": "Boot000A",
+      "windows_default": true,
+      "status": "passed",
+      "present": false,
+      "consumed": true
+    },
+    {
+      "folder": "b-1/two-disk",
+      "stage": "baseline-firmware",
+      "boot": 1,
+      "purpose": "baseline-firmware",
+      "written": false,
+      "destination": null,
+      "windows_default": false,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "b-1/two-disk",
+      "stage": "boot-3-pre-login-reset",
+      "boot": 3,
+      "purpose": "stock",
+      "written": false,
+      "destination": null,
+      "windows_default": false,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "b-1/two-disk",
+      "stage": "protected-second-install",
+      "boot": 2,
+      "purpose": "protected-second-install",
+      "written": false,
+      "destination": null,
+      "windows_default": false,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "b-1/two-disk",
+      "stage": "stock-before-windows",
+      "boot": 4,
+      "purpose": "stock",
+      "written": false,
+      "destination": null,
+      "windows_default": false,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "probe-1/two-disk",
+      "stage": "baseline-firmware",
+      "boot": 1,
+      "purpose": "baseline-firmware",
+      "written": false,
+      "destination": null,
+      "windows_default": false,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "probe-1/two-disk",
+      "stage": "live-ui-probe",
+      "boot": 2,
+      "purpose": "live-ui-probe",
+      "written": false,
+      "destination": null,
+      "windows_default": false,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "probe-1/two-disk",
+      "stage": "probe-windows-without-linux",
+      "boot": 3,
+      "purpose": "probe-windows-without-linux",
+      "written": false,
+      "destination": null,
+      "windows_default": true,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "probe-1/two-disk/protected-second",
+      "stage": "baseline-firmware",
+      "boot": 4,
+      "purpose": "baseline-firmware",
+      "written": false,
+      "destination": null,
+      "windows_default": false,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "probe-1/two-disk/protected-second",
+      "stage": "live-ui-probe",
+      "boot": 5,
+      "purpose": "live-ui-probe",
+      "written": false,
+      "destination": null,
+      "windows_default": false,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    },
+    {
+      "folder": "probe-1/two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "boot": 6,
+      "purpose": "probe-windows-without-linux",
+      "written": false,
+      "destination": null,
+      "windows_default": true,
+      "status": "passed",
+      "present": false,
+      "consumed": false
+    }
+  ],
+  "guard_histories": [
+    {
+      "run": "b-1",
+      "pages": 2,
+      "ids": 139,
+      "total_count": 139,
+      "retries": []
+    },
+    {
+      "run": "probe-1",
+      "pages": 2,
+      "ids": 138,
+      "total_count": 138,
+      "retries": []
+    }
+  ],
+  "nonboot_events": [
+    {
+      "run": "b-1",
+      "stage": "after-first-login-default-windows",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC",
+        "fab7e9e1-39dd-4f2b-8408-e20e906cb6de/HDDP"
+      ]
+    },
+    {
+      "run": "b-1",
+      "stage": "after-install-without-linux",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    },
+    {
+      "run": "b-1",
+      "stage": "b-menu-preparation",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    },
+    {
+      "run": "b-1",
+      "stage": "b-recovered-stock",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    },
+    {
+      "run": "b-1",
+      "stage": "b-switch",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC",
+        "fab7e9e1-39dd-4f2b-8408-e20e906cb6de/HDDP"
+      ]
+    },
+    {
+      "run": "b-1",
+      "stage": "b-unattended-stock",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    },
+    {
+      "run": "b-1",
+      "stage": "boot-3-pre-login-reset",
+      "keys": [
+        "605dab50-e046-4300-abb6-3dd810dd8b23/SbatLevel",
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC",
+        "fab7e9e1-39dd-4f2b-8408-e20e906cb6de/HDDP"
+      ]
+    },
+    {
+      "run": "b-1",
+      "stage": "protected-second-install",
+      "keys": [
+        "605dab50-e046-4300-abb6-3dd810dd8b23/MokTimeout",
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    },
+    {
+      "run": "b-1",
+      "stage": "stock-before-windows",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    },
+    {
+      "run": "probe-1",
+      "stage": "live-ui-probe",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    },
+    {
+      "run": "probe-1",
+      "stage": "probe-windows-without-linux",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    },
+    {
+      "run": "probe-1",
+      "stage": "live-ui-probe",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    },
+    {
+      "run": "probe-1",
+      "stage": "probe-windows-without-linux",
+      "keys": [
+        "eb704011-1402-11d3-8e77-00a0c969723b/MTC"
+      ]
+    }
+  ]
+}

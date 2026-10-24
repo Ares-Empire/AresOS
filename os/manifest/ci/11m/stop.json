@@ -1,0 +1,66 @@
+{
+  "status": "STOP",
+  "source": "43e76566ac99ebe07727f6f3d34d0ad34bcdb929",
+  "probe": 40134595231,
+  "probe_conclusion": "failure",
+  "native_tests": 200,
+  "native_passed": 199,
+  "native_failures": 1,
+  "native_seconds": 3.757,
+  "failed_test": "test_install_transactions_stop_on_failure_and_never_include_the_reboot (test_shell_assertions.ShellAssertionTest.test_install_transactions_stop_on_failure_and_never_include_the_reboot)",
+  "blocker": "Owner switch block prerequisite is not mocked in transaction-failure fixture; exits before injected bootc failure.",
+  "no_vm": true,
+  "no_owner_token_use": true,
+  "part_b_dispatched": false,
+  "no_second_probe": true,
+  "acceptance_complete": false,
+  "keep_pr_draft": true,
+  "protected_captures": 0,
+  "bootnext_write_consumption_captures": 0,
+  "menu_frames": 0,
+  "guard_reads": [
+    {
+      "label": "before probe",
+      "pages": 2,
+      "page_sizes": [
+        100,
+        29
+      ],
+      "unique_ids": 129,
+      "total_count": 129,
+      "minutes": 628,
+      "reserve": 186,
+      "retries": 0
+    },
+    {
+      "label": "probe CI (current run excluded from spent)",
+      "pages": 2,
+      "page_sizes": [
+        100,
+        30
+      ],
+      "unique_ids": 130,
+      "total_count": 130,
+      "minutes": 628,
+      "reserve": 42,
+      "retries": 0
+    },
+    {
+      "label": "after failed probe; bookkeeping only",
+      "pages": 2,
+      "page_sizes": [
+        100,
+        30
+      ],
+      "unique_ids": 130,
+      "total_count": 130,
+      "minutes": 633,
+      "reserve": 14,
+      "retries": 0
+    }
+  ],
+  "minutes_before_closing": 633,
+  "closing_reserve": 14,
+  "full_dispatched": 5,
+  "part_b_count": 0
+}

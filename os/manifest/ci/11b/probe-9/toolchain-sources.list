@@ -1,0 +1,3 @@
+deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/ noble main universe restricted multiverse
+deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/ noble-updates main universe restricted multiverse
+deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg check-valid-until=no] https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/ noble-security main universe restricted multiverse

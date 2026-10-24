@@ -1,0 +1,67 @@
+{
+  "allowance": "11c",
+  "start": "2026-10-23T16:21:00Z",
+  "cap": 330,
+  "full_cap": 3,
+  "full_dispatched": 0,
+  "consumed_minutes": 13,
+  "reserved_minutes": 0,
+  "runs": [
+    {
+      "run": 39991834967,
+      "title": "Report the 11c pre-VM release blocker and keep installation gates closed",
+      "sha": "ba4f5c65a8355a2827ee707fcea20b7416e8c85e",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989739478,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "failure",
+      "minutes": 7
+    },
+    {
+      "run": 39989544924,
+      "title": "Add real Web UI rehearsal and report strict NVRAM blocker",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989537420,
+      "title": "Identify the exact public Git-tree false positive without broadening \u2026",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989156330,
+      "title": "Add real Web UI rehearsal and report strict NVRAM blocker",
+      "sha": "f717ef24a6e04cdc192eec6912e7c248c6a53be2",
+      "conclusion": "failure",
+      "minutes": 1
+    },
+    {
+      "run": 39989148428,
+      "title": "Record rewritten source identities and explain unplugged-device firmw\u2026",
+      "sha": "f717ef24a6e04cdc192eec6912e7c248c6a53be2",
+      "conclusion": "failure",
+      "minutes": 1
+    },
+    {
+      "run": 39986075815,
+      "title": "Add real Web UI rehearsal and report strict NVRAM blocker",
+      "sha": "3147a65dfb1f97815fec2e3634d1607031ee1379",
+      "conclusion": "success",
+      "minutes": 1
+    }
+  ],
+  "closing_privacy_reservation_minutes": 14,
+  "closing_jobs": 2,
+  "closing_watchdog_minutes": 5,
+  "closing_cleanup_allowance_per_job_minutes": 2,
+  "maximum_total_including_closing_checks": 27,
+  "closing_receipt": "Final PR HEAD privacy-check run URLs and actual total are recorded in PR #11 description after completion",
+  "stopped_reason": "Pinned private release manifest unknown; no complete probe; no full run authorized"
+}

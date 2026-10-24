@@ -1,0 +1,40 @@
+{
+  "status": "stopped-before-full-dispatch",
+  "source": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+  "command": [
+    "python",
+    "-X",
+    "utf8",
+    "os/ci/rehearsal_guard.py",
+    "full",
+    "196"
+  ],
+  "reserved_full": 182,
+  "reserved_closing": 14,
+  "attempts": [
+    {
+      "exit_code": 1,
+      "http_status": 502,
+      "failed_jobs_run": 40112294759
+    },
+    {
+      "exit_code": 1,
+      "http_status": 502,
+      "failed_jobs_run": 39992295958
+    },
+    {
+      "exit_code": 1,
+      "http_status": 502,
+      "failed_jobs_run": 40061023607
+    }
+  ],
+  "last_stderr": "reviews/11-two-disk-rehearsal/logs/11j/dispatch-guard-final.txt",
+  "last_stderr_sha256": "613670fcc76b6a1c4b53a901ba718db9e08f85892043caf6f605354bf1f66ca2",
+  "authorization_returned": false,
+  "full_dispatched": false,
+  "budget_or_rules_changed": false,
+  "last_stderr_raw_sha256": "8f9107d4765791f5010bffa928925e289e379585026796f7a1d6df05d05754b3",
+  "stderr_redactions": "Local worktree, Python and user-directory prefixes replaced with placeholders; error, traceback structure and API endpoint retained",
+  "staged_update_observed": null,
+  "staged_update_discarded": null
+}

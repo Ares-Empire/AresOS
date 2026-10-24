@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "image_id": "0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431",
+  "pull": "never",
+  "network": "none",
+  "read_only": true,
+  "owner_credentials_mounted": false,
+  "part_b_cli_help": true,
+  "stock_idle_source_verified": true,
+  "idle_source": {
+    "versions": {
+      "rpm-ostree": "2026.3",
+      "uupd": "1.5.0"
+    },
+    "service": "[Unit]\nDescription=rpm-ostree System Management Daemon\nDocumentation=man:rpm-ostree(1)\nConditionPathExists=/ostree\nRequiresMountsFor=/boot\n\n[Service]\n# See similar code in rpm-ostree-countme.service\nUser=rpm-ostree\nDynamicUser=yes\n# As of right now, our primary API is DBus.  But see also https://github.com/coreos/rpm-ostree/issues/3850\nType=dbus\nBusName=org.projectatomic.rpmostree1\n# To use the read-only sysroot bits\nMountFlags=slave\n# We have no business accessing /var/roothome or /var/home.  In general\n# the ostree design clearly avoids touching those, but since systemd offers\n# us easy tools to toggle on protection, let's use them.  In the future\n# it'd be nice to do something like using DynamicUser=yes for the main service,\n# and have a system rpm-ostreed-transaction.service that runs privileged\n# but as a subprocess.\nProtectHome=true\nNotifyAccess=main\n# Significantly bump this timeout from the default because\n# we do a lot of stuff on daemon startup.\nTimeoutStartSec=5m\n# We start this main process with full privileges; it may spawn unprivileged processes\n# with the rpm-ostree user.\nExecStart=+rpm-ostree start-daemon\nExecReload=rpm-ostree reload\n# disable/enable downloading filelists\nEnvironment=\"DOWNLOAD_FILELISTS=false\"\n",
+    "daemon_comm": "rpm-ostree",
+    "daemon_command": [
+      "rpm-ostree",
+      "start-daemon"
+    ],
+    "binaries": {
+      "rpm-ostree": "9968f4cd00fe59ca54975af02722952f57c89cf094ea5ce776dd31aa878b1597",
+      "uupd": "402479f7c85c98bcc7a38d1da86bcc5f9f9628406b09627513e5edbd5d882e48"
+    },
+    "transaction_shape": "null or three-string active transaction tuple; rpm-ostree v2026.3 source",
+    "cancel": "one active transaction cancellation; waits until active path changes",
+    "uupd": "v1.5.0: bootc upgrade --quiet --progress-fd 3 when compatible; rpm-ostree upgrade fallback"
+  }
+}

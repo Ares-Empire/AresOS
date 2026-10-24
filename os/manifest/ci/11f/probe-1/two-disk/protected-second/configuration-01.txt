@@ -1,0 +1,28 @@
+Bazzite installation
+Welcome
+Date and time
+Installation method
+Storage configuration
+Create Account
+Review and install
+Create account
+Use local account
+A standard user account with admin access for making system-wide changes.
+Full name
+
+User name
+*
+
+Passphrase
+*
+
+Must be at least 6 characters
+: indeterminate status;
+Confirm passphrase
+*
+
+Passphrases must match
+: indeterminate status;
+Back
+Next
+Quit

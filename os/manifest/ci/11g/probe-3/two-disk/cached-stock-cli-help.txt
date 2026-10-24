@@ -1,0 +1,71 @@
+]3008;end=45c1ba01-bcae-4276-b47f-dc8b5cd0fc3a;exit=success\]3008;start=16d54dc6-e727-404d-a53b-60337d917755;type=shell;machineid=f268dd931cc94d90bfc2d0d7060f7e3f;user=root;hostname=localhost-live;bootid=1a1c892d-9585-4549-9199-145bb18c93b3;pid=2287;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=ddeaba98-99e6-44ce-9203-f5cf96288aaa;type=command;machineid=f268dd931cc94d90bfc2d0d7060f7e3f;user=root;hostname=localhost-live;bootid=1a1c892d-9585-4549-9199-145bb18c93b3;pid=2287;cwd=/root\/usr/sbin/systemctl
+/usr/sbin/rpm-ostree
+/usr/sbin/bootc
+/usr/sbin/ostree
+/usr/sbin/pgrep
+/usr/sbin/runuser
+/usr/sbin/getent
+/usr/sbin/python3
+  -p, --pending             Remove pending deployment
+  --json                        Output JSON
+  -J, --jsonpath=EXPRESSION     Filter JSONPath expression
+Usage:
+  ostree admin pin [OPTION���] INDEX
+
+Change the "pinning" state of a deployment, INDEX can be >= 0 or one of booted, pending or rollback strings
+
+Help Options:
+  -h, --help         Show help options
+
+Application Options:
+  --sysroot=PATH     Create a new OSTree sysroot at PATH
+  -u, --unpin        Unset pin
+  -v, --verbose      Print debug information during command processing
+  --version          Print version information and exit
+
+Display status.
+
+Shows bootc system state. Outputs YAML by default, human-readable if terminal detected.
+
+Usage: bootc status [OPTIONS]
+
+Options:
+      --format <FORMAT>
+          The output format
+
+          Possible values:
+          - humanreadable: Output in Human Readable format
+          - yaml:          Output in YAML format
+          - json:          Output in JSON format
+
+      --format-version <FORMAT_VERSION>
+          The desired format version. There is currently one supported version, which is exposed as
+          both `0` and `1`. Pass this option to explicitly request it; it is possible that another
+          future version 2 or newer will be supported in the future
+
+      --booted
+          Only display status for the booted deployment
+
+  -v, --verbose
+          Include additional fields in human readable format
+
+  -h, --help
+          Print help (see a summary with '-h')
+CACHED_STOCK_CLI_HELP_PASSED
+
+
+ARESOS_CACHED_STOCK_CLI_PROBE {"status": "passed", "digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151", "image_id": "0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431", "pull": "never", "network": "none", "read_only": true, "owner_credentials_mounted": false}
+
+ARESOS_CMD_DONE:0

@@ -1,0 +1,38 @@
+{
+  "matching_offline_stages": 6,
+  "zero_write_records": 6,
+  "missing_counters": [],
+  "unreached_baselines": [
+    "probe-2/two-disk"
+  ],
+  "exemptions": [
+    {
+      "run": "probe-3",
+      "order": "two-disk",
+      "stage": "probe-windows-without-linux",
+      "option": "Boot0004",
+      "device": "pci:00:03.0",
+      "reason": "firmware removed an exact-GUID automatic option for a device detached in this boot",
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-3",
+      "order": "two-disk",
+      "stage": "probe-windows-without-linux",
+      "option": "Boot0002",
+      "device": "pci:00:1f.2/sata:0:65535:0",
+      "reason": "firmware removed an exact-GUID automatic option for a device detached in this boot",
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    }
+  ],
+  "firmware_failures": [
+    {
+      "run": "probe-3",
+      "stage": "probe-3/two-disk/protected-second/probe-windows-without-linux",
+      "before": "live-ui-probe",
+      "error": "PRODUCT FAILURE: auto option removal does not match a detached device",
+      "qualified": false
+    }
+  ],
+  "archived_text_credential_checks": 648
+}

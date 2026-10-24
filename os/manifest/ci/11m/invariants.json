@@ -1,0 +1,274 @@
+{
+  "status": "passed",
+  "unchanged_source": "81592192fd0189c59285a6ab958c0b62b05811af",
+  "unchanged_files": [
+    {
+      "path": "os/ci/two_disk_vm.py",
+      "sha256": "3432126e0b64796b0a64faa87fc65b845041e91f6d48bd08c73bc0f57dabe3be"
+    },
+    {
+      "path": "os/ci/grub_bls.py",
+      "sha256": "5e6aa9fdd411cf8cbd37f0174bd147892ce9cb7d176b70534d61664b6dc7a36b"
+    },
+    {
+      "path": "os/ci/disk_audit.py",
+      "sha256": "4974679af712ccb8b8e610063ec62dab68bc97be8ab9bf3e2f4e7c14d6752746"
+    },
+    {
+      "path": "os/ci/stock_probe.py",
+      "sha256": "ca8c97f9c795e7e51a65ac5090eaf54ef5209e9ff4300c9cb1fdd9b6f539d22e"
+    },
+    {
+      "path": "os/ci/rehearsal_auth.py",
+      "sha256": "195d00948ace5a2ebb7167c1c51ac7546c347b0c20f2790330a00e245b79d5bc"
+    },
+    {
+      "path": ".github/workflows/os-image.yml",
+      "sha256": "89dc65cbbfa4066bd82c5a93de520262e8dce674f0541245ccaa39e09be4363b"
+    },
+    {
+      "path": "os/manifest/base.json",
+      "sha256": "750558b95a7bfb8b6121361935ec5b0bf68de6bc4b127fca00606a5d0d6383ec"
+    },
+    {
+      "path": "os/manifest/release.json",
+      "sha256": "4447a6cd8929e61667e700d9757c98efbe3432a341491ebbea3f466ba83c0126"
+    },
+    {
+      "path": "os/release/switch.sh",
+      "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c"
+    },
+    {
+      "path": "os/release/pin-stock.sh",
+      "sha256": "ee2a5c15d89b063864c47dfb603265d8d785329599187c7471c7204a6f381330"
+    },
+    {
+      "path": "os/release/pause-stock-updates.sh",
+      "sha256": "48380c070174170d96b0f61c5067887e6a36839ffab2c2b25d06944f72bcc2d7"
+    },
+    {
+      "path": "os/release/default-stock.sh",
+      "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6"
+    },
+    {
+      "path": ".github/workflows/privacy-check.yml",
+      "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2"
+    },
+    {
+      "path": ".gitleaks.toml",
+      "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742"
+    },
+    {
+      "path": ".gitleaksignore",
+      "sha256": "696095491f29162d4bf1bf3d43972817e3df1b9913857c182a03223067bdc2a8"
+    },
+    {
+      "path": "os/tests/test_rehearsal_budget.py",
+      "sha256": "1fc4c4165ba01d00394a766916a5d9e174f8c9ae1e3174003df3fd7927077e2d"
+    }
+  ],
+  "unchanged_retry_functions": [
+    "failure_status",
+    "read_only"
+  ],
+  "unchanged_accounting_functions": [
+    "job_minutes",
+    "require_probe"
+  ],
+  "bootnext_replay_captures": 32,
+  "records": [
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/after-install-without-linux-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/after-install-without-linux-vars.fd",
+      "receipt_sha256": "ac2d599623072ea3050316ee0c8ae0dd3350b94cb3752669d654b38c732f7e6b",
+      "vars_sha256": "fa3897dcfdea02f6b7c68c400e68312f73aa5a54326555e274375d80f5a2fb00"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/after-undo-default-windows-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/after-undo-default-windows-vars.fd",
+      "receipt_sha256": "055c4cf94623f51812b5c8b56bb062b544a513fa15d58a6563d84392efea5af5",
+      "vars_sha256": "020bb5d10c61a5dafd1d03848cf4f6b427c346d8b407f0f7db9ccba47b814a24"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/after-undo-without-linux-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/after-undo-without-linux-vars.fd",
+      "receipt_sha256": "ac2d599623072ea3050316ee0c8ae0dd3350b94cb3752669d654b38c732f7e6b",
+      "vars_sha256": "081e6e797ae8b2ac3bc11313f8d566fa11080f1349e29e849e7017c36f3d1d26"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/baseline-firmware-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/baseline-firmware-vars.fd",
+      "receipt_sha256": "91c5f18e598e1d2b1bca97d8a2fa00f88023bf1807127f4ad2d7913e0ec1f85b",
+      "vars_sha256": "41fe8464afea4f2860f48525893efba8602f6e5727e95908ba2699b90448185d"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/before-undo-windows-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/before-undo-windows-vars.fd",
+      "receipt_sha256": "055c4cf94623f51812b5c8b56bb062b544a513fa15d58a6563d84392efea5af5",
+      "vars_sha256": "cfdf9e57bbc79b6c667f27e49df81a2ca2c0bd6010302a827aa8f74c7e3faf54"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/boot-3-pre-login-reset-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/boot-3-pre-login-reset-vars.fd",
+      "receipt_sha256": "322618ce3d790c38148ad4f5c367789f75ef6ed0d201adceed1d4b67061a6c25",
+      "vars_sha256": "fe7e06e6649d910d1c39fd894b6e5d02076c1cd8b2a89e1f5fdb50e824d72a98"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-first-install-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-first-install-vars.fd",
+      "receipt_sha256": "b09fb14a9c21d68c8562d4a3162ad53863725de47b1f1b51d2cda9832140fb9f",
+      "vars_sha256": "c967e2eb8a17cf06edf9f1bdb2773c2db8de7b69b83198463146c2621b8cdaf8"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/after-install-without-linux-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/after-install-without-linux-vars.fd",
+      "receipt_sha256": "7666cf8eeadc5be290a3524691df1d15cd845c4fe2b11342a1bcd4a69c33dc24",
+      "vars_sha256": "1b6d7f42473ee07a9ab2214c0cfdd760d83e719d6a50637e702dfdb791349912"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/after-undo-default-windows-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/after-undo-default-windows-vars.fd",
+      "receipt_sha256": "912abd275b39e5db75ca129942447c7299e4a6d4c5cc690038a1b8e96039968e",
+      "vars_sha256": "95d8c18a56384261a05ed1cc4ec1fb16695b8ed4ec762018f0d94c292e2dd28d"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/after-undo-without-linux-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/after-undo-without-linux-vars.fd",
+      "receipt_sha256": "7666cf8eeadc5be290a3524691df1d15cd845c4fe2b11342a1bcd4a69c33dc24",
+      "vars_sha256": "a9c5cc288f6d7d114c55eb75459a19d0722d25feab23f7d1a98646f54580cec5"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/b-menu-preparation-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/b-menu-preparation-vars.fd",
+      "receipt_sha256": "912abd275b39e5db75ca129942447c7299e4a6d4c5cc690038a1b8e96039968e",
+      "vars_sha256": "b35e7a02de18784b889084797a521479436a5db89a56803587db004482e91fb2"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/b-switch-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/b-switch-vars.fd",
+      "receipt_sha256": "912abd275b39e5db75ca129942447c7299e4a6d4c5cc690038a1b8e96039968e",
+      "vars_sha256": "53b03ccd426bfab71b57ddffb91086209eae2ed4d6938b211bae1fa79548cdb1"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/baseline-firmware-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/baseline-firmware-vars.fd",
+      "receipt_sha256": "91c5f18e598e1d2b1bca97d8a2fa00f88023bf1807127f4ad2d7913e0ec1f85b",
+      "vars_sha256": "ae80396f9bf41a696e678c5023d21195e870f2c6dd80aad3ac59cff60496b027"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/before-undo-windows-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/before-undo-windows-vars.fd",
+      "receipt_sha256": "912abd275b39e5db75ca129942447c7299e4a6d4c5cc690038a1b8e96039968e",
+      "vars_sha256": "8a7c06bb69aa329c966726caf431b60d6404e46f45fb38e99178891f218997e8"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/boot-15-pre-login-reset-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/boot-15-pre-login-reset-vars.fd",
+      "receipt_sha256": "f2c54df73b189f4efb78711bb310cdd0a40d8a2ba80a7f1595cf8afc76f644f9",
+      "vars_sha256": "e085f0998bd89937e4ff2728437a863b6ddd97ffd3d7d0999949c3a4c26aaadb"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/protected-second-install-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/protected-second-install-vars.fd",
+      "receipt_sha256": "4cef8b64bf8579f8e016a8973b4f1173277c20932a389408c7eec447262b708b",
+      "vars_sha256": "a7c970d75de64809e2ae7573f0219d4e61f1efc1a0b99c56a6ef475ced1e3d53"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/stock-before-windows-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/stock-before-windows-vars.fd",
+      "receipt_sha256": "f2c54df73b189f4efb78711bb310cdd0a40d8a2ba80a7f1595cf8afc76f644f9",
+      "vars_sha256": "08f55271590aeb0b3eec5fcb086f5d76a78e71aa29ec74f7327bc47217a5ced3"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/switch-sequence-aresos-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/switch-sequence-aresos-vars.fd",
+      "receipt_sha256": "912abd275b39e5db75ca129942447c7299e4a6d4c5cc690038a1b8e96039968e",
+      "vars_sha256": "a58fe15aedc8bc549693c16a1c9f5452c94b030678b9286b34bdd755f9cf96ef"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/switch-sequence-persistent-stock-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/switch-sequence-persistent-stock-vars.fd",
+      "receipt_sha256": "912abd275b39e5db75ca129942447c7299e4a6d4c5cc690038a1b8e96039968e",
+      "vars_sha256": "30ddf52834656b2748d700652c569de00cf51bcd53592e4c838d771874b653e4"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/switch-sequence-rollback-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/switch-sequence-rollback-vars.fd",
+      "receipt_sha256": "912abd275b39e5db75ca129942447c7299e4a6d4c5cc690038a1b8e96039968e",
+      "vars_sha256": "8a532aa53a036006b196a3df576b295b233666780d4a9040d37f6f800a275f24"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/switch-sequence-stock-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/protected-second/switch-sequence-stock-vars.fd",
+      "receipt_sha256": "912abd275b39e5db75ca129942447c7299e4a6d4c5cc690038a1b8e96039968e",
+      "vars_sha256": "b0a7274312046b3440c3cbb98223d8f06f4b74b32d59399a8ba5f7806a23e3f8"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/stock-before-windows-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/stock-before-windows-vars.fd",
+      "receipt_sha256": "322618ce3d790c38148ad4f5c367789f75ef6ed0d201adceed1d4b67061a6c25",
+      "vars_sha256": "fff2494a008bc6de9f0116b1ae50d7e61b567bfa61daf2ac8ace26f06f2c151c"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/switch-sequence-aresos-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/switch-sequence-aresos-vars.fd",
+      "receipt_sha256": "055c4cf94623f51812b5c8b56bb062b544a513fa15d58a6563d84392efea5af5",
+      "vars_sha256": "6badd139e5a4463b3187ba6286e9c0819af8105f9707a7403fb6c9aafe16497a"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/switch-sequence-persistent-stock-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/switch-sequence-persistent-stock-vars.fd",
+      "receipt_sha256": "055c4cf94623f51812b5c8b56bb062b544a513fa15d58a6563d84392efea5af5",
+      "vars_sha256": "865b5e60c86ebf4c46c6e74170c3c9ba08282b25adad2d6aaf5ee30298b7d3c2"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/switch-sequence-rollback-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/switch-sequence-rollback-vars.fd",
+      "receipt_sha256": "055c4cf94623f51812b5c8b56bb062b544a513fa15d58a6563d84392efea5af5",
+      "vars_sha256": "8c0da2f534d60c502157f06c6856fb2fd45c1e64e6d62d80a4948aabdf628f4b"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/switch-sequence-stock-nvram.json",
+      "vars": "os/manifest/ci/11k/full-5/two-disk/switch-sequence-stock-vars.fd",
+      "receipt_sha256": "055c4cf94623f51812b5c8b56bb062b544a513fa15d58a6563d84392efea5af5",
+      "vars_sha256": "ca9ddbc8237cc5095cf49537cb8969c499e0785f33a8f58589a60837440b1509"
+    },
+    {
+      "path": "os/manifest/ci/11k/probe-1/two-disk/baseline-firmware-nvram.json",
+      "vars": "os/manifest/ci/11k/probe-1/two-disk/baseline-firmware-vars.fd",
+      "receipt_sha256": "82b3108c6e3c57bc9aa827c50a05302b3ceedae899140367c59b68676076e87b",
+      "vars_sha256": "282001e45ed37cdbb055a3878428d321a6dea50649c525b5605a9be77be015cc"
+    },
+    {
+      "path": "os/manifest/ci/11k/probe-1/two-disk/live-ui-probe-nvram.json",
+      "vars": "os/manifest/ci/11k/probe-1/two-disk/live-ui-probe-vars.fd",
+      "receipt_sha256": "82b3108c6e3c57bc9aa827c50a05302b3ceedae899140367c59b68676076e87b",
+      "vars_sha256": "24c322451ccafc29c169a58bc66beeaa0dd0a5d49a3f42a59c15348ab40c044c"
+    },
+    {
+      "path": "os/manifest/ci/11k/probe-1/two-disk/probe-windows-without-linux-nvram.json",
+      "vars": "os/manifest/ci/11k/probe-1/two-disk/probe-windows-without-linux-vars.fd",
+      "receipt_sha256": "4a2fab0f27eef1cf7ad728c13ec25b7e3004e0dd062129d29a4993cffb128387",
+      "vars_sha256": "8d9e8841641b0e315c090457d86d8779768f970edcdd3842e7399790967a42a4"
+    },
+    {
+      "path": "os/manifest/ci/11k/probe-1/two-disk/protected-second/baseline-firmware-nvram.json",
+      "vars": "os/manifest/ci/11k/probe-1/two-disk/protected-second/baseline-firmware-vars.fd",
+      "receipt_sha256": "82b3108c6e3c57bc9aa827c50a05302b3ceedae899140367c59b68676076e87b",
+      "vars_sha256": "57346a6c67ffa6bea46ad5e23540d4fc2c13354fec60725b05c2104efa2d5bab"
+    },
+    {
+      "path": "os/manifest/ci/11k/probe-1/two-disk/protected-second/live-ui-probe-nvram.json",
+      "vars": "os/manifest/ci/11k/probe-1/two-disk/protected-second/live-ui-probe-vars.fd",
+      "receipt_sha256": "82b3108c6e3c57bc9aa827c50a05302b3ceedae899140367c59b68676076e87b",
+      "vars_sha256": "ce547d62b382a68c6122a17eb60b4a642bddb9f23b4b5232fde6e4b7edbebab6"
+    },
+    {
+      "path": "os/manifest/ci/11k/probe-1/two-disk/protected-second/probe-windows-without-linux-nvram.json",
+      "vars": "os/manifest/ci/11k/probe-1/two-disk/protected-second/probe-windows-without-linux-vars.fd",
+      "receipt_sha256": "fffa40a93de85cbec9ccfe1fd7ab68c8d1a7916bde945fb9f1c13e0021ce5cba",
+      "vars_sha256": "d4cf3b1cabdeac535d81965ffe838310530df9f8643c4db9ff04d29bfa7701c0"
+    }
+  ],
+  "limit": "Historical post-boot absence only; no historical pre-boot write receipt is manufactured."
+}

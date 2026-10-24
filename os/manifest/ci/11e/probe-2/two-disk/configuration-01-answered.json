@@ -1,0 +1,330 @@
+[
+  {
+    "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.html#/anaconda-screen-accounts",
+    "text": "Bazzite installation\nWelcome\nDate and time\nInstallation method\nStorage configuration\nCreate Account\nReview and install\nCreate account\nUse local account\nA standard user account with admin access for making system-wide changes.\nFull name\n\u00a0\u00a0\nUser name\n*\n\u00a0\u00a0\nPassphrase\n*\n\u00a0\u00a0\nMust be at least 6 characters\n: indeterminate status;\nConfirm passphrase\n*\n\u00a0\u00a0\nPassphrases must match\n: indeterminate status;\nBack\nNext\nQuit",
+    "ids": [
+      {
+        "tag": "DIV",
+        "id": "app",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "role": null
+      },
+      {
+        "tag": "DIV",
+        "id": "installation-wizard",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-date-time",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-method",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-storage-configuration",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-accounts",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-review",
+        "role": null
+      },
+      {
+        "tag": "FORM",
+        "id": "anaconda-screen-accounts",
+        "role": null
+      },
+      {
+        "tag": "DIV",
+        "id": "pf-form-section-title866",
+        "role": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-set-user-account",
+        "role": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-full-name",
+        "role": null
+      },
+      {
+        "tag": "DIV",
+        "id": "anaconda-screen-accounts-create-account-user-name-input-group",
+        "role": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-user-name",
+        "role": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-password-field",
+        "role": null
+      },
+      {
+        "tag": "UL",
+        "id": "anaconda-screen-accounts-create-account-password-field-helper",
+        "role": "list"
+      },
+      {
+        "tag": "LI",
+        "id": "anaconda-screen-accounts-create-account-password-rule-length",
+        "role": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-password-confirm-field",
+        "role": null
+      },
+      {
+        "tag": "UL",
+        "id": "password-confirm-field-helper",
+        "role": "list"
+      },
+      {
+        "tag": "LI",
+        "id": "anaconda-screen-accounts-create-account-password-rule-match",
+        "role": null
+      },
+      {
+        "tag": "DIV",
+        "id": "pf-form-section-title873",
+        "role": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-root-account-enable-root-account",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-back-btn",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-next-btn",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-quit-btn",
+        "role": null
+      }
+    ],
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "type": "button",
+        "text": "",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "type": "submit",
+        "text": "7 Create Account",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language",
+        "type": "submit",
+        "text": "Welcome",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-date-time",
+        "type": "submit",
+        "text": "Date and time",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-method",
+        "type": "submit",
+        "text": "Installation method",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-storage-configuration",
+        "type": "submit",
+        "text": "Storage configuration",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-accounts",
+        "type": "submit",
+        "text": "Create Account",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-review",
+        "type": "submit",
+        "text": "Review and install",
+        "name": "",
+        "checked": null,
+        "disabled": true,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-set-user-account",
+        "type": "checkbox",
+        "text": "",
+        "name": "",
+        "checked": true,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-full-name",
+        "type": "text",
+        "text": "",
+        "name": "",
+        "checked": false,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-user-name",
+        "type": "text",
+        "text": "",
+        "name": "",
+        "checked": false,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-password-field",
+        "type": "password",
+        "text": "",
+        "name": "",
+        "checked": false,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "type": "button",
+        "text": "",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-create-account-password-confirm-field",
+        "type": "password",
+        "text": "",
+        "name": "",
+        "checked": false,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "type": "button",
+        "text": "",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "INPUT",
+        "id": "anaconda-screen-accounts-root-account-enable-root-account",
+        "type": "checkbox",
+        "text": "",
+        "name": "",
+        "checked": false,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-back-btn",
+        "type": "button",
+        "text": "Back",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-next-btn",
+        "type": "button",
+        "text": "Next",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": "true"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-quit-btn",
+        "type": "button",
+        "text": "Quit",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": "true"
+      }
+    ]
+  }
+]

@@ -1,0 +1,82 @@
+{
+  "status": "passed",
+  "inputs": {
+    "os\\manifest\\ci\\11b\\probe-11\\two-disk\\baseline-firmware-vars.fd": "03aca606fc1456c36994eddda73546cd4f209325c31680303473dd7d998efcfb",
+    "os\\manifest\\ci\\11b\\probe-11\\two-disk\\probe-windows-without-linux-vars.fd": "2fd1bf30d4770361e6c466f53254e5d1110001f4e0ffdf4ace6ef91c32d10152"
+  },
+  "hardware_context": "Historical probe-11 Q35 topology and integrator-identified detached devices in brief 11c; fresh runs use QMP inventories",
+  "before_devices": {
+    "attached": [
+      {
+        "key": "pci:00:02.0"
+      },
+      {
+        "key": "pci:00:03.0"
+      },
+      {
+        "key": "pci:00:1f.2/sata:0:65535:0"
+      },
+      {
+        "key": "pci:00:01.0"
+      }
+    ]
+  },
+  "after_devices": {
+    "attached": [
+      {
+        "key": "pci:00:02.0"
+      },
+      {
+        "key": "pci:00:01.0"
+      }
+    ]
+  },
+  "changes": {
+    "Boot0002": {
+      "before": {
+        "attributes": 7,
+        "hex": "01000000200055004500460049002000510045004d00550020004400560044002d0052004f004d00200051004d00300030003000300031002000000002010c00d041030a0000000001010600021f03120a000000ffff00007fff04004eac0881119f594d850ee21a522c59b2"
+      },
+      "after": null,
+      "firmware_owned": {
+        "device": "pci:00:1f.2/sata:0:65535:0",
+        "reason": "firmware removed an exact-GUID automatic option for a device detached in this boot",
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      }
+    },
+    "Boot0004": {
+      "before": {
+        "attributes": 7,
+        "hex": "010000001600550045004600490020004d00690073006300200044006500760069006300650020003200000002010c00d041030a000000000101060000037fff04004eac0881119f594d850ee21a522c59b2"
+      },
+      "after": null,
+      "firmware_owned": {
+        "device": "pci:00:03.0",
+        "reason": "firmware removed an exact-GUID automatic option for a device detached in this boot",
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      }
+    },
+    "BootOrder": {
+      "before": {
+        "attributes": 7,
+        "hex": "0000010002000300040005000600070008000900"
+      },
+      "after": {
+        "attributes": 7,
+        "hex": "00000100030005000600070008000900"
+      }
+    }
+  },
+  "exemptions": {
+    "Boot0002": {
+      "device": "pci:00:1f.2/sata:0:65535:0",
+      "reason": "firmware removed an exact-GUID automatic option for a device detached in this boot",
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    "Boot0004": {
+      "device": "pci:00:03.0",
+      "reason": "firmware removed an exact-GUID automatic option for a device detached in this boot",
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    }
+  }
+}

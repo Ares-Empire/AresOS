@@ -1,0 +1,5 @@
+{
+  "status": "passed",
+  "ocr_executed": true,
+  "context": "actual live QMP screenshot; OCR tool only, not GRUB menu qualification"
+}

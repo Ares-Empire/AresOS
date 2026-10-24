@@ -1,0 +1,83 @@
+{
+  "from_stage": "before-undo-windows",
+  "rule": "11f-linux-position",
+  "changes": {},
+  "firmware_changes": [],
+  "linux_position_changes": [],
+  "firmware_before": {
+    "Boot0005": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0006": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0007": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0008": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0002": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:02.0"
+    },
+    "Boot0003": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:03.0"
+    }
+  },
+  "firmware_after": {
+    "Boot0005": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0006": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0007": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0008": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0002": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:02.0"
+    },
+    "Boot0003": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:03.0"
+    }
+  },
+  "order_before": [
+    "Boot0000",
+    "Boot000A",
+    "Boot0001",
+    "Boot0005",
+    "Boot0006",
+    "Boot0007",
+    "Boot0008",
+    "Boot0009",
+    "Boot0002",
+    "Boot0003"
+  ],
+  "order_after": [
+    "Boot0000",
+    "Boot000A",
+    "Boot0001",
+    "Boot0005",
+    "Boot0006",
+    "Boot0007",
+    "Boot0008",
+    "Boot0009",
+    "Boot0002",
+    "Boot0003"
+  ]
+}

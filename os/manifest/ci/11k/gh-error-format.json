@@ -1,0 +1,39 @@
+{
+  "cli_version": "gh version 2.94.0 (2026-06-10)",
+  "source_url": "https://raw.githubusercontent.com/cli/cli/v2.94.0/pkg/cmd/api/api.go",
+  "source_sha256": "7e5069100b2864c3f7454e422dbe25262831cfe2789f01ffb19896a3cf5acfb7",
+  "source_findings": {
+    "processResponse": "HTTP fallback at lines 527-535 prints gh: HTTP NNN on stderr",
+    "parseErrorResponse": "JSON message error at line 659 appends (HTTP NNN); JSON unmarshal failures return directly",
+    "httpRequest": "Transport errors are returned without HTTP conversion"
+  },
+  "observed": [
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/Ares-Empire/AresOS"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_bytes": 6640
+    },
+    {
+      "command": [
+        "gh",
+        "api",
+        "repos/Ares-Empire/AresOS/actions/runs/0"
+      ],
+      "exit_code": 1,
+      "stderr": "gh: Not Found (HTTP 404)",
+      "stdout_bytes": 130
+    },
+    {
+      "context": "Subprocess-only proxy to refused local port; nonsensitive dummy GH_TOKEN/GITHUB_TOKEN, no setting change or real credential sent",
+      "exit_code": 1,
+      "stderr": "Get \"https://api.github.com/repos/Ares-Empire/AresOS\": proxyconnect tcp: dial tcp 127.0.0.1:1: connectex: No connection could be made because the target machine actively refused it."
+    }
+  ],
+  "retained_502": "11j actual gh: Server Error (HTTP 502), linked at ../11j/dispatch-guard-stop.json",
+  "implementation": "Explicit GET only; parse gh HTTP stderr; conservative Go URL transport-error causes; unknown/auth/certificate/JSON failures stop; no headers/body/error text echoed by retries"
+}

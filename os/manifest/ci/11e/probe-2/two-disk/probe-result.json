@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "installed": false,
+  "both_orders": true,
+  "review_validated": true,
+  "detached_windows": true,
+  "target_reset": true,
+  "owner_auth_read_only": true,
+  "signature_verified": true,
+  "firmware_rule": "11e-device-set",
+  "commit": "a353042e6f996d26a9ad746b616dce1a6394e1ae"
+}

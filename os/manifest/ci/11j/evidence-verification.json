@@ -1,0 +1,146 @@
+{
+  "matching_offline_stages": 6,
+  "zero_write_records": 6,
+  "archived_records_scanned": 458,
+  "incomplete": [],
+  "firmware_events": [
+    {
+      "run": "probe-1",
+      "folder": "two-disk",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:03.0",
+      "before_option": "Boot0004",
+      "after_option": null,
+      "before_description": "UEFI Misc Device 2",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-1",
+      "folder": "two-disk",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:1f.2/sata:0:65535:0",
+      "before_option": "Boot0002",
+      "after_option": null,
+      "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-1",
+      "folder": "two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:02.0",
+      "before_option": "Boot0003",
+      "after_option": null,
+      "before_description": "UEFI Misc Device",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-1",
+      "folder": "two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:03.0",
+      "before_option": "Boot0004",
+      "after_option": "Boot0002",
+      "before_description": "UEFI Misc Device 2",
+      "after_description": "UEFI Misc Device",
+      "action": "changed",
+      "relabeled": true,
+      "renumbered": true,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-1",
+      "folder": "two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:1f.2/sata:0:65535:0",
+      "before_option": "Boot0002",
+      "after_option": null,
+      "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    }
+  ],
+  "linux_position_events": [],
+  "windows_order_actions": [
+    {
+      "run": "probe-1",
+      "path": "two-disk/probe-windows-order.json",
+      "before": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "after": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ]
+    },
+    {
+      "run": "probe-1",
+      "path": "two-disk/protected-second/probe-windows-order.json",
+      "before": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "after": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ]
+    }
+  ],
+  "pause_decisions": [],
+  "qualifications": [
+    {
+      "run": "probe-1",
+      "kind": "probe",
+      "source": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+      "status": "passed"
+    }
+  ]
+}

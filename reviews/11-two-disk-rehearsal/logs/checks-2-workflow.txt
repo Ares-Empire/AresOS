@@ -1,0 +1,670 @@
+2026-10-22T23:03:26.7126870Z Current runner version: '2.338.0'
+2026-10-22T23:03:26.7163753Z ##[group]Runner Image Provisioner
+2026-10-22T23:03:26.7165271Z Hosted Compute Agent
+2026-10-22T23:03:26.7166235Z Version: 20261012.601
+2026-10-22T23:03:26.7167519Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-22T23:03:26.7168816Z Build Date: 2026-10-12T17:48:21Z
+2026-10-22T23:03:26.7170131Z Worker ID: {24502544-c6e7-4e80-a1db-77cba2c7864e}
+2026-10-22T23:03:26.7171687Z Region: westus
+2026-10-22T23:03:26.7172670Z Cloud: Azure
+2026-10-22T23:03:26.7173684Z ##[endgroup]
+2026-10-22T23:03:26.7176269Z ##[group]Operating System
+2026-10-22T23:03:26.7177478Z Ubuntu
+2026-10-22T23:03:26.7178432Z 24.04.5
+2026-10-22T23:03:26.7179335Z LTS
+2026-10-22T23:03:26.7180255Z ##[endgroup]
+2026-10-22T23:03:26.7181533Z ##[group]Runner Image
+2026-10-22T23:03:26.7182572Z Image: ubuntu-24.04
+2026-10-22T23:03:26.7183644Z Version: 20261012.334.1
+2026-10-22T23:03:26.7185919Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-22T23:03:26.7188884Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-22T23:03:26.7190689Z ##[endgroup]
+2026-10-22T23:03:26.7193420Z ##[group]GITHUB_TOKEN Permissions
+2026-10-22T23:03:26.7196200Z Contents: read
+2026-10-22T23:03:26.7197312Z Metadata: read
+2026-10-22T23:03:26.7198234Z Packages: read
+2026-10-22T23:03:26.7199281Z ##[endgroup]
+2026-10-22T23:03:26.7202797Z Secret source: Actions
+2026-10-22T23:03:26.7204936Z Cache mode: write
+2026-10-22T23:03:26.7206110Z Prepare workflow directory
+2026-10-22T23:03:26.7737347Z Prepare all required actions
+2026-10-22T23:03:26.7811528Z Getting action download info
+2026-10-22T23:03:27.1396410Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-22T23:03:27.2487706Z Download action repository 'sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac' (SHA:398d4b0eeef1380460a10c8013a76f728fb906ac)
+2026-10-22T23:03:27.4489935Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-22T23:03:27.7204812Z Complete job name: Regression checks only (no image build or VM)
+2026-10-22T23:03:27.8000524Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-10-22T23:03:27.8001854Z with:
+2026-10-22T23:03:27.8002301Z   repository: carlsenares/AresOS
+2026-10-22T23:03:27.8006160Z   token: ***
+2026-10-22T23:03:27.8006579Z   ssh-strict: true
+2026-10-22T23:03:27.8007003Z   ssh-user: git
+2026-10-22T23:03:27.8007437Z   persist-credentials: true
+2026-10-22T23:03:27.8007911Z   clean: true
+2026-10-22T23:03:27.8008351Z   sparse-checkout-cone-mode: true
+2026-10-22T23:03:27.8008856Z   fetch-depth: 1
+2026-10-22T23:03:27.8009273Z   fetch-tags: false
+2026-10-22T23:03:27.8009714Z   show-progress: true
+2026-10-22T23:03:27.8010160Z   lfs: false
+2026-10-22T23:03:27.8010553Z   submodules: false
+2026-10-22T23:03:27.8011190Z   set-safe-directory: true
+2026-10-22T23:03:27.8011690Z   allow-unsafe-pr-checkout: false
+2026-10-22T23:03:27.8012515Z ##[endgroup]
+2026-10-22T23:03:27.9237746Z Syncing repository: carlsenares/AresOS
+2026-10-22T23:03:27.9240699Z ##[group]Getting Git version info
+2026-10-22T23:03:27.9242535Z Working directory is '/home/runner/work/AresOS/AresOS'
+2026-10-22T23:03:27.9259578Z [command]/usr/bin/git version
+2026-10-22T23:03:27.9442795Z git version 2.55.0
+2026-10-22T23:03:27.9501590Z ##[endgroup]
+2026-10-22T23:03:27.9509697Z Temporarily overriding HOME='/home/runner/work/_temp/ea417267-eb26-4f69-9ff3-80df93d767ce' before making global git config changes
+2026-10-22T23:03:27.9512455Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T23:03:27.9514375Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/AresOS/AresOS
+2026-10-22T23:03:27.9602473Z Deleting the contents of '/home/runner/work/AresOS/AresOS'
+2026-10-22T23:03:27.9624188Z ##[group]Initializing the repository
+2026-10-22T23:03:27.9626290Z [command]/usr/bin/git init /home/runner/work/AresOS/AresOS
+2026-10-22T23:03:27.9765874Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-22T23:03:27.9792526Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-22T23:03:27.9794203Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-22T23:03:27.9795452Z hint: call:
+2026-10-22T23:03:27.9796084Z hint:
+2026-10-22T23:03:27.9796878Z hint: 	git config --global init.defaultBranch <name>
+2026-10-22T23:03:27.9797849Z hint:
+2026-10-22T23:03:27.9798761Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-22T23:03:27.9800342Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-22T23:03:27.9801822Z hint:
+2026-10-22T23:03:27.9802470Z hint: 	git branch -m <name>
+2026-10-22T23:03:27.9803214Z hint:
+2026-10-22T23:03:27.9804203Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-22T23:03:27.9805868Z Initialized empty Git repository in /home/runner/work/AresOS/AresOS/.git/
+2026-10-22T23:03:27.9808490Z [command]/usr/bin/git remote add origin https://github.com/carlsenares/AresOS
+2026-10-22T23:03:27.9956631Z ##[endgroup]
+2026-10-22T23:03:27.9958484Z ##[group]Disabling automatic garbage collection
+2026-10-22T23:03:27.9963749Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-22T23:03:27.9967629Z ##[endgroup]
+2026-10-22T23:03:27.9969445Z ##[group]Setting up auth
+2026-10-22T23:03:27.9970963Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T23:03:28.0043706Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T23:03:28.0608302Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T23:03:28.0621965Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T23:03:28.1174211Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T23:03:28.1185810Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T23:03:28.1403813Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-22T23:03:28.1452396Z ##[endgroup]
+2026-10-22T23:03:28.1454808Z ##[group]Fetching the repository
+2026-10-22T23:03:28.1465635Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +f32f1da0cbc5c7a6eb17ad51b46d77b461ae13de:refs/remotes/origin/pkg/11-two-disk-rehearsal
+2026-10-22T23:03:31.7392639Z From https://github.com/carlsenares/AresOS
+2026-10-22T23:03:31.7393980Z  * [new ref]         f32f1da0cbc5c7a6eb17ad51b46d77b461ae13de -> origin/pkg/11-two-disk-rehearsal
+2026-10-22T23:03:31.7396939Z ##[endgroup]
+2026-10-22T23:03:31.7397778Z ##[group]Determining the checkout info
+2026-10-22T23:03:31.7398676Z ##[endgroup]
+2026-10-22T23:03:31.7406688Z [command]/usr/bin/git sparse-checkout disable
+2026-10-22T23:03:31.7473674Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-22T23:03:31.7511860Z ##[group]Checking out the ref
+2026-10-22T23:03:31.7517692Z [command]/usr/bin/git checkout --progress --force -B pkg/11-two-disk-rehearsal refs/remotes/origin/pkg/11-two-disk-rehearsal
+2026-10-22T23:03:32.3973633Z Switched to a new branch 'pkg/11-two-disk-rehearsal'
+2026-10-22T23:03:32.3986188Z branch 'pkg/11-two-disk-rehearsal' set up to track 'origin/pkg/11-two-disk-rehearsal'.
+2026-10-22T23:03:32.4085145Z ##[endgroup]
+2026-10-22T23:03:32.4221876Z [command]/usr/bin/git log -1 --format=%H
+2026-10-22T23:03:32.4245601Z f32f1da0cbc5c7a6eb17ad51b46d77b461ae13de
+2026-10-22T23:03:32.4485161Z ##[group]Run sudo apt-get update -qq
+2026-10-22T23:03:32.4485604Z [36;1msudo apt-get update -qq[0m
+2026-10-22T23:03:32.4485999Z [36;1msudo apt-get install -y --no-install-recommends python3-pil[0m
+2026-10-22T23:03:32.4781644Z shell: /usr/bin/bash -e {0}
+2026-10-22T23:03:32.4782045Z ##[endgroup]
+2026-10-22T23:03:38.1275626Z Reading package lists...
+2026-10-22T23:03:38.3727993Z Building dependency tree...
+2026-10-22T23:03:38.3738376Z Reading state information...
+2026-10-22T23:03:38.5388198Z The following additional packages will be installed:
+2026-10-22T23:03:38.5392968Z   libimagequant0 libraqm0
+2026-10-22T23:03:38.5412169Z Suggested packages:
+2026-10-22T23:03:38.5417314Z   python-pil-doc
+2026-10-22T23:03:38.5432189Z Recommended packages:
+2026-10-22T23:03:38.5432876Z   python3-olefile
+2026-10-22T23:03:38.9316552Z The following NEW packages will be installed:
+2026-10-22T23:03:38.9322382Z   libimagequant0 libraqm0 python3-pil
+2026-10-22T23:03:38.9506825Z 0 upgraded, 3 newly installed, 0 to remove and 99 not upgraded.
+2026-10-22T23:03:38.9507870Z Need to get 503 kB of archives.
+2026-10-22T23:03:38.9508889Z After this operation, 1955 kB of additional disk space will be used.
+2026-10-22T23:03:38.9510085Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-22T23:03:39.2162271Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libimagequant0 amd64 2.18.0-1build1 [36.3 kB]
+2026-10-22T23:03:39.8313292Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 libraqm0 amd64 0.10.1-1build1 [15.0 kB]
+2026-10-22T23:03:40.3936053Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 python3-pil amd64 10.2.0-1ubuntu1.3 [452 kB]
+2026-10-22T23:03:45.2216279Z Fetched 503 kB in 6s (83.7 kB/s)
+2026-10-22T23:03:45.2493383Z Selecting previously unselected package libimagequant0:amd64.
+2026-10-22T23:03:45.2850409Z (Reading database ...
+2026-10-22T23:03:45.2850773Z (Reading database ... 5%
+2026-10-22T23:03:45.2851754Z (Reading database ... 10%
+2026-10-22T23:03:45.2852554Z (Reading database ... 15%
+2026-10-22T23:03:45.2852943Z (Reading database ... 20%
+2026-10-22T23:03:45.2853307Z (Reading database ... 25%
+2026-10-22T23:03:45.2853649Z (Reading database ... 30%
+2026-10-22T23:03:45.2854013Z (Reading database ... 35%
+2026-10-22T23:03:45.2854385Z (Reading database ... 40%
+2026-10-22T23:03:45.2854771Z (Reading database ... 45%
+2026-10-22T23:03:45.2855181Z (Reading database ... 50%
+2026-10-22T23:03:45.2908838Z (Reading database ... 55%
+2026-10-22T23:03:45.4162555Z (Reading database ... 60%
+2026-10-22T23:03:45.6200726Z (Reading database ... 65%
+2026-10-22T23:03:45.8222982Z (Reading database ... 70%
+2026-10-22T23:03:46.0103246Z (Reading database ... 75%
+2026-10-22T23:03:46.1740313Z (Reading database ... 80%
+2026-10-22T23:03:46.3792933Z (Reading database ... 85%
+2026-10-22T23:03:46.5438439Z (Reading database ... 90%
+2026-10-22T23:03:46.7322209Z (Reading database ... 95%
+2026-10-22T23:03:46.7323890Z (Reading database ... 100%
+2026-10-22T23:03:46.7324913Z (Reading database ... 203540 files and directories currently installed.)
+2026-10-22T23:03:46.7356711Z Preparing to unpack .../libimagequant0_2.18.0-1build1_amd64.deb ...
+2026-10-22T23:03:46.7397070Z Unpacking libimagequant0:amd64 (2.18.0-1build1) ...
+2026-10-22T23:03:46.7639823Z Selecting previously unselected package libraqm0:amd64.
+2026-10-22T23:03:46.7786333Z Preparing to unpack .../libraqm0_0.10.1-1build1_amd64.deb ...
+2026-10-22T23:03:46.7795524Z Unpacking libraqm0:amd64 (0.10.1-1build1) ...
+2026-10-22T23:03:46.8018822Z Selecting previously unselected package python3-pil:amd64.
+2026-10-22T23:03:46.8147867Z Preparing to unpack .../python3-pil_10.2.0-1ubuntu1.3_amd64.deb ...
+2026-10-22T23:03:46.8156923Z Unpacking python3-pil:amd64 (10.2.0-1ubuntu1.3) ...
+2026-10-22T23:03:46.8817406Z Setting up libraqm0:amd64 (0.10.1-1build1) ...
+2026-10-22T23:03:46.8843819Z Setting up libimagequant0:amd64 (2.18.0-1build1) ...
+2026-10-22T23:03:46.8864763Z Setting up python3-pil:amd64 (10.2.0-1ubuntu1.3) ...
+2026-10-22T23:03:47.1887262Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-22T23:03:47.8919477Z
+2026-10-22T23:03:47.8920251Z Running kernel seems to be up-to-date.
+2026-10-22T23:03:47.8920938Z
+2026-10-22T23:03:47.8921883Z No services need to be restarted.
+2026-10-22T23:03:47.8922486Z
+2026-10-22T23:03:47.8922862Z No containers need to be restarted.
+2026-10-22T23:03:47.8923368Z
+2026-10-22T23:03:47.8923747Z No user sessions are running outdated binaries.
+2026-10-22T23:03:47.8924280Z
+2026-10-22T23:03:47.8924780Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-22T23:03:49.0062642Z ##[group]Run set -euo pipefail
+2026-10-22T23:03:49.0062980Z [36;1mset -euo pipefail[0m
+2026-10-22T23:03:49.0063275Z [36;1mpython3 -m unittest discover -s os/tests -v[0m
+2026-10-22T23:03:49.0063830Z [36;1mpython3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/tests/audit.py os/tests/power-events.py[0m
+2026-10-22T23:03:49.0064776Z [36;1mfor script in os/ci/*.sh os/release/*.sh os/ci/overlay/updater-generator os/build.sh os/tests/*.sh os/config/usr/bin/aresos-session os/config/usr/bin/aresos-terminal; do[0m
+2026-10-22T23:03:49.0065523Z [36;1m  bash -n "$script"[0m
+2026-10-22T23:03:49.0065754Z [36;1mdone[0m
+2026-10-22T23:03:49.0131600Z shell: /usr/bin/bash -e {0}
+2026-10-22T23:03:49.0131870Z ##[endgroup]
+2026-10-22T23:03:49.1794927Z test_live_dependencies_and_transient_commands_are_inspected (test_audit.ActivationAuditPrototypeTest.test_live_dependencies_and_transient_commands_are_inspected) ... ok
+2026-10-22T23:03:49.1799929Z test_live_root_units_are_arguments_and_aliases_are_preserved (test_audit.ActivationAuditPrototypeTest.test_live_root_units_are_arguments_and_aliases_are_preserved) ... ok
+2026-10-22T23:03:49.1848020Z test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail (test_audit.ActivationAuditPrototypeTest.test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail) ... ok
+2026-10-22T23:03:49.1878674Z test_quoted_escaped_manager_names_and_dependencies_are_round_tripped (test_audit.ActivationAuditPrototypeTest.test_quoted_escaped_manager_names_and_dependencies_are_round_tripped) ... ok
+2026-10-22T23:03:49.1898968Z test_quoted_live_dropin_path_is_inspected (test_audit.ActivationAuditPrototypeTest.test_quoted_live_dropin_path_is_inspected) ... ok
+2026-10-22T23:03:49.1986067Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+2026-10-22T23:03:49.2066025Z test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask (test_audit.UpdaterAuditTest.test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask) ... ok
+2026-10-22T23:03:49.2069236Z test_live_state_rows_are_validated (test_audit.UpdaterAuditTest.test_live_state_rows_are_validated) ... ok
+2026-10-22T23:03:49.2071746Z test_masked_but_running_updater_is_rejected_in_every_live_state (test_audit.UpdaterAuditTest.test_masked_but_running_updater_is_rejected_in_every_live_state) ... ok
+2026-10-22T23:03:49.2142789Z test_missing_live_user_manager_is_a_failure (test_audit.UpdaterAuditTest.test_missing_live_user_manager_is_a_failure) ... ok
+2026-10-22T23:03:49.2144979Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+2026-10-22T23:03:49.2177479Z test_static_live_inventory_reads_generated_files_and_both_manager_states (test_audit.UpdaterAuditTest.test_static_live_inventory_reads_generated_files_and_both_manager_states) ... ok
+2026-10-22T23:03:49.2180180Z test_suspicious_units_require_mask_or_review_in_every_state (test_audit.UpdaterAuditTest.test_suspicious_units_require_mask_or_review_in_every_state) ... ok
+2026-10-22T23:03:49.2265922Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+2026-10-22T23:03:49.2280239Z test_fragmented_and_coalesced_frames_at_every_boundary (test_channel.ChannelTest.test_fragmented_and_coalesced_frames_at_every_boundary) ... ok
+2026-10-22T23:03:49.2418876Z test_incomplete_and_oversized_frames_fail (test_channel.ChannelTest.test_incomplete_and_oversized_frames_fail) ... ok
+2026-10-22T23:03:49.2420940Z test_raw_exports_preserve_bytes_and_reject_corruption (test_channel.ChannelTest.test_raw_exports_preserve_bytes_and_reject_corruption) ... ok
+2026-10-22T23:03:49.2431931Z test_events_before_and_after_command_reply_are_retained (test_channel.QMPTest.test_events_before_and_after_command_reply_are_retained) ... ok
+2026-10-22T23:03:49.2434565Z test_host_exit_reset_suspend_and_missing_shutdown_are_rejected (test_channel.QMPTest.test_host_exit_reset_suspend_and_missing_shutdown_are_rejected) ... ok
+2026-10-22T23:03:49.2446766Z test_failed_transaction_stops_before_success_check (test_default_stock.DefaultStockTest.test_failed_transaction_stops_before_success_check) ... ok
+2026-10-22T23:03:49.2469442Z test_resolves_booted_stock_index_and_handles_already_default (test_default_stock.DefaultStockTest.test_resolves_booted_stock_index_and_handles_already_default) ... ok
+2026-10-22T23:03:49.2519053Z test_wrong_identity_or_staged_update_never_changes_default (test_default_stock.DefaultStockTest.test_wrong_identity_or_staged_update_never_changes_default) ... ok
+2026-10-22T23:03:49.2525095Z test_any_offline_disk_gpt_or_efi_difference_fails (test_disk_audit.DiskAuditTest.test_any_offline_disk_gpt_or_efi_difference_fails) ... ok
+2026-10-22T23:03:49.2639059Z test_efi_entry_resolves_gpt_partition_guid_boundaries_and_actual_loader (test_disk_audit.DiskAuditTest.test_efi_entry_resolves_gpt_partition_guid_boundaries_and_actual_loader) ... ok
+2026-10-22T23:03:49.2671901Z test_gpt_checks_primary_backup_crc_identity_and_exact_boundaries (test_disk_audit.DiskAuditTest.test_gpt_checks_primary_backup_crc_identity_and_exact_boundaries) ... ok
+2026-10-22T23:03:49.2685274Z test_lost_modified_or_unordered_windows_and_non_linux_addition_fail (test_disk_audit.DiskAuditTest.test_lost_modified_or_unordered_windows_and_non_linux_addition_fail) ... ok
+2026-10-22T23:03:49.2704124Z test_real_edk2_records_replace_deleted_values_and_preserve_windows_payload (test_disk_audit.DiskAuditTest.test_real_edk2_records_replace_deleted_values_and_preserve_windows_payload) ... ok
+2026-10-22T23:03:49.2707013Z test_write_even_if_bytes_later_restored_or_device_missing_is_a_failure (test_disk_audit.DiskAuditTest.test_write_even_if_bytes_later_restored_or_device_missing_is_a_failure) ... ok
+2026-10-22T23:03:49.3763093Z test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline) ... ok
+2026-10-22T23:03:49.5030027Z test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters) ... ok
+2026-10-22T23:03:50.5380993Z test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence) ... ok
+2026-10-22T23:03:50.5392005Z test_no_frame_is_accepted_without_session_readiness (test_greeter.GreeterTest.test_no_frame_is_accepted_without_session_readiness) ... ok
+2026-10-22T23:03:50.5419677Z test_active_service_without_process_or_with_wrong_active_vt_times_out (test_greeter_probe.GreeterProbeTest.test_active_service_without_process_or_with_wrong_active_vt_times_out) ... ok
+2026-10-22T23:03:50.5428350Z test_fixture_matches_the_pinned_image_manager_instead_of_assuming_sddm (test_greeter_probe.GreeterProbeTest.test_fixture_matches_the_pinned_image_manager_instead_of_assuming_sddm) ... ok
+2026-10-22T23:03:50.5436981Z test_proc_observer_reads_real_executable_effective_uid_and_environment (test_greeter_probe.GreeterProbeTest.test_proc_observer_reads_real_executable_effective_uid_and_environment) ... ok
+2026-10-22T23:03:50.5447531Z test_process_with_active_graphical_vt_is_accepted_and_records_identity (test_greeter_probe.GreeterProbeTest.test_process_with_active_graphical_vt_is_accepted_and_records_identity) ... ok
+2026-10-22T23:03:50.5450679Z test_real_greeter_identity_does_not_depend_on_logind_class_or_argv_spelling (test_greeter_probe.GreeterProbeTest.test_real_greeter_identity_does_not_depend_on_logind_class_or_argv_spelling) ... ok
+2026-10-22T23:03:50.5453664Z test_wrong_executable_owner_type_or_vt_cannot_become_ready (test_greeter_probe.GreeterProbeTest.test_wrong_executable_owner_type_or_vt_cannot_become_ready) ... ok
+2026-10-22T23:03:50.5652751Z test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created) ... ok
+2026-10-22T23:03:50.7440394Z test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently) ... ok
+2026-10-22T23:03:50.8088518Z test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask) ... ok
+2026-10-22T23:03:50.8091867Z test_missing_records_and_other_boot_cannot_pass (test_offline_journal.OfflineJournalTest.test_missing_records_and_other_boot_cannot_pass) ... ok
+2026-10-22T23:03:50.8097487Z test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail (test_offline_journal.OfflineJournalTest.test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail) ... ok
+2026-10-22T23:03:50.8105281Z Default is the identity-checked booted stock deployment: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T23:03:50.8107303Z Default is the identity-checked booted stock deployment: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T23:03:50.8108797Z {"pid": 123, "type": "wayland", "uid": 975, "vt": 1}
+2026-10-22T23:03:50.8109515Z STOCK_GRAPHICAL_GREETER_READY
+2026-10-22T23:03:50.8110598Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: reader failed
+2026-10-22T23:03:50.8113563Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T23:03:50.8124610Z test_only_unreadable_journal_is_reported_as_hardware_gate (test_offline_journal.OfflineJournalTest.test_only_unreadable_journal_is_reported_as_hardware_gate) ... ok
+2026-10-22T23:03:50.8127063Z test_ordered_logind_and_manager_records_from_exact_boot_pass (test_offline_journal.OfflineJournalTest.test_ordered_logind_and_manager_records_from_exact_boot_pass) ... ok
+2026-10-22T23:03:50.8131913Z test_restore_filter_descends_only_toward_persistent_journals (test_offline_journal.OfflineJournalTest.test_restore_filter_descends_only_toward_persistent_journals) ... ok
+2026-10-22T23:03:50.9902090Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T23:03:50.9991843Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T23:03:51.0008805Z test_every_reader_command_error_and_timeout_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_every_reader_command_error_and_timeout_is_blocking) ... ok
+2026-10-22T23:03:51.0085090Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T23:03:51.0090133Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T23:03:51.0103512Z test_fallback_verifies_before_selecting_exact_boot (test_offline_journal.OfflineReaderCommandsTest.test_fallback_verifies_before_selecting_exact_boot) ... ok
+2026-10-22T23:03:51.0139753Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--device', '/dev/nbd0p4:/dev/guest:r', '--volume', '/tmp/tmp3zk1vf5c/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/export:rw', '--entrypoint', '/usr/bin/btrfs', 'localhost/aresos:ci', 'version'], 'returncode': 1, 'stderr': 'stat /usr/bin/btrfs: no such file or directory', 'output': 'offline-btrfs-version.txt'}
+2026-10-22T23:03:51.0288257Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--volume', '/tmp/tmp3mcw3llg/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/var/log/journal:/guest-journal:ro', '--entrypoint', '/usr/bin/journalctl', 'localhost/aresos:ci', '--directory=/guest-journal', '--no-pager', '--version'], 'returncode': 1, 'stderr': 'stat /usr/bin/journalctl: no such file or directory', 'output': 'offline-journalctl-version.txt'}
+2026-10-22T23:03:51.0465175Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; host Podman is absent
+2026-10-22T23:03:51.0509767Z test_gate_requires_both_explicit_host_limitations (test_offline_journal.OfflineReaderCommandsTest.test_gate_requires_both_explicit_host_limitations) ... ok
+2026-10-22T23:03:51.1209495Z test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking) ... ok
+2026-10-22T23:03:51.1261509Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T23:03:51.1269599Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-22T23:03:51.1379303Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-22T23:03:51.1699106Z test_mounted_reader_and_cleanup_failures_are_blocking (test_offline_journal.OfflineReaderCommandsTest.test_mounted_reader_and_cleanup_failures_are_blocking) ... ok
+2026-10-22T23:03:51.4031857Z test_guest_tty_reader_cannot_consume_completion_command (test_serial_console.SerialCommandTest.test_guest_tty_reader_cannot_consume_completion_command) ... ok
+2026-10-22T23:03:51.5012985Z test_long_script_survives_canonical_tty_line_limit (test_serial_console.SerialCommandTest.test_long_script_survives_canonical_tty_line_limit) ... ok
+2026-10-22T23:03:51.5092699Z test_nonzero_guest_exit_is_preserved (test_serial_console.SerialCommandTest.test_nonzero_guest_exit_is_preserved) ... ok
+2026-10-22T23:03:51.5094796Z test_corruption_and_incomplete_frames_are_rejected (test_serial_console.SerialExportTest.test_corruption_and_incomplete_frames_are_rejected) ... ok
+2026-10-22T23:03:51.5112711Z test_kernel_record_at_every_payload_boundary_preserves_bytes (test_serial_console.SerialExportTest.test_kernel_record_at_every_payload_boundary_preserves_bytes) ... ok
+2026-10-22T23:03:51.5123532Z test_wrapped_crlf_export_preserves_raw_json (test_serial_console.SerialExportTest.test_wrapped_crlf_export_preserves_raw_json) ... ok
+2026-10-22T23:03:51.5126032Z test_boot_log_retention_is_bounded_without_losing_partial_query (test_serial_console.SerialTerminalTest.test_boot_log_retention_is_bounded_without_losing_partial_query) ... ok
+2026-10-22T23:03:51.5128416Z test_queries_split_at_every_socket_boundary (test_serial_console.SerialTerminalTest.test_queries_split_at_every_socket_boundary) ... ok
+2026-10-22T23:03:51.5130437Z test_repeated_queries_answered_once_each (test_serial_console.SerialTerminalTest.test_repeated_queries_answered_once_each) ... ok
+2026-10-22T23:03:51.5132974Z test_shell_text_and_other_escape_sequences_do_not_receive_input (test_serial_console.SerialTerminalTest.test_shell_text_and_other_escape_sequences_do_not_receive_input) ... ok
+2026-10-22T23:03:51.8465905Z test_all_os_scripts_and_embedded_snippets_have_no_bare_negative_assertion (test_shell_assertions.ShellAssertionTest.test_all_os_scripts_and_embedded_snippets_have_no_bare_negative_assertion) ... ok
+2026-10-22T23:03:51.8490083Z test_daily_login_rejects_brew_even_outside_linuxbrew_path (test_shell_assertions.ShellAssertionTest.test_daily_login_rejects_brew_even_outside_linuxbrew_path) ... ok
+2026-10-22T23:03:51.9950319Z test_daily_policy_rejects_wheel_each_manager_and_each_competing_process (test_shell_assertions.ShellAssertionTest.test_daily_policy_rejects_wheel_each_manager_and_each_competing_process) ... ok
+2026-10-22T23:03:51.9998060Z test_install_transactions_stop_on_failure_and_never_include_the_reboot (test_shell_assertions.ShellAssertionTest.test_install_transactions_stop_on_failure_and_never_include_the_reboot) ... ok
+2026-10-22T23:03:52.0001380Z test_static_guard_rejects_negation_and_and_false_including_embedded_shell (test_shell_assertions.ShellAssertionTest.test_static_guard_rejects_negation_and_and_false_including_embedded_shell) ... ok
+2026-10-22T23:03:52.0020587Z test_stock_and_rollback_guard_refuses_daily_account (test_shell_assertions.ShellAssertionTest.test_stock_and_rollback_guard_refuses_daily_account) ... ok
+2026-10-22T23:03:52.0045863Z test_switch_refuses_existing_daily_name_even_with_uid_1001_free (test_shell_assertions.ShellAssertionTest.test_switch_refuses_existing_daily_name_even_with_uid_1001_free) ... ok
+2026-10-22T23:03:52.0048460Z test_absent_disk_or_partition_table_cannot_pass_comparison (test_switch.SwitchEvidenceTest.test_absent_disk_or_partition_table_cannot_pass_comparison) ... ok
+2026-10-22T23:03:52.0050879Z test_corrupt_status_export_cannot_be_accepted_as_state (test_switch.SwitchEvidenceTest.test_corrupt_status_export_cannot_be_accepted_as_state) ... ok
+2026-10-22T23:03:52.0053595Z test_credentials_and_encoded_variants_are_redacted (test_switch.SwitchEvidenceTest.test_credentials_and_encoded_variants_are_redacted) ... ok
+2026-10-22T23:03:52.0055921Z test_duplicate_or_missing_shutdown_cannot_hide_a_boot_loop (test_switch.SwitchEvidenceTest.test_duplicate_or_missing_shutdown_cannot_hide_a_boot_loop) ... ok
+2026-10-22T23:03:52.0058345Z test_only_orderly_guest_initialization_reset_is_accepted (test_switch.SwitchEvidenceTest.test_only_orderly_guest_initialization_reset_is_accepted) ... ok
+2026-10-22T23:03:52.0060691Z test_partition_changes_cannot_hide_behind_identical_mounts (test_switch.SwitchEvidenceTest.test_partition_changes_cannot_hide_behind_identical_mounts) ... ok
+2026-10-22T23:03:52.0063198Z test_reboot_inspection_requires_correct_staged_or_queued_identity (test_switch.SwitchEvidenceTest.test_reboot_inspection_requires_correct_staged_or_queued_identity) ... ok
+2026-10-22T23:03:52.0390090Z test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query (test_switch.SwitchEvidenceTest.test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query) ... ok
+2026-10-22T23:03:52.1415632Z test_reboot_reader_still_rejects_guest_that_does_not_exit_by_deadline (test_switch.SwitchEvidenceTest.test_reboot_reader_still_rejects_guest_that_does_not_exit_by_deadline) ... ok
+2026-10-22T23:03:52.1427822Z test_recreated_ram_swap_is_not_a_partition_change (test_switch.SwitchEvidenceTest.test_recreated_ram_swap_is_not_a_partition_change) ... ok
+2026-10-22T23:03:52.1430853Z test_serial_json_frame_is_parsed_independently_of_shell_prompt (test_switch.SwitchEvidenceTest.test_serial_json_frame_is_parsed_independently_of_shell_prompt) ... ok
+2026-10-22T23:03:52.1434345Z test_staged_reference_cannot_be_mistaken_for_booted_release (test_switch.SwitchEvidenceTest.test_staged_reference_cannot_be_mistaken_for_booted_release) ... ok
+2026-10-22T23:03:52.1437043Z test_status_spinner_and_interleaved_kernel_records_preserve_json_bytes (test_switch.SwitchEvidenceTest.test_status_spinner_and_interleaved_kernel_records_preserve_json_bytes) ... ok
+2026-10-22T23:03:52.1863248Z test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently) ... ok
+2026-10-22T23:03:52.1865754Z test_echo_enabled_cannot_pass (test_tty_password.TtyPasswordTest.test_echo_enabled_cannot_pass) ... ok
+2026-10-22T23:03:52.1876155Z test_failed_login_query_is_not_a_password_prompt (test_tty_password.TtyPasswordTest.test_failed_login_query_is_not_a_password_prompt) ... ok
+2026-10-22T23:03:52.1883880Z test_hidden_echo_without_login_cannot_pass (test_tty_password.TtyPasswordTest.test_hidden_echo_without_login_cannot_pass) ... ok
+2026-10-22T23:03:52.1894679Z test_persistent_hangup_still_fails_at_deadline (test_tty_password.TtyPasswordTest.test_persistent_hangup_still_fails_at_deadline) ... ok
+2026-10-22T23:03:52.1909140Z test_reopens_after_login_revokes_observation_descriptor (test_tty_password.TtyPasswordTest.test_reopens_after_login_revokes_observation_descriptor) ... ok
+2026-10-22T23:03:52.1915519Z test_unexpected_terminal_error_is_not_retried (test_tty_password.TtyPasswordTest.test_unexpected_terminal_error_is_not_retried) ... ok
+2026-10-22T23:03:52.1928840Z test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit (test_two_disk_vm.TwoDiskHarnessTest.test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit) ... ok
+2026-10-22T23:03:52.1932085Z test_german_console_input_translates_the_actual_recovery_commands (test_two_disk_vm.TwoDiskHarnessTest.test_german_console_input_translates_the_actual_recovery_commands) ... ok
+2026-10-22T23:03:52.1936357Z test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown (test_two_disk_vm.TwoDiskHarnessTest.test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown) ... ok
+2026-10-22T23:03:52.1940927Z test_kickstart_limits_clear_selection_and_bootloader_to_recorded_target (test_two_disk_vm.TwoDiskHarnessTest.test_kickstart_limits_clear_selection_and_bootloader_to_recorded_target) ... ok
+2026-10-22T23:03:52.1954692Z test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file (test_two_disk_vm.TwoDiskHarnessTest.test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file) ... ok
+2026-10-22T23:03:52.1959195Z test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk (test_two_disk_vm.TwoDiskHarnessTest.test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk) ... ok
+2026-10-22T23:03:52.1970526Z test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach (test_two_disk_vm.TwoDiskHarnessTest.test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach) ... ok
+2026-10-22T23:03:52.1972716Z TTY3_LOGIN_PASSWORD_ECHO_DISABLED
+2026-10-22T23:03:52.1973198Z
+2026-10-22T23:03:52.1973738Z ----------------------------------------------------------------------
+2026-10-22T23:03:52.1974526Z Ran 95 tests in 3.021s
+2026-10-22T23:03:52.1974927Z
+2026-10-22T23:03:52.1975207Z OK
+2026-10-22T23:03:52.3117767Z ##[group]Run PYTHONPATH=os/tests python3 - <<'PY'
+2026-10-22T23:03:52.3118178Z [36;1mPYTHONPATH=os/tests python3 - <<'PY'[0m
+2026-10-22T23:03:52.3118488Z [36;1mfrom audit import live_states[0m
+2026-10-22T23:03:52.3118881Z [36;1mfiles, units = live_states(['systemctl', '--no-pager', '--no-legend'])[0m
+2026-10-22T23:03:52.3119461Z [36;1massert '-.mount' in units and units['-.mount']['load_state'] == 'loaded', units.get('-.mount')[0m
+2026-10-22T23:03:52.3120118Z [36;1mprint(f'Live hosted system manager passed: {len(files)} unit files, {len(units)} unit names')[0m
+2026-10-22T23:03:52.3120615Z [36;1mPY[0m
+2026-10-22T23:03:52.3183192Z shell: /usr/bin/bash -e {0}
+2026-10-22T23:03:52.3183458Z ##[endgroup]
+2026-10-22T23:03:53.2882393Z Live hosted system manager passed: 437 unit files, 473 unit names
+2026-10-22T23:03:53.2993487Z ##[group]Run set -euo pipefail
+2026-10-22T23:03:53.2993823Z [36;1mset -euo pipefail[0m
+2026-10-22T23:03:53.2994075Z [36;1mmkdir -p .work[0m
+2026-10-22T23:03:53.2994599Z [36;1mif gh api users/carlsenares/packages/container/aresos > .work/package.json 2>.work/package-error.txt; then[0m
+2026-10-22T23:03:53.2995225Z [36;1m  test "$(jq -r .visibility .work/package.json)" = private[0m
+2026-10-22T23:03:53.2995630Z [36;1m  echo 'Existing release package is private'[0m
+2026-10-22T23:03:53.2995930Z [36;1melse[0m
+2026-10-22T23:03:53.2996147Z [36;1m  cat .work/package-error.txt[0m
+2026-10-22T23:03:53.2996468Z [36;1m  grep -q '(HTTP 404)' .work/package-error.txt[0m
+2026-10-22T23:03:53.2997136Z [36;1m  echo 'Release package does not exist yet; first publication will use private default'[0m
+2026-10-22T23:03:53.2997571Z [36;1mfi[0m
+2026-10-22T23:03:53.3063154Z shell: /usr/bin/bash -e {0}
+2026-10-22T23:03:53.3063421Z env:
+2026-10-22T23:03:53.3066275Z   GH_TOKEN: ***
+2026-10-22T23:03:53.3066527Z ##[endgroup]
+2026-10-22T23:03:53.8386983Z Existing release package is private
+2026-10-22T23:03:53.8425547Z ##[group]Run mkdir -p evidence
+2026-10-22T23:03:53.8425862Z [36;1mmkdir -p evidence[0m
+2026-10-22T23:03:53.8426130Z [36;1mpython3 os/ci/release-inputs.py[0m
+2026-10-22T23:03:53.8487754Z shell: /usr/bin/bash -e {0}
+2026-10-22T23:03:53.8488012Z ##[endgroup]
+2026-10-22T23:03:54.2332599Z Candidate base: ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151
+2026-10-22T23:03:54.7099806Z [
+2026-10-22T23:03:54.7100491Z   {
+2026-10-22T23:03:54.7100883Z     "kind": "legacy",
+2026-10-22T23:03:54.7101678Z     "filename": "bazzite-nvidia-open-stable-amd64.iso",
+2026-10-22T23:03:54.7102675Z     "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso",
+2026-10-22T23:03:54.7103686Z     "sha256": "85e701c0f53189b0fa32797ffe8144202dcaa8db6c7692fd4677f615537b24b8",
+2026-10-22T23:03:54.7104862Z     "checksum_source": "https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso-CHECKSUM",
+2026-10-22T23:03:54.7106551Z     "picker_source": "https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js"
+2026-10-22T23:03:54.7107694Z   },
+2026-10-22T23:03:54.7112831Z   {
+2026-10-22T23:03:54.7113265Z     "kind": "live",
+2026-10-22T23:03:54.7113822Z     "filename": "bazzite-nvidia-open-stable-live-amd64.iso",
+2026-10-22T23:03:54.7114822Z     "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+2026-10-22T23:03:54.7115810Z     "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+2026-10-22T23:03:54.7116939Z     "checksum_source": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM",
+2026-10-22T23:03:54.7118474Z     "picker_source": "https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js"
+2026-10-22T23:03:54.7119506Z   }
+2026-10-22T23:03:54.7119853Z ]
+2026-10-22T23:03:54.7392615Z ##[group]Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac
+2026-10-22T23:03:54.7393080Z with:
+2026-10-22T23:03:54.7393282Z   cosign-release: v2.6.1
+2026-10-22T23:03:54.7393522Z   install-dir: $HOME/.cosign
+2026-10-22T23:03:54.7393767Z   use-sudo: false
+2026-10-22T23:03:54.7393968Z ##[endgroup]
+2026-10-22T23:03:54.7497311Z ##[start-action display=Run #!/bin/bash;id=__sigstore_cosign-installer.__run]
+2026-10-22T23:03:54.7530019Z ##[group]Run #!/bin/bash
+2026-10-22T23:03:54.7530760Z [36;1m#!/bin/bash[0m
+2026-10-22T23:03:54.7531242Z [36;1m# cosign install script[0m
+2026-10-22T23:03:54.7531540Z [36;1mshopt -s expand_aliases[0m
+2026-10-22T23:03:54.7531808Z [36;1mif [ -z "$NO_COLOR" ]; then[0m
+2026-10-22T23:03:54.7532161Z [36;1m  alias log_info="echo -e \"\033[1;32mINFO\033[0m:\""[0m
+2026-10-22T23:03:54.7532558Z [36;1m  alias log_error="echo -e \"\033[1;31mERROR\033[0m:\""[0m
+2026-10-22T23:03:54.7532895Z [36;1melse[0m
+2026-10-22T23:03:54.7533160Z [36;1m  alias log_info="echo \"INFO:\""[0m
+2026-10-22T23:03:54.7533473Z [36;1m  alias log_error="echo \"ERROR:\""[0m
+2026-10-22T23:03:54.7533755Z [36;1mfi[0m
+2026-10-22T23:03:54.7533950Z [36;1mset -e[0m
+2026-10-22T23:03:54.7534151Z [36;1m[0m
+2026-10-22T23:03:54.7534356Z [36;1mmkdir -p $HOME/.cosign[0m
+2026-10-22T23:03:54.7534604Z [36;1m[0m
+2026-10-22T23:03:54.7534804Z [36;1mif [[ v2.6.1 == "main" ]]; then[0m
+2026-10-22T23:03:54.7535188Z [36;1m  log_info "installing cosign via 'go install' from its main version"[0m
+2026-10-22T23:03:54.7535613Z [36;1m  GOBIN=$(go env GOPATH)/bin[0m
+2026-10-22T23:03:54.7535963Z [36;1m  go install github.com/sigstore/cosign/v2/cmd/cosign@main[0m
+2026-10-22T23:03:54.7536361Z [36;1m  ln -s $GOBIN/cosign $HOME/.cosign/cosign[0m
+2026-10-22T23:03:54.7536844Z [36;1m  exit 0[0m
+2026-10-22T23:03:54.7537042Z [36;1mfi[0m
+2026-10-22T23:03:54.7537227Z [36;1m[0m
+2026-10-22T23:03:54.7537415Z [36;1mshaprog() {[0m
+2026-10-22T23:03:54.7537636Z [36;1m  case Linux in[0m
+2026-10-22T23:03:54.7537874Z [36;1m    Linux|linux)[0m
+2026-10-22T23:03:54.7538125Z [36;1m      sha256sum $1 | cut -d' ' -f1[0m
+2026-10-22T23:03:54.7538395Z [36;1m      ;;[0m
+2026-10-22T23:03:54.7538644Z [36;1m    macOS|macos)[0m
+2026-10-22T23:03:54.7538910Z [36;1m      shasum -a256 $1 | cut -d' ' -f1[0m
+2026-10-22T23:03:54.7539186Z [36;1m      ;;[0m
+2026-10-22T23:03:54.7539394Z [36;1m    Windows|windows)[0m
+2026-10-22T23:03:54.7539908Z [36;1m      powershell -command "(Get-FileHash $1 -Algorithm SHA256 | Select-Object -ExpandProperty Hash).ToLower()"[0m
+2026-10-22T23:03:54.7540443Z [36;1m      ;;[0m
+2026-10-22T23:03:54.7540648Z [36;1m    *)[0m
+2026-10-22T23:03:54.7540880Z [36;1m      log_error "unsupported OS Linux"[0m
+2026-10-22T23:03:54.7541552Z [36;1m      exit 1[0m
+2026-10-22T23:03:54.7541780Z [36;1m      ;;[0m
+2026-10-22T23:03:54.7541983Z [36;1m  esac[0m
+2026-10-22T23:03:54.7542176Z [36;1m}[0m
+2026-10-22T23:03:54.7542395Z [36;1m[0m
+2026-10-22T23:03:54.7542641Z [36;1mbootstrap_version='v2.5.2'[0m
+2026-10-22T23:03:54.7543148Z [36;1mbootstrap_linux_amd64_sha='bcfeae05557a9f313ee4392d2f335d0ff69ebbfd232019e3736fb04999fe1734'[0m
+2026-10-22T23:03:54.7543859Z [36;1mbootstrap_linux_arm_sha='ecb5b9d8b6d7c8cec98363f0827456fa3207279e5f4690db6b4e6c77b10e45f9'[0m
+2026-10-22T23:03:54.7544554Z [36;1mbootstrap_linux_arm64_sha='2cbcea1873ad76274c3f241ef175d204654e3aac3e73e6ec4504e5227015cb0a'[0m
+2026-10-22T23:03:54.7545261Z [36;1mbootstrap_darwin_amd64_sha='0681abe20a482f4b9b3ed65b3debb8c6346591f2dc484b6bfa79609ff1318de4'[0m
+2026-10-22T23:03:54.7545970Z [36;1mbootstrap_darwin_arm64_sha='51fdc6d8da8310d72df10065a52247b6bebfe990d4c946dd9f71e17588256011'[0m
+2026-10-22T23:03:54.7546690Z [36;1mbootstrap_windows_amd64_sha='fef1c4731da9112d4cf2f6d93ae2a1551c73116a4f73fab7b0c15b38e95ff688'[0m
+2026-10-22T23:03:54.7547220Z [36;1mcosign_executable_name=cosign[0m
+2026-10-22T23:03:54.7547486Z [36;1m[0m
+2026-10-22T23:03:54.7547691Z [36;1mtrap "popd >/dev/null" EXIT[0m
+2026-10-22T23:03:54.7548179Z [36;1m[0m
+2026-10-22T23:03:54.7548396Z [36;1mpushd $HOME/.cosign > /dev/null[0m
+2026-10-22T23:03:54.7548658Z [36;1m[0m
+2026-10-22T23:03:54.7548846Z [36;1mcase Linux in[0m
+2026-10-22T23:03:54.7549084Z [36;1m  Linux|linux)[0m
+2026-10-22T23:03:54.7549308Z [36;1m    case X64 in[0m
+2026-10-22T23:03:54.7549538Z [36;1m      X64|amd64)[0m
+2026-10-22T23:03:54.7549823Z [36;1m        bootstrap_filename='cosign-linux-amd64'[0m
+2026-10-22T23:03:54.7550203Z [36;1m        bootstrap_sha=${bootstrap_linux_amd64_sha}[0m
+2026-10-22T23:03:54.7550588Z [36;1m        desired_cosign_filename='cosign-linux-amd64'[0m
+2026-10-22T23:03:54.7551312Z [36;1m        # v0.6.0 had different filename structures from all other releases[0m
+2026-10-22T23:03:54.7551872Z [36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then[0m
+2026-10-22T23:03:54.7552277Z [36;1m          desired_cosign_filename='cosign_linux_amd64_0.6.0_linux_amd64'[0m
+2026-10-22T23:03:54.7552816Z [36;1m          desired_cosign_v060_signature='cosign_linux_amd64_0.6.0_linux_amd64.sig'[0m
+2026-10-22T23:03:54.7553233Z [36;1m        fi[0m
+2026-10-22T23:03:54.7553450Z [36;1m        ;;[0m
+2026-10-22T23:03:54.7553649Z [36;1m[0m
+2026-10-22T23:03:54.7553843Z [36;1m      ARM|arm)[0m
+2026-10-22T23:03:54.7554119Z [36;1m        bootstrap_filename='cosign-linux-arm'[0m
+2026-10-22T23:03:54.7554481Z [36;1m        bootstrap_sha=${bootstrap_linux_arm_sha}[0m
+2026-10-22T23:03:54.7554845Z [36;1m        desired_cosign_filename='cosign-linux-arm'[0m
+2026-10-22T23:03:54.7555178Z [36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then[0m
+2026-10-22T23:03:54.7555534Z [36;1m          log_error "linux-arm build not available at v0.6.0"[0m
+2026-10-22T23:03:54.7555882Z [36;1m          exit 1[0m
+2026-10-22T23:03:54.7556298Z [36;1m        fi[0m
+2026-10-22T23:03:54.7556501Z [36;1m        ;;[0m
+2026-10-22T23:03:54.7556698Z [36;1m[0m
+2026-10-22T23:03:54.7556891Z [36;1m      ARM64|arm64)[0m
+2026-10-22T23:03:54.7557177Z [36;1m        bootstrap_filename='cosign-linux-arm64'[0m
+2026-10-22T23:03:54.7557536Z [36;1m        bootstrap_sha=${bootstrap_linux_arm64_sha}[0m
+2026-10-22T23:03:54.7557898Z [36;1m        desired_cosign_filename='cosign-linux-arm64'[0m
+2026-10-22T23:03:54.7558235Z [36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then[0m
+2026-10-22T23:03:54.7558599Z [36;1m          log_error "linux-arm64 build not available at v0.6.0"[0m
+2026-10-22T23:03:54.7558952Z [36;1m          exit 1[0m
+2026-10-22T23:03:54.7559169Z [36;1m        fi[0m
+2026-10-22T23:03:54.7559368Z [36;1m        ;;[0m
+2026-10-22T23:03:54.7559568Z [36;1m[0m
+2026-10-22T23:03:54.7559747Z [36;1m      *)[0m
+2026-10-22T23:03:54.7559998Z [36;1m        log_error "unsupported architecture X64"[0m
+2026-10-22T23:03:54.7560309Z [36;1m        exit 1[0m
+2026-10-22T23:03:54.7560530Z [36;1m        ;;[0m
+2026-10-22T23:03:54.7560729Z [36;1m    esac[0m
+2026-10-22T23:03:54.7560922Z [36;1m    ;;[0m
+2026-10-22T23:03:54.7561292Z [36;1m[0m
+2026-10-22T23:03:54.7561481Z [36;1m  macOS|macos)[0m
+2026-10-22T23:03:54.7561708Z [36;1m    case X64 in[0m
+2026-10-22T23:03:54.7561931Z [36;1m      X64|amd64)[0m
+2026-10-22T23:03:54.7562202Z [36;1m        bootstrap_filename='cosign-darwin-amd64'[0m
+2026-10-22T23:03:54.7562565Z [36;1m        bootstrap_sha=${bootstrap_darwin_amd64_sha}[0m
+2026-10-22T23:03:54.7562943Z [36;1m        desired_cosign_filename='cosign-darwin-amd64'[0m
+2026-10-22T23:03:54.7563376Z [36;1m        # v0.6.0 had different filename structures from all other releases[0m
+2026-10-22T23:03:54.7563785Z [36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then[0m
+2026-10-22T23:03:54.7564186Z [36;1m          desired_cosign_filename='cosign_darwin_amd64_0.6.0_darwin_amd64'[0m
+2026-10-22T23:03:54.7564730Z [36;1m          desired_cosign_v060_signature='cosign_darwin_amd64_0.6.0_darwin_amd64.sig'[0m
+2026-10-22T23:03:54.7565155Z [36;1m        fi[0m
+2026-10-22T23:03:54.7565364Z [36;1m        ;;[0m
+2026-10-22T23:03:54.7565562Z [36;1m[0m
+2026-10-22T23:03:54.7565757Z [36;1m      ARM64|arm64)[0m
+2026-10-22T23:03:54.7566184Z [36;1m        bootstrap_filename='cosign-darwin-arm64'[0m
+2026-10-22T23:03:54.7566564Z [36;1m        bootstrap_sha=${bootstrap_darwin_arm64_sha}[0m
+2026-10-22T23:03:54.7566936Z [36;1m        desired_cosign_filename='cosign-darwin-arm64'[0m
+2026-10-22T23:03:54.7567402Z [36;1m        # v0.6.0 had different filename structures from all other releases[0m
+2026-10-22T23:03:54.7567808Z [36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then[0m
+2026-10-22T23:03:54.7568195Z [36;1m          desired_cosign_filename='cosign_darwin_arm64_0.6.0_darwin_arm64'[0m
+2026-10-22T23:03:54.7568724Z [36;1m          desired_cosign_v060_signature='cosign_darwin_arm64_0.6.0_darwin_arm64.sig'[0m
+2026-10-22T23:03:54.7569141Z [36;1m        fi[0m
+2026-10-22T23:03:54.7569347Z [36;1m        ;;[0m
+2026-10-22T23:03:54.7569548Z [36;1m[0m
+2026-10-22T23:03:54.7569732Z [36;1m      *)[0m
+2026-10-22T23:03:54.7569990Z [36;1m        log_error "unsupported architecture X64"[0m
+2026-10-22T23:03:54.7570302Z [36;1m        exit 1[0m
+2026-10-22T23:03:54.7570518Z [36;1m        ;;[0m
+2026-10-22T23:03:54.7570721Z [36;1m    esac[0m
+2026-10-22T23:03:54.7570917Z [36;1m    ;;[0m
+2026-10-22T23:03:54.7571246Z [36;1m[0m
+2026-10-22T23:03:54.7571435Z [36;1m  Windows|windows)[0m
+2026-10-22T23:03:54.7571669Z [36;1m    case X64 in[0m
+2026-10-22T23:03:54.7571890Z [36;1m      X64|amd64)[0m
+2026-10-22T23:03:54.7572177Z [36;1m        bootstrap_filename='cosign-windows-amd64.exe'[0m
+2026-10-22T23:03:54.7572557Z [36;1m        bootstrap_sha=${bootstrap_windows_amd64_sha}[0m
+2026-10-22T23:03:54.7572944Z [36;1m        desired_cosign_filename='cosign-windows-amd64.exe'[0m
+2026-10-22T23:03:54.7573315Z [36;1m        cosign_executable_name=cosign.exe[0m
+2026-10-22T23:03:54.7573851Z [36;1m        # v0.6.0 had different filename structures from all other releases[0m
+2026-10-22T23:03:54.7574240Z [36;1m        if [[ v2.6.1 == 'v0.6.0' ]]; then[0m
+2026-10-22T23:03:54.7574654Z [36;1m          desired_cosign_filename='cosign_windows_amd64_0.6.0_windows_amd64.exe'[0m
+2026-10-22T23:03:54.7575235Z [36;1m          desired_cosign_v060_signature='cosign_windows_amd64_0.6.0_windows_amd64.exe.sig'[0m
+2026-10-22T23:03:54.7575675Z [36;1m        fi[0m
+2026-10-22T23:03:54.7575884Z [36;1m        ;;[0m
+2026-10-22T23:03:54.7576083Z [36;1m      *)[0m
+2026-10-22T23:03:54.7576331Z [36;1m        log_error "unsupported architecture X64"[0m
+2026-10-22T23:03:54.7576636Z [36;1m        exit 1[0m
+2026-10-22T23:03:54.7576848Z [36;1m        ;;[0m
+2026-10-22T23:03:54.7577058Z [36;1m    esac[0m
+2026-10-22T23:03:54.7577255Z [36;1m    ;;[0m
+2026-10-22T23:03:54.7577450Z [36;1m  *)[0m
+2026-10-22T23:03:54.7577673Z [36;1m    log_error "unsupported os Linux"[0m
+2026-10-22T23:03:54.7577967Z [36;1m    exit 1[0m
+2026-10-22T23:03:54.7578176Z [36;1m    ;;[0m
+2026-10-22T23:03:54.7578366Z [36;1mesac[0m
+2026-10-22T23:03:54.7578557Z [36;1m[0m
+2026-10-22T23:03:54.7578737Z [36;1mSUDO=[0m
+2026-10-22T23:03:54.7579025Z [36;1mif [[ "false" == "true" ]] && command -v sudo >/dev/null; then[0m
+2026-10-22T23:03:54.7579376Z [36;1m  SUDO=sudo[0m
+2026-10-22T23:03:54.7579584Z [36;1mfi[0m
+2026-10-22T23:03:54.7579769Z [36;1m[0m
+2026-10-22T23:03:54.7580027Z [36;1mexpected_bootstrap_version_digest=${bootstrap_sha}[0m
+2026-10-22T23:03:54.7581125Z [36;1mlog_info "Downloading bootstrap version '${bootstrap_version}' of cosign to verify version to be installed...\n      https://github.com/sigstore/cosign/releases/download/${bootstrap_version}/${bootstrap_filename}"[0m
+2026-10-22T23:03:54.7582437Z [36;1m$SUDO curl -fsL https://github.com/sigstore/cosign/releases/download/${bootstrap_version}/${bootstrap_filename} -o ${cosign_executable_name}[0m
+2026-10-22T23:03:54.7583160Z [36;1mshaBootstrap=$(shaprog ${cosign_executable_name});[0m
+2026-10-22T23:03:54.7583612Z [36;1mif [[ $shaBootstrap != ${expected_bootstrap_version_digest} ]]; then[0m
+2026-10-22T23:03:54.7584077Z [36;1m  log_error "Unable to validate cosign version: 'v2.6.1'"[0m
+2026-10-22T23:03:54.7584547Z [36;1m  exit 1[0m
+2026-10-22T23:03:54.7584749Z [36;1mfi[0m
+2026-10-22T23:03:54.7584974Z [36;1m$SUDO chmod +x ${cosign_executable_name}[0m
+2026-10-22T23:03:54.7585270Z [36;1m[0m
+2026-10-22T23:03:54.7585598Z [36;1m# If the bootstrap and specified `cosign` releases are the same, we're done.[0m
+2026-10-22T23:03:54.7586052Z [36;1mif [[ v2.6.1 == ${bootstrap_version} ]]; then[0m
+2026-10-22T23:03:54.7586622Z [36;1m  log_info "bootstrap version successfully verified and matches requested version so nothing else to do"[0m
+2026-10-22T23:03:54.7587143Z [36;1m  exit 0[0m
+2026-10-22T23:03:54.7587336Z [36;1mfi[0m
+2026-10-22T23:03:54.7587521Z [36;1m[0m
+2026-10-22T23:03:54.7587771Z [36;1msemver='^v([0-9]+\.){0,2}(\*|[0-9]+)(-?r?c?)(\.[0-9]+)$'[0m
+2026-10-22T23:03:54.7588114Z [36;1mif [[ v2.6.1 =~ $semver ]]; then[0m
+2026-10-22T23:03:54.7588448Z [36;1m  log_info "Custom cosign version 'v2.6.1' requested"[0m
+2026-10-22T23:03:54.7588771Z [36;1melse[0m
+2026-10-22T23:03:54.7589081Z [36;1m  log_error "Unable to validate requested cosign version: 'v2.6.1'"[0m
+2026-10-22T23:03:54.7589466Z [36;1m  exit 1[0m
+2026-10-22T23:03:54.7589661Z [36;1mfi[0m
+2026-10-22T23:03:54.7589845Z [36;1m[0m
+2026-10-22T23:03:54.7590045Z [36;1m# Download custom cosign[0m
+2026-10-22T23:03:54.7590763Z [36;1mlog_info "Downloading platform-specific version 'v2.6.1' of cosign...\n      https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_filename}"[0m
+2026-10-22T23:03:54.7592170Z [36;1m$SUDO curl -fsL https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_filename} -o cosign_v2.6.1[0m
+2026-10-22T23:03:54.7592792Z [36;1mshaCustom=$(shaprog cosign_v2.6.1);[0m
+2026-10-22T23:03:54.7593075Z [36;1m[0m
+2026-10-22T23:03:54.7593451Z [36;1m# same hash means it is the same release[0m
+2026-10-22T23:03:54.7593789Z [36;1mif [[ $shaCustom != $shaBootstrap ]]; then[0m
+2026-10-22T23:03:54.7594139Z [36;1m  if [[ v2.6.1 == 'v0.6.0' && Linux == 'Linux' ]]; then[0m
+2026-10-22T23:03:54.7594548Z [36;1m    # v0.6.0's linux release has a dependency on `libpcsclite1`[0m
+2026-10-22T23:03:54.7594998Z [36;1m    log_info "Installing libpcsclite1 package if necessary..."[0m
+2026-10-22T23:03:54.7595363Z [36;1m    set +e[0m
+2026-10-22T23:03:54.7595595Z [36;1m    sudo dpkg -s libpcsclite1[0m
+2026-10-22T23:03:54.7595879Z [36;1m    if [ $? -eq 0 ]; then[0m
+2026-10-22T23:03:54.7596215Z [36;1m        log_info "libpcsclite1 package is already installed"[0m
+2026-10-22T23:03:54.7596572Z [36;1m    else[0m
+2026-10-22T23:03:54.7596919Z [36;1m         log_info "libpcsclite1 package is not installed, installing it now."[0m
+2026-10-22T23:03:54.7597354Z [36;1m         sudo apt-get update -q -q[0m
+2026-10-22T23:03:54.7597688Z [36;1m         sudo apt-get install -yq libpcsclite1[0m
+2026-10-22T23:03:54.7598001Z [36;1m    fi[0m
+2026-10-22T23:03:54.7598205Z [36;1m    set -e[0m
+2026-10-22T23:03:54.7598408Z [36;1m  fi[0m
+2026-10-22T23:03:54.7598599Z [36;1m[0m
+2026-10-22T23:03:54.7598807Z [36;1m  if [[ v2.6.1 == 'v0.6.0' ]]; then[0m
+2026-10-22T23:03:54.7599631Z [36;1m    log_info "Downloading detached signature for platform-specific 'v2.6.1' of cosign...\n      https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_v060_signature}"[0m
+2026-10-22T23:03:54.7600814Z [36;1m    $SUDO curl -fsL https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_v060_signature} -o ${desired_cosign_filename}.sig[0m
+2026-10-22T23:03:54.7601624Z [36;1m  else[0m
+2026-10-22T23:03:54.7602340Z [36;1m    log_info "Downloading detached signature for platform-specific 'v2.6.1' of cosign...\n      https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_filename}.sig"[0m
+2026-10-22T23:03:54.7603399Z [36;1m    $SUDO curl -fsLO https://github.com/sigstore/cosign/releases/download/v2.6.1/${desired_cosign_filename}.sig[0m
+2026-10-22T23:03:54.7603938Z [36;1m  fi[0m
+2026-10-22T23:03:54.7604128Z [36;1m[0m
+2026-10-22T23:03:54.7604451Z [36;1m  if [[ v2.6.1 < 'v0.6.0' ]]; then[0m
+2026-10-22T23:03:54.7605154Z [36;1m    log_info "Downloading cosign public key 'v2.6.1' of cosign...\n    https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/.github/workflows/cosign.pub"[0m
+2026-10-22T23:03:54.7606117Z [36;1m    RELEASE_COSIGN_PUB_KEY=https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/.github/workflows/cosign.pub[0m
+2026-10-22T23:03:54.7606894Z [36;1m    RELEASE_COSIGN_PUB_KEY_SHA='4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e'[0m
+2026-10-22T23:03:54.7607392Z [36;1m  else[0m
+2026-10-22T23:03:54.7608002Z [36;1m    log_info "Downloading cosign public key 'v2.6.1' of cosign...\n    https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/release/release-cosign.pub"[0m
+2026-10-22T23:03:54.7608956Z [36;1m    RELEASE_COSIGN_PUB_KEY=https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/release/release-cosign.pub[0m
+2026-10-22T23:03:54.7609742Z [36;1m    RELEASE_COSIGN_PUB_KEY_SHA='f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126'[0m
+2026-10-22T23:03:54.7610237Z [36;1m  fi[0m
+2026-10-22T23:03:54.7610430Z [36;1m[0m
+2026-10-22T23:03:54.7610699Z [36;1m  log_info "Verifying public key matches expected value"[0m
+2026-10-22T23:03:54.7611251Z [36;1m  $SUDO curl -fsL $RELEASE_COSIGN_PUB_KEY -o public.key[0m
+2026-10-22T23:03:54.7611648Z [36;1m  sha_fetched_key=$(shaprog public.key)[0m
+2026-10-22T23:03:54.7612039Z [36;1m  if [[ $sha_fetched_key != $RELEASE_COSIGN_PUB_KEY_SHA ]]; then[0m
+2026-10-22T23:03:54.7612526Z [36;1m    log_error "Fetched public key does not match expected digest, exiting"[0m
+2026-10-22T23:03:54.7612932Z [36;1m    exit 1[0m
+2026-10-22T23:03:54.7613140Z [36;1m  fi[0m
+2026-10-22T23:03:54.7613331Z [36;1m[0m
+2026-10-22T23:03:54.7613821Z [36;1m  log_info "Using bootstrap cosign to verify signature of desired cosign version"[0m
+2026-10-22T23:03:54.7614474Z [36;1m  ./cosign verify-blob --key public.key --signature ${desired_cosign_filename}.sig cosign_v2.6.1[0m
+2026-10-22T23:03:54.7614975Z [36;1m[0m
+2026-10-22T23:03:54.7615170Z [36;1m  $SUDO rm cosign[0m
+2026-10-22T23:03:54.7615460Z [36;1m  $SUDO mv cosign_v2.6.1 ${cosign_executable_name}[0m
+2026-10-22T23:03:54.7615823Z [36;1m  $SUDO chmod +x ${cosign_executable_name}[0m
+2026-10-22T23:03:54.7616154Z [36;1m  log_info "Installation complete!"[0m
+2026-10-22T23:03:54.7616438Z [36;1mfi[0m
+2026-10-22T23:03:54.7680355Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-22T23:03:54.7680716Z ##[endgroup]
+2026-10-22T23:03:54.7791857Z [1;32mINFO[0m: Downloading bootstrap version 'v2.5.2' of cosign to verify version to be installed...
+2026-10-22T23:03:54.7793806Z       https://github.com/sigstore/cosign/releases/download/v2.5.2/cosign-linux-amd64
+2026-10-22T23:03:55.5324074Z [1;32mINFO[0m: Custom cosign version 'v2.6.1' requested
+2026-10-22T23:03:55.5325027Z [1;32mINFO[0m: Downloading platform-specific version 'v2.6.1' of cosign...
+2026-10-22T23:03:55.5326028Z       https://github.com/sigstore/cosign/releases/download/v2.6.1/cosign-linux-amd64
+2026-10-22T23:03:56.6205760Z [1;32mINFO[0m: Downloading detached signature for platform-specific 'v2.6.1' of cosign...
+2026-10-22T23:03:56.6212690Z       https://github.com/sigstore/cosign/releases/download/v2.6.1/cosign-linux-amd64.sig
+2026-10-22T23:03:56.8453569Z [1;32mINFO[0m: Downloading cosign public key 'v2.6.1' of cosign...
+2026-10-22T23:03:56.8456854Z     https://raw.githubusercontent.com/sigstore/cosign/v2.6.1/release/release-cosign.pub
+2026-10-22T23:03:56.8458846Z [1;32mINFO[0m: Verifying public key matches expected value
+2026-10-22T23:03:56.9937594Z [1;32mINFO[0m: Using bootstrap cosign to verify signature of desired cosign version
+2026-10-22T23:04:00.6542340Z Verified OK
+2026-10-22T23:04:00.6785295Z [1;32mINFO[0m: Installation complete!
+2026-10-22T23:04:00.6805133Z ##[end-action id=__sigstore_cosign-installer.__run;outcome=success;conclusion=success;duration_ms=5930]
+2026-10-22T23:04:00.6811659Z ##[start-action display=Run echo "$HOME/.cosign" >> $GITHUB_PATH;id=__sigstore_cosign-installer.__run_2]
+2026-10-22T23:04:00.6854286Z ##[group]Run echo "$HOME/.cosign" >> $GITHUB_PATH
+2026-10-22T23:04:00.6854634Z [36;1mecho "$HOME/.cosign" >> $GITHUB_PATH[0m
+2026-10-22T23:04:00.6916412Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-22T23:04:00.6916756Z ##[endgroup]
+2026-10-22T23:04:00.7010325Z ##[end-action id=__sigstore_cosign-installer.__run_2;outcome=success;conclusion=success;duration_ms=19]
+2026-10-22T23:04:00.7014935Z ##[start-action display=Run echo "$HOME/.cosign" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append;id=__sigstore_cosign-installer.__run_3]
+2026-10-22T23:04:00.7020479Z ##[end-action id=__sigstore_cosign-installer.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-22T23:04:00.7056069Z ##[group]Run cosign verify --key os/keys/bazzite.pub "$(jq -r .reference evidence/base-candidate.json)" > evidence/base-candidate-signature.json
+2026-10-22T23:04:00.7057126Z [36;1mcosign verify --key os/keys/bazzite.pub "$(jq -r .reference evidence/base-candidate.json)" > evidence/base-candidate-signature.json[0m
+2026-10-22T23:04:00.7120155Z shell: /usr/bin/bash -e {0}
+2026-10-22T23:04:00.7120416Z ##[endgroup]
+2026-10-22T23:04:01.4511838Z
+2026-10-22T23:04:01.4522694Z Verification for ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 --
+2026-10-22T23:04:01.4524125Z The following checks were performed on each of these signatures:
+2026-10-22T23:04:01.4524947Z   - The cosign claims were validated
+2026-10-22T23:04:01.4525676Z   - Existence of the claims in the transparency log was verified offline
+2026-10-22T23:04:01.4526639Z   - The signatures were verified against the specified public key
+2026-10-22T23:04:01.4683708Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-10-22T23:04:01.4684415Z with:
+2026-10-22T23:04:01.4684745Z   name: release-inputs
+2026-10-22T23:04:01.4685121Z   path: evidence/
+2026-10-22T23:04:01.4685462Z   retention-days: 3
+2026-10-22T23:04:01.4685825Z   if-no-files-found: warn
+2026-10-22T23:04:01.4686226Z   compression-level: 6
+2026-10-22T23:04:01.4686615Z   overwrite: false
+2026-10-22T23:04:01.4686969Z   include-hidden-files: false
+2026-10-22T23:04:01.4687387Z ##[endgroup]
+2026-10-22T23:04:01.6451953Z (node:2837) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-22T23:04:01.6453675Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-22T23:04:01.6995221Z With the provided path, there will be 7 files uploaded
+2026-10-22T23:04:01.6996125Z Artifact name is valid!
+2026-10-22T23:04:01.6996545Z Root directory input is valid!
+2026-10-22T23:04:02.0987457Z Beginning upload of artifact content to blob storage
+2026-10-22T23:04:02.1380296Z (node:2837) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-22T23:04:02.4799943Z Uploaded bytes 31046
+2026-10-22T23:04:02.5588533Z Finished uploading artifact content to blob storage!
+2026-10-22T23:04:02.5590148Z SHA256 digest of uploaded artifact zip is 79610a5f9de650a4e8fa5bbd58753916d4551a460fcd3c089193bc76f8845a71
+2026-10-22T23:04:02.5593454Z Finalizing artifact upload
+2026-10-22T23:04:03.0186654Z Artifact release-inputs.zip successfully finalized. Artifact ID 12465527608
+2026-10-22T23:04:03.0188410Z Artifact release-inputs has been successfully uploaded! Final size is 31046 bytes. Artifact ID is 12465527608
+2026-10-22T23:04:03.0196881Z Artifact download URL: https://github.com/carlsenares/AresOS/actions/runs/39869231221/artifacts/12465527608
+2026-10-22T23:04:03.0396730Z Post job cleanup.
+2026-10-22T23:04:03.1421991Z [command]/usr/bin/git version
+2026-10-22T23:04:03.1479134Z git version 2.55.0
+2026-10-22T23:04:03.1554608Z Temporarily overriding HOME='/home/runner/work/_temp/d0964947-be59-451f-bb47-0716882ce256' before making global git config changes
+2026-10-22T23:04:03.1556955Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T23:04:03.1558503Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/AresOS/AresOS
+2026-10-22T23:04:03.1642060Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T23:04:03.1713080Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T23:04:03.2102885Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T23:04:03.2148350Z http.https://github.com/.extraheader
+2026-10-22T23:04:03.2174513Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-22T23:04:03.2294575Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T23:04:03.2649269Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T23:04:03.2722621Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T23:04:03.3286834Z Cleaning up orphan processes
+2026-10-22T23:04:03.3564115Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

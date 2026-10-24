@@ -1,0 +1,2 @@
+passed: same real rpm-ostree status triggers AssertionError; no ostree pin command executed
+Pinned stock booted; newer upstream stock staged; no AresOS switch or installed signature read reached.

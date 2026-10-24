@@ -1,0 +1,75 @@
+{
+  "status": "verified-before-implementation-and-dispatch",
+  "inventory": "os/manifest/ci/06c/image-full-1/packages.txt",
+  "inventory_sha256": "ade0923c8bcb19b9327e7692ad3028029a776d85cc19d2815832281e05d9d315",
+  "versions": {
+    "ostree": "2026.4-1.fc44",
+    "grub2": "1:2.12-66.fc44"
+  },
+  "fedora_distgit_commit": "fd990afba5a66b3d3c5f4babfd85195e780372e3",
+  "upstream_tags": {
+    "ostree": "v2026.4",
+    "grub": "grub-2.12"
+  },
+  "sources": [
+    {
+      "url": "https://src.fedoraproject.org/rpms/grub2/blob/fd990afba5a66b3d3c5f4babfd85195e780372e3/f/grub2.spec",
+      "sha256": "b3e3bfd6499f9dad350f90237e9f367358c0349bb382e72144cda107a7fb0405"
+    },
+    {
+      "url": "https://src.fedoraproject.org/rpms/grub2/blob/fd990afba5a66b3d3c5f4babfd85195e780372e3/f/grub.patches",
+      "sha256": "8fec82ea3ca7891b1e87f2a8e55ac8717669e1edbafc9971855af7c845d6c5b1"
+    },
+    {
+      "url": "https://src.fedoraproject.org/rpms/grub2/blob/fd990afba5a66b3d3c5f4babfd85195e780372e3/f/0017-blscfg-add-blscfg-module-to-parse-Boot-Loader-Specif.patch",
+      "sha256": "0b2e131b8637caf4c61b21c6e37259634e63328aad1696979932678217280295"
+    },
+    {
+      "url": "https://src.fedoraproject.org/rpms/grub2/blob/fd990afba5a66b3d3c5f4babfd85195e780372e3/f/0181-blscfg-Don-t-root-device-in-emu-builds.patch",
+      "sha256": "71b9c456d750db7113cb60167224f94c37db1efbb82df820f94c58d24f60c05b"
+    },
+    {
+      "url": "https://src.fedoraproject.org/rpms/grub2/blob/fd990afba5a66b3d3c5f4babfd85195e780372e3/f/0186-blscfg-check-for-mounted-boot-in-emu.patch",
+      "sha256": "7dd6542612f7881f35d8913dd3d51020c528653487ef35c25afbc7e0dccd97ad"
+    },
+    {
+      "url": "https://src.fedoraproject.org/rpms/grub2/blob/fd990afba5a66b3d3c5f4babfd85195e780372e3/f/0370-blscfg-check-if-variable-is-escaped-before-consideri.patch",
+      "sha256": "a59d4ff9a3a809adcc5c48b341b2371e17dc1d963b1bd41c43ee1440375e6afe"
+    },
+    {
+      "url": "https://src.fedoraproject.org/rpms/grub2/blob/fd990afba5a66b3d3c5f4babfd85195e780372e3/f/0385-blsuki-Add-blscfg-command-to-parse-Boot-Loader-Speci.patch",
+      "sha256": "bbc86a8eb4334c26577ebed3f7c4b1b8b410e0c618002897fc03dd4c507b4dfc"
+    },
+    {
+      "url": "https://src.fedoraproject.org/rpms/grub2/blob/fd990afba5a66b3d3c5f4babfd85195e780372e3/f/0073-Add-auto-hide-menu-support.patch",
+      "sha256": "2e6c5a44005c45662556b30cb764587ed0723f84775a8ac3a27419d5f8074f26"
+    },
+    {
+      "url": "https://github.com/ostreedev/ostree/blob/v2026.4/src/libostree/ostree-sysroot-deploy.c",
+      "sha256": "e018b3af47e85b507f1c31dc1c73f0d47c73459bd63292960db46d11728ddab9"
+    },
+    {
+      "url": "https://github.com/ostreedev/ostree/blob/v2026.4/src/libostree/ostree-bootloader-grub2.c",
+      "sha256": "c629be765306377ff43d524e639c211d0e38d120561bc7f2b7ed0d7ea5d9970b"
+    },
+    {
+      "url": "https://github.com/rhboot/grub2/blob/grub-2.12/util/grub-reboot.in",
+      "sha256": "72e2e85a7ec0ea0e2760d8da00739dd1262e386e726964782f1235b746bb41f8"
+    },
+    {
+      "url": "https://github.com/rhboot/grub2/blob/grub-2.12/grub-core/normal/menu.c",
+      "sha256": "53106f7051dc91b2fa1f5feb8dac64c9ad193644cf95d2a356c5ffe5bf38ef21"
+    }
+  ],
+  "rules": {
+    "title": "ostree-sysroot-deploy.c install_deployment_kernel: PRETTY_NAME plus optional commit version, then (ostree:N); optional stateroot only when show_osname. N is ostree_deployment_get_index.",
+    "version": "n_deployments minus deployment index",
+    "filename": "bootloader_entry_filename: ostree-<n_deployments minus index>.conf by default since 2024.5; optional old stateroot suffix/boot-counting names are outside this pinned observed route",
+    "grub_order": "Fedora patch0017 bls_cmp uses filename split_cmp/vercmp, not BLS version; bls_add_entry inserts descending. For the verified bare ostree-positive-integer family this is descending numeric. Therefore menu position equals title N and deployment index; require actual entry set/order/status to agree.",
+    "one_time_id": "Fedora blscfg passes basename as the menu entry id; upstream grub-reboot writes the argument unchanged as next_entry; normal/menu.c get_entry_number matches e->id as well as title. No suffix required.",
+    "show_once": "Fedora patch0073 consumes menu_show_once and displays a menu for 60 seconds; use it to observe/OCR before any selection key. It changes visibility once, not the default or deployment.",
+    "later_patches": "All five distgit patches touching blscfg inspected. 0181/0186 change emu device handling, 0370 escaped variables, 0385 adds UKI integration/call signature. None changes BLS comparator/order/id. No patch in this exact package changes grub-reboot.in."
+  },
+  "contradiction": false,
+  "no_dispatch": true
+}

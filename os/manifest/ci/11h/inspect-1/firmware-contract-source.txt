@@ -1,0 +1,16 @@
+EFI_GUID  mBmAutoCreateBootOptionGuid = {
+  0x8108ac4e, 0x9f11, 0x4d59, { 0x85, 0x0e, 0xe2, 0x1a, 0x52, 0x2c, 0x59, 0xb2 }
+};
+BmIsAutoCreateBootOption (
+  EFI_BOOT_MANAGER_LOAD_OPTION  *BootOption
+  )
+{
+  if ((BootOption->OptionalDataSize == sizeof (EFI_GUID)) &&
+      CompareGuid ((EFI_GUID *)BootOption->OptionalData, &mBmAutoCreateBootOptionGuid)
+      )
+  {
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}

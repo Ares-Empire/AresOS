@@ -1,0 +1,28 @@
+inspect-8 success matching offline stages 0 zero-write counter records 0 stages without final counter record 0
+probe-0 cancelled matching offline stages 0 zero-write counter records 0 stages without final counter record 0
+probe-1 protected SHA256 6da4f296e175e1081952480fe408b7ad0a8b8bd2e3b3c79d53144e9c605ce00d
+probe-1 failure matching offline stages 2 zero-write counter records 1 stages without final counter record 1
+probe-10 protected SHA256 cbc0a2e2e982435bac5cc4df2f9e0d8f2d66d79bd76966f10a57ef662406338c
+probe-10 failure matching offline stages 2 zero-write counter records 2 stages without final counter record 0
+STRICT NVRAM AUDIT FAILED: {"run": "probe-11", "stage": "probe-windows-without-linux", "error": "PRODUCT FAILURE: existing boot entry changed"}
+probe-11 protected SHA256 32d28d0aee688053d36c31deb3a1288ca15defce2aeed5c4b380644fbd12c036
+probe-11 failure matching offline stages 3 zero-write counter records 3 stages without final counter record 0
+probe-2 protected SHA256 33229109a6b9fbd7144341d749b9c075151f5d1a3ad53ac0c8e414abd816a493
+probe-2 probe status destination-only
+probe-2 success matching offline stages 2 zero-write counter records 2 stages without final counter record 0
+probe-3 protected SHA256 d91bd83dd75fe4c7f655548e70f01e18c2884beaeb6b7d2e4d2f517e68fd10d8
+probe-3 failure matching offline stages 2 zero-write counter records 1 stages without final counter record 1
+probe-4 failure matching offline stages 0 zero-write counter records 0 stages without final counter record 0
+probe-5 protected SHA256 43c821da8149cf38cf149d7c2161b13ffd7f0d8b5e052b57bd79a36c725b3e99
+probe-5 failure matching offline stages 2 zero-write counter records 2 stages without final counter record 0
+probe-6 protected SHA256 99042f7fc74d025a06dcd5d3355dfecd655b183dabbbd789cd620821a9c3f2ce
+probe-6 failure matching offline stages 2 zero-write counter records 2 stages without final counter record 0
+probe-7 protected SHA256 464abb2712cc7ae51c75a4a1ca13d49ecf83b89270f5f8ddb31b8d2446f8ca4e
+probe-7 failure matching offline stages 2 zero-write counter records 2 stages without final counter record 0
+probe-9 protected SHA256 b3b4c0037080302819f9eee85305bc4bda6ae51de3827e68dfe24114b1ae7bb0
+probe-9 failure matching offline stages 2 zero-write counter records 2 stages without final counter record 0
+Credential-pattern scan passed: 685 expanded evidence files
+Raw archived UTF-8 credential-pattern scans passed: 1337
+Byte/layout equality and counter records are reported separately; failed/missing stages are not qualification.
+Total matching offline stages: 19 zero-write records: 17 missing final counter records: 2 strict NVRAM failures: 1
+REHEARSAL NOT QUALIFIED: the original strict NVRAM predicate still fails.

@@ -1,0 +1,66 @@
+﻿2026-10-23T23:23:59.9735154Z ##[group]Run set -euo pipefail
+2026-10-23T23:23:59.9735713Z [36;1mset -euo pipefail[0m
+2026-10-23T23:23:59.9736293Z [36;1mexport PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"[0m
+2026-10-23T23:23:59.9736998Z [36;1msudo python3 os/ci/prepare_two_disks.py[0m
+2026-10-23T23:23:59.9737576Z [36;1mif test 'probe' = fixture; then[0m
+2026-10-23T23:23:59.9738103Z [36;1m  sudo python3 - <<'PY'[0m
+2026-10-23T23:23:59.9738579Z [36;1mimport json, pathlib, sys[0m
+2026-10-23T23:23:59.9739070Z [36;1msys.path.insert(0, 'os/ci')[0m
+2026-10-23T23:23:59.9739666Z [36;1mfrom disk_audit import offline_disk, boot_variables[0m
+2026-10-23T23:23:59.9740638Z [36;1mresult = dict(status='passed', vm_started=False,[0m
+2026-10-23T23:23:59.9741556Z [36;1m              protected=offline_disk(pathlib.Path('.work/installer/protected.raw').resolve()),[0m
+2026-10-23T23:23:59.9742540Z [36;1m              nvram=boot_variables('.work/installer/vars.fd'))[0m
+2026-10-23T23:23:59.9743557Z [36;1mpathlib.Path('evidence/native-fixture.json').write_text(json.dumps(result, indent=2) + '\n')[0m
+2026-10-23T23:23:59.9744881Z [36;1mprint('Native file-backed GPT/EFI/MSR/NTFS/recovery and offline audit passed; no VM started')[0m
+2026-10-23T23:23:59.9745759Z [36;1mPY[0m
+2026-10-23T23:23:59.9746100Z [36;1melse[0m
+2026-10-23T23:23:59.9746631Z [36;1m  sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py 'probe'[0m
+2026-10-23T23:23:59.9747340Z [36;1mfi[0m
+2026-10-23T23:23:59.9840560Z shell: /usr/bin/bash -e {0}
+2026-10-23T23:23:59.9841016Z env:
+2026-10-23T23:23:59.9847312Z   GH_TOKEN: ***
+2026-10-23T23:23:59.9847761Z   REHEARSAL_MODE: probe
+2026-10-23T23:23:59.9848186Z ##[endgroup]
+2026-10-23T23:24:04.4709749Z Creating new GPT entries in memory.
+2026-10-23T23:24:04.4714753Z Warning: The kernel is still using the old partition table.
+2026-10-23T23:24:04.4715242Z The new table will be used at the next reboot or after you
+2026-10-23T23:24:04.4715653Z run partprobe(8) or kpartx(8)
+2026-10-23T23:24:04.4715975Z The operation has completed successfully.
+2026-10-23T23:24:04.5453199Z mkfs.fat 4.2 (2021-01-31)
+2026-10-23T23:24:04.5634523Z Could not get geometry of device (Inappropriate ioctl for device)Could not get geometry of device (Inappropriate ioctl for device)Could not get geometry of device (Inappropriate ioctl for device)The partition start sector was not specified for /dev/loop0p3 and it could not be obtained automatically.  It has been set to 0.
+2026-10-23T23:24:04.5637111Z Cluster size has been automatically set to 4096 bytes.
+2026-10-23T23:24:04.5638522Z The number of sectors per track was not specified for /dev/loop0p3 and it could not be obtained automatically.  It has been set to 0.
+2026-10-23T23:24:04.5639777Z Creating NTFS volume structures.
+2026-10-23T23:24:04.5641398Z The number of heads was not specified for /dev/loop0p3 and it could not be obtained automatically.  It has been set to 0.
+2026-10-23T23:24:04.5643208Z To boot from a device, Windows needs the 'partition start sector', the 'sectors per track' and the 'number of heads' to be set.
+2026-10-23T23:24:04.5644478Z Windows will not be able to boot from this device.
+2026-10-23T23:24:04.8585108Z mkntfs completed successfully. Have a nice day.
+2026-10-23T23:24:04.9218682Z The partition start sector was not specified for /dev/loop0p4 and it could not be obtained automatically.  It has been set to 0.
+2026-10-23T23:24:04.9241122Z The number of sectors per track was not specified for /dev/loop0p4 and it could not be obtained automatically.  It has been set to 0.
+2026-10-23T23:24:04.9242277Z Cluster size has been automatically set to 4096 bytes.
+2026-10-23T23:24:04.9243660Z The number of heads was not specified for /dev/loop0p4 and it could not be obtained automatically.  It has been set to 0.
+2026-10-23T23:24:04.9244600Z Creating NTFS volume structures.
+2026-10-23T23:24:04.9261324Z To boot from a device, Windows needs the 'partition start sector', the 'sectors per track' and the 'number of heads' to be set.
+2026-10-23T23:24:04.9280521Z Windows will not be able to boot from this device.
+2026-10-23T23:24:04.9487952Z mkntfs completed successfully. Have a nice day.
+2026-10-23T23:24:04.9641177Z Created 50 GiB protected GPT/ESP/MSR/NTFS/recovery disk and empty 49 GiB target; file backing verified
+2026-10-23T23:25:41.6556420Z OFFLINE PROTECTED DISK UNCHANGED: baseline-firmware 3f45ca070eaeda0e059af7e7b505aac9b549a097134243a21c8995f01767e111
+2026-10-23T23:28:50.7309769Z OFFLINE PROTECTED DISK UNCHANGED: live-ui-probe 3f45ca070eaeda0e059af7e7b505aac9b549a097134243a21c8995f01767e111
+2026-10-23T23:29:43.1948179Z OFFLINE PROTECTED DISK UNCHANGED: probe-windows-without-linux 3f45ca070eaeda0e059af7e7b505aac9b549a097134243a21c8995f01767e111
+2026-10-23T23:31:20.0604435Z OFFLINE PROTECTED DISK UNCHANGED: baseline-firmware 3f45ca070eaeda0e059af7e7b505aac9b549a097134243a21c8995f01767e111
+2026-10-23T23:34:39.6160929Z OFFLINE PROTECTED DISK UNCHANGED: live-ui-probe 3f45ca070eaeda0e059af7e7b505aac9b549a097134243a21c8995f01767e111
+2026-10-23T23:35:33.8713974Z Traceback (most recent call last):
+2026-10-23T23:35:33.8714992Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 697, in <module>
+2026-10-23T23:35:33.8718518Z     main()
+2026-10-23T23:35:33.8719463Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 639, in main
+2026-10-23T23:35:33.8721043Z     marker(reverse, 'probe-windows-without-linux', detached=True)
+2026-10-23T23:35:33.8722252Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 579, in marker
+2026-10-23T23:35:33.8723376Z     audit.check(stage, guest, establish_nvram=baseline)
+2026-10-23T23:35:33.8724414Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 260, in check
+2026-10-23T23:35:33.8725821Z     changes = compare_nvram(self.nvram, nvram, before_devices=self.devices, after_devices=guest.devices, target_esp=esp)
+2026-10-23T23:35:33.8726942Z               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-23T23:35:33.8727849Z   File "/home/runner/work/AresOS/AresOS/os/ci/disk_audit.py", line 273, in compare_nvram
+2026-10-23T23:35:33.8741108Z     assert device in previous and device not in current, 'PRODUCT FAILURE: auto option removal does not match a detached device'
+2026-10-23T23:35:33.8746492Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-23T23:35:33.8747166Z AssertionError: PRODUCT FAILURE: auto option removal does not match a detached device
+2026-10-23T23:35:33.9326720Z ##[error]Process completed with exit code 1.

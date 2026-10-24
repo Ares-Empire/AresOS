@@ -1,0 +1,110 @@
+{
+  "status": "stopped-before-full",
+  "source": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+  "measured_minutes": 464,
+  "full_runs": 4,
+  "full_authorized": false,
+  "installed_keyboard_both_orders": "not run",
+  "staged_update_observed": null,
+  "staged_update_discarded": null,
+  "runtime_unchanged": true,
+  "inputs": [
+    {
+      "path": "os/manifest/ci/11j/dispatch-guard-stop.json",
+      "sha256": "c4d3fc64e7702ebe575f47c7d304b06d190621db178f4499ef722d70e8733ce1"
+    },
+    {
+      "path": "reviews/11-two-disk-rehearsal/logs/11j/dispatch-guard-final.txt",
+      "sha256": "613670fcc76b6a1c4b53a901ba718db9e08f85892043caf6f605354bf1f66ca2"
+    },
+    {
+      "path": "os/manifest/ci/11j/before-probe-budget.json",
+      "sha256": "b1f8fd58c48be925cbcbc20a72c4cfd8f2a5f646b26a0af79c737d3331e8ee06"
+    },
+    {
+      "path": "os/manifest/ci/11j/probe-1/jobs.json",
+      "sha256": "2c9204f62070b3eba1c42689d8c84ffca2263ee40deda4071b87f30383f52907"
+    },
+    {
+      "path": "os/manifest/ci/11j/after-probe-ledger-reconstruction.json",
+      "sha256": "1d1e8a3b42c262b308b1e3e74e9fc151baee353b365a79aae1616d5d74abc72a"
+    },
+    {
+      "path": "os/manifest/ci/11j/after-probe-runs.json",
+      "sha256": "5edf88ed38371bfa8ceada370c0d94f8e7590469117754b7fe89241e54f2c485"
+    },
+    {
+      "path": "os/manifest/ci/11j/probe-1/run.json",
+      "sha256": "753d6fd264dbfe696a1181ff204a4561d62131276b6b63c2918c7f143170eae1"
+    },
+    {
+      "path": "os/manifest/ci/11j/probe-1/two-disk/probe-result.json",
+      "sha256": "2262459efc0a45e580c2fec85fffa5ec4f4fa04ae404d1d9f2823f74a37fe1ae"
+    },
+    {
+      "path": "os/manifest/ci/11j/probe-1/two-disk/cached-stock-cli-probe.json",
+      "sha256": "231c8b9a8638da1a22272c59793734a0fc7a21d843400b260a6f8cf6b0460cd6"
+    },
+    {
+      "path": "os/manifest/ci/11j/probe-1/two-disk/keyboard-reader-probe-result.json",
+      "sha256": "e30eb4d01a576f233b87f48baeac5dd6d2274a532433a00a093bfeb2ff384441"
+    },
+    {
+      "path": "os/manifest/ci/11j/probe-1/two-disk/protected-second/cached-stock-cli-probe.json",
+      "sha256": "231c8b9a8638da1a22272c59793734a0fc7a21d843400b260a6f8cf6b0460cd6"
+    },
+    {
+      "path": "os/manifest/ci/11j/probe-1/two-disk/protected-second/keyboard-reader-probe-result.json",
+      "sha256": "e30eb4d01a576f233b87f48baeac5dd6d2274a532433a00a093bfeb2ff384441"
+    },
+    {
+      "path": "os/manifest/ci/11j/probe-1/owner-auth-cleanup.json",
+      "sha256": "cd2d4922b4a272bea4bdb213d5feabc88c90e122ebb05af4863abd29ce1a75c5"
+    },
+    {
+      "path": "os/manifest/ci/11j/probe-1/private-registry-preflight.json",
+      "sha256": "3c3864d5cb688d4f32bce736549b10e7bb550615048393627ac1ad3513fa66ff"
+    },
+    {
+      "path": "os/manifest/ci/11j/evidence-verification.json",
+      "sha256": "d8652513a01c5b7dbbae6b930e6a8b668d0c5ccecfa19b6ffc6396d2aeb491a6"
+    },
+    {
+      "path": "os/release/pause-stock-updates.sh",
+      "sha256": "48380c070174170d96b0f61c5067887e6a36839ffab2c2b25d06944f72bcc2d7"
+    },
+    {
+      "path": "os/release/pin-stock.sh",
+      "sha256": "ee2a5c15d89b063864c47dfb603265d8d785329599187c7471c7204a6f381330"
+    },
+    {
+      "path": "os/ci/two_disk_vm.py",
+      "sha256": "d2ff69ee5bbc8e9c826d884737634e169551dae4e39b3944047149f02d918dd7"
+    },
+    {
+      "path": "os/ci/stock_probe.py",
+      "sha256": "3582ebce47e6a54033dd283a7a8a45a9e996059ad15405195433e26497f62e51"
+    },
+    {
+      "path": "os/ci/rehearsal_guard.py",
+      "sha256": "dde6790bb9672be96637db708c0bd9c9bad20456b355ff823e9da7e2f82d68d6"
+    },
+    {
+      "path": "os/ci/disk_audit.py",
+      "sha256": "962fc6153cd397e5612e3c847f4dcbb709562e03030e77941ec587a9178821e3"
+    },
+    {
+      "path": ".github/workflows/os-image.yml",
+      "sha256": "3a25d38fb61f29470bfe96d035db6f41a6fccebe9c7c58ff9053464f071a4db1"
+    },
+    {
+      "path": ".github/workflows/privacy-check.yml",
+      "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2"
+    },
+    {
+      "path": ".gitleaks.toml",
+      "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742"
+    }
+  ],
+  "hash_convention": "Git canonical LF text; compare with staged/committed blob bytes"
+}

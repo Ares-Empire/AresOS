@@ -1,0 +1,22 @@
+sha256 byte-identical
+gpt byte-identical
+protected_writes byte-identical
+offline_disk byte-identical
+efi_files byte-identical
+compare_disk byte-identical
+variables byte-identical
+boot_variables byte-identical
+all_variables byte-identical
+firmware_hardware byte-identical
+firmware_baseline byte-identical
+automatic_options byte-identical
+linux_entry byte-identical
+.github/workflows/privacy-check.yml identical to origin/main
+.gitleaks.toml identical to origin/main
+os/ci/rehearsal_auth.py unchanged
+os/ci/installer_webui.py unchanged
+os/ci/verify_release.py unchanged
+os/ci/prepare_two_disks.py unchanged
+os/ci/switch_vm.py unchanged
+os/manifest/release.json unchanged
+os/manifest/base.json unchanged

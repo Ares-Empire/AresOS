@@ -1,0 +1,7 @@
+{
+  "status": "passed",
+  "target": "vdb",
+  "method": "unmodified liveinst Web UI via host Chromium",
+  "click_path_qualified": false,
+  "installation_pages_exercised": true
+}

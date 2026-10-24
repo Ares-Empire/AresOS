@@ -1,0 +1,16 @@
+{
+  "id": "ostree-1",
+  "title": "Bazzite (ostree:1)",
+  "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+  "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=20a3ac92-afb6-4584-9412-8e4793bfd95a vconsole.keymap=us rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+  "menu_index": 1,
+  "menu_titles": [
+    "Bazzite (ostree:0)",
+    "Bazzite (ostree:1)"
+  ],
+  "menu_ids": [
+    "ostree-2",
+    "ostree-1"
+  ],
+  "rule": "11l-pinned-ostree-blscfg-order"
+}

@@ -1,0 +1,98 @@
+[
+  {
+    "label": "Before native-only dispatch",
+    "path": "os/manifest/ci/11n/before-native-budget.json",
+    "pages": 2,
+    "returned": [
+      100,
+      36
+    ],
+    "ids": 136,
+    "total_count": 136,
+    "spent": 644,
+    "reserve": 201,
+    "full": 5,
+    "b": 0,
+    "retries": []
+  },
+  {
+    "label": "Before probe",
+    "path": "os/manifest/ci/11n/before-probe-budget.json",
+    "pages": 2,
+    "returned": [
+      100,
+      37
+    ],
+    "ids": 137,
+    "total_count": 137,
+    "spent": 645,
+    "reserve": 186,
+    "full": 5,
+    "b": 0,
+    "retries": []
+  },
+  {
+    "label": "probe-1 CI (current job excluded from spent)",
+    "path": "os/manifest/ci/11n/probe-1/11c-dispatch-authorization.json",
+    "pages": 2,
+    "returned": [
+      100,
+      38
+    ],
+    "ids": 138,
+    "total_count": 138,
+    "spent": 645,
+    "reserve": 42,
+    "full": 5,
+    "b": 0,
+    "retries": []
+  },
+  {
+    "label": "Before B",
+    "path": "os/manifest/ci/11n/before-b-budget.json",
+    "pages": 2,
+    "returned": [
+      100,
+      38
+    ],
+    "ids": 138,
+    "total_count": 138,
+    "spent": 671,
+    "reserve": 144,
+    "full": 5,
+    "b": 0,
+    "retries": []
+  },
+  {
+    "label": "b-1 CI (current job excluded from spent)",
+    "path": "os/manifest/ci/11n/b-1/11c-dispatch-authorization.json",
+    "pages": 2,
+    "returned": [
+      100,
+      39
+    ],
+    "ids": 139,
+    "total_count": 139,
+    "spent": 671,
+    "reserve": 130,
+    "full": 5,
+    "b": 1,
+    "retries": []
+  },
+  {
+    "label": "After B; bookkeeping only",
+    "path": "os/manifest/ci/11n/after-b-budget.json",
+    "pages": 2,
+    "returned": [
+      100,
+      39
+    ],
+    "ids": 139,
+    "total_count": 139,
+    "spent": 718,
+    "reserve": 14,
+    "full": 5,
+    "b": 1,
+    "retries": []
+  }
+]

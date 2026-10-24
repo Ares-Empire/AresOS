@@ -1,0 +1,46 @@
+]3008;end=c96f6064-dc35-4d11-8daa-1ee5ac8e5daa;exit=success\]3008;start=3f676aa4-f76a-4ee1-b839-2ee34c95144d;type=shell;machineid=1ab59ceb209a4f3a92bdae3bed02b514;user=root;hostname=localhost-live;bootid=44e2e9c5-8609-49f8-be9b-77bbff555ea5;pid=2305;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=337dc0e8-9fee-4dc8-824d-bab33b5be905;type=command;machineid=1ab59ceb209a4f3a92bdae3bed02b514;user=root;hostname=localhost-live;bootid=44e2e9c5-8609-49f8-be9b-77bbff555ea5;pid=2305;cwd=/root\[  124.796224] SELinux:  Permission firmware_load in class system not defined in policy.
+[  124.799710] SELinux:  Permission kexec_image_load in class system not defined in policy.
+[  124.805113] SELinux:  Permission kexec_initramfs_load in class system not defined in policy.
+[  124.808723] SELinux:  Permission policy_load in class system not defined in policy.
+[  124.811686] SELinux:  Permission x509_certificate_load in class system not defined in policy.
+[  124.815140] SELinux:  Permission map_create_as in class bpf not defined in policy.
+[  124.817738] SELinux:  Permission prog_load_as in class bpf not defined in policy.
+[  124.822290] SELinux:  Permission allowed in class io_uring not defined in policy.
+[  124.826548] SELinux:  Class memfd_file not defined in policy.
+[  124.828536] SELinux: the above unknown classes and permissions will be allowed
+[  124.831279] SELinux:  Converting 271 SID table entries...
+[  124.847895] SELinux:  policy capability network_peer_controls=1
+[  124.851838] SELinux:  policy capability open_perms=1
+[  124.853535] SELinux:  policy capability extended_socket_class=1
+[  124.855304] SELinux:  policy capability always_check_network=0
+[  124.857003] SELinux:  policy capability cgroup_seclabel=1
+[  124.858618] SELinux:  policy capability nnp_nosuid_transition=1
+[  124.860412] SELinux:  policy capability genfs_seclabel_symlinks=1
+[  124.862505] SELinux:  policy capability ioctl_skip_cloexec=0
+[  124.865647] SELinux:  policy capability userspace_initial_context=0
+[  124.867647] SELinux:  policy capability netlink_xperm=0
+[  124.869313] SELinux:  policy capability netif_wildcard=0
+[  124.870962] SELinux:  policy capability genfs_seclabel_wildcard=0
+[  124.872903] SELinux:  policy capability functionfs_seclabel=0
+[  124.874678] SELinux:  policy capability memfd_class=0
+[  124.876564] SELinux:  policy capability bpf_token_perms=0
+State     Recv-Q    Send-Q       Local Address:Port        Peer Address:Port    Process
+LISTEN    0         4096            127.0.0.54:53               0.0.0.0:*        users:(("systemd-resolve",pid=936,fd=22))
+LISTEN    0         10               127.0.0.1:80               0.0.0.0:*        users:(("cockpit-ws",pid=3276,fd=4))
+LISTEN    0         4096             127.0.0.1:631              0.0.0.0:*        users:(("cupsd",pid=2599,fd=8))
+LISTEN    0         4096               0.0.0.0:5355             0.0.0.0:*        users:(("systemd-resolve",pid=936,fd=13))
+LISTEN    0         4096         127.0.0.53%lo:53               0.0.0.0:*        users:(("systemd-resolve",pid=936,fd=20))
+LISTEN    0         5                  0.0.0.0:8080             0.0.0.0:*        users:(("python3",pid=4210,fd=3))
+LISTEN    0         50                       *:1716                   *:*        users:(("kdeconnectd",pid=2698,fd=17))
+LISTEN    0         4096                  [::]:5355                [::]:*        users:(("systemd-resolve",pid=936,fd=15))
+LISTEN    0         4096                 [::1]:631                 [::]:*        users:(("cupsd",pid=2599,fd=7))
+
+ARESOS_CMD_DONE:0

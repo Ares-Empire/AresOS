@@ -1,0 +1,209 @@
+/*
+ * Copyright (C) 2022 Red Hat, Inc.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+import cockpit from "cockpit";
+
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Form } from "@patternfly/react-core/dist/esm/components/Form/index.js";
+import { HelperText, HelperTextItem } from "@patternfly/react-core/dist/esm/components/HelperText/index.js";
+import { useWizardContext, useWizardFooter } from "@patternfly/react-core/dist/esm/components/Wizard/index.js";
+
+import {
+    applyStorage,
+} from "../../../apis/storage_partitioning.js";
+
+import {
+    DialogsContext,
+    FooterContext,
+    StorageContext,
+} from "../../../contexts/Common.jsx";
+
+import {
+    getNewPartitioning,
+    useHomeReuseOptions,
+} from "../../../hooks/Storage.jsx";
+
+import { AnacondaWizardFooter } from "../../AnacondaWizardFooter.jsx";
+import { createWarningNotification } from "../Common.jsx";
+import { scenarios } from "../scenarios/index.js";
+import { InstallationDestination } from "./InstallationDestination.jsx";
+import { InstallationScenario } from "./InstallationScenario.jsx";
+import { ReclaimSpaceModal } from "./ReclaimSpaceModal.jsx";
+
+const _ = cockpit.gettext;
+const SCREEN_ID = "anaconda-screen-method";
+
+export const InstallationMethod = ({
+    dispatch,
+    idPrefix,
+    isEfi,
+    isFirstScreen,
+    isFormDisabled,
+    onCritFail,
+    setIsFormDisabled,
+    setIsFormValid,
+    setStepNotification,
+}) => {
+    const [isReclaimSpaceCheckboxChecked, setIsReclaimSpaceCheckboxChecked] = useState();
+    const [isDestinationValid, setIsDestinationValid] = useState(false);
+    const [isScenarioValid, setIsScenarioValid] = useState(false);
+
+    // Calculate overall form validity based on both children's validation states
+    useEffect(() => {
+        setIsFormValid(isDestinationValid && isScenarioValid);
+    }, [isDestinationValid, isScenarioValid, setIsFormValid]);
+
+    // Display custom footer
+    const getFooter = useMemo(() => (
+        <CustomFooter
+          isFormDisabled={isFormDisabled}
+          isReclaimSpaceCheckboxChecked={isReclaimSpaceCheckboxChecked}
+          setStepNotification={setStepNotification}
+        />
+    ), [isFormDisabled, isReclaimSpaceCheckboxChecked, setStepNotification]);
+    useWizardFooter(getFooter);
+
+    return (
+        <Form
+          className={idPrefix + "-selector"}
+          id={idPrefix + "-selector-form"}
+          onSubmit={e => { e.preventDefault(); return false }}
+        >
+            <InstallationDestination
+              isEfi={isEfi}
+              dispatch={dispatch}
+              idPrefix={idPrefix}
+              isFirstScreen={isFirstScreen}
+              isFormDisabled={isFormDisabled}
+              setIsDestinationValid={setIsDestinationValid}
+              setIsFormDisabled={setIsFormDisabled}
+              onCritFail={onCritFail}
+            />
+            <DialogsContext.Provider value={{ isReclaimSpaceCheckboxChecked, setIsReclaimSpaceCheckboxChecked }}>
+                <InstallationScenario
+                  dispatch={dispatch}
+                  idPrefix={idPrefix}
+                  isFirstScreen={isFirstScreen}
+                  isFormDisabled={isFormDisabled}
+                  onCritFail={onCritFail}
+                  setIsScenarioValid={setIsScenarioValid}
+                />
+            </DialogsContext.Provider>
+        </Form>
+    );
+};
+
+const CustomFooter = ({ isFormDisabled, isReclaimSpaceCheckboxChecked, setStepNotification }) => {
+    const [isReclaimSpaceModalOpen, setIsReclaimSpaceModalOpen] = useState(false);
+    const [isNextClicked, setIsNextClicked] = useState(false);
+    const { goToNextStep } = useWizardContext();
+    const [newPartitioning, setNewPartitioning] = useState(-1);
+    const [partitioningApplied, setPartitioningApplied] = useState(false);
+    const nextRef = useRef();
+    const { partitioning, storageScenarioId } = useContext(StorageContext);
+    const homeReuseOptions = useHomeReuseOptions();
+    const method = ["mount-point-mapping", "use-configured-storage"].includes(storageScenarioId) ? "MANUAL" : "AUTOMATIC";
+
+    useEffect(() => {
+        if (nextRef.current !== true && newPartitioning === partitioning.path && isNextClicked) {
+            nextRef.current = true;
+            goToNextStep();
+        }
+    }, [isNextClicked, goToNextStep, newPartitioning, partitioning.path]);
+
+    const onNext = async ({ setIsFormDisabled }) => {
+        if (method === "MANUAL") {
+            setNewPartitioning(partitioning.path);
+            setIsNextClicked(true);
+        } else {
+            const part = await getNewPartitioning({
+                currentPartitioning: partitioning,
+                homeReuseOptions,
+                method,
+                storageScenarioId,
+            });
+            setNewPartitioning(part);
+
+            const scenarioSupportsReclaimSpace = scenarios.find(sc => sc.id === storageScenarioId)?.canReclaimSpace;
+            const willShowReclaimSpaceModal = scenarioSupportsReclaimSpace && isReclaimSpaceCheckboxChecked;
+
+            if (willShowReclaimSpaceModal) {
+                setIsReclaimSpaceModalOpen(true);
+            } else if (storageScenarioId !== "home-reuse") {
+                setIsNextClicked(true);
+            } else {
+                // If partitioning was already applied, proceed to next step
+                if (partitioningApplied) {
+                    setPartitioningApplied(false);
+                    setStepNotification();
+                    goToNextStep();
+                    setIsFormDisabled(false);
+                    return;
+                }
+
+                setIsFormDisabled(true);
+                const step = SCREEN_ID;
+                await applyStorage({
+                    onFail: ex => {
+                        setIsFormDisabled(false);
+                        setPartitioningApplied(false);
+                        setStepNotification({ step, ...ex });
+                    },
+                    onSuccess: (validationReport) => {
+                        const warningNotification = createWarningNotification(validationReport, step);
+
+                        setStepNotification(warningNotification);
+                        setPartitioningApplied(!!warningNotification);
+
+                        if (!warningNotification) {
+                            goToNextStep();
+                        }
+                        setIsFormDisabled(false);
+                    },
+                    partitioning: part,
+                });
+            }
+        }
+    };
+
+    const reclaimSpaceModal = (
+        <ReclaimSpaceModal
+          isFormDisabled={isFormDisabled}
+          onNext={goToNextStep}
+          onClose={() => setIsReclaimSpaceModalOpen(false)}
+        />
+    );
+
+    const hasNewPartitioning = newPartitioning === undefined || newPartitioning !== partitioning.path;
+    if (hasNewPartitioning && isReclaimSpaceModalOpen) {
+        return;
+    }
+
+    return (
+        <>
+            {isReclaimSpaceModalOpen ? reclaimSpaceModal : null}
+            <AnacondaWizardFooter
+              footerHelperText={<InstallationMethodFooterHelper />}
+              onNext={onNext}
+            />
+        </>
+    );
+};
+
+const InstallationMethodFooterHelper = () => {
+    const { isFormValid } = useContext(FooterContext);
+
+    if (isFormValid) {
+        return null;
+    }
+
+    return (
+        <HelperText id="next-helper-text">
+            <HelperTextItem
+              variant="indeterminate">
+                {_("To continue, select the devices to install to.")}
+            </HelperTextItem>
+        </HelperText>
+    );
+};

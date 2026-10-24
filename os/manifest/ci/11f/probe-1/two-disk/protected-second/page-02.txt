@@ -1,0 +1,17 @@
+Bazzite installation
+Welcome
+Date and time
+Installation method
+Storage configuration
+Create Account
+Review and install
+Destination
+Danger alert:
+No disks selected
+Please select at least one disk to continue
+Change destination
+To continue, select the devices to install to.
+: indeterminate status;
+Back
+Next
+Quit

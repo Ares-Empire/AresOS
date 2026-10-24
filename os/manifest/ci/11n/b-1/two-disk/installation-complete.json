@@ -1,0 +1,40 @@
+[
+  {
+    "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.html#/anaconda-screen-progress",
+    "text": "Bazzite installation\nSuccessfully installed\n\nTo begin using Bazzite, reboot your system.\n\nExit to live desktop\nSend us feedback on your installation\n\nScan the QR code with your phone or visit:\n\nhttps://discussion.fedoraproject.org/tag/anaconda",
+    "ids": [
+      {
+        "tag": "DIV",
+        "id": "app",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "role": null
+      }
+    ],
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "type": "button",
+        "text": "",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "type": "button",
+        "text": "Exit to live desktop",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      }
+    ]
+  }
+]

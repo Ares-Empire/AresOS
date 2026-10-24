@@ -1,0 +1,642 @@
+[
+  {
+    "name": "11b-first-order",
+    "status": "passed",
+    "inputs": {
+      "os/manifest/ci/11b/probe-11/two-disk/baseline-firmware-vars.fd": "03aca606fc1456c36994eddda73546cd4f209325c31680303473dd7d998efcfb",
+      "os/manifest/ci/11b/probe-11/two-disk/probe-windows-without-linux-vars.fd": "2fd1bf30d4770361e6c466f53254e5d1110001f4e0ffdf4ace6ef91c32d10152"
+    },
+    "hardware_context": "Historical probe-11 Q35 topology and integrator-identified detached devices in brief 11c; fresh runs use QMP inventories",
+    "rule": "11f-linux-position",
+    "changes": {
+      "Boot0002": {
+        "before": {
+          "attributes": 7,
+          "hex": "01000000200055004500460049002000510045004d00550020004400560044002d0052004f004d00200051004d00300030003000300031002000000002010c00d041030a0000000001010600021f03120a000000ffff00007fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "after": null,
+        "firmware_owned": {
+          "device": "pci:00:1f.2/sata:0:65535:0",
+          "before_device": "pci:00:1f.2/sata:0:65535:0",
+          "after_device": null,
+          "reason": "11e per-boot attached device set; option identity is firmware-owned",
+          "optional_data": "4eac0881119f594d850ee21a522c59b2"
+        }
+      },
+      "Boot0004": {
+        "before": {
+          "attributes": 7,
+          "hex": "010000001600550045004600490020004d00690073006300200044006500760069006300650020003200000002010c00d041030a000000000101060000037fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "after": null,
+        "firmware_owned": {
+          "device": "pci:00:03.0",
+          "before_device": "pci:00:03.0",
+          "after_device": null,
+          "reason": "11e per-boot attached device set; option identity is firmware-owned",
+          "optional_data": "4eac0881119f594d850ee21a522c59b2"
+        }
+      },
+      "BootOrder": {
+        "before": {
+          "attributes": 7,
+          "hex": "0000010002000300040005000600070008000900"
+        },
+        "after": {
+          "attributes": 7,
+          "hex": "00000100030005000600070008000900"
+        }
+      }
+    },
+    "firmware_changes": [
+      {
+        "device": "pci:00:03.0",
+        "before_option": "Boot0004",
+        "after_option": null,
+        "before_description": "UEFI Misc Device 2",
+        "after_description": null,
+        "action": "removed",
+        "relabeled": false,
+        "renumbered": false,
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      },
+      {
+        "device": "pci:00:1f.2/sata:0:65535:0",
+        "before_option": "Boot0002",
+        "after_option": null,
+        "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+        "after_description": null,
+        "action": "removed",
+        "relabeled": false,
+        "renumbered": false,
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      }
+    ],
+    "linux_position_changes": [],
+    "firmware_before": {
+      "Boot0002": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:1f.2/sata:0:65535:0"
+      },
+      "Boot0003": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:02.0"
+      },
+      "Boot0004": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:03.0"
+      },
+      "Boot0005": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0006": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0007": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0008": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      }
+    },
+    "firmware_after": {
+      "Boot0003": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:02.0"
+      },
+      "Boot0005": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0006": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0007": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0008": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      }
+    },
+    "order_before": [
+      "Boot0000",
+      "Boot0001",
+      "Boot0002",
+      "Boot0003",
+      "Boot0004",
+      "Boot0005",
+      "Boot0006",
+      "Boot0007",
+      "Boot0008",
+      "Boot0009"
+    ],
+    "order_after": [
+      "Boot0000",
+      "Boot0001",
+      "Boot0003",
+      "Boot0005",
+      "Boot0006",
+      "Boot0007",
+      "Boot0008",
+      "Boot0009"
+    ]
+  },
+  {
+    "name": "11d-first-order",
+    "status": "passed",
+    "inputs": {
+      "os/manifest/ci/11d/probe-3/two-disk/live-ui-probe-vars.fd": "f2079240dc2326cdb2501e5c1a3c51c1351568583c1e7e8a8f26c170f2e05efd",
+      "os/manifest/ci/11d/probe-3/two-disk/probe-windows-without-linux-vars.fd": "4a94f9e619548a04b831c7c8136422e1436e9359440a1a27eb22af7f8920ca77",
+      "os/manifest/ci/11d/probe-3/two-disk/live-ui-probe-devices.json": "2b4fd7456e39373bba1c6e22c37007c67ff91e54fd13fd605b0c86548e895d9a",
+      "os/manifest/ci/11d/probe-3/two-disk/probe-windows-without-linux-devices.json": "deb820dc6d7c1fdafff923302fd8f380fad0661d4662f2572c273d9e076566d8"
+    },
+    "hardware_context": "Original per-boot QMP PCI/SATA record; no label-based attachment inference",
+    "rule": "11f-linux-position",
+    "changes": {
+      "Boot0002": {
+        "before": {
+          "attributes": 7,
+          "hex": "01000000200055004500460049002000510045004d00550020004400560044002d0052004f004d00200051004d00300030003000300031002000000002010c00d041030a0000000001010600021f03120a000000ffff00007fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "after": null,
+        "firmware_owned": {
+          "device": "pci:00:1f.2/sata:0:65535:0",
+          "before_device": "pci:00:1f.2/sata:0:65535:0",
+          "after_device": null,
+          "reason": "11e per-boot attached device set; option identity is firmware-owned",
+          "optional_data": "4eac0881119f594d850ee21a522c59b2"
+        }
+      },
+      "Boot0004": {
+        "before": {
+          "attributes": 7,
+          "hex": "010000001600550045004600490020004d00690073006300200044006500760069006300650020003200000002010c00d041030a000000000101060000037fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "after": null,
+        "firmware_owned": {
+          "device": "pci:00:03.0",
+          "before_device": "pci:00:03.0",
+          "after_device": null,
+          "reason": "11e per-boot attached device set; option identity is firmware-owned",
+          "optional_data": "4eac0881119f594d850ee21a522c59b2"
+        }
+      },
+      "BootOrder": {
+        "before": {
+          "attributes": 7,
+          "hex": "0000010002000300040005000600070008000900"
+        },
+        "after": {
+          "attributes": 7,
+          "hex": "00000100030005000600070008000900"
+        }
+      }
+    },
+    "firmware_changes": [
+      {
+        "device": "pci:00:03.0",
+        "before_option": "Boot0004",
+        "after_option": null,
+        "before_description": "UEFI Misc Device 2",
+        "after_description": null,
+        "action": "removed",
+        "relabeled": false,
+        "renumbered": false,
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      },
+      {
+        "device": "pci:00:1f.2/sata:0:65535:0",
+        "before_option": "Boot0002",
+        "after_option": null,
+        "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+        "after_description": null,
+        "action": "removed",
+        "relabeled": false,
+        "renumbered": false,
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      }
+    ],
+    "linux_position_changes": [],
+    "firmware_before": {
+      "Boot0002": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:1f.2/sata:0:65535:0"
+      },
+      "Boot0003": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:02.0"
+      },
+      "Boot0004": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:03.0"
+      },
+      "Boot0005": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0006": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0007": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0008": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      }
+    },
+    "firmware_after": {
+      "Boot0003": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:02.0"
+      },
+      "Boot0005": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0006": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0007": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0008": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      }
+    },
+    "order_before": [
+      "Boot0000",
+      "Boot0001",
+      "Boot0002",
+      "Boot0003",
+      "Boot0004",
+      "Boot0005",
+      "Boot0006",
+      "Boot0007",
+      "Boot0008",
+      "Boot0009"
+    ],
+    "order_after": [
+      "Boot0000",
+      "Boot0001",
+      "Boot0003",
+      "Boot0005",
+      "Boot0006",
+      "Boot0007",
+      "Boot0008",
+      "Boot0009"
+    ]
+  },
+  {
+    "name": "11e-full-install",
+    "status": "passed",
+    "inputs": {
+      "os/manifest/ci/11e/full-1/two-disk/protected-first-install-vars.fd": "3041c2abeed3d4f95e181893ef90822d965846a6d63c8240756546edf95d3ccb",
+      "os/manifest/ci/11e/full-1/two-disk/after-install-without-linux-vars.fd": "052007f8380421fbc3c87348e8a9c53a04868efa8e3e424290482b7445babe65",
+      "os/manifest/ci/11e/full-1/two-disk/protected-first-install-devices.json": "0ac411d7184aa2abda3f45197a4c7cc9b98f27b5b9cf99c8f616cb926881cc2a",
+      "os/manifest/ci/11e/full-1/two-disk/after-install-without-linux-devices.json": "fd617ee424063f7b296304c085fa7c646e0df13ffa02314162c9c587d2fe269f",
+      "os/manifest/ci/11e/full-1/two-disk/protected-first-install-target-efi.json": "65effcb76cc924e8ba1518de92d977244cdf3fd5313f53a4e0c270fac148b59f"
+    },
+    "hardware_context": "Original per-boot QMP PCI/SATA record; no label-based attachment inference",
+    "rule": "11f-linux-position",
+    "changes": {
+      "Boot0002": {
+        "before": {
+          "attributes": 7,
+          "hex": "01000000200055004500460049002000510045004d00550020004400560044002d0052004f004d00200051004d00300030003000300031002000000002010c00d041030a0000000001010600021f03120a000000ffff00007fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "after": null,
+        "firmware_owned": {
+          "device": "pci:00:1f.2/sata:0:65535:0",
+          "before_device": "pci:00:1f.2/sata:0:65535:0",
+          "after_device": null,
+          "reason": "11e per-boot attached device set; option identity is firmware-owned",
+          "optional_data": "4eac0881119f594d850ee21a522c59b2"
+        }
+      },
+      "Boot0004": {
+        "before": {
+          "attributes": 7,
+          "hex": "010000001600550045004600490020004d00690073006300200044006500760069006300650020003200000002010c00d041030a000000000101060000037fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "after": null,
+        "firmware_owned": {
+          "device": "pci:00:03.0",
+          "before_device": "pci:00:03.0",
+          "after_device": null,
+          "reason": "11e per-boot attached device set; option identity is firmware-owned",
+          "optional_data": "4eac0881119f594d850ee21a522c59b2"
+        }
+      },
+      "BootOrder": {
+        "before": {
+          "attributes": 7,
+          "hex": "0a000000010002000300040005000600070008000900"
+        },
+        "after": {
+          "attributes": 7,
+          "hex": "00000a000100030005000600070008000900"
+        }
+      }
+    },
+    "firmware_changes": [
+      {
+        "device": "pci:00:03.0",
+        "before_option": "Boot0004",
+        "after_option": null,
+        "before_description": "UEFI Misc Device 2",
+        "after_description": null,
+        "action": "removed",
+        "relabeled": false,
+        "renumbered": false,
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      },
+      {
+        "device": "pci:00:1f.2/sata:0:65535:0",
+        "before_option": "Boot0002",
+        "after_option": null,
+        "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+        "after_description": null,
+        "action": "removed",
+        "relabeled": false,
+        "renumbered": false,
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      }
+    ],
+    "linux_position_changes": [
+      {
+        "option": "Boot000A",
+        "old_index": 0,
+        "new_index": 1,
+        "reason": "11f target-ESP Fedora loader position is not judged"
+      }
+    ],
+    "firmware_before": {
+      "Boot0002": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:1f.2/sata:0:65535:0"
+      },
+      "Boot0003": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:02.0"
+      },
+      "Boot0004": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:03.0"
+      },
+      "Boot0005": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0006": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0007": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0008": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      }
+    },
+    "firmware_after": {
+      "Boot0003": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:02.0"
+      },
+      "Boot0005": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0006": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0007": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0008": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      }
+    },
+    "order_before": [
+      "Boot000A",
+      "Boot0000",
+      "Boot0001",
+      "Boot0002",
+      "Boot0003",
+      "Boot0004",
+      "Boot0005",
+      "Boot0006",
+      "Boot0007",
+      "Boot0008",
+      "Boot0009"
+    ],
+    "order_after": [
+      "Boot0000",
+      "Boot000A",
+      "Boot0001",
+      "Boot0003",
+      "Boot0005",
+      "Boot0006",
+      "Boot0007",
+      "Boot0008",
+      "Boot0009"
+    ]
+  },
+  {
+    "name": "11d-reverse-order",
+    "status": "passed",
+    "inputs": {
+      "os/manifest/ci/11d/probe-3/two-disk/protected-second/live-ui-probe-vars.fd": "31858b24d81c1c8caa6b62c355a54ce06f1828956f6dafb19ef886e05d78e53d",
+      "os/manifest/ci/11d/probe-3/two-disk/protected-second/probe-windows-without-linux-vars.fd": "ec88a7f04b593dddca58ad6e84ce74af06f309dd3948753ec69f68ec28c154e2",
+      "os/manifest/ci/11d/probe-3/two-disk/protected-second/live-ui-probe-devices.json": "59038c64e4a051d9fcd272562696d4468725535510499cdf5b00028d3267775f",
+      "os/manifest/ci/11d/probe-3/two-disk/protected-second/probe-windows-without-linux-devices.json": "fae82084f855f4768d01b0b03f97933c43efc2f46c0c6036139d64e8acc961a3"
+    },
+    "hardware_context": "Original per-boot QMP PCI/SATA record; no label-based attachment inference",
+    "rule": "11f-linux-position",
+    "changes": {
+      "Boot0002": {
+        "before": {
+          "attributes": 7,
+          "hex": "01000000200055004500460049002000510045004d00550020004400560044002d0052004f004d00200051004d00300030003000300031002000000002010c00d041030a0000000001010600021f03120a000000ffff00007fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "after": {
+          "attributes": 7,
+          "hex": "010000001600550045004600490020004d006900730063002000440065007600690063006500000002010c00d041030a000000000101060000037fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "firmware_owned": {
+          "device": "pci:00:03.0",
+          "before_device": "pci:00:1f.2/sata:0:65535:0",
+          "after_device": "pci:00:03.0",
+          "reason": "11e per-boot attached device set; option identity is firmware-owned",
+          "optional_data": "4eac0881119f594d850ee21a522c59b2"
+        }
+      },
+      "Boot0003": {
+        "before": {
+          "attributes": 7,
+          "hex": "010000001600550045004600490020004d006900730063002000440065007600690063006500000002010c00d041030a000000000101060000027fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "after": null,
+        "firmware_owned": {
+          "device": "pci:00:02.0",
+          "before_device": "pci:00:02.0",
+          "after_device": null,
+          "reason": "11e per-boot attached device set; option identity is firmware-owned",
+          "optional_data": "4eac0881119f594d850ee21a522c59b2"
+        }
+      },
+      "Boot0004": {
+        "before": {
+          "attributes": 7,
+          "hex": "010000001600550045004600490020004d00690073006300200044006500760069006300650020003200000002010c00d041030a000000000101060000037fff04004eac0881119f594d850ee21a522c59b2"
+        },
+        "after": null,
+        "firmware_owned": {
+          "device": "pci:00:03.0",
+          "before_device": "pci:00:03.0",
+          "after_device": null,
+          "reason": "11e per-boot attached device set; option identity is firmware-owned",
+          "optional_data": "4eac0881119f594d850ee21a522c59b2"
+        }
+      },
+      "BootOrder": {
+        "before": {
+          "attributes": 7,
+          "hex": "0000010002000300040005000600070008000900"
+        },
+        "after": {
+          "attributes": 7,
+          "hex": "00000100050006000700080009000200"
+        }
+      }
+    },
+    "firmware_changes": [
+      {
+        "device": "pci:00:02.0",
+        "before_option": "Boot0003",
+        "after_option": null,
+        "before_description": "UEFI Misc Device",
+        "after_description": null,
+        "action": "removed",
+        "relabeled": false,
+        "renumbered": false,
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      },
+      {
+        "device": "pci:00:03.0",
+        "before_option": "Boot0004",
+        "after_option": "Boot0002",
+        "before_description": "UEFI Misc Device 2",
+        "after_description": "UEFI Misc Device",
+        "action": "changed",
+        "relabeled": true,
+        "renumbered": true,
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      },
+      {
+        "device": "pci:00:1f.2/sata:0:65535:0",
+        "before_option": "Boot0002",
+        "after_option": null,
+        "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+        "after_description": null,
+        "action": "removed",
+        "relabeled": false,
+        "renumbered": false,
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      }
+    ],
+    "linux_position_changes": [],
+    "firmware_before": {
+      "Boot0002": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:1f.2/sata:0:65535:0"
+      },
+      "Boot0003": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:02.0"
+      },
+      "Boot0004": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:03.0"
+      },
+      "Boot0005": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0006": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0007": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0008": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      }
+    },
+    "firmware_after": {
+      "Boot0005": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0006": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0007": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0008": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:01.0"
+      },
+      "Boot0002": {
+        "optional_data": "4eac0881119f594d850ee21a522c59b2",
+        "device": "pci:00:03.0"
+      }
+    },
+    "order_before": [
+      "Boot0000",
+      "Boot0001",
+      "Boot0002",
+      "Boot0003",
+      "Boot0004",
+      "Boot0005",
+      "Boot0006",
+      "Boot0007",
+      "Boot0008",
+      "Boot0009"
+    ],
+    "order_after": [
+      "Boot0000",
+      "Boot0001",
+      "Boot0005",
+      "Boot0006",
+      "Boot0007",
+      "Boot0008",
+      "Boot0009",
+      "Boot0002"
+    ]
+  }
+]

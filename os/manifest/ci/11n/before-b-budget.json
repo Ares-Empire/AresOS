@@ -1,0 +1,988 @@
+{
+  "allowance": "11c",
+  "start": "2026-10-23T16:21:00Z",
+  "cap": 900,
+  "full_cap": 5,
+  "full_dispatched": 5,
+  "part_b_cap": 1,
+  "part_b_dispatched": 0,
+  "consumed_minutes": 671,
+  "reserved_minutes": 144,
+  "runs": [
+    {
+      "run": 40137250974,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "conclusion": "success",
+      "minutes": 26
+    },
+    {
+      "run": 40136982269,
+      "title": "OS regressions only (no VM)",
+      "sha": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40136731776,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40136725728,
+      "title": "Give owner-switch transaction tests safe prerequisites",
+      "sha": "46dc2dd1f62d3a3d4d8051e3ac3b06eb30db4760",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40136071358,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "04ae68dba64ca28e9d96b8bf61351f07a4ea3dbc",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40136066603,
+      "title": "Brief 11n: give the switch-block test its prerequisites, then the pro\u2026",
+      "sha": "04ae68dba64ca28e9d96b8bf61351f07a4ea3dbc",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40135467772,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "a69a5251e0d893df244e16b9acd15e7253a8cddd",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40135462048,
+      "title": "Record 11m probe regression stop and complete-ledger evidence",
+      "sha": "a69a5251e0d893df244e16b9acd15e7253a8cddd",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40134595231,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "43e76566ac99ebe07727f6f3d34d0ad34bcdb929",
+      "conclusion": "failure",
+      "minutes": 5
+    },
+    {
+      "run": 40134279991,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "43e76566ac99ebe07727f6f3d34d0ad34bcdb929",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40134274374,
+      "title": "Prove complete guard history with total_count-checked pagination",
+      "sha": "43e76566ac99ebe07727f6f3d34d0ad34bcdb929",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40133641975,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "fd7332953b4d863c58a72f97a12d9fd1bece04ed",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40133636215,
+      "title": "Brief 11m: paginate the budget guard's run history, then finish 11l's\u2026",
+      "sha": "fd7332953b4d863c58a72f97a12d9fd1bece04ed",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40133346914,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "22afdd7af40402d8027d6b11f235e6cee32e56c4",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40133340809,
+      "title": "Record the 11l complete-ledger stop before probe dispatch",
+      "sha": "22afdd7af40402d8027d6b11f235e6cee32e56c4",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40132617608,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "81592192fd0189c59285a6ab958c0b62b05811af",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40132613328,
+      "title": "Fix review timing, BootNext auditing and source-verified GRUB selection",
+      "sha": "81592192fd0189c59285a6ab958c0b62b05811af",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40130838939,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "ec7b2ba3abe0d29b69bf894482ae4cc28607e43a",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40130833705,
+      "title": "Review of d7f0ac4 (CHANGES-NEEDED) and brief 11l: review fixes, GRUB \u2026",
+      "sha": "ec7b2ba3abe0d29b69bf894482ae4cc28607e43a",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40129586504,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "d7f0ac4e3e48fca13c40e86ef520a0f1c7d29b70",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40129580733,
+      "title": "Record both-order Part A success and the Part B BLS blocker",
+      "sha": "d7f0ac4e3e48fca13c40e86ef520a0f1c7d29b70",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40119526154,
+      "title": "Two-disk rehearsal (full)",
+      "sha": "2524823323888128a114866a2e1888f921e531cc",
+      "conclusion": "success",
+      "minutes": 113
+    },
+    {
+      "run": 40117290487,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "2524823323888128a114866a2e1888f921e531cc",
+      "conclusion": "success",
+      "minutes": 27
+    },
+    {
+      "run": 40117014277,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "2524823323888128a114866a2e1888f921e531cc",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40117008508,
+      "title": "Retry transient read-only guard failures within five attempts",
+      "sha": "2524823323888128a114866a2e1888f921e531cc",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40116135452,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "901be516803b0d00e9c838a66b794bc92ea52d37",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40116129680,
+      "title": "Brief 11k: bounded retry for the guard's read-only GitHub calls, then\u2026",
+      "sha": "901be516803b0d00e9c838a66b794bc92ea52d37",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40115596686,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "ee198857d49ae08b29f03ec34985cb1601730151",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40115591456,
+      "title": "Retain the 11j passing probe and stop before unapproved full dispatch",
+      "sha": "ee198857d49ae08b29f03ec34985cb1601730151",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40112294759,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+      "conclusion": "success",
+      "minutes": 34
+    },
+    {
+      "run": 40112088478,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40112082713,
+      "title": "Distinguish stock updater clients from the daemon and retain idle dec\u2026",
+      "sha": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40111093012,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "4b3d71d561be70d7ae7942fd7b3a619bfd2f3185",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40111087957,
+      "title": "Brief 11j: fix the stock pause's idle check, export its values, then \u2026",
+      "sha": "4b3d71d561be70d7ae7942fd7b3a619bfd2f3185",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40110385889,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "21856a91cc5d11697a571ac193a2dfb025243408",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40110381030,
+      "title": "Retain 11i evidence and stop at the installed stock pause deadline",
+      "sha": "21856a91cc5d11697a571ac193a2dfb025243408",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40105647808,
+      "title": "Two-disk rehearsal (full)",
+      "sha": "f1a237dda5c11cf3e981b97fbf026eef2384ddb1",
+      "conclusion": "failure",
+      "minutes": 47
+    },
+    {
+      "run": 40103660846,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "f1a237dda5c11cf3e981b97fbf026eef2384ddb1",
+      "conclusion": "success",
+      "minutes": 23
+    },
+    {
+      "run": 40103490635,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "f1a237dda5c11cf3e981b97fbf026eef2384ddb1",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40103487143,
+      "title": "Probe Part B OCR and stock GRUB helpers before the full rehearsal",
+      "sha": "f1a237dda5c11cf3e981b97fbf026eef2384ddb1",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40102968211,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "fd63ad762dd39fe781fea1e83b5952baed8be568",
+      "conclusion": "cancelled",
+      "minutes": 5
+    },
+    {
+      "run": 40102856930,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "fd63ad762dd39fe781fea1e83b5952baed8be568",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40102851267,
+      "title": "Bind keyboard switch options to the actual installer interface",
+      "sha": "fd63ad762dd39fe781fea1e83b5952baed8be568",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40102376139,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "90be8d8458147533f0682117562955187f01b810",
+      "conclusion": "cancelled",
+      "minutes": 3
+    },
+    {
+      "run": 40102273355,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "90be8d8458147533f0682117562955187f01b810",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40102266996,
+      "title": "Make keyboard prediction read-only and verify installed German settings",
+      "sha": "90be8d8458147533f0682117562955187f01b810",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40101602061,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "4aeeec6a73d883356abb7226d58fd6133183c9ab",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40101597804,
+      "title": "Brief 11i: read-only keyboard proof before install, German check on t\u2026",
+      "sha": "4aeeec6a73d883356abb7226d58fd6133183c9ab",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40101301268,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "ac6fc4c92a59d5dc2583c6586ef43df79676195c",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40101295357,
+      "title": "Report the 11h source-first stop: conversion loses X11 options",
+      "sha": "ac6fc4c92a59d5dc2583c6586ef43df79676195c",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40099746381,
+      "title": "Two-disk rehearsal (inspect)",
+      "sha": "6b08aa30251da875481b4af0c646e508d245d935",
+      "conclusion": "success",
+      "minutes": 14
+    },
+    {
+      "run": 40099645938,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "6b08aa30251da875481b4af0c646e508d245d935",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40099639559,
+      "title": "Extract pinned localization source before the 11h keyboard decision",
+      "sha": "6b08aa30251da875481b4af0c646e508d245d935",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40099150279,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "2cbbe2f37da7cca236405969507972c9217de534",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40099146194,
+      "title": "Brief 11h: let the keyboard proof wait for localed, check the install\u2026",
+      "sha": "2cbbe2f37da7cca236405969507972c9217de534",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40068142317,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "0caebd49fc0efecd1f452a3c8f520d4cc1e8746a",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40068137521,
+      "title": "Report the mandatory keyboard-proof stop and retain 11g evidence",
+      "sha": "0caebd49fc0efecd1f452a3c8f520d4cc1e8746a",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40066161000,
+      "title": "Two-disk rehearsal (full)",
+      "sha": "909fe5a1d54345af550588ea926800930102c168",
+      "conclusion": "failure",
+      "minutes": 17
+    },
+    {
+      "run": 40064206779,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "909fe5a1d54345af550588ea926800930102c168",
+      "conclusion": "success",
+      "minutes": 28
+    },
+    {
+      "run": 40064026530,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "909fe5a1d54345af550588ea926800930102c168",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40064022663,
+      "title": "Probe stock CLI from the ISO cache and label orderly failure counters",
+      "sha": "909fe5a1d54345af550588ea926800930102c168",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40062047055,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "6902c0455ca53d1a2b63c6899450dd097bac3b35",
+      "conclusion": "failure",
+      "minutes": 19
+    },
+    {
+      "run": 40061914124,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "6902c0455ca53d1a2b63c6899450dd097bac3b35",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40061910475,
+      "title": "Record unavailable failure counters after unexpected QEMU exits",
+      "sha": "6902c0455ca53d1a2b63c6899450dd097bac3b35",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40061143698,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "6e59e27196e4b9e6a5e3647fa6b3957eaa2127e6",
+      "conclusion": "cancelled",
+      "minutes": 11
+    },
+    {
+      "run": 40061023607,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "6e59e27196e4b9e6a5e3647fa6b3957eaa2127e6",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40061019489,
+      "title": "Bind the stock replay to historical Git blob bytes",
+      "sha": "6e59e27196e4b9e6a5e3647fa6b3957eaa2127e6",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40060997312,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "913ab14d057177665d8a58ac07efb53974ab0bea",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40060993072,
+      "title": "Prepare pinned stock before Windows and retain failure-path write cou\u2026",
+      "sha": "913ab14d057177665d8a58ac07efb53974ab0bea",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40059260810,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "0bb2b3f1efe22791e3d37725270c19d3f18b568f",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40059255619,
+      "title": "Brief 11g: pause stock's updater, discard a staged update, keep failu\u2026",
+      "sha": "0bb2b3f1efe22791e3d37725270c19d3f18b568f",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40058847791,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "a4471667620ef1e44d7dfe147e7cfc96e1bdbbd2",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40058843502,
+      "title": "Bind stock-stop text receipts to committed LF bytes and retain closin\u2026",
+      "sha": "a4471667620ef1e44d7dfe147e7cfc96e1bdbbd2",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40058509349,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "f99d52537ccd1dc078aeb511d937bd3343a63ecf",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40058505932,
+      "title": "Report the pending stock update and missing failure counter; keep ins\u2026",
+      "sha": "f99d52537ccd1dc078aeb511d937bd3343a63ecf",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40054116223,
+      "title": "Two-disk rehearsal (full)",
+      "sha": "1b00581df4b9871c9880db67e3f54ed2b82fb487",
+      "conclusion": "failure",
+      "minutes": 53
+    },
+    {
+      "run": 40052069600,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "1b00581df4b9871c9880db67e3f54ed2b82fb487",
+      "conclusion": "success",
+      "minutes": 26
+    },
+    {
+      "run": 40051921449,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "1b00581df4b9871c9880db67e3f54ed2b82fb487",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40051917073,
+      "title": "Apply the authorized Linux position rule and budget a complete two-or\u2026",
+      "sha": "1b00581df4b9871c9880db67e3f54ed2b82fb487",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40051281685,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "60b20e1a611240efa4583b36f69b0cf371a85531",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40051275903,
+      "title": "Brief 11f: let the Linux entry move, fit the full run, correct the mi\u2026",
+      "sha": "60b20e1a611240efa4583b36f69b0cf371a85531",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40050666140,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "5cb51e0d4e544dd377e3083aa0950fb971a63045",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40050662731,
+      "title": "Report the Windows-default order PLAN-GAP and keep installation and r\u2026",
+      "sha": "5cb51e0d4e544dd377e3083aa0950fb971a63045",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40046420672,
+      "title": "Two-disk rehearsal (full)",
+      "sha": "a353042e6f996d26a9ad746b616dce1a6394e1ae",
+      "conclusion": "failure",
+      "minutes": 39
+    },
+    {
+      "run": 40044393400,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "a353042e6f996d26a9ad746b616dce1a6394e1ae",
+      "conclusion": "success",
+      "minutes": 22
+    },
+    {
+      "run": 40044249975,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "a353042e6f996d26a9ad746b616dce1a6394e1ae",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40044245505,
+      "title": "Recognize target-ESP Linux recreation at a former automatic option nu\u2026",
+      "sha": "a353042e6f996d26a9ad746b616dce1a6394e1ae",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40043692406,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "0aa50ca78a6ccf53bfe452e6d101aafbc0a56647",
+      "conclusion": "cancelled",
+      "minutes": 7
+    },
+    {
+      "run": 40043526075,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "0aa50ca78a6ccf53bfe452e6d101aafbc0a56647",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40043521223,
+      "title": "Apply the authorized firmware device-set rule with real-store and str\u2026",
+      "sha": "0aa50ca78a6ccf53bfe452e6d101aafbc0a56647",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40042788594,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "5e5972d7b28159b5145cd4cfdb385cb6cb2a8b74",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40042782486,
+      "title": "Brief 11e: judge firmware-owned NVRAM options as a per-boot device set",
+      "sha": "5e5972d7b28159b5145cd4cfdb385cb6cb2a8b74",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40041848828,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "443356e7308428c1a403d5aee7854db23a12ec85",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40041843056,
+      "title": "Report the 11d firmware PLAN-GAP and retain open installation and rec\u2026",
+      "sha": "443356e7308428c1a403d5aee7854db23a12ec85",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40038465601,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "31879417304d2ca584fe7e5f6b0de9555f4dd0ae",
+      "conclusion": "failure",
+      "minutes": 22
+    },
+    {
+      "run": 40038279622,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "31879417304d2ca584fe7e5f6b0de9555f4dd0ae",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40038275064,
+      "title": "Replay the real IDE QMP identifier and retain pinned-image read and c\u2026",
+      "sha": "31879417304d2ca584fe7e5f6b0de9555f4dd0ae",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40036342487,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "a8c77f7221e4c5d9dbe8e992e8e8d4337d17a777",
+      "conclusion": "failure",
+      "minutes": 16
+    },
+    {
+      "run": 40036169351,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "a8c77f7221e4c5d9dbe8e992e8e8d4337d17a777",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40036158941,
+      "title": "Keep the temporary auth share root-owned so the daily UID cannot read it",
+      "sha": "a8c77f7221e4c5d9dbe8e992e8e8d4337d17a777",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035950604,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "727d1e83fd8162e4bfffb3b82db21b21cc4f92b2",
+      "conclusion": "cancelled",
+      "minutes": 3
+    },
+    {
+      "run": 40035784085,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "727d1e83fd8162e4bfffb3b82db21b21cc4f92b2",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035777911,
+      "title": "Release the verified OCI pull cache before allocating installer disks",
+      "sha": "727d1e83fd8162e4bfffb3b82db21b21cc4f92b2",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035585755,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "5df18ac05891496d2fc1749272ddc22e2d21ce0d",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035578181,
+      "title": "Document the 11d credential boundary and focused regressions",
+      "sha": "5df18ac05891496d2fc1749272ddc22e2d21ce0d",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40034568137,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "61c33ca06f1e72a2013788dd715a5abac9c2caff",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40034559047,
+      "title": "Brief 11d: read the signed release with the owner's read-only token s\u2026",
+      "sha": "61c33ca06f1e72a2013788dd715a5abac9c2caff",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39992295958,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "ad882d5b6460da373114e0fb54fe87680d420368",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39992290220,
+      "title": "Keep main's privacy workflow identical for a clean PR scan and accoun\u2026",
+      "sha": "ad882d5b6460da373114e0fb54fe87680d420368",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39991834967,
+      "title": "Report the 11c pre-VM release blocker and keep installation gates closed",
+      "sha": "ba4f5c65a8355a2827ee707fcea20b7416e8c85e",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989739478,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "failure",
+      "minutes": 7
+    },
+    {
+      "run": 39989544924,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989537420,
+      "title": "Identify the exact public Git-tree false positive without broadening \u2026",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989156330,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "f717ef24a6e04cdc192eec6912e7c248c6a53be2",
+      "conclusion": "failure",
+      "minutes": 1
+    },
+    {
+      "run": 39989148428,
+      "title": "Record rewritten source identities and explain unplugged-device firmw\u2026",
+      "sha": "f717ef24a6e04cdc192eec6912e7c248c6a53be2",
+      "conclusion": "failure",
+      "minutes": 1
+    },
+    {
+      "run": 39986075815,
+      "title": "Two-disk rehearsal: complete ledger pagination; probe blocked by native fixture",
+      "sha": "3147a65dfb1f97815fec2e3634d1607031ee1379",
+      "conclusion": "success",
+      "minutes": 1
+    }
+  ],
+  "history": {
+    "complete": true,
+    "pages_read": 2,
+    "ids_count": 138,
+    "total_count": 138,
+    "page_limit": 20,
+    "snapshot_reads": 1,
+    "pages": [
+      {
+        "page": 1,
+        "returned": 100,
+        "total_count": 138,
+        "ids_sha256": "2658cb71134544d41d8216df32d5b269eeb905029ea2f0cf2a01f944894e1312"
+      },
+      {
+        "page": 2,
+        "returned": 38,
+        "total_count": 138,
+        "ids_sha256": "ba5026f23a2ecefaaae6c12141dbd07368ea61d41985e3a1015155b055a24db6"
+      }
+    ],
+    "run_ids": [
+      40137250974,
+      40136982269,
+      40136731776,
+      40136725728,
+      40136071358,
+      40136066603,
+      40135467772,
+      40135462048,
+      40134595231,
+      40134279991,
+      40134274374,
+      40133641975,
+      40133636215,
+      40133346914,
+      40133340809,
+      40132617608,
+      40132613328,
+      40130838939,
+      40130833705,
+      40129586504,
+      40129580733,
+      40119526154,
+      40117290487,
+      40117014277,
+      40117008508,
+      40116135452,
+      40116129680,
+      40115596686,
+      40115591456,
+      40112294759,
+      40112088478,
+      40112082713,
+      40111093012,
+      40111087957,
+      40110385889,
+      40110381030,
+      40105647808,
+      40103660846,
+      40103490635,
+      40103487143,
+      40102968211,
+      40102856930,
+      40102851267,
+      40102376139,
+      40102273355,
+      40102266996,
+      40101602061,
+      40101597804,
+      40101301268,
+      40101295357,
+      40099746381,
+      40099645938,
+      40099639559,
+      40099150279,
+      40099146194,
+      40068142317,
+      40068137521,
+      40066161000,
+      40064206779,
+      40064026530,
+      40064022663,
+      40062047055,
+      40061914124,
+      40061910475,
+      40061143698,
+      40061023607,
+      40061019489,
+      40060997312,
+      40060993072,
+      40059260810,
+      40059255619,
+      40058847791,
+      40058843502,
+      40058509349,
+      40058505932,
+      40054116223,
+      40052069600,
+      40051921449,
+      40051917073,
+      40051281685,
+      40051275903,
+      40050666140,
+      40050662731,
+      40046420672,
+      40044393400,
+      40044249975,
+      40044245505,
+      40043692406,
+      40043526075,
+      40043521223,
+      40042788594,
+      40042782486,
+      40041848828,
+      40041843056,
+      40038465601,
+      40038279622,
+      40038275064,
+      40036342487,
+      40036169351,
+      40036158941,
+      40035950604,
+      40035784085,
+      40035777911,
+      40035585755,
+      40035578181,
+      40034568137,
+      40034559047,
+      39992295958,
+      39992290220,
+      39991834967,
+      39989739478,
+      39989544924,
+      39989537420,
+      39989156330,
+      39989148428,
+      39986075815,
+      39932833145,
+      39932833464,
+      39892768284,
+      39889623330,
+      39888209565,
+      39886346092,
+      39884771824,
+      39882648993,
+      39880735063,
+      39879865566,
+      39877073155,
+      39875264662,
+      39873265524,
+      39873210999,
+      39872316944,
+      39869390172,
+      39869231221,
+      39867994684,
+      39866564466,
+      39865512476,
+      39865338296,
+      39864229155
+    ]
+  },
+  "read_retries": []
+}

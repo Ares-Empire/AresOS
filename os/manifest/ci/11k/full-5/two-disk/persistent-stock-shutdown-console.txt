@@ -1,0 +1,31 @@
+[?2004l
+
+
+Broadcast message from root@bazzite on pts/0 (Sat 2026-10-24 21:12:28 CEST):
+
+The system will power off now!
+
+[?2004hARESOS_ROOT> ]3008;end=7e98150721d3494f99487ee43f497037\]3008;end=7872f222ab094ddfab314bb9a4fb44c6\[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H]3008;end=acc93c94f35d4a2abecef888316cd542\[   45.086334] systemd-udevd[658]: Failed to remove file descriptor "config-serialization" from the store, ignoring: Connection refused
+[   45.132465] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[   45.137073] systemd-shutdown[1]: Unmounting file systems.
+[   45.139914] (sd-umount)[1969]: Unmounting '/run/credentials/systemd-journald.service'.
+[   45.142951] (sd-remount)[1970]: Remounting '/sysroot' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   45.147673] (sd-umount)[1971]: Unmounting '/sysroot'.
+[   45.149713] (sd-remount)[1972]: Remounting '/etc' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   45.153979] (sd-umount)[1973]: Unmounting '/etc'.
+[   45.156004] systemd-shutdown[1]: All filesystems unmounted.
+[   45.157923] systemd-shutdown[1]: Deactivating swaps.
+[   45.160064] systemd-shutdown[1]: All swaps deactivated.
+[   45.161603] systemd-shutdown[1]: Detaching loop devices.
+[   45.163299] systemd-shutdown[1]: All loop devices detached.
+[   45.164935] systemd-shutdown[1]: Stopping MD devices.
+[   45.166529] systemd-shutdown[1]: All MD devices stopped.
+[   45.168049] systemd-shutdown[1]: Detaching DM devices.
+[   45.169559] systemd-shutdown[1]: All DM devices detached.
+[   45.171098] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[   45.190596] systemd-shutdown[1]: Syncing filesystems and block devices.
+[   45.192559] systemd-shutdown[1]: Powering off.
+[   45.209864] Console: switching to colour dummy device 80x25
+[   45.241693] ACPI: PM: Preparing to enter system sleep state S5
+[   45.243411] kvm: exiting hardware virtualization
+[   45.244777] reboot: Power down

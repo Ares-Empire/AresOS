@@ -1,0 +1,87 @@
+[
+  {
+    "path": ".github/workflows/os-image.yml",
+    "sha256": "3a25d38fb61f29470bfe96d035db6f41a6fccebe9c7c58ff9053464f071a4db1",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": ".github/workflows/privacy-check.yml",
+    "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": ".gitleaks.toml",
+    "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": ".gitleaksignore",
+    "sha256": "696095491f29162d4bf1bf3d43972817e3df1b9913857c182a03223067bdc2a8",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/Containerfile",
+    "sha256": "715b9215fb8e1bfefa38c7de883c7dd3f9d03476d7b0e43881de8710afc523cf",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/manifest/base.json",
+    "sha256": "750558b95a7bfb8b6121361935ec5b0bf68de6bc4b127fca00606a5d0d6383ec",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/manifest/release.json",
+    "sha256": "4447a6cd8929e61667e700d9757c98efbe3432a341491ebbea3f466ba83c0126",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/manifest/installer-isos.json",
+    "sha256": "571be37257a0940bceaef01a33f6db5d53bd55de257aab452038216b63b3cfc1",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/manifest/media-tools.json",
+    "sha256": "1f2a9683d9e6de82843bda75bab28f0bb29e7e8b8ba4caef86439e97b8364a74",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/ci/disk_audit.py",
+    "sha256": "962fc6153cd397e5612e3c847f4dcbb709562e03030e77941ec587a9178821e3",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/ci/rehearsal_auth.py",
+    "sha256": "e119060b86eec67303857ad9863f7f43b0e8910c56ad46e85524dec79e5a3120",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/release/pause-stock-updates.sh",
+    "sha256": "b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/release/pin-stock.sh",
+    "sha256": "6782e32be96d612823224830956042637bc53b05c8f7ea2effe60efb25e72c2f",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/release/switch.sh",
+    "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/release/verify.sh",
+    "sha256": "55947bd644f9741d613dfd9fc2b88aba6e4465a68747ed25c648e59fe95064a3",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/release/default-stock.sh",
+    "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6",
+    "unchanged_from": "4aeeec6"
+  },
+  {
+    "path": "os/keys/bazzite.pub",
+    "sha256": "af78ecfda6eb21c35195af3739341715e9cfc3f2f5911dd9c10b0670547bf6e8",
+    "unchanged_from": "4aeeec6"
+  }
+]

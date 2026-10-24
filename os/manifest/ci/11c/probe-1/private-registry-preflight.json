@@ -1,0 +1,8 @@
+{
+  "status": "blocked",
+  "reference": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
+  "credentials": "ephemeral GITHUB_TOKEN with packages:read",
+  "layers_pulled": false,
+  "registry_digest": null,
+  "reason": "time=\"2026-10-23T16:54:47Z\" level=fatal msg=\"Error parsing image name \\\"docker://ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402\\\": reading manifest sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402 in ghcr.io/carlsenares/aresos: manifest unknown\"\n"
+}

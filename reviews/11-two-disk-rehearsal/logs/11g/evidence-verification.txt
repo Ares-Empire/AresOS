@@ -1,0 +1,151 @@
+Command: python -X utf8 reviews/11-two-disk-rehearsal/verify-11g-evidence.py
+full-3 failure
+probe-1 cancelled
+probe-2 failure
+probe-3 success
+{
+  "matching_offline_stages": 10,
+  "zero_write_records": 10,
+  "archived_records_scanned": 997,
+  "incomplete": [],
+  "firmware_events": [
+    {
+      "run": "probe-3",
+      "folder": "two-disk",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:03.0",
+      "before_option": "Boot0004",
+      "after_option": null,
+      "before_description": "UEFI Misc Device 2",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-3",
+      "folder": "two-disk",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:1f.2/sata:0:65535:0",
+      "before_option": "Boot0002",
+      "after_option": null,
+      "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-3",
+      "folder": "two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:02.0",
+      "before_option": "Boot0003",
+      "after_option": null,
+      "before_description": "UEFI Misc Device",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-3",
+      "folder": "two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:03.0",
+      "before_option": "Boot0004",
+      "after_option": "Boot0002",
+      "before_description": "UEFI Misc Device 2",
+      "after_description": "UEFI Misc Device",
+      "action": "changed",
+      "relabeled": true,
+      "renumbered": true,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "run": "probe-3",
+      "folder": "two-disk/protected-second",
+      "stage": "probe-windows-without-linux",
+      "device": "pci:00:1f.2/sata:0:65535:0",
+      "before_option": "Boot0002",
+      "after_option": null,
+      "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    }
+  ],
+  "linux_position_events": [],
+  "windows_order_actions": [
+    {
+      "run": "probe-3",
+      "path": "two-disk/probe-windows-order.json",
+      "before": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "after": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ]
+    },
+    {
+      "run": "probe-3",
+      "path": "two-disk/protected-second/probe-windows-order.json",
+      "before": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "after": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ]
+    }
+  ],
+  "qualifications": [
+    {
+      "run": "probe-3",
+      "kind": "probe",
+      "source": "909fe5a1d54345af550588ea926800930102c168",
+      "status": "passed"
+    }
+  ]
+}
+Retained evidence verified; only explicit result files establish probe/full qualification.

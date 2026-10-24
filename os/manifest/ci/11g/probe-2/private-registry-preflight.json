@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "reference": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
+  "secret": "GHCR_READ_TOKEN",
+  "scope": "read:packages; pinned image only; expires after 30 days",
+  "username": "carlsenares",
+  "auth_file": "RUNNER_TEMP/aresos-11d-ghcr/auth.json",
+  "auth_mode": "0600",
+  "layers_pulled": false,
+  "owner_token_api_calls": 0,
+  "visibility_verified": false,
+  "visibility_metadata": "not possible with org job token; no owner API query",
+  "registry_digest": "sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402"
+}

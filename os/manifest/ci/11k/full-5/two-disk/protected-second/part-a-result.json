@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "order": "protected-second",
+  "switch_policy_tty3_rollback": true,
+  "installed_keyboard_german": true,
+  "default_undo": "Windows-first; no erase",
+  "windows_detached_after_install_and_undo": true,
+  "offline_protected_disk_unchanged": true
+}

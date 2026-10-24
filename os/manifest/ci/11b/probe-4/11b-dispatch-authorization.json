@@ -1,0 +1,37 @@
+{
+  "cap": 350,
+  "full_cap": 3,
+  "full_dispatched": 0,
+  "consumed_minutes": 57,
+  "reserved_minutes": 42,
+  "runs": [
+    {
+      "run": 39877073155,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "502676bedfc0e4aebb046ed42bc49e6e79c0df66",
+      "conclusion": "failure",
+      "minutes": 23
+    },
+    {
+      "run": 39875264662,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "a7a0a44c5f91dc682ea5db675538c15a6c50f549",
+      "conclusion": "success",
+      "minutes": 16
+    },
+    {
+      "run": 39873265524,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "6bfefc874a7cd99099b0ebe50a358c8b435a5045",
+      "conclusion": "failure",
+      "minutes": 16
+    },
+    {
+      "run": 39873210999,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "6683e19da46f81788870ddb72db6b41bd2cbb228",
+      "conclusion": "cancelled",
+      "minutes": 2
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0000": {
+    "attributes": 7,
+    "sha256": "d8e9c923318514225e24b87d4f0c7e092944f996771456efb6353b04336335a8",
+    "bytes": 164
+  },
+  "59324945-ec44-4c0d-b1cd-9db139df070c/Attempt 1": {
+    "attributes": 3,
+    "sha256": "e8b3e8fecde34cc7ea40d000802c1e4ba158a6f8547fddf2990faac2327920c8",
+    "bytes": 1049
+  },
+  "59324945-ec44-4c0d-b1cd-9db139df070c/Attempt 2": {
+    "attributes": 3,
+    "sha256": "b7a53e9872fa078d10c2f202958bed383661f145a65dbae5b1ee53588cf03012",
+    "bytes": 1049
+  },
+  "59324945-ec44-4c0d-b1cd-9db139df070c/Attempt 3": {
+    "attributes": 3,
+    "sha256": "106fe021f321f4f9883b71695a1a489c3ca8b67ffb5b809978d0e4449d8d26c2",
+    "bytes": 1049
+  },
+  "59324945-ec44-4c0d-b1cd-9db139df070c/Attempt 4": {
+    "attributes": 3,
+    "sha256": "1efcfc3bc6bdbf0f9f1c70ef3ae80d58081247dd2fdd05c9dd7c1eda7e423237",
+    "bytes": 1049
+  },
+  "59324945-ec44-4c0d-b1cd-9db139df070c/Attempt 5": {
+    "attributes": 3,
+    "sha256": "1384737ec986196138af63014c5311197c3eaa60c4756ac6f88ddb1a6b59de67",
+    "bytes": 1049
+  },
+  "59324945-ec44-4c0d-b1cd-9db139df070c/Attempt 6": {
+    "attributes": 3,
+    "sha256": "24ed9b369ab8fc168c17139ce8c38b1102aeab324f930f8017e68fb5bb7a24e5",
+    "bytes": 1049
+  },
+  "59324945-ec44-4c0d-b1cd-9db139df070c/Attempt 7": {
+    "attributes": 3,
+    "sha256": "0f70b871f7e4b3748839112d2128cf3122486d200cdf16bae374ff2e9f21a49f",
+    "bytes": 1049
+  },
+  "4b47d616-a8d6-4552-9d44-ccad2e0f4cf9/InitialAttemptOrder": {
+    "attributes": 3,
+    "sha256": "66840dda154e8a113c31dd0ad32f7f3a366a80e8136979d8f5a101d3d29d6f72",
+    "bytes": 8
+  },
+  "59324945-ec44-4c0d-b1cd-9db139df070c/Attempt 8": {
+    "attributes": 3,
+    "sha256": "c65e3b5eafc0bc415b28da9b8048748c24744e1401ad4f4f9af9b792f1aed8d5",
+    "bytes": 1049
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0001": {
+    "attributes": 7,
+    "sha256": "3197be1e300fa1600d1884c3a4bd4a90a15405bfb546cf2e6cf6095f8c362a93",
+    "bytes": 62
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Timeout": {
+    "attributes": 7,
+    "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+    "bytes": 2
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/PlatformLang": {
+    "attributes": 7,
+    "sha256": "6d045d0432f6e365c8a003ddb3a7721b7a1f66071812090dfe3361305256c2fc",
+    "bytes": 3
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Lang": {
+    "attributes": 7,
+    "sha256": "71872dcd42d448e768463ca21f5242b8d9f483497cd4a8c72d35f642a06fb5f6",
+    "bytes": 4
+  },
+  "04b37fe8-f6ae-480b-bdd5-37d98c5e89aa/VarErrorFlag": {
+    "attributes": 7,
+    "sha256": "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89",
+    "bytes": 1
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Key0000": {
+    "attributes": 7,
+    "sha256": "7c7edb7b1f8b5c355dfb644ed1921ba0f583c08ef98a5e240f18719ca8e8b603",
+    "bytes": 14
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Key0001": {
+    "attributes": 7,
+    "sha256": "9ea2c0abc3fdd97736e43f22aba269237f6f49bb40f80c22b7f3614f4befa5ff",
+    "bytes": 14
+  },
+  "5b446ed1-e30b-4faa-871a-3654eca36080/525400123456": {
+    "attributes": 3,
+    "sha256": "906370b6c18f0591e49cd10cf235f5b4089cb318e0331fe484dfe3cb338892ca",
+    "bytes": 20
+  },
+  "937fe521-95ae-4d1a-8929-48bcd90ad31a/525400123456": {
+    "attributes": 3,
+    "sha256": "7baabc8cefbaa09eff865175b58d3b642d1531a612377ece25d525e8aa2aff59",
+    "bytes": 60
+  },
+  "9fb9a8a1-2f4a-43a6-889c-d0f7b6c47ad5/ClientId": {
+    "attributes": 3,
+    "sha256": "9cb94e065c41e75a3fb06666062a4c86a299da273235427f4f5d777af5e19fad",
+    "bytes": 16
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0002": {
+    "attributes": 7,
+    "sha256": "dc109c519d4650934bd843faa54c7c2cf0145d7b56cc4a4125c16d15254c1f75",
+    "bytes": 108
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0003": {
+    "attributes": 7,
+    "sha256": "a677ecb6676190c091b9cdb741a835d15521fa7444d679f87b4996124fa9ea0b",
+    "bytes": 78
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0004": {
+    "attributes": 7,
+    "sha256": "208d86022a49958957a27b9bdf37a48368f949badb264b2192b6cca72d31083e",
+    "bytes": 82
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0005": {
+    "attributes": 7,
+    "sha256": "28e58b2074cf956c882d5c87a9edc6ece275a38878b18ee4519af50755fd059f",
+    "bytes": 168
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0006": {
+    "attributes": 7,
+    "sha256": "b58d83693835cbf4b2a8d212c57415bbcd4f3cf5ae350f658d0fd9a35eceb598",
+    "bytes": 201
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0007": {
+    "attributes": 7,
+    "sha256": "065feee0c5f23287334758d1210b7f952651016413e0d11c2068bbddcb9a1b25",
+    "bytes": 174
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0008": {
+    "attributes": 7,
+    "sha256": "a5761d917742bb4462bcf99e0213d8b47094c1c56f8e85f6f628e1dcc60abb05",
+    "bytes": 207
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0009": {
+    "attributes": 7,
+    "sha256": "4d387b02d63b2f4cd7f667feb0a387fe47a10a3e26bf3533ddd001c605f3dec5",
+    "bytes": 88
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/BootOrder": {
+    "attributes": 7,
+    "sha256": "3c7acfa845b57df9e3a46779d4f17c7eb9d697d63dd8b2c30c176c6fec90051b",
+    "bytes": 20
+  },
+  "4c19049f-4137-4dd3-9c10-8b97a83ffdfa/MemoryTypeInformation": {
+    "attributes": 3,
+    "sha256": "eccb9fb6a73693f900ffd0a148a347a5ba03218c61e6fc86115beab8baa2531f",
+    "bytes": 48
+  },
+  "fab7e9e1-39dd-4f2b-8408-e20e906cb6de/HDDP": {
+    "attributes": 3,
+    "sha256": "d14c1a5f3e56996398c6f932847df2f4875869558081a67fff1a0c26fc99fb12",
+    "bytes": 64
+  },
+  "eb704011-1402-11d3-8e77-00a0c969723b/MTC": {
+    "attributes": 7,
+    "sha256": "26b25d457597a7b0463f9620f666dd10aa2c4373a505967c7c8d70922a2d6ece",
+    "bytes": 4
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/ConOut": {
+    "attributes": 7,
+    "sha256": "7f2955af0cc545383658ce9880051349878e767fd6579657d19e8a10cc1b5d8e",
+    "bytes": 103
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/ConIn": {
+    "attributes": 7,
+    "sha256": "eab6f5191feca04dc87a3cea98c026d638012e95b70347f31ca9d2811981d710",
+    "bytes": 122
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/ErrOut": {
+    "attributes": 7,
+    "sha256": "d1abfe68f0f17b45aa6cfade8bfb50d2b62af4e85f954f3ca56f53aa0143068d",
+    "bytes": 73
+  }
+}

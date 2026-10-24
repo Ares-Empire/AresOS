@@ -1,0 +1,1 @@
+ASCII SHA512/rounds/yescrypt hashes and raw/decoded token fixtures detected; real compressed PNG has no credential match.

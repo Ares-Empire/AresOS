@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "installed": false,
+  "both_orders": true,
+  "review_validated": true,
+  "detached_windows": true,
+  "target_reset": true,
+  "owner_auth_read_only": true,
+  "signature_verified": true,
+  "firmware_rule": "11f-linux-position",
+  "stock_recipe_probe": true,
+  "failure_counter_probe": true,
+  "commit": "909fe5a1d54345af550588ea926800930102c168"
+}

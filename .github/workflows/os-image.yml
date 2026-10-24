@@ -1,13 +1,22 @@
 name: OS image
-run-name: ${{ inputs.checks_only && 'OS regressions only (no VM)' || inputs.switch_from_run && 'OS published-image switch only' || 'OS image' }}
+run-name: ${{ inputs.rehearsal && format('Two-disk rehearsal ({0})', inputs.rehearsal) || inputs.checks_only && 'OS regressions only (no VM)' || inputs.switch_from_run && 'OS published-image switch only' || 'OS image' }}
 
 on:
   workflow_dispatch:
     inputs:
+      rehearsal:
+        description: 'Package 11: inspect pinned ISO or rehearse installation; never build/publish'
+        type: choice
+        options: ['', inspect, fixture, probe, part-b]
+        default: ''
       checks_only:
         description: 'Run regressions and live host state query; no image build or VM'
         type: boolean
         default: false
+      probe_run:
+        description: '11l Part B requires the passing probe run ID at this exact commit'
+        type: string
+        default: ''
       switch_from_run:
         description: 'Optional prior run with successful image job; retry only its published-image switch test'
         type: string
@@ -23,7 +32,7 @@ concurrency:
 jobs:
   regressions:
     name: Regression checks only (no image build or VM)
-    if: github.event_name == 'workflow_dispatch' && inputs.checks_only
+    if: github.event_name == 'workflow_dispatch' && inputs.checks_only && !inputs.rehearsal
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -34,11 +43,13 @@ jobs:
       - name: Install framebuffer regression dependency on disposable runner
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends python3-pil
+          sudo apt-get install -y --no-install-recommends python3-pil python3-yaml
       - name: Run regression and syntax checks
         run: |
           set -euo pipefail
           python3 -m unittest discover -s os/tests -v
+          python3 -m py_compile os/ci/*.py os/ci/overlay/*.py
+          for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done
           python3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/tests/audit.py os/tests/power-events.py
           for script in os/ci/*.sh os/release/*.sh os/ci/overlay/updater-generator os/build.sh os/tests/*.sh os/config/usr/bin/aresos-session os/config/usr/bin/aresos-terminal; do
             bash -n "$script"
@@ -51,20 +62,16 @@ jobs:
           assert '-.mount' in units and units['-.mount']['load_state'] == 'loaded', units.get('-.mount')
           print(f'Live hosted system manager passed: {len(files)} unit files, {len(units)} unit names')
           PY
-      - name: Preflight private package metadata access
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Record the org package-metadata limitation
         run: |
-          set -euo pipefail
-          mkdir -p .work
-          if gh api users/carlsenares/packages/container/aresos > .work/package.json 2>.work/package-error.txt; then
-            test "$(jq -r .visibility .work/package.json)" = private
-            echo 'Existing release package is private'
-          else
-            cat .work/package-error.txt
-            grep -q '(HTTP 404)' .work/package-error.txt
-            echo 'Release package does not exist yet; first publication will use private default'
-          fi
+          mkdir -p evidence
+          python3 - <<'PY'
+          import json, pathlib
+          pathlib.Path('evidence/package-metadata-access.json').write_text(json.dumps(dict(
+              status='not-possible-from-org-job-token', visibility_verified=False,
+              reason='User-owned package cannot grant Actions access to this org repository; owner secret is forbidden in this job')) + '\n')
+          print('Package visibility metadata NOT VERIFIED from the org; no owner-token API request made')
+          PY
       - name: Resolve release inputs without pulling image layers
         run: |
           mkdir -p evidence
@@ -81,7 +88,7 @@ jobs:
           path: evidence/
           retention-days: 3
   image:
-    if: (github.event_name != 'workflow_dispatch' || !inputs.checks_only) && !inputs.switch_from_run
+    if: (github.event_name != 'workflow_dispatch' || !inputs.checks_only) && !inputs.switch_from_run && !inputs.rehearsal
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -106,6 +113,8 @@ jobs:
           sudo modprobe nbd max_part=8
           df -B1 / > evidence/post-cleanup-disk.txt
           python3 -m unittest discover -s os/tests -v
+          python3 -m py_compile os/ci/*.py os/ci/overlay/*.py
+          for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done
           python3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/tests/audit.py os/tests/power-events.py
           for script in os/ci/*.sh os/release/*.sh os/ci/overlay/updater-generator os/build.sh os/tests/*.sh os/config/usr/bin/aresos-session os/config/usr/bin/aresos-terminal; do
             bash -n "$script"
@@ -213,7 +222,7 @@ jobs:
   switch:
     name: Published-image switch and rollback
     needs: image
-    if: always() && !cancelled() && !inputs.checks_only && (needs.image.result == 'success' || inputs.switch_from_run != '')
+    if: always() && !cancelled() && !inputs.checks_only && !inputs.rehearsal && (needs.image.result == 'success' || inputs.switch_from_run != '')
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     permissions:
@@ -272,6 +281,110 @@ jobs:
         if: always()
         with:
           name: os-switch-evidence
+          path: evidence/
+          retention-days: 3
+          if-no-files-found: error
+  rehearsal:
+    name: Pinned live ISO inspection and two-disk rehearsal
+    if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ inputs.rehearsal == 'part-b' && 130 || 40 }}
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Reserve the separate 11c minute budget (including privacy checks)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+          PROBE_RUN: ${{ inputs.probe_run }}
+        run: python3 os/ci/rehearsal_guard.py ci '${{ inputs.rehearsal == 'part-b' && 130 || 42 }}'
+      - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
+        with:
+          extra-squeeze: 'true'
+      - name: Qualify tools, regressions, rewritten release identity and private access
+        timeout-minutes: 15
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence .work/installer
+          bash os/ci/install-tools.sh
+          sudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools gnu-efi ntfs-3g dosfstools gdisk mtools psmisc tesseract-ocr
+          sudo apt-get install -y --no-install-recommends python3-venv
+          python3 -m venv --system-site-packages .work/browser-env
+          .work/browser-env/bin/pip install playwright==1.58.0
+          export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
+          .work/browser-env/bin/playwright install --with-deps chromium
+          .work/browser-env/bin/python -c 'import crypt, PIL, playwright.sync_api'
+          dpkg-query -W > evidence/rehearsal-host-packages.txt
+          python3 -m unittest discover -s os/tests -v
+          python3 -m py_compile os/ci/*.py os/ci/overlay/*.py
+          for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done
+          cp os/manifest/release.json evidence/release.json
+          python3 os/ci/verify_release.py 39818554327
+      - name: Create runner-temporary pinned-image credentials
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
+        env:
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: sudo -E python3 os/ci/rehearsal_auth.py create
+      - name: Verify exact private manifest with owner read-only credentials
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: sudo -E python3 os/ci/rehearsal_auth.py preflight
+      - name: Qualify the exact pinned layer pull without installing
+        if: github.event_name == 'workflow_dispatch' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
+        timeout-minutes: 9
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: sudo -E python3 os/ci/rehearsal_auth.py pull
+      - name: Inspect the exact pinned live ISO before assuming an installer path
+        if: inputs.rehearsal != 'fixture'
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/installer .work/installer
+          python3 os/ci/installer_inspect.py
+      - name: Prepare disposable file disks and qualify the real live environment
+        if: inputs.rehearsal != 'inspect'
+        timeout-minutes: ${{ inputs.rehearsal == 'part-b' && 106 || 80 }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: |
+          set -euo pipefail
+          export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
+          sudo python3 os/ci/prepare_two_disks.py
+          if test '${{ inputs.rehearsal }}' = fixture; then
+            sudo python3 - <<'PY'
+          import json, pathlib, sys
+          sys.path.insert(0, 'os/ci')
+          from disk_audit import offline_disk, boot_variables
+          result = dict(status='passed', vm_started=False,
+                        protected=offline_disk(pathlib.Path('.work/installer/protected.raw').resolve()),
+                        nvram=boot_variables('.work/installer/vars.fd'))
+          pathlib.Path('evidence/native-fixture.json').write_text(json.dumps(result, indent=2) + '\n')
+          print('Native file-backed GPT/EFI/MSR/NTFS/recovery and offline audit passed; no VM started')
+          PY
+          else
+            sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py '${{ inputs.rehearsal }}'
+          fi
+      - name: Remove owner registry credentials
+        if: always()
+        run: sudo -E python3 os/ci/rehearsal_auth.py cleanup
+      - name: Bound retained evidence
+        if: always()
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" evidence
+          test "$(du -sb evidence | cut -f1)" -lt 180000000
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: two-disk-evidence
           path: evidence/
           retention-days: 3
           if-no-files-found: error

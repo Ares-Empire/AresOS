@@ -1,0 +1,19 @@
+{
+  "status_record": "os/manifest/ci/11f/full-2/two-disk/stock-status.json",
+  "status_git_blob_sha256": "1659b1546aa362986bc6eeb6d64d2092ea60676d93f111b8f8cf1dfd1702f589",
+  "booted_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "booted_incompatible": false,
+  "staged_incompatible": false,
+  "source": "uupd v1.5.0 drv/system/system.go: BootcCompatible and InitializeSystemDriver",
+  "selected_driver": "bootc",
+  "command": [
+    "/usr/bin/bootc",
+    "upgrade",
+    "--quiet",
+    "--progress-fd",
+    "3"
+  ],
+  "process": "own child process, not rpm-ostreed.service",
+  "inference": "Tagged driver-selection source applied to the retained actual pinned-stock status; not a claim that an updater process was captured in 11i.",
+  "fallback": "rpm-ostree upgrade if bootc status fails or a slot is incompatible"
+}

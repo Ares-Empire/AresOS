@@ -1,0 +1,40 @@
+Bazzite installation
+Welcome
+Date and time
+Installation method
+Storage configuration
+Create Account
+Review and install
+Review and install
+Operating system
+Bazzite
+Language
+English (United States)
+Timezone
+Europe/Berlin
+Account
+Ares recovery (ares-recovery)
+Installation type
+Use entire disk
+Storage
+52.6 GB vdb (Virtio Block Device)
+Device
+
+Size
+
+Actions
+
+Encrypted
+
+Mount point
+
+Helper text
+
+vdb1	629 MB	format as efi		/boot/efi
+vdb2	2.15 GB	format as ext4		/boot
+vdb3	49.8 GB	format as btrfs subvolume		/
+vdb3	49.8 GB	format as btrfs subvolume		/home
+vdb3	49.8 GB	format as btrfs subvolume		/var
+Back
+Erase data and install
+Quit

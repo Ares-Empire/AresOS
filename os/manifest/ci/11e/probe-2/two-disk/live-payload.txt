@@ -1,0 +1,15 @@
+]3008;end=ab5bc274-8270-4c24-ac52-6eabaa2b845a;exit=success\]3008;start=c05d2e73-4e3a-4b52-a1a1-9f4c3de7072e;type=shell;machineid=ba5d61db7e34486cb659e64429518d75;user=root;hostname=localhost-live;bootid=5030990f-c924-46d0-8980-30081898bb14;pid=2294;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=7eb1acb7-cea2-464d-875c-40ccbbc7e760;type=command;machineid=ba5d61db7e34486cb659e64429518d75;user=root;hostname=localhost-live;bootid=5030990f-c924-46d0-8980-30081898bb14;pid=2294;cwd=/root\sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151
+/usr/sbin/runuser
+/usr/sbin/curl
+/usr/sbin/python3
+/usr/sbin/busctl
+/usr/sbin/ss
+/usr/sbin/liveinst
+
+ARESOS_CMD_DONE:0

@@ -1,0 +1,786 @@
+{
+  "status": "PLAN-GAP STOP",
+  "qualified": false,
+  "inspection_run": 40099746381,
+  "source": "6b08aa30251da875481b4af0c646e508d245d935",
+  "iso_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "sources": [
+    {
+      "path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/installation.py",
+      "bytes": 9483,
+      "sha256": "f3a348993523390c757aeab826a86110f9c92f817372173f91af2b06c34381db"
+    },
+    {
+      "path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/localed.py",
+      "bytes": 17659,
+      "sha256": "f0f8eb597455f88e656c81c9bcb3f3636418a6d92883b2c9ef4f9c012292a8af"
+    },
+    {
+      "path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/utils.py",
+      "bytes": 3498,
+      "sha256": "9131865a34cb8e978d34083f9c981e84401fbf9852f7ca4f213b2dc9abb001e1"
+    }
+  ],
+  "finding": "convert_layouts restores layouts and keymap but never saves/restores X11 options; both SetX11Keyboard calls pass empty options",
+  "call_semantics": "Sequential ordinary proxy calls; no asynchronous restore, polling, or completion callback in these functions",
+  "synchronous_mock_cases": [
+    {
+      "initial_options": "",
+      "before": [
+        "us",
+        [
+          "de"
+        ],
+        []
+      ],
+      "after_immediate": [
+        "us",
+        [
+          "de"
+        ],
+        []
+      ],
+      "resolved_layouts": [
+        "de"
+      ],
+      "resolved_keymap": "de",
+      "calls": [
+        {
+          "method": "SetX11Keyboard",
+          "args": [
+            "de",
+            "pc105",
+            "",
+            "",
+            true,
+            false
+          ]
+        },
+        {
+          "method": "SetX11Keyboard",
+          "args": [
+            "de",
+            "pc105",
+            "",
+            "",
+            false,
+            false
+          ]
+        },
+        {
+          "method": "SetVConsoleKeyboard",
+          "args": [
+            "us",
+            "",
+            false,
+            false
+          ]
+        }
+      ],
+      "simulated_observations": [
+        {
+          "simulated_elapsed_seconds": 0.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 0.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 1.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 1.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 2.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 2.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 3.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 3.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 4.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 4.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 5.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 5.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 6.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 6.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 7.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 7.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 8.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 8.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 9.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 9.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 10.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 10.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 11.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 11.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 12.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 12.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 13.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 13.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 14.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 14.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 15.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        }
+      ],
+      "exact_tuple_restored": true
+    },
+    {
+      "initial_options": "caps:escape",
+      "before": [
+        "us",
+        [
+          "de"
+        ],
+        [
+          "caps:escape"
+        ]
+      ],
+      "after_immediate": [
+        "us",
+        [
+          "de"
+        ],
+        []
+      ],
+      "resolved_layouts": [
+        "de"
+      ],
+      "resolved_keymap": "de",
+      "calls": [
+        {
+          "method": "SetX11Keyboard",
+          "args": [
+            "de",
+            "pc105",
+            "",
+            "",
+            true,
+            false
+          ]
+        },
+        {
+          "method": "SetX11Keyboard",
+          "args": [
+            "de",
+            "pc105",
+            "",
+            "",
+            false,
+            false
+          ]
+        },
+        {
+          "method": "SetVConsoleKeyboard",
+          "args": [
+            "us",
+            "",
+            false,
+            false
+          ]
+        }
+      ],
+      "simulated_observations": [
+        {
+          "simulated_elapsed_seconds": 0.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 0.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 1.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 1.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 2.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 2.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 3.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 3.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 4.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 4.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 5.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 5.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 6.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 6.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 7.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 7.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 8.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 8.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 9.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 9.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 10.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 10.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 11.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 11.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 12.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 12.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 13.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 13.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 14.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 14.5,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        },
+        {
+          "simulated_elapsed_seconds": 15.0,
+          "value": [
+            "us",
+            [
+              "de"
+            ],
+            []
+          ]
+        }
+      ],
+      "exact_tuple_restored": false
+    }
+  ],
+  "actual_full_3_cause": "unproven: before/after tuples were not exported",
+  "actual_vm_settle_timings": null,
+  "installed_keyboard_evidence": null,
+  "owner_token_used": false,
+  "owner_token_api_calls": 0,
+  "skipped_steps": [
+    "Create runner-temporary pinned-image credentials",
+    "Verify exact private manifest with owner read-only credentials",
+    "Qualify the exact pinned layer pull without installing",
+    "Prepare disposable file disks and qualify the real live environment"
+  ],
+  "native_regressions": 162,
+  "part_a": "not qualified",
+  "part_b": "untested",
+  "implementation_after_source_finding": "none; stop before settle/installed-target changes or probe/full dispatch",
+  "inputs": {
+    "reviews/11-two-disk-rehearsal/artifacts/11h-inspect-1-two-disk-evidence.zip": "9d6a008214721977c3609758d88bd4441d5c8a7b0c18358e58886c8b5e73a7df",
+    "reviews/11-two-disk-rehearsal/artifacts/11h-inspect-1-workflow-logs.zip": "3c4975b9b1a8da785d4d14b3363451c10ade56619dd695c33230a24116935943",
+    "os/manifest/ci/11h/inspect-1/installer/localization-source.json": "fef49439eb636c0d8a2cc9c088473771e66567c8eeeb49234f9342e3017eb349",
+    "os/manifest/ci/11g/full-3/two-disk/webui-keyboard-proof.txt": "3429e3ef58f39ef0eda90ed5aad84e68530fa8532b329b24a04f90701531e0bf",
+    "os/ci/installer_webui.py": "82b50bdecb53be55b18c7a4fb5b3ed77980d06c9399922f926041411a7b0299e"
+  }
+}

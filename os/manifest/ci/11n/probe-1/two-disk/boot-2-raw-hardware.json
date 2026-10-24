@@ -1,0 +1,539 @@
+{
+  "query_pci": [
+    {
+      "bus": 0,
+      "devices": [
+        {
+          "irq_pin": 0,
+          "bus": 0,
+          "qdev_id": "",
+          "slot": 0,
+          "class_info": {
+            "class": 1536,
+            "desc": "Host bridge"
+          },
+          "id": {
+            "device": 10688,
+            "subsystem-vendor": 6900,
+            "vendor": 32902,
+            "subsystem": 4352
+          },
+          "function": 0,
+          "regions": []
+        },
+        {
+          "irq_pin": 1,
+          "bus": 0,
+          "qdev_id": "",
+          "irq": 0,
+          "slot": 1,
+          "class_info": {
+            "class": 512,
+            "desc": "Ethernet controller"
+          },
+          "id": {
+            "device": 4096,
+            "subsystem-vendor": 6900,
+            "vendor": 6900,
+            "subsystem": 1
+          },
+          "function": 0,
+          "regions": [
+            {
+              "bar": 0,
+              "size": 32,
+              "address": -1,
+              "type": "io"
+            },
+            {
+              "prefetch": true,
+              "mem_type_64": true,
+              "bar": 4,
+              "size": 16384,
+              "address": -1,
+              "type": "memory"
+            },
+            {
+              "prefetch": false,
+              "mem_type_64": false,
+              "bar": 6,
+              "size": 524288,
+              "address": -1,
+              "type": "memory"
+            }
+          ]
+        },
+        {
+          "irq_pin": 1,
+          "bus": 0,
+          "qdev_id": "protected-device",
+          "irq": 0,
+          "slot": 2,
+          "class_info": {
+            "class": 256,
+            "desc": "SCSI controller"
+          },
+          "id": {
+            "device": 4097,
+            "subsystem-vendor": 6900,
+            "vendor": 6900,
+            "subsystem": 2
+          },
+          "function": 0,
+          "regions": [
+            {
+              "bar": 0,
+              "size": 128,
+              "address": -1,
+              "type": "io"
+            },
+            {
+              "prefetch": false,
+              "mem_type_64": false,
+              "bar": 1,
+              "size": 4096,
+              "address": -1,
+              "type": "memory"
+            },
+            {
+              "prefetch": true,
+              "mem_type_64": true,
+              "bar": 4,
+              "size": 16384,
+              "address": -1,
+              "type": "memory"
+            }
+          ]
+        },
+        {
+          "irq_pin": 1,
+          "bus": 0,
+          "qdev_id": "target-device",
+          "irq": 0,
+          "slot": 3,
+          "class_info": {
+            "class": 256,
+            "desc": "SCSI controller"
+          },
+          "id": {
+            "device": 4097,
+            "subsystem-vendor": 6900,
+            "vendor": 6900,
+            "subsystem": 2
+          },
+          "function": 0,
+          "regions": [
+            {
+              "bar": 0,
+              "size": 128,
+              "address": -1,
+              "type": "io"
+            },
+            {
+              "prefetch": false,
+              "mem_type_64": false,
+              "bar": 1,
+              "size": 4096,
+              "address": -1,
+              "type": "memory"
+            },
+            {
+              "prefetch": true,
+              "mem_type_64": true,
+              "bar": 4,
+              "size": 16384,
+              "address": -1,
+              "type": "memory"
+            }
+          ]
+        },
+        {
+          "irq_pin": 1,
+          "bus": 0,
+          "qdev_id": "",
+          "irq": 0,
+          "slot": 4,
+          "class_info": {
+            "class": 768,
+            "desc": "VGA controller"
+          },
+          "id": {
+            "device": 4176,
+            "subsystem-vendor": 6900,
+            "vendor": 6900,
+            "subsystem": 4352
+          },
+          "function": 0,
+          "regions": [
+            {
+              "prefetch": true,
+              "mem_type_64": false,
+              "bar": 0,
+              "size": 8388608,
+              "address": -1,
+              "type": "memory"
+            },
+            {
+              "prefetch": true,
+              "mem_type_64": true,
+              "bar": 2,
+              "size": 16384,
+              "address": -1,
+              "type": "memory"
+            },
+            {
+              "prefetch": false,
+              "mem_type_64": false,
+              "bar": 4,
+              "size": 4096,
+              "address": -1,
+              "type": "memory"
+            },
+            {
+              "prefetch": false,
+              "mem_type_64": false,
+              "bar": 6,
+              "size": 65536,
+              "address": -1,
+              "type": "memory"
+            }
+          ]
+        },
+        {
+          "irq_pin": 1,
+          "bus": 0,
+          "qdev_id": "usb-controller",
+          "irq": 0,
+          "slot": 5,
+          "class_info": {
+            "class": 3075,
+            "desc": "USB controller"
+          },
+          "id": {
+            "device": 13,
+            "subsystem-vendor": 6900,
+            "vendor": 6966,
+            "subsystem": 4352
+          },
+          "function": 0,
+          "regions": [
+            {
+              "prefetch": false,
+              "mem_type_64": true,
+              "bar": 0,
+              "size": 16384,
+              "address": -1,
+              "type": "memory"
+            }
+          ]
+        },
+        {
+          "irq_pin": 1,
+          "bus": 0,
+          "qdev_id": "owner-auth-device",
+          "irq": 0,
+          "slot": 6,
+          "class_info": {
+            "class": 2
+          },
+          "id": {
+            "device": 4105,
+            "subsystem-vendor": 6900,
+            "vendor": 6900,
+            "subsystem": 9
+          },
+          "function": 0,
+          "regions": [
+            {
+              "bar": 0,
+              "size": 64,
+              "address": -1,
+              "type": "io"
+            },
+            {
+              "prefetch": false,
+              "mem_type_64": false,
+              "bar": 1,
+              "size": 4096,
+              "address": -1,
+              "type": "memory"
+            },
+            {
+              "prefetch": true,
+              "mem_type_64": true,
+              "bar": 4,
+              "size": 16384,
+              "address": -1,
+              "type": "memory"
+            }
+          ]
+        },
+        {
+          "irq_pin": 0,
+          "bus": 0,
+          "qdev_id": "",
+          "slot": 31,
+          "class_info": {
+            "class": 1537,
+            "desc": "ISA bridge"
+          },
+          "id": {
+            "device": 10520,
+            "subsystem-vendor": 6900,
+            "vendor": 32902,
+            "subsystem": 4352
+          },
+          "function": 0,
+          "regions": []
+        },
+        {
+          "irq_pin": 1,
+          "bus": 0,
+          "qdev_id": "",
+          "irq": 0,
+          "slot": 31,
+          "class_info": {
+            "class": 262,
+            "desc": "SATA controller"
+          },
+          "id": {
+            "device": 10530,
+            "subsystem-vendor": 6900,
+            "vendor": 32902,
+            "subsystem": 4352
+          },
+          "function": 2,
+          "regions": [
+            {
+              "bar": 4,
+              "size": 32,
+              "address": -1,
+              "type": "io"
+            },
+            {
+              "prefetch": false,
+              "mem_type_64": false,
+              "bar": 5,
+              "size": 4096,
+              "address": -1,
+              "type": "memory"
+            }
+          ]
+        },
+        {
+          "irq_pin": 1,
+          "bus": 0,
+          "qdev_id": "",
+          "irq": 0,
+          "slot": 31,
+          "class_info": {
+            "class": 3077,
+            "desc": "SMBus"
+          },
+          "id": {
+            "device": 10544,
+            "subsystem-vendor": 6900,
+            "vendor": 32902,
+            "subsystem": 4352
+          },
+          "function": 3,
+          "regions": [
+            {
+              "bar": 4,
+              "size": 64,
+              "address": -1,
+              "type": "io"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "query_block": [
+    {
+      "device": "pflash0",
+      "locked": false,
+      "removable": false,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 3653632,
+          "filename": "/usr/share/OVMF/OVMF_CODE_4M.fd",
+          "format": "raw",
+          "actual-size": 3653632,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": true,
+        "node-name": "#block197",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/usr/share/OVMF/OVMF_CODE_4M.fd"
+      },
+      "qdev": "/machine/system.flash0",
+      "type": "unknown"
+    },
+    {
+      "device": "pflash1",
+      "locked": false,
+      "removable": false,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 540672,
+          "filename": "/home/runner/work/AresOS/AresOS/.work/installer/vars.fd",
+          "format": "raw",
+          "actual-size": 540672,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": false,
+        "node-name": "#block371",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/home/runner/work/AresOS/AresOS/.work/installer/vars.fd"
+      },
+      "qdev": "/machine/system.flash1",
+      "type": "unknown"
+    },
+    {
+      "io-status": "ok",
+      "device": "protected",
+      "locked": false,
+      "removable": false,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 53687091200,
+          "filename": "/home/runner/work/AresOS/AresOS/.work/installer/protected.raw",
+          "format": "raw",
+          "actual-size": 79470592,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": false,
+        "node-name": "#block592",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/home/runner/work/AresOS/AresOS/.work/installer/protected.raw"
+      },
+      "qdev": "/machine/peripheral/protected-device/virtio-backend",
+      "type": "unknown"
+    },
+    {
+      "io-status": "ok",
+      "device": "target",
+      "locked": false,
+      "removable": false,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 52613349376,
+          "filename": "/home/runner/work/AresOS/AresOS/.work/installer/target.raw",
+          "format": "raw",
+          "actual-size": 0,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": false,
+        "node-name": "#block769",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/home/runner/work/AresOS/AresOS/.work/installer/target.raw"
+      },
+      "qdev": "/machine/peripheral/target-device/virtio-backend",
+      "type": "unknown"
+    },
+    {
+      "io-status": "ok",
+      "device": "installer-cd",
+      "locked": false,
+      "removable": true,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 9068650496,
+          "filename": "/home/runner/work/AresOS/AresOS/.work/installer/bazzite-nvidia-open-stable-live-amd64.iso",
+          "format": "raw",
+          "actual-size": 9068654592,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": true,
+        "node-name": "#block931",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/home/runner/work/AresOS/AresOS/.work/installer/bazzite-nvidia-open-stable-live-amd64.iso"
+      },
+      "qdev": "installer-cd-device",
+      "tray_open": false,
+      "type": "unknown"
+    },
+    {
+      "device": "sd0",
+      "locked": false,
+      "removable": true,
+      "type": "unknown"
+    }
+  ]
+}

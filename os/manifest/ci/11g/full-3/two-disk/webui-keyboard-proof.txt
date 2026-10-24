@@ -1,0 +1,23 @@
+]3008;end=b4110e53-aea5-4937-8832-7e94dcf76e63;exit=success\]3008;start=4ffea5f5-dd1b-494d-bb32-6aef7e8b0303;type=shell;machineid=0f821c0ce38e4c67ae0df16f0fce785f;user=root;hostname=localhost-live;bootid=491200ac-1734-4858-8899-7704d079133c;pid=2283;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=a644da4f-e30e-466f-b114-222b2ac65e20;type=command;machineid=0f821c0ce38e4c67ae0df16f0fce785f;user=root;hostname=localhost-live;bootid=491200ac-1734-4858-8899-7704d079133c;pid=2283;cwd=/root\KEYBOARD_BEFORE_IMPORT ('as 1 "de"', 's ""')
+failed to load module mpath: libbd_mpath.so.3: cannot open shared object file: No such file or directory
+Traceback (most recent call last):
+  File [35m"<string>"[0m, line [35m23[0m, in [35m<module>[0m
+    assert [1;31mbefore == after[0m, 'Conversion did not restore live settings'
+           [1;31m^^^^^^^^^^^^^^^[0m
+[1;35mAssertionError[0m: [35mConversion did not restore live settings[0m
+
+ARESOS_CMD_DONE:1

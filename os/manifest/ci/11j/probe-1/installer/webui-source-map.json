@@ -1,0 +1,413 @@
+{
+  "source_map_sha256": "de301b46d770b5ce75ee3b00be8416c5b8de1a5348dfe0c4ab282f8e8b3ef36a",
+  "sources": [
+    {
+      "path": "index.js",
+      "sha256": "389ebdd3fd903a77f49e76d6a9b17fdfd9d3b7dbeac5b9c6e6f92f6f0af7e213"
+    },
+    {
+      "path": "helpers/language.js",
+      "sha256": "07be5c88b9a8ff480a7417904db03cea260a0ca9e4025b3ca64bdd9932782758"
+    },
+    {
+      "path": "components/app.jsx",
+      "sha256": "da77c407281fca0d7fb8072a8478c340300623ebc9927fb8f7ebb6aad89e8959"
+    },
+    {
+      "path": "helpers/log.js",
+      "sha256": "3ab3474eb5f20b4298d2347cb11e490d08d69824c58d30ed18ae40499ea22a5a"
+    },
+    {
+      "path": "apis/helpers.js",
+      "sha256": "8338a23d5a2bbd589a863989da1eaeb48c10de4f2977572f9739116d9c98700b"
+    },
+    {
+      "path": "apis/boss.js",
+      "sha256": "58b6c9f6ee25984b14be668c8e70cdc54c51396306b651df376060edf46b4255"
+    },
+    {
+      "path": "actions/localization-actions.js",
+      "sha256": "46372b3d73be90a67f6c6b86abe28d1921777e43944bf6a660bf74b9717e6229"
+    },
+    {
+      "path": "apis/localization.js",
+      "sha256": "372c1da73fc2154ae1ce47f672259f15a869f89456e11ce31d3778473462af0a"
+    },
+    {
+      "path": "actions/network-actions.js",
+      "sha256": "22f375988319d1779d2a1952500efb320911f3f63c7a68b469836ecfb02fd010"
+    },
+    {
+      "path": "apis/network.js",
+      "sha256": "fe55f633379059d3692e54f2203b0a8f307dfd5d7a6dffc6d1a91b90e9bc576c"
+    },
+    {
+      "path": "actions/payload.js",
+      "sha256": "0577c478e3f4809bc64a33eb8de16280ec86845a573777539efba4342564f846"
+    },
+    {
+      "path": "actions/payload-dnf-actions.js",
+      "sha256": "19a3905ac7be6f5a65e605fa696d39136dd583969bd216a6d5b23c1aaebb5dd2"
+    },
+    {
+      "path": "apis/payload_dnf.js",
+      "sha256": "4738e6efec7ccb6565da87292c62d3f11b408782bcd4dfb1748926eb6528e80d"
+    },
+    {
+      "path": "apis/payloads.js",
+      "sha256": "7285528f0b16f024c87cb137321fd116041e667b76d9843ef273c9e355ad1c2b"
+    },
+    {
+      "path": "actions/runtime-actions.js",
+      "sha256": "a4169c71fdd1e243c5607d93b1be8ce7f5f29f680539d6a7c00e3adebea31c40"
+    },
+    {
+      "path": "apis/runtime.js",
+      "sha256": "d1750729113ce9bf7c06a412c7cce5692a2d785d2522c83ab99bf187cb95f2a2"
+    },
+    {
+      "path": "apis/storage_devicetree.js",
+      "sha256": "d3dc4c01c01c3f92bfc1de2cf4b5c038d8de8c31b7057529926f7e3a4d629d09"
+    },
+    {
+      "path": "apis/storage_disks_selection.js",
+      "sha256": "cf5dccd2eb20fa76ed4723724cc700abdc43c37eb06d54334c06e070461413c9"
+    },
+    {
+      "path": "helpers/utils.js",
+      "sha256": "46abcb80e830dcb2523bb1fe16f8c24cd5115e9380fd299f5c1abd71e2ba9285"
+    },
+    {
+      "path": "helpers/storage.js",
+      "sha256": "a43a8d186f7b25dc378b7960b698b711eb41441974a5f796805423e442f8a0c2"
+    },
+    {
+      "path": "apis/storage_bootloader.js",
+      "sha256": "ec8b0f977132f8a943d43dfa98e68176a7f4a78c63f259e1a38435fee2de26ce"
+    },
+    {
+      "path": "apis/storage_partitioning.js",
+      "sha256": "023ede3499406f1a729f4a5123e650523633a7d3bb6a518896264feb8018ba58"
+    },
+    {
+      "path": "actions/storage-actions.js",
+      "sha256": "4a6123715d8b81a0035fff79acd68703644038a350df64fac5a18154514746c3"
+    },
+    {
+      "path": "apis/storage.js",
+      "sha256": "32c0f6e021107f8ac60b9093aaeedca2970cd884e33ebf62bdd1d7f38cd5623d"
+    },
+    {
+      "path": "actions/timezone-actions.js",
+      "sha256": "dab99d668c6d047f1cdcfb3815ea6a372ef03eaac3c79069a8e954d78273d154"
+    },
+    {
+      "path": "apis/timezone.js",
+      "sha256": "903404f6aae0d14c360fa47282ef3073dae0618a537d306ce1d1c207368934da"
+    },
+    {
+      "path": "apis/users.js",
+      "sha256": "bbe90accf575d37275a01c9b6fbf4f6307f246195335d54ed9d572dbf587f7b4"
+    },
+    {
+      "path": "apis/index.js",
+      "sha256": "5745480ecbf364a28dfc9858c53c5d86cb2e09f56bd52d631d7bcf9ef587456f"
+    },
+    {
+      "path": "reducer.js",
+      "sha256": "1f906c6e60f35124a86edd0469f4136c96cffc959ac00e8d8856593ed2ec3c2f"
+    },
+    {
+      "path": "helpers/conf.js",
+      "sha256": "399f7ac10221a5960b3989088926995cadb09578e27cd8e82b8efe7764d51873"
+    },
+    {
+      "path": "helpers/product.js",
+      "sha256": "577e339863cd56d74e4d0768d6861b65b9b5f66643d133c8cc59720ea859df7a"
+    },
+    {
+      "path": "contexts/Common.jsx",
+      "sha256": "e2e570e904e52d349d6de27bfe668c6a2c1b1ee9b60455ed11470fe0f1ea22c3"
+    },
+    {
+      "path": "components/AnacondaHeader.jsx",
+      "sha256": "5746d17872b7723864a9b49191a98af8268936cd33172075c0def293033d12fe"
+    },
+    {
+      "path": "components/HeaderKebab.jsx",
+      "sha256": "7011aa14c45d178037312a74f2d40b71e2b20f752fed94775d8229e6da76305f"
+    },
+    {
+      "path": "components/Error.jsx",
+      "sha256": "3ae0b90a0d31cee70df4c8e82152f344e09374c9ab269cf7c59ffb90ed8c9200"
+    },
+    {
+      "path": "helpers/bugzilla.js",
+      "sha256": "13d359620b9f9f6f10b18fed8ee55cefaf51b33307e900df639c53274c1f058e"
+    },
+    {
+      "path": "helpers/exit.js",
+      "sha256": "589b6a60af90aa9371f759ba1e85b806752744afaf489b6dd7e438a3bc218527"
+    },
+    {
+      "path": "scripts/create-bugzilla-bug.py",
+      "sha256": "9ea869c183d5b24e1df3cb27fa21eda9437e4e9b3eb47e8edf282bf6635ed151"
+    },
+    {
+      "path": "scripts/validate-bugzilla-api-key.py",
+      "sha256": "0ca9e3462f48583e2a67e50daff80b0da227db2b78d743139dd77e5cb32e73a3"
+    },
+    {
+      "path": "components/common/ExternalLink.jsx",
+      "sha256": "5fc88758a900a6ca4b96648ed8e8533dd2b04f8e332d0f7f4813b4dc64a405d0"
+    },
+    {
+      "path": "components/network/CockpitNetworkConfiguration.jsx",
+      "sha256": "c567675af604366e1927ac90965c5b1a21d9977cbca0a076ebf0021e19413358"
+    },
+    {
+      "path": "hooks/CockpitIntegration.jsx",
+      "sha256": "0467b87facc8b3f6252bfdaa1d8f4c63d73b5d72cb22ba653586eca5eb9e3df9"
+    },
+    {
+      "path": "components/storage/cockpit-storage-integration/CockpitStorageIntegration.jsx",
+      "sha256": "6f5c840d78814e1c341ccb8ac36ea9bb7726284414b2f6935ee622fd977197d5"
+    },
+    {
+      "path": "hooks/Storage.jsx",
+      "sha256": "ff7e3dce76f5babcb0fb3bf6bdfe1a39e96c4e7bd060ee1deb0924773e4cdd2e"
+    },
+    {
+      "path": "apis/storage_disk_initialization.js",
+      "sha256": "64c4d03a182b5ae72869ed00201052ad09d2f7a9ccd24f89dc92bfd079d7251b"
+    },
+    {
+      "path": "components/storage/scenarios/index.js",
+      "sha256": "f78879d152375a3dc3c74c8563029255eab21f01af3271e70f501846444930db"
+    },
+    {
+      "path": "components/storage/scenarios/erase-all/EraseAll.jsx",
+      "sha256": "b70a00c2b637dfc296f56db1eef118cb9e4e240637e5fe6435620128cdc04bb3"
+    },
+    {
+      "path": "components/storage/scenarios/helpers.js",
+      "sha256": "f80b8602546d9a3f8bcc6f847d59fbfc250012c97c077fc0e0455ecf14deb7e5"
+    },
+    {
+      "path": "components/storage/scenarios/erase-all/index.js",
+      "sha256": "7a192ca8137369c73fb500caa735ec8df6ab02ae3bd349171a7f9636124c0c10"
+    },
+    {
+      "path": "components/storage/scenarios/mount-point-mapping/MountPointMapping.jsx",
+      "sha256": "e9340feaa14cb9e5428cec1d5951a7a7e4c77ec6c29704ed6825e1108a4c8aac"
+    },
+    {
+      "path": "components/storage/scenarios/mount-point-mapping/index.js",
+      "sha256": "c2a0358410bd4237a776b339f17df9b8988d48ce9deef3ec467d81a0f60691e9"
+    },
+    {
+      "path": "components/storage/scenarios/reinstall-fedora/ReinstallFedora.jsx",
+      "sha256": "113b28a35ffe711df75b364457ee45217788ddd8034d131678d1ed7753265234"
+    },
+    {
+      "path": "components/storage/scenarios/reinstall-fedora/index.js",
+      "sha256": "2bb84683d530a165e7341e0c32caa19d908c61d9ece3cde4143868677cce57a9"
+    },
+    {
+      "path": "components/storage/scenarios/use-configured-storage/UseConfiguredStorage.jsx",
+      "sha256": "5fc30579f31b5ba0a3ba364d777374325f9c81d364df3312c48b0f2001e823e1"
+    },
+    {
+      "path": "components/storage/scenarios/use-configured-storage/index.js",
+      "sha256": "422617cd69cf531eeda9da1e0b200f6d637553372b041c6b3bdd3e73418b54e8"
+    },
+    {
+      "path": "components/storage/scenarios/use-free-space/UseFreeSpace.jsx",
+      "sha256": "1ba08a626b406f7a2debd9429f50c14c95756745a69c70f6561e19b85cc4290a"
+    },
+    {
+      "path": "components/storage/scenarios/use-free-space/index.js",
+      "sha256": "2aff25125fcffb316c0689ace40178cf4bd8eb676d0dc770bc30148862e66a1c"
+    },
+    {
+      "path": "components/storage/cockpit-storage-integration/CheckStorageDialog.jsx",
+      "sha256": "c7604a5d7c519b2bbcd36de9dde7d2c86dd2000d36ca43b393602c1682ac771e"
+    },
+    {
+      "path": "components/review/StorageReview.jsx",
+      "sha256": "f2c0ff4ba672b4967ec262fc29c7488e02355215cf5d44cdd9d341c05402336c"
+    },
+    {
+      "path": "components/review/Common.jsx",
+      "sha256": "d72b30b5b7f83b3d1acd5dd3ec7585aec5d82865c29d94ef9be295b83a7bdae0"
+    },
+    {
+      "path": "components/storage/cockpit-storage-integration/CockpitStorageIntegrationSidebar.jsx",
+      "sha256": "011dc4847eae6ae4a71c120e7607afdd48916e69adfb26c0ecd08aed3614d2b3"
+    },
+    {
+      "path": "components/AnacondaWizard.jsx",
+      "sha256": "2c2461057ed27f55f44f950b6fea0978ab67cc5a9121d2850bd7eb7d575c6207"
+    },
+    {
+      "path": "components/AnacondaPage.jsx",
+      "sha256": "efaea259a6ea4be820d00c60002f388b8a67bb963f2e754f92bf896b3d675925"
+    },
+    {
+      "path": "components/AnacondaWizardFooter.jsx",
+      "sha256": "8d819cb702980ae8c0a908a29f30c4b355aa5682b50a0954001bfb9f5cae20ee"
+    },
+    {
+      "path": "components/datetime/DateAndTime.jsx",
+      "sha256": "90b494fdc7c7830fbfffc2e57cbc6738260f390678dc930693ce2838001b3ff2"
+    },
+    {
+      "path": "helpers/timezone.js",
+      "sha256": "9ecacc8b21ee48410d948aa4f80ff2fd544f6a74a6c5ec8965e23667759ddc9a"
+    },
+    {
+      "path": "components/datetime/CustomNTPModal.jsx",
+      "sha256": "df757dde9af0460da29694abf0f0943e2bc4f0bcb080494a597d0a5981685115"
+    },
+    {
+      "path": "components/datetime/Timezone.jsx",
+      "sha256": "51f289590135ac5eae6f775e3a8ab6809fd085e35aee6d6a860311157fc39e39"
+    },
+    {
+      "path": "components/datetime/index.js",
+      "sha256": "85338b158d08f888c68e91c1f274db4bae237d6e3529b4790d7d912991b57a57"
+    },
+    {
+      "path": "components/installation/InstallationProgress.jsx",
+      "sha256": "100883f05dd01a69a8db461daf53e3e972c775181f106aedd664cc7a62043e35"
+    },
+    {
+      "path": "components/installation/Feedback.jsx",
+      "sha256": "c819f1f97e67df04fd8456cf8b68786ad7a672b169e7c39a19d0911e7da0867c"
+    },
+    {
+      "path": "components/installation/index.js",
+      "sha256": "8bee34fb92395f33871b2eac37ad914b57748cf6e9f9603f47770cb75840d972"
+    },
+    {
+      "path": "components/localization/InstallationLanguage.jsx",
+      "sha256": "d9eca501d9e5b9462433ac96cb677a2d248ef214dd58be57b26c10cc3bb0e972"
+    },
+    {
+      "path": "components/common/MenuSearch.jsx",
+      "sha256": "8206404349ffef3cafc1d79233a8fb0c1cb942bd2e43a640f9c4c23682587b95"
+    },
+    {
+      "path": "components/localization/Keyboard.jsx",
+      "sha256": "dd37ef6aa41be5cae213372852ac168f11bf3d6772e4f32b12422cb21a74e969"
+    },
+    {
+      "path": "helpers/localization.js",
+      "sha256": "f900bdb9cb85d476e53e64be7a0a8bde361452e342eb8399ba3719c0039a6bed"
+    },
+    {
+      "path": "components/localization/index.js",
+      "sha256": "9ea6296526e7000ad982e319d67957532548d281a789357249b74bf092317998"
+    },
+    {
+      "path": "components/review/ReviewConfiguration.jsx",
+      "sha256": "79e7a45b0154f4e3f17b3e28767b54a4d852ce626c5edb0bf6d1228a257f0d55"
+    },
+    {
+      "path": "components/storage/installation-method/InstallationScenario.jsx",
+      "sha256": "c9f0630774cf981c360e20e38d4c61cffe759990593ced18ef5d7438cdf99708"
+    },
+    {
+      "path": "components/storage/installation-method/EncryptedDevices.jsx",
+      "sha256": "1052e88548b095c164a2519453c6fbbbd027a0784457e414eb2aea94a1a3a634"
+    },
+    {
+      "path": "components/review/Hostname.jsx",
+      "sha256": "5abc5a4095e57aa7f8a7186ec2cde90bc68a72a702645b188d0824f3faa0c2b8"
+    },
+    {
+      "path": "components/review/index.js",
+      "sha256": "bcc770ff19433cd36800553d5dbbf15514612493d21f61d8e1ae48fee9340a1f"
+    },
+    {
+      "path": "components/software/SoftwareSelection.jsx",
+      "sha256": "f8b242eeee9fe1fd83c39cd30acb5594c759c5b7a7d3d07b3ec97afdac1bfb96"
+    },
+    {
+      "path": "components/software/index.js",
+      "sha256": "98ff3e2452133d84299c2019b827184f924f6a8bf09bf8721af5f7cc367afade"
+    },
+    {
+      "path": "components/storage/installation-method/InstallationMethod.jsx",
+      "sha256": "3cbcbc796770a336d598b1c1d4d33729eb51f35bf6680d1fcc06ad87b092d1ab"
+    },
+    {
+      "path": "components/storage/Common.jsx",
+      "sha256": "78885c61fcb201a2f6e0f09c11bcb30d81b07f4a2ac5c5db6ab4b8d49f3e5777"
+    },
+    {
+      "path": "components/storage/installation-method/InstallationDestination.jsx",
+      "sha256": "12bcffa0ce9cd3f517d20bed41d0dd9e506e83ae4b66c51d5517ca8dc980ca3c"
+    },
+    {
+      "path": "components/storage/installation-method/ReclaimSpaceModal.jsx",
+      "sha256": "f5c8857ff6f9b67589eb0dde340c0a460a3a7b1f8abc30d2b28e1b20191cd091"
+    },
+    {
+      "path": "apis/storage_partitioning_automatic_resizable.js",
+      "sha256": "6087e4d5b3ecc2de0cc08b2ed8b3d4b8d2f0693208042136aaac032091e1c59e"
+    },
+    {
+      "path": "components/storage/installation-method/index.js",
+      "sha256": "189c70ace93636158b0dbfd6ce7e5f9c8e96d9954ec43942b6c5e9492e34e8d2"
+    },
+    {
+      "path": "components/storage/mount-point-mapping/MountPointMapping.jsx",
+      "sha256": "6ad53485185b93937dde5d9a309c63399935ae947c9626fda6e7c9cebdfe2367"
+    },
+    {
+      "path": "components/storage/mount-point-mapping/index.js",
+      "sha256": "734426583d7bb449dac9ac32a22900c1a03db0ade6654d0e1fc6589934c4a595"
+    },
+    {
+      "path": "components/storage/storage-configuration/StorageConfiguration.jsx",
+      "sha256": "08f80ff1283295af167f517a381c651d89763060ff19ec5b8d1f6d1c26baf8e6"
+    },
+    {
+      "path": "components/storage/storage-configuration/DiskEncryption.jsx",
+      "sha256": "40cedca05f6e0ca63069b9ea288783ddd2a3fe0fe289ce3174d0989991afddf3"
+    },
+    {
+      "path": "components/Password.jsx",
+      "sha256": "619d92e87dc107e364d2fbd140204ba9cefe08ab78f3abb4c9f49ccc80e6f206"
+    },
+    {
+      "path": "components/storage/storage-configuration/index.js",
+      "sha256": "160cb32e9712317421f5ac95b248172f11e42f05bd5a4ee823a46040cb0822d1"
+    },
+    {
+      "path": "components/users/Accounts.jsx",
+      "sha256": "d5d4b3b1ffe8159888dd39ea7d52ae1e518ad78edba19a04a7856a410e771d02"
+    },
+    {
+      "path": "actions/users-actions.js",
+      "sha256": "4d909b1a4051ee906b3aba8c53b027178afc8ce0e01a300a29032239af40b299"
+    },
+    {
+      "path": "scripts/encrypt-user-pw.py",
+      "sha256": "e276be64503c18f402112d63d8a44344fca7a34cee1ea544dfc33cb3099ab185"
+    },
+    {
+      "path": "helpers/users.js",
+      "sha256": "60d65910ca1ce175a60c498a26c0291ce43f5d4d7337d013e661523f36e6ead7"
+    },
+    {
+      "path": "components/users/index.js",
+      "sha256": "590a9efde592ee04868c3aeb1148c4c2cd1ba05d078d4f6ff0427d4757a2b98f"
+    },
+    {
+      "path": "components/steps.js",
+      "sha256": "eba54d181da7cff095f68894aba6d763bcfc82ae4ca2be7e6160560b2733f9a4"
+    }
+  ]
+}

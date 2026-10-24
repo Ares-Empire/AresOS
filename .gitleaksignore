@@ -1,0 +1,4 @@
+# Exact historical false positive: the public Git tree ID of os/keys in the
+# unchanged signed release. This is not an authentication key. Later code puts
+# Git object IDs before paths to avoid the generic key-assignment heuristic.
+e44af20a3d35e759da471dc7ec23bcf8ad0f7d84:os/ci/verify_release.py:generic-api-key:46

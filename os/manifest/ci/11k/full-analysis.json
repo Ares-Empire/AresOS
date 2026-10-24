@@ -1,0 +1,156 @@
+{
+  "source": "2524823323888128a114866a2e1888f921e531cc",
+  "part_a": "passed-both-orders",
+  "installed_keyboard": "German-both-orders",
+  "pause_receipts": 7,
+  "each_selected_units": 14,
+  "daemon_seen_excluded": 7,
+  "cancel_commands": 0,
+  "staged_observed_at_pin": false,
+  "staged_discarded": false,
+  "part_b": "blocked-before-menu-selection",
+  "checksum_matching_stock_entries": 1,
+  "accepted_by_published_id_rule": 0,
+  "matching_stock_id": "ostree-1",
+  "blocker": "Published selector requires a nonempty OS-name suffix; actual Anaconda BLS IDs are bare. Its not-unique message means zero accepted candidates, not two competing stock entries.",
+  "runtime_unchanged": true,
+  "no_selector_fix": true,
+  "no_sixth_full": true,
+  "measured_minutes": 611,
+  "full_runs": 5,
+  "inputs": [
+    {
+      "path": "os/manifest/ci/11k/full-5/run.json",
+      "sha256": "4ca40ec6212e63c85f0a01a5c77c768fae7e785953550bdcc0d076062921c9ed"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/11c-dispatch-authorization.json",
+      "sha256": "73d20dca3f2325c68befb682962b8423ab184e29d3f2048804808dcd48667de7"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/full-result.json",
+      "sha256": "427c6b001aa23cd0fe949deedc2899a1b55dabe262106cc0379bf4676df5e510"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/installed-keyboard-result.json",
+      "sha256": "7d4c60537608be1ef883e85ba5fb1931e5a1a01c28661b4e58c00bc981c746f5"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/installed-keyboard-files.json",
+      "sha256": "0653fa81b7f05743cf02704ef21418c55f9df384348831c45485e3e6e942bfe0"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/result.json",
+      "sha256": "e545e944afb007c63151dc840b7775ae7e3eef4eac72c17dad067ab8c1f1c87b"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/first-stock-pin-result.json",
+      "sha256": "2023e1d579611964860fbbf47f9cc4f6ff130ba91bbd53098f74365c105b6747"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/pin-stock-result.json",
+      "sha256": "2023e1d579611964860fbbf47f9cc4f6ff130ba91bbd53098f74365c105b6747"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/installed-keyboard-result.json",
+      "sha256": "4cc42630759d32cd1c5da00db438e224179b1ae638b16e047cd951e5b0b0b3b3"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/installed-keyboard-files.json",
+      "sha256": "0653fa81b7f05743cf02704ef21418c55f9df384348831c45485e3e6e942bfe0"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/result.json",
+      "sha256": "e545e944afb007c63151dc840b7775ae7e3eef4eac72c17dad067ab8c1f1c87b"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/first-stock-pin-result.json",
+      "sha256": "2023e1d579611964860fbbf47f9cc4f6ff130ba91bbd53098f74365c105b6747"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/pin-stock-result.json",
+      "sha256": "2023e1d579611964860fbbf47f9cc4f6ff130ba91bbd53098f74365c105b6747"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/result.json",
+      "sha256": "e545e944afb007c63151dc840b7775ae7e3eef4eac72c17dad067ab8c1f1c87b"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/grub-promotion.json",
+      "sha256": "838e0714d270c8bd2a6c18a57362770d67b061efdea59d41fe6f7881d453e591"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/b-bls-entries.json",
+      "sha256": "42a0d747409e7bd101ccc399dbee8dd29e933eb1c03acfb5a806f1c6b30009d6"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/b-unresolved-menu-blockstats.json",
+      "sha256": "10a9d37c2419183ece128142be6ae835bb6594a5765cdb8730b5299bc1d517d1"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/two-disk/protected-second/b-menu-preparation-qmp.json",
+      "sha256": "cc181937ed97c87a6b0bbe55bb39010d779042e40322651cc006e9dabe49e0cf"
+    },
+    {
+      "path": "os/manifest/ci/11k/evidence-verification.json",
+      "sha256": "77a52e65d203fd54460a38b1c70c9f06fb7d9ddb281a349ebf9c871dd680e5ef"
+    },
+    {
+      "path": "os/manifest/ci/11k/before-full-budget.json",
+      "sha256": "2013a931cb10dffe2cb31f2ecdb4d819cbd4baf15e7d94e7f869acd74e9aa1ca"
+    },
+    {
+      "path": "os/manifest/ci/11k/after-full-budget.json",
+      "sha256": "14e8036617c423b9ca0904daf4879457912e1b85357d50d7a23dbf277e61320c"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/jobs.json",
+      "sha256": "38af22093f978bdc7815deaaf90e71c6cf5f9191ccb56a2bc213c443c61b1fe7"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/owner-auth-cleanup.json",
+      "sha256": "cd2d4922b4a272bea4bdb213d5feabc88c90e122ebb05af4863abd29ce1a75c5"
+    },
+    {
+      "path": "os/manifest/ci/11k/full-5/private-registry-preflight.json",
+      "sha256": "3c3864d5cb688d4f32bce736549b10e7bb550615048393627ac1ad3513fa66ff"
+    },
+    {
+      "path": "os/ci/rehearsal_guard.py",
+      "sha256": "6cba806d51094c34644b97ae8a46148d45e2672938b8f0e1ff5c13fcb4c90073"
+    },
+    {
+      "path": "os/ci/two_disk_vm.py",
+      "sha256": "d2ff69ee5bbc8e9c826d884737634e169551dae4e39b3944047149f02d918dd7"
+    },
+    {
+      "path": "os/ci/stock_probe.py",
+      "sha256": "3582ebce47e6a54033dd283a7a8a45a9e996059ad15405195433e26497f62e51"
+    },
+    {
+      "path": "os/release/pause-stock-updates.sh",
+      "sha256": "48380c070174170d96b0f61c5067887e6a36839ffab2c2b25d06944f72bcc2d7"
+    },
+    {
+      "path": "os/release/pin-stock.sh",
+      "sha256": "ee2a5c15d89b063864c47dfb603265d8d785329599187c7471c7204a6f381330"
+    },
+    {
+      "path": "os/ci/disk_audit.py",
+      "sha256": "962fc6153cd397e5612e3c847f4dcbb709562e03030e77941ec587a9178821e3"
+    },
+    {
+      "path": ".github/workflows/os-image.yml",
+      "sha256": "3a25d38fb61f29470bfe96d035db6f41a6fccebe9c7c58ff9053464f071a4db1"
+    },
+    {
+      "path": ".github/workflows/privacy-check.yml",
+      "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2"
+    },
+    {
+      "path": ".gitleaks.toml",
+      "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742"
+    }
+  ],
+  "hash_convention": "Git canonical LF text; compare staged/committed blob bytes"
+}

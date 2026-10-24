@@ -1,0 +1,11 @@
+Bazzite installation
+Successfully installed
+
+To begin using Bazzite, reboot your system.
+
+Exit to live desktop
+Send us feedback on your installation
+
+Scan the QR code with your phone or visit:
+
+https://discussion.fedoraproject.org/tag/anaconda

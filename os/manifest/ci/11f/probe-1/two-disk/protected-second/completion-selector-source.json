@@ -1,0 +1,26 @@
+{
+  "sources": [
+    {
+      "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.js",
+      "sha256": "9e456995a4be3d09b2b81b7e55f363d09577e688b8361d90081e1484cfb4f449",
+      "bytes": 913874
+    },
+    {
+      "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.js.map",
+      "sha256": "de301b46d770b5ce75ee3b00be8416c5b8de1a5348dfe0c4ab282f8e8b3ef36a",
+      "bytes": 3566994
+    },
+    {
+      "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/po.js",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "selectors": {
+    "success": ".anaconda-screen-progress-status-success",
+    "failure": ".anaconda-screen-progress-status-danger",
+    "critical": "#critical-error-bz-report-modal",
+    "next": "#installation-next-btn"
+  },
+  "derivation": "Exact pinned source map: progress SCREEN_ID + status; critical-error idPrefix + modal suffix"
+}

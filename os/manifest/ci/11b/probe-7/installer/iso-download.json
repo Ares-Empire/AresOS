@@ -1,0 +1,29 @@
+{
+  "kind": "live",
+  "filename": "bazzite-nvidia-open-stable-live-amd64.iso",
+  "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+  "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "checksum_source": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM",
+  "picker_source": "https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js",
+  "downloaded_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "bytes": 9068650496,
+  "resolved_url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+  "headers": {
+    "Date": "Fri, 23 Oct 2026 01:35:56 GMT",
+    "Content-Type": "application/vnd.efi.iso",
+    "Content-Length": "9068650496",
+    "Connection": "close",
+    "Accept-Ranges": "bytes",
+    "ETag": "\"be73c85715f0a0c4d4d91629b8e8227d-1730\"",
+    "Last-Modified": "Tue, 13 Oct 2026 02:50:08 GMT",
+    "x-frame-options": "SAMEORIGIN",
+    "Server": "cloudflare",
+    "cf-cache-status": "DYNAMIC",
+    "Speculation-Rules": "\"/cdn-cgi/speculation\"",
+    "Server-Timing": "cfCacheStatus;desc=\"DYNAMIC\"",
+    "expect-ct": "max-age=86400, enforce",
+    "referrer-policy": "same-origin",
+    "x-xss-protection": "1; mode=block",
+    "CF-RAY": "a4ed020b4966eaf4-ORD"
+  }
+}

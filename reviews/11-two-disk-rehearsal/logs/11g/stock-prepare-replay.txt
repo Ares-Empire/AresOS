@@ -1,0 +1,56 @@
+Command: python -X utf8 reviews/11-two-disk-rehearsal/replay-11g-stock-prepare.py
+{
+  "status": "passed",
+  "real_11f_status": true,
+  "mocked_subprocesses": true,
+  "mutations": [
+    [
+      "rpm-ostree",
+      "cleanup",
+      "-p"
+    ],
+    [
+      "ostree",
+      "admin",
+      "pin",
+      "0"
+    ]
+  ],
+  "result": {
+    "status": "passed",
+    "booted_checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+    "booted_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+    "staged_discarded": true,
+    "discarded": {
+      "reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "digest": "sha256:d0e5e105ebf43c7ddbe3c4a5dfecac1628b0e0dcf152bbd2aee0eda3e4b4cdd4",
+      "checksum": "278edb6798de01c7c090d25e058f3754c2cd6585d930634d7f5abeb90a362487",
+      "version": "44.20261023"
+    },
+    "pinned": true,
+    "no_staged": true
+  },
+  "regressions": 7,
+  "historical_11f_counter_unchanged": true,
+  "inputs": {
+    "os/manifest/ci/11f/full-2/two-disk/pin-stock.txt": "deec8afd92b96fb2185f5d7289e9854ede5e0421f4ea89eefe4a8806b5c5981c",
+    "os/release/pause-stock-updates.sh": "b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5",
+    "os/release/pin-stock.sh": "6782e32be96d612823224830956042637bc53b05c8f7ea2effe60efb25e72c2f",
+    "os/tests/test_stock_prepare.py": "a288dd8458765a273a838ff4fad5e627e2f3ec94129beb1722e40e09950a5032",
+    "os/tests/test_two_disk_vm.py": "bf077259a2bda657ff4d0d72af2408241635cc858ee96f6ba39bd4c7b1aca275",
+    "os/ci/two_disk_vm.py": "31e01e99ff4ab361a5516ec9a5a7f46539753513c69055454d43683ea932abe0",
+    "docs/INSTALL.md": "65c8b56b8d62df71d27ed80d92e5a0753086932609aab44469168fe23e6f67f8"
+  }
+}
+test_pause_twice_is_idempotent_and_services_idle_timers_persistently_disabled (test_stock_prepare.StockPauseTest.test_pause_twice_is_idempotent_and_services_idle_timers_persistently_disabled) ... ok
+test_waits_for_active_deployment_transaction (test_stock_prepare.StockPauseTest.test_waits_for_active_deployment_transaction) ... ok
+test_booted_checksum_change_after_cleanup_never_pins (test_stock_prepare.StockPinTest.test_booted_checksum_change_after_cleanup_never_pins) ... ok
+test_clean_stock_pins_without_cleanup (test_stock_prepare.StockPinTest.test_clean_stock_pins_without_cleanup) ... ok
+test_pin_always_runs_exact_pause_prefix_and_docs_use_the_same_recipe (test_stock_prepare.StockPinTest.test_pin_always_runs_exact_pause_prefix_and_docs_use_the_same_recipe) ... ok
+test_replays_real_staged_update_then_pins_unchanged_booted_checksum (test_stock_prepare.StockPinTest.test_replays_real_staged_update_then_pins_unchanged_booted_checksum) ... ok
+test_wrong_booted_digest_two_stages_and_other_origins_stop_before_cleanup_or_pin (test_stock_prepare.StockPinTest.test_wrong_booted_digest_two_stages_and_other_origins_stop_before_cleanup_or_pin) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.154s
+
+OK

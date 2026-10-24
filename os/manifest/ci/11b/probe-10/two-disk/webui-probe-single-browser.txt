@@ -1,0 +1,15 @@
+]3008;end=9841924f-9fb1-4db8-b337-9f449b22d26a;exit=success\]3008;start=65561305-6de1-4e3a-a772-09655682dcd2;type=shell;machineid=afae0ef6545e40c6abeb49e670b9f670;user=root;hostname=localhost-live;bootid=dd01ca1a-683a-477a-bc88-a0fd6926b2bc;pid=2310;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=c5e2905e-b2b0-4a56-a8f1-1a14123356bd;type=command;machineid=afae0ef6545e40c6abeb49e670b9f670;user=root;hostname=localhost-live;bootid=dd01ca1a-683a-477a-bc88-a0fd6926b2bc;pid=2310;cwd=/root\PAUSING_LIVEINST_FIREFOX_TREE [3354] /run/user/1000/anaconda/firefox-profile
+PAUSED_BROWSER_PROCESSES [3354, 3637, 3687, 3709, 3711, 3714, 3744, 3753, 3802, 3919, 3926, 3982, 3986, 4009, 4076]
+SINGLE_HOST_UI_CLIENT_BACKEND_STILL_READY
+
+ARESOS_CMD_DONE:0

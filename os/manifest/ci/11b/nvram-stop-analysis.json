@@ -1,0 +1,66 @@
+{
+  "run": 39892768284,
+  "source": "24118e1e4a4b2ef1b1806afe5131b029c2de81f4",
+  "stage": "probe-windows-without-linux",
+  "status": "STOPPED-strict-NVRAM-audit-failed",
+  "protected_disk_unchanged": true,
+  "protected_sha256": "32d28d0aee688053d36c31deb3a1288ca15defce2aeed5c4b380644fbd12c036",
+  "final_protected_writes_zero": true,
+  "windows_entry_identical": true,
+  "changes": {
+    "Boot0002": {
+      "before": {
+        "attributes": 7,
+        "hex": "01000000200055004500460049002000510045004d00550020004400560044002d0052004f004d00200051004d00300030003000300031002000000002010c00d041030a0000000001010600021f03120a000000ffff00007fff04004eac0881119f594d850ee21a522c59b2"
+      },
+      "after": null,
+      "before_description": "UEFI QEMU DVD-ROM QM00001 ",
+      "after_description": null
+    },
+    "Boot0004": {
+      "before": {
+        "attributes": 7,
+        "hex": "010000001600550045004600490020004d00690073006300200044006500760069006300650020003200000002010c00d041030a000000000101060000037fff04004eac0881119f594d850ee21a522c59b2"
+      },
+      "after": null,
+      "before_description": "UEFI Misc Device 2",
+      "after_description": null
+    },
+    "BootOrder": {
+      "before": {
+        "attributes": 7,
+        "hex": "0000010002000300040005000600070008000900"
+      },
+      "after": {
+        "attributes": 7,
+        "hex": "00000100030005000600070008000900"
+      },
+      "before_order": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0002",
+        "Boot0003",
+        "Boot0004",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ],
+      "after_order": [
+        "Boot0000",
+        "Boot0001",
+        "Boot0003",
+        "Boot0005",
+        "Boot0006",
+        "Boot0007",
+        "Boot0008",
+        "Boot0009"
+      ]
+    }
+  },
+  "marker": "ARESOS_WINDOWS_MARKER BootCurrent=0000\n\nDevice=PciRoot(0)/Pci(0x2,0x0)/HD(1,GPT,7C0A0246-EE3E-4923-9F9D-FA9BC78C85D5)\nFile=\\EFI\\Microsoft\\Boot\\bootmgfw.efi\nMARKER_BOOT_COMPLETE\n",
+  "installation_started": false,
+  "reverse_order_reached": false,
+  "full_dispatches": 0
+}

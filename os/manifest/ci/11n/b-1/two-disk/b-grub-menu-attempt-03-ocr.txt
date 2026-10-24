@@ -1,0 +1,2 @@
+GRUB version 2.12
+Use the 4 and ¥ keys to select uhich entry is highlighted.

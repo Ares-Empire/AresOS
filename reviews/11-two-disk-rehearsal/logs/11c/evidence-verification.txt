@@ -1,0 +1,15 @@
+privacy-0 success
+privacy-1-pr failure
+privacy-1-push failure
+privacy-2-pr success
+privacy-2-push success
+privacy-3-push success
+probe-1 failure
+{
+  "matching_offline_stages": 0,
+  "zero_write_records": 0,
+  "missing_counters": [],
+  "exemptions": [],
+  "archived_text_credential_checks": 76
+}
+Evidence consistency verified; only explicit probe/full result files establish qualification.

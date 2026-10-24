@@ -1,0 +1,14 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+�� Waiting for sysroot lock...
+[2K⠁ Waiting for sysroot lock...
+[2KReturning to retained Bazzite: ghcr.io/ublue-os/bazzite-nvidia-open:stable sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151
+�� Waiting for sysroot lock...
+[2K�� Waiting for sysroot lock...
+[2KNext boot: rollback deployment
+
+ARESOS_CMD_DONE:0

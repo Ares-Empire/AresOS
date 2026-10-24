@@ -47,15 +47,15 @@ def inspect_transaction(status, target, stock_checksum, rollback=False, digest=N
         assert selected['ostree']['checksum'] == stock_checksum, selected
 
 
-def partition_identity(layout):
+def partition_identity(layout, disk_name='vda'):
     """Compare the sole attached file disk, including every partition identity.
 
     Zram is also reported as TYPE=disk, but its swap UUID changes at boot.
     It is not part of the attached vda file or its partition table.
     """
     devices = [item for item in layout['blockdevices']
-               if item['name'] == 'vda' or (item['type'] == 'part' and re.fullmatch(r'vda[0-9]+', item['name']))]
-    assert any(item['name'] == 'vda' and item['type'] == 'disk' for item in devices), 'Attached vda disk absent'
+               if item['name'] == disk_name or (item['type'] == 'part' and re.fullmatch(re.escape(disk_name) + r'[0-9]+', item['name']))]
+    assert any(item['name'] == disk_name and item['type'] == 'disk' for item in devices), 'Attached target disk absent'
     assert any(item['type'] == 'part' for item in devices), 'Attached disk has no partitions'
     return [(item['name'], item['type'], item.get('start'), item['size'],
              item.get('partuuid'), item.get('parttype'), item.get('uuid')) for item in devices]
@@ -65,7 +65,9 @@ def redact(value, secrets):
     for secret in secrets:
         if secret:
             value = value.replace(secret, '<redacted>')
-    return value
+    # The interactive UI salts its own account hash. It differs from the
+    # harness's precomputed hash and must not leak through installer errors.
+    return re.sub(r'\$(?:6|5|y|gy|2[aby])\$[^\s\x27\x22<>]+', '<redacted-password-hash>', value)
 
 
 def stock_initialization_reboot(console, events):
@@ -118,6 +120,7 @@ class Guest:
         self.transcript = ''
         self.boot_transcript = ''
         self.authentication_started = False
+        self.command_pending = False
         self.screenshot_safe = True
         self.buffer = ''
         self.replies = TerminalReplies()
@@ -131,17 +134,32 @@ class Guest:
             'qemu-system-x86_64', '-machine', 'q35', *accel, '-smp', str(min(4, len(os.sched_getaffinity(0)))), '-m', '6144',
             '-drive', 'if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd',
             '-drive', f'if=pflash,format=raw,file={WORK / "vars.fd"}',
-            '-drive', f'file={disk},format=raw,if=virtio',
-            '-device', 'virtio-vga', '-device', 'qemu-xhci', '-device', 'usb-kbd',
-            '-display', 'none', '-nic', 'user,model=virtio-net-pci',
+            *self.disk_args(disk),
+            *self.peripheral_args(),
+            '-display', 'none', '-nic', self.network_args(),
             '-qmp', f'unix:{WORK / "qmp.sock"},server=on,wait=off',
-            '-serial', f'unix:{WORK / "serial.sock"},server=on,wait=off', '-no-reboot',
+            '-serial', f'unix:{WORK / "serial.sock"},server=on,wait=off', *self.boot_args(), '-no-reboot',
         ], stdout=open(EVIDENCE / 'qemu.txt', 'a'), stderr=subprocess.STDOUT)
         self.console = self.connect('serial.sock')
         self.console.settimeout(1)
         self.monitor_socket = self.connect('qmp.sock')
         self.monitor = QMP(self.monitor_socket)
         self.monitor.command('qmp_capabilities')
+
+    def disk_args(self, disk):
+        return ['-drive', f'file={disk},format=raw,if=virtio']
+
+    def peripheral_args(self):
+        return ['-device', 'virtio-vga', '-device', 'qemu-xhci', '-device', 'usb-kbd']
+
+    def boot_args(self):
+        return []
+
+    def network_args(self):
+        return 'user,model=virtio-net-pci'
+
+    def prepare_registry_auth(self, encoded_auth):
+        self.command('private-auth', f"set -e; install -d -m 0700 /etc/ostree; printf '%s' '{encoded_auth}' | base64 -d > /etc/ostree/auth.json; chmod 0600 /etc/ostree/auth.json", private=True)
 
     def connect(self, name):
         deadline = time.monotonic() + 30
@@ -205,8 +223,16 @@ class Guest:
         self.command('root-authentication', 'set -e; test "$(id -u)" = 0; echo PASSWORD_AUTHENTICATED_ADMIN_SUDO_PASSED')
 
     def command(self, name, script, timeout=900, private=False):
+        transcript_start = len(self.transcript)
+        self.command_pending = True
         self.send(encode_command(script))
-        output = self.wait(r'\r?\nARESOS_CMD_DONE:(\d+)\r?\n', timeout)
+        try:
+            output = self.wait(r'\r?\nARESOS_CMD_DONE:(\d+)\r?\n', timeout)
+        except (TimeoutError, EOFError):
+            if not private:
+                (EVIDENCE / f'{name}-incomplete.txt').write_text(redact(self.transcript[transcript_start:], self.secrets))
+            raise
+        self.command_pending = False
         code = int(re.search(r'ARESOS_CMD_DONE:(\d+)', output).group(1))
         clean = redact(output, self.secrets)
         if not private:
@@ -310,9 +336,16 @@ def start_guest(disk, password, secrets, stage):
         except EOFError:
             guest.process.wait(timeout=15)
             guest.monitor.reader.join(timeout=5)
+            # A two-disk observer can hold QEMU after guest shutdown to collect
+            # final write counters, then explicitly quit it. Its separately
+            # verified guest-event snapshot excludes only that later host quit;
+            # the complete raw event stream is still retained by close().
+            initialization_events = (guest.stopped_events if getattr(guest, 'stopped_events_verified', False)
+                                     else guest.monitor.events)
             expected = (stage == 'stock' and attempt == 0 and not guest.authentication_started
                         and guest.process.returncode == 0
-                        and stock_initialization_reboot(guest.boot_transcript, guest.monitor.events))
+                        and stock_initialization_reboot(guest.boot_transcript, initialization_events))
+            guest.expected_initialization_reboot = expected
             guest.close(f'{stage}-initialization-{attempt}')
             if not expected:
                 raise
@@ -327,7 +360,18 @@ def start_guest(disk, password, secrets, stage):
     raise RuntimeError('Stock initialization did not reach an authenticated login')
 
 
-def main():
+def pin_stock(guest, stage='pin-stock'):
+    output = guest.command(stage, pathlib.Path('os/release/pin-stock.sh').read_text())
+    clean = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', output).replace('\r', '')
+    matches = re.findall(r'^ARESOS_STOCK_PIN_RESULT (.+)$', clean, re.M)
+    assert len(matches) == 1, 'Missing or ambiguous stock-pin proof'
+    result = json.loads(matches[0])
+    assert result['status'] == 'passed' and result['pinned'] and result['no_staged']
+    (EVIDENCE / (stage + '-result.json')).write_text(json.dumps(result, indent=2) + '\n')
+    return result
+
+
+def main(disk=None, preserve_vars=False, target_name='vda', shutdown_hook=None):
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     password = json.loads((WORK / 'credentials.json').read_text())['password']
     token = os.environ['GH_TOKEN']
@@ -339,9 +383,10 @@ def main():
     target = release['reference']
     upstream = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference']
     upstream_name, upstream_digest = upstream.split('@', 1)
-    disks = list((WORK / 'output').rglob('disk.raw'))
+    disks = [pathlib.Path(disk).resolve()] if disk else list((WORK / 'output').rglob('disk.raw'))
     assert len(disks) == 1 and disks[0].is_relative_to(WORK), disks
-    shutil.copyfile('/usr/share/OVMF/OVMF_VARS_4M.fd', WORK / 'vars.fd')
+    if not preserve_vars:
+        shutil.copyfile('/usr/share/OVMF/OVMF_VARS_4M.fd', WORK / 'vars.fd')
     before = None
     stock_commit = None
     stock_reference = None
@@ -353,9 +398,9 @@ def main():
             status = guest.capture_json(f'{stage}-status', framed('bootc status --json'))
             layout = guest.capture_json(f'{stage}-partitions', framed('lsblk --json --bytes --list --output NAME,TYPE,START,SIZE,PARTUUID,PARTTYPE,UUID'))
             if before is None:
-                before = partition_identity(layout)
+                before = partition_identity(layout, target_name)
             else:
-                assert partition_identity(layout) == before, f'Partition identity changed at {stage}'
+                assert partition_identity(layout, target_name) == before, f'Partition identity changed at {stage}'
             if stage == 'stock':
                 guest.command('stock-hardware-setup', 'set -e; systemctl is-active bazzite-hardware-setup.service; test "$(systemctl show bazzite-hardware-setup.service -p ExecMainStatus --value)" = 0; journalctl -b -u bazzite-hardware-setup.service --no-pager; rpm-ostree kargs')
                 stock_reference = booted_reference(status)
@@ -367,8 +412,8 @@ def main():
                 homebrew_output = guest.command('stock-inherited-homebrew', pathlib.Path('os/tests/inherited-homebrew.sh').read_text().replace('@STAGE@', stage))
                 # Pin the booted deployment by its actual checksum, never assume
                 # a deployment index from an example or after another update.
-                guest.command('pin-stock', pathlib.Path('os/release/pin-stock.sh').read_text())
-                guest.command('private-auth', f"set -e; install -d -m 0700 /etc/ostree; printf '%s' '{encoded_auth}' | base64 -d > /etc/ostree/auth.json; chmod 0600 /etc/ostree/auth.json", private=True)
+                pin_stock(guest)
+                guest.prepare_registry_auth(encoded_auth)
                 verify = pathlib.Path('os/release/verify.sh').read_text()
                 verify = verify.replace('@REFERENCE@', target).replace('@IDENTITY@', release['signature']['identity'])
                 guest.command('verify-published-signature', verify)
@@ -464,8 +509,12 @@ exit 1''')
                 print('Published-image switch, policy, tty3 login/logout, partition equality, rendered stock rollback and second default boot passed; GRUB recovery promotion UNTESTED', flush=True)
             if stage != 'persistent-stock':
                 guest.reboot(stage)
+            elif shutdown_hook:
+                guest.poweroff(stage)
         finally:
             guest.close(stage)
+            if shutdown_hook:
+                shutdown_hook(stage, guest)
 
 
 if __name__ == '__main__':

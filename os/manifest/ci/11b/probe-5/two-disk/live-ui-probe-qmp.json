@@ -1,0 +1,63 @@
+[
+  {
+    "timestamp": {
+      "seconds": 1792717432,
+      "microseconds": 683129
+    },
+    "event": "RTC_CHANGE",
+    "data": {
+      "offset": 0,
+      "qom-path": "/machine/unattached/device[4]/rtc"
+    }
+  },
+  {
+    "timestamp": {
+      "seconds": 1792717433,
+      "microseconds": 922453
+    },
+    "event": "RTC_CHANGE",
+    "data": {
+      "offset": 0,
+      "qom-path": "/machine/unattached/device[4]/rtc"
+    }
+  },
+  {
+    "timestamp": {
+      "seconds": 1792717462,
+      "microseconds": 969960
+    },
+    "event": "NIC_RX_FILTER_CHANGED",
+    "data": {
+      "path": "/machine/unattached/device[30]/virtio-backend"
+    }
+  },
+  {
+    "timestamp": {
+      "seconds": 1792717574,
+      "microseconds": 885875
+    },
+    "event": "SHUTDOWN",
+    "data": {
+      "guest": true,
+      "reason": "guest-shutdown"
+    }
+  },
+  {
+    "timestamp": {
+      "seconds": 1792717574,
+      "microseconds": 886159
+    },
+    "event": "STOP"
+  },
+  {
+    "timestamp": {
+      "seconds": 1792717575,
+      "microseconds": 384107
+    },
+    "event": "SHUTDOWN",
+    "data": {
+      "guest": false,
+      "reason": "host-qmp-quit"
+    }
+  }
+]

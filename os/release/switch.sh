@@ -7,4 +7,9 @@ if getent passwd ares; then
 fi
 test -z "$(getent passwd 1001)"
 test -r /etc/ostree/auth.json
+python3 - <<'PY'
+import json, subprocess
+state = json.loads(subprocess.check_output(['bootc', 'status', '--json']))['status']
+assert not state.get('staged') and not state.get('rollbackQueued'), 'STOP: pending deployment before switch; see EMERGENCY.md / get help'
+PY
 bootc switch --retain @REFERENCE@

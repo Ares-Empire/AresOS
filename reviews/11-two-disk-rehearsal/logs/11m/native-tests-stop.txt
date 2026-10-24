@@ -1,0 +1,232 @@
+2026-10-24T21:35:46.6664785Z test_live_dependencies_and_transient_commands_are_inspected (test_audit.ActivationAuditPrototypeTest.test_live_dependencies_and_transient_commands_are_inspected) ... ok
+2026-10-24T21:35:46.6668477Z test_live_root_units_are_arguments_and_aliases_are_preserved (test_audit.ActivationAuditPrototypeTest.test_live_root_units_are_arguments_and_aliases_are_preserved) ... ok
+2026-10-24T21:35:46.6702285Z test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail (test_audit.ActivationAuditPrototypeTest.test_live_static_updater_activated_by_innocent_timer_and_generated_updater_fail) ... ok
+2026-10-24T21:35:46.6722618Z test_quoted_escaped_manager_names_and_dependencies_are_round_tripped (test_audit.ActivationAuditPrototypeTest.test_quoted_escaped_manager_names_and_dependencies_are_round_tripped) ... ok
+2026-10-24T21:35:46.6736241Z test_quoted_live_dropin_path_is_inspected (test_audit.ActivationAuditPrototypeTest.test_quoted_live_dropin_path_is_inspected) ... ok
+2026-10-24T21:35:46.6811353Z test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected) ... ok
+2026-10-24T21:35:46.6879660Z test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask (test_audit.UpdaterAuditTest.test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask) ... ok
+2026-10-24T21:35:46.6882762Z test_live_state_rows_are_validated (test_audit.UpdaterAuditTest.test_live_state_rows_are_validated) ... ok
+2026-10-24T21:35:46.6883941Z test_masked_but_running_updater_is_rejected_in_every_live_state (test_audit.UpdaterAuditTest.test_masked_but_running_updater_is_rejected_in_every_live_state) ... ok
+2026-10-24T21:35:46.6931048Z test_missing_live_user_manager_is_a_failure (test_audit.UpdaterAuditTest.test_missing_live_user_manager_is_a_failure) ... ok
+2026-10-24T21:35:46.6932593Z test_reviewed_bookkeeping_and_masked_updater_are_accepted (test_audit.UpdaterAuditTest.test_reviewed_bookkeeping_and_masked_updater_are_accepted) ... ok
+2026-10-24T21:35:46.6953078Z test_static_live_inventory_reads_generated_files_and_both_manager_states (test_audit.UpdaterAuditTest.test_static_live_inventory_reads_generated_files_and_both_manager_states) ... ok
+2026-10-24T21:35:46.6954332Z test_suspicious_units_require_mask_or_review_in_every_state (test_audit.UpdaterAuditTest.test_suspicious_units_require_mask_or_review_in_every_state) ... ok
+2026-10-24T21:35:46.7027720Z test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected) ... ok
+2026-10-24T21:35:46.7035390Z test_fragmented_and_coalesced_frames_at_every_boundary (test_channel.ChannelTest.test_fragmented_and_coalesced_frames_at_every_boundary) ... ok
+2026-10-24T21:35:46.7141759Z test_incomplete_and_oversized_frames_fail (test_channel.ChannelTest.test_incomplete_and_oversized_frames_fail) ... ok
+2026-10-24T21:35:46.7143083Z test_raw_exports_preserve_bytes_and_reject_corruption (test_channel.ChannelTest.test_raw_exports_preserve_bytes_and_reject_corruption) ... ok
+2026-10-24T21:35:46.7167901Z test_events_before_and_after_command_reply_are_retained (test_channel.QMPTest.test_events_before_and_after_command_reply_are_retained) ... ok
+2026-10-24T21:35:46.7168868Z test_host_exit_reset_suspend_and_missing_shutdown_are_rejected (test_channel.QMPTest.test_host_exit_reset_suspend_and_missing_shutdown_are_rejected) ... ok
+2026-10-24T21:35:46.7169747Z test_failed_transaction_stops_before_success_check (test_default_stock.DefaultStockTest.test_failed_transaction_stops_before_success_check) ... ok
+2026-10-24T21:35:46.7188466Z test_resolves_booted_stock_index_and_handles_already_default (test_default_stock.DefaultStockTest.test_resolves_booted_stock_index_and_handles_already_default) ... ok
+2026-10-24T21:35:46.7220081Z test_wrong_identity_or_staged_update_never_changes_default (test_default_stock.DefaultStockTest.test_wrong_identity_or_staged_update_never_changes_default) ... ok
+2026-10-24T21:35:46.7282573Z test_11d_first_order_stores_still_record_only_the_two_removals (test_disk_audit.DiskAuditTest.test_11d_first_order_stores_still_record_only_the_two_removals) ... ok
+2026-10-24T21:35:46.7309187Z test_11e_real_install_to_detached_windows_records_linux_move_and_two_removals (test_disk_audit.DiskAuditTest.test_11e_real_install_to_detached_windows_records_linux_move_and_two_removals) ... ok
+2026-10-24T21:35:46.7312448Z test_any_offline_disk_gpt_or_efi_difference_fails (test_disk_audit.DiskAuditTest.test_any_offline_disk_gpt_or_efi_difference_fails) ... ok
+2026-10-24T21:35:46.7325450Z test_auto_addition_requires_attached_device (test_disk_audit.DiskAuditTest.test_auto_addition_requires_attached_device) ... ok
+2026-10-24T21:35:46.7340324Z test_auto_device_sets_allow_relabels_missing_options_and_order_positions (test_disk_audit.DiskAuditTest.test_auto_device_sets_allow_relabels_missing_options_and_order_positions) ... ok
+2026-10-24T21:35:46.7349164Z test_bootnext_requires_exact_preboot_authorization_and_is_consumed_after_boot (test_disk_audit.DiskAuditTest.test_bootnext_requires_exact_preboot_authorization_and_is_consumed_after_boot) ... ok
+2026-10-24T21:35:46.7358159Z test_bootnext_unknown_destination_leftover_and_malformed_length_stop (test_disk_audit.DiskAuditTest.test_bootnext_unknown_destination_leftover_and_malformed_length_stop) ... ok
+2026-10-24T21:35:46.7370990Z test_each_boot_requires_all_remaining_auto_devices_attached_not_a_label (test_disk_audit.DiskAuditTest.test_each_boot_requires_all_remaining_auto_devices_attached_not_a_label) ... ok
+2026-10-24T21:35:46.7372957Z test_efi_entry_resolves_gpt_partition_guid_boundaries_and_actual_loader (test_disk_audit.DiskAuditTest.test_efi_entry_resolves_gpt_partition_guid_boundaries_and_actual_loader) ... ok
+2026-10-24T21:35:46.7389845Z test_every_non_exempt_mutation_remains_a_failure (test_disk_audit.DiskAuditTest.test_every_non_exempt_mutation_remains_a_failure) ... ok
+2026-10-24T21:35:46.7401879Z test_firmware_cannot_take_windows_linux_or_other_fixed_entry_number (test_disk_audit.DiskAuditTest.test_firmware_cannot_take_windows_linux_or_other_fixed_entry_number) ... ok
+2026-10-24T21:35:46.7760655Z test_gpt_checks_primary_backup_crc_identity_and_exact_boundaries (test_disk_audit.DiskAuditTest.test_gpt_checks_primary_backup_crc_identity_and_exact_boundaries) ... ok
+2026-10-24T21:35:46.7790367Z test_linux_change_and_recreation_require_only_target_esp_and_fedora_loader (test_disk_audit.DiskAuditTest.test_linux_change_and_recreation_require_only_target_esp_and_fedora_loader) ... ok
+2026-10-24T21:35:46.7837110Z test_linux_positions_free_but_fixed_order_and_windows_default_strict (test_disk_audit.DiskAuditTest.test_linux_positions_free_but_fixed_order_and_windows_default_strict) ... ok
+2026-10-24T21:35:46.7894429Z test_lost_modified_or_unordered_windows_and_non_linux_addition_fail (test_disk_audit.DiskAuditTest.test_lost_modified_or_unordered_windows_and_non_linux_addition_fail) ... ok
+2026-10-24T21:35:46.7909923Z test_moving_invalid_linux_loader_or_esp_does_not_exempt_it (test_disk_audit.DiskAuditTest.test_moving_invalid_linux_loader_or_esp_does_not_exempt_it) ... ok
+2026-10-24T21:35:46.7925956Z test_only_target_linux_addition_can_precede_windows_during_install (test_disk_audit.DiskAuditTest.test_only_target_linux_addition_can_precede_windows_during_install) ... ok
+2026-10-24T21:35:46.7935815Z test_probe_11_raw_stores_exempt_exactly_two_device_removals (test_disk_audit.DiskAuditTest.test_probe_11_raw_stores_exempt_exactly_two_device_removals) ... ok
+2026-10-24T21:35:46.7949866Z test_real_11d_reverse_stores_record_exactly_three_device_changes (test_disk_audit.DiskAuditTest.test_real_11d_reverse_stores_record_exactly_three_device_changes) ... ok
+2026-10-24T21:35:46.8195645Z test_real_edk2_records_replace_deleted_values_and_preserve_windows_payload (test_disk_audit.DiskAuditTest.test_real_edk2_records_replace_deleted_values_and_preserve_windows_payload) ... ok
+2026-10-24T21:35:46.8211328Z test_unchanged_auto_options_for_detached_or_unknown_devices_also_fail (test_disk_audit.DiskAuditTest.test_unchanged_auto_options_for_detached_or_unknown_devices_also_fail) ... ok
+2026-10-24T21:35:46.8229505Z test_windows_number_first_and_all_other_fixed_entries_stay_strict (test_disk_audit.DiskAuditTest.test_windows_number_first_and_all_other_fixed_entries_stay_strict) ... ok
+2026-10-24T21:35:46.8231525Z test_write_even_if_bytes_later_restored_or_device_missing_is_a_failure (test_disk_audit.DiskAuditTest.test_write_even_if_bytes_later_restored_or_device_missing_is_a_failure) ... ok
+2026-10-24T21:35:46.8236162Z test_source_predicate_requires_both_exact_guid_and_exact_size (test_firmware_contract.FirmwareContractTest.test_source_predicate_requires_both_exact_guid_and_exact_size) ... ok
+2026-10-24T21:35:46.9588773Z test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline) ... ok
+2026-10-24T21:35:47.0167412Z test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters) ... ok
+2026-10-24T21:35:48.0412713Z test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence) ... ok
+2026-10-24T21:35:48.0414141Z test_no_frame_is_accepted_without_session_readiness (test_greeter.GreeterTest.test_no_frame_is_accepted_without_session_readiness) ... ok
+2026-10-24T21:35:48.0435246Z test_active_service_without_process_or_with_wrong_active_vt_times_out (test_greeter_probe.GreeterProbeTest.test_active_service_without_process_or_with_wrong_active_vt_times_out) ... ok
+2026-10-24T21:35:48.0440346Z test_fixture_matches_the_pinned_image_manager_instead_of_assuming_sddm (test_greeter_probe.GreeterProbeTest.test_fixture_matches_the_pinned_image_manager_instead_of_assuming_sddm) ... ok
+2026-10-24T21:35:48.0444780Z test_proc_observer_reads_real_executable_effective_uid_and_environment (test_greeter_probe.GreeterProbeTest.test_proc_observer_reads_real_executable_effective_uid_and_environment) ... ok
+2026-10-24T21:35:48.0450900Z test_process_with_active_graphical_vt_is_accepted_and_records_identity (test_greeter_probe.GreeterProbeTest.test_process_with_active_graphical_vt_is_accepted_and_records_identity) ... ok
+2026-10-24T21:35:48.0452265Z test_real_greeter_identity_does_not_depend_on_logind_class_or_argv_spelling (test_greeter_probe.GreeterProbeTest.test_real_greeter_identity_does_not_depend_on_logind_class_or_argv_spelling) ... ok
+2026-10-24T21:35:48.0453489Z test_wrong_executable_owner_type_or_vt_cannot_become_ready (test_greeter_probe.GreeterProbeTest.test_wrong_executable_owner_type_or_vt_cannot_become_ready) ... ok
+2026-10-24T21:35:48.0457276Z test_filename_number_never_becomes_the_menu_position (test_grub_bls.GrubSelectionTest.test_filename_number_never_becomes_the_menu_position) ... ok
+2026-10-24T21:35:48.3472230Z test_ocr_disagreement_sends_no_menu_key_and_correct_lines_select_stock (test_grub_bls.GrubSelectionTest.test_ocr_disagreement_sends_no_menu_key_and_correct_lines_select_stock) ... ok
+2026-10-24T21:35:48.3474805Z test_owner_switch_block_is_exact_release_script (test_grub_bls.GrubSelectionTest.test_owner_switch_block_is_exact_release_script) ... ok
+2026-10-24T21:35:48.3476302Z test_retained_bare_entries_select_unique_stock_at_position_one (test_grub_bls.GrubSelectionTest.test_retained_bare_entries_select_unique_stock_at_position_one) ... ok
+2026-10-24T21:35:48.3480915Z test_version_title_and_status_order_disagreement_stop (test_grub_bls.GrubSelectionTest.test_version_title_and_status_order_disagreement_stop) ... ok
+2026-10-24T21:35:48.3482695Z test_zero_two_and_substring_checksum_matches_stop_with_specific_reasons (test_grub_bls.GrubSelectionTest.test_zero_two_and_substring_checksum_matches_stop_with_specific_reasons) ... ok
+2026-10-24T21:35:48.3649661Z test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created) ... ok
+2026-10-24T21:35:48.5049585Z test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently) ... ok
+2026-10-24T21:35:48.5573905Z test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask) ... ok
+2026-10-24T21:35:48.5577231Z test_actual_short_transfer_is_not_mistaken_for_a_complete_new_iso (test_installer_webui.DownloadCompletenessTest.test_actual_short_transfer_is_not_mistaken_for_a_complete_new_iso) ... ok
+2026-10-24T21:35:48.5578625Z test_complete_transfer_still_requires_the_exact_pin (test_installer_webui.DownloadCompletenessTest.test_complete_transfer_still_requires_the_exact_pin) ... ok
+2026-10-24T21:35:48.5579937Z test_full_run_rejects_failed_stale_or_different_workflow_probe (test_installer_webui.ProbeAuthorizationTest.test_full_run_rejects_failed_stale_or_different_workflow_probe) ... ok
+2026-10-24T21:35:48.5581122Z test_minute_ledger_rounds_each_executed_job_up (test_installer_webui.ProbeAuthorizationTest.test_minute_ledger_rounds_each_executed_job_up) ... ok
+2026-10-24T21:35:48.5587832Z test_actual_modal_requires_only_german_before_next_commits_it (test_installer_webui.ReviewBoundaryTest.test_actual_modal_requires_only_german_before_next_commits_it) ... ok
+2026-10-24T21:35:48.5589798Z test_completion_selectors_follow_actual_dynamic_class_and_modal_sources (test_installer_webui.ReviewBoundaryTest.test_completion_selectors_follow_actual_dynamic_class_and_modal_sources) ... ok
+2026-10-24T21:35:48.5592731Z test_probe_navigation_refuses_the_destructive_install_button (test_installer_webui.ReviewBoundaryTest.test_probe_navigation_refuses_the_destructive_install_button) ... ok
+2026-10-24T21:35:48.5594034Z test_read_only_module_proof_rejects_wrong_choices_and_changed_module (test_installer_webui.ReviewBoundaryTest.test_read_only_module_proof_rejects_wrong_choices_and_changed_module) ... ok
+2026-10-24T21:35:48.5598549Z test_requires_only_target_rows_and_a_new_target_efi_in_both_orders (test_installer_webui.ReviewBoundaryTest.test_requires_only_target_rows_and_a_new_target_efi_in_both_orders) ... ok
+2026-10-24T21:35:48.5601894Z test_installed_files_accept_both_console_forms_and_exact_options (test_keyboard_proof.KeyboardProofTest.test_installed_files_accept_both_console_forms_and_exact_options) ... ok
+2026-10-24T21:35:48.5603462Z test_installed_wrong_console_layout_missing_files_and_options_fail (test_keyboard_proof.KeyboardProofTest.test_installed_wrong_console_layout_missing_files_and_options_fail) ... ok
+2026-10-24T21:35:48.5619907Z test_proof_only_reads_bus_and_localed_even_with_nonempty_live_options (test_keyboard_proof.KeyboardProofTest.test_proof_only_reads_bus_and_localed_even_with_nonempty_live_options) ... ok
+2026-10-24T21:35:48.5843725Z test_same_reader_command_reads_real_fixture_and_reports_missing_file (test_keyboard_proof.KeyboardProofTest.test_same_reader_command_reads_real_fixture_and_reports_missing_file) ... ok
+2026-10-24T21:35:48.5849654Z test_wrong_module_layout_or_console_and_changed_switch_options_fail (test_keyboard_proof.KeyboardProofTest.test_wrong_module_layout_or_console_and_changed_switch_options_fail) ... ok
+2026-10-24T21:35:48.5851597Z test_missing_records_and_other_boot_cannot_pass (test_offline_journal.OfflineJournalTest.test_missing_records_and_other_boot_cannot_pass) ... ok
+2026-10-24T21:35:48.5854414Z test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail (test_offline_journal.OfflineJournalTest.test_old_key_wrong_service_spoofed_text_and_failed_teardown_fail) ... ok
+2026-10-24T21:35:48.5860830Z Default is the identity-checked booted stock deployment: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-24T21:35:48.5862063Z Default is the identity-checked booted stock deployment: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-24T21:35:48.5862806Z {"pid": 123, "type": "wayland", "uid": 975, "vt": 1}
+2026-10-24T21:35:48.5863317Z STOCK_GRAPHICAL_GREETER_READY
+2026-10-24T21:35:48.5863942Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: reader failed
+2026-10-24T21:35:48.5864697Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-24T21:35:48.5874014Z test_only_unreadable_journal_is_reported_as_hardware_gate (test_offline_journal.OfflineJournalTest.test_only_unreadable_journal_is_reported_as_hardware_gate) ... ok
+2026-10-24T21:35:48.5875244Z test_ordered_logind_and_manager_records_from_exact_boot_pass (test_offline_journal.OfflineJournalTest.test_ordered_logind_and_manager_records_from_exact_boot_pass) ... ok
+2026-10-24T21:35:48.5878353Z test_restore_filter_descends_only_toward_persistent_journals (test_offline_journal.OfflineJournalTest.test_restore_filter_descends_only_toward_persistent_journals) ... ok
+2026-10-24T21:35:48.7302277Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-24T21:35:48.7374889Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-24T21:35:48.7388565Z test_every_reader_command_error_and_timeout_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_every_reader_command_error_and_timeout_is_blocking) ... ok
+2026-10-24T21:35:48.7449284Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-24T21:35:48.7453300Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-24T21:35:48.7464453Z test_fallback_verifies_before_selecting_exact_boot (test_offline_journal.OfflineReaderCommandsTest.test_fallback_verifies_before_selecting_exact_boot) ... ok
+2026-10-24T21:35:48.7493013Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--device', '/dev/nbd0p4:/dev/guest:r', '--volume', '/tmp/tmpax4nyjoq/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/export:rw', '--entrypoint', '/usr/bin/btrfs', 'localhost/aresos:ci', 'version'], 'returncode': 1, 'stderr': 'stat /usr/bin/btrfs: no such file or directory', 'output': 'offline-btrfs-version.txt'}
+2026-10-24T21:35:48.7623206Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--volume', '/tmp/tmpeinj4vwq/offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/var/log/journal:/guest-journal:ro', '--entrypoint', '/usr/bin/journalctl', 'localhost/aresos:ci', '--directory=/guest-journal', '--no-pager', '--version'], 'returncode': 1, 'stderr': 'stat /usr/bin/journalctl: no such file or directory', 'output': 'offline-journalctl-version.txt'}
+2026-10-24T21:35:48.7753092Z REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; host Podman is absent
+2026-10-24T21:35:48.7785106Z test_gate_requires_both_explicit_host_limitations (test_offline_journal.OfflineReaderCommandsTest.test_gate_requires_both_explicit_host_limitations) ... ok
+2026-10-24T21:35:48.8323655Z test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking (test_offline_journal.OfflineReaderCommandsTest.test_missing_journals_boot_wrong_boot_or_any_required_record_is_blocking) ... ok
+2026-10-24T21:35:48.8370489Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-24T21:35:48.8377606Z PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+2026-10-24T21:35:48.8468462Z Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
+2026-10-24T21:35:48.8715616Z test_mounted_reader_and_cleanup_failures_are_blocking (test_offline_journal.OfflineReaderCommandsTest.test_mounted_reader_and_cleanup_failures_are_blocking) ... ok
+2026-10-24T21:35:48.8732772Z test_auth_file_rejects_runner_uid_and_relaxed_permissions (test_rehearsal_auth.OwnerAuthTest.test_auth_file_rejects_runner_uid_and_relaxed_permissions) ... ok
+2026-10-24T21:35:48.8861199Z test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload) ... ok
+2026-10-24T21:35:48.8875513Z test_cleanup_refuses_unexpected_files_in_the_temporary_directory (test_rehearsal_auth.OwnerAuthTest.test_cleanup_refuses_unexpected_files_in_the_temporary_directory) ... ok
+2026-10-24T21:35:48.8888987Z test_failed_layer_pull_has_no_retry_or_credential_diagnostics (test_rehearsal_auth.OwnerAuthTest.test_failed_layer_pull_has_no_retry_or_credential_diagnostics) ... ok
+2026-10-24T21:35:48.8894654Z test_guest_uses_only_a_read_only_share_not_an_encoded_secret_command (test_rehearsal_auth.OwnerAuthTest.test_guest_uses_only_a_read_only_share_not_an_encoded_secret_command) ... ok
+2026-10-24T21:35:48.8919863Z test_missing_secret_wrong_event_or_mode_and_workspace_path_fail_closed (test_rehearsal_auth.OwnerAuthTest.test_missing_secret_wrong_event_or_mode_and_workspace_path_fail_closed) ... ok
+2026-10-24T21:35:48.8949905Z test_preflight_accepts_only_the_pinned_digest_and_discards_error_output (test_rehearsal_auth.OwnerAuthTest.test_preflight_accepts_only_the_pinned_digest_and_discards_error_output) ... ok
+2026-10-24T21:35:48.9034919Z test_registry_diagnostics_are_never_written_to_public_console_evidence (test_rehearsal_auth.OwnerAuthTest.test_registry_diagnostics_are_never_written_to_public_console_evidence) ... ok
+2026-10-24T21:35:48.9141797Z test_secret_is_only_referenced_in_the_dispatch_probe_full_create_step (test_rehearsal_auth.OwnerAuthTest.test_secret_is_only_referenced_in_the_dispatch_probe_full_create_step) ... ok
+2026-10-24T21:35:48.9146338Z test_allowance_includes_privacy_push_and_pr_jobs_and_excludes_old_runs (test_rehearsal_budget.BudgetTest.test_allowance_includes_privacy_push_and_pr_jobs_and_excludes_old_runs) ... ok
+2026-10-24T21:35:48.9149605Z test_full_dispatch_count_includes_current_run_and_rejects_sixth (test_rehearsal_budget.BudgetTest.test_full_dispatch_count_includes_current_run_and_rejects_sixth) ... ok
+2026-10-24T21:35:48.9253919Z test_part_b_reservation_covers_the_single_job_without_changing_probe_limits (test_rehearsal_budget.BudgetTest.test_part_b_reservation_covers_the_single_job_without_changing_probe_limits) ... ok
+2026-10-24T21:35:48.9257904Z test_single_part_b_count_includes_current_and_rejects_a_second (test_rehearsal_budget.BudgetTest.test_single_part_b_count_includes_current_and_rejects_a_second) ... ok
+2026-10-24T21:35:48.9286234Z test_count_shift_duplicate_missing_and_empty_page_fail_with_no_authorization (test_rehearsal_history.HistoryTest.test_count_shift_duplicate_missing_and_empty_page_fail_with_no_authorization) ... ok
+2026-10-24T21:35:48.9289147Z test_empty_complete_history_is_distinct_from_an_empty_intermediate_page (test_rehearsal_history.HistoryTest.test_empty_complete_history_is_distinct_from_an_empty_intermediate_page) ... ok
+2026-10-24T21:35:48.9297006Z test_hard_page_limit_fails_closed (test_rehearsal_history.HistoryTest.test_hard_page_limit_fails_closed) ... ok
+2026-10-24T21:35:48.9321285Z test_missing_id_and_malformed_count_never_authorize (test_rehearsal_history.HistoryTest.test_missing_id_and_malformed_count_never_authorize) ... ok
+2026-10-24T21:35:48.9329542Z test_page_two_404_fails_immediately (test_rehearsal_history.HistoryTest.test_page_two_404_fails_immediately) ... ok
+2026-10-24T21:35:48.9336950Z test_page_two_502_recovers_through_unchanged_bounded_retry (test_rehearsal_history.HistoryTest.test_page_two_502_recovers_through_unchanged_bounded_retry) ... ok
+2026-10-24T21:35:48.9345767Z test_page_two_five_502s_fail_closed (test_rehearsal_history.HistoryTest.test_page_two_five_502s_fail_closed) ... ok
+2026-10-24T21:35:48.9361197Z test_real_11l_boundary_now_counts_the_allowance_run_only_on_page_two (test_rehearsal_history.HistoryTest.test_real_11l_boundary_now_counts_the_allowance_run_only_on_page_two) ... ok
+2026-10-24T21:35:48.9366996Z test_two_pages_are_exact_union_with_total_count_and_no_filter_changes (test_rehearsal_history.HistoryTest.test_two_pages_are_exact_union_with_total_count_and_no_filter_changes) ... ok
+2026-10-24T21:35:48.9385876Z test_4xx_auth_cli_and_parse_failures_never_retry (test_rehearsal_retry.ReadRetryTest.test_4xx_auth_cli_and_parse_failures_never_retry) ... ok
+2026-10-24T21:35:48.9391607Z test_502_then_success_has_exact_clean_ledger_minutes_and_full_count (test_rehearsal_retry.ReadRetryTest.test_502_then_success_has_exact_clean_ledger_minutes_and_full_count) ... ok
+2026-10-24T21:35:48.9513851Z test_artifact_zip_502_then_success_preserves_digest_and_full_gate (test_rehearsal_retry.ReadRetryTest.test_artifact_zip_502_then_success_preserves_digest_and_full_gate) ... ok
+2026-10-24T21:35:48.9573486Z test_artifact_zip_five_502s_never_authorize (test_rehearsal_retry.ReadRetryTest.test_artifact_zip_five_502s_never_authorize) ... ok
+2026-10-24T21:35:48.9578822Z test_connection_failure_retries_but_missing_gh_does_not (test_rehearsal_retry.ReadRetryTest.test_connection_failure_retries_but_missing_gh_does_not) ... ok
+2026-10-24T21:35:48.9585751Z test_five_502s_fail_closed_without_authorization (test_rehearsal_retry.ReadRetryTest.test_five_502s_fail_closed_without_authorization) ... ok
+2026-10-24T21:35:48.9587009Z test_observed_gh_http_and_connection_formats (test_rehearsal_retry.ReadRetryTest.test_observed_gh_http_and_connection_formats) ... ok
+2026-10-24T21:35:49.1868065Z test_guest_tty_reader_cannot_consume_completion_command (test_serial_console.SerialCommandTest.test_guest_tty_reader_cannot_consume_completion_command) ... ok
+2026-10-24T21:35:49.2554826Z test_long_script_survives_canonical_tty_line_limit (test_serial_console.SerialCommandTest.test_long_script_survives_canonical_tty_line_limit) ... ok
+2026-10-24T21:35:49.2618934Z test_nonzero_guest_exit_is_preserved (test_serial_console.SerialCommandTest.test_nonzero_guest_exit_is_preserved) ... ok
+2026-10-24T21:35:49.2624736Z test_corruption_and_incomplete_frames_are_rejected (test_serial_console.SerialExportTest.test_corruption_and_incomplete_frames_are_rejected) ... ok
+2026-10-24T21:35:49.2631925Z test_kernel_record_at_every_payload_boundary_preserves_bytes (test_serial_console.SerialExportTest.test_kernel_record_at_every_payload_boundary_preserves_bytes) ... ok
+2026-10-24T21:35:49.2632916Z test_wrapped_crlf_export_preserves_raw_json (test_serial_console.SerialExportTest.test_wrapped_crlf_export_preserves_raw_json) ... ok
+2026-10-24T21:35:49.2633983Z test_boot_log_retention_is_bounded_without_losing_partial_query (test_serial_console.SerialTerminalTest.test_boot_log_retention_is_bounded_without_losing_partial_query) ... ok
+2026-10-24T21:35:49.2636292Z test_queries_split_at_every_socket_boundary (test_serial_console.SerialTerminalTest.test_queries_split_at_every_socket_boundary) ... ok
+2026-10-24T21:35:49.2637768Z test_repeated_queries_answered_once_each (test_serial_console.SerialTerminalTest.test_repeated_queries_answered_once_each) ... ok
+2026-10-24T21:35:49.2638741Z test_shell_text_and_other_escape_sequences_do_not_receive_input (test_serial_console.SerialTerminalTest.test_shell_text_and_other_escape_sequences_do_not_receive_input) ... ok
+2026-10-24T21:35:49.8355361Z test_all_os_scripts_and_embedded_snippets_have_no_bare_negative_assertion (test_shell_assertions.ShellAssertionTest.test_all_os_scripts_and_embedded_snippets_have_no_bare_negative_assertion) ... ok
+2026-10-24T21:35:49.8377386Z test_daily_login_rejects_brew_even_outside_linuxbrew_path (test_shell_assertions.ShellAssertionTest.test_daily_login_rejects_brew_even_outside_linuxbrew_path) ... ok
+2026-10-24T21:35:49.9458711Z test_daily_policy_rejects_wheel_each_manager_and_each_competing_process (test_shell_assertions.ShellAssertionTest.test_daily_policy_rejects_wheel_each_manager_and_each_competing_process) ... ok
+2026-10-24T21:35:49.9498803Z test_install_transactions_stop_on_failure_and_never_include_the_reboot (test_shell_assertions.ShellAssertionTest.test_install_transactions_stop_on_failure_and_never_include_the_reboot) ... FAIL
+2026-10-24T21:35:49.9500218Z test_static_guard_rejects_negation_and_and_false_including_embedded_shell (test_shell_assertions.ShellAssertionTest.test_static_guard_rejects_negation_and_and_false_including_embedded_shell) ... ok
+2026-10-24T21:35:49.9514784Z test_stock_and_rollback_guard_refuses_daily_account (test_shell_assertions.ShellAssertionTest.test_stock_and_rollback_guard_refuses_daily_account) ... ok
+2026-10-24T21:35:49.9532997Z test_switch_refuses_existing_daily_name_even_with_uid_1001_free (test_shell_assertions.ShellAssertionTest.test_switch_refuses_existing_daily_name_even_with_uid_1001_free) ... ok
+2026-10-24T21:35:49.9560304Z test_bootc_client_waits_then_stops_naming_process (test_stock_idle.StockIdleTest.test_bootc_client_waits_then_stops_naming_process) ... ok
+2026-10-24T21:35:49.9582556Z test_leftover_transaction_cancelled_once_then_idle_passes (test_stock_idle.StockIdleTest.test_leftover_transaction_cancelled_once_then_idle_passes) ... ok
+2026-10-24T21:35:49.9630082Z test_only_realistic_daemon_is_idle_and_same_regression_fails_on_11i (test_stock_idle.StockIdleTest.test_only_realistic_daemon_is_idle_and_same_regression_fails_on_11i) ... ok
+2026-10-24T21:35:49.9650598Z test_persistent_transaction_stops_and_names_it_without_second_cancel (test_stock_idle.StockIdleTest.test_persistent_transaction_stops_and_names_it_without_second_cancel) ... ok
+2026-10-24T21:35:49.9675826Z test_proc_exe_cmdline_cgroup_not_comm_decides_clients (test_stock_idle.StockIdleTest.test_proc_exe_cmdline_cgroup_not_comm_decides_clients) ... ok
+2026-10-24T21:35:49.9699615Z test_stuck_unit_stops_naming_unit (test_stock_idle.StockIdleTest.test_stuck_unit_stops_naming_unit) ... ok
+2026-10-24T21:35:49.9718838Z test_pause_twice_is_idempotent_and_services_idle_timers_persistently_disabled (test_stock_prepare.StockPauseTest.test_pause_twice_is_idempotent_and_services_idle_timers_persistently_disabled) ... ok
+2026-10-24T21:35:49.9738549Z test_waits_for_active_deployment_transaction (test_stock_prepare.StockPauseTest.test_waits_for_active_deployment_transaction) ... ok
+2026-10-24T21:35:49.9774040Z test_booted_checksum_change_after_cleanup_never_pins (test_stock_prepare.StockPinTest.test_booted_checksum_change_after_cleanup_never_pins) ... ok
+2026-10-24T21:35:49.9804155Z test_clean_stock_pins_without_cleanup (test_stock_prepare.StockPinTest.test_clean_stock_pins_without_cleanup) ... ok
+2026-10-24T21:35:49.9807569Z test_pin_always_runs_exact_pause_prefix_and_docs_use_the_same_recipe (test_stock_prepare.StockPinTest.test_pin_always_runs_exact_pause_prefix_and_docs_use_the_same_recipe) ... ok
+2026-10-24T21:35:49.9843526Z test_replays_real_staged_update_then_pins_unchanged_booted_checksum (test_stock_prepare.StockPinTest.test_replays_real_staged_update_then_pins_unchanged_booted_checksum) ... ok
+2026-10-24T21:35:49.9947669Z test_wrong_booted_digest_two_stages_and_other_origins_stop_before_cleanup_or_pin (test_stock_prepare.StockPinTest.test_wrong_booted_digest_two_stages_and_other_origins_stop_before_cleanup_or_pin) ... ok
+2026-10-24T21:35:49.9949198Z test_missing_ambiguous_or_invalid_cache_fails_without_registry_fallback (test_stock_probe.CachedStockProbeTest.test_missing_ambiguous_or_invalid_cache_fails_without_registry_fallback) ... ok
+2026-10-24T21:35:49.9956762Z test_read_only_help_has_no_pull_network_host_mount_or_owner_auth (test_stock_probe.CachedStockProbeTest.test_read_only_help_has_no_pull_network_host_mount_or_owner_auth) ... ok
+2026-10-24T21:35:49.9958031Z test_real_iso_cache_resolves_by_pinned_digest_and_not_mutable_tag (test_stock_probe.CachedStockProbeTest.test_real_iso_cache_resolves_by_pinned_digest_and_not_mutable_tag) ... ok
+2026-10-24T21:35:49.9959753Z test_absent_disk_or_partition_table_cannot_pass_comparison (test_switch.SwitchEvidenceTest.test_absent_disk_or_partition_table_cannot_pass_comparison) ... ok
+2026-10-24T21:35:49.9960815Z test_corrupt_status_export_cannot_be_accepted_as_state (test_switch.SwitchEvidenceTest.test_corrupt_status_export_cannot_be_accepted_as_state) ... ok
+2026-10-24T21:35:49.9961854Z test_credentials_and_encoded_variants_are_redacted (test_switch.SwitchEvidenceTest.test_credentials_and_encoded_variants_are_redacted) ... ok
+2026-10-24T21:35:49.9962917Z test_duplicate_or_missing_shutdown_cannot_hide_a_boot_loop (test_switch.SwitchEvidenceTest.test_duplicate_or_missing_shutdown_cannot_hide_a_boot_loop) ... ok
+2026-10-24T21:35:49.9964026Z test_only_orderly_guest_initialization_reset_is_accepted (test_switch.SwitchEvidenceTest.test_only_orderly_guest_initialization_reset_is_accepted) ... ok
+2026-10-24T21:35:49.9965137Z test_partition_changes_cannot_hide_behind_identical_mounts (test_switch.SwitchEvidenceTest.test_partition_changes_cannot_hide_behind_identical_mounts) ... ok
+2026-10-24T21:35:49.9967246Z test_reboot_inspection_requires_correct_staged_or_queued_identity (test_switch.SwitchEvidenceTest.test_reboot_inspection_requires_correct_staged_or_queued_identity) ... ok
+2026-10-24T21:35:50.0203545Z test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query (test_switch.SwitchEvidenceTest.test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query) ... ok
+2026-10-24T21:35:50.1228563Z test_reboot_reader_still_rejects_guest_that_does_not_exit_by_deadline (test_switch.SwitchEvidenceTest.test_reboot_reader_still_rejects_guest_that_does_not_exit_by_deadline) ... ok
+2026-10-24T21:35:50.1230491Z test_recreated_ram_swap_is_not_a_partition_change (test_switch.SwitchEvidenceTest.test_recreated_ram_swap_is_not_a_partition_change) ... ok
+2026-10-24T21:35:50.1236559Z test_serial_json_frame_is_parsed_independently_of_shell_prompt (test_switch.SwitchEvidenceTest.test_serial_json_frame_is_parsed_independently_of_shell_prompt) ... ok
+2026-10-24T21:35:50.1237987Z test_staged_reference_cannot_be_mistaken_for_booted_release (test_switch.SwitchEvidenceTest.test_staged_reference_cannot_be_mistaken_for_booted_release) ... ok
+2026-10-24T21:35:50.1241769Z test_status_spinner_and_interleaved_kernel_records_preserve_json_bytes (test_switch.SwitchEvidenceTest.test_status_spinner_and_interleaved_kernel_records_preserve_json_bytes) ... ok
+2026-10-24T21:35:50.2058649Z test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently) ... ok
+2026-10-24T21:35:50.2060008Z test_echo_enabled_cannot_pass (test_tty_password.TtyPasswordTest.test_echo_enabled_cannot_pass) ... ok
+2026-10-24T21:35:50.2062121Z test_failed_login_query_is_not_a_password_prompt (test_tty_password.TtyPasswordTest.test_failed_login_query_is_not_a_password_prompt) ... ok
+2026-10-24T21:35:50.2069115Z test_hidden_echo_without_login_cannot_pass (test_tty_password.TtyPasswordTest.test_hidden_echo_without_login_cannot_pass) ... ok
+2026-10-24T21:35:50.2075112Z test_persistent_hangup_still_fails_at_deadline (test_tty_password.TtyPasswordTest.test_persistent_hangup_still_fails_at_deadline) ... ok
+2026-10-24T21:35:50.2082749Z test_reopens_after_login_revokes_observation_descriptor (test_tty_password.TtyPasswordTest.test_reopens_after_login_revokes_observation_descriptor) ... ok
+2026-10-24T21:35:50.2085815Z test_unexpected_terminal_error_is_not_retried (test_tty_password.TtyPasswordTest.test_unexpected_terminal_error_is_not_retried) ... ok
+2026-10-24T21:35:50.2094258Z test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart (test_two_disk_vm.TwoDiskHarnessTest.test_actual_colorized_iso_help_still_rejects_unsupported_live_kickstart) ... ok
+2026-10-24T21:35:50.2098056Z test_actual_iso_help_blocks_unsupported_live_kickstart_before_installation (test_two_disk_vm.TwoDiskHarnessTest.test_actual_iso_help_blocks_unsupported_live_kickstart_before_installation) ... ok
+2026-10-24T21:35:50.3358424Z test_bls_export_is_one_quoted_command_and_parses_real_files (test_two_disk_vm.TwoDiskHarnessTest.test_bls_export_is_one_quoted_command_and_parses_real_files) ... ok
+2026-10-24T21:35:50.3363443Z test_bls_ostree_option_never_consumes_the_next_line_or_accepts_ambiguity (test_two_disk_vm.TwoDiskHarnessTest.test_bls_ostree_option_never_consumes_the_next_line_or_accepts_ambiguity) ... ok
+2026-10-24T21:35:50.3387666Z test_failed_command_orderly_cleanup_marks_counter_before_qmp_quit (test_two_disk_vm.TwoDiskHarnessTest.test_failed_command_orderly_cleanup_marks_counter_before_qmp_quit) ... ok
+2026-10-24T21:35:50.3389051Z test_failed_diagnostic_cannot_skip_orderly_shutdown_or_suppress_write_failure (test_two_disk_vm.TwoDiskHarnessTest.test_failed_diagnostic_cannot_skip_orderly_shutdown_or_suppress_write_failure) ... ok
+2026-10-24T21:35:50.3397529Z test_failing_guest_command_keeps_final_counter_before_termination (test_two_disk_vm.TwoDiskHarnessTest.test_failing_guest_command_keeps_final_counter_before_termination) ... ok
+2026-10-24T21:35:50.3407799Z test_failure_counter_protected_write_remains_product_failure_and_vm_closes (test_two_disk_vm.TwoDiskHarnessTest.test_failure_counter_protected_write_remains_product_failure_and_vm_closes) ... ok
+2026-10-24T21:35:50.3409241Z test_failure_counter_unavailable_is_explicit_and_vm_still_closes (test_two_disk_vm.TwoDiskHarnessTest.test_failure_counter_unavailable_is_explicit_and_vm_still_closes) ... ok
+2026-10-24T21:35:50.3415495Z test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit (test_two_disk_vm.TwoDiskHarnessTest.test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit) ... ok
+2026-10-24T21:35:50.3417502Z test_german_console_input_translates_the_actual_recovery_commands (test_two_disk_vm.TwoDiskHarnessTest.test_german_console_input_translates_the_actual_recovery_commands) ... ok
+2026-10-24T21:35:50.3419874Z test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown (test_two_disk_vm.TwoDiskHarnessTest.test_host_shutdown_cannot_be_accepted_as_orderly_guest_shutdown) ... ok
+2026-10-24T21:35:50.3431043Z test_installed_keyboard_is_read_before_pause_and_mismatch_prevents_pause (test_two_disk_vm.TwoDiskHarnessTest.test_installed_keyboard_is_read_before_pause_and_mismatch_prevents_pause) ... ok
+2026-10-24T21:35:50.3432784Z test_installer_transport_is_forwarded_only_in_live_mode_on_host_loopback (test_two_disk_vm.TwoDiskHarnessTest.test_installer_transport_is_forwarded_only_in_live_mode_on_host_loopback) ... ok
+2026-10-24T21:35:50.3980149Z test_iso_contains_parser_modules_but_not_the_assumed_validator_executable (test_two_disk_vm.TwoDiskHarnessTest.test_iso_contains_parser_modules_but_not_the_assumed_validator_executable) ... ok
+2026-10-24T21:35:50.3984093Z test_kickstart_limits_clear_selection_and_bootloader_to_recorded_target (test_two_disk_vm.TwoDiskHarnessTest.test_kickstart_limits_clear_selection_and_bootloader_to_recorded_target) ... ok
+2026-10-24T21:35:50.3994718Z test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file (test_two_disk_vm.TwoDiskHarnessTest.test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file) ... ok
+2026-10-24T21:35:50.4006541Z test_qmp_inventory_verifies_pci_bindings_and_keeps_detached_target_slot_empty (test_two_disk_vm.TwoDiskHarnessTest.test_qmp_inventory_verifies_pci_bindings_and_keeps_detached_target_slot_empty) ... ok
+2026-10-24T21:35:50.4036055Z test_real_qmp_ide_id_is_bare_while_virtio_uses_a_backend_path (test_two_disk_vm.TwoDiskHarnessTest.test_real_qmp_ide_id_is_bare_while_virtio_uses_a_backend_path) ... ok
+2026-10-24T21:35:50.4079950Z test_real_retained_vars_first_stock_uses_default_and_later_linux_records_bootnext (test_two_disk_vm.TwoDiskHarnessTest.test_real_retained_vars_first_stock_uses_default_and_later_linux_records_bootnext) ... ok
+2026-10-24T21:35:50.4082978Z test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk (test_two_disk_vm.TwoDiskHarnessTest.test_real_target_identity_handles_reversed_enumeration_and_ignores_protected_disk) ... ok
+2026-10-24T21:35:50.4089809Z test_recognized_initialization_reboot_is_not_labeled_as_a_failure (test_two_disk_vm.TwoDiskHarnessTest.test_recognized_initialization_reboot_is_not_labeled_as_a_failure) ... ok
+2026-10-24T21:35:50.4166178Z test_recorded_stock_bls_entry_does_not_assume_the_installer_os_name (test_two_disk_vm.TwoDiskHarnessTest.test_recorded_stock_bls_entry_does_not_assume_the_installer_os_name) ... ok
+2026-10-24T21:35:50.4172786Z test_target_reset_refuses_an_open_file_and_preserves_it (test_two_disk_vm.TwoDiskHarnessTest.test_target_reset_refuses_an_open_file_and_preserves_it) ... ok
+2026-10-24T21:35:50.4177921Z test_timed_out_public_command_preserves_only_its_redacted_partial_output (test_two_disk_vm.TwoDiskHarnessTest.test_timed_out_public_command_preserves_only_its_redacted_partial_output) ... ok
+2026-10-24T21:35:50.4184419Z test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach (test_two_disk_vm.TwoDiskHarnessTest.test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach) ... ok
+2026-10-24T21:35:50.4186179Z test_ui_salted_password_hash_is_redacted_without_knowing_its_salt (test_two_disk_vm.TwoDiskHarnessTest.test_ui_salted_password_hash_is_redacted_without_knowing_its_salt) ... ok
+2026-10-24T21:35:50.4193773Z test_unexpected_qemu_exit_records_unavailable_counter_without_termination (test_two_disk_vm.TwoDiskHarnessTest.test_unexpected_qemu_exit_records_unavailable_counter_without_termination) ... ok
+2026-10-24T21:35:50.4208006Z test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output (test_two_disk_vm.TwoDiskHarnessTest.test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output) ... ok
+2026-10-24T21:35:50.4208815Z
+2026-10-24T21:35:50.4209159Z TTY3_LOGIN_PASSWORD_ECHO_DISABLED
+2026-10-24T21:35:50.4209570Z ======================================================================
+2026-10-24T21:35:50.4210508Z FAIL: test_install_transactions_stop_on_failure_and_never_include_the_reboot (test_shell_assertions.ShellAssertionTest.test_install_transactions_stop_on_failure_and_never_include_the_reboot)
+2026-10-24T21:35:50.4211628Z ----------------------------------------------------------------------
+2026-10-24T21:35:50.4212088Z Traceback (most recent call last):
+2026-10-24T21:35:50.4212773Z   File "/home/runner/work/AresOS/AresOS/os/tests/test_shell_assertions.py", line 90, in test_install_transactions_stop_on_failure_and_never_include_the_reboot
+2026-10-24T21:35:50.4213570Z     self.assertEqual(result.returncode, 42, result.stdout + result.stderr)
+2026-10-24T21:35:50.4216798Z AssertionError: 1 != 42 : id: ‘ares-recovery’: no such user
+2026-10-24T21:35:50.4217463Z
+2026-10-24T21:35:50.4217596Z
+2026-10-24T21:35:50.4217855Z ----------------------------------------------------------------------
+2026-10-24T21:35:50.4218274Z Ran 200 tests in 3.757s
+2026-10-24T21:35:50.4218539Z
+2026-10-24T21:35:50.4218745Z FAILED (failures=1)
+2026-10-24T21:35:50.4431675Z ##[error]Process completed with exit code 1.

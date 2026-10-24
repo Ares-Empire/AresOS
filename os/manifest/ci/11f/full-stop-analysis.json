@@ -1,0 +1,137 @@
+{
+  "status": "stopped",
+  "qualified": false,
+  "run": 40054116223,
+  "source": "1b00581df4b9871c9880db67e3f54ed2b82fb487",
+  "failure": "pin-stock exit 1: pending staged upstream deployment; unchanged no-staged guard refused before pin or AresOS switch",
+  "command_replay": "passed: same real rpm-ostree status triggers AssertionError; no ostree pin command executed",
+  "bootc": {
+    "booted": {
+      "cachedUpdate": null,
+      "composefs": null,
+      "downloadOnly": false,
+      "image": {
+        "architecture": "amd64",
+        "image": {
+          "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "signature": "containerPolicy",
+          "transport": "registry"
+        },
+        "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+        "timestamp": "2026-10-13T00:06:38Z",
+        "version": "44.20261012.1"
+      },
+      "incompatible": false,
+      "ostree": {
+        "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+        "deploySerial": 1,
+        "stateroot": "default"
+      },
+      "pinned": false,
+      "softRebootCapable": true,
+      "store": "ostreeContainer"
+    },
+    "readOnly": false,
+    "rollback": {
+      "cachedUpdate": null,
+      "composefs": null,
+      "downloadOnly": false,
+      "image": {
+        "architecture": "amd64",
+        "image": {
+          "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "signature": "containerPolicy",
+          "transport": "registry"
+        },
+        "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+        "timestamp": "2026-10-13T00:06:38Z",
+        "version": "44.20261012.1"
+      },
+      "incompatible": false,
+      "ostree": {
+        "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+        "deploySerial": 0,
+        "stateroot": "default"
+      },
+      "pinned": false,
+      "softRebootCapable": false,
+      "store": "ostreeContainer"
+    },
+    "rollbackQueued": false,
+    "staged": {
+      "cachedUpdate": null,
+      "composefs": null,
+      "downloadOnly": false,
+      "image": {
+        "architecture": "amd64",
+        "image": {
+          "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "signature": "containerPolicy",
+          "transport": "registry"
+        },
+        "imageDigest": "sha256:d0e5e105ebf43c7ddbe3c4a5dfecac1628b0e0dcf152bbd2aee0eda3e4b4cdd4",
+        "timestamp": "2026-10-23T16:36:04Z",
+        "version": "44.20261023"
+      },
+      "incompatible": false,
+      "ostree": {
+        "checksum": "278edb6798de01c7c090d25e058f3754c2cd6585d930634d7f5abeb90a362487",
+        "deploySerial": 0,
+        "stateroot": "default"
+      },
+      "pinned": false,
+      "softRebootCapable": false,
+      "store": "ostreeContainer"
+    },
+    "type": "bootcHost",
+    "usrOverlay": null
+  },
+  "rpm_ostree_deployments": [
+    {
+      "checksum": "278edb6798de01c7c090d25e058f3754c2cd6585d930634d7f5abeb90a362487",
+      "booted": false,
+      "staged": true,
+      "serial": 0,
+      "pinned": false,
+      "version": "44.20261023",
+      "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "container-image-reference-digest": "sha256:d0e5e105ebf43c7ddbe3c4a5dfecac1628b0e0dcf152bbd2aee0eda3e4b4cdd4"
+    },
+    {
+      "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "booted": true,
+      "staged": false,
+      "serial": 1,
+      "pinned": false,
+      "version": "44.20261012.1",
+      "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+    },
+    {
+      "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "booted": false,
+      "staged": false,
+      "serial": 0,
+      "pinned": false,
+      "version": "44.20261012.1",
+      "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+    }
+  ],
+  "updater_started_in_boot_console": true,
+  "updater_causation": "Inferred from uupd startup plus newer staged stock; no updater journal was collected",
+  "final_stock_zero_write_proof": false,
+  "reason": "Host-terminated failure-close session has no stock-blockstats.json",
+  "aresos_switch_started": false,
+  "part_a": "not qualified",
+  "part_b": "untested",
+  "input_format": "LF-normalized display text as committed; other input bytes exact; original ZIP receipts unchanged",
+  "inputs": {
+    "os/release/pin-stock.sh": "fe42a8ef9a42424a4d865cfb7793329aed69ce072aa79ce81e4bb095c4dc33d8",
+    "os/ci/switch_vm.py": "c99d644d4ebac38dddc1ce021af726d7fb973c5f86236d8e5434ee3740ebd022",
+    "os/manifest/ci/11f/full-2/two-disk/pin-stock.txt": "deec8afd92b96fb2185f5d7289e9854ede5e0421f4ea89eefe4a8806b5c5981c",
+    "os/manifest/ci/11f/full-2/two-disk/stock-status.json": "1659b1546aa362986bc6eeb6d64d2092ea60676d93f111b8f8cf1dfd1702f589",
+    "os/manifest/ci/11f/full-2/two-disk/stock-initialization-0-boot-console.txt": "65060981c4611369c2681853934c8bcc5f4639bd5d62ec1e528c492495386f3e",
+    "os/manifest/ci/11f/full-2/two-disk/stock-boot-console.txt": "91812f6d1ab93736c952a4bbd67ca8bb38373094179292d358b83160b6d41b8e"
+  }
+}

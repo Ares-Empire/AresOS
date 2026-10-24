@@ -2,7 +2,21 @@
 
 The AresOS emergency card. **Keep it on your phone.** If AresOS is broken, you can't read it on the laptop.
 
-This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md, and this card tells you which section to open.
+This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md. 11k passed automated Part A in both drive orders with the earlier Windows-first timing. [11n](../reviews/11-two-disk-rehearsal/REPORT.md#11n-safe-switch-test-prerequisites-and-continued-qualification-2026-10-24) passed the revised first-login → Windows-first sequence and GRUB stock recovery/promotion/second stock boot in a protected-second VM, with every reached protected-disk/NVRAM/BootNext audit passing and final zero writes. Physical media, laptop, loaded keyboard/actual typing, manual menu and followability gates remain open. Do not guess menu positions or bypass a STOP; prefer F12 → Windows and getting help.
+
+## Stock preparation stops before the switch
+
+Run INSTALL's [pause-and-retain block](INSTALL.md#pause-and-retain-stock-before-the-windows-comparison)
+at the first stock login, before restarting into Windows, and repeat it before
+switching to AresOS. It first stops the reviewed OS updaters, records their
+states and deployment processes, and cancels at most one leftover transaction.
+A five-minute idle refusal names the blocking unit, transaction or client; keep
+those diagnostics privately and get help. It can discard one newer upstream update that is staged but
+has not booted. If a newer stock version has already booted, another origin is
+staged, or the block prints **STOP**, do not reboot, repin or roll back by guesswork:
+keep the printed identities privately and get help. Leave stock updates paused
+during the trial; re-enable them only after stock is your permanent choice and
+its second default boot has passed.
 
 ## The three rules
 
@@ -16,10 +30,10 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 ## Two different menus
 
-- **F12 menu (the laptop's own menu):** tap F12 right after pressing the power button. It lists **Windows Boot Manager** and the Linux entry (possibly called Fedora or Bazzite). It picks which SSD starts, for this one start only.
-- **Boot menu (GRUB, on the AresOS SSD):** appears only after you pick the Linux entry. It lists the AresOS version and the backup Bazzite copy.
+- **F12 menu (the laptop's own menu):** tap F12 right after pressing the power button. It lists **Windows Boot Manager** and the Linux entry (possibly called Fedora or Bazzite). It picks which SSD starts, for this one start only. Automatic entries for unplugged devices, such as the installer stick, may disappear; that is normal. A missing Windows Boot Manager still means stop.
+- **Boot menu (GRUB, on the AresOS SSD):** appears only after you pick the Linux entry. Both AresOS and stock can be labelled **Bazzite**. Before the switch reboot, INSTALL §6 records which `(ostree:N)` belongs to the saved stock checksum: deployment rows count from0 at the top, normally stock is **Bazzite (ostree:1)** after the single switch. Match that exact recorded title; a changed or unclear menu means stop and get help.
 
-During the first trial Windows is the default: if you press nothing, Windows starts.
+Immediately after installation Linux is the default, including stock's one-time hardware-setup reboot and first-login pause/pin. **Windows becomes the default only after INSTALL §5's F2 → Windows first → Save and Exit and its successful unattended Windows check.** From then on, pressing nothing starts Windows; F12 selects one Linux start.
 
 ## Find your situation
 

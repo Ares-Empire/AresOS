@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "booted_checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+  "booted_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "staged_discarded": false,
+  "discarded": null,
+  "pinned": true,
+  "no_staged": true
+}

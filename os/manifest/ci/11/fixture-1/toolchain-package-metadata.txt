@@ -1,0 +1,387 @@
+Package: podman
+Source: libpod
+Priority: optional
+Section: universe/admin
+Installed-Size: 42601
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 4.9.3+ds1-1ubuntu0.2
+Recommends: buildah (>= 1.31), catatonit | tini | dumb-init, dbus-user-session, passt, slirp4netns, uidmap
+Suggests: containers-storage, docker-compose, iptables
+Depends: conmon, crun | runc, golang-github-containers-common, libc6 (>= 2.38), libdevmapper1.02.1 (>= 2:1.02.97), libgpgme11t64 (>= 1.4.1), libseccomp2 (>= 2.5.0), libsqlite3-0 (>= 3.36.0), libsubid4 (>= 1:4.11.1)
+Filename: pool/universe/libp/libpod/podman_4.9.3+ds1-1ubuntu0.2_amd64.deb
+Size: 13408626
+MD5sum: 0e0faed25a8a63e40b4d257f9616ef1e
+SHA1: b7217708e6bb7fccb28b41e5d5a26f3983201171
+SHA256: e5c1c37e387ed14c352a744a75fbb79fb2f82573ca7bf36886e3b7333fc9ef1a
+SHA512: ef06f972d79c3edd2494a5ce4b0ceacc055b171b93d18695154abc6bd8ee8a10e6b9efb48f8ffa3d7a721bc0cbec9ec79612bd179b9574cf120d83b033fe887c
+Homepage: https://github.com/containers/podman
+Description-en: tool to manage containers and pods
+ Podman (the POD MANager) is a tool for managing containers and images, volumes
+ mounted into those containers, and pods made from groups of containers.
+ .
+ At a high level, the scope of Podman and libpod is the following:
+ * Support for multiple container image formats, including OCI and Docker
+ images.
+ * Full management of those images, including pulling from various sources
+ (including trust and verification), creating (built via Containerfile or
+ Dockerfile or committed from a container), and pushing to registries and
+ other storage backends.
+ * Full management of container lifecycle, including creation (both from an
+ image and from an exploded root filesystem), running, checkpointing and
+ restoring (via CRIU), and removal.
+ * Full management of container networking, using Netavark.
+ * Support for pods, groups of containers that share resources and are managed
+ together.
+ * Support for running containers and pods without root or other elevated
+ privileges.
+ * Resource isolation of containers and pods.
+ * Support for a Docker-compatible CLI interface, which can both run
+ containers locally and on remote systems.
+ * No manager daemon, for improved security and lower resource utilization at
+ idle.
+ * Support for a REST API providing both a Docker-compatible interface and an
+ improved interface exposing advanced Podman functionality.
+ * Support for running on Windows and Mac via virtual machines run by podman
+ machine.
+ .
+ Podman is a daemon-less alternative to Docker.
+Description-md5: fd83afbea3c3f2a1d94acbd0a2ad6d26
+Built-Using: conmon (= 2.1.10+ds1-1build2), containerd (= 1.6.24~ds1-1ubuntu1.1), docker-registry (= 2.8.2+ds1-1ubuntu0.24.04.1), docker.io (= 20.10.25+dfsg1-2ubuntu1), go-containerregistry (= 0.14.0+ds1-2), golang-1.22 (= 1.22.2-2ubuntu0.2), golang-dbus (= 5.1.0-1), golang-fsnotify (= 1.7.0-1), golang-github-acarl005-stripansi (= 0.0~git20180116.5a71ef0-3), golang-github-aead-serpent (= 0.1-2), golang-github-appc-cni (= 1.1.2-1), golang-github-blang-semver (= 4.0.0-1), golang-github-buger-goterm (= 0.0+git20181115.c206103-3), golang-github-cespare-xxhash (= 2.1.1-2), golang-github-checkpoint-restore-checkpointctl (= 0.1.0+ds1-2ubuntu0.24.04.1), golang-github-checkpoint-restore-go-criu (= 6.3.0+ds1-2), golang-github-chzyer-readline (= 1.4.39.g2972be2-3), golang-github-cilium-ebpf (= 0.11.0-2), golang-github-container-orchestrated-devices-container-device-interface (= 0.6.2-2), golang-github-containerd-stargz-snapshotter (= 0.12.0-2ubuntu0.24.04.1), golang-github-containernetworking-plugins (= 1.1.1+ds1-3ubuntu0.24.04.1), golang-github-containers-buildah (= 1.33.7+ds1-1ubuntu0.24.04.1), golang-github-containers-common (= 0.57.4+ds1-2ubuntu0.1), golang-github-containers-gvisor-tap-vsocks (= 0.7.2+ds1-1), golang-github-containers-image (= 5.29.2-2), golang-github-containers-libtrust (= 0.0~git20230121.c1716e8-2), golang-github-containers-luksy (= 0.0~git20231017.6a3592c+ds1-1ubuntu0.24.04.1), golang-github-containers-ocicrypt (= 1.1.9-1), golang-github-containers-psgo (= 1.7.1+ds1-1), golang-github-containers-storage (= 1.51.0+ds1-2ubuntu0.24.04.1), golang-github-coreos-bbolt (= 1.3.8-1), golang-github-coreos-go-systemd (= 22.5.0-1), golang-github-coreos-stream-metadata-go (= 0.4.3-3), golang-github-cyphar-filepath-securejoin (= 0.2.3-1), golang-github-davecgh-go-spew (= 1.1.1-3), golang-github-digitalocean-go-libvirt (= 0.0~git20240220.fcabe97-1), golang-github-digitalocean-go-qemu (= 0.0~git20230711.2e3d018-1), golang-github-disiqueira-gotree (= 3.0.2-2), golang-github-docker-docker-credential-helpers (= 0.6.4+ds1-1ubuntu0.24.04.1), golang-github-docker-go-connections (= 0.4.0-4), golang-github-docker-go-plugins-helpers (= 0.20211224-3), golang-github-docker-go-units (= 0.4.0-4), golang-github-felixge-httpsnoop (= 1.0.3-3), golang-github-fsouza-go-dockerclient (= 1.8.1-1), golang-github-fullsailor-pkcs7 (= 0.0~git20210826.33d0574-2), golang-github-golang-protobuf-1-5 (= 1.5.3-1ubuntu0.1), golang-github-google-go-intervals (= 0.0.2-2), golang-github-google-gofuzz (= 1.2.0-1), golang-github-google-shlex (= 0.0~git20191202.e7afc7f-1), golang-github-google-uuid (= 1.6.0-1), golang-github-gorilla-handlers (= 1.5.2-1), golang-github-gorilla-mux (= 1.8.1-1), golang-github-gorilla-schema (= 1.2.0-2), golang-github-hashicorp-errwrap (= 1.1.0-1), golang-github-hashicorp-go-cleanhttp (= 0.5.2-1), golang-github-hashicorp-go-multierror (= 1.1.1-2), golang-github-hashicorp-go-retryablehttp (= 0.7.1-1), golang-github-jinzhu-copier (= 0.3.2-2), golang-github-json-iterator-go (= 1.1.12-2), golang-github-klauspost-compress (= 1.17.7+ds1-1), golang-github-klauspost-pgzip (= 1.2.6-1), golang-github-kr-fs (= 0.1.0-2), golang-github-manifoldco-promptui (= 0.9.0-1), golang-github-mattn-go-runewidth (= 0.0.15-2), golang-github-mattn-go-shellwords (= 1.0.12-1), golang-github-mattn-go-sqlite3 (= 1.14.19~ds1-1), golang-github-mdlayher-socket (= 0.5.0-2), golang-github-mdlayher-vsock (= 1.2.1-2), golang-github-miekg-pkcs11 (= 1.0.3+dfsg1-2), golang-github-moby-sys (= 0.0~git20231105.a4e0878-1), golang-github-moby-term (= 0.0~git20230502.9c3c875-1), golang-github-modern-go-concurrent (= 1.0.3-1.1), golang-github-modern-go-reflect2 (= 1.0.2-2), golang-github-morikuni-aec (= 1.0.0-3), golang-github-nxadm-tail (= 1.4.5+ds1-5), golang-github-opencontainers-go-digest (= 1.0.0-2), golang-github-opencontainers-image-spec (= 1.1.0~rc5-1), golang-github-opencontainers-runtime-tools (= 0.9.0.109.ge931285-1), golang-github-opencontainers-selinux (= 1.11.0+ds1-2), golang-github-opencontainers-specs (= 1.1.0-1), golang-github-openshift-imagebuilder (= 1.2.5+ds1-3ubuntu0.24.04.1), golang-github-pkg-errors (= 0.9.1-3), golang-github-pkg-sftp (= 1.13.6-1), golang-github-pmezard-go-difflib (= 1.0.0-3), golang-github-proglottis-gpgme (= 0.1.1-2), golang-github-rivo-uniseg (= 0.4.4-1), golang-github-secure-systems-lab-go-securesystemslib (= 0.8.0-2), golang-github-shirou-gopsutil (= 3.24.1-1ubuntu1), golang-github-sigstore-sigstore (= 1.8.0-2), golang-github-spf13-cobra (= 1.8.0-1), golang-github-spf13-pflag (= 1.0.6~git20210604-d5e0c0615ace-1), golang-github-stefanberger-go-pkcs11uri (= 0.0~git20201008.78d3cae-2), golang-github-sylabs-sif (= 2.8.3-2ubuntu0.24.04.1), golang-github-tklauser-go-sysconf (= 0.3.11-1), golang-github-tklauser-numcpus (= 0.3.0-2), golang-github-ulikunitz-xz (= 0.5.6-2), golang-github-vbatts-tar-split (= 0.11.2+ds1-1ubuntu0.24.04.1), golang-github-vbauerster-mpb (= 8.6.1-3), golang-github-vishvananda-netlink (= 1.1.0.125.gf243826-4), golang-github-vishvananda-netns (= 0.0~git20211101.5004558-1), golang-github-vividcortex-ewma (= 1.1.1-2), golang-go-patricia (= 2.3.1-1), golang-go-zfs (= 3.0.0-1), golang-go.crypto (= 1:0.19.0-1), golang-gocapability-dev (= 0.0+git20200815.42c35b4-2), golang-gogoprotobuf (= 1.3.2-3ubuntu0.24.04.1), golang-golang-x-exp (= 0.0~git20231006.7918f67-1ubuntu0.24.04.1), golang-golang-x-mod (= 0.15.0-1), golang-golang-x-net (= 1:0.21.0+dfsg-1), golang-golang-x-sync (= 0.6.0-1), golang-golang-x-sys (= 0.17.0-1), golang-golang-x-term (= 0.17.0-1), golang-golang-x-text (= 0.14.0-2), golang-google-genproto (= 0.0~git20200413.b5235f6-3), golang-google-grpc (= 1.38.0+really1.33.3-1ubuntu0.24.04.1), golang-google-protobuf (= 1.32.0-1ubuntu0.1), golang-gopkg-inf.v0 (= 0.9.1-2), golang-gopkg-square-go-jose.v2 (= 2.6.0-2), golang-gopkg-tomb.v1 (= 0.0~git20141024.0.dd63297-8), golang-gopkg-yaml.v3 (= 3.0.1-3), golang-k8s-sigs-yaml (= 1.3.0-1), golang-logrus (= 1.9.0-1), golang-toml (= 1.3.2-2), golang-yaml.v2 (= 2.4.0-4), rootlesskit (= 1.1.1-1ubuntu0.24.04.1), runc (= 1.1.12+ds1-2ubuntu1.1)
+Original-Maintainer: Debian Go Packaging Team <pkg-go-maintainers@lists.alioth.debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+
+Package: skopeo
+Priority: optional
+Section: universe/devel
+Installed-Size: 19257
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 1.13.3+ds1-2ubuntu0.24.04.3
+Depends: golang-github-containers-common (>> 0.49), libc6 (>= 2.38), libdevmapper1.02.1 (>= 2:1.02.97), libgpgme11t64 (>= 1.4.1), libsqlite3-0 (>= 3.36.0)
+Filename: pool/universe/s/skopeo/skopeo_1.13.3+ds1-2ubuntu0.24.04.3_amd64.deb
+Size: 6176576
+MD5sum: 068344ba62e8aa490d0e0dffce12af8b
+SHA1: 121073bbbd3c785b0a44c66308a3030b9249d2ba
+SHA256: d908a86538f6d4bc49ea9c7423e5fb279a5c8cfc1f9bc7bd505f8bfe25d29be3
+SHA512: b9ba60dd3e57b8333045b1156599587ae3649678e05d2aa8a217e518e7a09a46d1464bdf69bd6cf831edde268813d391791301b6e321b055bd91d8019a4608ab
+Homepage: https://github.com/containers/skopeo
+Description-en: Tooling to work with remote images registries
+ skopeo is a command line utility that performs various operations on
+ container images and image repositories.
+ .
+ skopeo can work with OCI images
+ (https://github.com/opencontainers/image-spec) as well as the original
+ Docker v2 images.
+Description-md5: d03726f6234fe2b000f2b3e7e3028234
+Built-Using: docker-registry (= 2.8.2+ds1-1ubuntu0.24.04.3), docker.io (= 20.10.25+dfsg1-2ubuntu1.24.04.1), go-containerregistry (= 0.14.0+ds1-2), golang-1.22 (= 1.22.2-2ubuntu0.4), golang-github-acarl005-stripansi (= 0.0~git20180116.5a71ef0-3), golang-github-cespare-xxhash (= 2.1.1-2), golang-github-containerd-stargz-snapshotter (= 0.12.0-2ubuntu0.24.04.2), golang-github-containers-common (= 0.57.4+ds1-2ubuntu0.2), golang-github-containers-image (= 5.29.2-2), golang-github-containers-libtrust (= 0.0~git20230121.c1716e8-2), golang-github-containers-ocicrypt (= 1.1.9-1), golang-github-containers-storage (= 1.51.0+ds1-2ubuntu0.24.04.3), golang-github-cyphar-filepath-securejoin (= 0.2.3-1), golang-github-docker-docker-credential-helpers (= 0.6.4+ds1-1ubuntu0.24.04.3), golang-github-docker-go-connections (= 0.4.0-4), golang-github-docker-go-units (= 0.4.0-4), golang-github-fullsailor-pkcs7 (= 0.0~git20210826.33d0574-2), golang-github-golang-protobuf-1-3 (= 1.3.5-4ubuntu0.24.04.3), golang-github-google-go-intervals (= 0.0.2-2), golang-github-google-uuid (= 1.6.0-1), golang-github-gorilla-mux (= 1.8.1-1), golang-github-hashicorp-errwrap (= 1.1.0-1), golang-github-hashicorp-go-cleanhttp (= 0.5.2-1), golang-github-hashicorp-go-multierror (= 1.1.1-2), golang-github-hashicorp-go-retryablehttp (= 0.7.1-1), golang-github-json-iterator-go (= 1.1.12-2), golang-github-klauspost-compress (= 1.17.7+ds1-1), golang-github-klauspost-pgzip (= 1.2.6-1), golang-github-mattn-go-runewidth (= 0.0.15-2), golang-github-mattn-go-sqlite3 (= 1.14.19~ds1-1), golang-github-miekg-pkcs11 (= 1.0.3+dfsg1-2), golang-github-moby-sys (= 0.0~git20231105.a4e0878-1), golang-github-modern-go-concurrent (= 1.0.3-1.1), golang-github-modern-go-reflect2 (= 1.0.2-2), golang-github-opencontainers-go-digest (= 1.0.0-2), golang-github-opencontainers-image-spec (= 1.1.0~rc5-1), golang-github-opencontainers-selinux (= 1.11.0+ds1-2), golang-github-opencontainers-specs (= 1.1.0-1), golang-github-pkg-errors (= 0.9.1-3), golang-github-proglottis-gpgme (= 0.1.1-2), golang-github-rivo-uniseg (= 0.4.4-1), golang-github-secure-systems-lab-go-securesystemslib (= 0.8.0-2), golang-github-sigstore-sigstore (= 1.8.0-2), golang-github-spf13-cobra (= 1.8.0-1), golang-github-spf13-pflag (= 1.0.6~git20210604-d5e0c0615ace-1), golang-github-stefanberger-go-pkcs11uri (= 0.0~git20201008.78d3cae-2), golang-github-sylabs-sif (= 2.8.3-2ubuntu0.24.04.3), golang-github-ulikunitz-xz (= 0.5.6-2), golang-github-vbatts-tar-split (= 0.11.2+ds1-1ubuntu0.24.04.3), golang-github-vbauerster-mpb (= 8.6.1-3), golang-github-vividcortex-ewma (= 1.1.1-2), golang-go-patricia (= 2.3.1-1), golang-go-zfs (= 3.0.0-1), golang-go.crypto (= 1:0.19.0-1), golang-gocapability-dev (= 0.0+git20200815.42c35b4-2), golang-gogoprotobuf (= 1.3.2-3ubuntu0.24.04.3), golang-golang-x-exp (= 0.0~git20231006.7918f67-1ubuntu0.24.04.3), golang-golang-x-net (= 1:0.21.0+dfsg-1), golang-golang-x-sync (= 0.6.0-1), golang-golang-x-sys (= 0.17.0-1), golang-golang-x-term (= 0.17.0-1), golang-golang-x-text (= 0.14.0-2), golang-google-genproto (= 0.0~git20200413.b5235f6-3), golang-google-grpc (= 1.38.0+really1.33.3-1ubuntu0.24.04.3), golang-gopkg-square-go-jose.v2 (= 2.6.0-2), golang-gopkg-yaml.v3 (= 3.0.1-3), golang-logrus (= 1.9.0-1), golang-toml (= 1.3.2-2), runc (= 1.1.12+ds1-2ubuntu1.3)
+Original-Maintainer: Debian Go Packaging Team <team+pkg-go@tracker.debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+
+Package: qemu-system-x86
+Source: qemu
+Priority: optional
+Section: misc
+Installed-Size: 58554
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 1:8.2.2+ds-0ubuntu1.18
+Recommends: qemu-utils, ipxe-qemu-256k-compat-efi-roms, ovmf, qemu-system-gui (= 1:8.2.2+ds-0ubuntu1.18), qemu-system-modules-spice (= 1:8.2.2+ds-0ubuntu1.18), qemu-system-modules-opengl (= 1:8.2.2+ds-0ubuntu1.18), qemu-block-extra (= 1:8.2.2+ds-0ubuntu1.18), cpu-checker
+Suggests: samba, vde2
+Provides: qemu-kvm (= 1:8.2.2+ds-0ubuntu1.18), qemu-system-amd64 (= 1:8.2.2+ds-0ubuntu1.18), qemu-system-any (= 1:8.2.2+ds-0ubuntu1.18), qemu-system-i386 (= 1:8.2.2+ds-0ubuntu1.18), qemu-system-x86-64 (= 1:8.2.2+ds-0ubuntu1.18)
+Depends: libaio1t64 (>= 0.3.93), libbpf1 (>= 1:0.0.8), libc6 (>= 2.38), libfdt1 (>= 1.7.0), libfuse3-3 (>= 3.2.3), libglib2.0-0t64 (>= 2.77.3), libgmp10 (>= 2:6.3.0+dfsg), libgnutls30t64 (>= 3.8.2), libhogweed6t64, libibverbs1 (>= 1.1.6), libjpeg8 (>= 8c), libnettle8t64, libnuma1 (>= 2.0.15), libpixman-1-0 (>= 0.19.6), libpmem1 (>= 1.4), libpng16-16t64 (>= 1.6.2), librdmacm1t64 (>= 1.0.15), libsasl2-2 (>= 2.1.28+dfsg1), libseccomp2 (>= 2.1.0), libslirp0 (>= 4.7.0), libudev1 (>= 183), liburing2 (>= 2.3), libzstd1 (>= 1.5.5), zlib1g (>= 1:1.2.0), qemu-system-common (= 1:8.2.2+ds-0ubuntu1.18), qemu-system-data (>> 1:8.2.2+ds~), seabios (>> 1.16.3-1~), ipxe-qemu
+Filename: pool/main/q/qemu/qemu-system-x86_8.2.2+ds-0ubuntu1.18_amd64.deb
+Size: 11222476
+MD5sum: 0c259da2be305733789115b62484cd3a
+SHA1: 13fdaa9151793cb71886e489dece369b1e3dece7
+SHA256: 14602e262627adac030329d2cecfee5f6c0938b34566ff2ea2d4c9a9eb02430d
+SHA512: 8397911a6b055af7fc2831ae82b58619f864b6e4f648aaba9863c3e9d8b36a4442619a4dbb3a845ee9c8b809c51662dbab6958d831ab975e6b7ef7217f8fa05e
+Homepage: http://www.qemu.org/
+Description-en: QEMU full system emulation binaries (x86)
+ QEMU is a fast processor emulator: currently the package supports
+ i386 and x86-64 emulation. By using dynamic translation it achieves
+ reasonable speed while being easy to port on new host CPUs.
+ .
+ This package provides the full system emulation binaries to emulate
+ the following x86 hardware: i386 x86_64 (amd64).
+ .
+ In system emulation mode QEMU emulates a full system, including a processor
+ and various peripherals.  It enables easier testing and debugging of system
+ code.  It can also be used to provide virtual hosting of several virtual
+ machines on a single server.
+ .
+ On x86 host hardware this package also enables KVM kernel virtual machine
+ usage on systems which supports it.
+Description-md5: 101a12e03df790d974e0f42cbdab8a73
+Multi-Arch: foreign
+Original-Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+
+Package: qemu-system-data
+Source: qemu
+Priority: optional
+Section: otherosfs
+Installed-Size: 9081
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: all
+Version: 1:8.2.2+ds-0ubuntu1.18
+Replaces: openbios-ppc, openbios-sparc, qemu-slof, qemu-system-ppc (<< 1:6.1-4~), sgabios
+Provides: openbios-ppc, openbios-sparc, qemu-keymaps, qemu-skiboot, qemu-slof, sgabios
+Conflicts: openbios-ppc, openbios-sparc, qemu-skiboot, qemu-slof, sgabios
+Breaks: qemu-system-ppc (<< 1:6.1-4~)
+Filename: pool/main/q/qemu/qemu-system-data_8.2.2+ds-0ubuntu1.18_all.deb
+Size: 1796342
+MD5sum: 91c889eac04dd82da2b5cc61f4202cac
+SHA1: a22c91ca45b19defa1106f806a16e947a7c90542
+SHA256: a14b88d864859bd61c8a3274971da4ecb7da6cec15be6c265d0d411f783d5f2e
+SHA512: e26e1133042653f567a4b1bb59838777fa92c0304979e3da8681c4cbaec6bf975c08134472d0f9757571d5b5cbbea409fb97bb23ee0099aa5a67c84bbe14205a
+Homepage: http://www.qemu.org/
+Description-en: QEMU full system emulation (data files)
+ This package provides architecture-neutral data files
+ (such as keyboard definitions, icons) for system-mode
+ QEMU emulation (qemu-system-*) packages.
+Description-md5: c61105eaa5edddd1459bc7ebfd8348d6
+Multi-Arch: foreign
+Original-Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+
+Package: qemu-system-common
+Source: qemu
+Priority: optional
+Section: misc
+Installed-Size: 7089
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 1:8.2.2+ds-0ubuntu1.18
+Depends: libasound2t64 (>= 1.0.16), libbrlapi0.8 (>= 6.6), libc6 (>= 2.38), libcacard0 (>= 2.2), libcap-ng0 (>= 0.7.9), libglib2.0-0t64 (>= 2.77.3), libgmp10 (>= 2:6.3.0+dfsg), libgnutls30t64 (>= 3.8.2), libhogweed6t64, libncursesw6 (>= 6), libnettle8t64, libnuma1 (>= 2.0.11), libpixman-1-0 (>= 0.19.6), libtinfo6 (>= 6), liburing2 (>= 2.3), libusb-1.0-0 (>= 2:1.0.23~), libusbredirparser1t64 (>= 0.8.0), acl
+Breaks: libvirt-daemon (<< 7.2.0-1)
+Filename: pool/main/q/qemu/qemu-system-common_8.2.2+ds-0ubuntu1.18_amd64.deb
+Size: 1255316
+MD5sum: b97e101d0bf143b9d8f12c25438e3d8d
+SHA1: dc7c0d9fb196e86f0c7247bdd28cf4266b83f71a
+SHA256: 0a0b744f31e87d72dd0465436b8dfbb1ef9f574ecd0d5a2e9dd8c5cb7d0fef1f
+SHA512: ef697adcbf15cf63ef03b2919a923c8237b15b7c8e39b5e947692b731ff1db3a488ec367ba85af498bb70063a22853484a402935cebfa685172fdcf2cdf2d27f
+Homepage: http://www.qemu.org/
+Description-en: QEMU full system emulation binaries (common files)
+ QEMU is a fast processor emulator: currently the package supports Alpha, ARM,
+ CRIS, i386, LoongArch, M68k (ColdFire), MicroBlaze, MIPS, PowerPC, RISC-V,
+ S390x, SH4, SPARC, x86-64, Xtensa and other emulations. By using dynamic
+ translation it achieves reasonable speed while being easy to port on new host
+ CPUs.
+ .
+ This package provides common files needed for target-specific
+ full system emulation (qemu-system-*) packages.
+Description-md5: 2d1e18c54faaec9f7eb304597574241a
+Original-Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+
+Package: qemu-utils
+Source: qemu
+Priority: optional
+Section: misc
+Installed-Size: 11053
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 1:8.2.2+ds-0ubuntu1.18
+Recommends: qemu-block-extra (= 1:8.2.2+ds-0ubuntu1.18)
+Replaces: qemu-system-common (<< 1:8.0+dfsg-5~)
+Depends: libaio1t64 (>= 0.3.93), libc6 (>= 2.38), libfuse3-3 (>= 3.2.3), libglib2.0-0t64 (>= 2.77.3), libgmp10 (>= 2:6.3.0+dfsg), libgnutls30t64 (>= 3.8.2), libhogweed6t64, libnettle8t64, libnuma1 (>= 2.0.11), libselinux1 (>= 3.1~), liburing2 (>= 2.3), libzstd1 (>= 1.5.5), zlib1g (>= 1:1.1.4)
+Breaks: qemu-system-common (<< 1:8.0+dfsg-5~)
+Filename: pool/main/q/qemu/qemu-utils_8.2.2+ds-0ubuntu1.18_amd64.deb
+Size: 2220842
+MD5sum: 4ca8cc531b3f8484f442803c43c3d80a
+SHA1: a538be597931466bed44da7871846445b839f9ee
+SHA256: 10695e57937d8a1d0ec6d017a6770d02353ec0c9500e4a36928230b2d39026c5
+SHA512: efe199e9c61b49bfda0563d3c654ae46bb5ca0c6b4803bc0f8c6fb8f5853699ffe380771847986d9e8679ad5d2df29811a38285538952b026f4fbaf0fc5b5692
+Homepage: http://www.qemu.org/
+Description-en: QEMU utilities
+ QEMU is a fast processor emulator: currently the package supports Alpha, ARM,
+ CRIS, i386, LoongArch, M68k (ColdFire), MicroBlaze, MIPS, PowerPC, RISC-V,
+ S390x, SH4, SPARC, x86-64, Xtensa and other emulations. By using dynamic
+ translation it achieves reasonable speed while being easy to port on new host
+ CPUs.
+ .
+ This package provides QEMU related utilities:
+ * qemu-img: QEMU disk image utility
+ * qemu-io:  QEMU disk exerciser
+ * qemu-nbd: QEMU disk network block device server
+Description-md5: 8501379a3df79c5d6318015169654c6a
+Multi-Arch: foreign
+Original-Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+
+Package: qemu-block-extra
+Source: qemu
+Priority: optional
+Section: otherosfs
+Installed-Size: 310
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 1:8.2.2+ds-0ubuntu1.18
+Depends: libbz2-1.0, libc6 (>= 2.29), libcurl3t64-gnutls (>= 7.16.3), libiscsi7 (>= 1.18.0), libnfs14 (>= 4.0.0), librados2 (>= 0.72.2), librbd1 (>= 19.2.3-0ubuntu0.24.04.3), libssh-4 (>= 0.8.4), qemu-system-any (= 1:8.2.2+ds-0ubuntu1.18) | qemu-utils (= 1:8.2.2+ds-0ubuntu1.18)
+Enhances: qemu-system-arm, qemu-system-mips, qemu-system-misc, qemu-system-sparc, qemu-system-x86, qemu-utils
+Filename: pool/main/q/qemu/qemu-block-extra_8.2.2+ds-0ubuntu1.18_amd64.deb
+Size: 113602
+MD5sum: 52265a6d1393623213f6005a6b84eb3a
+SHA1: 057c1be9032d035d7a37074ab90fa10a77d69be0
+SHA256: 7948d84803cb1e81fb7ac206adeec76a49784eb27a2de8e3e06c223cac1a1654
+SHA512: 0df0c2dc99411a0e637327071a307aa6c59a5021295b1821220f05338ea78aab6add119de24fadc1e532aa81043b1e8ad2fa8c91d9d0c1a131e8250745e21eaa
+Homepage: http://www.qemu.org/
+Description-en: extra block backend modules for qemu-system and qemu-utils
+ QEMU is a fast processor emulator: currently the package supports Alpha, ARM,
+ CRIS, i386, LoongArch, M68k (ColdFire), MicroBlaze, MIPS, PowerPC, RISC-V,
+ S390x, SH4, SPARC, x86-64, Xtensa and other emulations. By using dynamic
+ translation it achieves reasonable speed while being easy to port on new host
+ CPUs.
+ .
+ This package provides extra block device backend modules for qemu-system
+ emulation and qemu-img from qemu-utils package, which are rarely used and
+ has extra dependencies.
+Description-md5: b5e1c6baef0716841da073a7551acbc5
+Original-Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+
+Package: ovmf
+Source: edk2
+Priority: extra
+Section: misc
+Installed-Size: 16971
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: all
+Version: 2024.02-2ubuntu0.10
+Replaces: qemu-system-common (<< 1.7.0+dfsg-3ubuntu4)
+Suggests: qemu-system-x86
+Filename: pool/main/e/edk2/ovmf_2024.02-2ubuntu0.10_all.deb
+Size: 5188306
+MD5sum: ba80a9b95d2c525d67e81f138f33f286
+SHA1: 151bba4fe130858adfd82d3297b55d7bd87f807a
+SHA256: 78a6a3a4ffa666f1cb25e9069e4ec9270b5ceac7987b6eefc2674bd3f58a1473
+SHA512: 6d266245ea9001eaf7bdc665efa6f33de587860da248ca54088f54d0178621e89d301f50203e10d9fb95b1c1ceae6b90dba2799f81d005ca543953f3f0760d49
+Homepage: http://www.tianocore.org
+Description-en: UEFI firmware for 64-bit x86 virtual machines
+ Open Virtual Machine Firmware is a build of EDK II for 64-bit x86 virtual
+ machines. It includes full support for UEFI, including Secure Boot, allowing
+ use of UEFI in place of a traditional BIOS in your VM.
+Description-md5: f5518b7d256400637ca9512a6cfc4bac
+Multi-Arch: foreign
+Original-Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+
+Package: seabios
+Architecture: all
+Version: 1.16.3-2
+Multi-Arch: foreign
+Priority: optional
+Section: misc
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 859
+Filename: pool/main/s/seabios/seabios_1.16.3-2_all.deb
+Size: 174648
+MD5sum: 821786469d614626b9425c8aa23ad663
+SHA1: e3eb0f2af28d4e89d7e1007179493d22f885f079
+SHA256: cac4e59a66c834d19cae751c22ab3a0391c22f78010fd11aa2e3fe630e6bc0e0
+SHA512: d23df481582420038ada7c41c4ec25fe22beb802dd6f9502de52a918433168ce6deb114bad2b07030ec19e8d38d236e7c6de5a1158cbb3686c8dec80cac0207c
+Homepage: https://www.seabios.org
+Description-en: Legacy BIOS implementation
+ SeaBIOS is a legacy BIOS implementation, aimed at supporting not only
+ emulated hosts such as QEMU, but also real hardware.
+ .
+ Note, however, that SeaBIOS does not handle early initialization of core
+ chipsets, so don't even think of flashing it to your board (look at
+ Coreboot for that).
+Description-md5: 3c57ad8dc4b7367cefa8a011ed0fc235
+
+Package: ipxe-qemu
+Architecture: all
+Version: 1.21.1+git-20220113.fbbdc3926-0ubuntu2
+Multi-Arch: foreign
+Priority: optional
+Section: admin
+Source: ipxe
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Bastian Blank <waldi@debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 4862
+Filename: pool/main/i/ipxe/ipxe-qemu_1.21.1+git-20220113.fbbdc3926-0ubuntu2_all.deb
+Size: 1564600
+MD5sum: d85bec9cc086bb8320777581bd4cf678
+SHA1: 024f5a444aec7c3711cbb77ebf426408ee787fdf
+SHA256: 1f1612934b6ddaf4dd633760dfe5ef2a79ea2507341fd5efe394ff589a044707
+SHA512: 3e1ba6053d5129f846c4011bbfd40039c4b9dab89fbd660f73fc2d60c140d4c7c0fa43c1229fb485042fbe65e0f99eeffa04e509f807170429b92e584a2e6fdb
+Homepage: http://ipxe.org/
+Description-en: PXE boot firmware - ROM images for qemu
+ iPXE is network boot firmware.  It supports a variety of network cards,
+ including some wireless cards, and variety of network protocols (traditional
+ DHCP, BOOTP and TFTP and also HTTP, iSCSI, SAN via FCoE and Infiniband). It
+ supports scripting.
+ .
+ It is possible to use iPXE as a PXE ROM in the network card or to
+ chainload it from other boot methods.
+ .
+ This package provides boot code for the qemu emulated network cards in
+ as boot ROMs.
+Description-md5: 61c8bdd569b68d2eeeb8615a8b57f65e
+
+Package: python3-pil
+Source: pillow
+Priority: optional
+Section: python
+Installed-Size: 1773
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: amd64
+Version: 10.2.0-1ubuntu1.3
+Recommends: python3-olefile
+Replaces: python3-imaging (<< 1.1.7+2.0.0-1.1)
+Suggests: python-pil-doc
+Provides: python3-pillow
+Depends: python3 (<< 3.13), python3 (>= 3.12~), python3:any, media-types | python3-pil.imagetk, libc6 (>= 2.14), libfreetype6 (>= 2.10.1), libimagequant0 (>= 2.11.10), libjpeg8 (>= 8c), liblcms2-2 (>= 2.7), libopenjp2-7 (>= 2.4.0), libraqm0 (>= 0.7.0), libtiff6 (>= 4.0.3), libwebp7 (>= 1.3.2), libwebpdemux2 (>= 1.3.2), libwebpmux3 (>= 1.3.2), libxcb1, zlib1g (>= 1:1.1.4)
+Conflicts: python3-imaging (<< 1.1.7+2.0.0-1.1)
+Breaks: python3-imaging (<< 1.1.7+2.0.0-1.1)
+Filename: pool/main/p/pillow/python3-pil_10.2.0-1ubuntu1.3_amd64.deb
+Size: 452192
+MD5sum: ee1393d19fc460c746a65581b65a9591
+SHA1: c1a8eaba909220693045ba2b77b4a667737c7536
+SHA256: 7a2f1226161ca9d102d716dbb484d921ec33d5519fac4f943e1556deaf922c24
+SHA512: ca023b7aa80828d122391cd244b906622f164364ea3e5adbc5943b3ac4fc9e5a6fa94c643f1fc7524b1424944b74e92c18da81ad4978ac6c1fdeaa5fb20b3316
+Homepage: http://python-pillow.github.io/
+Description-en: Python Imaging Library (Python3)
+ The Python Imaging Library (PIL) adds an image object to your Python
+ interpreter. You can load images from a variety of file formats, and
+ apply a rich set of image operations to them.
+ .
+ Image Objects:
+ o Bilevel, greyscale, palette, true colour (RGB), true colour with
+ transparency (RGBA).
+ o colour separation (CMYK).
+ o Copy, cut, paste operations.
+ o Flip, transpose, resize, rotate, and arbitrary affine transforms.
+ o Transparency operations.
+ o Channel and point operations.
+ o Colour transforms, including matrix operations.
+ o Image enhancement, including convolution filters.
+ .
+ File Formats:
+ o Full (Open/Load/Save): BMP, EPS (with ghostscript), GIF, IM, JPEG,
+ MSP, PDF, PNG, PPM, TIFF, XBM.
+ o Read only (Open/Load): ARG, CUR, DCX, FLI, FPX, GBR, GD, ICO, IMT, IPTC,
+ MCIDAS, MPEG, PhotoCD, PCX, PIXAR, PSD, TGA, SGI, SUN, TGA, WMF, XPM.
+ o Save only: PDF, EPS (without ghostscript).
+Description-md5: 5fe9549b79b3cf9fe01d4290e81a19a0
+Multi-Arch: same
+Original-Maintainer: Matthias Klose <doko@debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Task: ubuntu-desktop-minimal, ubuntu-desktop, ubuntu-desktop-raspi, kubuntu-desktop, xubuntu-minimal, xubuntu-desktop, lubuntu-desktop, ubuntustudio-desktop-core, ubuntustudio-desktop, ubuntukylin-desktop, ubuntukylin-desktop-minimal, ubuntu-mate-core, ubuntu-mate-desktop, ubuntu-budgie-desktop-minimal, ubuntu-budgie-desktop, ubuntu-budgie-desktop-raspi, ubuntu-unity-desktop, edubuntu-desktop-gnome-minimal, edubuntu-desktop-gnome-raspi, ubuntucinnamon-desktop-minimal, ubuntucinnamon-desktop-raspi
+
