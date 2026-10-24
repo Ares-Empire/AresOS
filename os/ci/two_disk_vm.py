@@ -73,7 +73,11 @@ class Guest(sw.Guest):
         # Registry-client diagnostics stay private without needing the owner
         # token in the observer's environment or redaction list.
         registry_read = 'cosign verify' in script or 'bootc switch' in script
-        return super().command(name, script, timeout, private=private or registry_read)
+        try:
+            return super().command(name, script, timeout, private=private or registry_read)
+        except Exception:
+            self.failed_command = True
+            raise
 
     def storage_specs(self):
         specs = [('protected', WORK / 'protected.raw', 'MICRON-KEEP'), ('target', WORK / 'target.raw', 'CRUCIAL-TARGET')]
@@ -194,6 +198,17 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
             if self.process is not None and (self.process.poll() is None
                     or not getattr(self, 'stopped_events_verified', False)):
                 self.failure_counter(stage)
+            elif self.process is not None and not getattr(self, 'expected_initialization_reboot', False) \
+                    and (getattr(self, 'failed_command', False) or sys.exc_info()[0]):
+                # An assertion after an orderly shutdown still uses that exact
+                # final sample, taken before QMP quit. Do not query a dead VM.
+                sampled = self.final_counter_stage
+                path = EVIDENCE / (sampled + '-failure-counter.json')
+                if not path.exists():
+                    counter = sampled + '-blockstats.json'
+                    save(sampled + '-failure-counter', dict(failure_path=True, probe_only=False,
+                         boot=self.boot_number, status='recorded' if (EVIDENCE / counter).exists() else 'unavailable',
+                         counter=counter, vm_paused=True, source='already-verified-guest-shutdown-final-counter'))
         finally:
             # Sample while QEMU is alive; the receipt says whether pause worked.
             # Counter errors must still close the VM and must not be suppressed.
@@ -229,7 +244,11 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
         assert not any(e.get('event') == 'GUEST_PANICKED' for e in self.monitor.events)
         # -no-shutdown keeps QEMU alive with the guest stopped, so this final
         # counter includes shutdown/unmount writes too. Only then close it.
-        self.writes(stage)
+        if getattr(self, 'failed_command', False) or sys.exc_info()[0]:
+            self.failure_counter(stage)
+        else:
+            self.writes(stage)
+        self.final_counter_stage = stage
         self.stopped_events = list(self.monitor.events)
         self.monitor.command('quit')
         self.process.wait(timeout=15)
@@ -645,19 +664,21 @@ def stock_unit_names():
 
 def stock_recipe_probe(guest):
     stock_inventory(guest, 'stock-updater-inventory')
-    guest.command('stock-recipe-tools', '''set -e
-for tool in systemctl rpm-ostree bootc ostree pgrep runuser getent python3; do command -v "$tool"; done
-rpm-ostree cleanup --help | grep -- --pending
-rpm-ostree status --help | grep -- --json
-ostree admin pin --help
-bootc status --help
-''')
+    guest.command('stock-recipe-tools', 'set -e; for tool in systemctl podman pgrep runuser getent python3; do command -v "$tool"; done')
+    source = pathlib.Path('os/ci/stock_probe.py').read_text()
+    digest = json.loads(pathlib.Path('os/manifest/base.json').read_text())['reference'].split('@', 1)[1]
+    output = guest.command('cached-stock-cli-help', 'python3 -c ' + shlex.quote(source) + ' ' + shlex.quote(digest))
+    clean = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', output).replace('\r', '')
+    proof, = [json.loads(line.split(' ', 1)[1]) for line in clean.splitlines() if line.startswith('ARESOS_CACHED_STOCK_CLI_PROBE ')]
+    assert proof['status'] == 'passed' and proof['digest'] == digest
+    save('cached-stock-cli-probe', proof)
     source = pathlib.Path('os/release/pause-stock-updates.sh').read_text().split("<<'PAUSE_STOCK'\n", 1)[1].split('\nPAUSE_STOCK', 1)[0]
     program = source.split("if __name__ == '__main__':", 1)[0]
     program += "\npause_units()\npause_units()\nprint('REAL_STOCK_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED')\n"
     output = guest.command('stock-unit-pause-probe', 'python3 -c ' + shlex.quote(program))
     assert 'REAL_STOCK_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED' in output
     save('stock-recipe-probe', dict(status='passed', tools_and_help=True, real_unit_pause_twice=True,
+         cli_context='ISO cached exact stock image; pull never, network none, read-only, no owner credentials',
          pending_cleanup='read-only help plus real-status mocked native regressions; no OSTree deployment in live probe'))
 
 

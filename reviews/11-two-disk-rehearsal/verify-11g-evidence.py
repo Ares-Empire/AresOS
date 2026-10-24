@@ -218,6 +218,11 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
         proof = read(probe_receipt)
         assert proof['status'] == 'recorded' and proof['failure_path'] and proof['probe_only'] and proof['vm_paused']
         protected_writes(read(probe_receipt.parent / proof['counter']))
+    for cached in run.rglob('cached-stock-cli-probe.json'):
+        proof = read(cached)
+        assert proof['status'] == 'passed' and proof['digest'] == read(run / 'release.json')['base'].split('@', 1)[1]
+        assert proof['pull'] == 'never' and proof['network'] == 'none' and proof['read_only']
+        assert not proof['owner_credentials_mounted']
     for recipe in run.rglob('stock-recipe-probe.json'):
         proof = read(recipe)
         assert proof['status'] == 'passed' and proof['tools_and_help'] and proof['real_unit_pause_twice']
@@ -244,6 +249,7 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
         assert metadata['conclusion'] == 'success'
         for folder in (probe.parent, probe.parent / 'protected-second'):
             assert read(folder / 'stock-recipe-probe.json')['real_unit_pause_twice']
+            assert read(folder / 'cached-stock-cli-probe.json')['status'] == 'passed'
             counter_proof = read(folder / 'failure-counter-probe-failure-counter.json')
             assert counter_proof['status'] == 'recorded' and counter_proof['vm_paused'] and counter_proof['probe_only']
         qualifications.append(dict(run=run.name, kind='probe', source=metadata['head_sha'], status='passed'))

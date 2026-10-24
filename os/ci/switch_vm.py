@@ -345,6 +345,7 @@ def start_guest(disk, password, secrets, stage):
             expected = (stage == 'stock' and attempt == 0 and not guest.authentication_started
                         and guest.process.returncode == 0
                         and stock_initialization_reboot(guest.boot_transcript, initialization_events))
+            guest.expected_initialization_reboot = expected
             guest.close(f'{stage}-initialization-{attempt}')
             if not expected:
                 raise

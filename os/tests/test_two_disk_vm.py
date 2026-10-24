@@ -301,6 +301,50 @@ class TwoDiskHarnessTest(unittest.TestCase):
         self.assertTrue((self.directory / 'stock-blockstats.json').exists())
         guest.process.terminate.assert_called_once()
 
+    def test_failed_command_orderly_cleanup_marks_counter_before_qmp_quit(self):
+        stats = [dict(device='protected', stats=dict(wr_bytes=0, wr_operations=0))]
+        guest = self.failure_guest(lambda: stats)
+        guest.monitor.events = [dict(event='SHUTDOWN', data=dict(guest=True, reason='guest-shutdown'))]
+        guest.authentication_started = True
+        guest.process.returncode = 0
+        sequence = []
+        def command(name):
+            sequence.append(name)
+            if name == 'query-blockstats':
+                return stats
+            if name == 'quit':
+                proof = json.loads((self.directory / 'stock-failure-counter.json').read_text())
+                self.assertEqual(proof['status'], 'recorded')
+                self.assertTrue(proof['failure_path'])
+                guest.process.poll.return_value = 0
+            return {}
+        guest.monitor.command.side_effect = command
+        with patch.object(vm, 'EVIDENCE', self.directory), patch.object(vm.sw, 'EVIDENCE', self.directory):
+            with self.assertRaisesRegex(AssertionError, 'Guest command failed'):
+                try:
+                    guest.command('failing-command', 'false')
+                finally:
+                    try:
+                        guest.poweroff('stock')
+                    finally:
+                        guest.close('stock')
+        self.assertEqual(sequence, ['stop', 'query-blockstats', 'quit'])
+        guest.process.terminate.assert_not_called()
+
+    def test_recognized_initialization_reboot_is_not_labeled_as_a_failure(self):
+        guest = self.failure_guest(lambda: [])
+        guest.process.poll.return_value = 0
+        guest.stopped_events_verified = True
+        guest.expected_initialization_reboot = True
+        with patch.object(vm, 'EVIDENCE', self.directory), patch.object(vm.sw, 'EVIDENCE', self.directory):
+            with self.assertRaises(EOFError):
+                try:
+                    raise EOFError('Recognized orderly pre-login reset')
+                finally:
+                    guest.close('stock-initialization-0')
+        self.assertFalse((self.directory / 'stock-initialization-0-failure-counter.json').exists())
+        guest.monitor.command.assert_not_called()
+
     def test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file(self):
         path = self.directory / 'protected.raw'
         response = dict(loopdevices=[{'name': '/dev/loop9', 'back-file': str(path)}])

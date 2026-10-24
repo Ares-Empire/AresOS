@@ -114,7 +114,7 @@
 2026-10-24T04:08:27.9480945Z env:
 2026-10-24T04:08:27.9483794Z   GH_TOKEN: ***
 2026-10-24T04:08:27.9484009Z   REHEARSAL_MODE: probe
-2026-10-24T04:08:27.9544480Z   PROBE_RUN: 
+2026-10-24T04:08:27.9544480Z   PROBE_RUN:
 2026-10-24T04:08:27.9544759Z ##[endgroup]
 2026-10-24T04:08:54.3804400Z {
 2026-10-24T04:08:54.3804906Z   "allowance": "11c",
@@ -773,7 +773,7 @@
 2026-10-24T04:11:36.9843325Z Get:89 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/main amd64 ovmf all 2024.02-2ubuntu0.10 [5188 kB]
 2026-10-24T04:11:41.4248605Z Fetched 46.8 MB in 39s (1210 kB/s)
 2026-10-24T04:11:41.5504744Z Selecting previously unselected package msr-tools.
-2026-10-24T04:11:41.5703655Z (Reading database ... 
+2026-10-24T04:11:41.5703655Z (Reading database ...
 2026-10-24T04:11:41.5704354Z (Reading database ... 5%
 2026-10-24T04:11:41.5704823Z (Reading database ... 10%
 2026-10-24T04:11:41.5705284Z (Reading database ... 15%
@@ -1065,7 +1065,7 @@
 2026-10-24T04:11:49.2999056Z Setting up libcdparanoia0:amd64 (3.10.2+debian-14build3) ...
 2026-10-24T04:11:49.3017643Z Setting up session-migration (0.3.9build1) ...
 2026-10-24T04:11:49.3888476Z Created symlink /etc/systemd/user/graphical-session-pre.target.wants/session-migration.service → /usr/lib/systemd/user/session-migration.service.
-2026-10-24T04:11:49.3893026Z 
+2026-10-24T04:11:49.3893026Z
 2026-10-24T04:11:49.3915109Z Setting up libraw1394-11:amd64 (2.1.2-2build3) ...
 2026-10-24T04:11:49.3928885Z Setting up libproxy1v5:amd64 (0.5.4-4build1) ...
 2026-10-24T04:11:49.3958338Z Setting up libtag1v5-vanilla:amd64 (1.13.1-1build1) ...
@@ -1141,11 +1141,11 @@
 2026-10-24T04:11:50.0183613Z Setting up qemu-utils (1:8.2.2+ds-0ubuntu1.18) ...
 2026-10-24T04:11:50.0203120Z Setting up qemu-block-extra (1:8.2.2+ds-0ubuntu1.18) ...
 2026-10-24T04:11:50.1368559Z Created symlink /etc/systemd/system/multi-user.target.wants/run-qemu.mount → /usr/lib/systemd/system/run-qemu.mount.
-2026-10-24T04:11:50.1373003Z 
+2026-10-24T04:11:50.1373003Z
 2026-10-24T04:11:50.9727318Z Setting up gstreamer1.0-x:amd64 (1.24.2-1ubuntu0.5) ...
 2026-10-24T04:11:50.9753400Z Setting up qemu-system-common (1:8.2.2+ds-0ubuntu1.18) ...
 2026-10-24T04:11:51.0694902Z Created symlink /etc/systemd/system/multi-user.target.wants/qemu-kvm.service → /usr/lib/systemd/system/qemu-kvm.service.
-2026-10-24T04:11:51.0695591Z 
+2026-10-24T04:11:51.0695591Z
 2026-10-24T04:11:51.3408453Z Setting up libpulse0:amd64 (1:16.1+dfsg1-2ubuntu10.1) ...
 2026-10-24T04:11:51.3488984Z Setting up libspice-server1:amd64 (0.15.1-1build2) ...
 2026-10-24T04:11:51.3506477Z Setting up qemu-system-x86 (1:8.2.2+ds-0ubuntu1.18) ...
@@ -1162,15 +1162,15 @@
 2026-10-24T04:11:52.4228239Z Setting up libsoup-3.0-0:amd64 (3.4.4-5ubuntu0.9) ...
 2026-10-24T04:11:52.4265566Z Setting up gstreamer1.0-plugins-good:amd64 (1.24.2-1ubuntu1.8) ...
 2026-10-24T04:11:52.4287112Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
-2026-10-24T04:11:54.0736001Z 
+2026-10-24T04:11:54.0736001Z
 2026-10-24T04:11:54.0736799Z Running kernel seems to be up-to-date.
-2026-10-24T04:11:54.0737333Z 
+2026-10-24T04:11:54.0737333Z
 2026-10-24T04:11:54.0737615Z No services need to be restarted.
-2026-10-24T04:11:54.0737993Z 
+2026-10-24T04:11:54.0737993Z
 2026-10-24T04:11:54.0738249Z No containers need to be restarted.
-2026-10-24T04:11:54.0738660Z 
+2026-10-24T04:11:54.0738660Z
 2026-10-24T04:11:54.0738957Z No user sessions are running outdated binaries.
-2026-10-24T04:11:54.0739356Z 
+2026-10-24T04:11:54.0739356Z
 2026-10-24T04:11:54.0739730Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
 2026-10-24T04:11:56.9640830Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
 2026-10-24T04:11:58.4403518Z Reading package lists...
@@ -1182,7 +1182,7 @@
 2026-10-24T04:11:59.8696623Z Get:1 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/universe amd64 podman amd64 4.9.3+ds1-1ubuntu0.2 [13.4 MB]
 2026-10-24T04:12:02.3003919Z Get:2 https://snapshot.ubuntu.com/ubuntu/20261021T000000Z noble-updates/universe amd64 skopeo amd64 1.13.3+ds1-2ubuntu0.24.04.3 [6177 kB]
 2026-10-24T04:12:04.4507963Z Fetched 19.6 MB in 4s (5043 kB/s)
-2026-10-24T04:12:04.8345792Z (Reading database ... 
+2026-10-24T04:12:04.8345792Z (Reading database ...
 2026-10-24T04:12:04.8347213Z (Reading database ... 5%
 2026-10-24T04:12:04.8348111Z (Reading database ... 10%
 2026-10-24T04:12:04.8348814Z (Reading database ... 15%
@@ -1240,15 +1240,15 @@
 2026-10-24T04:12:11.7688806Z Processing triggers for hicolor-icon-theme (0.17-2) ...
 2026-10-24T04:12:11.7789396Z Processing triggers for man-db (2.12.0-4build2) ...
 2026-10-24T04:12:11.7805361Z Not building database; man-db/auto-update is not 'true'.
-2026-10-24T04:12:13.2696367Z 
+2026-10-24T04:12:13.2696367Z
 2026-10-24T04:12:13.2697245Z Running kernel seems to be up-to-date.
-2026-10-24T04:12:13.2697778Z 
+2026-10-24T04:12:13.2697778Z
 2026-10-24T04:12:13.2698065Z No services need to be restarted.
-2026-10-24T04:12:13.2698433Z 
+2026-10-24T04:12:13.2698433Z
 2026-10-24T04:12:13.2698732Z No containers need to be restarted.
-2026-10-24T04:12:13.2699101Z 
+2026-10-24T04:12:13.2699101Z
 2026-10-24T04:12:13.2699401Z No user sessions are running outdated binaries.
-2026-10-24T04:12:13.2699789Z 
+2026-10-24T04:12:13.2699789Z
 2026-10-24T04:12:13.2700168Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
 2026-10-24T04:12:16.1195468Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
 2026-10-24T04:12:16.7417819Z W: Unable to read /etc/apt/-/ - DirectoryExists (2: No such file or directory)
@@ -1345,7 +1345,7 @@
 2026-10-24T04:12:36.8731097Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 tesseract-ocr amd64 5.3.4-1build5 [328 kB]
 2026-10-24T04:12:37.1108773Z Fetched 8812 kB in 1s (6031 kB/s)
 2026-10-24T04:12:37.2323597Z Selecting previously unselected package gnu-efi.
-2026-10-24T04:12:37.2375243Z (Reading database ... 
+2026-10-24T04:12:37.2375243Z (Reading database ...
 2026-10-24T04:12:37.2376350Z (Reading database ... 5%
 2026-10-24T04:12:37.2377116Z (Reading database ... 10%
 2026-10-24T04:12:37.2377782Z (Reading database ... 15%
@@ -1406,15 +1406,15 @@
 2026-10-24T04:12:37.8576135Z Processing triggers for man-db (2.12.0-4build2) ...
 2026-10-24T04:12:37.8588705Z Not building database; man-db/auto-update is not 'true'.
 2026-10-24T04:12:37.8598216Z Processing triggers for install-info (7.1-3build2) ...
-2026-10-24T04:12:38.6469840Z 
+2026-10-24T04:12:38.6469840Z
 2026-10-24T04:12:38.6470657Z Running kernel seems to be up-to-date.
-2026-10-24T04:12:38.6471812Z 
+2026-10-24T04:12:38.6471812Z
 2026-10-24T04:12:38.6472147Z No services need to be restarted.
-2026-10-24T04:12:38.6472781Z 
+2026-10-24T04:12:38.6472781Z
 2026-10-24T04:12:38.6473060Z No containers need to be restarted.
-2026-10-24T04:12:38.6473429Z 
+2026-10-24T04:12:38.6473429Z
 2026-10-24T04:12:38.6473723Z No user sessions are running outdated binaries.
-2026-10-24T04:12:38.6474114Z 
+2026-10-24T04:12:38.6474114Z
 2026-10-24T04:12:38.6474513Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
 2026-10-24T04:12:39.6262154Z Reading package lists...
 2026-10-24T04:12:39.8478148Z Building dependency tree...
@@ -1545,7 +1545,7 @@
 2026-10-24T04:12:50.9018292Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 xvfb amd64 2:21.1.12-1ubuntu1.9 [877 kB]
 2026-10-24T04:12:51.1479593Z Fetched 25.9 MB in 2s (15.4 MB/s)
 2026-10-24T04:12:51.1663678Z Selecting previously unselected package fonts-ipafont-gothic.
-2026-10-24T04:12:51.1722361Z (Reading database ... 
+2026-10-24T04:12:51.1722361Z (Reading database ...
 2026-10-24T04:12:51.1723051Z (Reading database ... 5%
 2026-10-24T04:12:51.1723676Z (Reading database ... 10%
 2026-10-24T04:12:51.1724154Z (Reading database ... 15%
@@ -1631,20 +1631,20 @@
 2026-10-24T04:12:53.8248546Z Processing triggers for man-db (2.12.0-4build2) ...
 2026-10-24T04:12:53.8261624Z Not building database; man-db/auto-update is not 'true'.
 2026-10-24T04:12:53.8272676Z Processing triggers for fontconfig (2.15.0-1.1ubuntu2) ...
-2026-10-24T04:12:54.3249518Z 
+2026-10-24T04:12:54.3249518Z
 2026-10-24T04:12:54.3253560Z Running kernel seems to be up-to-date.
-2026-10-24T04:12:54.3263121Z 
+2026-10-24T04:12:54.3263121Z
 2026-10-24T04:12:54.3263425Z Restarting services...
 2026-10-24T04:12:54.3629533Z  systemctl restart packagekit.service php8.3-fpm.service polkit.service udisks2.service
-2026-10-24T04:12:54.5479906Z 
+2026-10-24T04:12:54.5479906Z
 2026-10-24T04:12:54.5480566Z Service restarts being deferred:
 2026-10-24T04:12:54.5481260Z  systemctl restart ModemManager.service
 2026-10-24T04:12:54.5481805Z  systemctl restart networkd-dispatcher.service
-2026-10-24T04:12:54.5482193Z 
+2026-10-24T04:12:54.5482193Z
 2026-10-24T04:12:54.5482434Z No containers need to be restarted.
-2026-10-24T04:12:54.5483005Z 
+2026-10-24T04:12:54.5483005Z
 2026-10-24T04:12:54.5483263Z No user sessions are running outdated binaries.
-2026-10-24T04:12:54.5483991Z 
+2026-10-24T04:12:54.5483991Z
 2026-10-24T04:12:54.5484355Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
 2026-10-24T04:12:55.5408548Z Downloading Chrome for Testing 145.0.7632.6 (playwright chromium v1208) from https://cdn.playwright.dev/chrome-for-testing-public/145.0.7632.6/linux64/chrome-linux64.zip
 2026-10-24T04:12:55.6195198Z (node:5839) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
@@ -1865,10 +1865,10 @@
 2026-10-24T04:13:07.5243028Z test_ui_salted_password_hash_is_redacted_without_knowing_its_salt (test_two_disk_vm.TwoDiskHarnessTest.test_ui_salted_password_hash_is_redacted_without_knowing_its_salt) ... ok
 2026-10-24T04:13:07.5260604Z test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output (test_two_disk_vm.TwoDiskHarnessTest.test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output) ... ok
 2026-10-24T04:13:07.5261870Z TTY3_LOGIN_PASSWORD_ECHO_DISABLED
-2026-10-24T04:13:07.5262248Z 
+2026-10-24T04:13:07.5262248Z
 2026-10-24T04:13:07.5262850Z ----------------------------------------------------------------------
 2026-10-24T04:13:07.5263510Z Ran 156 tests in 5.003s
-2026-10-24T04:13:07.5263834Z 
+2026-10-24T04:13:07.5263834Z
 2026-10-24T04:13:07.5264073Z OK
 2026-10-24T04:13:09.3540626Z From https://github.com/Ares-Empire/AresOS
 2026-10-24T04:13:09.3541378Z  * branch            f5bb5d35dac73e95ce2bc6680ae61f20d042f5b7 -> FETCH_HEAD
@@ -1932,22 +1932,22 @@
 2026-10-24T04:18:31.5537058Z images/pxeboot/initrd.img
 2026-10-24T04:18:31.5537420Z images/pxeboot/vmlinuz
 2026-10-24T04:18:31.5537766Z LiveOS/squashfs.img
-2026-10-24T04:18:31.5538002Z 
+2026-10-24T04:18:31.5538002Z
 2026-10-24T04:18:31.5561489Z boot/grub2/grub.cfg
 2026-10-24T04:18:31.5561910Z set timeout=3
 2026-10-24T04:18:31.5562296Z set default="0"
 2026-10-24T04:18:31.5562883Z set menu_auto_hide=false
-2026-10-24T04:18:31.5563161Z 
+2026-10-24T04:18:31.5563161Z
 2026-10-24T04:18:31.5563326Z function load_video {
 2026-10-24T04:18:31.5563666Z   insmod all_video
 2026-10-24T04:18:31.5564044Z }
-2026-10-24T04:18:31.5564250Z 
+2026-10-24T04:18:31.5564250Z
 2026-10-24T04:18:31.5564465Z load_video
 2026-10-24T04:18:31.5564790Z set gfxpayload=keep
 2026-10-24T04:18:31.5565245Z insmod gzio
 2026-10-24T04:18:31.5565605Z insmod part_gpt
 2026-10-24T04:18:31.5565976Z insmod chain
-2026-10-24T04:18:31.5566196Z 
+2026-10-24T04:18:31.5566196Z
 2026-10-24T04:18:31.5566475Z search --no-floppy --set=root -l 'Bazzite-Live'
 2026-10-24T04:18:31.5566964Z menuentry 'Launch Bazzite Installer' {
 2026-10-24T04:18:31.5567680Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image
@@ -1957,22 +1957,22 @@
 2026-10-24T04:18:31.5570033Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image nomodeset
 2026-10-24T04:18:31.5570776Z   initrd /images/pxeboot/initrd.img
 2026-10-24T04:18:31.5571203Z }
-2026-10-24T04:18:31.5571428Z 
+2026-10-24T04:18:31.5571428Z
 2026-10-24T04:18:31.5591453Z EFI/BOOT/grub.cfg
 2026-10-24T04:18:31.5591850Z set timeout=3
 2026-10-24T04:18:31.5592180Z set default="0"
 2026-10-24T04:18:31.5592662Z set menu_auto_hide=false
-2026-10-24T04:18:31.5592918Z 
+2026-10-24T04:18:31.5592918Z
 2026-10-24T04:18:31.5593105Z function load_video {
 2026-10-24T04:18:31.5593457Z   insmod all_video
 2026-10-24T04:18:31.5593759Z }
-2026-10-24T04:18:31.5593949Z 
+2026-10-24T04:18:31.5593949Z
 2026-10-24T04:18:31.5594131Z load_video
 2026-10-24T04:18:31.5594457Z set gfxpayload=keep
 2026-10-24T04:18:31.5594790Z insmod gzio
 2026-10-24T04:18:31.5595195Z insmod part_gpt
 2026-10-24T04:18:31.5595531Z insmod chain
-2026-10-24T04:18:31.5595757Z 
+2026-10-24T04:18:31.5595757Z
 2026-10-24T04:18:31.5595993Z search --no-floppy --set=root -l 'Bazzite-Live'
 2026-10-24T04:18:31.5596486Z menuentry 'Launch Bazzite Installer' {
 2026-10-24T04:18:31.5597422Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image
@@ -1982,22 +1982,22 @@
 2026-10-24T04:18:31.5599920Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image nomodeset
 2026-10-24T04:18:31.5600637Z   initrd /images/pxeboot/initrd.img
 2026-10-24T04:18:31.5601020Z }
-2026-10-24T04:18:31.5601227Z 
+2026-10-24T04:18:31.5601227Z
 2026-10-24T04:18:31.5621611Z EFI/fedora/grub.cfg
 2026-10-24T04:18:31.5622020Z set timeout=3
 2026-10-24T04:18:31.5622376Z set default="0"
 2026-10-24T04:18:31.5623520Z set menu_auto_hide=false
-2026-10-24T04:18:31.5623912Z 
+2026-10-24T04:18:31.5623912Z
 2026-10-24T04:18:31.5624172Z function load_video {
 2026-10-24T04:18:31.5624611Z   insmod all_video
 2026-10-24T04:18:31.5625017Z }
-2026-10-24T04:18:31.5625289Z 
+2026-10-24T04:18:31.5625289Z
 2026-10-24T04:18:31.5625632Z load_video
 2026-10-24T04:18:31.5626035Z set gfxpayload=keep
 2026-10-24T04:18:31.5626470Z insmod gzio
 2026-10-24T04:18:31.5626870Z insmod part_gpt
 2026-10-24T04:18:31.5627282Z insmod chain
-2026-10-24T04:18:31.5627579Z 
+2026-10-24T04:18:31.5627579Z
 2026-10-24T04:18:31.5627900Z search --no-floppy --set=root -l 'Bazzite-Live'
 2026-10-24T04:18:31.5628473Z menuentry 'Launch Bazzite Installer' {
 2026-10-24T04:18:31.5629228Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image
@@ -2007,7 +2007,7 @@
 2026-10-24T04:18:31.5631863Z   linux /images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image nomodeset
 2026-10-24T04:18:31.5632843Z   initrd /images/pxeboot/initrd.img
 2026-10-24T04:18:31.5633334Z }
-2026-10-24T04:18:31.5633613Z 
+2026-10-24T04:18:31.5633613Z
 2026-10-24T04:18:39.8289562Z ##[error]The operation was canceled.
 2026-10-24T04:18:39.8334235Z ##[group]Run sudo -E python3 os/ci/rehearsal_auth.py cleanup
 2026-10-24T04:18:39.8334600Z [36;1msudo -E python3 os/ci/rehearsal_auth.py cleanup[0m

@@ -298,5 +298,155 @@
       }
     ],
     "status": "completed"
+  },
+  {
+    "conclusion": "success",
+    "databaseId": 40061910475,
+    "headSha": "6902c0455ca53d1a2b63c6899450dd097bac3b35",
+    "jobs": [
+      {
+        "completedAt": "2026-10-24T04:20:44Z",
+        "conclusion": "success",
+        "databaseId": 120777055375,
+        "name": "scan",
+        "startedAt": "2026-10-24T04:19:55Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-24T04:19:56Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-24T04:19:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:01Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "startedAt": "2026-10-24T04:19:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:40Z",
+            "conclusion": "success",
+            "name": "No secrets (gitleaks)",
+            "number": 3,
+            "startedAt": "2026-10-24T04:20:01Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:40Z",
+            "conclusion": "success",
+            "name": "Only private commit emails",
+            "number": 4,
+            "startedAt": "2026-10-24T04:20:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:42Z",
+            "conclusion": "success",
+            "name": "No personal terms",
+            "number": 5,
+            "startedAt": "2026-10-24T04:20:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:42Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 10,
+            "startedAt": "2026-10-24T04:20:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:42Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 11,
+            "startedAt": "2026-10-24T04:20:42Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/40061910475/job/120777055375"
+      }
+    ],
+    "status": "completed"
+  },
+  {
+    "conclusion": "success",
+    "databaseId": 40061914124,
+    "headSha": "6902c0455ca53d1a2b63c6899450dd097bac3b35",
+    "jobs": [
+      {
+        "completedAt": "2026-10-24T04:20:35Z",
+        "conclusion": "success",
+        "databaseId": 120777067046,
+        "name": "scan",
+        "startedAt": "2026-10-24T04:19:59Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-10-24T04:20:00Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-10-24T04:19:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:06Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "startedAt": "2026-10-24T04:20:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:31Z",
+            "conclusion": "success",
+            "name": "No secrets (gitleaks)",
+            "number": 3,
+            "startedAt": "2026-10-24T04:20:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:31Z",
+            "conclusion": "success",
+            "name": "Only private commit emails",
+            "number": 4,
+            "startedAt": "2026-10-24T04:20:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:33Z",
+            "conclusion": "success",
+            "name": "No personal terms",
+            "number": 5,
+            "startedAt": "2026-10-24T04:20:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:33Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 10,
+            "startedAt": "2026-10-24T04:20:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-10-24T04:20:33Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 11,
+            "startedAt": "2026-10-24T04:20:33Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/40061914124/job/120777067046"
+      }
+    ],
+    "status": "completed"
   }
 ]

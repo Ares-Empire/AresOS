@@ -637,3 +637,14 @@ as the session's final counter. Unavailable failure stats leave that session
 unqualified. No historical evidence is relabeled. Shared guard is 750m/4 full,
 same 11c start. Owner-token scope, offline disk audit, firmware rules and release
 pins are unchanged. No required foreseeable NVRAM transition conflicts with rules.
+
+### 11g replacement tool-context assumption — before probe 3
+
+Probe 2 proves rpm-ostree is absent from the live root, despite retained unit files.
+Do not install it or infer missing tools from a PATH guess. The exact stock image is
+already in the ISO's containers-storage cache: inspect its recorded digest and image
+ID, run CLI help there read-only/offline/no-pull/no owner-auth mount, then exercise
+unit pause twice on live systemd. Real installed pending cleanup is still a full gate;
+its state logic is covered by the real 11f-status replay. No NVRAM/installer stage or
+rule changes. Source `stock_probe.py` and its real-cache regressions describe this
+new command before dispatch. No full dispatch after either nonpassing probe.

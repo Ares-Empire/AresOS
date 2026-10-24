@@ -1,0 +1,9 @@
+Command: python -X utf8 -m unittest discover -s os/tests -p test_stock_probe.py -v
+test_missing_ambiguous_or_invalid_cache_fails_without_registry_fallback (test_stock_probe.CachedStockProbeTest.test_missing_ambiguous_or_invalid_cache_fails_without_registry_fallback) ... ok
+test_read_only_help_has_no_pull_network_host_mount_or_owner_auth (test_stock_probe.CachedStockProbeTest.test_read_only_help_has_no_pull_network_host_mount_or_owner_auth) ... ok
+test_real_iso_cache_resolves_by_pinned_digest_and_not_mutable_tag (test_stock_probe.CachedStockProbeTest.test_real_iso_cache_resolves_by_pinned_digest_and_not_mutable_tag) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.002s
+
+OK

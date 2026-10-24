@@ -37,8 +37,8 @@ Command: python -X utf8 reviews/11-two-disk-rehearsal/replay-11g-stock-prepare.p
     "os/release/pause-stock-updates.sh": "b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5",
     "os/release/pin-stock.sh": "6782e32be96d612823224830956042637bc53b05c8f7ea2effe60efb25e72c2f",
     "os/tests/test_stock_prepare.py": "a288dd8458765a273a838ff4fad5e627e2f3ec94129beb1722e40e09950a5032",
-    "os/tests/test_two_disk_vm.py": "9598bc795d7c9e08b3d7bf1a0769f9feba52694022a7ae84832639dba4f45588",
-    "os/ci/two_disk_vm.py": "ce19e30ff9ea42828e48afa4341e8af682786590f1c9ae8f0f69c2c6484ef851",
+    "os/tests/test_two_disk_vm.py": "bf077259a2bda657ff4d0d72af2408241635cc858ee96f6ba39bd4c7b1aca275",
+    "os/ci/two_disk_vm.py": "31e01e99ff4ab361a5516ec9a5a7f46539753513c69055454d43683ea932abe0",
     "docs/INSTALL.md": "ce56280013338c7869ede4cd0a295d4fbf4755041567a798ccea1fd7e7a57259"
   }
 }
@@ -51,6 +51,6 @@ test_replays_real_staged_update_then_pins_unchanged_booted_checksum (test_stock_
 test_wrong_booted_digest_two_stages_and_other_origins_stop_before_cleanup_or_pin (test_stock_prepare.StockPinTest.test_wrong_booted_digest_two_stages_and_other_origins_stop_before_cleanup_or_pin) ... ok
 
 ----------------------------------------------------------------------
-Ran 7 tests in 0.161s
+Ran 7 tests in 0.033s
 
 OK

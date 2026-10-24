@@ -1,7 +1,7 @@
 {
-  "matching_offline_stages": 0,
-  "zero_write_records": 0,
-  "archived_records_scanned": 39,
+  "matching_offline_stages": 2,
+  "zero_write_records": 2,
+  "archived_records_scanned": 322,
   "incomplete": [],
   "firmware_events": [],
   "linux_position_events": [],

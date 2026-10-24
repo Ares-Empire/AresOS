@@ -1744,3 +1744,46 @@ removed the runner-temp credentials before artifact upload. Original artifact
 47,869 bytes SHA-256 `0e09722b1df39769098cf591e920ee2e3c18dd640ee79d5da1345e1b4db42d8e`;
 [retained metadata](../../os/manifest/ci/11g/probe-1/), [log](logs/11g/probe-1.txt).
 Archive verifier passed with **zero qualifications** for this cancelled run.
+
+### Probe 2 caught live/installed tool split — before another dispatch
+
+[40062047055](https://github.com/Ares-Empire/AresOS/actions/runs/40062047055), source
+`6902c0455ca53d1a2b63c6899450dd097bac3b35`, failed **before installation** at
+`stock-recipe-tools`: `command -v rpm-ostree` returns 1 in the live root. The actual
+SquashFS list confirms no `/usr/bin/rpm-ostree` executable (only a dangling build-ID
+reference and unit files); stock's installed 11f deployment ran that executable.
+The ISO's recorded containers-storage cache contains exactly the original base
+manifest `ed93…5151`, image ID `0e4c3c1f2339438b7dc7e88d93ad8aa5f77663e04490fcb875549f4f062a5431`.
+It is the existing installer payload, not a new image or replacement install route.
+
+Before the next dispatch, amend the probe assumption: require real live systemctl,
+podman and process/account tools; inspect the cached image by digest and ID, then
+run **only tool discovery and CLI help** inside it with `--pull=never --network=none
+--read-only --rm`, entrypoint Bash, no host/owner-auth mounts and auth lookup pointed
+at `/dev/null`. Actual unit pause twice remains on the real live system and its
+retained stock unit files. Pending cleanup still uses the mocked real 11f status;
+actual installed behavior remains a full-run gate. [Podman run documentation](https://docs.podman.io/en/latest/markdown/podman-run.1.html)
+defines these no-pull/network/read-only options; [image inspect](https://docs.podman.io/en/latest/markdown/podman-image-inspect.1.html)
+returns the ID and manifest digest. A cache mismatch or execution failure stops the
+probe; there is no registry, alternate image, package installation or install fallback.
+
+This adds no NVRAM stage or transition to the zero-cost table above. Probe's target
+is still empty. Both full orders and B, exact Windows-first and target-only Linux
+rules, signature/policy checks, the 180/156 limits and shared 750m/4-full ledger stay
+unchanged. The first genuine probe failure also exposed that graceful cleanup kept
+the final zero counter but lacked the failure-path label. New command-failure flag
+and active-exception handling mark/sample it **before QMP quit**, or explicitly cite
+the already verified shutdown final sample for a later assertion. The known,
+strictly recognized stock initialization reboot remains a normal event. Added
+regressions for graceful failed-command cleanup and that normal reboot distinction.
+Historical 11f and probe-2 originals remain unchanged, including their counter labels.
+
+Probe 2 retained **2 matching offline captures and 2 final zero counters**, with no
+firmware or protected-disk failure; it has **no probe qualification**. Owner cleanup
+passed. Native Ubuntu: `Ran 157 tests in 3.223s / OK`. Source correction: **27 harness
+regressions / 3 cached-image regressions passed**. The extra local `test_switch.py`
+command printed `Ran 13 tests in 0.134s / FAILED (failures=1)` for the same Windows
+`pass_fds` limitation documented above; Ubuntu will repeat it unchanged.
+
+After probe 2, the guard measured **269/750 rounded minutes, 2/4 full runs**.
+No full dispatch has occurred during 11g. Probe 3 must pass on the next source commit.
