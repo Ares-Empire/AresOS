@@ -24,3 +24,33 @@ Reviewed commit `d7f0ac4`. Four findings:
 The four owner-facing scripts passed Bash syntax checks; the owner pin block matches the script. Python/VM tests were not rerun because no Python runtime is installed locally. No exposed credential was found in the inspected changes.
 
 CHANGES-NEEDED
+
+---
+
+## Fix re-review of `d7f0ac4..5d69724` (2026-10-25, fresh Codex gpt-6.1-sol high, read-only)
+
+Reviewed `d7f0ac4..5d69724`. **All four earlier findings are fixed; I found no remaining merge-blocking issue within the requested scope.** Physical installation must remain **NOT RELEASED**.
+
+The four fixes:
+
+1. **Windows-default timing — resolved.** [INSTALL.md:351](../../docs/INSTALL.md#L351) now requires F2 → Windows first → Save and Exit → an unattended Windows start after first-login pause/pin. EMERGENCY correctly limits its default-Windows promise to after that checkpoint. The harness follows this sequence, including Linux-default initialization boots without BootNext and subsequent attached/detached Windows markers.
+
+2. **Stock identity/menu position — resolved.** [grub_bls.py:15](../../os/ci/grub_bls.py#L15) matches the exact resolved deployment checksum, then independently derives and checks position against the restricted pinned filename/title/version/status rule. Ordered rendered-menu OCR must agree before selection keys. Regressions cover bare IDs, mismatched filename/title numbers, missing/duplicate stock and OCR disagreement. Owner instructions now explain checksum-to-title mapping and the two “Bazzite” labels.
+
+3. **BootNext auditing — resolved.** [disk_audit.py:294](../../os/ci/disk_audit.py#L294) validates length, attributes, destination and authorization, then requires absence after boot. The constructor rejects a leftover override before writing another. `compare_nvram()` no longer exempts BootNext. The negative tests retain protection against unknown destinations, malformed values and pending overrides at Windows-default checkpoints.
+
+4. **Owner switch guard — resolved.** The INSTALL block exactly matches `switch.sh` with the release reference substituted, including account/auth checks and the staged/rollbackQueued guard immediately before switching. I independently checked block equality.
+
+The pagination and fixture changes preserve their claimed protections. [rehearsal_guard.py:69](../../os/ci/rehearsal_guard.py#L69) requires consistent totals, exact page sizes, unique valid IDs and bounded completeness; errors fail closed. [test_shell_assertions.py:58](../../os/tests/test_shell_assertions.py#L58) supplies temporary prerequisites while executing the actual owner block and Python guard. Its negative cases stop before switching; transaction-failure cases still require exit 42 and no subsequent command.
+
+**Part B’s functional pass is supported by retained evidence.** Stock booted at index 1 while AresOS remained default at index 0; promotion then made stock default, and the next Linux boot used the exact stock checksum/digest with no pending transaction. I checked all 10 Part B protected-disk records against baseline, final zero-write counters, unchanged Windows entry, post-boot BootNext absence and four recorded/consumed Linux selections. Both Windows markers identify the original protected ESP. The artifact ZIP hash matches the report. These establish the VM result, without qualifying real Windows firmware or hardware behavior.
+
+Two open findings belong to later gates:
+
+- **Should-fix before physical release; does not block this merge — conflicting console keymap.** Both retained BLS entries contain `vconsole.keymap=us`, while `/etc/vconsole.conf` specifies `de`; see [INSTALL.md:586](../../docs/INSTALL.md#L586). The kernel argument overrides the file setting. [systemd documentation](https://www.freedesktop.org/software/systemd/man/latest/vconsole.conf.html) Thus German file checks can pass while tty3 uses US mappings, potentially preventing emergency password login/sudo on the laptop. Fix the persistent generated kernel arguments to agree with German configuration, then verify the active command line, loaded tty3 map and actual German-keyboard login after stock, AresOS and recovery boots.
+
+- **Nit for this merge; later capture/manual-menu gate — selected-highlight evidence is inconclusive.** [two_disk_vm.py:549](../../os/ci/two_disk_vm.py#L549) captures after a fixed delay. The selected PNG is byte-identical to frames 05/06 and visibly highlights row 0. It proves no post-Down highlight; capture latency remains unproven. The independently verified stock boot supports functional selection. Fix capture synchronization by waiting for and validating the stock-row highlight before Enter. On the laptop, verify the recorded title and visible highlight before confirming; physical menu usability remains unqualified.
+
+No files changed. Tests were not rerun: no installed Python was available, and WSL returned access denied.
+
+SAFE
