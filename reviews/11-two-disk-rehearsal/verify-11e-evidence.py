@@ -10,7 +10,7 @@ import zipfile
 root = pathlib.Path.cwd()
 sys.path.insert(0, str(root / 'os/ci'))
 from disk_audit import (all_variables, boot_variables, compare_disk, firmware_baseline,
-                        nvram_audit, protected_writes)
+                        nvram_audit, protected_writes, automatic_options, ordered_options)
 from firmware_contract import check_source
 from installer_webui import validate_keyboard_proof, validate_review
 from rehearsal_auth import DIGEST, REFERENCE
@@ -110,7 +110,45 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
             diff_path = folder / (stage + '-nvram-diff.json')
             if stage != 'baseline-firmware':
                 if not diff_path.exists():
-                    incomplete.append(dict(stage=capture.relative_to(records).as_posix(), reason='No accepted NVRAM diff'))
+                    failure = dict(stage=capture.relative_to(records).as_posix(), reason='No accepted NVRAM diff')
+                    predecessors = [p for p in folder.glob('*-devices.json') if not p.name.startswith('boot-')
+                                    and read(p)['boot'] == devices['boot'] - 1]
+                    if len(predecessors) == 1:
+                        previous = predecessors[0].name.removesuffix('-devices.json')
+                        before = read(folder / (previous + '-nvram.json'))
+                        previous_devices = read(predecessors[0])
+                        target_path = folder / (previous + '-target-efi.json')
+                        esp = None
+                        if target_path.exists():
+                            esp, = [p for p in read(target_path)['gpt']['partitions']
+                                    if p['type_guid'] == 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b']
+                        try:
+                            nvram_audit(before, store, before_devices=previous_devices,
+                                        after_devices=devices, target_esp=esp,
+                                        windows_first=devices['mode'] != 'live')
+                        except AssertionError as error:
+                            failure['reason'] = str(error)
+                        else:
+                            raise AssertionError('Missing accepted diff for a passing stage')
+                        auto_before = automatic_options(before, previous_devices)
+                        auto_after = automatic_options(store, devices)
+                        changes = {name: dict(before=before.get(name), after=store.get(name))
+                                   for name in sorted(before.keys() | store.keys()) if before.get(name) != store.get(name)}
+                        paths = [folder / (s + suffix) for s in (previous, stage)
+                                 for suffix in ('-vars.fd', '-devices.json')]
+                        analysis = dict(status='failed', qualified=False, error=failure['reason'],
+                            before_stage=previous, after_stage=stage, raw_changes=changes,
+                            firmware_before=auto_before, firmware_after=auto_after,
+                            order_before=ordered_options(before), order_after=ordered_options(store),
+                            non_auto_before=[n for n in ordered_options(before) if n not in auto_before],
+                            non_auto_after=[n for n in ordered_options(store) if n not in auto_after],
+                            windows_entry_identical=before['Boot0000'] == store['Boot0000'],
+                            windows_first_after=ordered_options(store)[0] == 'Boot0000',
+                            target_efi=read(target_path) if target_path.exists() else None,
+                            before_devices=previous_devices, after_devices=devices,
+                            inputs={p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths})
+                        (records / 'full-stop-analysis.json').write_text(json.dumps(analysis, indent=2) + '\n', encoding='utf-8')
+                    incomplete.append(failure)
                 else:
                     diff = read(diff_path)
                     previous = diff['from_stage']
