@@ -86,6 +86,212 @@ Use AC, lid open, backups/recovery stick disconnected. F12-boot the installer in
 
 The current live installer supports this whole-drive route; **its exact two-drive behaviour is not qualified here**. Release must prove all Linux boot writes, including fallback files, stay on Crucial. If it fails, the maintainer must qualify another route; the owner must not improvise legacy/manual or shared EFI.
 
+### Pause and retain stock before the Windows comparison
+
+At the very first **ares-recovery** login, after stock's initial hardware setup,
+open Konsole and run **sudo -i**. Before restarting into Windows, run this block.
+It stops the reviewed stock OS updaters, disables their automatic timers across
+reboots, and waits for deployment work to finish. It checks the ISO's exact stock
+digest, records and discards at most one staged upstream Bazzite update, then pins
+the unchanged booted stock deployment. A newer deployment already booted, an
+unexpected origin or any other error means **STOP and get help**; see EMERGENCY.
+Do not reboot past a STOP, change pins or choose a rollback by guesswork.
+
+This block is also [pin-stock.sh](../os/release/pin-stock.sh); its first part is
+[pause-stock-updates.sh](../os/release/pause-stock-updates.sh). Keep any printed
+staged reference/digest/checksum/version and the pinned stock checksum privately
+with record C. The pending update must be discarded **before** the Windows reboot,
+which would otherwise finalize it.
+
+```bash
+#!/usr/bin/bash
+set -euo pipefail
+test "$(id -u)" = 0
+python3 - <<'PAUSE_STOCK'
+import json
+import pathlib
+import subprocess
+import time
+
+# Names and commands come from the frozen image's existing updater audit.
+SYSTEM = (
+    'uupd.service', 'uupd-manual.service', 'uupd.timer',
+    'rpm-ostreed-automatic.service', 'rpm-ostreed-automatic.timer',
+    'bootc-fetch-apply-updates.service', 'bootc-fetch-apply-updates.timer',
+    'bootc-update.service', 'bootc-update.timer',
+    'systemd-sysupdate.service', 'systemd-sysupdate.timer',
+    'systemd-sysupdate-reboot.service', 'systemd-sysupdate-reboot.timer',
+    'systemd-sysupdated.service', 'dbus-org.freedesktop.sysupdate1.service',
+    'dnf-automatic.service', 'dnf-automatic.timer',
+    'dnf5-automatic.service', 'dnf5-automatic.timer',
+    'dnf5-offline-transaction.service',
+    'packagekit.service', 'packagekit-offline-update.service',
+)
+USER = ('uupd.service', 'uupd.timer')
+
+
+def output(command):
+    return subprocess.check_output(command, text=True, timeout=30)
+
+
+def unit_files(command):
+    return {p[0]: p[1] for line in output([*command, 'list-unit-files']).splitlines()
+            if len(p := line.split()) >= 2}
+
+
+def unit_state(command, name):
+    fields = dict(line.split('=', 1) for line in output(
+        [*command, 'show', name, '--property=LoadState,ActiveState,SubState']).splitlines() if '=' in line)
+    assert fields.get('LoadState') in ('loaded', 'masked'), 'Updater unit could not be inspected: ' + name
+    return fields
+
+
+def pause_units():
+    system = ['systemctl', '--no-pager', '--no-legend']
+    global_user = ['systemctl', '--global', '--no-pager', '--no-legend']
+    scopes = []
+    receipt = []
+    for command, names, scope in ((system, SYSTEM, 'system'), (global_user, USER, 'user')):
+        files = unit_files(command)
+        selected = [n for n in names if n in files]
+        if scope == 'system':
+            assert {'uupd.service', 'uupd.timer'} <= set(selected), 'Pinned stock updater units are missing'
+        services = [n for n in selected if n.endswith('.service')]
+        timers = [n for n in selected if n.endswith('.timer')]
+        for timer in timers:
+            assert files[timer] != 'masked-runtime', 'A temporary timer mask cannot prove persistent disablement'
+        # Services cannot reactivate while the current maintenance session runs.
+        # Timers remain persistently disabled after the runtime masks disappear.
+        if services:
+            flags = ['--runtime', 'mask'] + (['--now'] if scope == 'system' else [])
+            subprocess.run([*command, *flags, *services], check=True)
+        disable = [n for n in timers if files[n] != 'masked']
+        if disable:
+            flags = ['disable'] + (['--now'] if scope == 'system' else [])
+            subprocess.run([*command, *flags, *disable], check=True)
+        if scope == 'system':
+            scopes.append((system, selected))
+        elif selected:
+            # Stock's first administrator is UID 1000. Inspect any active user
+            # managers too, rather than treating a global disable as a stop.
+            for bus in pathlib.Path('/run/user').glob('*/bus'):
+                uid = bus.parent.name
+                if not uid.isdigit():
+                    continue
+                user = output(['getent', 'passwd', uid]).split(':', 1)[0]
+                manager = ['runuser', '-u', user, '--', 'env',
+                    'XDG_RUNTIME_DIR=/run/user/' + uid,
+                    'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/' + uid + '/bus',
+                    'systemctl', '--user', '--no-pager', '--no-legend']
+                subprocess.run([*manager, 'daemon-reload'], check=True)
+                subprocess.run([*manager, 'stop', *selected], check=True)
+                scopes.append((manager, selected))
+        after = unit_files(command)
+        assert all(after[n] in ('disabled', 'masked') for n in timers), 'Updater timer is not persistently disabled'
+        receipt.append(dict(scope=scope, present=selected, absent=[n for n in names if n not in files],
+                            timers={n: after[n] for n in timers}))
+    return scopes, receipt
+
+
+def pause_stock():
+    scopes, receipt = pause_units()
+    deadline = time.monotonic() + 300
+    while True:
+        inactive = all(unit_state(command, name)['ActiveState'] in ('inactive', 'failed')
+                       for command, names in scopes for name in names)
+        status = json.loads(output(['rpm-ostree', 'status', '--json']))
+        assert 'transaction' in status, 'Cannot inspect rpm-ostree transaction state'
+        clients = [subprocess.run(['pgrep', '-x', name], capture_output=True) for name in ('bootc', 'rpm-ostree')]
+        assert all(p.returncode in (0, 1) for p in clients), 'Cannot inspect deployment transactions'
+        if inactive and status.get('transaction') is None and all(p.returncode == 1 for p in clients):
+            break
+        assert time.monotonic() < deadline, 'Updater/deployment transaction did not become idle'
+        time.sleep(2)
+    print('ARESOS_STOCK_UPDATERS_PAUSED ' + json.dumps(dict(status='passed', units=receipt,
+          transactions_idle=True, service_masks='runtime', timer_disable='persistent')))
+    print('Stock OS update timers are paused; leave them paused during the trial.')
+
+
+if __name__ == '__main__':
+    try:
+        pause_stock()
+    except (AssertionError, subprocess.SubprocessError) as error:
+        raise SystemExit('STOP: stock updaters could not be paused. See EMERGENCY.md / get help. ' + str(error))
+PAUSE_STOCK
+
+# Repeat the same pause immediately before inspecting/discarding/pinning.
+python3 - <<'PIN_STOCK'
+import json
+import re
+import subprocess
+
+ISO_DIGEST = 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151'
+IMAGE = 'ghcr.io/ublue-os/bazzite-nvidia-open'
+
+
+def require(ok, message):
+    if not ok:
+        raise SystemExit('STOP: ' + message + '. See EMERGENCY.md / get help; do not reboot, roll back or repin automatically.')
+
+
+def status():
+    value = json.loads(subprocess.check_output(['rpm-ostree', 'status', '--json'], text=True))
+    require('transaction' in value and value['transaction'] is None, 'A deployment transaction is active or cannot be inspected')
+    deployments = value['deployments']
+    booted = [(i, d) for i, d in enumerate(deployments) if d.get('booted')]
+    require(len(booted) == 1, 'Expected exactly one booted stock deployment')
+    index, stock = booted[0]
+    bootc = json.loads(subprocess.check_output(['bootc', 'status', '--json'], text=True))['status']
+    require(stock.get('container-image-reference-digest') == ISO_DIGEST
+            and bootc['booted']['image']['imageDigest'] == ISO_DIGEST, 'Booted stock differs from the recorded ISO digest')
+    require(stock['checksum'] == bootc['booted']['ostree']['checksum'], 'Stock checksum observations disagree')
+    require(not bootc.get('rollbackQueued'), 'A rollback is queued')
+    return deployments, index, stock, bootc
+
+
+def upstream(reference):
+    return bool(re.fullmatch(r'(?:ostree-image-signed:docker://|ostree-unverified-registry:)?'
+                + re.escape(IMAGE) + r'(?::[A-Za-z0-9_.-]+|@sha256:[0-9a-f]{64})', reference))
+
+
+deployments, index, stock, bootc = status()
+require(upstream(stock.get('container-image-reference', '')), 'Booted origin is not the recorded upstream Bazzite')
+checksum = stock['checksum']
+staged = [d for d in deployments if d.get('staged')]
+require(len(staged) <= 1, 'More than one staged deployment')
+discarded = None
+if staged:
+    candidate, = staged
+    require(not candidate.get('booted') and not candidate.get('pinned'), 'The staged deployment is booted or pinned')
+    reference = candidate.get('container-image-reference', '')
+    digest = candidate.get('container-image-reference-digest', '')
+    require(upstream(reference), 'Staged origin is not upstream Bazzite')
+    require(re.fullmatch(r'sha256:[0-9a-f]{64}', digest) and re.fullmatch(r'[0-9a-f]{64}', candidate['checksum']),
+            'Staged deployment identity is incomplete')
+    require(bootc.get('staged') and bootc['staged']['image']['imageDigest'] == digest
+            and bootc['staged']['ostree']['checksum'] == candidate['checksum'], 'Staged identity observations disagree')
+    discarded = dict(reference=reference, digest=digest, checksum=candidate['checksum'], version=candidate.get('version'))
+    print('ARESOS_STOCK_DISCARD ' + json.dumps(discarded), flush=True)
+    subprocess.run(['rpm-ostree', 'cleanup', '-p'], check=True)
+    deployments, index, stock, bootc = status()
+    require(stock['checksum'] == checksum, 'Booted checksum changed after pending cleanup')
+require(not any(d.get('staged') for d in deployments) and not bootc.get('staged'), 'A staged deployment remains')
+subprocess.run(['ostree', 'admin', 'pin', str(index)], check=True)
+deployments, index, stock, bootc = status()
+require(stock['checksum'] == checksum and stock.get('pinned'), 'Pin did not preserve the booted stock deployment')
+require(not any(d.get('staged') for d in deployments) and not bootc.get('staged'), 'A staged deployment appeared while pinning')
+print('Pinned booted stock deployment:', checksum)
+print('ARESOS_STOCK_PIN_RESULT ' + json.dumps(dict(status='passed', booted_checksum=checksum,
+      booted_digest=ISO_DIGEST, staged_discarded=discarded is not None, discarded=discarded,
+      pinned=True, no_staged=True)))
+PIN_STOCK
+```
+
+Require the final **Pinned booted stock deployment** line and no error before
+continuing. Leave updates paused throughout the trial. After returning to stock
+for good and confirming its second default boot, run **sudo systemctl enable --now
+uupd.timer** to turn stock updates back on.
+
 ## 5. Check installed Bazzite
 
 Finish [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): save Crucial's new GUIDs and Linux firmware entry; prove `/boot/efi` resolves to Crucial. Then **F12 → Windows Boot Manager**, run [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage). A mismatch or Windows repair/recovery prompt stops the trial. Keep records independently.
@@ -125,25 +331,15 @@ Require `1000`, a group list containing `wheel`, **no output from either `getent
 
 ### Retain stock Bazzite and authenticate the private pull
 
-First identify and pin the actually booted stock deployment. This is the same checksum/index selection used by CI; it refuses a pending staged deployment:
-
-```bash
-python3 - <<'PY'
-import json, subprocess
-status = json.loads(subprocess.check_output(['rpm-ostree', 'status', '--json']))
-booted = [(i, d) for i, d in enumerate(status['deployments']) if d.get('booted')]
-assert len(booted) == 1 and not any(d.get('staged') for d in status['deployments']), status
-index, deployment = booted[0]
-assert 'bazzite-nvidia-open' in deployment.get('container-image-reference', ''), deployment
-subprocess.run(['ostree', 'admin', 'pin', str(index)], check=True)
-print('Pinned booted stock deployment:', deployment['checksum'])
-PY
-bootc status --json
-```
+Repeat the complete [pause-and-retain block above](#pause-and-retain-stock-before-the-windows-comparison)
+before the private pull. Running it again is harmless: it pauses stock's updaters
+again and requires no staged deployment at the moment of pinning. A permitted
+pending upstream update is discarded only while the original ISO digest remains
+booted; any changed booted identity stops the recipe. Then run `bootc status --json`.
 
 Record the printed stock checksum, its image reference and current GRUB entry privately with record C. Require **`status.booted.image.imageDigest`** to equal the upstream SHA-256 above, with no layered packages or local OS modifications. Its origin reference may end in `:stable`; the payload digest, rather than that mutable tag, identifies the tested stock contents. An older/newer ISO deployment is outside this tested recipe. Do not discard the pinned deployment after this switch.
 
-GitHub currently supports **personal access tokens (classic)** for private GHCR pulls; a fine-grained PAT cannot do this. Create a **classic token with only `read:packages`**, an expiry and no `repo`, write or delete scope, from [GitHub's token settings](https://github.com/settings/tokens/new?scopes=read:packages). This classic scope is not restricted to this one package. The account must have read access to this private package; the owner is `carlsenares`. Keep the token in the owner's password manager, never Git, the install record, screenshots or shell command arguments. CI uses only its temporary built-in `GITHUB_TOKEN`.
+GitHub currently supports **personal access tokens (classic)** for private GHCR pulls; a fine-grained PAT cannot do this. Create a **classic token with only `read:packages`**, an expiry and no `repo`, write or delete scope, from [GitHub's token settings](https://github.com/settings/tokens/new?scopes=read:packages). This classic scope is not restricted to this one package. The account must have read access to this private package; the owner is `carlsenares`. Keep the token in the owner's password manager, never Git, the install record, screenshots or shell command arguments. Dispatch rehearsal CI uses the owner secret `GHCR_READ_TOKEN` only for the pinned release reads under brief 11d; the value is never recorded.
 
 In the root shell:
 
@@ -222,7 +418,7 @@ Read the output: require **`status.rollbackQueued: true`**, no staged deployment
 systemctl reboot
 ```
 
-06c booted the exact retained stock checksum again, verified its display manager and password-protected administrator, and compared every attached-disk partition identity/boundary across stock, AresOS and rollback. The original owner still ran Homebrew 7.0.9 with the same brew script hash. Rollback restores that deployment's `/etc`; shared `/var` and home data are not rolled back or erased. The UID 1001 deny ACL remains on `/var/home/linuxbrew` without restricting owner UID 1000. To reverse it on stock if that UID later needs Homebrew, an administrator runs `sudo setfacl -x u:1001 /var/home/linuxbrew`; AresOS reapplies its rule on its next boot. Stock Bazzite's normal updater policy returns too. This OS rollback does not replace a data backup.
+06c booted the exact retained stock checksum again, verified its display manager and password-protected administrator, and compared every attached-disk partition identity/boundary across stock, AresOS and rollback. The original owner still ran Homebrew 7.0.9 with the same brew script hash. Rollback restores that deployment's `/etc`; shared `/var` and home data are not rolled back or erased. The UID 1001 deny ACL remains on `/var/home/linuxbrew` without restricting owner UID 1000. To reverse it on stock if that UID later needs Homebrew, an administrator runs `sudo setfacl -x u:1001 /var/home/linuxbrew`; AresOS reapplies its rule on its next boot. Stock Bazzite's OS update timers stay paused for this trial; enable uupd.timer only after choosing stock for good and verifying its second default boot. This OS rollback does not replace a data backup.
 
 If the new deployment cannot reach a TTY, use Bazzite's [GRUB previous-deployment recovery](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rolling_back_system_updates/): select the recorded stock/backup entry, normally `ostree:1` immediately after this single switch. Bazzite documents **Esc once, then ↓** if the menu is hidden. Match the recorded deployment, rather than assuming an index after further transactions. **Selecting stock in GRUB recovers that boot only. Complete the default step below before another unattended boot.** Do not format, repair Windows boot files or delete deployments to recover. F12 → Windows Boot Manager remains the everyday Windows return path.
 

@@ -4,6 +4,17 @@ The AresOS emergency card. **Keep it on your phone.** If AresOS is broken, you c
 
 This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md, and this card tells you which section to open. The 2026-10-24 [11f rehearsal](../reviews/11-two-disk-rehearsal/REPORT.md#11f-linux-position-rule-and-full-length-qualification-2026-10-24) completed the first VM installation, restored Windows-first, booted Windows with Linux detached and reached pinned stock Bazzite. Stock already had a newer upstream update staged, so the safety guard stopped before switching to AresOS. All reached offline protected bytes and Windows entries matched; one failed session lacks final write-counter proof. The complete install/recovery/undo sequence and GRUB recovery promotion remain unqualified. The UNTESTED recovery gate below stays open.
 
+## Stock preparation stops before the switch
+
+Run INSTALL's [pause-and-retain block](INSTALL.md#pause-and-retain-stock-before-the-windows-comparison)
+at the first stock login, before restarting into Windows, and repeat it before
+switching to AresOS. It can discard one newer upstream update that is staged but
+has not booted. If a newer stock version has already booted, another origin is
+staged, or the block prints **STOP**, do not reboot, repin or roll back by guesswork:
+keep the printed identities privately and get help. Leave stock updates paused
+during the trial; re-enable them only after stock is your permanent choice and
+its second default boot has passed.
+
 ## The three rules
 
 1. **F12 → Windows Boot Manager is your way back.** AresOS lives on its own SSD and is built never to write to the Windows SSD, so Windows should keep starting on its own. That's the intended return route, checked with your install records. It isn't a guarantee: if Windows Boot Manager is missing or Windows doesn't start, stop and get help.

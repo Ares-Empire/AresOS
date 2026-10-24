@@ -1609,3 +1609,108 @@ against the committed Git blobs and matched. Original ZIP/FD/JSON/PNG bytes and
 all VM results are unchanged. The extra receipt/privacy commit costs another
 push/PR pair; the measured ledger above includes the first pair, and the final
 pair remains within the new 14-minute reserve. [Receipt proof](logs/11f/input-receipt-check.txt).
+
+## 11g: stock updater preparation and failure counters (2026-10-24)
+
+### Zero-cost stage walk-through — BEFORE ANY DISPATCH
+
+Initial `git fetch` and `git pull --ff-only` printed `Already up to date.`;
+HEAD was integrator brief `0bb2b3f`. Read 11c–11g, the 11f outcome, guide,
+updater audit and harness. This walkthrough is written before any 11g dispatch.
+The 11f walkthrough above still applies to every firmware transition, independently
+in **both protected-first and protected-second** orders, with the following complete
+sequence and the new first-login step explicitly included.
+
+| Stage, in each order | Expected event / governing rule |
+|---|---|
+| Baseline Windows, ISO + empty target attached | Auto DVD/storage/NIC entries use exact source-verified 16-byte ownership GUID and each boot's QMP device set. Numbers and descriptions may differ by enumeration. Windows Boot0000 bytes/number remain pinned and Windows is first. |
+| Real live UI install | Same devices. Installer creates target-ESP-only Fedora shim/GRUB Linux entry, possibly first. 11e auto device-set / number-takeover checks and 11f validated Linux position freedom; fixed entries retain relative order. Live checkpoint permits Linux first. |
+| Restore Windows | Read back exactly Windows + prior BootOrder without Windows; no other boot-variable change. |
+| **First stock login before Windows comparison** | Remove ISO, keep both disks; DVD auto option may disappear, remaining auto options may relabel/renumber. BootNext selects validated Linux and is consumed. Existing known pre-login hardware-initialization reboot, if needed, is separately audited. Shim/bootupd may recreate/move only the validated target Linux entry. Windows stays byte-identical and first at installed checkpoints. |
+| **Pause, pending cleanup and pin, before any post-install Windows reboot** | Stop/mask OS updater services for this boot, persistently disable their timers, wait for no updater/deployment transaction. Require booted ISO digest; discard at most one identified upstream-Bazzite pending deployment, re-read unchanged booted checksum/no staged state, then pin and re-read. These are deployment/unit operations on the target, with no authorized NVRAM change. Power off normally, final zero-write counter then offline byte/GPT/EFI/NVRAM audit. |
+| Windows comparison after install, target detached | Set BootNext=0000, consume it. Target auto option may disappear; protected auto option may relabel/renumber, particularly reverse order. Retained validated Linux option may remain. 11e per-boot attached-device set and non-auto number protection; 11f fixed order and Windows-first; original protected ESP marker must boot. |
+| Stock → signed AresOS | Reattach target, auto option may return at a free/former-auto number; Linux BootNext consumed. Repeat pause/pin before signature/switch; require no staged state before switching. Only target Linux loader/position changes and attached-device auto refresh are allowed. Preserve signature, release and staged identity checks, normal shutdown/audit. |
+| AresOS policy / tty3 / rollback | Linux BootNext consumed; same device/target-only Linux rules. Frozen updater policy and actual password/sudo/logout checks remain unchanged. Deployment rollback authorizes no fixed firmware changes. Audit after shutdown. |
+| Rolled-back stock / persistent stock / second stock | BootNext consumed each time, permitted auto refresh/Linux recreation only. Validate original recorded stock checksum/digest, set deployment default, require no staged/queued state, then confirm a second unattended GRUB boot. Timers stay paused through this trial. |
+| Windows before undo, both disks | BootNext=0000 consumed, unchanged Microsoft loader/ESP marker, Windows first, all offline/counter/NVRAM checks. |
+| Default undo, both disks | Exact Windows-first stable move verified, boot Windows with no BootNext or keys; no disk/deployment erase. |
+| Windows after undo, target detached | Target auto removal and possible protected auto relabel/renumber under the same device-set rule. Retained target Linux entry permitted. Original marker, zero writes and full offline comparisons. |
+| Fresh reverse-order installation | Closed target-only reset plus pristine vars. Repeat **all rows above**, including early pause/pin, complete switch/policy/tty3/recovery/default undo and both detached markers. Same protected fixture must match its original baseline. |
+
+**Part B, only after both Part A orders pass:** reattach the reverse target;
+Linux BootNext consumed, auto target option may return/recycle an auto/free ID.
+Repeat pause/pin and require original stock identity before re-switch. Boot AresOS,
+record real BLS entry checksum and menu index, then try actual GRUB stock selection.
+Only rendered recorded entries may be selected; the existing authorized `grub2-reboot`
+fallback records its use and any extra boot/audit. Stock must first boot at its recorded
+nonzero index while AresOS is default, then identity-checked promotion sets it first,
+then a second unattended stock boot must preserve checksum/digest and no staged/queued
+state. At **every** shutdown: final QMP counter, closed-file protected audit, raw vars,
+QMP device context and accepted NVRAM diff. Windows firmware default/fixed-entry order
+remain strict; all Linux changes must name the target's own ESP/Fedora loader.
+
+The new order avoids finalizing a known pending stock update during §5. Do not stop
+hardware setup, `ostree-finalize-staged`, bootc finalization or bootloader maintenance:
+they have separate roles and remain unchanged. If a stock update is **already booted**
+before the first successful login, the specified digest check deliberately STOPs;
+there is no permission to auto-rollback, repin or reboot past that refusal. No required
+transition conflicts with the rules. Uncovered firmware, protected writes, wrong
+booted stock, unreviewed deployment updater, signature/auth rejection or a later
+frozen policy conflict means STOP and report, without widening rules or rebuilding.
+
+### Updater inventory and preparation
+
+[Inventory](../../os/manifest/ci/11g/updater-inventory.json) reuses the frozen-image
+updater audit and its retained vendor commands (SHA bound): system uupd/manual,
+rpm-ostreed-automatic, bootc fetch/apply and update, systemd-sysupdate/reboot/daemon
+and its D-Bus alias, dnf/dnf5 automatic and offline, PackageKit/offline, their timers,
+and global-user uupd. Optional masked placeholders are distinguished from actual
+stock units in the fresh live/installed inventories. Unknown OS deployment commands
+fail closed. Hardware setup/finalizers, app-only updaters and cleanup bookkeeping
+are explicitly excluded, with reasons. No payload or policy allowlist changes.
+
+`pause-stock-updates.sh` stops selected services, runtime-masks them against current
+session reactivation, persistently disables timers and inspects active user managers;
+it waits for inactive updater units, null rpm-ostree transaction and no bootc/rpm-ostree
+client. `pin-stock.sh` repeats that exact self-contained block, prints the one pending
+upstream identity before `rpm-ostree cleanup -p`, re-reads stock/no-pending state, pins,
+and re-reads again. The official [rpm-ostree manual](https://raw.githubusercontent.com/coreos/rpm-ostree/main/man/rpm-ostree.xml)
+documents pending-only cleanup separately from rollback cleanup. INSTALL copies this
+block before §5 and repeats it before switching; EMERGENCY explains STOP/help.
+Returning permanently to stock has one explicit `sudo systemctl enable --now uupd.timer`
+line, after Part B's second stock boot. Runtime masks disappear on reboot.
+
+### Time estimate and shared allowance — BEFORE ANY DISPATCH
+
+Same start **2026-10-23T16:21:00Z**, new **750 rounded minutes / 4 total full runs**.
+11f's final measured ledger was **231 minutes / 2 full runs**, rather than its
+conservative 229 + 14 closing reserve; brief 11g privacy jobs add their actual rounded
+cost: initial guard measured **233/750 minutes, 2/4 full** (42 reserved for probe). The integrator-reported org bill remains 248/2,000 October minutes, reset
+1 November; this is not verified using the owner read token.
+
+Use the prior measured 11f table: two installations 50–54m, two switch/recovery
+sequences 22–26m, Windows markers 8–10m, Part B 17–23m, fixture/other hashes 8–10m.
+The early stock preparation adds about **3–5m per order** (one extra boot plus audit),
+while reusing the already required first hardware-setup boot. Central VM estimate
+is now approximately **120m**, upper planning range **111–133m**. Existing full VM
+**156m** gives 30% on the central estimate (17% at the conservative high endpoint);
+job **180m** covers observed 11–18m setup plus cleanup/upload. This is the authorized
+job maximum, one complete job for both orders and B. Probe limits **40m job / 80m
+VM step** and reservations **42 probe / 182 full** stay unchanged. Guard now enforces
+750/4, includes all branch privacy jobs, and requires new stock/counter probe flags
+on the exact same commit. No ledger reset; next full is number **3 of 4**.
+
+### Native regressions before dispatch
+
+- `test_stock_prepare.py`: **7 tests passed**: 11f's actual staged d0e5 status discards
+  exactly that deployment, pins unchanged aa669 stock, clean-stock pin, four refusal
+  classes including checksum changing after cleanup, pause twice, transaction wait,
+  and exact owner-block/script synchronization. No real cleanup ran on the laptop.
+- `test_two_disk_vm.py`: **24 tests passed**, including failed-command final counter
+  before termination, explicit unavailable-QMP receipt, and protected writes still
+  raising PRODUCT FAILURE while QEMU closes. Normal-shutdown counter test retained.
+- `test_rehearsal_budget.py`: **3 tests passed**, fourth full permitted/fifth rejected,
+  shared 750-minute cap, unchanged probe/full timeout reservation checks.
+
+Fresh probe and full outcomes, per-stage events, gate table and final ledger are
+pending. Historical 11f's missing counter remains unqualified and unchanged.

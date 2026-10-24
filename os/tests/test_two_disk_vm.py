@@ -234,6 +234,62 @@ class TwoDiskHarnessTest(unittest.TestCase):
             guest.finish_shutdown('fixture', 'guest-shutdown')
         guest.writes.assert_not_called()
 
+    def failure_guest(self, query):
+        guest = object.__new__(vm.Guest)
+        guest.boot_number = 7
+        guest.boot_transcript = guest.transcript = ''
+        guest.secrets = []
+        guest.screenshot_safe = False
+        guest.monitor_socket = Mock()
+        guest.console = Mock()
+        guest.send = Mock()
+        guest.wait = Mock(return_value='\nARESOS_CMD_DONE:1\n')
+        guest.monitor = Mock(events=[])
+        guest.monitor.command.side_effect = lambda name: {} if name == 'stop' else query()
+        guest.process = Mock()
+        guest.process.poll.return_value = None
+        def terminate():
+            self.assertTrue((self.directory / 'stock-failure-counter.json').exists())
+            guest.process.poll.return_value = 0
+        guest.process.terminate.side_effect = terminate
+        return guest
+
+    def test_failing_guest_command_keeps_final_counter_before_termination(self):
+        stats = [dict(device='protected', stats=dict(wr_bytes=0, wr_operations=0))]
+        guest = self.failure_guest(lambda: stats)
+        with patch.object(vm, 'EVIDENCE', self.directory), patch.object(vm.sw, 'EVIDENCE', self.directory):
+            with self.assertRaisesRegex(AssertionError, 'Guest command failed'):
+                try:
+                    guest.command('failing-command', 'false')
+                finally:
+                    guest.close('stock')
+        self.assertEqual(json.loads((self.directory / 'stock-blockstats.json').read_text()), stats)
+        receipt = json.loads((self.directory / 'stock-failure-counter.json').read_text())
+        self.assertEqual(receipt['status'], 'recorded')
+        self.assertTrue(receipt['failure_path'])
+        self.assertFalse(receipt['probe_only'])
+        self.assertTrue(receipt['vm_paused'])
+        guest.process.terminate.assert_called_once()
+
+    def test_failure_counter_unavailable_is_explicit_and_vm_still_closes(self):
+        def unavailable():
+            raise TimeoutError('QMP fixture unavailable')
+        guest = self.failure_guest(unavailable)
+        with patch.object(vm, 'EVIDENCE', self.directory), patch.object(vm.sw, 'EVIDENCE', self.directory):
+            guest.close('stock')
+        receipt = json.loads((self.directory / 'stock-failure-counter.json').read_text())
+        self.assertEqual((receipt['status'], receipt['error_type']), ('unavailable', 'TimeoutError'))
+        self.assertFalse((self.directory / 'stock-blockstats.json').exists())
+        guest.process.terminate.assert_called_once()
+
+    def test_failure_counter_protected_write_remains_product_failure_and_vm_closes(self):
+        guest = self.failure_guest(lambda: [dict(device='protected', stats=dict(wr_bytes=512, wr_operations=1))])
+        with patch.object(vm, 'EVIDENCE', self.directory), patch.object(vm.sw, 'EVIDENCE', self.directory):
+            with self.assertRaisesRegex(AssertionError, 'PRODUCT FAILURE'):
+                guest.close('stock')
+        self.assertTrue((self.directory / 'stock-blockstats.json').exists())
+        guest.process.terminate.assert_called_once()
+
     def test_loop_backing_verification_uses_json_list_mode_and_refuses_wrong_file(self):
         path = self.directory / 'protected.raw'
         response = dict(loopdevices=[{'name': '/dev/loop9', 'back-file': str(path)}])

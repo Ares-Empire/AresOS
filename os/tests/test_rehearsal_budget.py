@@ -20,17 +20,17 @@ class BudgetTest(unittest.TestCase):
         self.assertIn("'${{ inputs.rehearsal == 'full' && 182 || 42 }}'", reserve['run'])
         self.assertEqual(vm['run'].count('two_disk_vm.py'), 1)
 
-    def test_full_dispatch_count_includes_current_run_and_rejects_fourth(self):
+    def test_full_dispatch_count_includes_current_run_and_rejects_fifth(self):
         runs = [dict(id=i, display_title='Two-disk rehearsal (full)', head_sha='a' * 40,
-                     created_at=guard.START, status='completed', conclusion='success') for i in range(3)]
+                     created_at=guard.START, status='completed', conclusion='success') for i in range(4)]
         def api(path):
             return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(jobs=[])
         with patch.object(guard, 'api', side_effect=api):
-            result = guard.budget(182, current=2)
-            self.assertEqual(result['full_dispatched'], 3)
-            runs.append(dict(runs[0], id=3))
+            result = guard.budget(182, current=3)
+            self.assertEqual(result['full_dispatched'], 4)
+            runs.append(dict(runs[0], id=4))
             with self.assertRaisesRegex(AssertionError, 'full-run allowance exhausted'):
-                guard.budget(0, current=3)
+                guard.budget(0, current=4)
 
     def test_allowance_includes_privacy_push_and_pr_jobs_and_excludes_old_runs(self):
         def run(number, title, date=guard.START, status='completed'):
@@ -45,12 +45,12 @@ class BudgetTest(unittest.TestCase):
                 return dict(workflow_runs=runs)
             return dict(jobs=[job, dict(conclusion='skipped')])
         with patch.object(guard, 'api', side_effect=api):
-            self.assertEqual((guard.START, guard.MINUTE_CAP, guard.FULL_CAP), ('2026-10-23T16:21:00Z', 600, 3))
-            result = guard.budget(594)
+            self.assertEqual((guard.START, guard.MINUTE_CAP, guard.FULL_CAP), ('2026-10-23T16:21:00Z', 750, 4))
+            result = guard.budget(744)
             self.assertEqual(result['consumed_minutes'], 6)
             self.assertEqual(result['full_dispatched'], 0)
-            with self.assertRaisesRegex(AssertionError, 'exceeds 600'):
-                guard.budget(595)
+            with self.assertRaisesRegex(AssertionError, 'exceeds 750'):
+                guard.budget(745)
             runs[1]['status'] = 'in_progress'
             with self.assertRaisesRegex(AssertionError, 'active'):
                 guard.budget(0)

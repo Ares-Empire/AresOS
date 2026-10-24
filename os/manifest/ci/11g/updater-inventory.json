@@ -1,0 +1,198 @@
+{
+  "base": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "source_audit": "os/manifest/ci/updaters.json",
+  "source_sha256": "a78edff4c09a895c71aba8c577754f797120f840957e403e9cebbd77aa82293b",
+  "method": "Existing frozen-image audit inventory; retain vendor commands even when AresOS masks a unit. Optional placeholders are checked for real presence in live/installed stock.",
+  "pause_inventory": [
+    {
+      "scope": "system",
+      "name": "bootc-fetch-apply-updates.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=/usr/bin/bootc upgrade --apply --quiet"
+      ]
+    },
+    {
+      "scope": "system",
+      "name": "bootc-update.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "dbus-org.freedesktop.sysupdate1.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "dnf-automatic.service",
+      "state": "masked",
+      "suspicious": false,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "dnf5-automatic.service",
+      "state": "masked",
+      "suspicious": false,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "dnf5-offline-transaction.service",
+      "state": "disabled",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=/usr/bin/dnf5 offline _execute"
+      ]
+    },
+    {
+      "scope": "system",
+      "name": "packagekit-offline-update.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "packagekit.service",
+      "state": "masked",
+      "suspicious": false,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "rpm-ostreed-automatic.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=rpm-ostree upgrade --quiet --trigger-automatic-update-policy"
+      ]
+    },
+    {
+      "scope": "system",
+      "name": "systemd-sysupdate-reboot.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=/usr/lib/systemd/systemd-sysupdate reboot"
+      ]
+    },
+    {
+      "scope": "system",
+      "name": "systemd-sysupdate.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=/usr/lib/systemd/systemd-sysupdate update"
+      ]
+    },
+    {
+      "scope": "system",
+      "name": "systemd-sysupdated.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=/usr/lib/systemd/systemd-sysupdated"
+      ]
+    },
+    {
+      "scope": "system",
+      "name": "uupd-manual.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=/usr/bin/uupd --hw-check=false --json --log-level=debug"
+      ]
+    },
+    {
+      "scope": "system",
+      "name": "uupd.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": [
+        "ExecStart=/usr/bin/uupd --log-level=debug --json"
+      ]
+    },
+    {
+      "scope": "system",
+      "name": "bootc-fetch-apply-updates.timer",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "bootc-update.timer",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "dnf-automatic.timer",
+      "state": "masked",
+      "suspicious": false,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "dnf5-automatic.timer",
+      "state": "masked",
+      "suspicious": false,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "rpm-ostreed-automatic.timer",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "systemd-sysupdate-reboot.timer",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "systemd-sysupdate.timer",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "system",
+      "name": "uupd.timer",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "user",
+      "name": "uupd.service",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    },
+    {
+      "scope": "user",
+      "name": "uupd.timer",
+      "state": "masked",
+      "suspicious": true,
+      "commands": []
+    }
+  ],
+  "excluded": {
+    "finalizers": "bootc-finalize-staged.service and ostree-finalize-staged.service finalize an already staged deployment; needed for the authorized switch/rollback, not paused",
+    "hardware": "bazzite-hardware-setup.service and bootloader-update.service configure hardware/boot files, not OS version upgrades; not paused",
+    "apps": "Flatpak, Homebrew and container application updaters are outside this OS-deployment pause",
+    "bookkeeping": "Existing updater-allowlist.json classifies local bookkeeping and notification units"
+  }
+}

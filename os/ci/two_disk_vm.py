@@ -51,8 +51,8 @@ class Guest(sw.Guest):
                      and b'f\0e\0d\0o\0r\0a\0' in bytes.fromhex(value['hex']).lower()]
             assert len(linux) == 1, f'Ambiguous Linux firmware entry: {linux}'
             set_variable(WORK / 'vars.fd', 'BootNext', struct.pack('<H', int(linux[0][4:], 16)))
-        super().__init__(disk, password, secrets)
         try:
+            super().__init__(disk, password, secrets)
             self.devices = self.device_inventory()
             save(f'boot-{self.boot_number}-devices', self.devices)
         except Exception:
@@ -165,6 +165,38 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
         stats = self.monitor.command('query-blockstats')
         save(stage + '-blockstats', stats)
         return protected_writes(stats)
+
+    def failure_counter(self, stage, probe_only=False):
+        receipt = dict(failure_path=True, probe_only=probe_only, boot=self.boot_number,
+                       status='unavailable', counter=stage + '-blockstats.json')
+        try:
+            assert self.monitor is not None
+            self.monitor.command('stop')
+            receipt['vm_paused'] = True
+        except Exception as error:
+            # Even if pausing fails, still try the required counter query.
+            receipt.update(vm_paused=False, pause_error_type=type(error).__name__)
+        try:
+            assert self.monitor is not None
+            stats = self.monitor.command('query-blockstats')
+            save(stage + '-blockstats', stats)
+        except Exception as error:
+            receipt['error_type'] = type(error).__name__
+            save(stage + '-failure-counter', receipt)
+            return False
+        receipt.update(status='recorded')
+        save(stage + '-failure-counter', receipt)
+        protected_writes(stats)
+        return True
+
+    def close(self, stage):
+        try:
+            if self.process is not None and self.process.poll() is None:
+                self.failure_counter(stage)
+        finally:
+            # Sample while QEMU is alive; the receipt says whether pause worked.
+            # Counter errors must still close the VM and must not be suppressed.
+            super().close(stage)
 
     def type(self, text):
         if not getattr(self, 'german_verified', False):
@@ -469,6 +501,7 @@ def grub_promotion(audit, password, password_hash):
     Guest.mode = 'installed'
     guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'b-stock')
     try:
+        sw.pin_stock(guest, 'b-pin-stock')
         script = pathlib.Path('os/release/switch.sh').read_text().replace('@REFERENCE@', release['reference'])
         guest.command('b-switch', script, timeout=1500)
         pending = guest.capture_json('b-switch-inspection', sw.framed('bootc status --json'))
@@ -586,6 +619,64 @@ def marker(audit, stage, baseline=False, detached=False):
     audit.check(stage, guest, establish_nvram=baseline)
 
 
+def stock_inventory(guest, stage):
+    source = pathlib.Path('os/tests/audit.py').read_text()
+    program = source.split("if __name__ == '__main__':", 1)[0]
+    program += "\nprint(json.dumps([u for u in inventory() if u['suspicious'] or u['name'] in " + repr(stock_unit_names()) + "]))\n"
+    observed = guest.capture_json(stage, sw.framed('python3 -c ' + shlex.quote(program)))
+    known = set(stock_unit_names())
+    deployment = re.compile(r'uupd|topgrade|(?:rpm-ostree|bootc|ujust)\b.*\b(?:upgrade|update|rebase|switch|deploy|install)\b|systemd-sysupdate|packagekit|dnf.*(?:automatic|offline)', re.I)
+    excluded = {'dnf5-offline-transaction-cleanup.service'}
+    for unit in observed:
+        if deployment.search(unit['name'] + '\n' + '\n'.join(unit['commands'])):
+            assert unit['name'] in known or unit['name'] in excluded, 'PLAN-GAP: unreviewed stock OS updater unit: ' + unit['name']
+    return observed
+
+
+def stock_unit_names():
+    import ast
+    source = pathlib.Path('os/release/pause-stock-updates.sh').read_text().split("<<'PAUSE_STOCK'\n", 1)[1].split('\nPAUSE_STOCK', 1)[0]
+    module = ast.parse(source)
+    return sorted({value for node in module.body if isinstance(node, ast.Assign)
+                   and any(isinstance(t, ast.Name) and t.id in ('SYSTEM', 'USER') for t in node.targets)
+                   for value in ast.literal_eval(node.value)})
+
+
+def stock_recipe_probe(guest):
+    stock_inventory(guest, 'stock-updater-inventory')
+    guest.command('stock-recipe-tools', '''set -e
+for tool in systemctl rpm-ostree bootc ostree pgrep runuser getent python3; do command -v "$tool"; done
+rpm-ostree cleanup --help | grep -- --pending
+rpm-ostree status --help | grep -- --json
+ostree admin pin --help
+bootc status --help
+''')
+    source = pathlib.Path('os/release/pause-stock-updates.sh').read_text().split("<<'PAUSE_STOCK'\n", 1)[1].split('\nPAUSE_STOCK', 1)[0]
+    program = source.split("if __name__ == '__main__':", 1)[0]
+    program += "\npause_units()\npause_units()\nprint('REAL_STOCK_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED')\n"
+    output = guest.command('stock-unit-pause-probe', 'python3 -c ' + shlex.quote(program))
+    assert 'REAL_STOCK_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED' in output
+    save('stock-recipe-probe', dict(status='passed', tools_and_help=True, real_unit_pause_twice=True,
+         pending_cleanup='read-only help plus real-status mocked native regressions; no OSTree deployment in live probe'))
+
+
+def stock_before_windows(audit, password, password_hash):
+    guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'stock')
+    stage = 'stock-before-windows'
+    try:
+        guest.command('first-stock-pause', pathlib.Path('os/release/pause-stock-updates.sh').read_text())
+        stock_inventory(guest, 'first-stock-updater-inventory')
+        proof = sw.pin_stock(guest, 'first-stock-pin')
+        state = guest.capture_json('first-stock-ready-status', sw.framed('bootc status --json'))
+        assert state['status']['booted']['ostree']['checksum'] == proof['booted_checksum']
+        assert state['status']['booted']['image']['imageDigest'] == proof['booted_digest']
+        assert state['status']['booted']['pinned'] and not state['status'].get('staged')
+        guest.poweroff(stage)
+    finally:
+        guest.close(stage)
+        audit.check(stage, guest)
+
+
 def live_probe(audit):
     from installer_webui import probe
     Guest.mode = 'live'
@@ -599,6 +690,10 @@ def live_probe(audit):
         assert disk_names(after) == (protected, target)
         guest.keys(['shift'])
         guest.screenshot('live-qmp-observer-input')
+        stock_recipe_probe(guest)
+        assert guest.failure_counter('failure-counter-probe', probe_only=True)
+        assert json.loads((EVIDENCE / 'failure-counter-probe-failure-counter.json').read_text())['vm_paused']
+        guest.monitor.command('cont')
         guest.writes('live-ui-probe')
         guest.poweroff('live-ui-probe')
     finally:
@@ -646,7 +741,8 @@ def main():
         marker(reverse, 'probe-windows-without-linux', detached=True)
         proof = dict(status='passed', installed=False, both_orders=True, review_validated=True,
                      detached_windows=True, target_reset=True, owner_auth_read_only=True, signature_verified=True,
-                     firmware_rule='11f-linux-position', commit=os.environ['GITHUB_SHA'])
+                     firmware_rule='11f-linux-position', stock_recipe_probe=True, failure_counter_probe=True,
+                     commit=os.environ['GITHUB_SHA'])
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)
         return
@@ -665,10 +761,12 @@ def main():
     def part_a(current):
         target = install(current, password, password_hash)
         restore_windows_order('after-install')
+        Guest.mode = 'installed'
+        sw.Guest = Guest
+        stock_before_windows(current, password, password_hash)
         set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))
         marker(current, 'after-install-without-linux', detached=True)
         Guest.mode = 'installed'
-        sw.Guest = Guest
         sw.main(WORK / 'target.raw', preserve_vars=True, target_name=target,
                 shutdown_hook=lambda stage, guest: current.check('switch-sequence-' + stage, guest))
         set_variable(WORK / 'vars.fd', 'BootNext', bytes(2))

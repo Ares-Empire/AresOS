@@ -359,6 +359,17 @@ def start_guest(disk, password, secrets, stage):
     raise RuntimeError('Stock initialization did not reach an authenticated login')
 
 
+def pin_stock(guest, stage='pin-stock'):
+    output = guest.command(stage, pathlib.Path('os/release/pin-stock.sh').read_text())
+    clean = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', output).replace('\r', '')
+    matches = re.findall(r'^ARESOS_STOCK_PIN_RESULT (.+)$', clean, re.M)
+    assert len(matches) == 1, 'Missing or ambiguous stock-pin proof'
+    result = json.loads(matches[0])
+    assert result['status'] == 'passed' and result['pinned'] and result['no_staged']
+    (EVIDENCE / (stage + '-result.json')).write_text(json.dumps(result, indent=2) + '\n')
+    return result
+
+
 def main(disk=None, preserve_vars=False, target_name='vda', shutdown_hook=None):
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     password = json.loads((WORK / 'credentials.json').read_text())['password']
@@ -400,7 +411,7 @@ def main(disk=None, preserve_vars=False, target_name='vda', shutdown_hook=None):
                 homebrew_output = guest.command('stock-inherited-homebrew', pathlib.Path('os/tests/inherited-homebrew.sh').read_text().replace('@STAGE@', stage))
                 # Pin the booted deployment by its actual checksum, never assume
                 # a deployment index from an example or after another update.
-                guest.command('pin-stock', pathlib.Path('os/release/pin-stock.sh').read_text())
+                pin_stock(guest)
                 guest.prepare_registry_auth(encoded_auth)
                 verify = pathlib.Path('os/release/verify.sh').read_text()
                 verify = verify.replace('@REFERENCE@', target).replace('@IDENTITY@', release['signature']['identity'])

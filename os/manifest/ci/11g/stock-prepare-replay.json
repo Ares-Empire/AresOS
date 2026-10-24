@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "real_11f_status": true,
+  "mocked_subprocesses": true,
+  "mutations": [
+    [
+      "rpm-ostree",
+      "cleanup",
+      "-p"
+    ],
+    [
+      "ostree",
+      "admin",
+      "pin",
+      "0"
+    ]
+  ],
+  "result": {
+    "status": "passed",
+    "booted_checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+    "booted_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+    "staged_discarded": true,
+    "discarded": {
+      "reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "digest": "sha256:d0e5e105ebf43c7ddbe3c4a5dfecac1628b0e0dcf152bbd2aee0eda3e4b4cdd4",
+      "checksum": "278edb6798de01c7c090d25e058f3754c2cd6585d930634d7f5abeb90a362487",
+      "version": "44.20261023"
+    },
+    "pinned": true,
+    "no_staged": true
+  },
+  "regressions": 7,
+  "historical_11f_counter_unchanged": true,
+  "inputs": {
+    "os/manifest/ci/11f/full-2/two-disk/pin-stock.txt": "3ef25c91f7f294a997847db53ede810edf5a6187356ae0a85acf8431587a776d",
+    "os/release/pause-stock-updates.sh": "b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5",
+    "os/release/pin-stock.sh": "6782e32be96d612823224830956042637bc53b05c8f7ea2effe60efb25e72c2f",
+    "os/tests/test_stock_prepare.py": "a288dd8458765a273a838ff4fad5e627e2f3ec94129beb1722e40e09950a5032",
+    "os/tests/test_two_disk_vm.py": "63727d859a5bf8c756e893c117288dd7a57d82618acea9066db96588cadbd73b",
+    "os/ci/two_disk_vm.py": "39182b7419e2ecd710331a2d757e55b7cfb6906d1b3e305b469cc61b46e07c21",
+    "docs/INSTALL.md": "d1765098daf5176a9c13e5bc08a023c0da7c5f5ea85a0c0e4d61b67be7c90f70"
+  }
+}

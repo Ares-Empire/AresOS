@@ -620,3 +620,20 @@ final zero-write records across eleven matching captures are established.
 Complete A/B timing and later stages remain unqualified. No further dispatch
 follows this stop. Integrator decision is required for pending stock handling
 and failure-close counter proof; all original frozen pins/guards remain.
+
+## 11g first-stock preparation assumptions — before dispatch
+
+The complete zero-cost sequence and time estimate are in REPORT's 11g section.
+Prepare stock before the first §5 Windows reboot; repeat at switch and B. Existing
+hardware-initialization reboot remains separately audited; a newer **booted** stock
+is a defined refusal, never grounds to auto-rollback. The live probe cannot emulate
+an installed OSTree deployment: it verifies real tools/help and updater-unit pause
+idempotency; mocked real 11f status covers pending cleanup and refusal states. The
+full run must establish actual installed behavior and record whether anything was
+staged/discarded. Pause timer changes should not conflict with frozen AresOS updater
+masks; any observed conflict is a PLAN-GAP, not permission to alter the image.
+QMP failure counters are marked separately; probe-only exercise is never treated
+as the session's final counter. Unavailable failure stats leave that session
+unqualified. No historical evidence is relabeled. Shared guard is 750m/4 full,
+same 11c start. Owner-token scope, offline disk audit, firmware rules and release
+pins are unchanged. No required foreseeable NVRAM transition conflicts with rules.
