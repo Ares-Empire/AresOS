@@ -307,8 +307,8 @@ def compare_nvram(before, after, windows='Boot0000', before_devices=None, after_
                       and name not in previous_auto and linux_entry(value, target_esp)}
     current_linux = {name for name, value in after.items() if re.fullmatch(r'Boot[0-9A-F]{4}', name)
                      and name not in current_auto and linux_entry(value, target_esp)}
-    removed_linux = previous_linux - after.keys()
-    added_linux = current_linux - before.keys()
+    removed_linux = previous_linux - current_linux
+    added_linux = current_linux - previous_linux
     assert not removed_linux or len(removed_linux) == len(added_linux), 'PRODUCT FAILURE: Linux entry removed without target-ESP recreation'
     changes = {name: dict(before=before.get(name), after=after.get(name))
                for name in sorted(before.keys() | after.keys()) if before.get(name) != after.get(name)}

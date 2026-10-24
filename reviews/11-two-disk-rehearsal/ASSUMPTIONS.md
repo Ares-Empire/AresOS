@@ -537,3 +537,10 @@ first-order stores replay as exactly two. Historical raw evidence is unchanged.
 This is regression evidence only: no full run is permitted before a new complete
 same-commit probe. The 11d auth path, ownership, private diagnostics, cleanup,
 original release checks and shared 11c allowance are unchanged.
+
+The initial 11e setup probe was cancelled before credential creation when review
+found Linux recreation was classified by whether an option number existed,
+rather than whether it previously held Linux. A target-ESP Linux entry may be
+re-created at a former automatic number; the regression now covers that case
+while preserving its relative position and rejecting takeover of fixed entries.
+The corrected commit requires a new complete probe before any full dispatch.
