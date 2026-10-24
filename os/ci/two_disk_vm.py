@@ -14,8 +14,8 @@ import time
 
 import switch_vm as sw
 from rehearsal_auth import auth_file, guest_mount_command, REFERENCE
-from disk_audit import (all_variables, boot_variables, compare_disk, compare_nvram, offline_disk,
-                        protected_writes, set_variable, gpt, efi_files, entry_target, firmware_baseline)
+from disk_audit import (all_variables, boot_variables, compare_disk, offline_disk,
+                        protected_writes, set_variable, gpt, efi_files, entry_target, firmware_baseline, nvram_audit)
 
 WORK = pathlib.Path('.work/installer').resolve()
 EVIDENCE = pathlib.Path('evidence/two-disk').resolve()
@@ -254,12 +254,14 @@ class Audit:
             contract = json.loads((EVIDENCE.parents[0] / 'firmware-contract.json' if EVIDENCE.name == 'two-disk'
                                    else EVIDENCE.parents[1] / 'firmware-contract.json').read_text())
             assert contract['guid'] == '8108ac4e-9f11-4d59-850e-e21a522c59b2' and contract['optional_data_bytes'] == 16
-            save(stage + '-firmware-ownership', dict(build_contract=contract, baseline=firmware_baseline(nvram, guest.devices)))
+            baseline = firmware_baseline(nvram, guest.devices)
+            assert baseline, 'PLAN-GAP: no baseline EDK2 automatic-option GUID found'
+            save(stage + '-firmware-ownership', dict(build_contract=contract, baseline=baseline))
         else:
             assert self.nvram is not None
-            changes = compare_nvram(self.nvram, nvram, before_devices=self.devices, after_devices=guest.devices, target_esp=esp)
-            save(stage + '-nvram-diff', dict(from_stage=self.stage, changes=changes,
-                 exemptions={name: value['firmware_owned'] for name, value in changes.items() if 'firmware_owned' in value}))
+            comparison = nvram_audit(self.nvram, nvram, before_devices=self.devices,
+                after_devices=guest.devices, target_esp=esp, windows_first=guest.mode != 'live')
+            save(stage + '-nvram-diff', dict(from_stage=self.stage, **comparison))
             save(stage + '-all-variables-diff', {name: dict(before=self.all_nvram.get(name), after=all_nvram.get(name))
                  for name in self.all_nvram.keys() | all_nvram.keys()
                  if self.all_nvram.get(name) != all_nvram.get(name)})
@@ -639,7 +641,7 @@ def main():
         marker(reverse, 'probe-windows-without-linux', detached=True)
         proof = dict(status='passed', installed=False, both_orders=True, review_validated=True,
                      detached_windows=True, target_reset=True, owner_auth_read_only=True, signature_verified=True,
-                     commit=os.environ['GITHUB_SHA'])
+                     firmware_rule='11e-device-set', commit=os.environ['GITHUB_SHA'])
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)
         return

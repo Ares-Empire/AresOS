@@ -6,6 +6,7 @@ __pycache__/
 /os/manifest/ci/11b/**/installer/squashfs-files.txt
 /os/manifest/ci/11c/**/installer/squashfs-files.txt
 /os/manifest/ci/11d/**/installer/squashfs-files.txt
+/os/manifest/ci/11e/**/installer/squashfs-files.txt
 out/
 bin/
 run/

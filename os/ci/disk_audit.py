@@ -197,11 +197,20 @@ def firmware_hardware(option):
         assert len(rest) == 1 and len(rest[0][2]) == 10, 'PLAN-GAP: unsupported SATA path'
         key += '/sata:' + ':'.join(str(v) for v in struct.unpack_from('<HHH', rest[0][2], 4))
     else:
-        assert all(kind == 3 and subtype in (11, 12, 13) for kind, subtype, _ in rest), 'PLAN-GAP: unsupported firmware device path'
+        # The retained OVMF baselines contain MAC/IP and empty-URI HTTP options
+        # for the same QMP NIC. They name that PCI device, not a new device.
+        if rest:
+            assert [node[:2] for node in rest] in (
+                [(3, 11), (3, 12)], [(3, 11), (3, 13)],
+                [(3, 11), (3, 12), (3, 24)], [(3, 11), (3, 13), (3, 24)]
+            ), 'PLAN-GAP: unsupported firmware device path'
+            assert len(rest[0][2]) == 37 and len(rest[1][2]) == (27 if rest[1][1] == 12 else 60)
+            assert len(rest) == 2 or len(rest[2][2]) == 4, 'PLAN-GAP: unsupported firmware URI node'
     return key
 
 
 def firmware_baseline(nvram, devices):
+    assert devices is not None, 'PLAN-GAP: missing per-boot device evidence'
     attached = {device['key'] for device in devices['attached']}
     owned = {}
     for name, value in nvram.items():
@@ -209,15 +218,11 @@ def firmware_baseline(nvram, devices):
             continue
         option = load_option(bytes.fromhex(value['hex']))
         if option['optional'] != AUTO_BOOT_GUID:
+            assert AUTO_BOOT_GUID not in option['optional'], 'PRODUCT FAILURE: OptionalData contains but is not exactly the automatic-option GUID'
             continue
-        try:
-            device = firmware_hardware(option)
-        except AssertionError:
-            device = None
-        if device is not None:
-            assert device in attached, 'PLAN-GAP: baseline automatic option names an unattached device'
+        device = firmware_hardware(option)
+        assert device in attached, 'PRODUCT FAILURE: firmware option names a detached or unknown device'
         owned[name] = dict(optional_data=option['optional'].hex(), device=device)
-    assert owned, 'PLAN-GAP: no baseline EDK2 automatic-option GUID found'
     assert load_option(bytes.fromhex(nvram['Boot0000']['hex']))['optional'] == b'', 'Windows fixture must have no OptionalData'
     return owned
 
@@ -252,55 +257,107 @@ def all_variables(path):
             for (guid, name), value in values.items()}
 
 
-def compare_nvram(before, after, windows='Boot0000', before_devices=None, after_devices=None, target_esp=None):
+def linux_entry(value, target_esp):
+    option = load_option(bytes.fromhex(value['hex']))
+    if option['description'].lower() not in ('fedora', 'bazzite'):
+        return False
+    assert target_esp is not None, 'PLAN-GAP: Linux entry requires the actual target ESP'
+    assert all(node[:2] in ((4, 1), (4, 4), (0x7f, 0xff)) for node in option['nodes']), 'PRODUCT FAILURE: Linux entry has an unexpected device path'
+    target = entry_target(bytes.fromhex(value['hex']))
+    assert target['file'].lower() in ('\\efi\\fedora\\shimx64.efi', '\\efi\\fedora\\grubx64.efi'), 'PRODUCT FAILURE: unexpected Linux loader path'
+    partition = target['partition']
+    assert (partition['guid'], partition['number'], partition['start_lba'], partition['sectors']) == (
+        target_esp['guid'], target_esp['number'], target_esp['start_lba'], target_esp['bytes'] // 512
+    ), 'PRODUCT FAILURE: Linux entry does not target only the target ESP'
+    return True
+
+
+def ordered_options(store):
+    raw = bytes.fromhex(store['BootOrder']['hex'])
+    assert len(raw) % 2 == 0, 'Malformed BootOrder'
+    names = [f'Boot{number:04X}' for number in struct.unpack('<' + 'H' * (len(raw) // 2), raw)]
+    assert len(names) == len(set(names)), 'Duplicate BootOrder entries'
+    assert all(name in store for name in names), 'BootOrder names a missing option'
+    return names
+
+
+def automatic_options(store, devices):
+    options = {name: load_option(bytes.fromhex(value['hex'])) for name, value in store.items()
+               if re.fullmatch(r'Boot[0-9A-F]{4}', name)}
+    for option in options.values():
+        assert option['optional'] == AUTO_BOOT_GUID or AUTO_BOOT_GUID not in option['optional'], 'PRODUCT FAILURE: OptionalData contains but is not exactly the automatic-option GUID'
+    if not any(option['optional'] == AUTO_BOOT_GUID for option in options.values()):
+        return {}
+    return firmware_baseline(store, devices)
+
+
+def compare_nvram(before, after, windows='Boot0000', before_devices=None, after_devices=None,
+                  target_esp=None, windows_first=True):
     assert windows in before and after.get(windows) == before[windows], 'PRODUCT FAILURE: Windows firmware entry lost or changed'
+    previous_auto = automatic_options(before, before_devices)
+    current_auto = automatic_options(after, after_devices)
+    orders = [ordered_options(store) for store in (before, after)]
+    assert windows in orders[1], 'Windows entry absent from BootOrder'
+    if windows_first:
+        assert orders[1][0] == windows, 'PRODUCT FAILURE: Windows is not first in BootOrder'
+    assert before['BootOrder']['attributes'] == after['BootOrder']['attributes'], 'PLAN-GAP: BootOrder attributes changed'
+    for name in current_auto:
+        assert name not in before or name in previous_auto, 'PRODUCT FAILURE: firmware option takes a non-firmware entry number'
+    previous_linux = {name for name, value in before.items() if re.fullmatch(r'Boot[0-9A-F]{4}', name)
+                      and name not in previous_auto and linux_entry(value, target_esp)}
+    current_linux = {name for name, value in after.items() if re.fullmatch(r'Boot[0-9A-F]{4}', name)
+                     and name not in current_auto and linux_entry(value, target_esp)}
+    removed_linux = previous_linux - after.keys()
+    added_linux = current_linux - before.keys()
+    assert not removed_linux or len(removed_linux) == len(added_linux), 'PRODUCT FAILURE: Linux entry removed without target-ESP recreation'
     changes = {name: dict(before=before.get(name), after=after.get(name))
-               for name in before.keys() | after.keys() if before.get(name) != after.get(name)}
+               for name in sorted(before.keys() | after.keys()) if before.get(name) != after.get(name)}
     for name, change in changes.items():
         if name in ('BootOrder', 'BootNext'):
             continue
         assert re.fullmatch(r'Boot[0-9A-F]{4}', name), 'PLAN-GAP: unknown boot variable change'
-        assert change['before'] is None or change['after'] is None, 'PRODUCT FAILURE: existing boot entry changed'
-        value = change['before'] or change['after']
-        data = bytes.fromhex(value['hex'])
-        option = load_option(data)
-        if option['optional'] == AUTO_BOOT_GUID:
-            assert before_devices is not None and after_devices is not None, 'PLAN-GAP: missing per-boot device evidence'
-            device = firmware_hardware(option)
-            previous = {item['key'] for item in before_devices['attached']}
-            current = {item['key'] for item in after_devices['attached']}
-            if change['after'] is None:
-                assert device in previous and device not in current, 'PRODUCT FAILURE: auto option removal does not match a detached device'
-                reason = 'firmware removed an exact-GUID automatic option for a device detached in this boot'
-            else:
-                assert device in current, 'PRODUCT FAILURE: auto option addition does not match an attached device'
-                reason = 'firmware added an exact-GUID automatic option for an attached device'
-            change['firmware_owned'] = dict(device=device, reason=reason, optional_data=option['optional'].hex())
+        if name in previous_auto or name in current_auto:
+            assert change['after'] is None or name in current_auto or name in current_linux, 'PRODUCT FAILURE: automatic option replaced by an unknown entry'
+            change['firmware_owned'] = dict(device=(current_auto.get(name) or previous_auto[name])['device'],
+                before_device=previous_auto.get(name, {}).get('device'),
+                after_device=current_auto.get(name, {}).get('device'),
+                reason='11e per-boot attached device set; option identity is firmware-owned',
+                optional_data=AUTO_BOOT_GUID.hex())
         else:
-            assert AUTO_BOOT_GUID not in option['optional'], 'PRODUCT FAILURE: OptionalData contains but is not exactly the automatic-option GUID'
-            assert change['before'] is None, 'PRODUCT FAILURE: existing non-firmware boot entry removed'
-            assert option['description'].lower() in ('fedora', 'bazzite'), 'Unexpected non-Linux boot entry added'
-            assert entry_target(data)['file'].lower() in ('\\efi\\fedora\\shimx64.efi', '\\efi\\fedora\\grubx64.efi'), 'Unexpected Linux loader path'
-            if target_esp is not None:
-                target = entry_target(data)['partition']
-                assert target['guid'] == target_esp['guid'] and target['start_lba'] == target_esp['start_lba'] and target['sectors'] == target_esp['bytes'] // 512, 'PRODUCT FAILURE: new Linux entry does not target the target ESP'
-    order = bytes.fromhex(after['BootOrder']['hex'])
-    assert bytes.fromhex(windows[4:])[::-1] in [order[i:i + 2] for i in range(0, len(order), 2)], 'Windows entry absent from BootOrder'
-    def fixed_order(store):
-        raw = bytes.fromhex(store['BootOrder']['hex'])
-        assert len(raw) % 2 == 0, 'Malformed BootOrder'
-        numbers = list(struct.unpack('<' + 'H' * (len(raw) // 2), raw))
-        assert len(numbers) == len(set(numbers)), 'Duplicate BootOrder entries'
-        fixed = []
-        for number in numbers:
-            name = f'Boot{number:04X}'
-            assert name in store, 'BootOrder names a missing option'
-            if changes.get(name, {}).get('firmware_owned'):
-                continue
-            option = load_option(bytes.fromhex(store[name]['hex']))
-            if option['optional'] != AUTO_BOOT_GUID and option['description'].lower() in ('fedora', 'bazzite'):
-                continue
-            fixed.append(number)
-        return fixed
-    assert fixed_order(before) == fixed_order(after), 'PLAN-GAP: BootOrder changed beyond separate Linux or exempted firmware options'
+            assert (change['before'] is None or name in previous_linux) and (change['after'] is None or name in current_linux), 'PRODUCT FAILURE: non-firmware non-Linux entry added, removed or changed'
+    # Re-created Linux entries retain their logical position in the fixed order.
+    recreations = dict(zip(sorted(removed_linux), sorted(added_linux)))
+    shared = {name for name in before.keys() & after.keys() if name not in previous_auto and name not in current_auto}
+    old_fixed = [recreations.get(name, name) for name in orders[0] if name in shared or name in recreations]
+    new_fixed = [name for name in orders[1] if name in shared or name in recreations.values()]
+    assert old_fixed == new_fixed, 'PLAN-GAP: relative order of non-firmware entries changed'
     return changes
+
+
+def nvram_audit(before, after, **context):
+    changes = compare_nvram(before, after, **context)
+    owned = [automatic_options(store, context.get(key)) for store, key in (
+        (before, 'before_devices'), (after, 'after_devices'))]
+    events = []
+    for device in sorted({item['device'] for group in owned for item in group.values()}):
+        old = {name for name, item in owned[0].items() if item['device'] == device}
+        new = {name for name, item in owned[1].items() if item['device'] == device}
+        pairs = [(name, name) for name in sorted(old & new)]
+        pairs += list(zip(sorted(old - new), sorted(new - old)))
+        used_old, used_new = {a for a, _ in pairs}, {b for _, b in pairs}
+        pairs += [(name, None) for name in sorted(old - used_old)]
+        pairs += [(None, name) for name in sorted(new - used_new)]
+        for first, last in pairs:
+            if first == last and before[first] == after[last]:
+                continue
+            descriptions = [load_option(bytes.fromhex(store[name]['hex']))['description'] if name else None
+                            for store, name in ((before, first), (after, last))]
+            events.append(dict(device=device, before_option=first, after_option=last,
+                before_description=descriptions[0], after_description=descriptions[1],
+                action='added' if first is None else 'removed' if last is None else 'changed',
+                relabeled=first is not None and last is not None and descriptions[0] != descriptions[1],
+                renumbered=first is not None and last is not None and first != last,
+                optional_data=AUTO_BOOT_GUID.hex()))
+    return dict(rule='11e-device-set', changes=changes, firmware_changes=events,
+                firmware_before=owned[0], firmware_after=owned[1],
+                order_before=ordered_options(before), order_after=ordered_options(after))

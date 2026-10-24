@@ -513,3 +513,27 @@ Windows firmware audit failed 11c's contract: Boot0004 disappeared while the
 protected PCI 3.0 device remained attached, and Boot0002 changed from the DVD
 to that protected device. This is a mandatory stop, not a new exemption.
 No full run or installed-target credential handling is qualified.
+
+## 11e device-set rule
+
+Brief 11e explicitly replaces the entry-identity exception with a per-boot
+attached-device set. Every exact-GUID automatic option is resolved against that
+boot's actual PCI/SATA inventory, including unchanged options. The saved OVMF
+baselines also contain HTTP options with MAC/IP/empty-URI nodes for the known
+PCI 1.0 NIC; the hardware parser now recognizes that recorded path rather than
+leaving its ownership device unknown. Other path forms still stop.
+
+Raw option/BootOrder changes remain complete. Per-device events pair unchanged
+option numbers first, then remaining numbers for that same device, recording
+removal/addition/relabel/renumber. Before/after inventories and complete orders
+retain positional changes. Number takeover from any non-auto entry is rejected.
+Existing non-auto entries keep their relative order; target-ESP Linux recreation
+retains its logical position. Linux changes require its actual partition number,
+GUID, boundaries and Fedora shim/GRUB path. Windows must stay first except during
+the live installer stage before the guide's Windows-default step.
+
+The real 11d reverse stores replay as exactly three events; the 11b/11c and 11d
+first-order stores replay as exactly two. Historical raw evidence is unchanged.
+This is regression evidence only: no full run is permitted before a new complete
+same-commit probe. The 11d auth path, ownership, private diagnostics, cleanup,
+original release checks and shared 11c allowance are unchanged.

@@ -1,5 +1,10 @@
 # Package 11: two-disk install rehearsal and pinned media
 
+11e continuation: the integrator's device-set rule passes the retained first-
+and reverse-order stores and 58 focused regressions. Fresh probe/full evidence
+is pending; no installation gate is released. The shared ledger starts this
+continuation at 70/330 minutes, including the new brief's two privacy jobs.
+
 Latest 11d outcome: **STOPPED at reverse-order detached firmware audit — automatic entry changed and an attached-device entry disappeared. A OPEN, B UNTESTED, C pins retained.** The owner token closed the release-access blocker; 133 native regressions passed. Protected bytes and Windows entry stayed unchanged, with six zero-write records, but the failed probe authorizes no full run. Shared 11c/11d measured cost is **66/330 minutes**, plus at most 14 reserved for closing privacy checks; **0/3 full runs**. See [11d](#11d-owner-read-only-token-and-continued-qualification-2026-10-24).
 
 Latest 11c outcome: **STOPPED before any VM — pinned private image returned manifest unknown. A OPEN, B UNTESTED, C pins retained.** Native regressions and exact firmware-rule regressions pass; no full run was authorized. See [11c](#11c-firmware-contract-and-fresh-install-qualification-2026-10-23).
