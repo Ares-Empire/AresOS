@@ -15,6 +15,25 @@ from prepare_two_disks import verify_loop
 
 
 class TwoDiskHarnessTest(unittest.TestCase):
+    def test_installed_keyboard_is_read_before_pause_and_mismatch_prevents_pause(self):
+        guest, audit = Mock(), Mock()
+        events = []
+        guest.command.side_effect = lambda *args: events.append(args[0])
+        with patch.object(vm.sw, 'start_guest', return_value=guest), \
+             patch.object(vm, 'installed_keyboard', side_effect=lambda g: events.append('keyboard')), \
+             patch.object(vm, 'stock_inventory'), patch.object(vm.sw, 'pin_stock', return_value=dict(
+                 booted_checksum='checksum', booted_digest='digest')):
+            guest.capture_json.return_value = dict(status=dict(booted=dict(
+                ostree=dict(checksum='checksum'), image=dict(imageDigest='digest'), pinned=True)))
+            vm.stock_before_windows(audit, 'password', 'hash')
+        self.assertEqual(events[:2], ['keyboard', 'first-stock-pause'])
+        guest.command.reset_mock()
+        with patch.object(vm.sw, 'start_guest', return_value=guest), \
+             patch.object(vm, 'installed_keyboard', side_effect=AssertionError('wrong keyboard')), \
+             self.assertRaisesRegex(AssertionError, 'wrong keyboard'):
+            vm.stock_before_windows(audit, 'password', 'hash')
+        guest.command.assert_not_called()
+
     def test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output(self):
         before = dict(BootOrder=dict(attributes=7, hex='0a000100000009000200'),
                       Boot0000=dict(attributes=7, hex='unchanged'))

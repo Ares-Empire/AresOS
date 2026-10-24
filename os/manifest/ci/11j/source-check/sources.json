@@ -1,0 +1,88 @@
+[
+  {
+    "url": "https://raw.githubusercontent.com/ublue-os/uupd/v1.5.0/drv/rpmostree/rpmostree.go",
+    "sha256": "91640c0b265cdddc6a1e129ec1afeaa077c2815e188ddc83ae465f0bd11e2ec5",
+    "excerpts": [
+      {
+        "first_line": 61,
+        "text": "\treturn timestamp.UTC().Before(oneMonthAgo), nil\n}\n\nfunc (up RpmOstreeUpdater) Update(_tracker *percent.Incrementer) (*[]CommandOutput, error) {\n\tvar finalOutput = []CommandOutput{}\n\tbinaryPath := up.BinaryPath\n\n\tcli := []string{binaryPath, \"upgrade\"}\n\tup.Config.Logger.Debug(\"Executing update\", slog.Any(\"cli\", cli))\n\tcmd := exec.Command(cli[0], cli[1:]...)\n\tout, err := session.RunLog(up.Config.Logger, slog.LevelDebug, cmd)\n\n\ttmpout := CommandOutput{}.New(out, err)\n\ttmpout.Cli = cli\n\ttmpout.Failure = err != nil\n\ttmpout.Context = \"System Update\"\n\tfinalOutput = append(finalOutput, *tmpout)\n\treturn &finalOutput, err\n}\n\nfunc (up RpmOstreeUpdater) Steps() int {\n\tif up.Config.Enabled {"
+      }
+    ],
+    "tag_commit": "e5449438a4a50eb4988af88606ba131d78e2db81"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ublue-os/uupd/v1.5.0/cmd/update.go",
+    "sha256": "5927f940a5a088c4b20e49e34c7c29fceec7b0150a8738ac4493ba00944e2ea0",
+    "excerpts": [],
+    "tag_commit": "e5449438a4a50eb4988af88606ba131d78e2db81"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/v2026.3/src/app/rpmostree-builtin-cancel.cxx",
+    "sha256": "1201f90829b7ea12093ea2a5a33a3d666797f4a7be9c2e8af31ce8e2e84bfacd",
+    "excerpts": [
+      {
+        "first_line": 64,
+        "text": "  /* Keep track of the txn path we saw first, as well as checking if it changed\n   * over time.\n   */\n  g_autofree char *txn_path = NULL;\n  glnx_unref_object RPMOSTreeTransaction *txn_proxy = NULL;\n  if (!rpmostree_transaction_connect_active (sysroot_proxy, &txn_path, &txn_proxy, cancellable,\n                                             error))\n    return FALSE;\n  if (!txn_proxy)\n    {\n      /* Let's not make this an error; cancellation may race with completion.\n       * Perhaps in the future we could try to see whether a txn exited\n       * \"recently\" but eh.\n       */\n      g_print (\"No active transaction.\\n\");\n      return TRUE;\n    }\n\n  const char *title = rpmostree_transaction_get_title (txn_proxy);\n  g_print (\"Cancelling transaction: %s\\n\", title);\n\n  /* Asynchronously cancel, waiting for the sysroot property to change */\n  rpmostree_transaction_call_cancel (txn_proxy, cancellable, on_cancel_method_completed, NULL);\n\n  g_clear_object (&txn_proxy);\n\n  gboolean done = FALSE;\n  g_signal_connect (sysroot_proxy, \"notify::active-transaction-path\",\n                    G_CALLBACK (on_active_txn_path_changed), &done);\n  /* Wait for the transaction to go away */\n  while (!done)\n    {\n      const char *current_txn_path = rpmostree_sysroot_get_active_transaction_path (sysroot_proxy);\n      if (g_strcmp0 (txn_path, current_txn_path) != 0)\n        break;\n      g_main_context_iteration (NULL, TRUE);\n    }\n  g_print (\"Cancelled.\\n\");\n\n  return TRUE;"
+      }
+    ],
+    "tag_commit": "bd9ad6bce96bf2d1b78967ccda4433833fe02924"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/v2026.3/src/app/rpmostree-builtin-status.cxx",
+    "sha256": "0f830e7cde8fb55ce43d56d9241f028b31bcb2f2a83b6c3daf041aefdfedaa49",
+    "excerpts": [
+      {
+        "first_line": 93,
+        "text": "static GVariant *\nget_active_txn (RPMOSTreeSysroot *sysroot_proxy)\n{\n  GVariant *txn = rpmostree_sysroot_get_active_transaction (sysroot_proxy);\n  const char *a, *b, *c;\n  if (txn)\n    {\n      g_variant_get (txn, \"(&s&s&s)\", &a, &b, &c);\n      if (*a)\n        return txn;\n    }\n  return NULL;\n}\n\nstatic gint"
+      },
+      {
+        "first_line": 1251,
+        "text": "      json_builder_add_value (builder, json_gvariant_serialize (deployments_to_list));\n      json_builder_set_member_name (builder, \"transaction\");\n      GVariant *txn = get_active_txn (sysroot_proxy);\n      JsonNode *txn_node = txn ? json_gvariant_serialize (txn) : json_node_new (JSON_NODE_NULL);\n      json_builder_add_value (builder, txn_node);\n      json_builder_set_member_name (builder, \"cached-update\");"
+      }
+    ],
+    "tag_commit": "bd9ad6bce96bf2d1b78967ccda4433833fe02924"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/v2026.3/src/daemon/rpmostreed-transaction.cxx",
+    "sha256": "8cf393e1bde16dd17c387a452a9b45aa4b212ab1803aa139291578ecfcab6a92",
+    "excerpts": [
+      {
+        "first_line": 829,
+        "text": "static gboolean\ntransaction_handle_cancel (RPMOSTreeTransaction *transaction, GDBusMethodInvocation *invocation)\n{\n  RpmostreedTransaction *self = RPMOSTREED_TRANSACTION (transaction);\n  RpmostreedTransactionPrivate *priv = rpmostreed_transaction_get_private (self);\n\n  g_debug (\"%s (%p): Cancelled\", G_OBJECT_TYPE_NAME (self), self);\n\n  g_cancellable_cancel (priv->cancellable);\n\n  rpmostree_transaction_complete_cancel (transaction, invocation);\n\n  return TRUE;\n}\n\nstatic gboolean"
+      }
+    ],
+    "tag_commit": "bd9ad6bce96bf2d1b78967ccda4433833fe02924"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ublue-os/uupd/v1.5.0/drv/system/system.go",
+    "sha256": "b0ab2c962c5f7255f1a6302ee80fbe98aedb885f1365828371c5b28c31efb44c",
+    "excerpts": [
+      {
+        "first_line": 110,
+        "text": "\n\tcmd = exec.Command(cli[0], cli[1:]...)\n\n\tr, w, err := os.Pipe()\n\tif err != nil {\n\t\treturn &finalOutput, err\n\t}\n\n\tvar outb, errb bytes.Buffer\n\tcmd.Stdout = &outb\n\tcmd.Stderr = &errb\n\tcmd.ExtraFiles = []*os.File{w}\n\n\terr = cmd.Start()\n\tif err != nil {\n\t\treturn &finalOutput, err"
+      },
+      {
+        "first_line": 215,
+        "text": "func BootcCompatible(binaryPath string) bool {\n\tcmd := exec.Command(binaryPath, \"status\", \"--format=json\")\n\tout, err := cmd.CombinedOutput()\n\tif err != nil {\n\t\treturn false\n\t}\n\tvar status bootcStatus\n\terr = json.Unmarshal(out, &status)\n\tif err != nil {\n\t\treturn false\n\t}\n\treturn !(status.Status.Booted.Incompatible || status.Status.Staged.Incompatible)\n}\n\nfunc InitializeSystemDriver(initConfiguration UpdaterInitConfiguration) (SystemUpdateDriver, DriverConfiguration, bool, error) {\n\n\trpmOstreeUpdater, _ := rpmostree.RpmOstreeUpdater{}.New(initConfiguration)\n\n\tsystemUpdater, err := SystemUpdater{}.New(initConfiguration)\n\n\tisBootc := BootcCompatible(systemUpdater.BinaryPath)\n\n\tif !isBootc {\n\t\tslog.Debug(\"Using rpm-ostree fallback as system driver\")\n\t}\n\n\t// The system driver to be applied needs to have the correct \"enabled\" value since it will NOT update from here onwards.\n\tsystemUpdater.Config.Enabled = systemUpdater.Config.Enabled && isBootc\n\n\trpmOstreeUpdater.Config.Enabled = rpmOstreeUpdater.Config.Enabled && !isBootc\n\n\t// var finalConfig DriverConfiguration\n\tvar mainSystemDriver SystemUpdateDriver\n\tif isBootc {\n\t\tmainSystemDriver = systemUpdater\n\t\treturn mainSystemDriver, systemUpdater.Config, isBootc, err\n\t}\n\tmainSystemDriver = rpmOstreeUpdater\n\treturn mainSystemDriver, rpmOstreeUpdater.Config, isBootc, err\n}"
+      }
+    ],
+    "tag_commit": "e5449438a4a50eb4988af88606ba131d78e2db81"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ublue-os/uupd/v1.5.0/pkg/config/config.go",
+    "sha256": "a77ffbc341277a5ab3d246dc6f1fc047f888ea499defcda1fb800af7bb4abc9f",
+    "excerpts": [
+      {
+        "first_line": 60,
+        "text": "\td(\"modules.brew.disable\", false)\n\n\td(\"modules.system.disable\", false)\n\td(\"modules.system.rpm-ostree-binary\", \"/usr/bin/rpm-ostree\")\n\td(\"modules.system.bootc-binary\", \"/usr/bin/bootc\")\n\td(\"modules.system.skopeo-binary\", \"/usr/bin/skopeo\")"
+      }
+    ],
+    "tag_commit": "e5449438a4a50eb4988af88606ba131d78e2db81"
+  },
+  {
+    "url": "https://raw.githubusercontent.com/ublue-os/uupd/v1.5.0/config.json",
+    "sha256": "5ee31d8d1065f621b920ef94d26f21c996caa73d9198d78a84db31f8badfa869",
+    "excerpts": [],
+    "tag_commit": "e5449438a4a50eb4988af88606ba131d78e2db81"
+  }
+]

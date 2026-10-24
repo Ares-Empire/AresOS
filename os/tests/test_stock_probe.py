@@ -36,7 +36,8 @@ class CachedStockProbeTest(unittest.TestCase):
         self.assertIn('--read-only', command)
         self.assertIn('--rm', command)
         self.assertFalse(any(x.startswith(('--volume', '--mount', '--privileged')) for x in command))
-        result = Mock(returncode=0, stdout=b'CACHED_STOCK_CLI_HELP_PASSED\n', stderr=b'')
+        source = dict(daemon_comm='rpm-ostree', versions={'rpm-ostree': '2026.3', 'uupd': '1.5.0'})
+        result = Mock(returncode=0, stdout=('CACHED_STOCK_CLI_HELP_PASSED\nARESOS_STOCK_IDLE_SOURCE_CHECK ' + json.dumps(source) + '\n').encode(), stderr=b'')
         with patch.object(pathlib.Path, 'read_text', return_value=json.dumps(self.images)), \
              patch.object(probe.subprocess, 'check_output', return_value=json.dumps([dict(Id=image, Digest=self.digest)]).encode()), \
              patch.object(probe.subprocess, 'run', return_value=result) as run, contextlib.redirect_stdout(io.StringIO()):

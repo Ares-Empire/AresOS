@@ -671,7 +671,7 @@ def stock_recipe_probe(guest):
     clean = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', output).replace('\r', '')
     proof, = [json.loads(line.split(' ', 1)[1]) for line in clean.splitlines() if line.startswith('ARESOS_CACHED_STOCK_CLI_PROBE ')]
     assert proof['status'] == 'passed' and proof['digest'] == digest
-    assert proof['part_b_cli_help']
+    assert proof['part_b_cli_help'] and proof['stock_idle_source_verified']
     save('cached-stock-cli-probe', proof)
     source = pathlib.Path('os/release/pause-stock-updates.sh').read_text().split("<<'PAUSE_STOCK'\n", 1)[1].split('\nPAUSE_STOCK', 1)[0]
     program = source.split("if __name__ == '__main__':", 1)[0]
@@ -687,8 +687,8 @@ def stock_before_windows(audit, password, password_hash):
     guest = sw.start_guest(WORK / 'target.raw', password, [password, password_hash], 'stock')
     stage = 'stock-before-windows'
     try:
-        guest.command('first-stock-pause', pathlib.Path('os/release/pause-stock-updates.sh').read_text())
         installed_keyboard(guest)
+        guest.command('first-stock-pause', pathlib.Path('os/release/pause-stock-updates.sh').read_text())
         stock_inventory(guest, 'first-stock-updater-inventory')
         proof = sw.pin_stock(guest, 'first-stock-pin')
         state = guest.capture_json('first-stock-ready-status', sw.framed('bootc status --json'))
@@ -809,7 +809,7 @@ def main():
                      detached_windows=True, target_reset=True, owner_auth_read_only=True, signature_verified=True,
                      firmware_rule='11f-linux-position', stock_recipe_probe=True, failure_counter_probe=True,
                      read_only_keyboard_proof=True, installed_keyboard_reader_probe=True,
-                     part_b_tools_probe=True,
+                     part_b_tools_probe=True, stock_idle_source_verified=True,
                      commit=os.environ['GITHUB_SHA'])
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)

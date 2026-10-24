@@ -1,0 +1,26 @@
+{
+  "service_record": "os/manifest/ci/03e/vm-pass-1/runtime-updaters.json",
+  "service_sha256": "48402d8c261710acc4a2babff54e9dd25836d231d79a4e9fff6fa552b90a6af5",
+  "unit": {
+    "scope": "system",
+    "name": "rpm-ostreed.service",
+    "state": "static",
+    "suspicious": false,
+    "commands": [
+      "ExecStart=+rpm-ostree start-daemon",
+      "ExecReload=rpm-ostree reload"
+    ]
+  },
+  "pinned_versions": {
+    "rpm-ostree": "2026.3-2.fc44",
+    "uupd": "1.5.0-1.fc44"
+  },
+  "packages_record": "os/manifest/ci/03e/packages.txt",
+  "findings": [
+    "Service command supports name-only pgrep false positive; exact stock cache service and actual Linux comm must still pass probe.",
+    "uupd chooses bootc upgrade --quiet --progress-fd 3 when bootc status reports no incompatible deployment; otherwise rpm-ostree upgrade. Both executable clients remain blocking outside daemon cgroup.",
+    "rpm-ostree 2026.3 status serializes active (sss) tuple as JSON string array, or null.",
+    "cancel connects active transaction, requests Cancel and waits for active transaction path change; no active transaction is a successful no-op. Daemon handler cancels GCancellable, without selecting or changing booted deployment.",
+    "Leading 11i explanation remains inference until real pause decision values; no contradiction found."
+  ]
+}

@@ -27,6 +27,38 @@ ostree admin set-default --help
 grub2-reboot --help
 grub2-editenv --help
 bootc status --help
+rpm-ostree cancel --help
+python3 - <<'VERIFY_STOCK'
+import hashlib, json, pathlib, subprocess
+def output(command):
+    return subprocess.check_output(command, text=True).strip()
+versions = {name: output(['rpm', '-q', '--qf', '%{VERSION}', name]) for name in ('rpm-ostree', 'uupd')}
+assert versions == {'rpm-ostree': '2026.3', 'uupd': '1.5.0'}, versions
+unit = pathlib.Path('/usr/lib/systemd/system/rpm-ostreed.service').read_text()
+assert 'ExecStart=+rpm-ostree start-daemon' in unit.splitlines(), unit
+# This child verifies the executable's actual Linux comm. It is our own child,
+# not a running system service; the read-only container cannot stage an update.
+child = subprocess.Popen(['rpm-ostree', 'start-daemon'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+try:
+    comm = pathlib.Path('/proc', str(child.pid), 'comm').read_text().strip()
+    assert comm == 'rpm-ostree', comm
+    try:
+        child.communicate(timeout=5)
+    except subprocess.TimeoutExpired:
+        child.terminate()
+        child.communicate(timeout=5)
+finally:
+    if child.poll() is None:
+        child.kill()
+        child.wait()
+print('ARESOS_STOCK_IDLE_SOURCE_CHECK ' + json.dumps(dict(versions=versions, service=unit,
+      daemon_comm=comm, daemon_command=['rpm-ostree', 'start-daemon'],
+      binaries={name: hashlib.sha256(pathlib.Path('/usr/bin', name).read_bytes()).hexdigest()
+                for name in ('rpm-ostree', 'uupd')},
+      transaction_shape='null or three-string active transaction tuple; rpm-ostree v2026.3 source',
+      cancel='one active transaction cancellation; waits until active path changes',
+      uupd='v1.5.0: bootc upgrade --quiet --progress-fd 3 when compatible; rpm-ostree upgrade fallback')))
+VERIFY_STOCK
 echo CACHED_STOCK_CLI_HELP_PASSED
 ''']
 
@@ -44,8 +76,13 @@ def main(digest):
     print(result.stderr.decode())
     assert result.returncode == 0, 'Cached stock CLI help failed'
     assert 'CACHED_STOCK_CLI_HELP_PASSED' in output
+    source, = [json.loads(line.split(' ', 1)[1]) for line in output.splitlines()
+               if line.startswith('ARESOS_STOCK_IDLE_SOURCE_CHECK ')]
+    assert source['daemon_comm'] == 'rpm-ostree'
+    assert source['versions'] == {'rpm-ostree': '2026.3', 'uupd': '1.5.0'}
     print('ARESOS_CACHED_STOCK_CLI_PROBE ' + json.dumps(dict(status='passed', digest=digest, image_id=image,
-          pull='never', network='none', read_only=True, owner_credentials_mounted=False, part_b_cli_help=True)))
+          pull='never', network='none', read_only=True, owner_credentials_mounted=False,
+          part_b_cli_help=True, stock_idle_source_verified=True, idle_source=source)))
 
 
 if __name__ == '__main__':

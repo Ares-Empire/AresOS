@@ -98,7 +98,7 @@ class StockPauseTest(unittest.TestCase):
         units={'uupd.service':'enabled','uupd.timer':'enabled','rpm-ostreed-automatic.service':'static','rpm-ostreed-automatic.timer':'disabled'}
         active={n:'active' if n=='uupd.service' else 'inactive' for n in units}
         calls=[]
-        ticks=[dict(transaction=['upgrade'])] if busy else []
+        ticks=[dict(transaction=['upgrade', ':1.42', 'unix:path=/run/rpm-ostree/txn'])] if busy else []
         def output(command,**kwargs):
             if command[0]=='rpm-ostree':
                 return json.dumps(ticks.pop(0) if ticks else dict(transaction=None))
@@ -116,12 +116,12 @@ class StockPauseTest(unittest.TestCase):
             for name in [x for x in command if x in units]:
                 active[name]='inactive'
                 units[name]='masked-runtime' if operation=='mask' else 'disabled'
-            return Mock(returncode=0)
+            return Mock(returncode=0, stdout='Cancelled.\n', stderr='')
         return scope,units,active,calls,output,run
 
     def test_pause_twice_is_idempotent_and_services_idle_timers_persistently_disabled(self):
         scope,units,active,calls,output,run=self.environment()
-        with patch('subprocess.check_output',side_effect=output),patch('subprocess.run',side_effect=run),contextlib.redirect_stdout(io.StringIO()):
+        with patch('subprocess.check_output',side_effect=output),patch('subprocess.run',side_effect=run),patch.dict(scope, deployment_processes=lambda: []),contextlib.redirect_stdout(io.StringIO()):
             scope['pause_stock']()
             once=copy.deepcopy((units,active))
             scope['pause_stock']()
@@ -133,7 +133,7 @@ class StockPauseTest(unittest.TestCase):
 
     def test_waits_for_active_deployment_transaction(self):
         scope,units,active,calls,output,run=self.environment(busy=True)
-        with patch('subprocess.check_output',side_effect=output),patch('subprocess.run',side_effect=run),patch('time.sleep') as sleep,contextlib.redirect_stdout(io.StringIO()):
+        with patch('subprocess.check_output',side_effect=output),patch('subprocess.run',side_effect=run),patch('time.sleep') as sleep,patch.dict(scope, deployment_processes=lambda: []),contextlib.redirect_stdout(io.StringIO()):
             scope['pause_stock']()
         sleep.assert_called_once_with(2)
 

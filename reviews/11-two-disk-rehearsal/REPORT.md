@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11i outcome: **STOP at the first installed stock updater pause. A NOT QUALIFIED, B UNTESTED, C pins retained.** The read-only keyboard proof passed in both probe orders and in the full; the first real installation completed. Stock's 300-second idle guard then refused, before the actual installed keyboard check or pin. Ten reached offline captures match and ten final counters are zero; no installed keyboard result is claimed. Shared ledger **424/750 measured + 14 closing privacy minutes reserved, 4/5 full runs used**. PR #11 remains draft; no fifth full. See [11i](#11i-read-only-choices-and-installed-keyboard-2026-10-24).
+Latest 11j state: **IN PROGRESS; no 11j dispatch yet. A remains NOT QUALIFIED, B UNTESTED, C pins retained.** 11i stopped at the first installed stock pause. 11j replaces the name-only client check with executable/cgroup inspection, records all idle predicates, allows one leftover-transaction cancellation, and reads installed keyboard files before the pause. The complete pre-dispatch walk-through and offline source findings appear below. Physical installation remains NOT RELEASED.
 
 Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **229/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
 
@@ -2656,3 +2656,116 @@ match brief head 4aeeec6; runtime/tests/workflow remain exactly the tested f1a23
 The final staged scan printed `no leaks found`; all stop-analysis inputs and exact
 ISO module hashes matched staged Git blobs, and `git diff --cached --check` passed
 across 858 expected staged paths. Final report privacy results and measured closing cost are carried on PR #11.
+
+
+## 11j: stock pause process identity and decision evidence (2026-10-24)
+
+### Zero-cost verification and stage walk-through — BEFORE ANY DISPATCH
+
+Ran the requested `git fetch` and `git pull --ff-only` first. Afterwards local
+HEAD and remote branch both resolved to **4b3d71d561be70d7ae7942fd7b3a619bfd2f3185**;
+the worktree was clean. Read 11j, AGENTS, README, 11c–11g, 11i and the 11i STOP.
+No rewritten reference or force push. The prior measured closing ledger was
+**426/750 minutes and 4/5 full runs**; the start remains 2026-10-23T16:21:00Z.
+One probe (42), one complete full (182), closing privacy (14) must fit; no sixth full.
+
+Offline verification is retained in
+[service/version finding](../../os/manifest/ci/11j/source-check/offline-verification.json)
+and [tagged source excerpts and complete-source SHA-256s](../../os/manifest/ci/11j/source-check/sources.json).
+The retained service starts `+rpm-ostree start-daemon`. Existing frozen package
+inventory identifies rpm-ostree 2026.3 and uupd 1.5.0. Their tags resolve to
+bd9ad6bce96bf2d1b78967ccda4433833fe02924 and
+e5449438a4a50eb4988af88606ba131d78e2db81 respectively.
+The exact cached **stock** service/package versions and Linux daemon comm remain
+mandatory probe checks (`--pull=never --network=none --read-only`, no host mounts
+or owner auth). Contradiction means STOP / PLAN-GAP before full, not a fallback.
+
+uupd 1.5.0 invokes **bootc upgrade --quiet --progress-fd 3** as its own child when
+`bootc status --format=json` succeeds without incompatible booted/staged slots;
+otherwise it invokes **rpm-ostree upgrade** through the daemon. Both kinds of
+external clients stay blocking. rpm-ostree status serializes the active three-string
+tuple as a JSON array or null. `cancel` requests cancellation of the active
+transaction and waits for its active path to change; no active transaction is a
+successful no-op. The daemon handler cancels its GCancellable, without choosing a
+different booted deployment. This supports the leading name-only-pgrep explanation,
+not retrospective proof of the unexported 11i predicate values. No contradiction
+found offline; pinned stock probe confirmation is still required.
+
+The following complete walk applies separately to **both orders**, then Part B.
+The probe also retains existing real UI/review, exact module identity/read-only
+keyboard proof, installed-reader fixture (explicitly non-installed), real systemd
+pause twice, OCR/GRUB CLI help, detached marker and failure-counter checks. A new
+same-SHA probe receipt must include the stock source verification flag; the full
+guard rechecks its original server artifact digest. No source push between the
+passing probe and full.
+
+| Stage, each order unless stated | Expected transition / accepting rule |
+|---|---|
+| Baseline Windows, ISO and empty target attached | Exact-GUID auto options for attached QMP devices only; enumeration may change numbers/descriptions. Windows bytes/number/default fixed. 11e device-set and takeover rules. |
+| Live keyboard prediction / UI review / install | Read-only module/localed record and exact extracted task SHA check; no resolver/conversion/setter call. Require module de and console empty/de, unchanged settings including switching options. No diagnostic firmware change. Installer may add/recreate only the target-ESP Fedora loader and put it first. 11f permits that Linux position; other fixed entries keep relative order. |
+| Closed target audit after install | Existing byte/GPT/EFI audit remains unchanged; no added filesystem mount or mutation. Original protected byte/GPT/EFI and final-counter checks remain absolute. |
+| Exact Windows-first restoration | Read back Windows + previous order without Windows, unchanged entry bytes. 11f stable-move check. |
+| First stock login, before Windows comparison | ISO detached, both disks attached. DVD auto removal; remaining auto relabel/renumber allowed by exact ownership and attached-device set. Linux BootNext consumed. Known hardware-initialization reboot separately audited. Shim/bootupd target-only Linux recreation/moves allowed; Windows first at installed checkpoints. |
+| Installed keyboard / pause / cleanup / pin before first Windows reboot | First read both actual installed keyboard files and require German console/X11 and module options; mismatch STOPs before pause. Then runtime-mask reviewed updater services, persistently disable timers, record every unit state, raw transaction and /proc executable/cmdline/cgroup. If units stopped but a transaction remains, record and cancel it once. Under the same 300-second deadline require inactive/failed units, null transaction and no bootc/rpm-ostree executable outside rpm-ostreed.service cgroup. The daemon is recorded and excluded; its transaction is never ignored. Every success/STOP exports last values and cancellation identity. Require ISO booted digest; remove at most one identified upstream pending deployment, unchanged booted checksum, then pin. No authorized NVRAM change. Booted newer stock STOPs. Hardware setup/finalizers unchanged. |
+| Detached Windows after install | BootNext=0000 consumed; target auto removal and possible protected auto relabel/renumber, with only free/former-auto number takeover. Validated target Linux entry may remain. Windows bytes/default strict; original protected marker and zero writes required. |
+| Reattach / stock-to-signed-AresOS | Target auto option may return/recycle auto/free ID. Linux BootNext consumed. Repeat pause/pin, no staged state, frozen signature and identity checks. Only target Linux/attached auto changes permitted. |
+| AresOS policy / tty3 / rollback | Linux BootNext consumed each boot. Target-only Linux and attached-auto refresh allowed; fixed order and Windows-first strict. Frozen policy, real password/sudo/logout and rollback identity checks unchanged. |
+| Rolled-back / persistent / second stock | BootNext consumed, same allowed auto/Linux refresh. Original pinned checksum/digest, no pending/queued deployment, promotion then second unattended stock boot. Timers remain paused. |
+| Windows before undo, both disks | Consume Windows BootNext; original marker, Windows first, exact bytes and complete audits. |
+| Default undo, both disks | Exact Windows-first stable move; unattended Windows with no BootNext/keys. No disk erasure. |
+| Detached Windows after undo | Target auto removal and possible protected auto relabel/renumber under same set/takeover rules. Retained target Linux entry allowed; original marker and zero writes. |
+| Fresh reverse order | Closed target-only reset and pristine vars; repeat every preceding stage, including installed keyboard before first-login pause/pin, all recovery and detached markers. Original protected baseline remains binding. |
+| B, only after both A orders pass | Reattach target; Linux BootNext consumed, permitted auto return/renumber. Repeat pause/pin before re-switch. Record real BLS entry and menu index, select recorded stock through GRUB or already-authorized recorded one-time fallback. Verify stock nonzero-index boot, promote identity-checked recorded stock, confirm second unattended stock. All raw vars/device/final-counter/offline audits retained, same Windows/fixed-order and target-only Linux rules. |
+
+
+Known first-stock hardware initialization reboot remains separately audited. Only
+our own cached-image test child may be terminated; the owner pause never signals
+any process. The cancel command is the only new transaction operation, once and
+only after selected units are inactive. Already-staged upstream deployment cleanup,
+unchanged booted checksum, no staged state at pin/switch and every frozen identity
+check remain strict. No new NVRAM transition is introduced by file reads, service
+stops, cancellation or process inspection. No foreseeable transition requires a
+wider firmware exemption. Windows-first, fixed-entry order, target-only Linux
+loader, attached-device set, byte/GPT/EFI audits and zero counters stay unchanged.
+Every failure captures final counters before QEMU termination; unavailable QMP
+leaves that session unqualified. Unknown firmware, protected writes, wrong identity,
+auth/signature/policy error, installed keyboard mismatch or a probe-covered full
+failure means STOP, without an extra full or weakened assertion.
+
+Time estimate remains 111–133 VM minutes (central 120), full VM step 156 and job
+180, reservation 182. Both full A orders must finish before B. The owner's first
+command remains the combined pause-and-pin block; the harness's two read-only
+keyboard file reads now precede it, explicitly authorized by 11j.
+
+### Implementation and local verification
+
+All three pause copies stay identical. The /proc reader records pid, exe, argv and
+full cgroup for every bootc/rpm-ostree executable; only the exact daemon service
+cgroup (including its descendants) is excluded. Units and null transaction remain
+required. A leftover transaction is recorded before one `rpm-ostree cancel` and
+re-read under the original deadline. Success and STOP carry last decision values,
+cancel identity/output and false predicate names, after one plain owner STOP line.
+The guide explains the cancellation and tells the owner to retain diagnostics.
+The actual installed keyboard reader now runs before pause and stops on mismatch.
+
+The daemon-only regression passes the new code and **fails the exact f1a237d 11i
+code** with its idle deadline error. Separate regressions cover an outside-cgroup
+bootc upgrade client, a persistent active unit, cancel once then idle, and cancel
+once then persistent transaction STOP. Realistic /proc files cover executable,
+argv and exact cgroup identity (a similarly named cgroup is not excluded).
+Existing idempotency, three-copy equality and real 11f pending-update replay plus
+negative pin regressions remain. The 11g evidence verifier still passes with its
+historical keyboard validator; no historical evidence or missing counter is relabeled.
+
+**Not yet verified:** exact cached stock service/process name, new real probe,
+installed keyboard per order, actual pause decisions/cancellation/pending update,
+complete A/B. Native Ubuntu discovery will run in probe/full. No Gradle/Minecraft
+or real laptop action; no daemon started on the laptop.
+
+**JUDGMENT-CALL:** exact daemon service cgroup and executable identity implement the
+integrator's client definition; no comm/name-only shortcut. **PLAN-GAP:** none
+newly established; prior 11i cause remains inference until real decision values.
+**Open questions:** which real pause predicates hold and whether a leftover
+transaction/staged deployment actually occurs, then the remaining A/B results.
+
+Initial 11j guard measured **428/750 minutes, 4/5 full**, reserving 238 for probe + full + closing (666 total, before the source push privacy jobs). Focused local suite: **61 tests in 0.594s / OK**; Python compilation, diff check and archive scanner regression passed. Historical regression uses a byte-identical f1a237d fixture, SHA-256 b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5, so the same check runs on the shallow CI checkout. Native Ubuntu remains the full-suite authority.

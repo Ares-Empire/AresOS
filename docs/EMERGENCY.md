@@ -8,7 +8,10 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 Run INSTALL's [pause-and-retain block](INSTALL.md#pause-and-retain-stock-before-the-windows-comparison)
 at the first stock login, before restarting into Windows, and repeat it before
-switching to AresOS. It can discard one newer upstream update that is staged but
+switching to AresOS. It first stops the reviewed OS updaters, records their
+states and deployment processes, and cancels at most one leftover transaction.
+A five-minute idle refusal names the blocking unit, transaction or client; keep
+those diagnostics privately and get help. It can discard one newer upstream update that is staged but
 has not booted. If a newer stock version has already booted, another origin is
 staged, or the block prints **STOP**, do not reboot, repin or roll back by guesswork:
 keep the printed identities privately and get help. Leave stock updates paused

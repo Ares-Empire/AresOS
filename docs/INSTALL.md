@@ -91,7 +91,9 @@ The current live installer supports this whole-drive route; **its exact two-driv
 At the very first **ares-recovery** login, after stock's initial hardware setup,
 open Konsole and run **sudo -i**. Before restarting into Windows, run this block.
 It stops the reviewed stock OS updaters, disables their automatic timers across
-reboots, and waits for deployment work to finish. It checks the ISO's exact stock
+reboots, and records deployment work. If a transaction remains after the updaters
+stop, it records and cancels that transaction once, then waits up to five minutes
+for idle. The daemon itself is recorded separately from update clients. It checks the ISO's exact stock
 digest, records and discards at most one staged upstream Bazzite update, then pins
 the unchanged booted stock deployment. A newer deployment already booted, an
 unexpected origin or any other error means **STOP and get help**; see EMERGENCY.
@@ -99,7 +101,8 @@ Do not reboot past a STOP, change pins or choose a rollback by guesswork.
 
 This block is also [pin-stock.sh](../os/release/pin-stock.sh); its first part is
 [pause-stock-updates.sh](../os/release/pause-stock-updates.sh). Keep any printed
-staged reference/digest/checksum/version and the pinned stock checksum privately
+unit/transaction/process diagnostics, any cancelled transaction, staged
+reference/digest/checksum/version and the pinned stock checksum privately
 with record C. The pending update must be discarded **before** the Windows reboot,
 which would otherwise finalize it.
 
@@ -193,30 +196,81 @@ def pause_units():
     return scopes, receipt
 
 
+def deployment_processes(root=pathlib.Path('/proc')):
+    processes = []
+    for process in sorted(root.iterdir(), key=lambda p: int(p.name) if p.name.isdigit() else -1):
+        if not process.name.isdigit():
+            continue
+        try:
+            executable = str((process / 'exe').readlink())
+            if pathlib.Path(executable.removesuffix(' (deleted)')).name not in ('bootc', 'rpm-ostree'):
+                continue
+            cmdline = (process / 'cmdline').read_bytes().decode().rstrip('\0').split('\0')
+            cgroup = (process / 'cgroup').read_text()
+        except (FileNotFoundError, ProcessLookupError):
+            # A process which exited while being read cannot keep a client active.
+            continue
+        paths = [line.split(':', 2)[2] for line in cgroup.splitlines()]
+        daemon = any(path == '/system.slice/rpm-ostreed.service' or
+                     path.startswith('/system.slice/rpm-ostreed.service/') for path in paths)
+        processes.append(dict(pid=int(process.name), exe=executable, cmdline=cmdline,
+                              cgroup=cgroup, excluded_as_daemon=daemon))
+    return processes
+
+
 def pause_stock():
-    scopes, receipt = pause_units()
-    deadline = time.monotonic() + 300
-    while True:
-        inactive = all(unit_state(command, name)['ActiveState'] in ('inactive', 'failed')
-                       for command, names in scopes for name in names)
-        status = json.loads(output(['rpm-ostree', 'status', '--json']))
-        assert 'transaction' in status, 'Cannot inspect rpm-ostree transaction state'
-        clients = [subprocess.run(['pgrep', '-x', name], capture_output=True) for name in ('bootc', 'rpm-ostree')]
-        assert all(p.returncode in (0, 1) for p in clients), 'Cannot inspect deployment transactions'
-        if inactive and status.get('transaction') is None and all(p.returncode == 1 for p in clients):
-            break
-        assert time.monotonic() < deadline, 'Updater/deployment transaction did not become idle'
-        time.sleep(2)
-    print('ARESOS_STOCK_UPDATERS_PAUSED ' + json.dumps(dict(status='passed', units=receipt,
-          transactions_idle=True, service_masks='runtime', timer_disable='persistent')))
-    print('Stock OS update timers are paused; leave them paused during the trial.')
+    decision = dict(units=[], transaction=None, transaction_observed=False, processes=[],
+                    units_inactive=False, transaction_idle=False, clients_idle=False,
+                    cancel=dict(ran=False, transaction=None))
+    receipt = []
+    try:
+        scopes, receipt = pause_units()
+        deadline = time.monotonic() + 300
+        while True:
+            decision['units'] = []
+            decision['units_inactive'] = False
+            for index, (command, names) in enumerate(scopes):
+                for name in names:
+                    decision['units'].append(dict(scope=index, name=name, **unit_state(command, name)))
+            decision['units_inactive'] = all(u['ActiveState'] in ('inactive', 'failed') for u in decision['units'])
+            status = json.loads(output(['rpm-ostree', 'status', '--json']))
+            decision['transaction_observed'] = 'transaction' in status
+            assert decision['transaction_observed'], 'Cannot inspect rpm-ostree transaction state'
+            decision['transaction'] = status['transaction']
+            decision['transaction_idle'] = status['transaction'] is None
+            transaction = status['transaction']
+            assert transaction is None or (isinstance(transaction, list) and len(transaction) == 3 and
+                   all(isinstance(value, str) for value in transaction)), 'Unexpected rpm-ostree transaction shape'
+            decision['processes'] = deployment_processes()
+            decision['clients_idle'] = not any(not p['excluded_as_daemon'] for p in decision['processes'])
+            if decision['units_inactive'] and not decision['transaction_idle'] and not decision['cancel']['ran']:
+                remaining = deadline - time.monotonic()
+                assert remaining > 0, 'Idle deadline reached before cancellation'
+                decision['cancel'] = dict(ran=True, transaction=status['transaction'])
+                print('ARESOS_STOCK_CANCEL_REQUEST ' + json.dumps(decision), flush=True)
+                result = subprocess.run(['rpm-ostree', 'cancel'], capture_output=True, text=True,
+                                        timeout=remaining, check=False)
+                decision['cancel'].update(returncode=result.returncode, stdout=result.stdout, stderr=result.stderr)
+                assert result.returncode == 0, 'rpm-ostree cancel failed'
+                # Re-read all predicates after cancel, including a transaction that raced completion.
+            elif all(decision[key] for key in ('units_inactive', 'transaction_idle', 'clients_idle')):
+                print('ARESOS_STOCK_UPDATERS_PAUSED ' + json.dumps(dict(status='passed', units=receipt,
+                      transactions_idle=True, service_masks='runtime', timer_disable='persistent', decision=decision)))
+                print('Stock OS update timers are paused; leave them paused during the trial.')
+                return
+            assert time.monotonic() < deadline, 'Updater/deployment transaction did not become idle'
+            time.sleep(2)
+    except (AssertionError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        print('STOP: stock updaters could not be paused. See EMERGENCY.md / get help.', flush=True)
+        failed = [key for key in ('units_inactive', 'transaction_idle', 'clients_idle') if not decision[key]]
+        print('ARESOS_STOCK_PAUSE_STOP ' + json.dumps(dict(status='stopped', error=str(error),
+              false_predicates=failed, units=receipt, decision=decision)), flush=True)
+        raise SystemExit(1) from error
 
 
 if __name__ == '__main__':
-    try:
-        pause_stock()
-    except (AssertionError, subprocess.SubprocessError) as error:
-        raise SystemExit('STOP: stock updaters could not be paused. See EMERGENCY.md / get help. ' + str(error))
+    pause_stock()
+
 PAUSE_STOCK
 
 # Repeat the same pause immediately before inspecting/discarding/pinning.

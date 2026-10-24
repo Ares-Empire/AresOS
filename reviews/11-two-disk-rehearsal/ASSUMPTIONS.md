@@ -751,3 +751,6 @@ events, only probe3 qualified. Raw nonboot vars retained without a new exception
 Stop/no fifth full/no bypass. Ledger424/750 plus14 closing reserve,4/5full used.
 PR draft, physical gates open. Runtime still f1a237d; only evidence/docs/stricter
 collector after testing. Follow-up needs actual idle-predicate diagnostics.
+
+
+11j: The exact stock cached-image probe must confirm rpm-ostreed ExecStart, real daemon comm and frozen rpm-ostree/uupd versions before the fifth and final full. Tagged source verifies transaction/cancel semantics and bootc-compatible/rpm-ostree-fallback uupd paths. Prior 11i process values remain unknown. Installed keyboard reads now precede pause by explicit integrator instruction; the owner block still starts with pause. Shared 750-minute / five-full ledger never resets.
