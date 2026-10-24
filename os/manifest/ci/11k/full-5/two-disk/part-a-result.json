@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "both_orders": true,
+  "orders": [
+    "protected-first",
+    "protected-second"
+  ]
+}

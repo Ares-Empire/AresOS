@@ -1,0 +1,33 @@
+[?2004l
+
+
+Broadcast message from root@bazzite on pts/0 (Sat 2026-10-24 21:53:59 CEST):
+
+The system will reboot now!
+
+[?2004hARESOS_ROOT> ]3008;end=a2588bd5c768450a8f1de9ca928003b1\]3008;end=f490dc7ac2464bf29e944a2df80f5565\[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H]3008;end=8847fec58221459183f16c96faf8a4b9\[   50.433780] systemd-udevd[653]: Failed to remove file descriptor "config-serialization" from the store, ignoring: Connection refused
+[   50.486882] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[   50.491416] systemd-shutdown[1]: Unmounting file systems.
+[   50.494163] (sd-umount)[1995]: Unmounting '/run/credentials/systemd-journald.service'.
+[   50.496928] (sd-remount)[1996]: Remounting '/sysroot' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   50.513561] (sd-umount)[1997]: Unmounting '/sysroot'.
+[   50.517816] (sd-remount)[1998]: Remounting '/etc' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   50.524547] (sd-umount)[2001]: Unmounting '/etc'.
+[   50.526217] systemd-shutdown[1]: All filesystems unmounted.
+[   50.527776] systemd-shutdown[1]: Deactivating swaps.
+[   50.529213] systemd-shutdown[1]: All swaps deactivated.
+[   50.530653] systemd-shutdown[1]: Detaching loop devices.
+[   50.532504] systemd-shutdown[1]: All loop devices detached.
+[   50.534039] systemd-shutdown[1]: Stopping MD devices.
+[   50.535484] systemd-shutdown[1]: All MD devices stopped.
+[   50.536968] systemd-shutdown[1]: Detaching DM devices.
+[   50.538477] systemd-shutdown[1]: All DM devices detached.
+[   50.540132] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[   50.543485] watchdog: watchdog0: watchdog did not stop!
+[   50.561571] systemd-shutdown[1]: Syncing filesystems and block devices.
+[   50.562987] systemd-shutdown[1]: Rebooting.
+[   50.581555] Console: switching to colour dummy device 80x25
+[   50.609088] ACPI: PM: Preparing to enter system sleep state S5
+[   50.610859] kvm: exiting hardware virtualization
+[   50.612300] reboot: Restarting system
+[   50.613479] reboot: machine restart

@@ -1,0 +1,67 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+Created symlink '/run/systemd/system/uupd.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/uupd-manual.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/rpm-ostreed-automatic.service' ��� '/dev/null'.
+
+Created symlink '/run/systemd/system/bootc-fetch-apply-updates.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/systemd-sysupdate.service' �� '/dev/null'.
+
+Created symlink '/run/systemd/system/systemd-sysupdate-reboot.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/systemd-sysupdated.service' �� '/dev/null'.
+
+Created symlink '/run/systemd/system/dbus-org.freedesktop.sysupdate1.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/dnf5-offline-transaction.service' ��� '/dev/null'.
+
+ARESOS_STOCK_UPDATERS_PAUSED {"status": "passed", "units": [{"scope": "system", "present": ["uupd.service", "uupd-manual.service", "uupd.timer", "rpm-ostreed-automatic.service", "rpm-ostreed-automatic.timer", "bootc-fetch-apply-updates.service", "bootc-fetch-apply-updates.timer", "systemd-sysupdate.service", "systemd-sysupdate.timer", "systemd-sysupdate-reboot.service", "systemd-sysupdate-reboot.timer", "systemd-sysupdated.service", "dbus-org.freedesktop.sysupdate1.service", "dnf5-offline-transaction.service"], "absent": ["bootc-update.service", "bootc-update.timer", "dnf-automatic.service", "dnf-automatic.timer", "dnf5-automatic.service", "dnf5-automatic.timer", "packagekit.service", "packagekit-offline-update.service"], "timers": {"uupd.timer": "disabled", "rpm-ostreed-automatic.timer": "disabled", "bootc-fetch-apply-updates.timer": "disabled", "systemd-sysupdate.timer": "disabled", "systemd-sysupdate-reboot.timer": "disabled"}}, {"scope": "user", "present": [], "absent": ["uupd.service", "uupd.timer"], "timers": {}}], "transactions_idle": true, "service_masks": "runtime", "timer_disable": "persistent", "decision": {"units": [{"scope": 0, "name": "uupd.service", "LoadState": "masked", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "uupd-manual.service", "LoadState": "masked", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "uupd.timer", "LoadState": "loaded", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "rpm-ostreed-automatic.service", "LoadState": "masked", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "rpm-ostreed-automatic.timer", "LoadState": "loaded", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "bootc-fetch-apply-updates.service", "LoadState": "masked", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "bootc-fetch-apply-updates.timer", "LoadState": "loaded", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "systemd-sysupdate.service", "LoadState": "masked", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "systemd-sysupdate.timer", "LoadState": "loaded", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "systemd-sysupdate-reboot.service", "LoadState": "masked", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "systemd-sysupdate-reboot.timer", "LoadState": "loaded", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "systemd-sysupdated.service", "LoadState": "masked", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "dbus-org.freedesktop.sysupdate1.service", "LoadState": "masked", "ActiveState": "inactive", "SubState": "dead"}, {"scope": 0, "name": "dnf5-offline-transaction.service", "LoadState": "masked", "ActiveState": "inactive", "SubState": "dead"}], "transaction": null, "transaction_observed": true, "processes": [{"pid": 1197, "exe": "/usr/bin/rpm-ostree", "cmdline": ["rpm-ostree", "start-daemon"], "cgroup": "0::/system.slice/rpm-ostreed.service\n", "excluded_as_daemon": true}], "units_inactive": true, "transaction_idle": true, "clients_idle": true, "cancel": {"ran": false, "transaction": null}}}
+Stock OS update timers are paused; leave them paused during the trial.
+[   43.617395] SELinux:  Context unconfined_u:object_r:invalid_bootcinstall_testlabel_t:s0 is not valid (left unmapped).
+⠁ Waiting for sysroot lock...
+[2KDeployment 0 is already pinned
+⠁ Waiting for sysroot lock...
+[2K⠁ Waiting for sysroot lock...
+[2KPinned booted stock deployment: aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71
+ARESOS_STOCK_PIN_RESULT {"status": "passed", "booted_checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71", "booted_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151", "staged_discarded": false, "discarded": null, "pinned": true, "no_staged": true}
+
+ARESOS_CMD_DONE:0

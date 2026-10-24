@@ -1,0 +1,7 @@
+{
+  "status": "passed",
+  "tools_and_help": true,
+  "real_unit_pause_twice": true,
+  "cli_context": "ISO cached exact stock image; pull never, network none, read-only, no owner credentials",
+  "pending_cleanup": "read-only help plus real-status mocked native regressions; no OSTree deployment in live probe"
+}

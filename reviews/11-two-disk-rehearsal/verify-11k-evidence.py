@@ -249,7 +249,7 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
         assert proof['idle_source']['daemon_comm'] == 'rpm-ostree'
         assert proof['idle_source']['versions'] == {'rpm-ostree': '2026.3', 'uupd': '1.5.0'}
     for transcript in run.rglob('*.txt'):
-        if transcript.name not in ('first-stock-pause.txt', 'first-stock-pin.txt', 'pin-stock.txt'):
+        if transcript.name not in ('first-stock-pause.txt', 'first-stock-pin.txt', 'pin-stock.txt', 'b-pin-stock.txt'):
             continue
         clean = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', transcript.read_text(encoding='utf-8')).replace('\r', '')
         for line in clean.splitlines():
@@ -263,6 +263,13 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
                 assert all(decision[k] for k in ('units_inactive', 'transaction_idle', 'clients_idle'))
                 assert all(u['ActiveState'] in ('inactive', 'failed') and 'SubState' in u for u in decision['units'])
                 assert all(p['excluded_as_daemon'] for p in decision['processes'])
+                for process in decision['processes']:
+                    assert process['pid'] > 0 and process['cmdline']
+                    assert pathlib.PurePosixPath(process['exe'].removesuffix(' (deleted)')).name in ('bootc', 'rpm-ostree')
+                    groups = [line.split(':', 2)[2] for line in process['cgroup'].splitlines()]
+                    excluded = any(g == '/system.slice/rpm-ostreed.service' or
+                                   g.startswith('/system.slice/rpm-ostreed.service/') for g in groups)
+                    assert process['excluded_as_daemon'] == excluded
             if decision['cancel']['ran']:
                 assert decision['cancel']['transaction'] is not None
             pause_decisions.append(dict(run=run.name, path=transcript.relative_to(run).as_posix(), **proof))

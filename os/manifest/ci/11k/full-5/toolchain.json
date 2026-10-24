@@ -1,0 +1,24 @@
+{
+  "snapshot": "20261021T000000Z",
+  "repository": "https://snapshot.ubuntu.com/ubuntu/20261021T000000Z/",
+  "suites": ["noble", "noble-updates", "noble-security"],
+  "components": ["main", "universe", "restricted", "multiverse"],
+  "packages": {
+    "podman": "4.9.3+ds1-1ubuntu0.2",
+    "skopeo": "1.13.3+ds1-2ubuntu0.24.04.3",
+    "qemu-system-x86": "1:8.2.2+ds-0ubuntu1.18",
+    "qemu-system-data": "1:8.2.2+ds-0ubuntu1.18",
+    "qemu-system-common": "1:8.2.2+ds-0ubuntu1.18",
+    "qemu-utils": "1:8.2.2+ds-0ubuntu1.18",
+    "qemu-block-extra": "1:8.2.2+ds-0ubuntu1.18",
+    "ovmf": "2024.02-2ubuntu0.10",
+    "seabios": "1.16.3-2",
+    "ipxe-qemu": "1.21.1+git-20220113.fbbdc3926-0ubuntu2",
+    "python3-pil": "10.2.0-1ubuntu1.3"
+  },
+  "host_exceptions": {
+    "runner_image": "ubuntu-24.04 is a GitHub-managed mutable VM image; GitHub does not offer digest selection for hosted runner images. Record ImageOS/ImageVersion and installed packages.",
+    "kernel_kvm_nbd": "The hosted kernel and KVM/NBD modules are supplied by GitHub. Replacing/rebooting the hosted kernel is outside this job; record uname and module metadata.",
+    "bootstrap_and_shared_libraries": "Runner apt/dpkg/Python and already-installed shared libraries remain host inputs. Snapshot packages and newly resolved dependencies are fixed; this is not a hermetic runner. Record the full installed dpkg inventory."
+  }
+}

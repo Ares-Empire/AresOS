@@ -1,0 +1,22 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+
+ 1  967 plasmalogin   [0;38:5:245m-    [0m 1332 manager-early [0;38:5:245m-    [0m no [0;38:5:245m-[0m[m
+ 2 1000 ares-recovery [0;38:5:245m-    [0m 1307 user          ttyS0 no [0;38:5:245m-[0m[m
+ 3 1000 ares-recovery [0;38:5:245m-    [0m 1435 manager       [0;38:5:245m-    [0m no [0;38:5:245m-[0m[m
+c1  967 plasmalogin   seat0 1319 greeter       tty1  no [0;38:5:245m-[0m[m
+
+[K{"executable": "/usr/libexec/plasma-login-greeter", "pid": 1456, "session_class": "greeter", "type": "wayland", "uid": 967, "vt": 1}
+STOCK_GRAPHICAL_GREETER_READY
+
+ARESOS_CMD_DONE:0

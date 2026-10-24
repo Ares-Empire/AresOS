@@ -1,0 +1,7 @@
+{
+  "root": "/tmp/aresos-keyboard-reader-fixture",
+  "files": {
+    "etc/vconsole.conf": "KEYMAP=\"de\"\n",
+    "etc/X11/xorg.conf.d/00-keyboard.conf": "Section \"InputClass\"\n Option \"XkbLayout\" \"de\"\n Option \"XkbOptions\" \"\"\nEndSection\n"
+  }
+}

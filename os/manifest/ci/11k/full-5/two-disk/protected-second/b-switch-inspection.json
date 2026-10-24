@@ -1,0 +1,93 @@
+{
+  "apiVersion": "org.containers.bootc/v1",
+  "kind": "BootcHost",
+  "metadata": {
+    "name": "host"
+  },
+  "spec": {
+    "bootOrder": "default",
+    "image": {
+      "image": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
+      "transport": "registry"
+    }
+  },
+  "status": {
+    "booted": {
+      "cachedUpdate": null,
+      "composefs": null,
+      "downloadOnly": false,
+      "image": {
+        "architecture": "amd64",
+        "image": {
+          "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "signature": "containerPolicy",
+          "transport": "registry"
+        },
+        "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+        "timestamp": "2026-10-13T00:06:38Z",
+        "version": "44.20261012.1"
+      },
+      "incompatible": false,
+      "ostree": {
+        "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+        "deploySerial": 1,
+        "stateroot": "default"
+      },
+      "pinned": true,
+      "softRebootCapable": true,
+      "store": "ostreeContainer"
+    },
+    "readOnly": false,
+    "rollback": {
+      "cachedUpdate": null,
+      "composefs": null,
+      "downloadOnly": false,
+      "image": {
+        "architecture": "amd64",
+        "image": {
+          "image": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
+          "transport": "registry"
+        },
+        "imageDigest": "sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
+        "timestamp": "2026-10-13T00:06:38Z",
+        "version": "44.20261012.1"
+      },
+      "incompatible": false,
+      "ostree": {
+        "checksum": "43853db13f424f8409a2781cc463a385d3f5003f741b11d632eaf86a5fd93adb",
+        "deploySerial": 0,
+        "stateroot": "default"
+      },
+      "pinned": false,
+      "softRebootCapable": true,
+      "store": "ostreeContainer"
+    },
+    "rollbackQueued": false,
+    "staged": {
+      "cachedUpdate": null,
+      "composefs": null,
+      "downloadOnly": false,
+      "image": {
+        "architecture": "amd64",
+        "image": {
+          "image": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
+          "transport": "registry"
+        },
+        "imageDigest": "sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
+        "timestamp": "2026-10-13T00:06:38Z",
+        "version": "44.20261012.1"
+      },
+      "incompatible": false,
+      "ostree": {
+        "checksum": "43853db13f424f8409a2781cc463a385d3f5003f741b11d632eaf86a5fd93adb",
+        "deploySerial": 1,
+        "stateroot": "default"
+      },
+      "pinned": false,
+      "softRebootCapable": false,
+      "store": "ostreeContainer"
+    },
+    "type": "bootcHost",
+    "usrOverlay": null
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "part_a": "passed",
+  "both_orders": true,
+  "installed_keyboard_both_orders": true,
+  "part_b": "blocked",
+  "part_b_evidence": "protected-second/grub-promotion.json"
+}

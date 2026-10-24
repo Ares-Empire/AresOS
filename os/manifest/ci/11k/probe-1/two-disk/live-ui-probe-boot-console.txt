@@ -1,0 +1,990 @@
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[    0.000000] Linux version 7.2.9-201.fc44.x86_64 (mockbuild@3cc06c60463046bc9e2813f8ad822a95) (gcc (GCC) 16.2.1 20260819 (Red Hat 16.2.1-2), GNU ld version 2.46.1-1.fc44) #1 SMP PREEMPT_DYNAMIC Fri Oct  9 15:04:46 UTC 2026
+[    0.000000] Command line: root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image console=tty0 console=ttyS0,115200n8 initrd=initrd
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009ffff]  System RAM
+[    0.000000] BIOS-e820: [gap 0x00000000000a0000-0x00000000000fffff]
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x00000000007fffff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x0000000000800000-0x0000000000807fff]  ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x0000000000808000-0x000000000080afff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000000080b000-0x000000000080bfff]  ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x000000000080c000-0x000000000080ffff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x0000000000810000-0x00000000008fffff]  ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x0000000000900000-0x000000007ed3efff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000007ed3f000-0x000000007edfffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x000000007ee00000-0x000000007f8ecfff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000007f8ed000-0x000000007fb6cfff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x000000007fb6d000-0x000000007fb7efff]  ACPI data
+[    0.000000] BIOS-e820: [mem 0x000000007fb7f000-0x000000007fbfefff]  ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x000000007fbff000-0x000000007feebfff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000007feec000-0x000000007ff6ffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x000000007ff70000-0x000000007fffffff]  ACPI NVS
+[    0.000000] BIOS-e820: [gap 0x0000000080000000-0x00000000dfffffff]
+[    0.000000] BIOS-e820: [mem 0x00000000e0000000-0x00000000efffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000f0000000-0x00000000feffbfff]
+[    0.000000] BIOS-e820: [mem 0x00000000feffc000-0x00000000feffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000ff000000-0x00000000ffbfffff]
+[    0.000000] BIOS-e820: [mem 0x00000000ffc00000-0x00000000ffffffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x0000000100000000-0x00000001ffffffff]  System RAM
+[    0.000000] BIOS-e820: [gap 0x0000000200000000-0x000000fcffffffff]
+[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff]  device reserved
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] efi: EFI v2.7 by Ubuntu distribution of EDK II
+[    0.000000] efi: SMBIOS=0x7f988000 SMBIOS 3.0=0x7f986000 ACPI=0x7fb7e000 ACPI 2.0=0x7fb7e014 MEMATTR=0x7d822518 INITRD=0x7d763f18
+[    0.000000] efi: Remove mem133: MMIO range=[0xffc00000-0xffffffff] (4MB) from e820 map
+[    0.000000] secureboot: Secure boot disabled
+[    0.000000] DMI: SMBIOS 3.0.0 present.
+[    0.000000] DMI: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 2024.02-2ubuntu0.10 09/23/2026
+[    0.000000] DMI: Memory slots populated: 1/1
+[    0.000000] Hypervisor detected: KVM
+[    0.000000] last_pfn = 0x7feec max_arch_pfn = 0x400000000
+[    0.000000] kvm-clock: Using msrs 4b564d01 and 4b564d00
+[    0.000001] kvm-clock: using sched offset of 2465378294 cycles
+[    0.000003] clocksource: kvm-clock: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns
+[    0.000006] tsc: Detected 2445.432 MHz processor
+[    0.000422] last_pfn = 0x200000 max_arch_pfn = 0x400000000
+[    0.000587] MTRR map: 4 entries (2 fixed + 2 variable; max 18), built from 8 variable MTRRs
+[    0.000594] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT
+[    0.000804] last_pfn = 0x7feec max_arch_pfn = 0x400000000
+[    0.004866] Using GB pages for direct mapping
+[    0.005486] secureboot: Secure boot disabled
+[    0.005487] RAMDISK: [mem 0x59e07000-0x6a533fff]
+[    0.005495] ACPI: Early table checksum verification disabled
+[    0.005499] ACPI: RSDP 0x000000007FB7E014 000024 (v02 BOCHS )
+[    0.005502] ACPI: XSDT 0x000000007FB7D0E8 000054 (v01 BOCHS  BXPC     00000001      01000013)
+[    0.005508] ACPI: FACP 0x000000007FB79000 0000F4 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.005512] ACPI: DSDT 0x000000007FB7A000 002142 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.005515] ACPI: FACS 0x000000007FBDD000 000040
+[    0.005517] ACPI: APIC 0x000000007FB78000 000080 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.005519] ACPI: HPET 0x000000007FB77000 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.005521] ACPI: MCFG 0x000000007FB76000 00003C (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.005523] ACPI: WAET 0x000000007FB75000 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.005525] ACPI: BGRT 0x000000007FB74000 000038 (v01 INTEL  EDK2     00000002      01000013)
+[    0.005527] ACPI: Reserving FACP table memory at [mem 0x7fb79000-0x7fb790f3]
+[    0.005528] ACPI: Reserving DSDT table memory at [mem 0x7fb7a000-0x7fb7c141]
+[    0.005528] ACPI: Reserving FACS table memory at [mem 0x7fbdd000-0x7fbdd03f]
+[    0.005529] ACPI: Reserving APIC table memory at [mem 0x7fb78000-0x7fb7807f]
+[    0.005529] ACPI: Reserving HPET table memory at [mem 0x7fb77000-0x7fb77037]
+[    0.005530] ACPI: Reserving MCFG table memory at [mem 0x7fb76000-0x7fb7603b]
+[    0.005531] ACPI: Reserving WAET table memory at [mem 0x7fb75000-0x7fb75027]
+[    0.005531] ACPI: Reserving BGRT table memory at [mem 0x7fb74000-0x7fb74037]
+[    0.006279] No NUMA configuration found
+[    0.006280] Faking a node at [mem 0x0000000000000000-0x00000001ffffffff]
+[    0.006294] NODE_DATA(0) allocated [mem 0x1fffd4f80-0x1ffffffff]
+[    0.007734] ACPI: PM-Timer IO Port: 0x608
+[    0.007761] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])
+[    0.007831] IOAPIC[0]: apic_id 0, version 17, address 0xfec00000, GSI 0-23
+[    0.007834] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    0.007836] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)
+[    0.007837] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.007837] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)
+[    0.007838] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)
+[    0.007841] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.007842] ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    0.007858] TSC deadline timer available
+[    0.007860] CPU topo: Max. logical packages:   1
+[    0.007861] CPU topo: Max. logical nodes:      1
+[    0.007861] CPU topo: Num. nodes per package:  1
+[    0.007863] CPU topo: Max. logical dies:       1
+[    0.007864] CPU topo: Max. dies per package:   1
+[    0.007867] CPU topo: Max. threads per core:   1
+[    0.007868] CPU topo: Num. cores per package:     2
+[    0.007868] CPU topo: Num. threads per package:   2
+[    0.007868] CPU topo: Allowing 2 present CPUs plus 0 hotplug CPUs
+[    0.007896] kvm-guest: APIC: eoi() replaced with kvm_guest_apic_eoi_write()
+[    0.007925] kvm-guest: KVM setup pv remote TLB flush
+[    0.007939] kvm-guest: setup PV sched yield
+[    0.007950] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.007952] PM: hibernation: Registered nosave memory: [mem 0x000a0000-0x000fffff]
+[    0.007953] PM: hibernation: Registered nosave memory: [mem 0x00800000-0x00807fff]
+[    0.007954] PM: hibernation: Registered nosave memory: [mem 0x0080b000-0x0080bfff]
+[    0.007955] PM: hibernation: Registered nosave memory: [mem 0x00810000-0x008fffff]
+[    0.007956] PM: hibernation: Registered nosave memory: [mem 0x7d819000-0x7d821fff]
+[    0.007957] PM: hibernation: Registered nosave memory: [mem 0x7ed3f000-0x7edfffff]
+[    0.007958] PM: hibernation: Registered nosave memory: [mem 0x7f8ed000-0x7fbfefff]
+[    0.007959] PM: hibernation: Registered nosave memory: [mem 0x7feec000-0xffffffff]
+[    0.007961] [gap 0x80000000-0xdfffffff] available for PCI devices
+[    0.007962] Booting paravirtualized kernel on KVM
+[    0.007964] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    0.014518] Zone ranges:
+[    0.014519]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.014521]   DMA32    [mem 0x0000000001000000-0x00000000ffffffff]
+[    0.014522]   Normal   [mem 0x0000000100000000-0x00000001ffffffff]
+[    0.014523]   Device   empty
+[    0.014523] Movable zone start for each node
+[    0.014525] Early memory node ranges
+[    0.014526]   node   0: [mem 0x0000000000001000-0x000000000009ffff]
+[    0.014527]   node   0: [mem 0x0000000000100000-0x00000000007fffff]
+[    0.014527]   node   0: [mem 0x0000000000808000-0x000000000080afff]
+[    0.014528]   node   0: [mem 0x000000000080c000-0x000000000080ffff]
+[    0.014528]   node   0: [mem 0x0000000000900000-0x000000007ed3efff]
+[    0.014529]   node   0: [mem 0x000000007ee00000-0x000000007f8ecfff]
+[    0.014530]   node   0: [mem 0x000000007fbff000-0x000000007feebfff]
+[    0.014530]   node   0: [mem 0x0000000100000000-0x00000001ffffffff]
+[    0.014532] Initmem setup node 0 [mem 0x0000000000001000-0x00000001ffffffff]
+[    0.014765] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.014772] On node 0, zone DMA: 96 pages in unavailable ranges
+[    0.014773] On node 0, zone DMA: 8 pages in unavailable ranges
+[    0.014773] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.014780] On node 0, zone DMA: 240 pages in unavailable ranges
+[    0.019214] On node 0, zone DMA32: 193 pages in unavailable ranges
+[    0.019222] On node 0, zone DMA32: 786 pages in unavailable ranges
+[    0.028417] On node 0, zone Normal: 276 pages in unavailable ranges
+[    0.028440] setup_percpu: NR_CPUS:8192 nr_cpumask_bits:2 nr_cpu_ids:2 nr_node_ids:1
+[    0.028744] percpu: Embedded 85 pages/cpu s225280 r8192 d114688 u1048576
+[    0.028828] kvm-guest: PV spinlocks enabled
+[    0.028830] PV qspinlock hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.028833] Kernel command line: root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image console=tty0 console=ttyS0,115200n8 initrd=initrd
+[    0.028920] random: crng init done
+[    0.028921] printk: log buffer data + meta data: 262144 + 1114112 = 1376256 bytes
+[    0.030030] Dentry cache hash table entries: 1048576 (order: 11, 8388608 bytes, linear)
+[    0.030573] Inode-cache hash table entries: 524288 (order: 10, 4194304 bytes, linear)
+[    0.030653] software IO TLB: area num 2.
+[    0.043017] Fallback order for Node 0: 0
+[    0.043024] Built 1 zonelists, mobility grouping on.  Total pages: 1571263
+[    0.043026] Policy zone: Normal
+[    0.043434] mem auto-init: stack:all(zero), heap alloc:on, heap free:off
+[    0.053025] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+[    0.067002] ftrace: allocating 64775 entries in 256 pages
+[    0.067007] ftrace: allocated 256 pages with 1 groups
+[    0.068069] Dynamic Preempt: lazy
+[    0.068361] rcu: Preemptible hierarchical RCU implementation.
+[    0.068362] rcu: 	RCU event tracing is enabled.
+[    0.068363] rcu: 	RCU restricting CPUs from NR_CPUS=8192 to nr_cpu_ids=2.
+[    0.068384] 	Trampoline variant of Tasks RCU enabled.
+[    0.068384] 	Rude variant of Tasks RCU enabled.
+[    0.068385] 	Tracing variant of Tasks RCU enabled.
+[    0.068385] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    0.068386] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2
+[    0.068397] RCU Tasks: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.068399] RCU Tasks Rude: Setting shift to 1 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=2.
+[    0.073197] NR_IRQS: 524544, nr_irqs: 440, preallocated irqs: 16
+[    0.073484] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.073500] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    0.073595] kfence: initialized - using 2097152 bytes for 255 objects at 0x(____ptrval____)-0x(____ptrval____)
+[    0.073653] Console: colour dummy device 80x25
+[    0.073656] printk: legacy console [tty0] enabled
+[    0.073960] printk: legacy console [ttyS0] enabled
+[    0.455521] ACPI: Core revision 20260408
+[    0.457270] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns
+[    0.460669] APIC: Switch to symmetric I/O mode setup
+[    0.463394] x2apic enabled
+[    0.465271] APIC: Switched APIC routing to: physical x2apic
+[    0.467347] kvm-guest: APIC: send_IPI_mask() replaced with kvm_send_ipi_mask()
+[    0.469985] kvm-guest: APIC: send_IPI_mask_allbutself() replaced with kvm_send_ipi_mask_allbutself()
+[    0.473231] kvm-guest: setup PV IPIs
+[    0.477715] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    0.479961] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x233fdd7d99c, max_idle_ns: 440795312688 ns
+[    0.483743] Calibrating delay loop (skipped) preset value.. 4890.86 BogoMIPS (lpj=2445432)
+[    0.485431] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.486153] Last level iTLB entries: 4KB 512, 2MB 255, 4MB 127
+[    0.486747] Last level dTLB entries: 4KB 512, 2MB 255, 4MB 127, 1GB 0
+[    0.487777] mitigations: Enabled attack vectors: user_kernel, user_user, guest_host, guest_guest, SMT mitigations: auto
+[    0.488749] Speculative Store Bypass: Vulnerable
+[    0.489750] Speculative Return Stack Overflow: IBPB-extending microcode not applied!
+[    0.490747] Speculative Return Stack Overflow: WARNING: See https://kernel.org/doc/html/latest/admin-guide/hw-vuln/srso.html for mitigation options.
+[    0.490750] Transient Scheduler Attacks: Vulnerable: No microcode
+[    0.492747] Spectre V2 : Mitigation: Retpolines
+[    0.493747] Speculative Return Stack Overflow: Vulnerable: Safe RET, no microcode
+[    0.494748] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.495748] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    0.496750] active return thunk: srso_alias_return_thunk
+[    0.497840] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.498750] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.499748] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.500748] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.501747] x86/fpu: Enabled xstate features 0x7, context size is 832 bytes, using 'compacted' format.
+[    0.540006] pid_max: default: 32768 minimum: 301
+[    0.540740] Yama: becoming mindful.
+[    0.540757] SELinux:  Initializing.
+[    0.543045] LSM support for eBPF active
+[    0.544768] landlock: Up and running.
+[    0.546750] Mount-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.547757] Mountpoint-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.548935] VFS: Finished mounting rootfs on nullfs
+[    0.551321] smpboot: CPU0: AMD EPYC 7763 64-Core Processor (family: 0x19, model: 0x1, stepping: 0x1)
+[    0.552140] Performance Events: PMU not available due to virtualization, using software events only.
+[    0.553905] signal: max sigframe size: 1776
+[    0.554857] rcu: Hierarchical SRCU implementation.
+[    0.555765] rcu: 	Max phase no-delay instances is 400.
+[    0.556853] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.565308] NMI watchdog: Perf NMI watchdog permanently disabled
+[    0.566169] smp: Bringing up secondary CPUs ...
+[    0.567083] smpboot: x86: Booting SMP configuration:
+[    0.567771] .... node  #0, CPUs:      #1
+[    0.569859] smp: Brought up 1 node, 2 CPUs
+[    0.571759] smpboot: Total of 2 processors activated (9781.72 BogoMIPS)
+[    0.573611] Memory: 5440560K/6285052K available (24451K kernel code, 4814K rwdata, 18640K rodata, 5320K init, 4220K bss, 836636K reserved, 0K cma-reserved)
+[    0.574252] devtmpfs: initialized
+[    0.574740] x86/mm: Memory block size: 128MB
+[    0.578847] ACPI: PM: Registering ACPI NVS region [mem 0x00800000-0x00807fff] (32768 bytes)
+[    0.579766] ACPI: PM: Registering ACPI NVS region [mem 0x0080b000-0x0080bfff] (4096 bytes)
+[    0.580762] ACPI: PM: Registering ACPI NVS region [mem 0x00810000-0x008fffff] (983040 bytes)
+[    0.581797] ACPI: PM: Registering ACPI NVS region [mem 0x7fb7f000-0x7fbfefff] (524288 bytes)
+[    0.582779] ACPI: PM: Registering ACPI NVS region [mem 0x7ff70000-0x7fffffff] (589824 bytes)
+[    0.583932] posixtimers hash table entries: 1024 (order: 2, 16384 bytes, linear)
+[    0.584774] futex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).
+[    0.588999] xor: automatically using best checksumming function   avx
+[    0.592529] PM: RTC time: 17:54:32, date: 2026-10-24
+[    0.596192] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.597128] DMA: preallocated 1024 KiB GFP_KERNEL pool for atomic allocations
+[    0.602555] DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    0.603862] DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations
+[    0.607795] audit: initializing netlink subsys (disabled)
+[    0.609813] audit: type=2000 audit(1792864472.856:1): state=initialized audit_enabled=0 res=1
+[    0.628977] thermal_sys: Registered thermal governor 'fair_share'
+[    0.628982] thermal_sys: Registered thermal governor 'bang_bang'
+[    0.629763] thermal_sys: Registered thermal governor 'step_wise'
+[    0.632760] thermal_sys: Registered thermal governor 'user_space'
+[    0.634911] cpuidle: using governor menu
+[    0.641015] Freeing SMP alternatives memory: 60K
+[    0.664250] efi: Freeing EFI boot services memory: 320428K
+[    0.665766] acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5
+[    0.668204] PCI: ECAM [mem 0xe0000000-0xefffffff] (base 0xe0000000) for domain 0000 [bus 00-ff]
+[    0.671786] PCI: Using configuration type 1 for base access
+[    0.673920] virt/tdx: TDX not supported by the host platform
+[    0.676828] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    0.680159] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    0.682767] HugeTLB: 16380 KiB vmemmap can be freed for a 1.00 GiB page
+[    0.684760] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.685829] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.691280] raid6: using avx2x2 recovery algorithm
+[    0.694760] raid6: skipped pq benchmark and selected avx2x4
+[    0.698262] fbcon: Taking over console
+[    0.701809] ACPI: Added _OSI(Module Device)
+[    0.701812] ACPI: Added _OSI(Processor Device)
+[    0.701814] ACPI: Added _OSI(Processor Aggregator Device)
+[    0.718448] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    0.733761] ACPI: \_SB_: platform _OSC: OS support mask [006e7eff]
+[    0.735204] ACPI: Interpreter enabled
+[    0.735787] ACPI: PM: (supports S0 S3 S4 S5)
+[    0.736765] ACPI: Using IOAPIC for interrupt routing
+[    0.738060] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    0.738762] PCI: Ignoring E820 reservations for host bridge windows
+[    0.740078] ACPI: Enabled 2 GPEs in block 00 to 3F
+[    0.751679] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    0.754760] acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI EDR HPX-Type3]
+[    0.755905] acpi PNP0A08:00: _OSC: platform does not support [PCIeHotplug LTR DPC]
+[    0.756976] acpi PNP0A08:00: _OSC: OS now controls [SHPCHotplug PME AER PCIeCapability]
+[    0.758341] PCI host bridge to bus 0000:00
+[    0.758766] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    0.759761] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    0.760761] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    0.761762] pci_bus 0000:00: root bus resource [mem 0x80000000-0xdfffffff window]
+[    0.762769] pci_bus 0000:00: root bus resource [mem 0xf0000000-0xfebfffff window]
+[    0.763764] pci_bus 0000:00: root bus resource [mem 0x380000000000-0x3807ffffffff window]
+[    0.764783] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    0.765916] pci 0000:00:00.0: [8086:29c0] type 00 class 0x060000 conventional PCI endpoint
+[    0.768717] pci 0000:00:01.0: [1af4:1000] type 00 class 0x020000 conventional PCI endpoint
+[    0.770777] pci 0000:00:01.0: BAR 0 [io  0x61a0-0x61bf]
+[    0.771908] pci 0000:00:01.0: BAR 4 [mem 0x380000000000-0x380000003fff 64bit pref]
+[    0.772791] pci 0000:00:01.0: ROM [mem 0xfff80000-0xffffffff pref]
+[    0.775842] pci 0000:00:02.0: [1af4:1001] type 00 class 0x010000 conventional PCI endpoint
+[    0.778780] pci 0000:00:02.0: BAR 0 [io  0x6080-0x60ff]
+[    0.779791] pci 0000:00:02.0: BAR 1 [mem 0x80884000-0x80884fff]
+[    0.780872] pci 0000:00:02.0: BAR 4 [mem 0x380000004000-0x380000007fff 64bit pref]
+[    0.783983] pci 0000:00:03.0: [1af4:1001] type 00 class 0x010000 conventional PCI endpoint
+[    0.786778] pci 0000:00:03.0: BAR 0 [io  0x6000-0x607f]
+[    0.787791] pci 0000:00:03.0: BAR 1 [mem 0x80883000-0x80883fff]
+[    0.788873] pci 0000:00:03.0: BAR 4 [mem 0x380000008000-0x38000000bfff 64bit pref]
+[    0.791959] pci 0000:00:04.0: [1af4:1050] type 00 class 0x030000 conventional PCI endpoint
+[    0.794806] pci 0000:00:04.0: BAR 0 [mem 0x80000000-0x807fffff pref]
+[    0.795846] pci 0000:00:04.0: BAR 2 [mem 0x38000000c000-0x38000000ffff 64bit pref]
+[    0.796792] pci 0000:00:04.0: BAR 4 [mem 0x80882000-0x80882fff]
+[    0.797836] pci 0000:00:04.0: ROM [mem 0xffff0000-0xffffffff pref]
+[    0.799019] pci 0000:00:04.0: Video device with shadowed ROM at [mem 0x000c0000-0x000dffff]
+[    0.801803] pci 0000:00:05.0: [1b36:000d] type 00 class 0x0c0330 PCIe Root Complex Integrated Endpoint
+[    0.804409] pci 0000:00:05.0: BAR 0 [mem 0x380000014000-0x380000017fff 64bit]
+[    0.806843] pci 0000:00:06.0: [1af4:1009] type 00 class 0x000200 conventional PCI endpoint
+[    0.809778] pci 0000:00:06.0: BAR 0 [io  0x6140-0x617f]
+[    0.810789] pci 0000:00:06.0: BAR 1 [mem 0x80881000-0x80881fff]
+[    0.811881] pci 0000:00:06.0: BAR 4 [mem 0x380000010000-0x380000013fff 64bit pref]
+[    0.815301] pci 0000:00:1f.0: [8086:2918] type 00 class 0x060100 conventional PCI endpoint
+[    0.817112] pci 0000:00:1f.0: quirk: [io  0x0600-0x067f] claimed by ICH6 ACPI/GPIO/TCO
+[    0.818634] pci 0000:00:1f.2: [8086:2922] type 00 class 0x010601 conventional PCI endpoint
+[    0.820865] pci 0000:00:1f.2: BAR 4 [io  0x6180-0x619f]
+[    0.821791] pci 0000:00:1f.2: BAR 5 [mem 0x80880000-0x80880fff]
+[    0.824074] pci 0000:00:1f.3: [8086:2930] type 00 class 0x0c0500 conventional PCI endpoint
+[    0.826360] pci 0000:00:1f.3: BAR 4 [io  0x6100-0x613f]
+[    0.832885] ACPI: PCI: Interrupt link LNKA configured for IRQ 10
+[    0.834045] ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    0.835034] ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    0.836018] ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    0.837017] ACPI: PCI: Interrupt link LNKE configured for IRQ 10
+[    0.838050] ACPI: PCI: Interrupt link LNKF configured for IRQ 10
+[    0.839004] ACPI: PCI: Interrupt link LNKG configured for IRQ 11
+[    0.840016] ACPI: PCI: Interrupt link LNKH configured for IRQ 11
+[    0.840864] ACPI: PCI: Interrupt link GSIA configured for IRQ 16
+[    0.841786] ACPI: PCI: Interrupt link GSIB configured for IRQ 17
+[    0.842787] ACPI: PCI: Interrupt link GSIC configured for IRQ 18
+[    0.843785] ACPI: PCI: Interrupt link GSID configured for IRQ 19
+[    0.844784] ACPI: PCI: Interrupt link GSIE configured for IRQ 20
+[    0.845785] ACPI: PCI: Interrupt link GSIF configured for IRQ 21
+[    0.846787] ACPI: PCI: Interrupt link GSIG configured for IRQ 22
+[    0.847785] ACPI: PCI: Interrupt link GSIH configured for IRQ 23
+[    0.849619] iommu: Default domain type: Translated
+[    0.850762] iommu: DMA domain TLB invalidation policy: lazy mode
+[    0.853936] SCSI subsystem initialized
+[    0.855840] ACPI: bus type USB registered
+[    0.856840] usbcore: registered new interface driver usbfs
+[    0.857777] usbcore: registered new interface driver hub
+[    0.858776] usbcore: registered new device driver usb
+[    0.859822] pps_core: LinuxPPS API ver. 1 registered
+[    0.860763] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.861769] PTP clock support registered
+[    0.862855] EDAC MC: Ver: 3.0.0
+[    0.865065] efivars: Registered efivars operations
+[    0.866135] NetLabel: Initializing
+[    0.866785] NetLabel:  domain hash size = 128
+[    0.867760] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    0.869850] NetLabel:  unlabeled traffic allowed by default
+[    0.871768] mctp: management component transport protocol core
+[    0.873780] NET: Registered PF_MCTP protocol family
+[    0.874780] PCI: Using ACPI for IRQ routing
+[    1.040505] e820: register RAM buffer resource [mem 0x0080b000-0x008fffff]
+[    1.042791] e820: register RAM buffer resource [mem 0x00810000-0x008fffff]
+[    1.043763] e820: register RAM buffer resource [mem 0x7d819000-0x7fffffff]
+[    1.044763] e820: register RAM buffer resource [mem 0x7ed3f000-0x7fffffff]
+[    1.046762] e820: register RAM buffer resource [mem 0x7f8ed000-0x7fffffff]
+[    1.047762] e820: register RAM buffer resource [mem 0x7feec000-0x7fffffff]
+[    1.049907] pci 0000:00:04.0: vgaarb: setting as boot VGA device
+[    1.050740] pci 0000:00:04.0: vgaarb: bridge control possible
+[    1.050740] pci 0000:00:04.0: vgaarb: VGA device added: decodes=io+mem,owns=io+mem,locks=none
+[    1.054763] vgaarb: loaded
+[    1.056917] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0
+[    1.057764] hpet0: 3 comparators, 64-bit 100.000000 MHz counter
+[    1.061853] clocksource: Switched to clocksource kvm-clock
+[    1.065240] VFS: Disk quotas dquot_6.6.0
+[    1.066785] VFS: Dquot-cache hash table entries: 512 (4096 bytes)
+[    1.069458] acpi PNP0C01:00: Reserved [mem 0xe0000000-0xefffffff]
+[    1.071724] pnp: PnP ACPI init
+[    1.073873] pnp: PnP ACPI: found 4 devices
+[    1.086522] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    1.089763] NET: Registered PF_INET protocol family
+[    1.091648] IP idents hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    1.096090] tcp_listen_portaddr_hash hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    1.099310] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    1.102952] TCP established hash table entries: 65536 (order: 7, 524288 bytes, linear)
+[    1.106797] TCP bind hash table entries: 65536 (order: 9, 2097152 bytes, linear)
+[    1.110061] TCP: Hash tables configured (established 65536 bind 65536)
+[    1.112879] MPTCP token hash table entries: 8192 (order: 6, 196608 bytes, linear)
+[    1.116088] UDP hash table entries: 4096 (order: 6, 262144 bytes, linear)
+[    1.119029] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    1.121426] NET: Registered PF_XDP protocol family
+[    1.123473] pci 0000:00:01.0: ROM [mem 0xfff80000-0xffffffff pref]: can't claim; no compatible bridge window
+[    1.127516] pci 0000:00:01.0: ROM [mem 0x80800000-0x8087ffff pref]: assigned
+[    1.130657] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    1.132987] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    1.135246] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    1.137703] pci_bus 0000:00: resource 7 [mem 0x80000000-0xdfffffff window]
+[    1.140180] pci_bus 0000:00: resource 8 [mem 0xf0000000-0xfebfffff window]
+[    1.142649] pci_bus 0000:00: resource 9 [mem 0x380000000000-0x3807ffffffff window]
+[    1.146229] ACPI: \_SB_.GSIF: Enabled at IRQ 21
+[    1.149456] PCI: CLS 0 bytes, default 64
+[    1.151207] PCI-DMA: Using software bounce buffering for IO (SWIOTLB)
+[    1.153701] Trying to unpack rootfs image as initramfs...
+[    1.159415] software IO TLB: mapped [mem 0x0000000055e07000-0x0000000059e07000] (64MB)
+[    1.167640] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x233fdd7d99c, max_idle_ns: 440795312688 ns
+[    1.182490] Initialise system trusted keyrings
+[    1.185452] Key type blacklist registered
+[    1.190859] workingset: timestamp_bits=36 (anon: 31) max_order=21 bucket_order=0 (anon: 0)
+[    1.198692] integrity: Platform Keyring initialized
+[    1.201833] integrity: Machine keyring initialized
+[    1.207330] cryptd: max_cpu_qlen set to 1000
+[    1.228358] NET: Registered PF_ALG protocol family
+[    1.234155] Key type asymmetric registered
+[    1.238570] Asymmetric key parser 'x509' registered
+[    1.244064] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 244)
+[    1.251058] io scheduler mq-deadline registered
+[    1.254825] io scheduler kyber registered
+[    1.257559] io scheduler bfq registered
+[    1.263355] atomic64_test: passed for x86-64 platform with CX8 and with SSE
+[    1.269633] input: Power Button as /devices/platform/LNXPWRBN:00/input/input0
+[    1.277382] ACPI: button: Power Button [PWRF]
+[    1.287855] ACPI: \_SB_.GSIG: Enabled at IRQ 22
+[    1.295700] ACPI: \_SB_.GSIH: Enabled at IRQ 23
+[    1.305702] ACPI: \_SB_.GSIE: Enabled at IRQ 20
+[    1.319597] Serial: 8250/16550 driver, 32 ports, IRQ sharing enabled
+[    1.327420] 00:03: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    1.341538] Non-volatile memory driver v1.3
+[    1.346172] ACPI: bus type drm_connector registered
+[    1.354627] virtio_blk virtio1: 2/0/0 default/read/poll queues
+[    1.365985] virtio_blk virtio1: [vda] 104857600 512-byte logical blocks (53.7 GB/50.0 GiB)
+[    1.381663]  vda: vda1 vda2 vda3 vda4
+[    1.385824] virtio_blk virtio2: 2/0/0 default/read/poll queues
+[    1.395976] virtio_blk virtio2: [vdb] 102760448 512-byte logical blocks (52.6 GB/49.0 GiB)
+[    1.408531] ACPI: \_SB_.GSIA: Enabled at IRQ 16
+[    1.417805] ahci 0000:00:1f.2: AHCI vers 0001.0000, 32 command slots, 1.5 Gbps, SATA mode
+[    1.425586] ahci 0000:00:1f.2: 6/6 ports implemented (port mask 0x3f)
+[    1.433612] ahci 0000:00:1f.2: flags: 64bit ncq only
+[    1.443385] scsi host0: ahci
+[    1.448406] scsi host1: ahci
+[    1.451352] scsi host2: ahci
+[    1.455104] scsi host3: ahci
+[    1.460579] scsi host4: ahci
+[    1.465376] scsi host5: ahci
+[    1.468028] ata1: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880100 irq 30 lpm-pol 1
+[    1.474890] ata2: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880180 irq 30 lpm-pol 1
+[    1.482729] ata3: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880200 irq 30 lpm-pol 1
+[    1.491197] ata4: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880280 irq 30 lpm-pol 1
+[    1.499489] ata5: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880300 irq 30 lpm-pol 1
+[    1.505910] ata6: SATA max UDMA/133 abar m4096@0x80880000 port 0x80880380 irq 30 lpm-pol 1
+[    1.514619] CAN device driver interface
+[    1.521708] xhci_hcd 0000:00:05.0: xHCI Host Controller
+[    1.528156] xhci_hcd 0000:00:05.0: new USB bus registered, assigned bus number 1
+[    1.534444] xhci_hcd 0000:00:05.0: hcc params 0x00087001 hci version 0x100 quirks 0x0000000000000010
+[    1.546237] xhci_hcd 0000:00:05.0: xHCI Host Controller
+[    1.552489] xhci_hcd 0000:00:05.0: new USB bus registered, assigned bus number 2
+[    1.557734] xhci_hcd 0000:00:05.0: Host supports USB 3.0 SuperSpeed
+[    1.565567] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 7.02
+[    1.573554] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.580278] usb usb1: Product: xHCI Host Controller
+[    1.585729] usb usb1: Manufacturer: Linux 7.2.9-201.fc44.x86_64 xhci-hcd
+[    1.593159] usb usb1: SerialNumber: 0000:00:05.0
+[    1.599347] hub 1-0:1.0: USB hub found
+[    1.604436] hub 1-0:1.0: 4 ports detected
+[    1.609179] usb usb2: We don't know the algorithms for LPM for this host, disabling LPM.
+[    1.618235] usb usb2: New USB device found, idVendor=1d6b, idProduct=0003, bcdDevice= 7.02
+[    1.627436] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    1.634168] usb usb2: Product: xHCI Host Controller
+[    1.640200] usb usb2: Manufacturer: Linux 7.2.9-201.fc44.x86_64 xhci-hcd
+[    1.646552] usb usb2: SerialNumber: 0000:00:05.0
+[    1.653328] hub 2-0:1.0: USB hub found
+[    1.658167] hub 2-0:1.0: 4 ports detected
+[    1.663010] usbcore: registered new interface driver usbserial_generic
+[    1.668958] usbserial: USB Serial support registered for generic
+[    1.674712] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12
+[    1.686886] serio: i8042 KBD port at 0x60,0x64 irq 1
+[    1.691202] serio: i8042 AUX port at 0x60,0x64 irq 12
+[    1.695715] mousedev: PS/2 mouse device common for all mice
+[    1.703401] rtc_cmos PNP0B00:00: RTC can wake from S4
+[    1.711147] rtc_cmos PNP0B00:00: registered as rtc0
+[    1.715461] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input1
+[    1.723692] rtc_cmos PNP0B00:00: setting system clock to 2026-10-24T17:54:34 UTC (1792864474)
+[    1.733166] rtc_cmos PNP0B00:00: alarms up to one day, y3k, 242 bytes nvram
+[    1.740227] device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+[    1.751527] device-mapper: uevent: version 1.0.3
+[    1.756720] device-mapper: ioctl: 4.50.0-ioctl (2025-04-28) initialised: dm-devel@lists.linux.dev
+[    1.765768] simple-framebuffer simple-framebuffer.0: [drm] Registered 1 planes with drm panic
+[    1.774419] [drm] Initialized simpledrm 1.0.0 for simple-framebuffer.0 on minor 0
+[    1.787136] input: VirtualPS/2 VMware VMMouse as /devices/platform/i8042/serio1/input/input4
+[    1.787956] input: VirtualPS/2 VMware VMMouse as /devices/platform/i8042/serio1/input/input3
+[    1.797837] Console: switching to colour frame buffer device 160x50
+[    1.809534] simple-framebuffer simple-framebuffer.0: [drm] fb0: simpledrmdrmfb frame buffer device
+[    1.813731] hid: raw HID events driver (C) Jiri Kosina
+[    1.816037] usbcore: registered new interface driver usbhid
+[    1.818661] usbhid: USB HID core driver
+[    1.820596] drop_monitor: Initializing network drop monitor service
+[    1.823637] Initializing XFRM netlink socket
+[    1.825745] NET: Registered PF_INET6 protocol family
+[    1.830496] Segment Routing with IPv6
+[    1.833369] RPL Segment Routing with IPv6
+[    1.837401] In-situ OAM (IOAM) with IPv6
+[    1.841424] mip6: Mobile IPv6
+[    1.842832] NET: Registered PF_PACKET protocol family
+[    1.849504] can: controller area network core
+[    1.853466] NET: Registered PF_CAN protocol family
+[    1.860351] IPI shorthand broadcast: enabled
+[    1.868741] sched_clock: Marking stable (1467033623, 401240039)->(2144719114, -276445452)
+[    1.872844] registered taskstats version 1
+[    1.876591] ata2: SATA link down (SStatus 0 SControl 300)
+[    1.882243] Loading compiled-in X.509 certificates
+[    1.882801] ata1: SATA link up 1.5 Gbps (SStatus 113 SControl 300)
+[    1.890067] Loaded X.509 cert 'Fedora kernel signing key: 7e81a365d4ba0fe845cf4712ec2b5930479bc910'
+[    1.894175] ata1.00: ATAPI: QEMU DVD-ROM, 2.5+, max UDMA/100
+[    1.901093] usb 1-1: new high-speed USB device number 2 using xhci_hcd
+[    1.901124] ata1.00: applying bridge limits
+[    1.910355] ata6: SATA link down (SStatus 0 SControl 300)
+[    1.915694] ata4: SATA link down (SStatus 0 SControl 300)
+[    1.918879] ata3: SATA link down (SStatus 0 SControl 300)
+[    1.922004] ata5: SATA link down (SStatus 0 SControl 300)
+[    1.925098] ata1.00: configured for UDMA/100
+[    1.929499] scsi 0:0:0:0: CD-ROM            QEMU     QEMU DVD-ROM     2.5+ PQ: 0 ANSI: 5
+[    1.949158] sr 0:0:0:0: [sr0] scsi3-mmc drive: 4x/4x cd/rw xa/form2 tray
+[    1.963695] cdrom: Uniform CD-ROM driver Revision: 3.20
+[    1.981653] sr 0:0:0:0: Attached scsi generic sg0 type 5
+[    2.033730] usb 1-1: New USB device found, idVendor=0627, idProduct=0001, bcdDevice= 0.00
+[    2.037543] Freeing initrd memory: 269492K
+[    2.042388] usb 1-1: New USB device strings: Mfr=1, Product=4, SerialNumber=11
+[    2.047620] usb 1-1: Product: QEMU USB Keyboard
+[    2.051967] usb 1-1: Manufacturer: QEMU
+[    2.053946] usb 1-1: SerialNumber: 68284-0000:00:05.0-1
+[    2.060556] input: QEMU QEMU USB Keyboard as /devices/pci0000:00/0000:00:05.0/usb1/1-1/1-1:1.0/0003:0627:0001.0001/input/input5
+[    2.084567] Loaded X.509 cert 'Fedora IMA CA: a8a00c31663f853f9c6ff2564872e378af026b28'
+[    2.100605] Demotion targets for Node 0: null
+[    2.102967] page_owner is disabled
+[    2.105032] Key type .fscrypt registered
+[    2.107122] Key type fscrypt-provisioning registered
+[    2.110588] Btrfs loaded, zoned=yes, fsverity=yes
+[    2.112693] Key type big_key registered
+[    2.115199] Key type encrypted registered
+[    2.118421] ima: No TPM chip found, activating TPM-bypass!
+[    2.119436] hid-generic 0003:0627:0001.0001: input,hidraw0: USB HID v1.11 Keyboard [QEMU QEMU USB Keyboard] on usb-0000:00:05.0-1/input0
+[    2.121400] Loading compiled-in module X.509 certificates
+[    2.129538] Loaded X.509 cert 'Fedora kernel signing key: 7e81a365d4ba0fe845cf4712ec2b5930479bc910'
+[    2.133750] ima: Allocated hash algorithm: sha256
+[    2.136401] ima: No architecture policies found
+[    2.138738] evm: Initialising EVM extended attributes:
+[    2.141283] evm: security.selinux
+[    2.143179] evm: security.SMACK64 (disabled)
+[    2.145482] evm: security.SMACK64EXEC (disabled)
+[    2.147822] evm: security.SMACK64TRANSMUTE (disabled)
+[    2.150368] evm: security.SMACK64MMAP (disabled)
+[    2.152710] evm: security.apparmor (disabled)
+[    2.154906] evm: security.ima
+[    2.156726] evm: security.capability
+[    2.158472] evm: HMAC attrs: 0x1
+[    2.170078] alg: No test for 842 (842-scomp)
+[    2.176917] alg: No test for mldsa87 (mldsa87-lib)
+[    2.179979] alg: No test for mldsa65 (mldsa65-lib)
+[    2.182302] alg: No test for mldsa44 (mldsa44-lib)
+[    2.207694] PM:   Magic number: 14:523:947
+[    2.210357] tty tty4: hash matches
+[    2.212689] memory memory0: hash matches
+[    2.217341] RAS: Correctable Errors collector initialized.
+[    2.223780] clk: Disabling unused clocks
+[    2.227632] PM: genpd: Disabling unused power domains
+[    2.238068] Freeing unused decrypted memory: 2028K
+[    2.241516] Freeing unused kernel image (initmem) memory: 5320K
+[    2.243761] Write protecting the kernel read-only data: 45056k
+[    2.246442] Freeing unused kernel image (text/rodata gap) memory: 124K
+[    2.249530] Freeing unused kernel image (rodata/data gap) memory: 1840K
+[    2.324813] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    2.326975] Run /init as init process
+P+q6E616D65\[    2.694672] fuse: init (API version 7.45)
+[    2.719494] systemd[1]: Successfully made /usr/ read-only.
+[6n[32766;32766H[6n[24;80H[!p]104\[0m[?7h[1G[0J[    2.726331] systemd[1]: systemd 259.9-1.fc44 running in system mode (+PAM +AUDIT +SELINUX -APPARMOR +IMA +IPE +SMACK +SECCOMP -GCRYPT +GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK +BTF +XKBCOMMON +UTMP +SYSVINIT +LIBARCHIVE)
+[    2.736463] systemd[1]: Detected virtualization kvm.
+[    2.738721] systemd[1]: Detected architecture x86-64.
+[    2.740757] systemd[1]: Running in initrd.
+[0;1;39mBooting initrd of [0m[0;38;2;138;43;226mBazzite dracut-108-8.fc44 (Initramfs)[0m[0;1;39m.[0m
+
+[    2.746018] systemd[1]: Initializing machine ID from random generator.
+[    2.748401] systemd[1]: No hostname configured, using default hostname.
+[    2.751013] systemd[1]: Hostname set to <bazzite>.
+]3008;start=2d7dae8172c7418a88234a74396ee861;user=root;hostname=bazzite;machineid=88e45efb9f224c4bb2e32db058aafaed;bootid=c38531ed6249485085c940cc8bc7ed5b;pid=1;pidfdid=1;comm=systemd;type=boot\[    2.899568] systemd[1]: bpf-restrict-fs: LSM BPF program attached
+[    2.985705] systemd[1]: /usr/lib/systemd/system/systemd-udevd.service:56: System call bpf cannot be resolved as libseccomp is not available, ignoring: Operation not supported
+[    3.010125] systemd[1]: Queued start job for default target initrd.target.
+[    3.019398] systemd[1]: Expecting device dev-mapper-live\x2drw.device - /dev/mapper/live-rw...
+         Expecting device [0;1;39mdev-mapper-live\x2drw.device[0m - /dev/mapper/live-rw...
+
+[    3.025406] systemd[1]: Reached target initrd-usr-fs.target - Initrd /usr File System.
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-usr-fs.target[0m - Initrd /usr File System.
+
+[    3.030546] systemd[1]: Reached target slices.target - Slice Units.
+[[0;32m  OK  [0m] Reached target [0;1;39mslices.target[0m - Slice Units.
+
+[    3.034767] systemd[1]: Reached target swap.target - Swaps.
+[[0;32m  OK  [0m] Reached target [0;1;39mswap.target[0m - Swaps.
+
+[    3.038648] systemd[1]: Reached target timers.target - Timer Units.
+[[0;32m  OK  [0m] Reached target [0;1;39mtimers.target[0m - Timer Units.
+
+[    3.042975] systemd[1]: Listening on dbus.socket - D-Bus System Message Bus Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39mdbus.socket[0m - D-Bus System Message Bus Socket.
+
+[    3.049108] systemd[1]: Listening on pcscd.socket - PC/SC Smart Card Daemon Activation Socket (Dracut).
+[[0;32m  OK  [0m] Listening on [0;1;39mpcscd.socket[0m - PC/SC … Daemon Activation Socket (Dracut).
+
+[    3.056229] systemd[1]: Listening on systemd-journald-dev-log.socket - Journal Socket (/dev/log).
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-journald-dev-…socket[0m - Journal Socket (/dev/log).
+
+[    3.063374] systemd[1]: Listening on systemd-journald.socket - Journal Sockets.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-journald.socket[0m - Journal Sockets.
+
+[    3.067998] systemd[1]: Listening on systemd-udevd-control.socket - udev Control Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-udevd-control.socket[0m - udev Control Socket.
+
+[    3.073080] systemd[1]: Listening on systemd-udevd-kernel.socket - udev Kernel Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-udevd-kernel.socket[0m - udev Kernel Socket.
+
+[    3.079111] systemd[1]: Reached target sockets.target - Socket Units.
+[[0;32m  OK  [0m] Reached target [0;1;39msockets.target[0m - Socket Units.
+
+[    3.085687] systemd[1]: Starting kmod-static-nodes.service - Create List of Static Device Nodes...
+         Starting [0;1;39mkmod-static-nodes.service[0m…eate List of Static Device Nodes...
+
+[    3.093558] systemd[1]: memstrack.service - Memstrack Anylazing Service skipped, no trigger condition checks were met.
+[    3.108396] systemd[1]: Starting systemd-journald.service - Journal Service...
+         Starting [0;1;39msystemd-journald.service[0m - Journal Service...
+
+[    3.123117] systemd[1]: Starting systemd-modules-load.service - Load Kernel Modules...
+         Starting [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules...
+
+[    3.136239] systemd-journald[212]: Collecting audit messages is disabled.
+[    3.138095] systemd[1]: systemd-pcrphase-initrd.service - TPM PCR Barrier (initrd) skipped, unmet condition check ConditionSecurity=measured-uki
+[    3.148425] systemd[1]: Starting systemd-vconsole-setup.service - Virtual Console Setup...
+         Starting [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup...
+
+[    3.170222] systemd[1]: Finished kmod-static-nodes.service - Create List of Static Device Nodes.
+[[0;32m  OK  [0m] Finished [0;1;39mkmod-static-nodes.service[0m…Create List of Static Device Nodes.
+
+[    3.187354] i2c_dev: i2c /dev entries driver
+[    3.195791] systemd[1]: Starting systemd-tmpfiles-setup-dev-early.service - Create Static Device Nodes in /dev gracefully...
+         Starting [0;1;39msystemd-tmpfiles-setup-de…[0m Device Nodes in /dev gracefully...
+
+[    3.213384] systemd[1]: Finished systemd-modules-load.service - Load Kernel Modules.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules.
+
+[    3.228974] systemd[1]: Starting systemd-sysctl.service - Apply Kernel Variables...
+         Starting [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables...
+
+[    3.252375] systemd[1]: Started systemd-journald.service - Journal Service.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-journald.service[0m - Journal Service.
+
+         Starting [0;1;39msystemd-tmpfiles-setup.se…[0mate System Files and Directories...
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables.
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup.
+
+         Starting [0;1;39mdracut-cmdline-ask.servic…[0mor additional cmdline parameters...
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-cmdline-ask.servic���[0m for additional cmdline parameters.
+
+         Starting [0;1;39mdracut-cmdline.service[0m - dracut cmdline hook...
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup-de…[0mic Device Nodes in /dev gracefully.
+
+         Starting [0;1;39msystemd-tmpfiles-setup-de…[0meate Static Device Nodes in /dev...
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup.se…[0mreate System Files and Directories.
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup-de…[0mCreate Static Device Nodes in /dev.
+
+[[0;32m  OK  [0m] Reached target [0;1;39mlocal-fs-pre.target[0m…Preparation for Local File Systems.
+
+[[0;32m  OK  [0m] Reached target [0;1;39mlocal-fs.target[0m - Local File Systems.
+
+[    3.483846] loop: module loaded
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-cmdline.service[0m - dracut cmdline hook.
+
+         Starting [0;1;39mdracut-pre-udev.service[0m - dracut pre-udev hook...
+
+[    3.738211] RPC: Registered named UNIX socket transport module.
+[    3.740521] RPC: Registered udp transport module.
+[    3.742573] RPC: Registered tcp transport module.
+[    3.744581] RPC: Registered tcp-with-tls transport module.
+[    3.746615] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    3.831766] VFIO - User Level meta-driver version: 0.3
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-pre-udev.service[0m - dracut pre-udev hook.
+
+         Starting [0;1;39msystemd-udevd.service[0m - R…ager for Device Events and Files...
+
+[[0;32m  OK  [0m] Started [0;1;39msystemd-udevd.service[0m - Ru…anager for Device Events and Files.
+
+         Starting [0;1;39mdracut-pre-trigger.service[0m - dracut pre-trigger hook...
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-pre-trigger.service[0m - dracut pre-trigger hook.
+
+         Starting [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices...
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices.
+
+[[0;32m  OK  [0m] Reached target [0;1;39mnetwork.target[0m - Network.
+
+         Starting [0;1;39mdracut-initqueue.service[0m - dracut initqueue hook...
+
+         Starting [0;1;39mplymouth-start.service[0m - Show Plymouth Boot Screen...
+
+[[0;32m  OK  [0m] Created slice [0;1;39msystem-modprobe.slice[0m - Slice /system/modprobe.
+
+
+         Mounting [0;1;39msys-kernel-config.mount[0m - Kernel Configuration File System...
+
+
+[[0;32m  OK  [0m] Started [0;1;39mplymouth-start.service[0m - Show Plymouth Boot Screen.
+
+
+[[0;32m  OK  [0m] Started [0;1;39msystemd-ask-password-plymo…[0mquests to Plymouth Directory Watch.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mcryptsetup.target[0m - Local Encrypted Volumes.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mpaths.target[0m - Path Units.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-root-device.target[0m - Initrd Root Device.
+
+
+[[0;32m  OK  [0m] Mounted [0;1;39msys-kernel-config.mount[0m - Kernel Configuration File System.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39msysinit.target[0m - System Initialization.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mbasic.target[0m - Basic System.
+
+
+[0;21;32mKey type psk registered[0m
+[0;21;39m[drm] pci: virtio-vga detected at 0000:00:04.0[0m
+[0;21;39mConsole: switching to colour dummy device 80x25[0m
+[0;21;39mvirtio-pci 0000:00:04.0: vgaarb: deactivate vga console[0m
+[0;21;39m[drm] features: -virgl +edid -resource_blob -host_visible[0m
+[0;21;39m[drm] features: -context_init -blob_alignment[0m
+[0;21;39m[drm] number of scanouts: 1[0m
+[0;21;39m[drm] number of cap sets: 0[0m
+[0;21;39mvirtio-pci 0000:00:04.0: [drm] Registered 1 planes with drm panic[0m
+[0;21;39m[drm] Initialized virtio_gpu 0.1.0 for 0000:00:04.0 on minor 1[0m
+[0;21;39mfbcon: virtio_gpudrmfb (fb0) is primary device[0m
+[0;21;39mConsole: switching to colour frame buffer device 160x50[0m
+[0;21;39mvirtio-pci 0000:00:04.0: [drm] fb0: virtio_gpudrmfb frame buffer device[0m
+[0;21;39mvirtio_net virtio0 enp0s1: renamed from eth0[0m
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup.
+
+
+         Stopping [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup...
+
+
+         Starting [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup...
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup.
+
+
+         Starting [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-vconsole-setup.service[0m - Virtual Console Setup.
+
+
+[0;21;39mISO 9660 Extensions: RRIP_1991A[0m
+[0;21;39mloop0: detected capacity change from 0 to 16893136[0m
+[0;21;39msquashfs: version 4.0 (2009/01/31) Phillip Lougher[0m
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-initqueue.service[0m - dracut initqueue hook.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mremote-fs-pre.targe…[0mreparation for Remote File Systems.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mremote-cryptsetup.target[0m - Remote Encrypted Volumes.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39mremote-fs.target[0m - Remote File Systems.
+
+
+         Starting [0;1;39mdracut-pre-mount.service[0m - dracut pre-mount hook...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-pre-mount.service[0m - dracut pre-mount hook.
+
+
+         Mounting [0;1;39msysroot.mount[0m - /sysroot...
+
+
+[[0;32m  OK  [0m] Mounted [0;1;39msysroot.mount[0m - /sysroot.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-root-fs.target[0m - Initrd Root File System.
+
+
+         Starting [0;1;39minitrd-parse-etc.service[0m …ints Configured in the Real Root...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39minitrd-parse-etc.service[0m …points Configured in the Real Root.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-fs.target[0m - Initrd File Systems.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd.target[0m - Initrd Default Target.
+
+
+         Starting [0;1;39mdracut-mount.service[0m - dracut mount hook...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-mount.service[0m - dracut mount hook.
+
+
+         Starting [0;1;39mdracut-pre-pivot.service[0m …racut pre-pivot and cleanup hook...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39mdracut-pre-pivot.service[0m - dracut pre-pivot and cleanup hook.
+
+
+         Starting [0;1;39minitrd-cleanup.service[0m - …ing Up and Shutting Down Daemons...
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mnetwork.target[0m - Network.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mremote-cryptsetup.target[0m - Remote Encrypted Volumes.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mtimers.target[0m - Timer Units.
+
+
+[[0;32m  OK  [0m] Closed [0;1;39mdbus.socket[0m - D-Bus System Message Bus Socket.
+
+
+[[0;32m  OK  [0m] Closed [0;1;39mpcscd.socket[0m - PC/SC Smart … Daemon Activation Socket (Dracut).
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-pre-pivot.service[0m - dracut pre-pivot and cleanup hook.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39minitrd.target[0m - Initrd Default Target.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mbasic.target[0m - Basic System.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39minitrd-root-device.target[0m - Initrd Root Device.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39minitrd-usr-fs.target[0m - Initrd /usr File System.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mpaths.target[0m - Path Units.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mremote-fs.target[0m - Remote File Systems.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mremote-fs-pre.targe…[0mreparation for Remote File Systems.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mslices.target[0m - Slice Units.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39msockets.target[0m - Socket Units.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39msysinit.target[0m - System Initialization.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mlocal-fs.target[0m - Local File Systems.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mlocal-fs-pre.target[0m…Preparation for Local File Systems.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mswap.target[0m - Swaps.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-mount.service[0m - dracut mount hook.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-pre-mount.service[0m - dracut pre-mount hook.
+
+
+[[0;32m  OK  [0m] Stopped target [0;1;39mcryptsetup.target[0m - Local Encrypted Volumes.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-initqueue.service[0m - dracut initqueue hook.
+
+
+         Starting [0;1;39mplymouth-switch-root.serv…e[0m - Plymouth switch root service...
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-tmpfiles-setup.ser…[0mreate System Files and Directories.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-pre-trigger.service[0m - dracut pre-trigger hook.
+
+
+         Stopping [0;1;39msystemd-udevd.service[0m - R…ager for Device Events and Files...
+
+
+[[0;32m  OK  [0m] Finished [0;1;39minitrd-cleanup.service[0m - …aning Up and Shutting Down Daemons.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-udevd.service[0m - Ru…anager for Device Events and Files.
+
+
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-udevd-control.socket[0m - udev Control Socket.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-pre-udev.service[0m - dracut pre-udev hook.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-cmdline.service[0m - dracut cmdline hook.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mdracut-cmdline-ask.service[0m… for additional cmdline parameters.
+
+
+         Starting [0;1;39minitrd-udevadm-cleanup-db.service[0m - Cleanup udev Database...
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-tmpfiles-setup-dev…[0mCreate Static Device Nodes in /dev.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-tmpfiles-setup-dev…[0mic Device Nodes in /dev gracefully.
+
+
+[[0;32m  OK  [0m] Stopped [0;1;39mkmod-static-nodes.service[0m …Create List of Static Device Nodes.
+
+
+[[0;32m  OK  [0m] Finished [0;1;39minitrd-udevadm-cleanup-db.service[0m - Cleanup udev Database.
+
+
+[[0;32m  OK  [0m] Finished [0;1;39mplymouth-switch-root.service[0m - Plymouth switch root service.
+
+
+[[0;32m  OK  [0m] Reached target [0;1;39minitrd-switch-root.target[0m - Switch Root.
+
+
+         Starting [0;1;39minitrd-switch-root.service[0m - Switch Root...
+
+
+[0;21;39msystemd-journald[212]: Received SIGTERM from PID 1 (systemd).[0m
+[0;21;39mSELinux:  Permission firmware_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission kexec_image_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission kexec_initramfs_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission policy_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission x509_certificate_load in class system not defined in policy.[0m
+[0;21;39mSELinux:  Permission map_create_as in class bpf not defined in policy.[0m
+[0;21;39mSELinux:  Permission prog_load_as in class bpf not defined in policy.[0m
+[0;21;39mSELinux:  Permission allowed in class io_uring not defined in policy.[0m
+[0;21;39mSELinux:  Class memfd_file not defined in policy.[0m
+[0;21;39mSELinux: the above unknown classes and permissions will be allowed[0m
+[0;21;39mSELinux:  policy capability network_peer_controls=1[0m
+[0;21;39mSELinux:  policy capability open_perms=1[0m
+[0;21;39mSELinux:  policy capability extended_socket_class=1[0m
+[0;21;39mSELinux:  policy capability always_check_network=0[0m
+[0;21;39mSELinux:  policy capability cgroup_seclabel=1[0m
+[0;21;39mSELinux:  policy capability nnp_nosuid_transition=1[0m
+[0;21;39mSELinux:  policy capability genfs_seclabel_symlinks=1[0m
+[0;21;39mSELinux:  policy capability ioctl_skip_cloexec=0[0m
+[0;21;39mSELinux:  policy capability userspace_initial_context=0[0m
+[0;21;39mSELinux:  policy capability netlink_xperm=0[0m
+[0;21;39mSELinux:  policy capability netif_wildcard=0[0m
+[0;21;39mSELinux:  policy capability genfs_seclabel_wildcard=0[0m
+[0;21;39mSELinux:  policy capability functionfs_seclabel=0[0m
+[0;21;39mSELinux:  policy capability memfd_class=0[0m
+[0;21;39mSELinux:  policy capability bpf_token_perms=0[0m
+[0;21;32maudit: type=1403 audit(1792864479.239:2): auid=4294967295 ses=4294967295 lsm=selinux res=1[0m
+[0;21;39msystemd[1]: Successfully loaded SELinux policy in 170.864ms.[0m
+P+q6E616D65\[0;21;32maudit: type=1400 audit(1792864479.259:3): avc:  denied  { write } for  pid=1 comm="systemd" name="core_pattern" dev="proc" ino=910 scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:object_r:usermodehelper_t:s0 tclass=file permissive=1[0m
+[0;21;32maudit: type=1400 audit(1792864479.646:4): avc:  denied  { module_load } for  pid=1 comm="systemd" path="/usr/lib/modules/7.2.9-201.fc44.x86_64/kernel/net/vmw_vsock/vsock.ko.xz" dev="overlay" ino=33750 scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:object_r:unlabeled_t:s0 tclass=system permissive=1[0m
+[0;21;39mNET: Registered PF_VSOCK protocol family[0m
+[0;21;32maudit: type=1400 audit(1792864479.673:5): avc:  denied  { relabelto } for  pid=1 comm="systemd" name="loop0" dev="devtmpfs" ino=457 scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:object_r:fixed_disk_device_t:s0 tclass=blk_file permissive=1[0m
+[0;21;32maudit: type=1400 audit(1792864479.673:6): avc:  denied  { relabelto } for  pid=1 comm="systemd" name="nvme-fabrics" dev="devtmpfs" ino=380 scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:object_r:fixed_disk_device_t:s0 tclass=chr_file permissive=1[0m
+[0;21;32maudit: type=1400 audit(1792864479.678:7): avc:  denied  { relabelto } for  pid=1 comm="systemd" name="iommu" dev="devtmpfs" ino=188 scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:object_r:iommu_device_t:s0 tclass=chr_file permissive=1[0m
+[0;21;32maudit: type=1400 audit(1792864479.678:8): avc:  denied  { relabelto } for  pid=1 comm="systemd" name="rfkill" dev="devtmpfs" ino=187 scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:object_r:wireless_device_t:s0 tclass=chr_file permissive=1[0m
+[0;21;32maudit: type=1400 audit(1792864479.678:9): avc:  denied  { relabelto } for  pid=1 comm="systemd" name="vfio" dev="devtmpfs" ino=186 scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:object_r:vfio_device_t:s0 tclass=chr_file permissive=1[0m
+[0;21;32maudit: type=1400 audit(1792864479.678:10): avc:  denied  { relabelto } for  pid=1 comm="systemd" name="uhid" dev="devtmpfs" ino=184 scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:object_r:uhid_device_t:s0 tclass=chr_file permissive=1[0m
+[0;21;32maudit: type=1400 audit(1792864479.679:11): avc:  denied  { relabelto } for  pid=1 comm="systemd" name="tun" dev="devtmpfs" ino=183 scontext=system_u:system_r:kernel_t:s0 tcontext=system_u:object_r:tun_tap_device_t:s0 tclass=chr_file permissive=1[0m
+[6n[32766;32766H[6n[0;21;39msystemd[1]: Relabeled /dev/, /dev/shm/, /run/ in 26.778ms.[0m
+[2J[3J[-1;-1f[40m[2J[3J[-1;-1f[?25l[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m�� [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m�� [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m��� [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m�� [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m��� [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m�� [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m�� [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[37m■ [33m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m�� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m��� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m�� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m��� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m��� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m�� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m�� [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m�� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m��� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m��� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m��� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m�� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m�� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m�� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m��� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m�� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m��� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m�� [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m�� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m��� [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m��� [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m�� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m��� [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [37m�� [33m■ [39m[40m[-1;-1f[33m■ [37m■ [33m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m�� [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m��� [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m�� [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m�� [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m��� [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m��� [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[40m[-1;-1f[33m■ [33m■ [33m■ [39m[40m[-1;-1f[33m■ [33m■ [37m■ [39m[2J[3J[-1;-1f[49m[2J[3J[-1;-1f[?25h[   33.020445] SELinux:  Context system_u:object_r:invalid_bootcinstall_testlabel_t:s0 is not valid (left unmapped).
+[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H]3008;start=f4212dd2265b4559b4cd91fa5eb2d2a4;user=root;hostname=localhost-live;machineid=f0add64cf4f1463da399459ffd72403a;bootid=c38531ed6249485085c940cc8bc7ed5b;pid=1388;pidfdid=4805;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=84cbcd226afb47b6ba0e767fcd86a83d;type=service\P+q6E616D65\
+
+Bazzite
+Kernel 7.2.9-201.fc44.x86_64 on x86_64 (ttyS0)
+
+Activate the web console with: systemctl enable --now cockpit.socket
+
+Try contacting this VM's SSH server via 'ssh vsock%4294967295' from host.
+
+localhost-live login:

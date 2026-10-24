@@ -1,0 +1,34 @@
+{
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/BootOrder": {
+    "before": {
+      "attributes": 7,
+      "sha256": "2952e74e7437d21ca351894fb67cece2f89ab146e0266cf2a2f39b61d672ec57",
+      "bytes": 20
+    },
+    "after": {
+      "attributes": 7,
+      "sha256": "f4c4240d559e9fa725ad77f5b9721994a61e287b5c2c1c9bdf0b096281c395f2",
+      "bytes": 18
+    }
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0002": {
+    "before": {
+      "attributes": 7,
+      "sha256": "208d86022a49958957a27b9bdf37a48368f949badb264b2192b6cca72d31083e",
+      "bytes": 82
+    },
+    "after": null
+  },
+  "eb704011-1402-11d3-8e77-00a0c969723b/MTC": {
+    "before": {
+      "attributes": 7,
+      "sha256": "cb30e91817239109ffd0a5870046e128f04619da80c7624d921162fdfe514f76",
+      "bytes": 4
+    },
+    "after": {
+      "attributes": 7,
+      "sha256": "42f4aeb81c1ef81f771f3de8abca9dcf66901c575530e7672e4b1146474ae650",
+      "bytes": 4
+    }
+  }
+}

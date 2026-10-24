@@ -1,0 +1,7 @@
+{
+  "status": "orderly-pre-login-reboot",
+  "count": 1,
+  "source": "https://github.com/ublue-os/bazzite/blob/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/libexec/bazzite-hardware-setup",
+  "kernel_reboot_marker": true,
+  "qmp_guest_reset": true
+}

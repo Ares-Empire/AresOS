@@ -1,0 +1,33 @@
+?2004hARESOS_ROOT> [?2004l
+
+
+Broadcast message from root@bazzite on pts/0 (Sat 2026-10-24 21:49:20 CEST):
+
+The system will reboot now!
+
+[?2004hARESOS_ROOT> ]3008;end=a9d8a00f2dc7475d8d078c40440c6a8d\]3008;end=582deb07525540ba850b30acb7fc584f\[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H]3008;end=225f7[  186.929103] systemd-udevd[653]: Failed to remove file descriptor "config-serialization" from the store, ignoring: Connection refused
+[  186.970845] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[  186.974993] systemd-shutdown[1]: Unmounting file systems.
+[  186.977536] (sd-umount)[2458]: Unmounting '/run/credentials/systemd-journald.service'.
+[  186.980224] (sd-remount)[2459]: Remounting '/sysroot' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  186.997850] (sd-umount)[2460]: Unmounting '/sysroot'.
+[  186.999852] (sd-remount)[2461]: Remounting '/etc' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  187.003496] (sd-umount)[2462]: Unmounting '/etc'.
+[  187.005198] systemd-shutdown[1]: All filesystems unmounted.
+[  187.006299] systemd-shutdown[1]: Deactivating swaps.
+[  187.007541] systemd-shutdown[1]: All swaps deactivated.
+[  187.008820] systemd-shutdown[1]: Detaching loop devices.
+[  187.010962] systemd-shutdown[1]: All loop devices detached.
+[  187.012301] systemd-shutdown[1]: Stopping MD devices.
+[  187.013636] systemd-shutdown[1]: All MD devices stopped.
+[  187.014982] systemd-shutdown[1]: Detaching DM devices.
+[  187.016378] systemd-shutdown[1]: All DM devices detached.
+[  187.017770] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[  187.020149] watchdog: watchdog0: watchdog did not stop!
+[  187.033503] systemd-shutdown[1]: Syncing filesystems and block devices.
+[  187.035138] systemd-shutdown[1]: Rebooting.
+[  187.052201] Console: switching to colour dummy device 80x25
+[  187.080499] ACPI: PM: Preparing to enter system sleep state S5
+[  187.082165] kvm: exiting hardware virtualization
+[  187.083455] reboot: Restarting system
+[  187.084412] reboot: machine restart

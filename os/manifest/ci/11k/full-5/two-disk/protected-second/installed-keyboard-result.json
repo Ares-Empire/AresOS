@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "console_keymap": "de",
+  "x11_layout": "de",
+  "expected_options": [],
+  "observed_options": [],
+  "context": "first installed stock root shell",
+  "boot": 16,
+  "order": "protected-second",
+  "root": "/",
+  "module_proof": "webui-keyboard-proof.json",
+  "files_record": "installed-keyboard-files.json"
+}

@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11k state: **IN PROGRESS; A still NOT QUALIFIED, B UNTESTED, C pins retained.** The bounded retry fix passes 68 focused tests. The fresh guard recovered four actual 502s and produced a complete ledger: 468/750 minutes, 4/5 full, 238 reserved. One fresh probe then the same-head final full remain; physical installation stays NOT RELEASED.
+Latest 11k outcome: **A PASSED BOTH ORDERS; B BLOCKED before menu selection; C pins retained.** The bounded read-only guard recovered seven intermittent 502s. Fresh probe 40117290487 and final full 40119526154 passed on source **2524823**; both ran 181 native tests. Both installed German checks and all seven pause/five pin checks passed; all **32** probe/full protected captures matched with **32 final zero-write records**. Part B has one checksum-matching stock entry but its bare BLS ID is rejected by the selector. No selector change, second probe or sixth full. Shared ledger **611/750 measured, 5/5 full**, with 14 closing minutes reserved; exact closing privacy proof/cost is recorded on PR #11 after the evidence push. Physical installation stays **NOT RELEASED**.
 
 Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **229/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
 
@@ -2905,7 +2905,7 @@ PR #11 stays draft. Fast-forward pushes only; no merge or force-push.
 Final closure checks: `replay-11j-stop.py` passed with 464 minutes/four full, no full authorization and no installed claims. All bound inputs are recorded in [stop-analysis.json](../../os/manifest/ci/11j/stop-analysis.json); local user/worktree/Python prefixes in the retained stderr are redacted, with raw/display SHA-256 provenance. History gitleaks scanned **122 commits**, no leaks. The final copy/idempotency/pending-update tests passed **7 in 0.132s / OK** after documentation edits; evidence/scanner and diff checks passed again. Privacy policy files, frozen pins, OS config and disk_audit.py match brief head 4b3d71d. Final staged scan and input-to-Git-blob hashes must pass before the evidence push.
 
 
-## 11k: bounded read-only guard retries (2026-10-24)
+## 11k: bounded read-only guard retry and final qualification (2026-10-24)
 
 ### Zero-cost stage walk-through confirmation — BEFORE ANY DISPATCH
 
@@ -3000,3 +3000,247 @@ Focused local suite: **68 tests in 0.529s / OK**; Python compilation, archive-sc
 | Initial local plan guard | `repos/Ares-Empire/AresOS/actions/runs/40061023607/jobs?per_page=100` | 502 | 1 → 2 / 10s |
 
 All four retries recovered within the five-attempt bound; the complete result kept every run and counted four full dispatches. No owner-token API calls, cached responses or alternate endpoints. The planned VM transitions above remain unchanged.
+
+Before probe: source **2524823323888128a114866a2e1888f921e531cc**, both source privacy workflows passed all three commands (original complete logs, metadata steps absent; no PRIVATE_TERMS skip). Historical 11g verifier still passes. Fresh guard succeeded at **471/750, 4/5 full**, reserving 238 (709 total); actual owner/source privacy cost remains counted. This refresh saw one retry: `repos/Ares-Empire/AresOS/actions/runs/40050666140/jobs?per_page=100`, HTTP502, failed attempt1 → attempt2 after10s, then success. The entire walk-through is unchanged. Only the single new probe is now authorized; actual installed outcomes remain full gates.
+
+
+### Passing single probe → final full gate — BEFORE FULL DISPATCH
+
+Probe [40117290487](https://github.com/Ares-Empire/AresOS/actions/runs/40117290487)
+passed on **2524823323888128a114866a2e1888f921e531cc**. Native Ubuntu reported
+**181 tests in 4.219s / OK**. Both actual review-only UI routes passed, with German
+module/source identity and non-installed reader fixtures; target-only EFI/boot/root
+tables were visually inspected (vdb first order, vda reverse). Exact cached stock
+versions/service/daemon comm, real unit pause twice, OCR/GRUB tools, signature,
+private pinned-image reads and always auth cleanup passed. Zero owner-token API calls.
+Offline verification: **6 matching captures, 6 final zero-write records, 464 original
+archive records scanned, no incomplete stage**. Original ZIP **6,415,974 bytes**,
+SHA-256 **2884fa6453e57f5bccf527c70ab8ec059e66c07ba8c2047ff6a34d610fbe1fee**.
+The probe cost **27 rounded minutes**.
+
+Its CI guard recovered two 502s on
+`repos/Ares-Empire/AresOS/actions/runs/40061023607/jobs?per_page=100`:
+attempt1 →2 after10s, attempt2 →3 after20s. All recorded retries match the original
+whole-job log and the successful authorization receipt. The local pre-full guard
+needed **zero retries** and returned a complete ledger: **498/750, 4/5 full**,
+reserving **196 = 182 full + 14 closing**, total **694**. This is actual fresh guard
+authorization, not reconstructed bookkeeping. Remote branch and passing probe
+remain exactly **2524823**, no source push after probe. Require explicit probe ID
+40117290487 and its original server artifact digest again in CI.
+
+The complete stage walk-through above remains unchanged. The final full must read
+actual installed German files before pause in each order; export each pause/pin's
+unit/transaction/process/cancel values; retain actual staged/discarded identities;
+finish every A recovery/undo/detached-marker stage in both orders, then B. Every
+original disk/NVRAM/auth/policy/product stop remains. This dispatch is the **fifth
+and last full**; no second probe or sixth full. Acceptance remains unqualified
+until actual reached-stage evidence proves it.
+
+### Final outcome — Part A passed both orders; Part B blocked
+
+**Done:** the only new runtime change is the bounded read-only guard wrapper and
+its seven regressions described above. Evidence collection/verifiers now retain
+and independently check every pause, including B's pin, recompute daemon exclusion
+from executable/argv/cgroup, tabulate all actual retries without counting duplicate
+step logs, and replay the published selector against the actual installed BLS
+entries. `INSTALL.md` and `EMERGENCY.md` distinguish completed VM Part A from the
+open GRUB, physical-media, laptop and followability gates. No tested runtime,
+security/policy, image pin or owner pause/pin recipe changed after source **2524823**.
+
+The single fresh [probe 40117290487](https://github.com/Ares-Empire/AresOS/actions/runs/40117290487)
+and the fifth/final [full 40119526154](https://github.com/Ares-Empire/AresOS/actions/runs/40119526154)
+both completed successfully on **2524823323888128a114866a2e1888f921e531cc**.
+The full CI guard again required that exact probe ID, same SHA, original downloaded
+ZIP digest and all qualification flags. The full's successful job result includes
+an explicit **blocked** B result; it does not mean B passed.
+
+| Gate | Actual result → retained evidence |
+|---|---|
+| Read-only API/ZIP retry and fail-closed regressions | 68 focused Windows tests in 0.529s / OK; seven new tests cover ledger/count equality, exhaustion/no authorization, immediate 403/404/auth/parse failures, connection failures and actual retained ZIP digest validation. [Local output](logs/11k/local-tests.txt), [source tests](../../os/tests/test_rehearsal_retry.py). |
+| Native discovery on tested source | Probe **181 tests in 4.219s / OK**, full **181 in 3.737s / OK**. Includes updater replay/negative, keyboard/source/options, idempotent owner-copy, QMP failure-counter and all previous disk/firmware/signature/policy tests. Complete [probe](logs/11k/probe-1.txt) and [full](logs/11k/full-5.txt) logs retained. |
+| Probe before full, unchanged walk-through | Explicit [full authorization](../../os/manifest/ci/11k/full-5/11c-dispatch-authorization.json), [before-full ledger](../../os/manifest/ci/11k/before-full-budget.json); same source, no intervening push. Both actual review UI orders, read-only keyboard/source and cached stock/OCR/GRUB checks passed. |
+| Part A, protected disk first | [part-a-result](../../os/manifest/ci/11k/full-5/two-disk/part-a-result.json), [switch/recovery result](../../os/manifest/ci/11k/full-5/two-disk/result.json). Complete install, target-only EFI/boot/root, German, pause/pin, signed switch, policy, inherited Homebrew denial with owner preserved, real tty3 password login/sudo/logout, exact-stock rollback, persistent and second default stock, Windows default undo and detached marker checks passed. |
+| Part A, protected disk second | Same complete route independently passed: [part-a-result](../../os/manifest/ci/11k/full-5/two-disk/protected-second/part-a-result.json), [switch/recovery result](../../os/manifest/ci/11k/full-5/two-disk/protected-second/result.json). Closed target reset/pristine vars and swapped drive mapping were used. |
+| Actual installed German per order, before pause | First order boot **4**, reverse boot **16**, root `/`, context `first installed stock root shell`; `KEYMAP="de"`, `FONT="eurlatgr"`, X11 `XkbLayout "de"`, model `pc105`, expected/observed options **[]**. [First result/files](../../os/manifest/ci/11k/full-5/two-disk/installed-keyboard-result.json), [reverse result](../../os/manifest/ci/11k/full-5/two-disk/protected-second/installed-keyboard-result.json); adjacent `installed-keyboard-files.json` retain actual content. Both passed before first pause. Probe reader fixtures were explicitly synthetic/non-installed. |
+| Pause and pin at every invocation | **7/7** pauses passed; **5/5** pin results passed. Complete [per-invocation table](../../os/manifest/ci/11k/pause-pin-table.md), [structured decisions](../../os/manifest/ci/11k/pause-pin-observations.json) and raw unit/disable/timer/status/process receipts retained. Actual values detailed below. |
+| Protected disk and firmware at every reached stage | **26 full + 6 probe = 32 matching offline captures and 32 final zero-write records**; **1,387** original archive records scanned, no incomplete stage. [Verification](../../os/manifest/ci/11k/evidence-verification.json), [every stage/event](../../os/manifest/ci/11k/stage-table.md), adjacent raw QMP/GPT/EFI/NVRAM/device/diff records. All original Windows identity/number/bytes and fixed relative order constraints hold. |
+| Windows-like recovery/undo | Both orders reached detached marker after install, attached Windows immediately before undo, exact Windows-first undo/default marker, and detached marker after undo. Original ESP/MSR/NTFS/recovery layout and EFI hashes unchanged; marker reports original BootCurrent/loaded path. This is a disposable Windows-like fixture, not a real Windows installation. |
+| Part B | **BLOCKED before menu selection**, promotion or second recovered-stock boot: [grub-promotion.json](../../os/manifest/ci/11k/full-5/two-disk/protected-second/grub-promotion.json), [actual BLS entries](../../os/manifest/ci/11k/full-5/two-disk/protected-second/b-bls-entries.json), [independent source replay](../../os/manifest/ci/11k/full-analysis.json). One stock checksum match, zero IDs accepted by the published selector. Details below. |
+| Token/signature/auth cleanup | Both archive preflights and signature receipts pass for the unchanged release digest. Owner-token API calls **0**. `owner-auth-cleanup.json` confirms removal before upload; original ZIPs scanned for credentials/password hashes. Ordinary job/local gh credential supplies metadata. [Full preflight](../../os/manifest/ci/11k/full-5/private-registry-preflight.json), [cleanup](../../os/manifest/ci/11k/full-5/owner-auth-cleanup.json). |
+| Shared budget and privacy | [Fresh after-full guard](../../os/manifest/ci/11k/after-full-budget.json): **611/750 minutes, 5/5 full**, 14 closing reserved, total625. Source privacy passed all three commands without a PRIVATE_TERMS skip: [original-log proof](../../os/manifest/ci/11k/source-privacy-proof.json). Final evidence-head checks and their actual cost are recorded on PR #11 after push. |
+
+### Real pause and pin decision values
+
+At **all seven** pauses, all **14 selected units** had `ActiveState=inactive`,
+`SubState=dead`; `units_inactive=true`, raw transaction **null**,
+`transaction_idle=true`, `clients_idle=true`. These units were:
+`uupd.service`, `uupd-manual.service`, `uupd.timer`,
+`rpm-ostreed-automatic.service`, `rpm-ostreed-automatic.timer`,
+`bootc-fetch-apply-updates.service`, `bootc-fetch-apply-updates.timer`,
+`systemd-sysupdate.service`, `systemd-sysupdate.timer`,
+`systemd-sysupdate-reboot.service`, `systemd-sysupdate-reboot.timer`,
+`systemd-sysupdated.service`, `dbus-org.freedesktop.sysupdate1.service`,
+`dnf5-offline-transaction.service`. Persistent timer-disable and raw stop/mask
+results are retained rather than inferred from a warning or summary boolean.
+
+Each receipt saw exactly one relevant process: executable `/usr/bin/rpm-ostree`,
+argv **["rpm-ostree", "start-daemon"]**, cgroup
+`0::/system.slice/rpm-ostreed.service\n`, `excluded_as_daemon=true`; no outside
+client. This is the real process the former name-only pgrep incorrectly counted.
+Every `cancel.ran=false`, `cancel.transaction=null`: no real cancellation was needed.
+
+| Invocation (raw transcript relative to full-5) | Daemon PID | Predicates / transaction / cancel | Staged observed / discarded |
+|---|---:|---|---|
+| `two-disk/first-stock-pause.txt` | 1223 | all true / null / false | not a pin |
+| `two-disk/first-stock-pin.txt` | 1223 | all true / null / false | false / false |
+| `two-disk/pin-stock.txt` | 1177 | all true / null / false | false / false |
+| `two-disk/protected-second/first-stock-pause.txt` | 1221 | all true / null / false | not a pin |
+| `two-disk/protected-second/first-stock-pin.txt` | 1221 | all true / null / false | false / false |
+| `two-disk/protected-second/pin-stock.txt` | 1170 | all true / null / false | false / false |
+| `two-disk/protected-second/b-pin-stock.txt` | 1197 | all true / null / false | false / false |
+
+All five pin results retain booted stock checksum
+**aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71**,
+the pinned upstream digest `sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151`,
+`pinned=true`, `no_staged=true`, `staged_discarded=false`, `discarded=null`.
+Thus **no staged update was observed at a pin checkpoint and none was discarded**.
+The historical 11f staged-update fixture/native replay and cancellation/negative
+regressions passed; they are not evidence of a real cancellation/discard this run.
+The 11j exact cached-image source/version/service/comm verification remains binding
+(rpm-ostree **2026.3**, uupd **1.5.0**) and was repeated by this source's fresh probe.
+The owner block and both harness copies still match the tested 11j implementation.
+
+The installed file check replaces the withdrawn live-restore assertion: Anaconda's
+queued live localed setter can overwrite a restored live layout. Pre-install proof
+therefore remains read-only against the exact pinned module/interface source and
+German module/options, with German correctness required on each actual installed
+root. Neither the live resolver nor setter was called to manufacture the proof.
+Historical 11i missing decision values remain unknown; current values do not
+backfill them. Historical 11f's missing final counter remains unqualified.
+
+### Part B blocker and stop
+
+After A passed both orders, B pinned stock again, switched to the signed AresOS
+deployment and verified AresOS booted/default. Its actual Anaconda BLS entries were:
+
+| Actual ID | Title / version | Deployment |
+|---|---|---|
+| `ostree-2` | `Bazzite (ostree:0)` / 2 | `43853db13f424f8409a2781cc463a385d3f5003f741b11d632eaf86a5fd93adb.1` (AresOS) |
+| `ostree-1` | `Bazzite (ostree:1)` / 1 | `aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1` (retained stock) |
+
+Both are under `/sysroot/ostree/deploy/default/deploy/`. Published
+`stock_bls_entry()` requires `ostree-([1-9][0-9]*)-[A-Za-z0-9_.-]+`; both bare IDs
+fail that pattern. The receipt says **"Actual nondefault BLS stock entry was not
+unique"**, but replaying the exact tested source against the raw entries proves
+**one checksum-matching stock entry and zero accepted candidates**, not ambiguity
+between two stock deployments. The digit is also not universally the menu index:
+ID `ostree-2` has title `ostree:0`. Merely allowing the suffix to be absent would
+not prove correct menu selection. No selector was changed or index guessed.
+
+There was **no actual B menu selection, authorized fallback selection, recovery
+promotion or unattended recovered-stock second boot**. The guest shut down
+normally; `b-menu-preparation-qmp.json` records guest-requested shutdown and STOP,
+then host QMP quit, with no host-signal event. The `b-unresolved-menu` final counter
+is zero and `b-menu-preparation` offline audit matches. This recognized blocker
+closed normally; it is not a successful B path or a forced-termination counter test.
+The dedicated failure-counter regression and live pause-only probe still pass:
+counters are captured before termination, and unavailable counters fail qualification.
+**Stop/report, no sixth full.**
+
+### Per-stage firmware and immutable original evidence
+
+The [32-row stage table](../../os/manifest/ci/11k/stage-table.md) lists every reached
+stage, protected match/zero counter, automatic-device event and Linux position.
+There were **18** automatic-option events (13 full, 5 probe), each validated against
+actual attached QMP devices and the verified OVMF GUID contract, and **4** target
+Linux position events: each install creates validated `Boot000A` at position0;
+each exact Windows-first restoration moves it to position1. The known hardware
+initialization reboots at boot3/15 were separately audited. Detach/reattach removal,
+addition and relabel/renumber events meet the inherited exact device-set rule;
+no unknown GUID or relaxed Windows/fixed-entry rule. All raw variable changes remain
+retained; nonboot changes are the existing **MokTimeout, SbatLevel, MTC and HDDP**
+classes, with no new exception. No protected bytes/GPT/EFI change or final write.
+
+| Original downloaded archive | Bytes | SHA-256 |
+|---|---:|---|
+| [Probe evidence ZIP](artifacts/11k-probe-1-two-disk-evidence.zip) | 6,415,974 | `2884fa6453e57f5bccf527c70ab8ec059e66c07ba8c2047ff6a34d610fbe1fee` |
+| [Full evidence ZIP](artifacts/11k-full-5-two-disk-evidence.zip) | 12,115,810 | `f71696936d01ae27c8502b2f90cd5a2efa7a37a88d56e90ca333e717c7a752d7` |
+
+Original binary archives, PNGs and firmware bytes are unchanged. Original workflow
+log ZIPs are adjacent; metadata/artifact server digests and hash receipts are under
+each `11k/probe-1` and `11k/full-5`. Only extracted display text has LF/trailing-space
+normalization. Full original logs retain evidence omitted from display-only file
+listings. Independent replay input hashes use **Git canonical LF text** and are
+checked against staged/committed blobs; raw ZIP hashes use original bytes.
+
+Visually inspected both probe target-only review tables and, for both full orders,
+the successful installation screen, real tty3 administrator/sudo screen, logged-out
+getty prompt and rendered rollback stock greeter. See `screenshots/11k-full-5-two-disk-`
+and `screenshots/11k-full-5-two-disk-protected-second-` prefixes, especially
+`installation-complete.png`, `recovery-admin-tty3.png`, `recovery-tty3-logged-out.png`
+and `rollback-bazzite.png`. The tty MOTD includes the frozen policy's flatpak
+permission message; the real login/sudo/logout and policy assertions passed.
+No human laptop/media/physical-keyboard observation is claimed.
+
+### Every retry this round and shared ledger
+
+The complete [seven-row retry table](../../os/manifest/ci/11k/retry-table.md) gives
+every path, status and failed/next attempt/wait. [Structured observations](../../os/manifest/ci/11k/retry-observations.json)
+include source hashes and verify CI receipt equality to original whole-job logs;
+per-step copies are not double counted. The four initial retries and one pre-probe
+retry are listed above. Probe CI added two 502s on run40061023607's plain jobs path
+(1→2/10s, 2→3/20s). Pre-full local, full CI (including ZIP) and post-full local saw
+**zero** retries. All seven recovered; no exhausted call, 4xx/auth/parse retry,
+alternate endpoint, cache, missing run or partial ledger. Real connection/ZIP
+retries were not observed; regressions cover them. The after-full `probe 14`
+command was **ledger-only** and did not dispatch another probe.
+
+| Shared ledger checkpoint | Rounded minutes / full dispatches |
+|---|---:|
+| 11j closed | 466 / 4 |
+| Owner 11k brief privacy +2; initial fresh guard | 468 / 4 |
+| Tested source privacy +3; before single probe | 471 / 4 |
+| Single new probe +27; before final full | 498 / 4 |
+| Final full +113; fresh post-full complete guard | **611 / 5** |
+| Closing reservation | **14**, total625 ≤750 |
+
+Same start **2026-10-23T16:21:00Z**, no ledger reset or skipped run; job/step limits
+unchanged. The 704-minute planning total was an estimate/reservation, not a new
+allowance. All five full dispatches are consumed. Final evidence push/PR privacy
+jobs are charged on this ledger; exact final SHA/run links, all-three-command
+proof, no PRIVATE_TERMS skip and rounded closing cost are put on PR #11 after
+they finish, avoiding a new evidence commit/privacy loop. No further dispatch.
+
+**Verified offline:** `verify-11k-evidence.py` (32 matches/32 counters/1,387 archive
+records/no incomplete stage), `tabulate-11k-stages.py`, `tabulate-11k-retries.py`,
+`replay-11k-full.py`, archive-scanner regression, unchanged historical 11g replay,
+compilation/diff checks, runtime blob comparison and local staged/history gitleaks.
+The stock-preparation copy/idempotence suite was repeated after the documentation
+edit: **7 tests in 0.050s / OK**, [output](logs/11k/final-stock-tests.txt). The first
+default-encoding retry-table rerun raised `UnicodeEncodeError` on the arrow glyph
+under Windows cp1252; the evidence-only writer now explicitly reads/writes UTF-8,
+and its rerun reports **Actual guard retries: 7**. Native tests above are the Linux authority; no Gradle or Minecraft daemon
+was started, and no unrelated mod build was needed for this OS-only follow-up.
+
+**Not verified:** Part B selection/fallback/promotion/second recovered boot; actual
+transaction cancellation or staged-discard on this run; physical media, real
+Windows installation, laptop firmware/SSD/GPU, physical German typing, novice
+followability and manual GRUB interaction. These remain release gates.
+
+**JUDGMENT-CALL:** fail closed on unknown gh errors and retain conservative
+connection classification; verified transport forms alone retry. No owner token
+was read locally; Actions used it only for the pinned private image read, root0600
+outside workspace, read-only guest mount and always removal before artifacts.
+No package/registry write, build, publish, repin, physical operation, firmware
+exception or security change. Brief11c explicitly accepts **A green both orders
+and B green OR a clearly stated blocker**; with final privacy green, mark PR #11
+ready for code review. That does not release installation or claim B passed.
+
+**PLAN-GAP:** actual Anaconda BLS IDs do not fit the inherited suffix/index model,
+and its zero-candidate error is misleading. A future authorized fix must derive
+and verify the real GRUB selection/order against the installed entries rather
+than guess from filename digits. It needs a separately authorized run allowance;
+none is implemented here. Historical failed evidence remains unchanged.
+
+**Open questions:** the actual menu selector/promotion path, physical-media/laptop
+and novice gates above. No merge; no force push; no second probe or sixth full.

@@ -1,0 +1,95 @@
+{
+  "retries": 7,
+  "observations": [
+    {
+      "phase": "local-initial",
+      "path": "repos/Ares-Empire/AresOS/actions/runs/40112294759/jobs?per_page=100",
+      "status": 502,
+      "attempt": 1,
+      "next_attempt": 2,
+      "wait_seconds": 10
+    },
+    {
+      "phase": "local-initial",
+      "path": "repos/Ares-Empire/AresOS/actions/runs/40105647808/jobs?per_page=100",
+      "status": 502,
+      "attempt": 1,
+      "next_attempt": 2,
+      "wait_seconds": 10
+    },
+    {
+      "phase": "local-initial",
+      "path": "repos/Ares-Empire/AresOS/actions/runs/40105647808/jobs?per_page=100",
+      "status": 502,
+      "attempt": 2,
+      "next_attempt": 3,
+      "wait_seconds": 20
+    },
+    {
+      "phase": "local-initial",
+      "path": "repos/Ares-Empire/AresOS/actions/runs/40061023607/jobs?per_page=100",
+      "status": 502,
+      "attempt": 1,
+      "next_attempt": 2,
+      "wait_seconds": 10
+    },
+    {
+      "phase": "local-before-probe",
+      "path": "repos/Ares-Empire/AresOS/actions/runs/40050666140/jobs?per_page=100",
+      "status": 502,
+      "attempt": 1,
+      "next_attempt": 2,
+      "wait_seconds": 10
+    },
+    {
+      "phase": "CI-probe-1",
+      "path": "repos/Ares-Empire/AresOS/actions/runs/40061023607/jobs?per_page=100",
+      "status": 502,
+      "attempt": 1,
+      "next_attempt": 2,
+      "wait_seconds": 10
+    },
+    {
+      "phase": "CI-probe-1",
+      "path": "repos/Ares-Empire/AresOS/actions/runs/40061023607/jobs?per_page=100",
+      "status": 502,
+      "attempt": 2,
+      "next_attempt": 3,
+      "wait_seconds": 20
+    }
+  ],
+  "terminal_failures": [],
+  "sources": [
+    {
+      "path": "reviews/11-two-disk-rehearsal/logs/11k/initial-guard.txt",
+      "sha256": "16b6f7e4ef44b042b3ba89f599b1f7579dc1c2d07b75bb6beb968b9b9430fe71",
+      "retries": 4
+    },
+    {
+      "path": "reviews/11-two-disk-rehearsal/logs/11k/before-probe-guard.txt",
+      "sha256": "d687a7b8ae48715e6cb72c91458dbb69551e9aeddca2d0b654fdfd8ac493f63e",
+      "retries": 1
+    },
+    {
+      "path": "reviews/11-two-disk-rehearsal/logs/11k/before-full-guard.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "retries": 0
+    },
+    {
+      "path": "reviews/11-two-disk-rehearsal/logs/11k/after-full-guard.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "retries": 0
+    },
+    {
+      "path": "reviews/11-two-disk-rehearsal/artifacts/11k-full-5-workflow-logs.zip",
+      "sha256": "6658a5cbf0398df74cea9081fbd5d0578588873040363adcf51b697bc9480ce9",
+      "retries": 0
+    },
+    {
+      "path": "reviews/11-two-disk-rehearsal/artifacts/11k-probe-1-workflow-logs.zip",
+      "sha256": "10460b6d819c2c82aa5ed203e4a53dae70ba3cff9dc4ea7dc5e302d85be69d30",
+      "retries": 2
+    }
+  ],
+  "note": "Each row is an actual retry, not a new workflow dispatch; native mocked-test stderr is captured and absent."
+}
