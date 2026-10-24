@@ -726,3 +726,28 @@ read-only probe. Cancel probe 2 during setup and add actual live-frame OCR plus
 cached set-default/GRUB help, without boot/menu/default or disk mutation. Root
 probe authorization requires this new flag, with existing source/keyboard/stock/
 failure flags. Actual B remains a full-run gate. Full stage transitions unchanged.
+
+
+11i full gate: probe 40103660846 passed on unchanged source f1a237d, 167 Ubuntu
+regressions, both read-only keyboard/source proofs and synthetic reader/OCR/cached
+GRUB tool checks; six matched offline/final-zero sessions, five expected auto events,
+no incomplete stages. Both review tables visually target-only (first vdb, reverse
+vda). Explicit same-SHA/server-digest guard required for full 4. Actual installed
+keyboard and stock preparation remain full gates; all stop rules hold. No push
+between probe and full. Full result must not treat a synthetic reader as installed.
+
+
+### 11i full 4 result — stock pause STOP
+
+Full 40105647808 on the same f1a237d as passed probe 40103660846 completed first
+installation and one known hardware-init reboot, then first-stock-pause refused
+its 300-second idle conjunction. Final unit/transaction/client values were not
+exported; do not diagnose one predicate from the generic message or earlier timer
+warning. No installed keyboard files/result or pin/status proof, reverse full,
+AresOS switch, complete A or B. Do not infer booted digest or pending discard.
+Four full captures match; boot4 failure stats are paused/recorded/zero before host
+termination. Combined probe/full 10 matched/10 final-zero, six auto/two Linux-position
+events, only probe3 qualified. Raw nonboot vars retained without a new exception.
+Stop/no fifth full/no bypass. Ledger424/750 plus14 closing reserve,4/5full used.
+PR draft, physical gates open. Runtime still f1a237d; only evidence/docs/stricter
+collector after testing. Follow-up needs actual idle-predicate diagnostics.

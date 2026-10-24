@@ -1,0 +1,1 @@
+{"status": "passed", "reference": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402", "secret": "GHCR_READ_TOKEN", "owner_token_api_calls": 0, "preserved_digest": true, "credential_file_copied": false, "local_copy_removed": true}

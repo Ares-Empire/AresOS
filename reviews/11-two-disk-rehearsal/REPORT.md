@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11i status: **implementation prepared; fresh probe/full pending. A/B remain unqualified.** The integrator authorizes a read-only pre-install keyboard proof and a real installed console/X11/options check, replacing 11h's live restoration premise. The existing 11g stock preparation, protected-disk/firmware gates and token/privacy limits remain unchanged. See [11i](#11i-read-only-choices-and-installed-keyboard-2026-10-24).
+Latest 11i outcome: **STOP at the first installed stock updater pause. A NOT QUALIFIED, B UNTESTED, C pins retained.** The read-only keyboard proof passed in both probe orders and in the full; the first real installation completed. Stock's 300-second idle guard then refused, before the actual installed keyboard check or pin. Ten reached offline captures match and ten final counters are zero; no installed keyboard result is claimed. Shared ledger **424/750 measured + 14 closing privacy minutes reserved, 4/5 full runs used**. PR #11 remains draft; no fifth full. See [11i](#11i-read-only-choices-and-installed-keyboard-2026-10-24).
 
 Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **229/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
 
@@ -2402,3 +2402,257 @@ If help/OCR fails, no full dispatch. All stop rules stay unchanged. Local keyboa
 UI, guard, harness and cache tests: **47 in 0.381s / OK**. Archive scanner regression
 also passes ASCII crypt/raw/decoded token specimens and the unchanged historical
 compressed-PNG false-positive fixture, without a new exclusion.
+
+
+### Successful probe 3 → full 4 gate — BEFORE FULL DISPATCH
+
+Probe **40103660846** on **f1a237dda5c11cf3e981b97fbf026eef2384ddb1** passed.
+Native Ubuntu: **167 tests in 3.212s / OK**. Both read-only records require German
+X layout and empty console model, unchanged module settings and empty module
+switch options. Both live tuples were de / [de] / [], recorded only. Exact installed
+module SHA f3a34899…34381db and interface SHA
+**28f67133ed97b6d6030c7055bad7548b0919459405e054f5505acc1a6ce16732** match extraction.
+The pinned getter confirms `LayoutSwitchOptions` returns `implementation.switch_options`.
+No conversion or setter ran in our diagnostic. Both synthetic file-reader results
+are explicitly `installed:false, fixture_only:true`; actual target checks remain
+full gates. Actual host OCR and cached set-default/GRUB help passed in both orders.
+
+Recomputed evidence: **6 matching offline stages, 6 final zero-write records,
+492 archive entries scanned, no incomplete stages**, only probe 3 qualified. Five
+expected firmware auto events (first DVD/target removals; reverse DVD/target removals
+and protected relabel/renumber), zero Linux position events. Windows byte/default
+and exact restore checks passed, detached marker booted in each order. Failure
+counter exercises are paused/probe-only and separate from final session counters.
+Both final storage tables were visually inspected: only target vdb in first order,
+only target vda in reverse; each has its own new EFI, boot and root rows. Signature,
+private manifest/pull and always-cleanup passed; zero owner-token API calls.
+Original artifact **6,402,295 bytes**, SHA-256
+**9f8be121b1d9ff066a7b186d86ea7581b0c06764582df36c6321c9fc12d65fb3**.
+
+Probe 2 cancellation cost **5 rounded minutes**; its owner/VM steps were skipped
+and cleanup passed. Source 2/3 push/PR privacy all passed, with terms not skipped.
+Before full, shared measured ledger is **377/750**, **3/5 full runs**,
+with **182 reserved for one complete full**. Same start, no reset. The source and
+PR remote head remain exactly f1a237d; no source push between passing probe and
+full. Full must consume explicit probe ID 40103660846 and verify the original server
+artifact digest again. Complete both-order stage walk-through and B supplement
+above remain the expected transitions. Actual installed German/options, installed
+stock pause/pending cleanup/pin, subsequent frozen policy and all recovery/default
+checks remain unqualified until their real results. Any specified stop condition
+ends the run without a retry or assertion/rule change.
+
+
+### Final 11i result — stock pause STOP after the first installation
+
+**Done:** replaced the mutating live keyboard prediction with source-bound,
+read-only module/localed reads, kept all module choices unchanged, and implemented
+actual installed console/X11/options validation after the required first updater
+pause. Added negative/read-only/file-reader regressions, the five-full guard and
+Part B OCR/cached GRUB tool preflights. Exact ISO interface spelling is verified
+from extracted source. Historical validators/evidence retain their original meaning.
+Runtime code remains exactly the successful probe/full source **f1a237d**; subsequent
+changes are evidence, report/docs and a stricter offline collector (full job must
+succeed; installed receipts must match the audited installed boot/order).
+
+**Verified full outcome:** [40105647808](https://github.com/Ares-Empire/AresOS/actions/runs/40105647808)
+used exact source **f1a237dda5c11cf3e981b97fbf026eef2384ddb1**, explicit passing probe
+40103660846 and server-artifact digest check. **167 Ubuntu tests in 3.869s / OK**;
+Python/shell syntax, frozen release equivalence, manifest/pull/signature, whole ISO
+and firmware-source checks passed. The new read-only keyboard proof passed: module
+`XLayouts=['de']`, console model empty, `LayoutSwitchOptions=[]`, same exact task/
+interface SHA and all three settings unchanged. No conversion was called by our proof.
+
+The first protected-first real Web UI installation **completed** on target **vdb**.
+The saved [completion screen](screenshots/11i-full-4-two-disk-installation-complete.png)
+was visually inspected; [result](../../os/manifest/ci/11i/full-4/two-disk/protected-first-install-result.json)
+says `status:passed`. This is an actual installation, unlike 11g's aborted stage.
+Windows-first restoration passed exactly. The known first-stock hardware setup
+performed one orderly pre-login reboot, separately audited; the next installed
+boot reached its authenticated root shell. The first required command was the
+unchanged 11g stock updater pause. It created runtime service masks and removed the
+persistent uupd timer enablement, then refused at its **300-second idle deadline**:
+
+```text
+STOP: stock updaters could not be paused. See EMERGENCY.md / get help.
+Updater/deployment transaction did not become idle
+AssertionError: Guest command failed: first-stock-pause, exit 1
+```
+
+[Actual pause transcript](../../os/manifest/ci/11i/full-4/two-disk/first-stock-pause.txt),
+[completed full log](logs/11i/full-4.txt),
+[SHA-bound stop replay](../../os/manifest/ci/11i/full-stop-analysis.json).
+The waiting condition is a conjunction: all selected units inactive/failed,
+rpm-ostree transaction null, and no bootc/rpm-ostree clients. **The final values were
+not exported**, so the evidence does not identify which predicate stayed false.
+The earlier warning that uupd.timer was active while its service was masked precedes
+the timer-disable command; it does not prove the timer stayed active afterward.
+Do not infer a specific transaction, process, zombie or unit as the cause.
+
+The prescribed STOP/help path applies. **No fifth full, new probe, bypass, idle-check
+relaxation, timeout change, automatic rollback or later-stage continuation.** The
+successful live unit pause and mocked real-status replay do not establish that the
+installed idle wait succeeded. 11h's actual full-3 cause also remains unproven;
+11i's explicit decision removes the live-restore requirement rather than claiming
+to have diagnosed that old failure.
+
+### Actual installed keyboard result, per order
+
+| Order | Read-only pre-install proof | Actual deployed console / X11 / options |
+|---|---|---|
+| Protected first, target vdb | **PASS in probe and full**, German choice, empty console model/options, source-bound, module unchanged | **NOT REACHED**: first-stock pause refused immediately before `installed_keyboard()`. No `installed-keyboard-files.json` or result exists. |
+| Protected second, target vda | **PASS in probe** with the same read-only choices and source checks | **NOT REACHED**: reverse full installation was never started. |
+
+Both synthetic readers passed with `KEYMAP="de"`, XkbLayout de, empty options,
+explicit `installed:false, fixture_only:true`. They are **not** evidence of the
+installed files. Unit tests accept both KEYMAP=de and KEYMAP="de", no/empty XkbOptions
+and exact nonempty option lists; wrong console/layout/options or either missing
+file fails. The installed wrapper rejects live mode. The collector also requires
+root `/`, matching installed-mode stock boot number/order and successful job before
+full qualification. Those production checks remain implemented but unexercised here.
+
+### Updater preparation / failure counters / firmware
+
+Whether a staged update appeared or was discarded: **UNKNOWN / NOT REACHED**.
+No first-stock pin result, ready-status snapshot, pending cleanup, booted checksum
+pin or AresOS switch was reached. The observed timer-disable/mask lines do not
+qualify the complete pause. The actual installed booted image digest/checksum after
+initialization is not independently established by a retained pin/status receipt.
+The frozen-image [11g inventory](../../os/manifest/ci/11g/updater-inventory.json),
+self-contained pause/discard/pin owner block, before-§5 ordering, permanent-stock
+update resumption and seven real-status mocked replay/refusal/idempotency tests
+remain unchanged. Native probe/full ran those tests. No newer booted stock was
+accepted, and no frozen image/policy change or registry visibility change occurred.
+
+The actual failure path is now exercised through **host termination** as well as
+11g's earlier graceful close. Boot 4's
+[receipt](../../os/manifest/ci/11i/full-4/two-disk/stock-before-windows-failure-counter.json)
+is `failure_path:true`, `probe_only:false`, `status:recorded`, `vm_paused:true`;
+[final stats](../../os/manifest/ci/11i/full-4/two-disk/stock-before-windows-blockstats.json)
+are **0 protected bytes / 0 operations**. Raw QMP has STOP before host-signal shutdown;
+the tested source records the counter between those operations. This was **not**
+an orderly guest shutdown. The disposable target may be unclean; no reboot/repair
+was attempted. The protected disk was then closed and hashed offline.
+
+All **four full-run** captures equal baseline
+**0182281960fc14f855966d42e14d6a69b441a3ce72f35dd30708d32b6db7212d**.
+Combined with probe 3: **10 matching stages / 10 final zero records**, 816 archived
+entries scanned, `incomplete:[]`; **only probe 3 qualified**. This does not qualify
+A or B. Historical 11f's missing counter remains missing/unqualified.
+
+[Recomputed stage table](../../os/manifest/ci/11i/stage-table.md):
+
+| Run / order / stage | Protected bytes / final writes | Firmware and Linux position events |
+|---|---|---|
+| full-4 / first / baseline-firmware | MATCH; 0 bytes / 0 operations | Baseline ownership |
+| full-4 / first / protected-first-install | MATCH; 0 bytes / 0 operations | Linux Boot000A: index None → 0 |
+| full-4 / first / boot-3-pre-login-reset | MATCH; 0 bytes / 0 operations | pci:00:1f.2/sata:0:65535:0: Boot0002 → absent<br>Linux Boot000A: index 0 → 1 |
+| full-4 / first / stock-before-windows | MATCH; 0 bytes / 0 operations; failure path recorded | None |
+| probe-3 / first / baseline-firmware | MATCH; 0 bytes / 0 operations | Baseline ownership |
+| probe-3 / first / live-ui-probe | MATCH; 0 bytes / 0 operations | None |
+| probe-3 / first / probe-windows-without-linux | MATCH; 0 bytes / 0 operations | pci:00:03.0: Boot0004 → absent<br>pci:00:1f.2/sata:0:65535:0: Boot0002 → absent |
+| probe-3 / reverse / baseline-firmware | MATCH; 0 bytes / 0 operations | Baseline ownership |
+| probe-3 / reverse / live-ui-probe | MATCH; 0 bytes / 0 operations | None |
+| probe-3 / reverse / probe-windows-without-linux | MATCH; 0 bytes / 0 operations | pci:00:02.0: Boot0003 → absent<br>pci:00:03.0: Boot0004 → Boot0002; relabel<br>pci:00:1f.2/sata:0:65535:0: Boot0002 → absent |
+
+The six firmware events are the probe's five already-described auto changes plus
+full 4's DVD auto removal. The two Linux-position records are Boot000A's creation
+at index 0 and Windows restoration moving it 0→1. Every Linux entry names the new
+target ESP/Fedora loader; Windows bytes/number/default remain strict. Raw all-variable
+diffs also retain MokTimeout, SbatLevel, HDDP and MTC changes, classes present in
+prior 11f captures; no new exemption or firmware/offline rule was introduced.
+
+### Gate → evidence / final acceptance
+
+| Gate | Result / evidence |
+|---|---|
+| Read-only proof / reason for removed restore requirement | **PASS reached paths**; exact 11h source defect and explicit 11i decision, source-bound before/after module reads, no setter/conversion in our proof. |
+| Required regressions | **PASS** 47 focused local tests (0.381s), 167 Ubuntu tests in both probe and full; includes setter traps, bad module choices/changed settings, German forms, non-German/missing/options rejection and sixth-full refusal. |
+| Probe before full | **PASS** same f1a237d, explicit successful probe ID, original server digest checked by full guard. Both canceled setup runs remain unqualified. |
+| Real installed keyboard per order | **NOT VERIFIED**, neither production file check reached. Fixture is explicitly non-installed. |
+| First real installation | **PASS first order only**, target-only vdb and its own EFI. Reverse full not reached. |
+| Installed stock pause / cleanup / pin | **FAIL / STOP at pause**, idle conjunction never satisfied by 300 seconds; final predicates unknown. Cleanup/pin and pending observation not reached. |
+| Protected disk / firmware / counters | **PASS reached safety checkpoints only**, 10 matching captures/10 final zero counters, six permitted auto events/two Linux positions; raw stores and QMP retained. |
+| A, complete both orders incl post-install/undo detached Windows | **NOT QUALIFIED**. First install/root reached; no switch/policy/tty3/rollback/default undo or post-install Windows marker. Probe's detached marker is not an installed independence proof. |
+| B, recorded stock one-time selection / promotion / second unattended boot | **UNTESTED**. OCR/cached helpers qualified only. Original brief permits the recorded grub2-reboot fallback only when menu cannot be driven; no B path was attempted. |
+| C / physical release | Frozen pins retained and fresh ISO verified; physical USB/media, real Windows, laptop/German typing and novice followability remain OPEN / NOT RELEASED. |
+| Token limits | **PASS reached uses** pinned image manifest/layer/signature reads only, zero owner-token API calls, all four always-cleanups passed. Both canceled setups skipped auth. No owner token local, image rebuild/publish/visibility change. |
+| Privacy / PR | All six source push/PR privacy runs green, terms not skipped, staged local scans no leaks; final report checks must pass. PR #11 remains **DRAFT**, no merge. |
+
+### Commands and evidence integrity
+
+- `python -X utf8 reviews/11-two-disk-rehearsal/verify-11i-evidence.py`: exit 0,
+  10 matching stages/10 final zero counters/816 scanned archived records/no incomplete;
+  qualifications contain only probe 3. Passing evidence verification is not full success.
+- `python -X utf8 reviews/11-two-disk-rehearsal/replay-11i-full-stop.py` printed
+  `STOCK PAUSE STOP CONFIRMED: first install passed; no installed keyboard/pin/switch result; final paused failure counter zero before host termination.`
+- `python -X utf8 reviews/11-two-disk-rehearsal/tabulate-11i-stages.py`: `Stage rows: 10`.
+  Archive credential regression passed raw/decoded token and ASCII crypt specimens,
+  plus the historical PNG false-positive case without adding an exclusion.
+- Original server ZIPs are retained and SHA-verified; collector scans every entry
+  and decoded candidate before extraction. Native JSON, FD, PNG and Python module
+  bytes are unchanged. Display text is LF/whitespace normalized; API metadata follows
+  the existing personal-field redaction. Receipt inputs are checked against staged
+  and committed Git blob bytes. Privacy configs, frozen runtime/image/manifests,
+  stock owner scripts and `disk_audit.py` remain unchanged from before 11i.
+- No mod/Gradle/Minecraft or real laptop disks/system settings; no Gradle daemon started.
+
+| Original evidence ZIP | Bytes | SHA-256 |
+|---|---:|---|
+| Canceled setup probe 1 | 3,623 | `880921100acc26785ed80d9548173e6f6443c4b00c1defd32eee2673d9dbc468` |
+| Canceled setup probe 2 | 3,396 | `bb50b4cf57cb795015fe5aec0dbf6a25df353cca80487f05c83ca7f7ec8bf3ed` |
+| Passing probe 3 | 6,402,295 | `9f8be121b1d9ff066a7b186d86ea7581b0c06764582df36c6321c9fc12d65fb3` |
+| Full 4, pause STOP | 5,660,580 | `5c3c3df3cb11f32365c603bc148c075caf7460089cacd1d8edd0e11af1b42a1a` |
+
+### Shared minute ledger / stop boundary
+
+Same **2026-10-23T16:21:00Z** start, **750 rounded minutes / 5 full runs**. Counts
+include every branch push/PR privacy job, each executed job rounded up; skipped jobs
+zero. No reset and no hidden retry. Integrator-reported org usage remains 248/2,000
+October minutes, resetting 1 November; owner read token was not used for billing.
+
+| Cost | Rounded minutes |
+|---|---:|
+| Actual 11h closure | 338 |
+| Integrator brief 11i privacy | 2 |
+| Three source pushes / six privacy jobs | 6 |
+| Canceled setup probe 1 | 3 |
+| Canceled setup probe 2 | 5 |
+| Passing probe 3 | 23 |
+| Full 4 | 47 |
+| **Measured before closing report push** | **424 / 750; 4 / 5 full** |
+| Closing privacy allowance reserved | **14** |
+
+[Complete after-full ledger](../../os/manifest/ci/11i/after-full-4-budget.json).
+The fifth slot is unused because the prescribed pause STOP applies; this is not
+budget exhaustion. No additional dispatch after the refusal. Final PR body/checks
+will carry the measured closing total after this report commit's privacy jobs.
+
+**Not verified:** actual installed German console/X11/options in either order,
+which idle predicate stayed false, actual installed stock identity/pending discard/
+pin, later frozen AresOS policy and all remaining A/B recovery/undo stages. Physical
+laptop/USB/typing/RTX/display/network/battery/logind and real Windows beyond the
+marker fixture remain open. First install success does not qualify the complete route.
+
+**JUDGMENT-CALL:** place the real keyboard read immediately after the mandatory first
+updater pause so that diagnostics do not delay stopping stock's updater. The pause
+refusal therefore prevents the real file check; do not move it ahead to conceal the
+refusal or substitute fixture/source prediction. This is the already-recorded order,
+not a post-failure change. No runtime behavior changed after the tested source.
+
+**PLAN-GAP:** the installed pause refused, but its error exports only the final
+conjunction failure. It does not retain the last per-unit state, rpm-ostree
+transaction or client observations. Root cause and a safe remedy are not established.
+A follow-up investigation should retain those predicates before choosing a behavior
+change; no idle check, process rule, timeout, image or policy was changed here.
+
+**Open questions:** which predicate failed; whether a staged update existed; actual
+installed keyboard files and subsequent recipe/recovery behavior once the pause
+blocker is resolved. No mid-run question/approval request; no force-push or merge.
+
+
+Final local closure checks: history gitleaks scanned **119 commits** and printed
+`no leaks found`. Seventeen immutable/security/owner files and the OS config tree
+match brief head 4aeeec6; runtime/tests/workflow remain exactly the tested f1a237d.
+The final staged scan printed `no leaks found`; all stop-analysis inputs and exact
+ISO module hashes matched staged Git blobs, and `git diff --cached --check` passed
+across 858 expected staged paths. Final report privacy results and measured closing cost are carried on PR #11.

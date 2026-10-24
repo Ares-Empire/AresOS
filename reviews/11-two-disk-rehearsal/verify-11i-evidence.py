@@ -217,7 +217,9 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
         choices = read(installed.parent / 'webui-keyboard-proof.json')
         files = read(installed.parent / 'installed-keyboard-files.json')
         computed = validate_installed_keyboard(files, choices['layout_switching_options'])
-        assert files['root'] == '/' and proof['context'] == 'first installed stock root shell'
+        assert files['root'] == proof['root'] == '/' and proof['context'] == 'first installed stock root shell'
+        devices = read(installed.parent / 'stock-before-windows-devices.json')
+        assert devices['mode'] == 'installed' and proof['boot'] == devices['boot'] and proof['order'] == devices['order']
         assert all(proof[key] == value for key, value in computed.items())
     for fixture in run.rglob('keyboard-reader-probe-result.json'):
         proof = read(fixture)
@@ -276,6 +278,7 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
             assert counter_proof['status'] == 'recorded' and counter_proof['vm_paused'] and counter_proof['probe_only']
         qualifications.append(dict(run=run.name, kind='probe', source=metadata['head_sha'], status='passed'))
     for full in run.rglob('full-result.json'):
+        assert metadata['conclusion'] == 'success', 'A full result requires a successful completed job'
         proof = read(full)
         assert proof['part_a'] == 'passed' and proof['both_orders'] and proof['installed_keyboard_both_orders']
         assert proof['part_b'] in ('passed', 'blocked')

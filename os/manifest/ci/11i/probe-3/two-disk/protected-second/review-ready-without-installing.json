@@ -1,0 +1,220 @@
+[
+  {
+    "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.html#/anaconda-screen-review",
+    "text": "Bazzite installation\nWelcome\nDate and time\nInstallation method\nStorage configuration\nCreate Account\nReview and install\nReview and install\nOperating system\nBazzite\nLanguage\nEnglish (United States)\nTimezone\nEurope/Berlin\nAccount\nAres recovery (ares-recovery)\nInstallation type\nUse entire disk\nStorage\n52.6 GB vda (Virtio Block Device)\nDevice\n\t\nSize\n\t\nActions\n\t\nEncrypted\n\t\nMount point\n\t\nHelper text\n\nvda1\t629 MB\tformat as efi\t\t/boot/efi\t\nvda2\t2.15 GB\tformat as ext4\t\t/boot\t\nvda3\t49.8 GB\tformat as btrfs subvolume\t\t/\t\nvda3\t49.8 GB\tformat as btrfs subvolume\t\t/home\t\nvda3\t49.8 GB\tformat as btrfs subvolume\t\t/var\t\nBack\nErase data and install\nQuit",
+    "ids": [
+      {
+        "tag": "DIV",
+        "id": "app",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "role": null
+      },
+      {
+        "tag": "DIV",
+        "id": "installation-wizard",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-date-time",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-method",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-storage-configuration",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-accounts",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-review",
+        "role": null
+      },
+      {
+        "tag": "DD",
+        "id": "anaconda-screen-review-target-operating-system",
+        "role": null
+      },
+      {
+        "tag": "DD",
+        "id": "anaconda-screen-review-target-system-language",
+        "role": null
+      },
+      {
+        "tag": "DD",
+        "id": "anaconda-screen-review-target-system-timezone",
+        "role": null
+      },
+      {
+        "tag": "DD",
+        "id": "anaconda-screen-review-target-system-account",
+        "role": null
+      },
+      {
+        "tag": "DD",
+        "id": "anaconda-screen-review-target-system-mode",
+        "role": null
+      },
+      {
+        "tag": "DD",
+        "id": "anaconda-screen-review-target-storage",
+        "role": null
+      },
+      {
+        "tag": "SPAN",
+        "id": "disk-vda",
+        "role": null
+      },
+      {
+        "tag": "TABLE",
+        "id": "storage-review-table-vda",
+        "role": "grid"
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-back-btn",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-next-btn",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-quit-btn",
+        "role": null
+      }
+    ],
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "type": "button",
+        "text": "",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "type": "submit",
+        "text": "8 Review and install",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-language",
+        "type": "submit",
+        "text": "Welcome",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-date-time",
+        "type": "submit",
+        "text": "Date and time",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-method",
+        "type": "submit",
+        "text": "Installation method",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-storage-configuration",
+        "type": "submit",
+        "text": "Storage configuration",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-accounts",
+        "type": "submit",
+        "text": "Create Account",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "anaconda-screen-review",
+        "type": "submit",
+        "text": "Review and install",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-back-btn",
+        "type": "button",
+        "text": "Back",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-next-btn",
+        "type": "button",
+        "text": "Erase data and install",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "installation-quit-btn",
+        "type": "button",
+        "text": "Quit",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      }
+    ]
+  }
+]

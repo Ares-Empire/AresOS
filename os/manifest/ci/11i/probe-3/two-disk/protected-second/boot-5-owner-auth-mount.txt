@@ -1,0 +1,12 @@
+]3008;end=4c16ab08-dd61-449d-82d0-bda2b840ca78;exit=success\]3008;start=57ac4c5d-a596-4626-b4ab-71bcc50fee80;type=shell;machineid=161fd47034e44924a340707dfd89c1ce;user=root;hostname=localhost-live;bootid=80d542ab-075b-4f9e-a2f0-9f2367d4deea;pid=2292;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=f1dc160f-e4cd-4d52-9cf7-87983c5a2493;type=command;machineid=161fd47034e44924a340707dfd89c1ce;user=root;hostname=localhost-live;bootid=80d542ab-075b-4f9e-a2f0-9f2367d4deea;pid=2292;cwd=/root\[   32.956117] 9p: Installing v9fs 9p2000 file system support
+OWNER_AUTH_READ_ONLY_RUNNER_TEMP_SHARE_READY
+
+ARESOS_CMD_DONE:0

@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "console_keymap": "de",
+  "x11_layout": "de",
+  "expected_options": [],
+  "observed_options": [],
+  "installed": false,
+  "fixture_only": true,
+  "context": "temporary synthetic files in live guest; reader transport only"
+}

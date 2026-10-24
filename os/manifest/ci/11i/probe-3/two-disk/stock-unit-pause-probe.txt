@@ -1,0 +1,43 @@
+]3008;end=d4440085-b04e-4d73-94d4-e5364577a634;exit=success\]3008;start=8043c637-9ad1-4224-923b-7b2c5f21c043;type=shell;machineid=8c8fedcbcd3f43bf933898b1347c36f0;user=root;hostname=localhost-live;bootid=7fc79607-0d54-4da6-8b69-545bab227340;pid=2295;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=04b808ec-9a66-44ec-bce1-21f6718603d2;type=command;machineid=8c8fedcbcd3f43bf933898b1347c36f0;user=root;hostname=localhost-live;bootid=7fc79607-0d54-4da6-8b69-545bab227340;pid=2295;cwd=/root\Created symlink '/run/systemd/system/uupd.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/uupd-manual.service' ��� '/dev/null'.
+
+Created symlink '/run/systemd/system/rpm-ostreed-automatic.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/bootc-fetch-apply-updates.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/systemd-sysupdate.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/systemd-sysupdate-reboot.service' ��� '/dev/null'.
+
+Created symlink '/run/systemd/system/systemd-sysupdated.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/dbus-org.freedesktop.sysupdate1.service' → '/dev/null'.
+
+Created symlink '/run/systemd/system/dnf5-offline-transaction.service' ��� '/dev/null'.
+
+REAL_STOCK_UNIT_PAUSE_IDEMPOTENT_PROBE_PASSED
+
+ARESOS_CMD_DONE:0
