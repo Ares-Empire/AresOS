@@ -2,7 +2,7 @@
 
 The AresOS emergency card. **Keep it on your phone.** If AresOS is broken, you can't read it on the laptop.
 
-This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md, and this card tells you which section to open. The 2026-10-24 [11e rehearsal](../reviews/11-two-disk-rehearsal/REPORT.md#11e-firmware-device-set-rule-and-continued-installation-qualification-2026-10-24) completed a first VM installation and booted the Windows marker with Linux detached. It then stopped because restoring Windows as the default changed the relative order of two entries, which the current audit rule forbids. Protected bytes and the original Windows entry stayed unchanged. The complete install/recovery/undo sequence and GRUB recovery promotion remain unqualified. The UNTESTED recovery gate below stays open.
+This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md, and this card tells you which section to open. The 2026-10-24 [11f rehearsal](../reviews/11-two-disk-rehearsal/REPORT.md#11f-linux-position-rule-and-full-length-qualification-2026-10-24) completed the first VM installation, restored Windows-first, booted Windows with Linux detached and reached pinned stock Bazzite. Stock already had a newer upstream update staged, so the safety guard stopped before switching to AresOS. All reached offline protected bytes and Windows entries matched; one failed session lacks final write-counter proof. The complete install/recovery/undo sequence and GRUB recovery promotion remain unqualified. The UNTESTED recovery gate below stays open.
 
 ## The three rules
 

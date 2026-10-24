@@ -578,3 +578,45 @@ one full already spent. New cap 600, still three full total. Org billing
 Real 11e install→detached-Windows raw stores replay under 11f as exactly the DVD
 and target auto removals plus Boot000A index 0→1. Historical 11b/11d set events
 remain unchanged. These static replays do not qualify new A/B boots.
+
+### Fresh 11f probe / full-run assumption gate (before full dispatch)
+
+Probe `40052069600`, source `1b00581df4b9871c9880db67e3f54ed2b82fb487`,
+passed both orders. Six offline protected captures match their run's baseline,
+six final counters are zero; five expected device-set events, no incomplete
+records. Both reviews and detached marker screenshots were visually inspected:
+first target vdb / reverse target vda, new 629 MB target EFI, no protected rows;
+Windows marker BootCurrent=0000 resolves the same protected ESP at PCI 2 / 3.
+146 native tests passed in 2.813s. Both live guests passed the original release
+signature verifier. Cleanup removed the runner-temporary owner auth file.
+Full authorization must recheck the server artifact digest and all proof flags.
+Local HEAD and remote branch are both the exact probe SHA.
+
+New probe timing: tools 6.77 min, ISO 5.82, VM 9.12; job 25.17 (26 rounded).
+Slower tools still fit within the full job's 24 minutes beyond the 156-minute VM
+limit. No runtime harness changed after this probe. Local post-run verification
+was improved to require complete A/B stages and exact Windows-order receipts.
+An overbroad password-hash scanner matched accidental binary `$6$` bytes in one
+PNG. It now requires ASCII crypt encoding; synthetic SHA512/rounds/yescrypt and
+raw/decoded token fixtures still reject, the unchanged PNG passes. All binary
+entries remain scanned and original archives remain byte-identical; no token or
+actual hash was found. This collector-only correction changes no VM policy.
+
+
+## 11f full result / stop assumptions
+
+Full 40054116223 on the exact probe source completed first installation, the
+Linux 0→1 move/Windows restore, detached Windows and the recognized initial
+stock hardware reboot. The target auto option returned at free Boot0002.
+No uncovered NVRAM behaviour appeared. Stock booted the frozen ed93 base, but
+already had newer upstream d0e5 stock staged. The unchanged pin-stock no-staged
+guard stopped before pin, installed signature or AresOS switch. uupd service
+startup is recorded; attribution of staging to it is an inference without an
+updater journal. No pending update was cleared and no updater disabled.
+
+The failed stock command caused host-signal QEMU close. Its offline bytes/NVRAM
+match, but no final stock counter exists. Strict collector exits 1; only ten
+final zero-write records across eleven matching captures are established.
+Complete A/B timing and later stages remain unqualified. No further dispatch
+follows this stop. Integrator decision is required for pending stock handling
+and failure-close counter proof; all original frozen pins/guards remain.

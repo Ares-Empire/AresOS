@@ -1,5 +1,7 @@
 # Package 11: two-disk install rehearsal and pinned media
 
+Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **227/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
+
 Latest 11e outcome: **STOPPED after first real install — Windows-default restoration violates the strict non-firmware relative-order rule. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh both-order probe passed; 140 native regressions passed in probe and full. All nine reached protected captures/counters were unchanged/zero, but the full audit failed. Shared cost: **142/330 measured + at most 14 closing privacy minutes, 1/3 full runs**. See [11e](#11e-firmware-device-set-rule-and-continued-installation-qualification-2026-10-24).
 
 Latest 11d outcome: **STOPPED at reverse-order detached firmware audit — automatic entry changed and an attached-device entry disappeared. A OPEN, B UNTESTED, C pins retained.** The owner token closed the release-access blocker; 133 native regressions passed. Protected bytes and Windows entry stayed unchanged, with six zero-write records, but the failed probe authorizes no full run. Shared 11c/11d measured cost is **66/330 minutes**, plus at most 14 reserved for closing privacy checks; **0/3 full runs**. See [11d](#11d-owner-read-only-token-and-continued-qualification-2026-10-24).
@@ -1369,3 +1371,232 @@ freedom and the new cap. The full timeout/reservation follows measured timings.
 ### PLAN-GAP / Open questions
 
 None newly established by this zero-cost walkthrough; all original stop rules remain.
+
+### Fresh probe gate before full dispatch
+
+[Probe 40052069600](https://github.com/Ares-Empire/AresOS/actions/runs/40052069600)
+passed on `1b00581df4b9871c9880db67e3f54ed2b82fb487`: 146 native tests in
+2.813s, six matching protected captures and six zero-write records, five firmware
+device events, both real reviews and detached Windows markers visually inspected.
+Original signature and owner auth cleanup passed. The artifact ZIP is 6,352,166
+bytes, SHA-256 `4e80723ebfd36baa6e277cdffb50b5d1e7c1929f3ab43b8e1597c3cdf8d4e9d3`.
+[Collector verification](../../os/manifest/ci/11f/evidence-verification.json) had
+no incomplete records before full dispatch. Local and remote HEAD match the
+probe source. Full-stage assumptions and updated measured timing are in
+[ASSUMPTIONS](ASSUMPTIONS.md#fresh-11f-probe--full-run-assumption-gate-before-full-dispatch).
+
+A local collector initially mistook non-ASCII compressed PNG bytes following
+an accidental `$6$` for a password hash. The scanner now requires ASCII crypt
+encoding; regression specimens still detect SHA512/rounds/yescrypt and raw/decoded
+tokens. It still scans every binary archive entry; no artifact bytes/exclusions,
+privacy workflow or VM policy changed. [Regression output](logs/11f/archive-scanner-regression.txt).
+
+### Final 11f outcome — STOP before AresOS switch
+
+**A NOT QUALIFIED; B UNTESTED; C pins retained.** One fresh full dispatch was
+made, on the exact successful probe source. No further probe/full/checks-only VM
+dispatch followed its failure. PR #11 stays draft. Physical installation stays
+NOT RELEASED.
+
+#### Done
+
+- `disk_audit.py` applies only the integrator's 11f Linux-position exception;
+  complete orders and old/new Linux indices are retained. Fixed non-Linux order,
+  Windows identity/default, firmware device-set, takeover and Linux ESP/loader
+  checks stay strict. Real-store and negative regressions passed.
+- `two_disk_vm.py` reads back and checks the exact Windows-first stable move,
+  saving a dedicated receipt. The full run exercised the real assertion after
+  install. `rehearsal_guard.py`, workflow and budget regressions apply 600 minutes,
+  the original start and 3 total full dispatches, full job/VM 180/156, reserve 182.
+  Probe 40/80/42 is unchanged.
+- New 11f capture/replay/verification/tabulation helpers retain original ZIPs,
+  raw FD stores/QMP context, exact artifact digest receipts, safe command logs,
+  screenshots and per-stage events. Collector-only changes require complete A
+  checkpoint files and exact Windows-order receipts and distinguish ASCII crypt
+  hashes from accidental compressed PNG bytes. No binary scan/exclusion was removed.
+- INSTALL and EMERGENCY retain the installation/recovery gates and replace the
+  resolved order-rule blocker with the real pending-stock blocker and missing
+  final failure-session counter. Frozen image/base/source/signature/media pins,
+  credential code and the stock no-pending-update guard were not changed.
+
+#### What stopped / PLAN-GAP
+
+[Full 40054116223](https://github.com/Ares-Empire/AresOS/actions/runs/40054116223),
+source `1b00581df4b9871c9880db67e3f54ed2b82fb487`, completed the first real
+installation, exact Windows-first restoration, detached Windows marker and
+stock's recognized orderly hardware-setup reboot. The first authenticated stock
+boot had the pinned base **ed93…5151**, OSTree checksum
+`aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71`,
+booted at serial 1. The actual greeter, UID 1000 wheel administrator, target ESP
+and inherited Homebrew pre-switch checks passed.
+
+However, stock already had a **staged newer upstream Bazzite deployment**:
+
+- reference `ghcr.io/ublue-os/bazzite-nvidia-open:stable`
+- digest `sha256:d0e5e105ebf43c7ddbe3c4a5dfecac1628b0e0dcf152bbd2aee0eda3e4b4cdd4`
+- checksum `278edb6798de01c7c090d25e058f3754c2cd6585d930634d7f5abeb90a362487`
+- version `44.20261023`, image timestamp `2026-10-23T16:36:04Z`.
+
+The boot console records `uupd.timer` and `uupd.service` starting. Automatic
+updating is the supported inference from those startup records and the newer
+staged stock state; no updater journal was collected to identify the exact writer.
+Both bootc and the failing rpm-ostree status confirm the staged deployment.
+
+`os/release/pin-stock.sh` correctly failed its unchanged assertion that there is
+one booted deployment and **no staged deployment**. Exact failure:
+`AssertionError: Guest command failed: pin-stock, exit 1`.
+The guard failed before `ostree admin pin`, installed signature verification or
+`bootc switch`. No switch, policy/tty3, rollback, undo, reverse installation or B
+was attempted afterward. No image was rebuilt/repinned, update cleared, updater
+disabled or guard weakened. This is a new recipe PLAN-GAP: stock's ordinary
+updater can stage a mutable-tag update before the frozen release's retain/pin
+step. The guide already says to stop for pending/mismatched state; it provides
+no authorized recovery from this case.
+
+The failure-close path host-terminated QEMU (`host-signal` event). The resulting
+last offline protected capture and NVRAM comparison pass, but there is **no final
+`stock-blockstats.json`**. The evidence verifier therefore returns **exit 1** and
+keeps that session's zero-write proof unqualified. This is an additional failure
+path evidence gap, not a claimed zero. Ten earlier final records prove zero
+writes; all eleven actual offline captures match their run's baseline.
+
+[Compact stop analysis and SHA-bound inputs](../../os/manifest/ci/11f/full-stop-analysis.json),
+[actual bootc state](../../os/manifest/ci/11f/full-2/two-disk/stock-status.json),
+[pin refusal](../../os/manifest/ci/11f/full-2/two-disk/pin-stock.txt),
+[host close event](../../os/manifest/ci/11f/full-2/two-disk/stock-qmp.json).
+A local replay feeds that real rpm-ostree status into the **unchanged** pin script,
+with subprocesses mocked: it raises at the same guard, and no pin command is
+executed. It does not simulate a successful guest switch.
+
+#### Gate → evidence
+
+| Gate | Evidence / result |
+|---|---|
+| Amended order rule + strict negatives | **PASS** 21 disk tests, 21 harness tests, 3 budget tests, 9 auth tests; [four raw-store replays](../../os/manifest/ci/11f/firmware-set-replays.json), including old full's exact 2 removals + Boot000A 0→1. Earlier 11b/11d events remain identical. |
+| Zero-cost walk and time sizing before dispatch | **DONE** tables above were committed in source `1b00581` before dispatch. Full 180/156, probe unchanged; same ledger/cap regressions. Complete-run timing remains unqualified because full stopped early. |
+| Same-source fresh probe | **PASS** [40052069600](https://github.com/Ares-Empire/AresOS/actions/runs/40052069600), [all proof flags](../../os/manifest/ci/11f/probe-1/two-disk/probe-result.json), server artifact digest rechecked by full's guard. Both orders, real destination/review, exact backend/German choices, detached Windows. |
+| Firmware source/ownership | **PASS reached stages** [full contract](../../os/manifest/ci/11f/full-2/firmware-contract.json), raw source checked in collector, GUID exactly 16 bytes; every auto option bound to its boot's QMP device set, Windows unchanged and first at all Windows-default checkpoints. |
+| Owner-token limits | **PASS reached uses** pinned manifest/all-layer pull and live signature in probe/full; exact one-image auth key, runner-temp root-600 file, RO root-only 9p. Installed stock auth mount passed; installed signature and switch reads were not reached. Both always-cleanups removed the file before upload ([probe](../../os/manifest/ci/11f/probe-1/owner-auth-cleanup.json), [full](../../os/manifest/ci/11f/full-2/owner-auth-cleanup.json)). Zero owner-token GitHub API calls; visibility metadata explicitly unverified from org. |
+| First real install / own target ESP | **PASS checkpoint** [completed install](../../os/manifest/ci/11f/full-2/two-disk/protected-first-install-result.json), [target EFI](../../os/manifest/ci/11f/full-2/two-disk/protected-first-install-target-efi.json), [UI](screenshots/11f-full-2-two-disk-installation-complete.png). |
+| Exact Windows restore / detached boot after install | **PASS checkpoint** [stable-move receipt](../../os/manifest/ci/11f/full-2/two-disk/after-install-windows-order.json), [accepted NVRAM diff](../../os/manifest/ci/11f/full-2/two-disk/after-install-without-linux-nvram-diff.json), [marker](screenshots/11f-full-2-two-disk-after-install-without-linux-windows-marker.png). |
+| First installed stock | **PARTIAL** pinned base booted, recognized hardware-setup reboot, admin/greeter/Homebrew checks passed; newer stock already staged, so no-pending pin guard stopped. [Greeter](screenshots/11f-full-2-two-disk-stock-bazzite.png), [stock state](../../os/manifest/ci/11f/full-2/two-disk/stock-status.json). |
+| Protected bytes / zero writes | **11 matching offline captures, 10 final zero-write records, 1 missing final counter**. [Strict verification](../../os/manifest/ci/11f/evidence-verification.json) exits 1, names missing stock record and qualifies only the probe. Full protected baseline `21b8bd6297cb98c5a470f81d141010bdb5bc96407182e45d2b63e21bd888156c`; probe baseline `2214f732ad8dd74811ee5b071e82e8b2ceb3966c644137a85383c7b17123c5ae`. These are independent fixtures; comparisons are within each run. |
+| Complete Part A, both orders | **NOT QUALIFIED** no switch/policy/tty3/rollback/default undo or reverse full sequence; post-undo Windows independence untested. |
+| Part B / physical-media followability | **UNTESTED / OPEN** blocked by incomplete A. No hardware/laptop-disk test. |
+| Privacy | Source push [40051917073](https://github.com/Ares-Empire/AresOS/actions/runs/40051917073) and PR [40051921449](https://github.com/Ares-Empire/AresOS/actions/runs/40051921449) green; private-term step actually ran. Final push/PR pair is reserved below; exact closing results/total are recorded on [PR #11](https://github.com/Ares-Empire/AresOS/pull/11). |
+
+#### Per-stage firmware and Linux position events
+
+All accepted NVRAM records include the entire BootOrder before/after and raw
+option changes. Linux indices below are zero-based; `None→0` is creation.
+The stock failure-stage NVRAM diff passed independently of the missing counter.
+| Run / order / stage | Protected bytes / final writes | Firmware and Linux position events |
+|---|---|---|
+| full-2 / first / baseline-firmware | MATCH; 0 bytes / 0 operations | Baseline ownership |
+| full-2 / first / protected-first-install | MATCH; 0 bytes / 0 operations | Linux Boot000A: index None → 0 |
+| full-2 / first / after-install-without-linux | MATCH; 0 bytes / 0 operations | pci:00:03.0: Boot0004 → absent<br>pci:00:1f.2/sata:0:65535:0: Boot0002 → absent<br>Linux Boot000A: index 0 → 1 |
+| full-2 / first / boot-4-pre-login-reset | MATCH; 0 bytes / 0 operations | pci:00:03.0: absent → Boot0002 |
+| full-2 / first / switch-sequence-stock | MATCH; missing counter | None |
+| probe-1 / first / baseline-firmware | MATCH; 0 bytes / 0 operations | Baseline ownership |
+| probe-1 / first / live-ui-probe | MATCH; 0 bytes / 0 operations | None |
+| probe-1 / first / probe-windows-without-linux | MATCH; 0 bytes / 0 operations | pci:00:03.0: Boot0004 → absent<br>pci:00:1f.2/sata:0:65535:0: Boot0002 → absent |
+| probe-1 / reverse / baseline-firmware | MATCH; 0 bytes / 0 operations | Baseline ownership |
+| probe-1 / reverse / live-ui-probe | MATCH; 0 bytes / 0 operations | None |
+| probe-1 / reverse / probe-windows-without-linux | MATCH; 0 bytes / 0 operations | pci:00:02.0: Boot0003 → absent<br>pci:00:03.0: Boot0004 → Boot0002; relabel<br>pci:00:1f.2/sata:0:65535:0: Boot0002 → absent |
+
+#### Commands and outputs / Verified
+
+- Local four focused commands and source checks are listed above with [logs](logs/11f/).
+- Fresh probe CI: `python3 -m unittest discover -s os/tests -v`:
+  **Ran 146 tests in 2.813s; OK**. Full: **Ran 146 tests in 3.724s; OK**.
+  Both CI jobs also passed Python compilation, shell syntax and unchanged release
+  source/runtime-equivalence verification. No mod/Gradle/Minecraft command ran;
+  no Gradle daemon was started.
+- Actual probe: `sudo -E .work/browser-env/bin/python os/ci/two_disk_vm.py probe`:
+  **PROBE PASSED: both serial mappings, real UI through review, backend choices
+  and zero protected writes; no installation**.
+- Actual full used `full` and explicit probe ID `40052069600`; native checks
+  passed, then **Guest command failed: pin-stock, exit 1**. Always-cleanup and
+  upload passed. [Full log](logs/11f/full-2.txt), [probe log](logs/11f/probe-1.txt).
+- `python -X utf8 reviews/11-two-disk-rehearsal/verify-11f-evidence.py`:
+  **11 matching offline stages; 10 zero-write records; 791 archived entries
+  scanned; 1 incomplete (No final write counter); exit 1**. This is the expected
+  strict rejection of incomplete full evidence, not a green full result.
+- `python -X utf8 reviews/11-two-disk-rehearsal/regress-11f-archive-scanner.py`: valid ASCII SHA512/rounds/yescrypt and raw/decoded token fixtures detected; real compressed PNG has no credential match.
+- `python -X utf8 reviews/11-two-disk-rehearsal/replay-11f-stock-stop.py`:
+  **same real rpm-ostree status triggers AssertionError; no ostree pin command
+  executed**. [Replay log](logs/11f/stock-stop-replay.txt).
+- `python -X utf8 reviews/11-two-disk-rehearsal/tabulate-11f-stages.py`:
+  **Stage rows: 11**. The reproducible table is also [stored with evidence](../../os/manifest/ci/11f/stage-table.md).
+
+Original ZIPs are unmodified; collector checks API artifact SHA-256, original
+log ZIP SHA-256, every retained FD/JSON/PNG byte, display-text normalization,
+raw/decoded credential patterns, source ownership, all reached audits and
+signature/cleanup receipts. The 33 MB ISO file inventory remains inside original
+ZIPs, with its expanded copy ignored as in earlier rounds.
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| [Probe](artifacts/11f-probe-1-two-disk-evidence.zip) | 6,352,166 | `4e80723ebfd36baa6e277cdffb50b5d1e7c1929f3ab43b8e1597c3cdf8d4e9d3` |
+| [Full 2](artifacts/11f-full-2-two-disk-evidence.zip) | 5,585,886 | `b77bed201bc41f768b13edb8d825c39b42308c56f93077a0cb0d5b03a8c55a08` |
+
+Visually inspected: both probe reviews and detached markers, full installation
+completion, the full detached Windows marker and actual installed stock greeter.
+Browser/transport differences remain host Chromium versus paused guest Firefox
+using the original served pages, and loopback forwarding. This does not qualify
+physical keyboard/menu/media use or a novice's unaided click path.
+
+#### Minute ledger
+
+Same start, nothing reset: **2026-10-23T16:21:00Z**, cap **600 rounded minutes**,
+**3 full dispatches total**. Integrator-reported org October usage 248/2,000 is
+recorded above; it is not a token-verified billing fact.
+
+| Work | Rounded minutes |
+|---|---:|
+| Through actual 11e closure | 144 |
+| Integrator's 11f brief push + PR privacy | 2 |
+| New source push + PR privacy | 2 |
+| Probe 40052069600 (25.167 actual minutes) | 26 |
+| Full 40054116223 (52.450 actual minutes) | 53 |
+| **Measured before final push** | **227 / 600** |
+| Closing push + PR privacy, five-minute watchdog + two-minute cleanup reserve each | **at most 14** |
+| **Conservative closing bound** | **241 / 600; 2 / 3 full runs** |
+
+[Complete machine-readable ledger](../../os/manifest/ci/11f/final-budget.json).
+Pre-probe reserved 42 at 148 measured; pre-full reserved 182 at 174 measured;
+CI guard rechecked source/proof and budget. Full setup/tools took 8.6 minutes,
+ISO 5.283, VM 34.367 before stopping; neither full timeout was reached. Complete
+105–120-minute VM timing is still an estimate, not measured qualification.
+The actual closing pair URLs, their cost and final total are recorded in PR #11
+without another report-only push triggering another pair.
+
+#### Not verified
+
+Complete A in either order; switched policy, tty3 recovery and rollback from the
+actual installer target; full default undo and Windows after undo; reverse full
+installation; B's previous-deployment promotion and unattended stock boot; final
+write count of the host-terminated failed stock session. All physical/human gates
+remain open. Installed stock's auth mount worked, but installed release signature
+and bootc reads were not reached.
+
+#### JUDGMENT-CALL
+
+No new product decision taken. The authorized Linux/order/time/cap changes are
+implemented. The pending-update guard and frozen stock/release identities were
+kept. Clearing the staged update, changing stock's updater policy or changing
+pins would require an integrator decision; no such action was inferred.
+
+#### Open questions
+
+The integrator must define how the pinned stock retain/switch recipe handles a
+normal upstream update already staged on first boot, preserving the frozen
+release identity and pending-state safety checks. A later harness follow-up
+should also define final counter collection on a failed command's host-close
+path. No remaining full allowance was spent guessing either answer.
+
+Local closing privacy verification: staged evidence, scanner regression and
+final documentation scans used gitleaks 8.21.2 with redaction and found no leaks.
+Rewritten HEAD history was scanned without local pre-rewrite refs; no-reply
+email validation passed. The final push/PR privacy pair is monitored and its
+exact final ledger is recorded in PR #11 as described above.
