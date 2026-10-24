@@ -1,8 +1,10 @@
 # AresOS: state
 
-Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
+Updated 2026-10-25. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
 
 ## Done (on main)
+
+- **Two-disk install rehearsal** (PR #11, briefs 11–11n, merged 2026-10-25 as `0c5902a`): GitHub Actions VMs with a stand-in Windows disk run the real Bazzite installer from the pinned ISO onto a second disk, in both drive orders. The stand-in Windows disk and its boot entry were never written (every capture byte-identical, zero writes). Proven there: the installed German keyboard files, pausing and pinning the stock copy's updaters, the signed switch to AresOS, policy, tty3 recovery login, rollback, Windows-default undo, checked BootNext, and (Part B, protected-second order) choosing the backup Bazzite from the real GRUB menu, promoting it and booting it again. Installer media are pinned. The fresh fix re-review said SAFE. **Open for the physical install:** the installer puts `vconsole.keymap=us` on the kernel command line, which overrides the German console setting, so tty3 may type US layout (fix and test before release); the "selected" GRUB screenshot is inconclusive; the new Windows-first timing ran in one drive order only.
 
 - **Mod** (PR #1):
   - Right-clicking an app item opens a real app exactly once, and you return to the game afterwards.
@@ -36,7 +38,7 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
-- **Package 11** (two-disk install rehearsal, GRUB recovery promotion, pinned media; PR #11): media pins done. **11k (2026-10-24) passed Part A in both drive orders** (real installer, Windows disk never written). Part B (GRUB recovery) stopped on a harness bug. The fresh review said CHANGES-NEEDED (four should-fix). **11l** fixes those and runs one Part B qualification. **The owner pre-approved the merge (2026-10-24) once 11l's acceptance is met and the fix re-review says SAFE.** See `HANDOFF.md`.
+- **Package 12 (the companion in the hub)**: brief drafted 2026-10-25, waiting for the owner's go. A generic companion system in the mod (look packs as data, an original placeholder look), with the owner's Claude crab as a private pack outside this repo. Browser preview of the desktop version (private): `C:\Users\pab\aresos-companions\clawd\preview.html`.
 
 ## Waiting on the owner
 
@@ -47,7 +49,7 @@ Updated 2026-10-22. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Next, in order
 
-1. **Close the remaining install gates** (INSTALL.md "Maintainer release gate"). In CI: the two-disk VM rehearsal (prove the Windows-like disk is never written), GRUB recovery promotion, and pinned installer media. Then the safety and followability council. Hardware items (fitting/firmware screens, helper trials) happen on the laptop with the owner.
+1. **Close the remaining install gates** (INSTALL.md "Maintainer release gate"). The CI rehearsal is done (PR #11). Left: make the console keymap German on the kernel command line too, and prove it on tty3 in a VM; then the safety and followability council. Hardware items (fitting/firmware screens, helper trials, real menu and typing) happen on the laptop with the owner.
 2. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
