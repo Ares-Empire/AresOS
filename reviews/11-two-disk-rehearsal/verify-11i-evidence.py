@@ -264,11 +264,13 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
         assert proof['status'] == 'passed' and proof['installed'] is False and proof['commit'] == metadata['head_sha']
         assert proof['firmware_rule'] == '11f-linux-position'
         assert all(proof[k] for k in ('both_orders', 'review_validated', 'detached_windows', 'target_reset',
-                                     'owner_auth_read_only', 'signature_verified', 'stock_recipe_probe', 'failure_counter_probe', 'read_only_keyboard_proof', 'installed_keyboard_reader_probe'))
+                                     'owner_auth_read_only', 'signature_verified', 'stock_recipe_probe', 'failure_counter_probe', 'read_only_keyboard_proof', 'installed_keyboard_reader_probe', 'part_b_tools_probe'))
         assert metadata['conclusion'] == 'success'
         for folder in (probe.parent, probe.parent / 'protected-second'):
             assert read(folder / 'stock-recipe-probe.json')['real_unit_pause_twice']
             assert read(folder / 'keyboard-reader-probe-result.json')['fixture_only']
+            assert read(folder / 'part-b-tool-probe.json')['ocr_executed']
+            assert read(folder / 'cached-stock-cli-probe.json')['part_b_cli_help']
             assert read(folder / 'cached-stock-cli-probe.json')['status'] == 'passed'
             counter_proof = read(folder / 'failure-counter-probe-failure-counter.json')
             assert counter_proof['status'] == 'recorded' and counter_proof['vm_paused'] and counter_proof['probe_only']

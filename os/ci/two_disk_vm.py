@@ -671,6 +671,7 @@ def stock_recipe_probe(guest):
     clean = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', output).replace('\r', '')
     proof, = [json.loads(line.split(' ', 1)[1]) for line in clean.splitlines() if line.startswith('ARESOS_CACHED_STOCK_CLI_PROBE ')]
     assert proof['status'] == 'passed' and proof['digest'] == digest
+    assert proof['part_b_cli_help']
     save('cached-stock-cli-probe', proof)
     source = pathlib.Path('os/release/pause-stock-updates.sh').read_text().split("<<'PAUSE_STOCK'\n", 1)[1].split('\nPAUSE_STOCK', 1)[0]
     program = source.split("if __name__ == '__main__':", 1)[0]
@@ -749,6 +750,11 @@ def live_probe(audit):
         assert disk_names(after) == (protected, target)
         guest.keys(['shift'])
         guest.screenshot('live-qmp-observer-input')
+        ocr = subprocess.check_output(['tesseract', str(EVIDENCE / 'live-qmp-observer-input.png'), 'stdout'],
+                                      stderr=subprocess.DEVNULL).decode()
+        (EVIDENCE / 'live-ocr-tool-preflight.txt').write_text(ocr)
+        save('part-b-tool-probe', dict(status='passed', ocr_executed=True,
+             context='actual live QMP screenshot; OCR tool only, not GRUB menu qualification'))
         installed_keyboard_reader_probe(guest)
         stock_recipe_probe(guest)
         assert guest.failure_counter('failure-counter-probe', probe_only=True)
@@ -803,6 +809,7 @@ def main():
                      detached_windows=True, target_reset=True, owner_auth_read_only=True, signature_verified=True,
                      firmware_rule='11f-linux-position', stock_recipe_probe=True, failure_counter_probe=True,
                      read_only_keyboard_proof=True, installed_keyboard_reader_probe=True,
+                     part_b_tools_probe=True,
                      commit=os.environ['GITHUB_SHA'])
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)

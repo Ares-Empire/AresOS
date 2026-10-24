@@ -2377,3 +2377,28 @@ credential/preflight/pull and VM stages were skipped. Its actual rounded cost is
 reserved. Collector verification reports no stages/counters/qualifications and no
 incomplete reached stage; a canceled setup is never treated as a successful probe.
 Both initial-source privacy checks passed all three checks without skipping terms.
+
+
+### Before probe 3 — complete Part B tool preflight
+
+The inherited probe exercised BLS JSON transport and QMP screenshots but did not
+actually invoke Part B's host OCR command or the cached stock GRUB helpers. During
+setup of probe 2 **40102968211** on **fd63ad7**, this remaining coverage gap was
+found. Cancel before any VM, refresh this walk-through and run a new source probe;
+neither setup-only cancellation can authorize a full.
+
+No stage/NVRAM transition in the complete table changes. The added preflight runs
+`tesseract <actual-live-QMP-frame> stdout` on the disposable runner and retains OCR
+text plus a tool-only receipt. In the ISO's already-verified pinned stock cache,
+the existing offline/read-only/no-pull/no-owner-mount CLI check additionally runs
+`ostree admin set-default --help`, `grub2-reboot --help`, `grub2-editenv --help` and
+requires the GRUB binaries. The frozen package inventory already includes grub2
+common/tools/tools-extra/minimal. These commands do not set defaults, consume
+BootNext, select a menu entry, install anything or write either disk. They qualify
+availability/invocation only; actual rendered menu selection or documented fallback,
+recorded-stock identity, promotion and second unattended boot remain full gates.
+The full guard requires a new `part_b_tools_probe` receipt flag from the same SHA.
+If help/OCR fails, no full dispatch. All stop rules stay unchanged. Local keyboard,
+UI, guard, harness and cache tests: **47 in 0.381s / OK**. Archive scanner regression
+also passes ASCII crypt/raw/decoded token specimens and the unchanged historical
+compressed-PNG false-positive fixture, without a new exclusion.

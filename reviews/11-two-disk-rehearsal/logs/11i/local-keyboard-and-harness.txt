@@ -42,8 +42,11 @@ test_two_writable_file_disks_in_both_orders_and_protected_only_for_detach (test_
 test_ui_salted_password_hash_is_redacted_without_knowing_its_salt (test_two_disk_vm.TwoDiskHarnessTest.test_ui_salted_password_hash_is_redacted_without_knowing_its_salt) ... ok
 test_unexpected_qemu_exit_records_unavailable_counter_without_termination (test_two_disk_vm.TwoDiskHarnessTest.test_unexpected_qemu_exit_records_unavailable_counter_without_termination) ... ok
 test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output (test_two_disk_vm.TwoDiskHarnessTest.test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output) ... ok
+test_missing_ambiguous_or_invalid_cache_fails_without_registry_fallback (test_stock_probe.CachedStockProbeTest.test_missing_ambiguous_or_invalid_cache_fails_without_registry_fallback) ... ok
+test_read_only_help_has_no_pull_network_host_mount_or_owner_auth (test_stock_probe.CachedStockProbeTest.test_read_only_help_has_no_pull_network_host_mount_or_owner_auth) ... ok
+test_real_iso_cache_resolves_by_pinned_digest_and_not_mutable_tag (test_stock_probe.CachedStockProbeTest.test_real_iso_cache_resolves_by_pinned_digest_and_not_mutable_tag) ... ok
 
 ----------------------------------------------------------------------
-Ran 44 tests in 0.393s
+Ran 47 tests in 0.381s
 
 OK

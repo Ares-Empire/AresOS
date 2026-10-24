@@ -719,3 +719,10 @@ LayoutSwitchOptions (module.switch_options), not the brief's LayoutSwitchingOpti
 New inspector/proof bind the exact ISO interface file SHA and getter to that value;
 unknown/different property or hash fails closed. Complete stage walk-through and
 all acceptance/firmware/token rules unchanged. No VM or owner token in probe 1.
+
+
+Before 11i probe 3: inherited Part B OCR/GRUB CLI availability had no explicit
+read-only probe. Cancel probe 2 during setup and add actual live-frame OCR plus
+cached set-default/GRUB help, without boot/menu/default or disk mutation. Root
+probe authorization requires this new flag, with existing source/keyboard/stock/
+failure flags. Actual B remains a full-run gate. Full stage transitions unchanged.

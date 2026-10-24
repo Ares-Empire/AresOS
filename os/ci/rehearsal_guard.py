@@ -87,6 +87,7 @@ def main():
         assert proof['firmware_rule'] == '11f-linux-position'
         assert proof['stock_recipe_probe'] and proof['failure_counter_probe']
         assert proof['read_only_keyboard_proof'] and proof['installed_keyboard_reader_probe']
+        assert proof['part_b_tools_probe']
         from rehearsal_auth import REFERENCE, DIGEST
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             manifest = json.loads(archive.read('private-registry-preflight.json'))
