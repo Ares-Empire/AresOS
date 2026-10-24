@@ -1,0 +1,284 @@
+{
+  "allowance": "11c",
+  "start": "2026-10-23T16:21:00Z",
+  "cap": 600,
+  "full_cap": 3,
+  "full_dispatched": 1,
+  "consumed_minutes": 148,
+  "reserved_minutes": 42,
+  "runs": [
+    {
+      "run": 40051921449,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "1b00581df4b9871c9880db67e3f54ed2b82fb487",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40051917073,
+      "title": "Apply the authorized Linux position rule and budget a complete two-or\u2026",
+      "sha": "1b00581df4b9871c9880db67e3f54ed2b82fb487",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40051281685,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "60b20e1a611240efa4583b36f69b0cf371a85531",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40051275903,
+      "title": "Brief 11f: let the Linux entry move, fit the full run, correct the mi\u2026",
+      "sha": "60b20e1a611240efa4583b36f69b0cf371a85531",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40050666140,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "5cb51e0d4e544dd377e3083aa0950fb971a63045",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40050662731,
+      "title": "Report the Windows-default order PLAN-GAP and keep installation and r\u2026",
+      "sha": "5cb51e0d4e544dd377e3083aa0950fb971a63045",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40046420672,
+      "title": "Two-disk rehearsal (full)",
+      "sha": "a353042e6f996d26a9ad746b616dce1a6394e1ae",
+      "conclusion": "failure",
+      "minutes": 39
+    },
+    {
+      "run": 40044393400,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "a353042e6f996d26a9ad746b616dce1a6394e1ae",
+      "conclusion": "success",
+      "minutes": 22
+    },
+    {
+      "run": 40044249975,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "a353042e6f996d26a9ad746b616dce1a6394e1ae",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40044245505,
+      "title": "Recognize target-ESP Linux recreation at a former automatic option nu\u2026",
+      "sha": "a353042e6f996d26a9ad746b616dce1a6394e1ae",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40043692406,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "0aa50ca78a6ccf53bfe452e6d101aafbc0a56647",
+      "conclusion": "cancelled",
+      "minutes": 7
+    },
+    {
+      "run": 40043526075,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "0aa50ca78a6ccf53bfe452e6d101aafbc0a56647",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40043521223,
+      "title": "Apply the authorized firmware device-set rule with real-store and str\u2026",
+      "sha": "0aa50ca78a6ccf53bfe452e6d101aafbc0a56647",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40042788594,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "5e5972d7b28159b5145cd4cfdb385cb6cb2a8b74",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40042782486,
+      "title": "Brief 11e: judge firmware-owned NVRAM options as a per-boot device set",
+      "sha": "5e5972d7b28159b5145cd4cfdb385cb6cb2a8b74",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40041848828,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "443356e7308428c1a403d5aee7854db23a12ec85",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40041843056,
+      "title": "Report the 11d firmware PLAN-GAP and retain open installation and rec\u2026",
+      "sha": "443356e7308428c1a403d5aee7854db23a12ec85",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40038465601,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "31879417304d2ca584fe7e5f6b0de9555f4dd0ae",
+      "conclusion": "failure",
+      "minutes": 22
+    },
+    {
+      "run": 40038279622,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "31879417304d2ca584fe7e5f6b0de9555f4dd0ae",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40038275064,
+      "title": "Replay the real IDE QMP identifier and retain pinned-image read and c\u2026",
+      "sha": "31879417304d2ca584fe7e5f6b0de9555f4dd0ae",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40036342487,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "a8c77f7221e4c5d9dbe8e992e8e8d4337d17a777",
+      "conclusion": "failure",
+      "minutes": 16
+    },
+    {
+      "run": 40036169351,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "a8c77f7221e4c5d9dbe8e992e8e8d4337d17a777",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40036158941,
+      "title": "Keep the temporary auth share root-owned so the daily UID cannot read it",
+      "sha": "a8c77f7221e4c5d9dbe8e992e8e8d4337d17a777",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035950604,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "727d1e83fd8162e4bfffb3b82db21b21cc4f92b2",
+      "conclusion": "cancelled",
+      "minutes": 3
+    },
+    {
+      "run": 40035784085,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "727d1e83fd8162e4bfffb3b82db21b21cc4f92b2",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035777911,
+      "title": "Release the verified OCI pull cache before allocating installer disks",
+      "sha": "727d1e83fd8162e4bfffb3b82db21b21cc4f92b2",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035585755,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "5df18ac05891496d2fc1749272ddc22e2d21ce0d",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40035578181,
+      "title": "Document the 11d credential boundary and focused regressions",
+      "sha": "5df18ac05891496d2fc1749272ddc22e2d21ce0d",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40034568137,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "61c33ca06f1e72a2013788dd715a5abac9c2caff",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40034559047,
+      "title": "Brief 11d: read the signed release with the owner's read-only token s\u2026",
+      "sha": "61c33ca06f1e72a2013788dd715a5abac9c2caff",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39992295958,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "ad882d5b6460da373114e0fb54fe87680d420368",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39992290220,
+      "title": "Keep main's privacy workflow identical for a clean PR scan and accoun\u2026",
+      "sha": "ad882d5b6460da373114e0fb54fe87680d420368",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39991834967,
+      "title": "Report the 11c pre-VM release blocker and keep installation gates closed",
+      "sha": "ba4f5c65a8355a2827ee707fcea20b7416e8c85e",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989739478,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "failure",
+      "minutes": 7
+    },
+    {
+      "run": 39989544924,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989537420,
+      "title": "Identify the exact public Git-tree false positive without broadening \u2026",
+      "sha": "3babb48359291853a48f9f668c01810476a78d17",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 39989156330,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "f717ef24a6e04cdc192eec6912e7c248c6a53be2",
+      "conclusion": "failure",
+      "minutes": 1
+    },
+    {
+      "run": 39989148428,
+      "title": "Record rewritten source identities and explain unplugged-device firmw\u2026",
+      "sha": "f717ef24a6e04cdc192eec6912e7c248c6a53be2",
+      "conclusion": "failure",
+      "minutes": 1
+    },
+    {
+      "run": 39986075815,
+      "title": "Two-disk rehearsal: device-set probe passes; Windows-default order blocks full run",
+      "sha": "3147a65dfb1f97815fec2e3634d1607031ee1379",
+      "conclusion": "success",
+      "minutes": 1
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+Bazzite installation
+Welcome
+Date and time
+Installation method
+Storage configuration
+Create Account
+Review and install
+Storage configuration
+Encryption
+
+Secure your data using disk-based encryption. Only applies to new partitions
+
+Encrypt my data
+Back
+Next
+Quit

@@ -1,0 +1,3 @@
+[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01H[2J[01;01H[=3h[2J[01;01HBdsDxe: loading Boot0000 "Windows Boot Manager" from HD(1,GPT,8A0F3428-4EF8-4DB4-9103-17BEAAF5B997,0x800,0x82000)/\EFI\Microsoft\Boot\bootmgfw.efi
+BdsDxe: starting Boot0000 "Windows Boot ManageADP
+\

@@ -1,0 +1,26 @@
+Bazzite installation
+Welcome
+Date and time
+Installation method
+Storage configuration
+Create Account
+Review and install
+Destination
+Danger alert:
+No disks selected
+Please select at least one disk to continue
+Change destination
+To continue, select the devices to install to.
+: indeterminate status;
+Back
+Next
+Quit
+Select destination
+Rescan devices
+Virtio Block Device (vda)
+53.7 GB disk
+Currently installed: Windows
+Virtio Block Device (vdb)
+52.6 GB disk
+Select
+Cancel

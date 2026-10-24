@@ -1,0 +1,19 @@
+Bazzite installation
+Welcome
+Date and time
+Installation method
+Storage configuration
+Create Account
+Review and install
+Date and time
+Automatically set date and time, using time servers
+Configure NTP servers
+Show AM/PM
+Timezone
+Automatically set timezone
+America
+Phoenix
+MST, UTC-7
+Back
+Next
+Quit

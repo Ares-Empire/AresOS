@@ -4,6 +4,7 @@ import hashlib
 import json
 import pathlib
 import re
+import struct
 import sys
 import zipfile
 
@@ -18,7 +19,9 @@ from rehearsal_auth import DIGEST, REFERENCE
 records = root / 'os/manifest/ci/11f'
 display_sources = {'usr_libexec_livesys_functions', 'usr_libexec_livesys_livesys-late',
                    'usr_libexec_livesys_livesys-main', 'usr_share_anaconda_interactive-defaults.ks'}
-credential = re.compile(rb'(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{25,}|\$(?:6|y)\$[^\s\x27\x22<>]{15,})')
+# crypt hashes are ASCII. Excluding whitespace alone mistakes compressed PNG
+# bytes after an accidental "$6$" for a password hash; binary token scans stay on.
+credential = re.compile(rb'(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{25,}|\$(?:6|y)\$[./A-Za-z0-9$=]{15,})')
 
 
 def read(path):
@@ -52,6 +55,7 @@ events = []
 linux_events = []
 incomplete = []
 qualifications = []
+order_actions = []
 for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json').exists()):
     metadata = read(run / 'run.json')
     receipt = read(run / 'workflow-logs.json')
@@ -181,6 +185,16 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
         validate_review(proof['tables'], proof['protected'], proof['target'])
     for keyboard in run.rglob('webui-keyboard-proof.json'):
         validate_keyboard_proof(read(keyboard))
+    for action in run.rglob('*-windows-order.json'):
+        proof = read(action)
+        before, after = proof['before'], proof['after']
+        order = ordered_options(before)
+        expected = ['Boot0000'] + [n for n in order if n != 'Boot0000']
+        raw = struct.pack('<' + 'H' * len(expected), *(int(n[4:], 16) for n in expected)).hex()
+        assert proof['status'] == 'passed'
+        assert after == dict(before, BootOrder=dict(before['BootOrder'], hex=raw))
+        order_actions.append(dict(run=run.name, path=action.relative_to(run).as_posix(),
+                                  before=order, after=ordered_options(after)))
     for probe in run.rglob('probe-result.json'):
         proof = read(probe)
         assert proof['status'] == 'passed' and proof['installed'] is False and proof['commit'] == metadata['head_sha']
@@ -193,11 +207,35 @@ for run in sorted(p for p in records.iterdir() if p.is_dir() and (p / 'run.json'
         proof = read(full)
         assert proof['part_a'] == 'passed' and proof['both_orders']
         assert proof['part_b'] in ('passed', 'blocked')
+        folders = [full.parent, full.parent / 'protected-second']
+        for folder, order in zip(folders, ('protected-first', 'protected-second')):
+            required = ['baseline-firmware', order + '-install', 'after-install-without-linux',
+                        *('switch-sequence-' + s for s in ('stock', 'aresos', 'rollback', 'persistent-stock')),
+                        'before-undo-windows', 'after-undo-default-windows', 'after-undo-without-linux']
+            for stage in required:
+                assert (folder / (stage + '-protected.json')).exists(), (order, stage)
+                if stage != 'baseline-firmware':
+                    assert (folder / (stage + '-nvram-diff.json')).exists(), (order, stage)
+            for stage in ('after-install', 'undo'):
+                assert read(folder / (stage + '-windows-order.json'))['status'] == 'passed'
+            assert read(folder / 'result.json')['status'] == 'passed'
+            for stage in ('after-install-without-linux', 'before-undo-windows',
+                          'after-undo-default-windows', 'after-undo-without-linux'):
+                marker = (folder / (stage + '-marker.txt')).read_text()
+                assert 'ARESOS_WINDOWS_MARKER BootCurrent=0000' in marker
+                assert protected['gpt']['partitions'][0]['guid'].lower() in marker.lower()
+        promotion = read(full.parent / proof['part_b_evidence'])
+        assert promotion['status'] == proof['part_b']
+        if proof['part_b'] == 'passed':
+            assert promotion['stock_now_booted_first'] and promotion['unattended_second_boot']
+            for stage in ('b-switch', 'b-menu-preparation', 'b-recovered-stock', 'b-unattended-stock'):
+                assert (folders[1] / (stage + '-nvram-diff.json')).exists(), stage
         qualifications.append(dict(run=run.name, kind='full', source=metadata['head_sha'], **proof))
     print(run.name, metadata['conclusion'])
 
 result = dict(matching_offline_stages=stages, zero_write_records=counters, archived_records_scanned=scanned,
-              incomplete=incomplete, firmware_events=events, linux_position_events=linux_events, qualifications=qualifications)
+              incomplete=incomplete, firmware_events=events, linux_position_events=linux_events,
+              windows_order_actions=order_actions, qualifications=qualifications)
 (records / 'evidence-verification.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
 print(json.dumps(result, indent=2))
 if incomplete:
