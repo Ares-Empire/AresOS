@@ -1,5 +1,7 @@
 # Package 11: two-disk install rehearsal and pinned media
 
+Latest 11n state: **IN PROGRESS; no dispatch yet.** The switch fixture now supplies safe prerequisites while executing the unchanged exact owner block; injected42 and all five negative cases passed in WSL. Complete local discovery attempted201 tests:193 passed,8 unique environment limitations (Pillow3, forbidden elevation4, DrvFS mode0600 check1); Windows Pillow independently passed all4 greeter tests, giving196 unique local passes. Full native CI is required before the new probe. Same900-minute ledger, five historical fulls/one B; one additional15-minute no-VM regression reservation, then exactly one fresh probe and one same-head protected-second B if all gates pass. PR stays draft pending actual acceptance.
+
 Latest 11m outcome: **STOPPED at the single fresh probe's native regression gate, before credentials or any VM.** Complete history pagination passed locally and in CI (2 pages, 130 unique IDs = total_count130 in CI, zero retries). Probe **40134595231** on **43e7656** ran **200 tests: 199 passed, 1 failed**. The owner switch block's account prerequisite is not mocked by the older transaction-failure fixture, which exits before its injected bootc failure. No second probe or Part B dispatched; no runtime/test fix after the stop. New timing, prospective BootNext and GRUB recovery remain UNTESTED. Same ledger **633/900 before closing**, five historical fulls, zero B. Final evidence-head privacy/cost goes on PR #11 after push. **Draft retained; physical installation NOT RELEASED.**
 
 Latest 11l outcome: **STOPPED BEFORE PROBE — the fresh guard requires history pagination and wrote no authorization.** Four review fixes/source rules, 103 local tests and all32 original 11k BootNext checkpoint replays pass. Source privacy passed all three checks, no personal-term skip. **No 11l probe or Part B qualification dispatched.** 11k Part A remains qualified only with its earlier Windows-first timing; revised timing and B remain UNTESTED. Same ledger: **619/900 bookkeeping before closing, 5 historical full, 0/1 Part B**, plus closing privacy charged on PR #11. No guard bypass/pagination change; PR stays draft. Physical installation remains NOT RELEASED.
@@ -3764,3 +3766,169 @@ Staged gitleaks printed **no leaks found**; `gitleaks git . --log-opts HEAD
 history scan uses only rewritten HEAD, never old refs. The final push below contains
 only documentation/evidence/replay helpers, with runtime/workflow/tests frozen at
 43e7656. Final privacy and complete-ledger read are reported on PR #11 after push.
+
+## 11n: safe switch test prerequisites and continued qualification (2026-10-24)
+
+### Fixture and whole-suite gate — BEFORE ANY DISPATCH
+
+First ran `git fetch`, then `git pull --ff-only`: **Already up to date**, clean
+head **04ae68d** (owner11n brief). Read11n, AGENTS/README,11m's actual stop and the
+inherited11l walk-through/source proof/review and applicable stop/token rules.
+No source push, Actions dispatch, owner-token access, local administrator/software
+installation/settings change, physical disk/firmware operation, Gradle or Minecraft
+has occurred in11n at this point.
+
+**Done:** only `os/tests/test_shell_assertions.py` changes in runtime/test source.
+Its transaction fixture creates temporary fake auth/status/call files, PATH shims
+for `bootc`/`systemctl`, and shell stand-ins for account queries and the auth-file
+readability check. It never falls through to real accounts or `/etc`. Recovery
+UID1000, absent `ares`, free1001, readable temporary auth and empty pending state
+let the unchanged exact fenced block reach the injected **42**. The block's actual
+Python pending-state guard runs against the shim's JSON; it is not mocked away.
+Exact call traces require status→one switch, or one rollback, with no later command,
+reboot or after-block sentinel. Unexpected shim commands fail.
+
+Five negative cases execute that same block and stop **before switch**: existing
+`ares`, occupied1001, unreadable auth, staged deployment, queued rollback. The first
+three have no bootc call; staged/queued permit only the status query and require
+the actual pending-deployment diagnostic. Product `switch.sh`, INSTALL's fenced
+block and `test_owner_switch_block_is_exact_release_script` are **unchanged**.
+The equality test passed locally. No product precondition or assertion weakened.
+
+### Complete local discovery, including every limitation
+
+Existing **WSL Ubuntu/Python3.12.3** is available. Ran the complete discovery via
+`python reviews/11-two-disk-rehearsal/run-11n-local.py` (same runner initially under
+`.work/11n`): WSL executes **`python3 -m unittest discover -s os/tests -v`**.
+Temporary roots stay inside this worktree. A PATH shim rejects every `sudo` with126,
+because running as administrator locally is forbidden; no system software is
+installed or elevated command executed. No test is removed, skipped or modified
+for this run. [Full output](logs/11n/local-native-tests.txt):
+
+```text
+Ran 201 tests in 119.174s
+FAILED (failures=2, errors=9)
+```
+
+These are **eight unique environment-limited tests**, not11 distinct failed
+tests: Homebrew cleanup repeats errors after the blocked privileged operation.
+**193 tests passed under WSL**, including the repaired switch/rollback test,
+five negative subcases, exact owner-block equality, all guard/BootNext/selector
+regressions and every other locally supported test. The unchanged auth test
+correctly rejects DrvFS reporting0777 after a0600 request; that assertion stays.
+
+| WSL test not successfully verified | Why / next evidence |
+|---|---|
+| `test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline` | No WSL Pillow; passed with existing Windows Pillow below. |
+| `test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters` | Same missing module; passed on Windows. |
+| `test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence` | Same missing module; passed on Windows. |
+| `test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created` | Needs sudo/systemd-tmpfiles on temporary fixture; local elevation blocked. Native CI required. |
+| `test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently` | Needs sudo/chown/setpriv/POSIX ACL fixture; blocked. Native CI required. |
+| `test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask` | Same privileged ACL fixture; blocked. Native CI required. |
+| `test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently` | Needs sudo/systemd-sysusers on temporary fixture; blocked. Native CI required. |
+| `test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload` | DrvFS mode0777 differs from required0600; needs native POSIX storage. Native CI required. |
+
+Windows Python3.13 has existing **Pillow12.2.0**. Ran **`python -m unittest discover
+-s os/tests -p test_greeter.py -v`**: **4 tests in1.277s / OK**.
+[Output](logs/11n/local-windows-greeter.txt). Three formerly unavailable tests now
+pass; the fourth overlaps WSL. Thus **196 unique tests passed locally**, five
+need native CI. No installing Pillow or WSL/Windows configuration change.
+
+`python reviews/11-two-disk-rehearsal/verify-11n-local.py` independently reconciles
+the exact201 outcomes/8 unique limitations, Windows complement and unchanged
+product/runtime/equality/security blobs. [Receipt](../../os/manifest/ci/11n/local-tests.json).
+The11m invariant replay still passes: unchanged11l route/workflow/security/pins/
+budget tests/retry and all32 historical raw/JSON BootNext absences. Those are
+historical checkpoints, not new pre-boot write/consumption receipts.
+
+**Before the probe, run the existing native `checks_only=true` job on this source.**
+This supplies fresh complete201-test native evidence, including all tests touched
+or whose inputs changed in11l–11n, before the probe. Its existing timeout is15min;
+no workflow modification, image build, VM, private layer pull or owner token.
+Source privacy and a complete guard reserving **201=15 native checks+42 probe+
+130 B+14 closing** must pass first. After native checks, require a fresh guard
+reserving186 before the one probe. Any unexpected native job failure stops here.
+No relying on historical CI to conceal a current unsupported local check.
+
+**JUDGMENT-CALL:** reserve15 additional minutes for the existing no-VM job so the
+five unavailable local tests run safely on native Linux before the probe. This
+fits within the unchanged900 cap, does not consume another probe/full/B, and
+avoids local elevation or weakening POSIX assertions. The actual cost remains
+in the same complete ledger. If the full reserved plan cannot fit, stop/report.
+
+### Updated zero-cost stage walk-through — BEFORE ANY DISPATCH
+
+11n changes **test setup only**. Exact pinned source remains OSTree2026.4-1.fc44 /
+GRUB1:2.12-66.fc44; [11l's source proof](../../os/manifest/ci/11l/bootloader-source-proof.json)
+still verifies title N=deployment index, reverse-count filename/version, descending
+numeric bare-ID menu order and bare `grub2-reboot` acceptance. Actual checksum/order/
+status agreement plus ordered/stable rendered OCR is still required, never guessed.
+The complete11l walk-through is unchanged, with this additional no-VM native gate:
+
+1. Whole local discovery and explicit limitations above, unchanged source proof/
+   invariant replay; push fixture/report fast-forward; all3 source privacy checks,
+   no personal-terms skip. Fresh complete guard reserves201; one no-VM native
+   regression job must pass the entire201 tests, including unavailable cases.
+2. Fresh guard reserves186; dispatch **one** review-only probe on that source.
+   Both serial orders, actual Web UI target-only EFI/boot/root review, read-only
+   module/source/German proof, cached exact versions and temporary bare-ID grubenv,
+   actual OCR/tool/pause-idle/failure-counter fixture and detached marker/reset.
+   Never install in probe. All source/private/signature/cleanup/proof flags required.
+3. Retain original ZIP/server digest, inspect both review screenshots and every
+   raw protected/NVRAM/counter/BootNext receipt. Explicit passing probe ID and exact
+   same source are required by the **same CI guard**, no source push between runs.
+   Fresh guard reserves144=130 B+14 closing before the one B dispatch.
+4. **Protected-second only from baseline**: actual pinned live Web UI installs
+   target-only EFI/boot/root. Firmware's added Linux entry may be first while
+   live. No protected-byte/GPT/EFI change or write allowed.
+5. First stock/default and any known orderly hardware-init reboot use Linux first,
+   **no BootNext**. Read actual installed German files before pause, then exact
+   unit inventory→stop/disable→at-most-one leftover-transaction cancel→idle decision
+   export→pin/discard only the authorized single upstream staged deployment. Wrong
+   booted digest, keyboard, predicate, identity or timeout stops.
+6. Only after first-login pause/pin, restore **exactly Windows + old order without
+   Windows**; require attached unattended Windows marker with no BootNext, then
+   detached marker. Windows first and byte-identical from this point onward.
+7. Reattach Linux; record validated target-ESP Linux/F12 BootNext and consumption;
+   repeat pause/pin, signed unchanged switch, staged identity, reboot/audit, booted
+   exact AresOS digest/default0. Actual BLS stock identity resolves only to the
+   recorded checksum, exactly once. Apply source-verified order/version/title/status.
+8. One-time visible GRUB menu, retained frames/OCR; two stable observations must
+   agree with AresOS line0/stock's derived position **before any Home/Down/Enter**.
+   Recognized disagreement stops. Only authorized unavailable/undrivable-menu cases
+   allow `grub2-reboot` with real ID; wrong selected checksum never permits fallback.
+9. Recovered stock must be booted at nonzero index while AresOS remains default0;
+   identity-checked promotion, reboot/audit, then a second unattended Linux stock
+   boot (EFI F12 stand-in only, no GRUB choice), exact stock booted/default0 with
+   no pending deployment and rendered greeter. Retain result or precise blocker.
+
+Every boot rejects old/unexpected BootNext before overwrite and records prepared
+value/destination/purpose/boot/store; require consumption/absence afterward,
+including no leftover at Windows-default checkpoints. At every stage keep raw
+OVMF stores/QMP devices, full protected hashes/GPT/EFI, zero final writes, failure
+counters before termination, strict Windows identity/order, source-verified exact
+16-byte firmware-owned device set and validated target-only Linux position rules.
+Nonboot variables retain the existing four known classes, no new exemption.
+No foreseeable new transition conflicts with the frozen contract; actual uncovered
+behavior still stops/report as PLAN-GAP, never widens the rules.
+
+New Windows-first timing will be rehearsed **protected-second only**. Historical
+11k Part A passed both orders with the earlier timing; normal rollback/default
+undo/policy/tty3 are not repeated here. Physical media/laptop/typing/manual GRUB/
+novice gates remain open. Owner secret stays dispatch probe/B only, exact pinned
+image reads, root0600 outside workspace/artifacts, read-only guest share, always
+cleanup, no owner-token API/local read. No image/pin/signature/visibility change.
+
+Same ledger start **2026-10-23T16:21:00Z**, **900 minutes**, five historical fulls,
+one B. Prior11m actual closure **637** includes its failed5-minute probe and4
+closing privacy minutes. Owner11n/source privacy/native checks also count. No
+allowance reset, sixth ordinary full, extra probe or second B. Before any dispatch,
+record the actual complete guard pages/IDs/total_count/spent/reserve and source
+privacy; no inferred figures authorize anything.
+
+**Verified:** local discovery/explicit limitations, repaired fixture/negatives and
+owner-block equality, complementary Windows greeter run, invariant replay.
+**Not verified:** fresh native job/source privacy/guard/probe/B and all new VM
+receipts/menu/timing. **PLAN-GAP:** local DrvFS/Pillow/elevation limitations are
+listed and assigned native CI; no product-plan change. **Open questions:** actual
+qualification outcomes and retained physical gates. PR remains draft; never merge.
