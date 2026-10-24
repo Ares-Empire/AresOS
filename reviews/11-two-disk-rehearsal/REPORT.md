@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11l state: **IN PROGRESS; 11k Part A remains qualified with its earlier Windows-first timing; new protected-second timing and Part B await the single fresh probe/qualification.** Exact pinned OSTree/Fedora GRUB sources support the title/index ordering rule. Review fixes and strict BootNext replay pass locally; no 11l dispatch yet. Shared start unchanged, cap900, historical full cap5 plus exactly one new Part B qualification. Physical installation remains NOT RELEASED.
+Latest 11l outcome: **STOPPED BEFORE PROBE — the fresh guard requires history pagination and wrote no authorization.** Four review fixes/source rules, 103 local tests and all32 original 11k BootNext checkpoint replays pass. Source privacy passed all three checks, no personal-term skip. **No 11l probe or Part B qualification dispatched.** 11k Part A remains qualified only with its earlier Windows-first timing; revised timing and B remain UNTESTED. Same ledger: **619/900 bookkeeping before closing, 5 historical full, 0/1 Part B**, plus closing privacy charged on PR #11. No guard bypass/pagination change; PR stays draft. Physical installation remains NOT RELEASED.
 
 Latest 11k outcome: **A PASSED BOTH ORDERS; B BLOCKED before menu selection; C pins retained.** The bounded read-only guard recovered seven intermittent 502s. Fresh probe 40117290487 and final full 40119526154 passed on source **2524823**; both ran 181 native tests. Both installed German checks and all seven pause/five pin checks passed; all **32** probe/full protected captures matched with **32 final zero-write records**. Part B has one checksum-matching stock entry but its bare BLS ID is rejected by the selector. No selector change, second probe or sixth full. Shared ledger **611/750 measured, 5/5 full**, with 14 closing minutes reserved; exact closing privacy proof/cost is recorded on PR #11 after the evidence push. Physical installation stays **NOT RELEASED**.
 
@@ -3414,3 +3414,98 @@ no actual guard retry here. [Ledger](../../os/manifest/ci/11l/initial-budget.jso
 the brief's nominal797 omits those already charged five minutes. Source privacy
 will also count. PR #11 converted to draft pending this round's acceptance.
 Only source push/privacy and the single fresh probe may follow; still no dispatch.
+
+### Final STOP — complete-ledger guard failed before the probe
+
+**Done:** source **81592192fd0189c59285a6ab958c0b62b05811af** contains the four
+review fixes, the verified selector/order/OCR guard, strict recorded BootNext,
+owner-guide timing/exact switch block, and the explicitly permitted one-B route
+and 900-minute cap. It was pushed fast-forward. Its two privacy runs,
+[40132617608](https://github.com/Ares-Empire/AresOS/actions/runs/40132617608) and
+[40132613328](https://github.com/Ares-Empire/AresOS/actions/runs/40132613328), passed
+**No secrets (gitleaks), Only private commit emails, No personal terms**. Individual
+steps and complete original logs verify all three with no skip/error; [source
+proof](../../os/manifest/ci/11l/source-privacy-proof.json). Source was not followed
+by any workflow dispatch.
+
+The required fresh command `python os/ci/rehearsal_guard.py probe 186` exited **1**:
+
+```text
+AssertionError: Budget history requires pagination; refuse an incomplete ledger
+```
+
+[Original stderr](logs/11l/before-probe-guard-stop.txt), [failure receipt](../../os/manifest/ci/11l/guard-stop.json).
+It returned **zero stdout bytes** and wrote **no fresh authorization**. The prior
+616-minute initial receipt was unchanged, never used for dispatch, and its stale
+temporary copy was removed after its original was retained. This failure is a
+history-coverage guard, **not minute exhaustion or another HTTP502**. No retry was
+seen in either guard this round; the 11k read-only retry functions are unchanged.
+
+Read-only diagnosis, **not authorization**, confirms the boundary: page1 returns
+100 runs and its oldest is **2026-10-23T16:43:29Z**, later than allowance start
+**16:21:00Z**. Page2 returns23, starting at **16:21:24Z** and reaching older history.
+Thus an allowance run is genuinely beyond the guard's only page. Total branch
+history is123. Both source privacy jobs are the only additions since the complete
+initial ledger. [Diagnostic/set reconciliation](../../os/manifest/ci/11l/budget-stop-diagnostic.json).
+No partial ledger, skipped run, old authorization, alternative endpoint or
+reconstructed budget was substituted for the failed guard. **Stop/report; no
+pagination change, fresh probe or B dispatch after the stop.**
+
+| 11l acceptance gate | Actual evidence/outcome |
+|---|---|
+| Exact pinned source title/version/filename/GRUB ordering and bare IDs | Verified before implementation/dispatch; versions/source links and hashes above. The rule is consistent, not contradicted. New cached-image version/tool checks are implemented but **not executed**, because no probe. |
+| Checksum-only stock selection, independent position and OCR before keys | Retained 11k entries now select stock at position1; three-entry test demonstrates filename2/title1 gives position1. No/duplicate/sub-string checksum, version/title/status disagreement and wrong OCR refuse. Wrong OCR sends no key. Six selector/guide tests passed within the 103-test suite. |
+| Owner timing / unattended Windows proof | Implemented Linux-default first/init boots → installed keyboard → pause/pin → exact Windows-first restoration → attached unattended Windows marker → detached marker. Real retained-FD test proves first default writes no override and later explicit selection records it. **New sequence not rehearsed in either order.** |
+| Strict BootNext and historical replay | Unknown destination, leftover Windows-default override, malformed length and missing authorization tests pass. Every original 11k raw/JSON capture checked: **32/32 BootNext absent**, old complete protected/firmware/counter verifier still passes. Historical pre-boot write receipts do not exist and were not invented. Prospective write/consumption receipts remain unexercised in a new VM. |
+| Owner switch equals tested script | Exact fenced-block comparison passes with release reference filled, including account/UID/auth and pending/rollbackQueued guard. `switch.sh` itself unchanged. |
+| Fresh probe and B rendered frames/OCR/selection/promotion | **Not dispatched**: complete-ledger guard stopped before probe. No new menu frame, OCR, selected-entry image, recovery promotion or second recovered-stock boot exists. B blocker is the guard's history pagination boundary. |
+| Native/full verification | **103 local tests in1.077s / OK**; compilation, Bash syntax, staged scan/diff and original 11k replay passed. No new Ubuntu discovery/VM result; 11k's 181-test probe/full results remain historical and do not qualify this source. |
+| Privacy / branch / review readiness | Source privacy passed all three; final report-head privacy and actual closing cost are recorded on PR #11 after push. Fast-forward pushes only. **Draft retained**, no merge/auto-merge, no unqualified readiness claim. |
+
+| Shared ledger checkpoint | Rounded minutes / dispatches |
+|---|---:|
+| Actual 11k closure, including its privacy | 613 / 5 full |
+| New owner brief/review privacy +3; initial complete guard | 616 / 5 full, 0 B |
+| Tested 11l source privacy: PR1 + push2 | **619 / 5 full, 0 B** |
+| Probe / Part B consumed | **0 / 0** |
+| Closing privacy reservation | at most14, bookkeeping total at most633 ≤900 |
+
+The nominal797 plan was not spent. The last successful guard reserved186 at616;
+the later619 figure is exact **bookkeeping**, reconciled to the complete initial
+ledger plus only the two known source privacy jobs. It is **not guard authorization**.
+Same start/cap and five historical fulls, no reset. Final report push privacy cost
+and fresh complete paginated **diagnostic-only** run-ID reconciliation will be
+recorded in PR #11's body after checks finish, avoiding a commit/privacy loop.
+No VM, image build, private visibility/pin change, owner-token API call or local
+owner-token read occurred. No Actions owner-token consumption: no dispatch.
+
+**Not verified / not re-rehearsed:** every planned new live/cached probe check,
+the new Windows-first timing even in protected-second, prospective BootNext
+write/consumption in QEMU, real installed B selection/OCR/fallback/promotion/second
+stock boot. 11k's both-order Part A used the earlier timing and remains the only
+complete A result; rollback/default undo/policy/tty3 were deliberately not repeated.
+Physical media, real Windows/laptop/SSD/GPU, actual German typing, manual GRUB and
+novice followability remain open. No screenshot is fabricated or reused as 11l.
+
+**JUDGMENT-CALL:** honor the complete-ledger refusal rather than expand a guard
+after it stops. The read-only two-page diagnostic explains the problem and closes
+bookkeeping only. PR remains draft because the fresh probe and requested new
+qualification did not run. Owner docs preserve all open VM/physical release gates.
+
+**PLAN-GAP:** this branch's workflow history has crossed the guard's single-page
+limit; completing the authorized plan needs a reviewed complete-history pagination
+fix with failure-closed regressions, followed by a fresh source/probe gate. The
+bounded retry itself works and is unchanged. No such guard fix or new dispatch
+is attempted under this stop. **Open questions:** ledger pagination authorization,
+then the unexecuted probe/B/new timing and physical gates above. No merge or force push.
+
+Closing offline verification: `python reviews/11-two-disk-rehearsal/replay-11l-stop.py`
+prints **11l STOP replay passed: complete-ledger refusal, no dispatch/authorization,
+619 bookkeeping minutes, 5 full / 0 B; all source privacy checks and immutable/runtime
+blobs verified.** It independently binds the original two source privacy ZIPs,
+all three command groups/no errors/no terms skip, rounded job costs and run-ID set,
+failed stdout/old-receipt identity and unchanged tested runtime/security/pins.
+Original [PR privacy ZIP](artifacts/11l-source-privacy-40132617608-logs.zip) and
+[push privacy ZIP](artifacts/11l-source-privacy-40132613328-logs.zip) match their
+proof SHA-256; all raw/decoded credential scans pass. The privacy workflow and
+exclusions are unchanged. No Gradle daemon was started.

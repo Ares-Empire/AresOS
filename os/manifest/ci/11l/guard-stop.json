@@ -1,0 +1,13 @@
+{
+  "status": "STOP",
+  "command": "python os/ci/rehearsal_guard.py probe 186",
+  "exit_code": 1,
+  "source": "81592192fd0189c59285a6ab958c0b62b05811af",
+  "reason": "Budget history requires pagination; refuse an incomplete ledger",
+  "stdout_bytes": 0,
+  "new_authorization_written": false,
+  "previous_initial_receipt_unchanged": true,
+  "previous_initial_receipt_never_used_for_dispatch": true,
+  "previous_initial_receipt_sha256": "4cb5af52bce98d8eff56421976b6800e97e824b2b361573dd5891f7e6d398e7c",
+  "stderr_log": "reviews/11-two-disk-rehearsal/logs/11l/before-probe-guard-stop.txt"
+}
