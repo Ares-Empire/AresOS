@@ -32,7 +32,7 @@
   "regressions": 7,
   "historical_11f_counter_unchanged": true,
   "inputs": {
-    "os/manifest/ci/11f/full-2/two-disk/pin-stock.txt": "3ef25c91f7f294a997847db53ede810edf5a6187356ae0a85acf8431587a776d",
+    "os/manifest/ci/11f/full-2/two-disk/pin-stock.txt": "deec8afd92b96fb2185f5d7289e9854ede5e0421f4ea89eefe4a8806b5c5981c",
     "os/release/pause-stock-updates.sh": "b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5",
     "os/release/pin-stock.sh": "6782e32be96d612823224830956042637bc53b05c8f7ea2effe60efb25e72c2f",
     "os/tests/test_stock_prepare.py": "a288dd8458765a273a838ff4fad5e627e2f3ec94129beb1722e40e09950a5032",

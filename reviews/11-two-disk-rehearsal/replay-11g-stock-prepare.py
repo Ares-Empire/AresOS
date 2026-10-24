@@ -2,6 +2,7 @@
 import hashlib
 import json
 import pathlib
+import subprocess
 import sys
 import unittest
 
@@ -22,7 +23,9 @@ assert result.wasSuccessful()
 receipt = dict(status='passed', real_11f_status=True, mocked_subprocesses=True,
                mutations=case.calls, result=proof, regressions=result.testsRun,
                historical_11f_counter_unchanged=True,
-               inputs={p: hashlib.sha256((root / p).read_bytes()).hexdigest() for p in paths})
+               inputs={p: hashlib.sha256(subprocess.check_output(['git', 'show', 'HEAD:' + p])
+                       if p.startswith('os/manifest/ci/11f/') else (root / p).read_bytes()).hexdigest()
+                       for p in paths})
 destination = root / 'os/manifest/ci/11g/stock-prepare-replay.json'
 destination.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8', newline='\n')
 print(json.dumps(receipt, indent=2))
