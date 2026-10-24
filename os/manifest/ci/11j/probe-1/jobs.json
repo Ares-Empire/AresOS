@@ -1,0 +1,113 @@
+{
+  "total_count": 4,
+  "jobs": [
+    {
+      "id": 120926365079,
+      "run_id": 40112294759,
+      "workflow_name": "Two-disk rehearsal (probe)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40112294759",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcJ8Xllw",
+      "head_sha": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/120926365079",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40112294759/job/120926365079",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-24T16:35:56Z",
+      "started_at": "2026-10-24T16:35:58Z",
+      "completed_at": "2026-10-24T17:09:14Z",
+      "name": "Pinned live ISO inspection and two-disk rehearsal",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/120926365079",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000241,
+      "runner_name": "GitHub Actions 1000000241",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 120926365921,
+      "run_id": 40112294759,
+      "workflow_name": "Two-disk rehearsal (probe)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40112294759",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcJ8Xo4Q",
+      "head_sha": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/120926365921",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40112294759/job/120926365921",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-24T16:35:56Z",
+      "started_at": "2026-10-24T16:35:56Z",
+      "completed_at": "2026-10-24T16:35:56Z",
+      "name": "Published-image switch and rollback",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/120926365921",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 120926365922,
+      "run_id": 40112294759,
+      "workflow_name": "Two-disk rehearsal (probe)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40112294759",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcJ8Xo4g",
+      "head_sha": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/120926365922",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40112294759/job/120926365922",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-24T16:35:56Z",
+      "started_at": "2026-10-24T16:35:56Z",
+      "completed_at": "2026-10-24T16:35:56Z",
+      "name": "Regression checks only (no image build or VM)",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/120926365922",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 120926366392,
+      "run_id": 40112294759,
+      "workflow_name": "Two-disk rehearsal (probe)",
+      "head_branch": "pkg/11-two-disk-rehearsal",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40112294759",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcJ8XquA",
+      "head_sha": "0210e3325fcbe786178d1b7e5cbbd962934dd11b",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/120926366392",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40112294759/job/120926366392",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-24T16:35:56Z",
+      "started_at": "2026-10-24T16:35:56Z",
+      "completed_at": "2026-10-24T16:35:56Z",
+      "name": "image",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/120926366392",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

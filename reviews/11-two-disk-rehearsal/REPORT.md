@@ -1,6 +1,6 @@
 # Package 11: two-disk install rehearsal and pinned media
 
-Latest 11j state: **IN PROGRESS; no 11j dispatch yet. A remains NOT QUALIFIED, B UNTESTED, C pins retained.** 11i stopped at the first installed stock pause. 11j replaces the name-only client check with executable/cgroup inspection, records all idle predicates, allows one leftover-transaction cancellation, and reads installed keyboard files before the pause. The complete pre-dispatch walk-through and offline source findings appear below. Physical installation remains NOT RELEASED.
+Latest 11j outcome: **STOP before full dispatch: repeated HTTP 502 prevented fresh budget authorization. A NOT QUALIFIED, B UNTESTED, C pins retained.** All three pause copies are fixed; 174 native tests and the same-source live probe pass, including exact stock daemon/service verification. No fifth full was dispatched. Reconstructed actual ledger **464/750 minutes, 4/5 full**, plus closing privacy still to measure. PR #11 remains draft; physical installation NOT RELEASED. See the 11j section below.
 
 Latest 11f outcome: **STOPPED before switch — stock has a newer upstream deployment staged; the unchanged pin guard refused it. A NOT QUALIFIED, B UNTESTED, C pins retained.** The fresh probe and 146 native tests passed; first install, Windows-default restoration/detached marker and pinned stock boot passed. Eleven offline protected captures match; ten final counters are zero and the failed stock session lacks its final counter. Shared ledger **229/600 measured + at most 14 closing privacy minutes, 2/3 full runs**. See [11f](#11f-linux-position-rule-and-full-length-qualification-2026-10-24).
 
@@ -2769,3 +2769,137 @@ newly established; prior 11i cause remains inference until real decision values.
 transaction/staged deployment actually occurs, then the remaining A/B results.
 
 Initial 11j guard measured **428/750 minutes, 4/5 full**, reserving 238 for probe + full + closing (666 total, before the source push privacy jobs). Focused local suite: **61 tests in 0.594s / OK**; Python compilation, diff check and archive scanner regression passed. Historical regression uses a byte-identical f1a237d fixture, SHA-256 b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5, so the same check runs on the shallow CI checkout. Native Ubuntu remains the full-suite authority.
+
+
+### Probe 1 verification — full gate still closed pending fresh ledger
+
+Probe [40112294759](https://github.com/Ares-Empire/AresOS/actions/runs/40112294759)
+on **0210e3325fcbe786178d1b7e5cbbd962934dd11b** completed successfully. Ubuntu
+reported **174 tests in 3.545s / OK**. Syntax, release equivalence, signature,
+whole ISO and pinned firmware-source checks passed. Original evidence ZIP:
+**6,420,139 bytes**, SHA-256
+**a936d9bcf69d729144925f99de17d42c824ac288a8f52d095546d66afb77c0e2**.
+
+Both exact-stock cached-image checks confirmed rpm-ostree **2026.3**, uupd **1.5.0**,
+`ExecStart=+rpm-ostree start-daemon` and Linux comm **rpm-ostree**. Binary SHA-256s:
+rpm-ostree **9968f4cd00fe59ca54975af02722952f57c89cf094ea5ce776dd31aa878b1597**;
+uupd **402479f7c85c98bcc7a38d1da86bcc5f9f9628406b09627513e5edbd5d882e48**.
+The container was read-only/no-network/no-pull, without owner credentials or host
+mounts. Its daemon-name test child is explicitly its own process; this is not a
+claim that an installed daemon was observed. No item-1 contradiction was found.
+Tagged status/cancel semantics remain bound to their exact source hashes.
+[Cached source receipt](../../os/manifest/ci/11j/probe-1/two-disk/cached-stock-cli-probe.json),
+[reverse receipt](../../os/manifest/ci/11j/probe-1/two-disk/protected-second/cached-stock-cli-probe.json).
+
+The [retained actual pinned-stock status and tagged driver selection](../../os/manifest/ci/11j/source-check/uupd-driver-selection.json)
+show compatible booted/staged slots: uupd selects its **bootc own-process** path.
+This is a source-based inference from that recorded state, not an observed 11i
+updater invocation. A later incompatible state selects the recorded rpm-ostree
+fallback. Both external client kinds remain blocking. The daemon-only new/old
+[comparison receipt](../../os/manifest/ci/11j/idle-regression-comparison.json) shows
+the exact 11i idle-deadline failure and the new passing predicate values.
+
+Recomputed evidence: **6 matching offline captures, 6 final zero-write records,
+458 original archive entries scanned, no incomplete stage**, only probe 1 qualified.
+The five automatic-entry changes and zero Linux-position changes are listed in the
+[stage table](../../os/manifest/ci/11j/stage-table.md); Windows identity/default,
+detached markers and existing firmware rules pass. Both final storage tables were
+visually inspected: only target **vdb** first order and **vda** reverse, each with
+its own EFI, boot and root rows. No installation occurred.
+Read-only module/source proofs, explicitly synthetic/non-installed keyboard reader,
+real service pause twice, Part B OCR/GRUB helpers and paused/probe-only failure
+counter checks passed in each order. All owner manifest/pull/signature receipts
+passed, **zero owner-token API calls**, and always-cleanup removed the auth file
+outside the workspace. Source push/PR privacy passed all three checks, terms not skipped.
+
+Actual probe job: 16:35:58–17:09:14 UTC, **34 rounded minutes**. Together with the
+fresh pre-probe ledger this is **464/750 measured from retained completed metadata,
+4/5 full**. The complete stage walk above is unchanged; no source push after the
+probe. The fresh unmodified guard must still authorize the full reservation before
+any full dispatch. Two read-only refreshes hit HTTP 502 (probe metadata, then an
+older ledger entry); neither returned authorization and neither dispatched anything.
+Installed keyboard, real pause/cancel/pending discard and full A/B remain unqualified.
+
+
+### Final 11j STOP — fresh ledger API unavailable; no fifth full
+
+**Done:** executable/cmdline/cgroup client detection, exact daemon exclusion,
+one recorded leftover-transaction cancellation, complete last-predicate success/
+STOP diagnostics, synchronized standalone/pin/owner copies, strict installed
+keyboard-before-pause ordering, regressions and same-source pinned-stock probe
+verification. Runtime/tests remain exactly successful probe source **0210e33**;
+subsequent changes retain evidence, documentation and stop receipts only.
+
+**STOP:** Three bounded, read-only executions of the **unchanged** guard command
+`python -X utf8 os/ci/rehearsal_guard.py full 196` exited 1 because GitHub returned
+HTTP **502**, on job metadata for runs 40112294759, 39992295958 and 40061023607
+respectively. None wrote a fresh authorization (redirected result was empty).
+[Stop receipt](../../os/manifest/ci/11j/dispatch-guard-stop.json),
+[last stderr, local paths redacted](logs/11j/dispatch-guard-final.txt).
+No guard bypass, cached response substitution, retry policy/code change, new CI
+attempt or full dispatch. This is **metadata/authorization unavailability**, not
+an asserted minute-cap violation or a failing idle predicate. The final full slot
+remains unused. The successful probe cannot replace a successful fresh budget guard.
+
+The verified pre-probe ledger was 430. The sole new completed workflow was probe
+40112294759, costing 34 by the unchanged job rounding. A fresh complete branch-run
+list was compared by run-ID set against that ledger: only this probe was added,
+all runs completed, four total full runs. Therefore **464/750 minutes, 4/5 full**
+is measured reconstructed bookkeeping. It is explicitly **not full authorization**.
+[Reconstruction](../../os/manifest/ci/11j/after-probe-ledger-reconstruction.json),
+[fresh run list](../../os/manifest/ci/11j/after-probe-runs.json).
+The intended 182 full + 14 closing would fit arithmetically (660), but the fresh
+guard never returned. No owner-token API or billing query was used to work around it.
+The 750/five caps, original start, frozen digests, signature and firmware/disk rules
+are unchanged. Final closing privacy results/cost will be recorded on PR #11.
+
+| Gate → evidence | Result |
+|---|---|
+| Pinned stock service/process name; tagged updater and transaction/cancel semantics | **PASS** offline source + both exact cached-image receipts; rpm-ostree comm verified, versions/binary hashes retained. No contradiction. |
+| Daemon-only check fails old code and passes new; external client/unit/transaction negatives; exactly one cancel; idempotency/copy equality; 11g replay | **PASS** 61 focused local tests; 174 native probe tests; old/new comparison and historical verifier. |
+| Same-commit real UI/read-only German module proof, review-only both orders | **PASS**, explicitly no installation; both target-only review tables visually inspected. |
+| Six reached protected captures/final counters and per-stage NVRAM transitions | **PASS**, every capture matches, zero final writes, unchanged 11f/set rules; stage table retains each auto event. |
+| Owner read-only pinned-image auth/signature and always cleanup | **PASS**, same digest, outside-workspace auth removed; zero owner-token API calls. |
+| Fresh full budget authorization | **STOP**, three HTTP 502 refusals, no result and no full dispatch. |
+| Installed keyboard, protected-first order | **NOT RUN in 11j**. Only explicitly synthetic reader fixture passed. Historical 11i installation completed but its actual keyboard result remains unverified. |
+| Installed keyboard, protected-second order | **NOT RUN**; synthetic reader fixture cannot qualify it. |
+| Actual installed pause/pin decision values / daemon exclusion / cancellation | **NOT RUN in 11j**. The live probe exercises pause_units twice, not an OSTree installation; complete decision values are regression evidence only. No installed daemon/client/transaction observation is invented. |
+| Actual staged update observed / discarded | **UNKNOWN / UNKNOWN** in 11j (null, not false). Existing real 11f staged-update replay passed. |
+| Full A: both installations, switch/policy/tty3/rollback/persistent and second stock, default undo, detached Windows after install/undo | **NOT QUALIFIED**, no fifth full. |
+| Part B: actual menu/recorded-stock promotion and second unattended stock | **UNTESTED**; only existing OCR and cached CLI preflights passed. |
+| Privacy | Source push and PR all three checks passed, terms not skipped; final evidence/report checks pending at commit time, final result carried on PR. |
+
+**Verified commands:** `python -X utf8 -m unittest` discovery over seven focused
+patterns: final rerun **61 tests in 0.593s / OK**; native probe discovery **174 in
+3.545s / OK**. Local Python compilation, `bash -n` both owner scripts and
+`git diff --check` passed. `verify-11j-evidence.py` exit 0, six matching stages/six
+zero final counters/458 archive records/no incomplete stage. `tabulate-11j-stages.py`
+printed `Stage rows: 6`. Archive scanner regression passed raw/decoded token and
+ASCII crypt specimens plus the original PNG false-positive fixture without a new
+exclusion. `verify-11g-evidence.py` still passes its original ten stages/ten zero
+counters/only historical probe 3 qualified. Source staged gitleaks found no leaks.
+[Local test log](logs/11j/local-tests.txt), [complete probe log](logs/11j/probe-1.txt).
+
+**Not verified:** actual installed German files/options in either order, actual
+new pause decision values/cancel/pending cleanup/pin, full A/B and all existing
+physical/typing/RTX/display/network/battery/logind/real-Windows gates. No physical
+laptop disk, settings, system software, Minecraft or Gradle action; no Gradle
+daemon started. Prior 11f missing counter and 11i missing predicates remain missing.
+
+**JUDGMENT-CALL:** after three bounded read-only metadata attempts, stop instead
+of dispatching the last full without fresh guard authorization. Reconstructed
+bookkeeping supports the reported cost, never a replacement authorization. No
+runtime/guard/image/firmware check changed after the successful probe.
+
+**PLAN-GAP:** external job-metadata availability prevents the unchanged guard from
+returning a complete ledger despite a valid probe and arithmetic room. Do not infer
+budget exhaustion or product success/failure from HTTP 502. A future continuation
+needs reliable ledger metadata and fresh exact-head probe authorization after this
+required report push. The integrator decides how to proceed; no additional probe
+or full is dispatched here.
+
+**Open questions:** actual installed German and idle/cancel/staged-state results,
+then the remaining A/B recovery path, once budget authorization can be obtained.
+PR #11 stays draft. Fast-forward pushes only; no merge or force-push.
+
+Final closure checks: `replay-11j-stop.py` passed with 464 minutes/four full, no full authorization and no installed claims. All bound inputs are recorded in [stop-analysis.json](../../os/manifest/ci/11j/stop-analysis.json); local user/worktree/Python prefixes in the retained stderr are redacted, with raw/display SHA-256 provenance. History gitleaks scanned **122 commits**, no leaks. The final copy/idempotency/pending-update tests passed **7 in 0.132s / OK** after documentation edits; evidence/scanner and diff checks passed again. Privacy policy files, frozen pins, OS config and disk_audit.py match brief head 4b3d71d. Final staged scan and input-to-Git-blob hashes must pass before the evidence push.

@@ -1,0 +1,53 @@
+[
+  {
+    "timestamp": {
+      "seconds": 1792860664,
+      "microseconds": 798862
+    },
+    "event": "RTC_CHANGE",
+    "data": {
+      "offset": 0,
+      "qom-path": "/machine/unattached/device[4]/rtc"
+    }
+  },
+  {
+    "timestamp": {
+      "seconds": 1792860665,
+      "microseconds": 460118
+    },
+    "event": "RTC_CHANGE",
+    "data": {
+      "offset": -1,
+      "qom-path": "/machine/unattached/device[4]/rtc"
+    }
+  },
+  {
+    "timestamp": {
+      "seconds": 1792860676,
+      "microseconds": 595490
+    },
+    "event": "SHUTDOWN",
+    "data": {
+      "guest": true,
+      "reason": "guest-shutdown"
+    }
+  },
+  {
+    "timestamp": {
+      "seconds": 1792860676,
+      "microseconds": 596282
+    },
+    "event": "STOP"
+  },
+  {
+    "timestamp": {
+      "seconds": 1792860676,
+      "microseconds": 784548
+    },
+    "event": "SHUTDOWN",
+    "data": {
+      "guest": false,
+      "reason": "host-qmp-quit"
+    }
+  }
+]

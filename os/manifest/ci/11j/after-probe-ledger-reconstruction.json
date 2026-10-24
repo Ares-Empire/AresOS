@@ -1,0 +1,15 @@
+{
+  "start": "2026-10-23T16:21:00Z",
+  "cap": 750,
+  "full_cap": 5,
+  "full_dispatched": 4,
+  "consumed_minutes": 464,
+  "probe_minutes": 34,
+  "prior_ledger": "before-probe-budget.json",
+  "added_run": 40112294759,
+  "added_jobs": "probe-1/jobs.json",
+  "all_current_runs": "after-probe-runs.json",
+  "method": "Complete previously successful guard ledger plus sole newly completed probe, exact existing job_minutes rounding; fresh run-list set equality verified",
+  "full_authorization": false,
+  "reason": "Three unchanged fresh full-guard attempts returned HTTP 502; reconstructed bookkeeping is not permission to dispatch"
+}

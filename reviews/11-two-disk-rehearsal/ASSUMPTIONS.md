@@ -754,3 +754,5 @@ collector after testing. Follow-up needs actual idle-predicate diagnostics.
 
 
 11j: The exact stock cached-image probe must confirm rpm-ostreed ExecStart, real daemon comm and frozen rpm-ostree/uupd versions before the fifth and final full. Tagged source verifies transaction/cancel semantics and bootc-compatible/rpm-ostree-fallback uupd paths. Prior 11i process values remain unknown. Installed keyboard reads now precede pause by explicit integrator instruction; the owner block still starts with pause. Shared 750-minute / five-full ledger never resets.
+
+11j STOP: successful same-source probe, but three unchanged fresh full guards received HTTP 502 on different job records and returned no authorization. No fifth full. Reconstructed bookkeeping is 464/750 and 4/5 before closing privacy; it never substitutes for guard authorization. Actual installed results and A/B remain unqualified; PR stays draft.
