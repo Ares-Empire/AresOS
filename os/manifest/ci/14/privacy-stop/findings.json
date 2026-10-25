@@ -1,0 +1,63 @@
+{
+  "status": "blocked",
+  "finding_count": 5,
+  "findings": [
+    {
+      "rule": "generic-api-key",
+      "file": "os/manifest/ci/14/host-walk/result.json",
+      "line": 58,
+      "commit": "54337da3aa6802eb44c748af4e0c3844631d2fa3",
+      "fingerprint": "54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:58",
+      "source_file": "os/ci/owner_keys.py",
+      "verified_git_blob_sha256": true,
+      "classification": "source integrity pin; not an authentication credential"
+    },
+    {
+      "rule": "generic-api-key",
+      "file": "os/manifest/ci/14/host-walk/result.json",
+      "line": 61,
+      "commit": "54337da3aa6802eb44c748af4e0c3844631d2fa3",
+      "fingerprint": "54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:61",
+      "source_file": "os/ci/registry_auth.py",
+      "verified_git_blob_sha256": true,
+      "classification": "source integrity pin; not an authentication credential"
+    },
+    {
+      "rule": "generic-api-key",
+      "file": "os/manifest/ci/14/host-walk/result.json",
+      "line": 72,
+      "commit": "54337da3aa6802eb44c748af4e0c3844631d2fa3",
+      "fingerprint": "54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:72",
+      "source_file": "os/manifest/ci/14/hotplug-sources/qapi_block-core.json",
+      "verified_git_blob_sha256": true,
+      "classification": "source integrity pin; not an authentication credential"
+    },
+    {
+      "rule": "generic-api-key",
+      "file": "os/manifest/ci/14/host-walk/result.json",
+      "line": 73,
+      "commit": "54337da3aa6802eb44c748af4e0c3844631d2fa3",
+      "fingerprint": "54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:73",
+      "source_file": "os/manifest/ci/14/hotplug-sources/qapi_net.json",
+      "verified_git_blob_sha256": true,
+      "classification": "source integrity pin; not an authentication credential"
+    },
+    {
+      "rule": "generic-api-key",
+      "file": "os/manifest/ci/14/host-walk/result.json",
+      "line": 74,
+      "commit": "54337da3aa6802eb44c748af4e0c3844631d2fa3",
+      "fingerprint": "54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:74",
+      "source_file": "os/manifest/ci/14/hotplug-sources/qapi_qdev.json",
+      "verified_git_blob_sha256": true,
+      "classification": "source integrity pin; not an authentication credential"
+    }
+  ],
+  "scanner_version": "8.21.2",
+  "ci_runs": [
+    40230930408,
+    40230932763
+  ],
+  "rules_unchanged": true,
+  "force_push": false
+}

@@ -1,0 +1,7 @@
+{
+  "version": "8.21.2",
+  "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_windows_x64.zip",
+  "archive_sha256": "f238c85e5f47e18fac779ce71ee11091cf70a0a8fb4415f165efba2800eef133",
+  "binary_sha256": "671591bd75e11fcd4a25732852afbbf0c3892b368181164ba19aa72e7513af8e",
+  "checksum_source": "https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_checksums.txt"
+}

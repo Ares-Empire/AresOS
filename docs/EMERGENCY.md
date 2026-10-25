@@ -6,6 +6,11 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 ## Stock preparation stops before the switch
 
+Package14's new checked commands pass local tests, but their native/VM
+qualification is blocked by the required privacy scan on five source pins.
+They are not released for physical installation; see the
+[14 report](../reviews/14-owner-tools/REPORT.md).
+
 An NVIDIA Flatpak runtime notification while offline is expected. Leave its
 sync enabled; it retries after networking becomes available. That notification
 alone is not an OS deployment STOP. Keep networking off until the checked OS

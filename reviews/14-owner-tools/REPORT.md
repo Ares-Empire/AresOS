@@ -1,6 +1,12 @@
-# 14: checked owner tools
+# 14: checked owner tools — STOP at privacy gate
 
-**14c implementation and pre-dispatch verification in progress.** The integrator resolved both historic source gates with 14b and 14c. No VM acceptance is claimed yet; PR #13 stays draft until native/probe/qualification acceptance. The historical stops below are preserved as history. Physical installation remains **NOT RELEASED**.
+**Current 14c status:** implementation, local whole discovery and zero-cost host
+walk are complete and pushed. The required privacy check fails on five source
+integrity hashes in committed history. No native preflight, probe, qualification,
+image build or publication was dispatched. PR #13 stays **draft**; package
+acceptance is unmet. Physical installation stays **NOT RELEASED**. See the
+[14c privacy stop](#14c-privacy-stop-before-any-vm-dispatch) below. Earlier
+NVIDIA/USB stops are historical and resolved by14b/14c.
 
 ## Original prerequisite stop, before 14b
 
@@ -587,3 +593,74 @@ walk: **36 tests PASS /26.251s**, all48 source hashes fresh. Exact local logs
 and summary are retained in
 `os/manifest/ci/14/local-verification/14c/`. None of these local failures is
 reported green; the complete native suite must close them before any probe VM.
+
+## 14c privacy stop before any VM dispatch
+
+**STOP / PLAN-GAP:** the required privacy gate is not green. Both the push
+[40230930408](https://github.com/Ares-Empire/AresOS/actions/runs/40230930408) and PR
+[40230932763](https://github.com/Ares-Empire/AresOS/actions/runs/40230932763) fail
+gitleaks with **5 findings**. Commit-email and personal-term steps consequently
+skip; they are not claimed verified by those runs. No VM/native/image workflow
+was dispatched after this failure.
+
+The exact pinned portable Windows **gitleaks8.21.2**, downloaded inside this
+worktree and checked against its publisher's release checksums, reproduces the
+same5 findings with `git . --redact=100 --no-banner --log-level error
+--report-format json --report-path <worktree scratch file>`. It was not installed
+system-wide. An earlier portable Linux attempt could not interpret the Windows
+worktree's Git-directory pointer, so it is not scan evidence. The Windows result
+is authoritative here; no unredacted report or token was printed or stored.
+
+All5 are **generic-api-key matches on SHA256 source-integrity pins**, introduced
+by the host-walk manifest in commit `54337da`:
+
+| Manifest location | Source whose Git blob hashes to the value |
+| --- | --- |
+| `os/manifest/ci/14/host-walk/result.json:58` | `os/ci/owner_keys.py` |
+| same file, line61 | `os/ci/registry_auth.py` |
+| same file, line72 | `os/manifest/ci/14/hotplug-sources/qapi_block-core.json` |
+| same file, line73 | `os/manifest/ci/14/hotplug-sources/qapi_net.json` |
+| same file, line74 | `os/manifest/ci/14/hotplug-sources/qapi_qdev.json` |
+
+[Finding metadata](../../os/manifest/ci/14/privacy-stop/findings.json) retains
+rule IDs, exact commit/file/line fingerprints and classification, without
+credential values. [Scanner provenance](../../os/manifest/ci/14/privacy-stop/scanner.json)
+retains the official download/checksum URLs and verified binary/archive hashes.
+`python reviews/14-owner-tools/verify-privacy-pins.py` independently reads each
+manifest line from that commit and recomputes SHA256 of the corresponding Git
+blob: **all5 match**. These values are integrity pins, not authentication
+credentials. No real token was entered into the new tools or a guest this run.
+
+The pinned scan should have run locally **before** pushing the manifest. A
+forward-only file edit cannot remove its original committed history from a
+history scan. Rewriting the pushed commits would require the explicitly
+forbidden force push; exempting findings would change the privacy check. Under
+AGENTS hard rule5 (never weaken/skip/delete a test to get green) and brief11c's
+required privacy checks, neither is done. No `.gitleaks.toml`, ignore list or
+privacy workflow change was made. The integrator must settle this verified
+source-pin false-positive before the remaining native/probe/qualification work
+can proceed; no exception is inferred from its noncredential classification.
+
+### Final execution/budget state
+
+The [complete-history ledger](../../os/manifest/ci/14/privacy-stop/ledger.json)
+accounts for **all11 branch runs**, with complete total_count/unique-ID proof.
+All were normal push/PR privacy checks; **34 rounded pre-dispatch privacy
+minutes** precede the closing report push. The package's first-dispatch start is
+still null: **0/350 package minutes,0/1 probes,0/2 qualifications,0 image or
+publication attempts**. The latest read-only billing response reports526 free
+org minutes;12 closing-privacy minutes are reserved, leaving514, above150.
+No billable usage or new credential scope was requested. Closing privacy checks
+are expected to remain blocked by the same historical findings and are not a
+waiver or a VM dispatch.
+
+Native273-test acceptance, the fresh one-probe gate, actual offline VM install/
+first boot/network checkpoint, tools-media QMP runtime, physical command/login/
+layout failure/revert/US International success, switch/rollback/default-stock
+and their protected-disk/NVRAM/BootNext evidence remain **NOT VERIFIED for14**.
+The36 focused tests, full local273-test attempt (eight documented host limits),
+Windows11 refusal cases, syntax checks and source gates remain valid local
+results. They do not substitute for this missing VM qualification. INSTALL,
+EMERGENCY and the release gate explicitly retain NOT RELEASED and the open
+physical items. PR #13 remains draft. Branch pushes are fast-forward only;
+no merge, force push, image rebuild, release or publication occurred.
