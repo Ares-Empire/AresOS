@@ -19,12 +19,13 @@ import test_owner_guard
 import test_owner_equality
 import test_owner_tools
 import test_release_squash_binding
+import test_ci_api_permissions
 
 
 def main():
     suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(m) for m in
         (test_owner_commands,test_owner_export,test_owner_transport,test_owner_walk,test_owner_guard,test_owner_equality,test_owner_tools,
-         test_release_squash_binding))
+         test_release_squash_binding,test_ci_api_permissions))
     result=unittest.TextTestRunner(verbosity=2).run(suite)
     assert result.wasSuccessful() and not result.skipped
     walk=test_owner_walk.walk()
@@ -36,7 +37,8 @@ def main():
         files.update(p for p in ROOT.glob(pattern) if p.is_file())
     files.update(ROOT/p for p in ('os/ci/installer_webui.py','os/ci/two_disk_vm.py','os/ci/registry_auth.py',
         'os/ci/rehearsal_guard.py','os/ci/rehearsal-packages.json','os/ci/verify_release.py',
-        'os/tests/test_release_squash_binding.py','.github/workflows/os-image.yml'))
+        'os/tests/test_release_squash_binding.py','os/tests/test_ci_api_permissions.py',
+        '.github/workflows/os-image.yml'))
     proof=dict(status='passed',kind='local stand-ins, not VM qualification',tests=result.testsRun,
         stick_across_reboot=False, stages=walk['stages'],markers=walk['markers'],checks=walk['checks'],
         typed_profiles=sorted({profile for text,profile in walk['typed']}),

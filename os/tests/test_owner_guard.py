@@ -20,7 +20,7 @@ class GuardTest(unittest.TestCase):
 
     def test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun(self):
         self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(350,0,0))
-        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':2,'owner-tools':2})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':3,'owner-tools':2})
         base=dict(head_sha='a'*40,status='completed',conclusion='success',run_attempt=1)
         runs=[dict(base,id=1,event='push',display_title='privacy',created_at='2026-10-25T00:00:00Z'),
               dict(base,id=2,event='workflow_dispatch',display_title='Two-disk rehearsal (probe)',created_at='2026-10-25T01:00:00Z'),
@@ -33,6 +33,8 @@ class GuardTest(unittest.TestCase):
             runs.append(dict(runs[1],id=4))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],2)
             runs.append(dict(runs[1],id=5))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],3)
+            runs.append(dict(runs[1],id=6))
             with self.assertRaisesRegex(AssertionError,'probe dispatch allowance'):guard.budget(0)
 
     def test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media(self):

@@ -12,7 +12,7 @@
     "minute_cap": 350,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"probe": 2, "owner-tools": 2},
+    "dispatch_caps": {"probe": 3, "owner-tools": 2},
     "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 150},
     "publish_cap": 0,
     "titles": {"probe": "Two-disk rehearsal (probe)", "owner-tools": "Two-disk rehearsal (owner-tools)"}
