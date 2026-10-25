@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "source_files_verified": 11,
+  "retained_inputs": {
+    "os/manifest/ci/11f/full-2/two-disk/stock-status.json": "1659b1546aa362986bc6eeb6d64d2092ea60676d93f111b8f8cf1dfd1702f589",
+    "os/manifest/ci/13/qualification-1/diagnostic-summary.json": "fda117ee00fb69b66ade2b865444ea696092031eb589919bd339bc8c98726c0e",
+    "os/manifest/ci/13/zero-cost/ostree-src_ostree_ot-admin-instutil-builtin-set-kargs.c": "f8ddaa98802a3900079c14620b6b47173e12cdd161ff4383e7df0136d64e2965",
+    "os/manifest/ci/13/zero-cost/ostree-src_libostree_ostree-sysroot-deploy.c": "e018b3af47e85b507f1c31dc1c73f0d47c73459bd63292960db46d11728ddab9",
+    "os/manifest/ci/13/zero-cost/bootc-crates_lib_src_deploy.rs": "60c34942c55a3966b7b366769a5486044642596f72b1f8cd5fdc984f4d2a91d6"
+  },
+  "frozen_source": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+  "frozen_paths": [
+    "os/Containerfile.keyboard",
+    "os/.containerignore",
+    "os/packages.lock.json",
+    "os/config",
+    "os/policy",
+    "os/manifest/base.json",
+    "os/keys",
+    "os/tests/audit.py"
+  ],
+  "frozen_diff_empty": true,
+  "first_entry_is_booted_required": true,
+  "no_new_deployment": true,
+  "old_stock_untouched_until_normal_finalization": true,
+  "actual_11f_has_staged_update": true,
+  "staged_original_rejected": true,
+  "fixtures_explicitly_synthetic": true
+}

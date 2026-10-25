@@ -1,6 +1,10 @@
-# 13: keyboard layout — 13d stopped at the stock repair precondition
+# 13: keyboard layout — 13e qualification pending
 
-**Current status: STOP / PLAN-GAP; PR #12 stays draft.** The privileged-tool path fix
+**Current:** 13e source verification and implementation are complete; native/local
+verification, fresh probe and qualification are pending. PR #12 stays draft.
+Physical installation and live-KDE/laptop followability remain NOT RELEASED.
+
+**Historical 13d status: STOP / PLAN-GAP; PR #12 stayed draft.** The privileged-tool path fix
 and private release/signature/two-file image comparison passed. The latest native
 suites passed all 223 tests.
 The 13c probe failed at live KDE German-layout selection; no installation or
@@ -1107,3 +1111,129 @@ passed. The qualification review screenshot was also visually inspected: the
 synthetic recovery account, Berlin and target-only `vda` storage summary are
 visible, with no credential value. No additional test or VM run was needed for
 the final evidence/status documentation.
+
+## 13e — two stock entries and dumpkeys notation (2026-10-25)
+
+### Done and zero-cost verification
+
+Confirmed retained 11f `full-2/two-disk/stock-status.json`: booted stock serial 1
+and rollback serial 0 share `aa669eff…0c71`, the qualified digest and upstream
+origin. **That raw record also contains a newer staged update**; it is not an
+accepted repair starting state. The synthetic two-entry fixtures project only
+its booted/rollback identities and explicitly remove the staged slot; the
+unmodified staged record is a negative test. 13d retained two BLS entries and
+`+z`/`+y`; neither observation is rewritten as captured rpm-ostree JSON.
+
+Pinned source retained in [13e-zero-cost](../../os/manifest/ci/13/13e-zero-cost):
+
+- [Bazzite hardware setup](https://github.com/ublue-os/bazzite/blob/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/libexec/bazzite-hardware-setup)
+  adds missing Bluetooth args with rpm-ostree and reboots once. This agrees with
+  the recorded real duplicate-stock state.
+- [OSTree v2026.4 CLI](https://github.com/ostreedev/ostree/blob/v2026.4/src/ostree/ot-admin-instutil-builtin-set-kargs.c)
+  selects **deployment index 0, not a booted lookup**. The repair therefore
+  requires that index 0 is the uniquely booted stock before invoking it. The
+  [set-kargs implementation](https://github.com/ostreedev/ostree/blob/v2026.4/src/libostree/ostree-sysroot-deploy.c)
+  replaces that deployment's bootconfig in the existing list; it creates no new
+  serial. Whole-list checksum/serial/osname/booted/pinned equality is mandatory.
+- [rpm-ostree v2026.3 JSON serializer](https://github.com/coreos/rpm-ostree/blob/v2026.3/rust/src/daemon.rs)
+  supplies serial/booted/staged/pinned; its deployment-utils supplies origin and
+  container digest. Every one/two entry must be the same unmodified stock
+  checksum/origin/digest, with exactly one booted, nothing staged/pinned/active.
+- [bootc v1.16.13 deploy/rollback](https://github.com/bootc-dev/bootc/blob/v1.16.13/crates/lib/src/deploy.rs)
+  stages the signed switch using the merge deployment's args. Pin changes only
+  booted pin state: the unpinned old serial remains until switch finalization.
+  OSTree finalization calls simple-write with NO_CLEAN, without RETAIN flags;
+  [simple-write](https://github.com/ostreedev/ostree/blob/v2026.4/src/libostree/ostree-sysroot.c)
+  keeps pinned/booted/merge, dropping the other unpinned same-stateroot serial.
+  Thus staged switch can temporarily have three deployments, but after its
+  reboot exactly AresOS + corrected pinned stock must remain. Rollback reorders
+  this pair. Any surviving old serial in that final state stops qualification;
+  no manual deletion is authorized or implemented.
+- [kbd v2.9.0 dump.c](https://github.com/legionus/kbd/blob/v2.9.0/src/libkeymap/dump.c)
+  prints `+` for KT_LETTER; [keymaps(5)](https://github.com/legionus/kbd/blob/v2.9.0/docs/man/man5/keymaps.5)
+  describes CapsLock-sensitive letters. The parser accepts bare or single-plus
+  letters while requiring de 21=z/44=y, us 21=y/44=z. US fixture derives from
+  us.map's qwerty-layout include, and is explicitly synthetic.
+
+`system-keyboard.sh` and the exact INSTALL block now compare the whole list;
+the VM checks count 1/2, exports raw rpm-ostree and bootc status before deciding,
+resolves BLS entries through actual ostree symlinks to checksum+serial+stateroot,
+and proves the non-booted stock args unchanged. The audit of new package-13
+single-entry assumptions found the script, its result assertion and test setup,
+plus `keyboard_state`'s premature all-entry check. Corrected stock checks its
+own entry while the exact old serial remains temporarily untouched; after
+switch finalization **every** BLS entry and cmdline must be override-free.
+No menu/file digits select a deployment. All inherited disk/firmware audits
+and frozen release payload paths remain unchanged. Live KDE/KWrite fixture
+stays unused; the owner laptop/followability step and physical release gate stay open.
+
+### Zero-cost stage walk-through, before any dispatch
+
+1. Fetch/pull were fast-forward only, starting at owner brief `0d3ba91`.
+   Complete local suite, owner block equality, syntax, frozen-payload diff and
+   privacy checks must complete before dispatch. No image/native-only dispatch.
+2. Current complete-history guard: **184/380** (180 at 13d close + owner 13e
+   privacy 2+2), 32 unique run IDs / total_count 32, no active jobs. Reserve
+   probe **42**, full qualification **130**, closing **14** = **186**;
+   current 184+186=370, with planned source privacy 4 → **374 ≤ 380**.
+   Refresh guard after source privacy and again before qualification. Probe cap
+   becomes three total; qualification stays two total (one old + one new).
+3. One fresh probe on new final head: scheduling guard → full native regressions
+   and pinned tools/source/frozen verifier → completed native-step proof guard
+   → read-only private job-token pull → both live mappings and original installer
+   through saved-German review → reader/pause/failure-counter/BootNext/protected
+   predicates → reset/detached Windows-like markers. No live KDE or KWrite.
+   Require every predicate; stop on any failure, with no replacement probe.
+4. If probe passes and fresh guard fits 130+14, one qualification on **the same
+   head** in protected-second order. Actual installer/German choice/boundary
+   diagnostic → orderly hardware-setup reboot if source-authorized → export
+   raw rpm/bootc status and resolved BLS **before repair** → installed de files.
+5. Repair actual value, inject de/repair, inject us/repair. Each repair compares
+   whole-list identities and unchanged non-booted arguments. Pause/pin exact
+   booted stock, export/assert full list (only its pin changes) → poweroff/audit
+   → Windows-first restoration and attached/detached unattended checks.
+6. Corrected stock boot: own args/cmdline/map de, physical tty3 login/password
+   sudo and `yz-/!`, inherited Homebrew; signed switch/inspect staged identities
+   and full list. Old stock can still be present here without being booted.
+7. AresOS reboot: full list must be exactly new AresOS plus corrected pinned
+   stock; old serial absent. All entries/cmdline clean; loaded de, tty3 physical
+   login/password sudo, policy/Homebrew and real labwc/foot physical text. Change
+   normal settings to us → reboot/prove both screens → change back de → reboot
+   and repeat → rollback transaction and full list export/assert.
+8. Rollback boot: exact corrected pinned stock checksum/serial, only final pair,
+   no overrides, de loaded map/physical tty3/password sudo, Homebrew and rendered
+   stock greeter. All reached audits mandatory, final attached/detached Windows
+   checks. Retain original privacy-safe artifacts/logs, replay audits, update
+   truthful gates/REPORT/manifests; FF push and closing privacy/ledger. Ready only
+   if acceptance is met. Never merge/force/public; never print or store tokens.
+
+### Verified / not verified / decisions
+
+Local whole-suite result and Actions evidence: pending. The source facts and
+new fixture/parser tests above do not claim VM success. No frozen path changes,
+image dispatch or publication. **JUDGMENT-CALL:** the first-entry-is-booted guard
+is necessary to use the pinned CLI safely; a different booted/default ordering
+stops rather than selecting or reordering anything. **PLAN-GAP:** none established
+against the real duplicate-stock cause; the raw 11f staged update and the CLI's
+index-zero selection are explicitly accounted for. Open owner decisions remain
+the 13c frozen-image construction review before merge and physical followability.
+
+
+**13e local verification before source push:** complete discovery
+`python3 -m unittest discover -s os/tests -v` under WSL, worktree TMPDIR and
+rejecting sudo stand-in: **229 tests / 79.149s; 2 failures / 9 errors**, exactly
+the same eight unique host-limited cases as 13d, no skips. Three greeter cases
+need Pillow; three inherited-Homebrew cases and sysusers need native Linux root
+filesystem/ACL operations (local sudo rejected with 126); auth mode test sees
+DrvFS 0777 instead of 0600. Every other case passed, including the six added
+tests covering real duplicate-stock identities, retained staged rejection,
+whole-list mutations, old-entry preservation/final pair, pre-decision raw export
+and retained/source-derived layout-sensitive maps. All 229 remain mandatory in
+native probe preflight before a VM. [Full local output](logs/13e-local-suite.txt).
+
+Final Bash/Python syntax: `ALL_SYNTAX_CHECKS_PASSED`. Exact keyboard and switch
+owner-block equality rerun: **2 / 0.014s OK**. Source hash/frozen-payload replay:
+`13E_SOURCE_HASHES_AND_FROZEN_PAYLOAD_PASSED 11`; runtime diff against published
+source 2abc12e is empty. Repository API still PRIVATE. No Gradle/Minecraft files
+changed and no Gradle daemon started. The earlier Windows targeted run hit its
+default cp1252 decoding limit reading INSTALL; the final WSL equality run passed.
