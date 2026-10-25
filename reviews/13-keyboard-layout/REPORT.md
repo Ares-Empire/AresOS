@@ -1,8 +1,12 @@
-# 13: keyboard layout — 13f qualification in preparation
+# 13: keyboard layout — 13f VM acceptance passed
 
-**Current: 13f zero-cost preparation; PR #12 stays draft pending acceptance.**
-The typer and scheduling guards are being qualified under brief 13f; no new VM
-success is claimed. Physical installation remains NOT RELEASED.
+**Current: 13f VM acceptance passed.** The fresh probe and one complete
+protected-second qualification passed on the same head, including both starting
+state repairs, every typing/layout/entry stage and all audits. PR #12 can be
+marked ready after closing privacy passes; final privacy receipts and the actual
+closed ledger are recorded in the PR body. Owner review before merge and the
+physical/live-desktop/laptop followability gates remain open. Physical
+installation remains **NOT RELEASED**. No merge or new publication occurred.
 
 **Historical 13e: STOP / PLAN-GAP.** 13e’s fresh probe passed.
 Real two-entry stock repair passed for both de/us starting states, pin and the
@@ -1579,7 +1583,7 @@ The CI job token gains no billing scope or secret: the fresh local scheduling
 receipt is made immediately before dispatch; native CI retains its package,
 probe, private-auth and every audit gate. Token scopes and cleanup are unchanged.
 
-### Not verified / execution pending
+### Pending at the pre-dispatch source push (superseded by the execution below)
 
 Real QMP typing, guest commands, new-image boots, loaded maps, policy, signatures,
 Homebrew, bootc finalization, entry titles and a new rendered rollback greeter
@@ -1588,3 +1592,204 @@ satisfy acceptance. INSTALL/EMERGENCY and the physical/laptop followability gate
 remain open. PR #12 stays draft until all acceptance is reached. The 13e
 F12→Windows caution remains pending real pair evidence. No new PLAN-GAP is
 inferred from the local environment limits; native preflight is mandatory.
+
+
+### 13f execution and retained evidence — 2026-10-25
+
+**VM acceptance PASSED.** Exactly one new probe and one new qualification ran,
+both on **`1a95433cc2c25015a61376aa2abe9de83a02b29f`**, after the complete
+zero-cost gate above. No second qualification, rerun, image dispatch or
+publication occurred. No product or owner-script change was needed or made.
+The closing commit changes only guides, this report, evidence/source metadata
+and release qualification metadata; harness/tests/owner scripts still equal
+the probed/qualified head and all frozen runtime paths still equal 2abc12e.
+
+| Run | Result and exact completed job interval (UTC) | Rounded ledger cost |
+| --- | --- | ---: |
+| [Fresh probe 40182972546](https://github.com/Ares-Empire/AresOS/actions/runs/40182972546) | PASS; 10:00:27–10:26:24,25m57s | 26 |
+| [Qualification 40184846815](https://github.com/Ares-Empire/AresOS/actions/runs/40184846815) | PASS; 10:27:30–11:35:49,68m19s | 69 |
+
+Native discovery passed **237 tests  / 5.681s** in the probe and **237  / 5.400s**
+in qualification, **no skips**. This includes all eight cases unavailable on
+the local WSL host. Native success was required before VM startup in both jobs;
+qualification additionally verified the exact-head passing probe and its
+artifact digest. Native tests were not rerun on a changed harness afterward.
+
+**Actual scheduling proofs:**
+
+- Probe: **275 consumed +184 reserved =459 / 460**, complete 42 unique IDs  / total 42,
+  no other active workflow on this branch. Org GET at 10:00:22UTC: 1,265 used, 735 free;
+  whole-plan 184 reservation leaves 551, exceeding the 150 margin.
+- Qualification: **301 consumed +142 reserved =443 / 460**, complete 43 unique
+  IDs  / total 43. Org GET at 10:27:24UTC: 1,291 used, 709 free; reservation 142
+  leaves 567. Its receipt names passing probe 40182972546 and the same exact head.
+- Both raw scheduling receipts, with aggregate billing proof/hash and complete
+  package history, are in `probe-4/host-dispatch-authorization.json` and
+  `qualification-3/host-dispatch-authorization.json` under `os/manifest/ci/13/`.
+- Source push privacy 40182804966 and PR privacy 40182808712 passed all three
+  rules, with personal terms **executed, not skipped**, two minutes each.
+  Source privacy log ZIP SHA-256 values are
+  `b473e0855e945d9350190efc3d752114c17b9f90e27af6c6113b73ee1b16e032`
+  and `1507f7c1b6af77e599f760bdbb76b2dd383525ac30fbb3d91cbb01c6d2d1f48e`.
+
+**Probe evidence:** both inherited disk orders, installer-through-review only,
+exact target/EFI review, no install commit, target reset, detached Windows-like
+boot, pinned ISO/tools, private digest/signature, read-only auth mount and cleanup
+passed. The protected-second review screenshot was inspected: only vda is the
+install target, with its new EFI/boot/root partitions. Every inherited probe
+predicate remains true; live KDE/KWrite remains `laptop-followability-only`.
+
+- Original artifact ZIP `artifacts/13f-probe-4-two-disk-evidence.zip`:
+  **6,433,195 bytes**, artifact12595945856, SHA-256
+  `5fae2f56010006f5950a97d5fa35f138faf686274fa0dd7292383d2eabf8136b`.
+- Original log ZIP SHA-256
+  `449152f1fccc885507a95a6a3ddf7575ac0923349b2f4609d1bc6a38713eb63b`.
+- Credential-pattern scan: 352 artifact text members plus job logs passed before
+  persistence. Artifact digest and safe member paths verified.
+- Independent replay passed **6 protected captures, 8 zero-write/unmap counters,
+  6 BootNext checks,4 NVRAM transitions**. Protected SHA-256
+  `995af842f3f78a779dec212169dccf86823d4c8a0c8f39c6d4043d399fd6441b`.
+
+**Qualification evidence:** original artifact
+`artifacts/13f-qualification-3-two-disk-evidence.zip`, **9,965,361 bytes**,
+artifact12596724884, SHA-256
+`262f259b105b8b0fe940925f72e3e62cb65bcbf715d0956a09c9052c541adc4f`.
+Original log ZIP SHA-256
+`4d0f2028e11fef69e69e1a0f4293204518d45c396a4dd1f40d71fde4076d24bf`.
+Credential-pattern scan passed **616 text members plus logs**, and the original
+ZIP digest and member paths were checked before persistence. Expanded raw
+rpm-ostree/bootc/BLS/keyboard/physical records, logs and the observation index are
+in [qualification-3](../../os/manifest/ci/13/qualification-3/observed-summary.json).
+The original ZIP preserves unnormalized bytes.
+
+| Actual stage | Layout/map and physical result | Other required result |
+| --- | --- | --- |
+| Installer and first stock | Installer chose de; diagnostic retained before repair; raw rpm-ostree and bootc exported before deciding | Protected-second real install; one authorized hardware-setup reboot; same-checksum serial1 booted +serial0 old |
+| Actual installer de, injected de, injected us | All three repairs passed; complete ordered identity lists equal before/after | Only booted arguments repaired; old serial0 arguments unchanged; only serial1 pin flag changed |
+| Corrected stock | No booted keymap override;21=+z,44=+y; physical tty3 login, password sudo and `yz-/!` at UID1000 passed | Homebrew owner check; Windows-first restored after pause/pin; unattended and detached Windows-like markers; signed verify/switch succeeded |
+| AresOS de | No override in booted command line or either final BLS entry; German loaded map; tty3 UID1000 and foot UID1001 both read `yz-/!` | Exact new release booted; final pair asserted; policy/Homebrew passed |
+| AresOS us | No override;21=+y,44=+z; tty3/password sudo/public text and foot all passed with US physical positions | Actual compositor XKB layout us; policy/Homebrew passed |
+| AresOS back to de | German rows and all tty3/foot checks passed again | Compositor de; policy/Homebrew; rollback transaction and queued pair checked before reboot |
+| Rollback corrected stock | Same saved checksum/serial1/pin; no override in command line or final pair; German tty3 login/password sudo/public text passed | Same inherited Homebrew bytes, actual stock session and rendered greeter, final unattended/detached Windows-like markers |
+
+All five Homebrew observations retained the same SHA-256
+`c9a27029eb72dab04f4595041f7670bb03b4cb467297abba817883afb23e0bf3`.
+The daily denial/owner-working check passed on AresOS. Actual labwc environments
+were **de,us,de**, model pc105, empty variant/options. Physical result records
+include the layout-dependent QMP positions, exact public text and UID; root
+only observed the results. Neither tty3 nor foot text was substituted through
+serial. Both starting-state repairs and every complete final list were replayed.
+
+Screenshots inspected: all five `13f-qualification-3-*-tty3.png`, all three
+`*-foot.png`, and `rollback-greeter.png`. The three foot PNGs are byte-identical
+1280×800 frames, as expected when each correctly maps different physical keys
+to the same public text; the environment/map/QMP records distinguish layouts.
+The real rollback greeter frame passed readiness plus pixel metrics:
+nonblack 0.833875, bright 0.044875, spread 46.26684. The screenshot visibly shows
+the drawn stock greeter, not an empty framebuffer. No fresh Part B/GRUB-menu
+interaction is claimed.
+
+**Fixture observation, not hidden:** the tty login banner consumed initial
+characters of the preliminary `sudo -k` line (`udo -k`, and `do -k` on one
+boot); its exit status is not asserted. AresOS's inherited profile also printed
+the existing flatpak permission denial. Each following `sudo touch` command
+visibly prompted for a password, accepted the physically typed layout-sensitive
+password, and passed the root-owned marker check. All public readbacks and
+logout/getty/no-UID1000-process checks passed. Thus the required real password
+sudo and public-text assertions were exercised; this is not evidence that every
+preliminary setup line arrived cleanly. The coverage test proves supported
+characters, not login-prompt synchronization. No harness change or retry was
+made after the source head was fixed. A future fixture improvement can wait
+for a real ready shell before typing that redundant cache-clear line.
+
+**All safety replays passed:** **13 protected captures,14 zero-write/unmap
+counters,13 BootNext checks,12 NVRAM transitions**; protected SHA-256
+`cc13e0c68c85ebfab98f8dd14e8bd19474e1f56b216207cb45ddf7f606064cc2`.
+The full protected image/GPT/FAT/ESP comparisons match throughout; protected
+write and unmap bytes/operations are zero. Windows remains the saved firmware
+default after the first-login pause/pin. BootNext authorizations are checked
+before each one-time Linux boot and consumed afterward. Private package reads
+used GITHUB_TOKEN, no owner token; immutable digest/signature checks and
+outside-workspace auth cleanup passed in both jobs. No audit was loosened.
+
+### Actual entries and the F12 JUDGMENT-CALL
+
+The full saved stock identity is checksum
+`aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71`,
+serial1, stateroot `default`, pinned. The new AresOS identity is checksum
+`42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c`,
+serial0, same stateroot, unpinned. They are distinct from the shared kernel/boot
+checksum and from BLS file/version numbers.
+
+| Real exported state | Ordered rpm-ostree identities | Corrected stock BLS title/version | AresOS BLS title/version |
+| --- | --- | --- | --- |
+| After pin | stock.1 booted/pinned; old stock.0 unpinned | Bazzite (ostree:0)/2 | absent |
+| After switch staged | AresOS.0 staged; stock.1 booted/pinned; old stock.0 | Bazzite (ostree:0)/2; old stock remains Bazzite (ostree:1)/1 | staged, not yet a BLS entry |
+| Each AresOS boot | AresOS.0 booted; stock.1 pinned; old stock.0 absent | **Bazzite (ostree:1)/1** | **Bazzite (ostree:0)/2** |
+| Rollback queued | stock.1 pinned first; AresOS.0 still booted second | Bazzite (ostree:0)/2 | Bazzite (ostree:1)/1 |
+| Rollback boot | stock.1 booted/pinned;AresOS.0 unpinned | **Bazzite (ostree:0)/2** | **Bazzite (ostree:1)/1** |
+
+The exact labels include a space: **`Bazzite (ostree:0)`** and
+**`Bazzite (ostree:1)`**, even for the AresOS image. INSTALL and EMERGENCY now
+name both real labels and their reversal, while retaining checksum-resolved
+identity and saved-title checks. No menu-position selector or owner script was
+changed. Finalization naturally removed the older unpinned stock serial; no
+manual deletion occurred. Its override never survives into the final pair.
+
+**Decision: retain the conditional 13e F12→Windows step until the owner's own
+successful AresOS boot confirms the pair/title.** The actual staged snapshot
+still contains both stock serials, while the first AresOS snapshot contains only
+the correct pair. The successful VM establishes the normal transition, not
+every interrupted first-switch failure window. After the pair is confirmed,
+the recorded corrected-stock title and identity guide recovery. Removing this
+caution would encourage guessing between same-checksum stock entries before
+finalization; no evidence supports that. This is a guide decision for owner
+review, with no change to the qualified scripts or selectors.
+
+### Diagnostic only, budget closure and remaining gates
+
+The retained localization observer recorded 980 messages. Last values were
+Language `en_US.UTF-8`, XLayouts `[de]`, VirtualConsoleKeymap `de`, empty layout
+options. The last console-keymap Get used client `:1.7`, cookie 9074, request
+1792925811252278/reply1792925811269359 microseconds. No separate client-to-process
+PID mapping was exported. This is credential-safe diagnostic evidence and does
+not explain historical us values; it is not an acceptance gate.
+
+| Actual package ledger before closing push | Minutes |
+| --- | ---: |
+| Closed 13e history | 267 |
+| Owner 13f brief privacy | 4 |
+| 13f source push/PR privacy | 4 |
+| Fresh probe | 26 |
+| One complete qualification | 69 |
+| **Completed subtotal** | **370  / 460** |
+| Closing privacy reservation | 12 |
+| **Conservative total before closing** | **382  / 460** |
+
+Fresh closing reservation proof has **44 unique IDs /total_count 44**, complete
+one-page history, no active job, dispatch totals images 2/3, publish 1/1,
+checks 1/1, probes 4/4, qualifications 3/3. A further qualification or probe is
+not authorized. The read-only org summary after qualification reports
+**1,360 used /2,000**,640 free; reserving 12 leaves 628, above 150. Final actual
+closing privacy minutes, log hashes and zero-reserve ledger are recorded in
+PR #12's body after this closing commit, avoiding a self-referential report
+push. No final cost is invented in this pre-push report.
+
+Final local guide checks: the exact system-keyboard block and exact switch
+block each still equal their scripts, **2 tests /0.168s, OK**. `git diff --check`
+passed. `git diff --exit-code 1a95433 -- os/ci os/tests os/release` and the full
+frozen-runtime comparison against 2abc12e both returned 0. Release manifests
+preserve every previous attempt and record this passing qualification; the
+private digest, signature identity, source commit and image-diff proof are
+unchanged. The duplicate identical source-hash row was deduplicated only as
+metadata after the run.
+
+**Not verified / open gates:** physical media/laptop hardware, real Windows
+and firmware interaction, manual GRUB, live KDE settings/KWrite and laptop
+followability remain open; physical installation is **NOT RELEASED**. The
+live automation code remains unused. Owner review of 13c's exact-frozen-image
+construction and this guide JUDGMENT-CALL is still required before merge.
+The preliminary tty cache-clear timing observation above is recorded for
+future fixture work; no clean-command assertion is claimed. No product change
+or extra run was made to address it. VM acceptance in 13f was reached in full;
+PR readiness additionally requires the closing privacy check. Never merge.

@@ -1,0 +1,31 @@
+004hARESOS_ROOT> [?2004l
+
+
+Broadcast message from root@bazzite on pts/0 (Sun 2026-10-25 12:33:11 CET):
+
+The system will power off now!
+
+[?2004hARESOS_ROOT> ]3008;end=2326169669d042fd8d4c5b6b9ad5b482\[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H[  114.352032] systemd-udevd[652]: Failed to remove file descriptor "config-serialization" from the store, ignoring: Connection refused
+[  114.388568] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[  114.395161] systemd-shutdown[1]: Unmounting file systems.
+[  114.399129] (sd-umount)[2303]: Unmounting '/run/credentials/systemd-journald.service'.
+[  114.402567] (sd-remount)[2304]: Remounting '/sysroot' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  114.407883] (sd-umount)[2307]: Unmounting '/sysroot'.
+[  114.410338] (sd-remount)[2308]: Remounting '/etc' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  114.415008] (sd-umount)[2309]: Unmounting '/etc'.
+[  114.417900] systemd-shutdown[1]: All filesystems unmounted.
+[  114.419628] systemd-shutdown[1]: Deactivating swaps.
+[  114.421454] systemd-shutdown[1]: All swaps deactivated.
+[  114.423095] systemd-shutdown[1]: Detaching loop devices.
+[  114.424900] systemd-shutdown[1]: All loop devices detached.
+[  114.426614] systemd-shutdown[1]: Stopping MD devices.
+[  114.428312] systemd-shutdown[1]: All MD devices stopped.
+[  114.429926] systemd-shutdown[1]: Detaching DM devices.
+[  114.431619] systemd-shutdown[1]: All DM devices detached.
+[  114.433366] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[  114.454913] systemd-shutdown[1]: Syncing filesystems and block devices.
+[  114.456996] systemd-shutdown[1]: Powering off.
+[  114.468575] Console: switching to colour dummy device 80x25
+[  114.499630] ACPI: PM: Preparing to enter system sleep state S5
+[  114.501683] kvm: exiting hardware virtualization
+[  114.503205] reboot: Power down

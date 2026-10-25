@@ -1,0 +1,30 @@
+[
+  {
+    "url": "http://127.0.0.1:18080/cockpit/@localhost/anaconda-webui/index.html#/anaconda-screen-progress",
+    "text": "Bazzite installation",
+    "ids": [
+      {
+        "tag": "DIV",
+        "id": "app",
+        "role": null
+      },
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "role": null
+      }
+    ],
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "id": "toggle-kebab",
+        "type": "button",
+        "text": "",
+        "name": "",
+        "checked": null,
+        "disabled": false,
+        "ariaDisabled": null
+      }
+    ]
+  }
+]

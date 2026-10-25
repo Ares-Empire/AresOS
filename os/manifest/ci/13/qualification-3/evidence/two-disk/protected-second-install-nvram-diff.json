@@ -1,0 +1,117 @@
+{
+  "from_stage": "baseline-firmware",
+  "rule": "11f-linux-position",
+  "changes": {
+    "Boot000A": {
+      "before": null,
+      "after": {
+        "attributes": 7,
+        "hex": "010000006200420061007a007a00690074006500000004012a0001000000000800000000000000c012000000000012a82b0c1d1bfa4992abb2c07d99b2050202040434005c004500460049005c006600650064006f00720061005c007300680069006d007800360034002e0065006600690000007fff0400"
+      }
+    },
+    "BootOrder": {
+      "before": {
+        "attributes": 7,
+        "hex": "0000010002000300040005000600070008000900"
+      },
+      "after": {
+        "attributes": 7,
+        "hex": "0a000000010002000300040005000600070008000900"
+      }
+    }
+  },
+  "firmware_changes": [],
+  "linux_position_changes": [
+    {
+      "option": "Boot000A",
+      "old_index": null,
+      "new_index": 0,
+      "reason": "11f target-ESP Fedora loader position is not judged"
+    }
+  ],
+  "firmware_before": {
+    "Boot0002": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:1f.2/sata:0:65535:0"
+    },
+    "Boot0003": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:02.0"
+    },
+    "Boot0004": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:03.0"
+    },
+    "Boot0005": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0006": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0007": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0008": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    }
+  },
+  "firmware_after": {
+    "Boot0002": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:1f.2/sata:0:65535:0"
+    },
+    "Boot0003": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:02.0"
+    },
+    "Boot0004": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:03.0"
+    },
+    "Boot0005": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0006": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0007": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0008": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    }
+  },
+  "order_before": [
+    "Boot0000",
+    "Boot0001",
+    "Boot0002",
+    "Boot0003",
+    "Boot0004",
+    "Boot0005",
+    "Boot0006",
+    "Boot0007",
+    "Boot0008",
+    "Boot0009"
+  ],
+  "order_after": [
+    "Boot000A",
+    "Boot0000",
+    "Boot0001",
+    "Boot0002",
+    "Boot0003",
+    "Boot0004",
+    "Boot0005",
+    "Boot0006",
+    "Boot0007",
+    "Boot0008",
+    "Boot0009"
+  ]
+}

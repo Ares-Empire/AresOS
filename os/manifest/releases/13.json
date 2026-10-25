@@ -77,14 +77,13 @@
     "visibility": "private",
     "manifest_read": true
   },
-  "keyboard_qualification": "blocked",
+  "keyboard_qualification": "passed",
   "owner_review": "required-before-merge",
   "keyboard_qualification_attempt": {
-    "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40177141104",
-    "head": "314bca3c596abbd54bc6505b6ecee6fb835d63f0",
-    "status": "failed-qualification",
-    "stage": "corrected-stock-tty-physical-command-setup",
-    "error": "AssertionError: . (physical_keys rejects the dot in the setup command)",
+    "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40184846815",
+    "head": "1a95433cc2c25015a61376aa2abe9de83a02b29f",
+    "status": "passed",
+    "stage": "complete-protected-second-keyboard-qualification",
     "installation_performed": true,
     "repair_write_performed": true,
     "starting_state_repairs": [
@@ -95,10 +94,21 @@
     "whole_list_preserved": true,
     "tty3_login_passed": true,
     "password_sudo_passed": true,
-    "physical_text_passed": false,
-    "switch_performed": false,
-    "qualification_runs": 2,
-    "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40175267914"
+    "physical_text_passed": true,
+    "foot_physical_passed": true,
+    "layouts": [
+      "de",
+      "us",
+      "de"
+    ],
+    "switch_performed": true,
+    "old_stock_serial_removed_by_finalization": true,
+    "rollback_passed": true,
+    "rendered_greeter": true,
+    "all_audits_passed": true,
+    "qualification_runs": 3,
+    "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40182972546",
+    "fixture_observation": "Preliminary sudo -k lost initial characters during login banner; following sudo command prompted for password and root/public readbacks passed"
   },
   "keyboard_qualification_attempts": [
     {
@@ -141,6 +151,37 @@
       "switch_performed": false,
       "qualification_runs": 2,
       "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40175267914"
+    },
+    {
+      "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40184846815",
+      "head": "1a95433cc2c25015a61376aa2abe9de83a02b29f",
+      "status": "passed",
+      "stage": "complete-protected-second-keyboard-qualification",
+      "installation_performed": true,
+      "repair_write_performed": true,
+      "starting_state_repairs": [
+        "de",
+        "us"
+      ],
+      "deployment_count": 2,
+      "whole_list_preserved": true,
+      "tty3_login_passed": true,
+      "password_sudo_passed": true,
+      "physical_text_passed": true,
+      "foot_physical_passed": true,
+      "layouts": [
+        "de",
+        "us",
+        "de"
+      ],
+      "switch_performed": true,
+      "old_stock_serial_removed_by_finalization": true,
+      "rollback_passed": true,
+      "rendered_greeter": true,
+      "all_audits_passed": true,
+      "qualification_runs": 3,
+      "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40182972546",
+      "fixture_observation": "Preliminary sudo -k lost initial characters during login banner; following sudo command prompted for password and root/public readbacks passed"
     }
   ]
 }

@@ -31,13 +31,6 @@
     "pin": "QEMU v8.2.2 subprojects/keycodemapdb.wrap"
   },
   {
-    "file": "qemu-keymap.csv",
-    "url": "https://raw.githubusercontent.com/qemu/keycodemapdb/f5772a62ec52591ff6870b7e8ef32482371f22c6/data/keymaps.csv",
-    "bytes": 34905,
-    "sha256": "26a8da612aafebc67b69d7c47a35a86a912f5576d15f6e1447928d49b4de6117",
-    "pin": "QEMU v8.2.2 subprojects/keycodemapdb.wrap"
-  },
-  {
     "file": "kbd-qwertz-layout.inc",
     "url": "https://raw.githubusercontent.com/legionus/kbd/v2.9.0/data/keymaps/i386/include/qwertz-layout.inc",
     "bytes": 456,

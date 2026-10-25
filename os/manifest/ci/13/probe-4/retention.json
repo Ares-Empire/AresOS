@@ -1,0 +1,11 @@
+{
+  "run": 40182972546,
+  "head": "1a95433cc2c25015a61376aa2abe9de83a02b29f",
+  "log_zip_sha256": "449152f1fccc885507a95a6a3ddf7575ac0923349b2f4609d1bc6a38713eb63b",
+  "credential_pattern_check": "passed",
+  "checked_text_members": 352,
+  "logs_checked": true,
+  "artifact_digests_verified": true,
+  "safe_member_paths": true,
+  "expanded_text": "line endings/trailing whitespace normalized; original ZIPs unchanged"
+}

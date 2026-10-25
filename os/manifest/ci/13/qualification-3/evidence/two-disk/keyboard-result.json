@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "order": "protected-second",
+  "commit": "1a95433cc2c25015a61376aa2abe9de83a02b29f",
+  "release": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+  "starting_states": [
+    "de",
+    "us"
+  ],
+  "layouts": [
+    "de",
+    "us",
+    "de"
+  ],
+  "physical_text": "yz-/!",
+  "tty3_login_password_sudo": true,
+  "foot_physical": true,
+  "all_entries_no_keymap_override": true,
+  "all_entries_scope": "after-switch-finalization-and-rollback",
+  "temporary_old_stock_removed_by_finalization": true,
+  "rollback_stock_checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+  "protected_disk_unchanged": true,
+  "bootnext_audited": true,
+  "windows_default": true
+}

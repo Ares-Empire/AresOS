@@ -25,7 +25,22 @@ do not boot it or remove it. Switch finalization on the first AresOS boot should
 leave exactly AresOS plus the corrected pinned stock. Normal rollback reorders
 that pair; it does not bring the old serial back. A surviving old stock serial,
 an unexpected list, or failure before the final pair/menu title is confirmed
-means F12 → Windows and get help. 13e proved repair/pin and the corrected stock boot/login/password-sudo in a VM, then stopped in the physical-input fixture before switching. The post-switch/rollback lifecycle VM check is still OPEN; physical installation stays NOT RELEASED.
+means F12 → Windows and get help. 13f proved the full switch/rollback lifecycle,
+loaded layouts and physical tty3/foot text in a protected-second VM. The old
+unpinned stock serial was still present while the switch was staged, then was
+absent from the final pair. Both final entry labels say **Bazzite**:
+
+| Observed state | AresOS | Corrected pinned stock |
+| --- | --- | --- |
+| AresOS booted after switch | `Bazzite (ostree:0)` | `Bazzite (ostree:1)` |
+| Stock booted after normal rollback | `Bazzite (ostree:1)` | `Bazzite (ostree:0)` |
+
+Match the saved stock identity and its recorded title; do not choose just by
+these digits or assume an entry says “AresOS.” Before your own first successful
+AresOS boot confirms the pair, **F12 → Windows and help is still required** if
+switching fails: the staged list can contain both stock serials. Physical
+installation, actual laptop keyboard/menu interaction and live KDE/KWrite
+followability remain **NOT RELEASED**. See the [13f REPORT](../reviews/13-keyboard-layout/REPORT.md#13f--physical-typer-coverage-and-one-final-qualification).
 
 ## The three rules
 
