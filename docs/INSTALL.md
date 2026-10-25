@@ -77,7 +77,7 @@ Prepare a fitting Phillips screwdriver, plastic opening tool and screw-position 
 
 Use AC, lid open, backups/recovery stick disconnected. F12-boot the installer in UEFI mode; never click a Windows volume in the live desktop.
 
-1. **Set the live desktop's German keyboard before opening Konsole:** open **System Settings**, search **Keyboard → Layouts → Configure layouts → Add → German**. Make German the first/active layout, choose **Global** switching if offered, and **Apply**. In a text editor (not a terminal), type `y z / - " $ ä ö ü` using the physical keys; every character must match. Otherwise stop and correct the layout. Repeat this after each live boot. [K1] Then open **Konsole** and collect [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): fill the live identity/path columns and require PASS for identity, Micron unchanged and Crucial empty. Fill its installer columns/check when reaching steps 3 and 5 below.
+1. **Set the live desktop's German keyboard before opening Konsole:** open **System Settings**, search **Keyboard → Layouts → Enable (accessible name “Configure Layouts”) → Add → German → OK**. Make German the first/active layout, choose **Global** switching if offered, and **Apply**. In a text editor (not a terminal), type `y z / - " $ ä ö ü` using the physical keys; every character must match. Otherwise stop and correct the layout. Repeat this after each live boot. [K1] Then open **Konsole** and collect [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): fill the live identity/path columns and require PASS for identity, Micron unchanged and Crucial empty. Fill its installer columns/check when reaching steps 3 and 5 below.
 2. Start the installer with **English (United States)**. On **Welcome → Change system keyboard layout**, add **German**, remove the initial US layout so the selected list contains only **de**, then **Save**. Require **de** in the Welcome keyboard summary before **Next**. This is the installed-system choice; keep the live-desktop physical-key test from step 1. On **Date and time**, turn off **Automatically set timezone**, then choose **Europe → Berlin**. These pages were previewed on the pinned ISO in [11b](../reviews/11-two-disk-rehearsal/REPORT.md); a preview does not release installation. [B1]
 3. **Installation method → Change destination**: use record C's **same-session whole-disk path** to find the exact Crucial entry; copy/photograph its full text in the mapping. Deselect every other drive. **Destination** must show only this entry; choose **Use entire disk**. This erases the selected disk. [B3] A missing/ambiguous device name means stop. Do not choose alongside Windows, reclaim or manual partitioning.
 4. At **Storage configuration**, leave **Encrypt my data** unchecked for the proposed disposable first trial; personal-data encryption needs a separate decision. At **Create Account**, keep **Use local account** checked; its description promises administrator access. Enter **ares-recovery** as **User name** first, then the full name and a strong unique passphrase twice. Do not create `ares` or enable root. The actual screen was previewed in 11b; **installed UID/group, encryption and two-drive qualification remain OPEN; do not install yet**. The required account checks are in [§6](#accounts-before-switching).
@@ -85,6 +85,99 @@ Use AC, lid open, backups/recovery stick disconnected. F12-boot the installer in
 6. After all checks, install. On error, stop; do not retry with wider erase options. Reboot, remove USB and press nothing: **Linux is the firmware default at this point**. Let stock Bazzite finish its one-time hardware setup, including its possible automatic reboot, then sign in and complete the pause-and-retain block below. Unexpected enrollment/signature screens stop the trial; Secure Boot stays off. [B1]
 
 The pinned live installer's whole-drive route passed the automated two-disk VM rehearsal in **both drive orders**: Linux EFI/boot/root stayed on the selected target and the protected disk stayed unchanged. See [11k](../reviews/11-two-disk-rehearsal/REPORT.md#11k-bounded-read-only-guard-retry-and-final-qualification-2026-10-24). Physical media, the laptop and unaided followability still need qualification before release. Do not improvise legacy/manual or shared EFI.
+
+### Let the system keyboard setting decide before retaining stock
+
+At the first installed stock login, open Konsole and run `sudo -i`. Run the
+following block **before** the pause/pin block. It removes installer-supplied
+console keymap overrides, whatever their value, without adding a deployment.
+It accepts only the qualified, single, unmodified stock deployment. Any STOP
+means stop and retain the diagnostics. This is exactly
+[system-keyboard.sh](../os/release/system-keyboard.sh).
+
+```bash
+#!/usr/bin/bash
+set -euo pipefail
+test "$(id -u)" = 0
+python3 - <<'SYSTEM_KEYBOARD'
+import json
+import shlex
+import subprocess
+
+
+def output(*args):
+    return subprocess.check_output(args, text=True).strip()
+
+
+def identity(state):
+    deployments = state['deployments']
+    assert len(deployments) == 1, 'STOP: fix the keyboard before pin/switch; expected one stock deployment'
+    deployment, = deployments
+    assert deployment.get('booted') and not deployment.get('staged'), 'STOP: stock must be booted with nothing staged'
+    assert not any(deployment.get(key) for key in ('requested-packages', 'requested-base-removals',
+        'requested-base-local-replacements', 'requested-local-packages', 'requested-local-fileoverride-packages',
+        'base-removals', 'base-local-replacements', 'packages')), 'STOP: modified stock'
+    return {key: deployment[key] for key in ('checksum', 'serial', 'osname', 'booted', 'pinned')}
+
+
+def arguments(text):
+    args = shlex.split(text)
+    assert ' '.join(args) == text, 'STOP: unqualified quoted kernel arguments; get help'
+    return args
+
+
+def keymap_argument(arg):
+    return arg.split('=', 1)[0] in ('vconsole.keymap', 'rd.vconsole.keymap',
+        'vconsole.keymap_toggle', 'rd.vconsole.keymap_toggle', 'vconsole.keymap.toggle', 'rd.vconsole.keymap.toggle')
+
+
+def fix():
+    bootc = json.loads(output('bootc', 'status', '--json'))['status']
+    assert not bootc.get('staged') and not bootc.get('rollbackQueued'), 'STOP: pending deployment; get help'
+    assert bootc['booted']['image']['imageDigest'] == 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151', 'STOP: unqualified stock digest'
+    state = json.loads(output('rpm-ostree', 'status', '--json'))
+    assert state.get('transaction') is None, 'STOP: deployment transaction active'
+    before = identity(state)
+    assert before['checksum'] == bootc['booted']['ostree']['checksum'], 'STOP: inconsistent stock identity'
+    original = arguments(output('rpm-ostree', 'kargs'))
+    corrected = [arg for arg in original if not keymap_argument(arg)]
+    assert corrected and any(arg.startswith('ostree=') for arg in corrected), 'STOP: missing deployment boot target'
+    if corrected != original:
+        subprocess.run(['ostree', 'admin', 'instutil', 'set-kargs', *corrected], check=True)
+        subprocess.run(['rpm-ostree', 'reload'], check=True)
+    after = identity(json.loads(output('rpm-ostree', 'status', '--json')))
+    assert after == before, 'STOP: deployment identity/count changed during keymap repair'
+    observed = arguments(output('rpm-ostree', 'kargs'))
+    assert not any(keymap_argument(arg) for arg in observed), 'STOP: keymap override remains'
+    # libostree may regenerate the bootlink; no other argument may change.
+    strip_bootlink = lambda args: [arg for arg in args if not arg.startswith('ostree=')]
+    assert strip_bootlink(observed) == strip_bootlink(corrected), 'STOP: unrelated kernel argument changed'
+    print('ARESOS_SYSTEM_KEYBOARD_RESULT ' + json.dumps(dict(status='passed', identity=after,
+        deployment_count=1, before_arguments=original, after_arguments=observed,
+        reboot_required=corrected != original)))
+
+
+if __name__ == '__main__':
+    fix()
+SYSTEM_KEYBOARD
+```
+
+The running kernel still has its original arguments until reboot. Complete the
+pause/pin block, reboot stock once, then require `cat /proc/cmdline` to contain
+no `vconsole.keymap` or `rd.vconsole.keymap` override. The installed
+`localectl status` must show the selected console and X11 settings. On tty3,
+test the physical keys before entering a password. A failed test stops the trial.
+
+To change the layout later, use the normal system setting (this example selects
+German; choose your own layout and corresponding console map), then reboot:
+
+```bash
+sudo localectl --no-convert set-keymap de && sudo localectl --no-convert set-x11-keymap de pc105 '' '' && sudo systemctl reboot
+```
+
+The next boot uses the console keymap and the next AresOS session reads the X11
+layout, model, variant and options from localed. This command is rehearsed with
+`us` and back to `de`; the image contains no chosen layout.
 
 ### Pause and retain stock before the Windows comparison
 

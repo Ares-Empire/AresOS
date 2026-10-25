@@ -5,7 +5,7 @@ RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
 
 FROM packages AS aresos
 ARG ARESOS_SOURCE_REVISION=unrecorded
-LABEL org.opencontainers.image.source="https://github.com/carlsenares/AresOS" \
+LABEL org.opencontainers.image.source="https://github.com/Ares-Empire/AresOS" \
       org.opencontainers.image.revision="${ARESOS_SOURCE_REVISION}"
 RUN cp -a /tmp/aresos/config/. / && \
     cp -a /tmp/aresos/policy /usr/share/aresos/ && \

@@ -1,0 +1,40 @@
+#!/usr/bin/python3
+"""Start the compositor with one snapshot of the normal system X11 settings."""
+import json
+import os
+import subprocess
+import sys
+
+
+def environment(reply, inherited):
+    assert reply['type'] == 'a{sv}' and len(reply['data']) == 1, 'Invalid localed reply'
+    properties = reply['data'][0]
+    values = {}
+    for name in ('Layout', 'Model', 'Variant', 'Options'):
+        value = properties['X11' + name]
+        assert value['type'] == 's' and isinstance(value['data'], str), 'Invalid X11 property'
+        assert '\0' not in value['data'] and '\n' not in value['data'], 'Invalid X11 setting'
+        values[name] = value['data']
+    assert values['Layout'], 'System X11 layout is unset; configure it with localectl'
+    result = dict(inherited)
+    # Stale compositor settings must not take precedence over localectl.
+    for name in ('RULES', 'MODEL', 'LAYOUT', 'VARIANT', 'OPTIONS'):
+        result.pop('XKB_DEFAULT_' + name, None)
+    for name in ('Layout', 'Variant', 'Options'):
+        result['XKB_DEFAULT_' + name.upper()] = values[name]
+    if values['Model']:
+        result['XKB_DEFAULT_MODEL'] = values['Model']
+    return result
+
+
+def main():
+    assert len(sys.argv) > 1, 'A compositor command is required'
+    raw = subprocess.check_output([
+        'busctl', '--system', '--json=short', 'call', 'org.freedesktop.locale1',
+        '/org/freedesktop/locale1', 'org.freedesktop.DBus.Properties',
+        'GetAll', 's', 'org.freedesktop.locale1'], timeout=15)
+    os.execvpe(sys.argv[1], sys.argv[1:], environment(json.loads(raw), os.environ))
+
+
+if __name__ == '__main__':
+    main()
