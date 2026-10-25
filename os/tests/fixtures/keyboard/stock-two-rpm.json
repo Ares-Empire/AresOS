@@ -1,0 +1,39 @@
+{
+  "transaction": null,
+  "deployments": [
+    {
+      "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "serial": 1,
+      "osname": "default",
+      "booted": true,
+      "pinned": false,
+      "staged": false,
+      "unlocked": "none",
+      "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+      "requested-packages": [],
+      "packages": [],
+      "requested-base-removals": [],
+      "requested-local-packages": [],
+      "base-removals": [],
+      "base-local-replacements": []
+    },
+    {
+      "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "serial": 0,
+      "osname": "default",
+      "booted": false,
+      "pinned": false,
+      "staged": false,
+      "unlocked": "none",
+      "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+      "requested-packages": [],
+      "packages": [],
+      "requested-base-removals": [],
+      "requested-local-packages": [],
+      "base-removals": [],
+      "base-local-replacements": []
+    }
+  ]
+}

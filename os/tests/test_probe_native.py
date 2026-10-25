@@ -21,17 +21,17 @@ class ProbeNativeTest(unittest.TestCase):
         self.records=dict(runs=[dict(run=7,title=self.run['display_title'],sha=self.sha,conclusion='success')])
 
     def test_only_probe_budget_reservations_may_defer_native_and_extra_probe_is_bounded(self):
-        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'release-13':3,'checks':1,'probe':2,'keyboard':2})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'release-13':3,'checks':1,'probe':3,'keyboard':2})
         for mode in ('probe','probe-budget-ci'):
             self.assertEqual(guard.native_gate('probe',mode,{},self.sha)['status'],'pending')
         with self.assertRaisesRegex(AssertionError,'passing probe'):
             guard.native_gate('keyboard','keyboard',dict(runs=[]),self.sha)
-        runs=[dict(self.run,id=i,created_at='2026-10-25T02:02:34Z') for i in (1,2)]
+        runs=[dict(self.run,id=i,created_at='2026-10-25T02:02:34Z') for i in (1,2,3)]
         def api(path):
             return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=0,jobs=[])
         with patch.object(guard,'api',side_effect=api):
-            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],2)
-            runs.append(dict(runs[0],id=3))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],3)
+            runs.append(dict(runs[0],id=4))
             with self.assertRaisesRegex(AssertionError,'dispatch allowance exhausted'):
                 guard.budget(0)
 

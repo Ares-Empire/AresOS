@@ -91,7 +91,10 @@ The pinned live installer's whole-drive route passed the automated two-disk VM r
 At the first installed stock login, open Konsole and run `sudo -i`. Run the
 following block **before** the pause/pin block. It removes installer-supplied
 console keymap overrides, whatever their value, without adding a deployment.
-It accepts only the qualified, single, unmodified stock deployment. Any STOP
+It accepts one or two unmodified deployments of the exact qualified stock
+checksum/origin, exactly one booted and first in the deployment list, with no
+staged update, queued rollback, active transaction or pin. It repairs only that
+booted deployment and checks the whole list's identities before and after. Any STOP
 means stop and retain the diagnostics. This is exactly
 [system-keyboard.sh](../os/release/system-keyboard.sh).
 
@@ -101,6 +104,7 @@ set -euo pipefail
 test "$(id -u)" = 0
 python3 - <<'SYSTEM_KEYBOARD'
 import json
+import re
 import shlex
 import subprocess
 
@@ -111,13 +115,30 @@ def output(*args):
 
 def identity(state):
     deployments = state['deployments']
-    assert len(deployments) == 1, 'STOP: fix the keyboard before pin/switch; expected one stock deployment'
-    deployment, = deployments
-    assert deployment.get('booted') and not deployment.get('staged'), 'STOP: stock must be booted with nothing staged'
-    assert not any(deployment.get(key) for key in ('requested-packages', 'requested-base-removals',
-        'requested-base-local-replacements', 'requested-local-packages', 'requested-local-fileoverride-packages',
-        'base-removals', 'base-local-replacements', 'packages')), 'STOP: modified stock'
-    return {key: deployment[key] for key in ('checksum', 'serial', 'osname', 'booted', 'pinned')}
+    assert 1 <= len(deployments) <= 2, 'STOP: expected one or two stock deployments'
+    booted = [d for d in deployments if d['booted']]
+    assert len(booted) == 1, 'STOP: expected exactly one booted stock deployment'
+    stock, = booted
+    assert all(type(d['booted']) is bool and type(d['pinned']) is bool for d in deployments), 'STOP: invalid deployment flags'
+    # v2026.4 set-kargs targets deployments[0], not a booted-deployment lookup.
+    assert deployments[0] is stock, 'STOP: booted stock is not the default; get help'
+    reference = stock['container-image-reference']
+    assert re.fullmatch(r'(?:ostree-image-signed:docker://|ostree-unverified-registry:)?'
+        r'ghcr\.io/ublue-os/bazzite-nvidia-open(?::[A-Za-z0-9_.-]+|@sha256:[0-9a-f]{64})', reference), 'STOP: unqualified stock origin'
+    identities = []
+    for deployment in deployments:
+        assert not deployment.get('staged') and not deployment['pinned'], 'STOP: staged or already pinned stock'
+        assert deployment['checksum'] == stock['checksum'] and deployment['osname'] == stock['osname'], 'STOP: mixed stock identities'
+        assert deployment['container-image-reference'] == reference, 'STOP: mixed stock origins'
+        assert deployment['container-image-reference-digest'] == 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151', 'STOP: unqualified stock digest'
+        assert not any(deployment.get(key) for key in ('requested-packages', 'requested-base-removals',
+            'requested-base-local-replacements', 'requested-base-remote-replacements', 'requested-local-packages',
+            'requested-local-fileoverride-packages', 'base-removals', 'base-local-replacements',
+            'base-remote-replacements', 'packages', 'modules', 'requested-modules', 'regenerate-initramfs')) and deployment.get('unlocked', 'none') == 'none', 'STOP: modified stock'
+        assert re.fullmatch('[0-9a-f]{64}', deployment['checksum']) and type(deployment['serial']) is int and deployment['serial'] >= 0, 'STOP: incomplete stock identity'
+        identities.append({key: deployment[key] for key in ('checksum', 'serial', 'osname', 'booted', 'pinned')})
+    assert len({(d['checksum'], d['serial'], d['osname']) for d in identities}) == len(identities), 'STOP: duplicate deployment identity'
+    return identities
 
 
 def arguments(text):
@@ -136,9 +157,10 @@ def fix():
     assert not bootc.get('staged') and not bootc.get('rollbackQueued'), 'STOP: pending deployment; get help'
     assert bootc['booted']['image']['imageDigest'] == 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151', 'STOP: unqualified stock digest'
     state = json.loads(output('rpm-ostree', 'status', '--json'))
-    assert state.get('transaction') is None, 'STOP: deployment transaction active'
+    assert 'transaction' in state and state['transaction'] is None, 'STOP: deployment transaction active or unknown'
     before = identity(state)
-    assert before['checksum'] == bootc['booted']['ostree']['checksum'], 'STOP: inconsistent stock identity'
+    assert before[0]['checksum'] == bootc['booted']['ostree']['checksum'] and before[0]['serial'] == bootc['booted']['ostree']['deploySerial'] and before[0]['osname'] == bootc['booted']['ostree']['stateroot'], 'STOP: inconsistent stock identity'
+    assert not bootc['booted']['pinned'], 'STOP: bootc stock already pinned'
     original = arguments(output('rpm-ostree', 'kargs'))
     corrected = [arg for arg in original if not keymap_argument(arg)]
     assert corrected and any(arg.startswith('ostree=') for arg in corrected), 'STOP: missing deployment boot target'
@@ -153,7 +175,7 @@ def fix():
     strip_bootlink = lambda args: [arg for arg in args if not arg.startswith('ostree=')]
     assert strip_bootlink(observed) == strip_bootlink(corrected), 'STOP: unrelated kernel argument changed'
     print('ARESOS_SYSTEM_KEYBOARD_RESULT ' + json.dumps(dict(status='passed', identity=after,
-        deployment_count=1, before_arguments=original, after_arguments=observed,
+        deployment_count=len(after), before_arguments=original, after_arguments=observed,
         reboot_required=corrected != original)))
 
 
@@ -161,6 +183,18 @@ if __name__ == '__main__':
     fix()
 SYSTEM_KEYBOARD
 ```
+
+Stock's hardware setup can leave two entries of the same commit: the newer
+booted serial and an older unpinned serial. This block leaves the older entry
+untouched; **do not boot that older entry during preparation**. Pinning retains
+the corrected booted serial and leaves the older one temporarily present. After
+the signed switch is staged, the old entry can still appear until the reboot
+finalizes it. Pinned OSTree's normal finalization then retains AresOS and the
+corrected pinned stock, and drops the old unpinned serial. No manual removal is
+part of this recipe. If the old serial survives after the AresOS boot, or more
+than the expected pair remains, STOP and get help; do not remove it yourself.
+This entry lifecycle is source-verified; its new keyboard qualification is OPEN
+until the 13e VM result is recorded in the release gate.
 
 The running kernel still has its original arguments until reboot. Complete the
 pause/pin block, reboot stock once, then require `cat /proc/cmdline` to contain
@@ -177,7 +211,7 @@ sudo localectl --no-convert set-keymap de && sudo localectl --no-convert set-x11
 
 The next boot uses the console keymap and the next AresOS session reads the X11
 layout, model, variant and options from localed. The qualification must rehearse this command with
-`us` and back to `de`; it remains unverified after 13d reached stock and stopped at the repair’s one-deployment precondition.
+`us` and back to `de`; it remains unverified pending 13e qualification; 13d stopped before the repair write.
 The image contains no chosen layout.
 
 ### Pause and retain stock before the Windows comparison
@@ -542,7 +576,7 @@ bootc status --json
 
 Read the output before continuing: require **`status.staged.image.image.image`** to equal the full release reference above and **`status.staged.image.imageDigest`** to equal its `sha256:362a…c402` digest. The booted deployment must still have your recorded stock checksum; `status.rollbackQueued` must be false. Stop on missing/mismatched identity or pull, authentication, signature, disk-space or staging errors; do not try a mutable tag, change signature policy, remove the pinned stock deployment or alter partitions. CI uses this same transaction → identity inspection → reboot order.
 
-**Before this switch reboot, note down the stock menu title.** Run `rpm-ostree status` and find your recorded stock checksum. Count the deployment rows from **0 at the top**: the number is the `N` in that entry's **`(ostree:N)`** menu title. Both entries can be called **Bazzite**, including AresOS; the name alone does not identify stock. Immediately after this single switch, AresOS should be row0 and your recorded stock row1, titled **Bazzite (ostree:1)**. Write the exact stock title/number next to its checksum in record C. If the checksum is missing, occurs twice, or the rows differ, stop and get help rather than guessing from a filename or remembered position.
+**Before the switch reboot, record the corrected pinned stock checksum and serial. After the first successful AresOS boot, note down its final stock menu title.** Run `rpm-ostree status` and find your recorded stock checksum. Count the deployment rows from **0 at the top**: the number is the `N` in that entry's **`(ostree:N)`** menu title. Both final entries can be called **Bazzite**, including AresOS; the name alone does not identify stock. After switch finalization on the first AresOS boot, only AresOS and the corrected pinned stock may remain. While the switch is still staged the unrepaired older stock serial can remain temporarily: its checksum duplicates the corrected stock checksum, so do not guess a menu title then. After finalization, AresOS should be row0 and your recorded stock row1, titled **Bazzite (ostree:1)**. Write the exact stock title/number next to its checksum and corrected serial in record C. Until that successful boot confirms the final pair, an emergency means F12 → Windows and get help; do not guess between the temporary duplicate stock entries. If the checksum is missing, occurs twice, or the rows differ, stop and get help rather than guessing from a filename or remembered position.
 
 Only after reading and accepting those checkpoints, reboot as its own step:
 
@@ -579,9 +613,9 @@ Read the output: require **`status.rollbackQueued: true`**, no staged deployment
 systemctl reboot
 ```
 
-06c booted the exact retained stock checksum again, verified its display manager and password-protected administrator, and compared every attached-disk partition identity/boundary across stock, AresOS and rollback. The original owner still ran Homebrew 7.0.9 with the same brew script hash. Rollback restores that deployment's `/etc`; shared `/var` and home data are not rolled back or erased. The UID 1001 deny ACL remains on `/var/home/linuxbrew` without restricting owner UID 1000. To reverse it on stock if that UID later needs Homebrew, an administrator runs `sudo setfacl -x u:1001 /var/home/linuxbrew`; AresOS reapplies its rule on its next boot. Stock Bazzite's OS update timers stay paused for this trial; enable uupd.timer only after choosing stock for good and verifying its second default boot. This OS rollback does not replace a data backup.
+06c booted the exact retained stock checksum again, verified its display manager and password-protected administrator, and compared every attached-disk partition identity/boundary across stock, AresOS and rollback. The final deployment list must contain only corrected pinned stock and AresOS; the pre-repair unpinned stock serial must be absent. A normal rollback reorders this pair and preserves the corrected stock serial/pin; it does not recreate the old serial. The original owner still ran Homebrew 7.0.9 with the same brew script hash. Rollback restores that deployment's `/etc`; shared `/var` and home data are not rolled back or erased. The UID 1001 deny ACL remains on `/var/home/linuxbrew` without restricting owner UID 1000. To reverse it on stock if that UID later needs Homebrew, an administrator runs `sudo setfacl -x u:1001 /var/home/linuxbrew`; AresOS reapplies its rule on its next boot. Stock Bazzite's OS update timers stay paused for this trial; enable uupd.timer only after choosing stock for good and verifying its second default boot. This OS rollback does not replace a data backup.
 
-If the new deployment cannot reach a TTY, use Bazzite's [GRUB previous-deployment recovery](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rolling_back_system_updates/): select the exact stock title/`(ostree:N)` noted before the switch reboot. **Both entries may say Bazzite**; match the recorded checksum-to-row number, normally **Bazzite (ostree:1)** after this single switch. Bazzite documents **Esc once, then ↓** if the menu is hidden. A different or unclear title/order means stop; never infer the position from an `ostree-…` filename or reuse a number after further transactions. **Selecting stock in GRUB recovers that boot only. Complete the default step below before another unattended Linux boot.** Do not format, repair Windows boot files or delete deployments to recover. F12 → Windows Boot Manager remains the everyday Windows return path.
+If a later AresOS boot cannot reach a TTY, use Bazzite's [GRUB previous-deployment recovery](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rolling_back_system_updates/): select the exact stock title/`(ostree:N)` recorded after the first successful AresOS boot confirmed the final pair. If that first boot never succeeded, stop at F12 → Windows and get help; the temporary duplicate stock entries have not been ruled out. **Both final entries may say Bazzite**; match the recorded checksum-to-row number, normally **Bazzite (ostree:1)** after this single switch. Bazzite documents **Esc once, then ↓** if the menu is hidden. A different or unclear title/order means stop; never infer the position from an `ostree-…` filename or reuse a number after further transactions. **Selecting stock in GRUB recovers that boot only. Complete the default step below before another unattended Linux boot.** Do not format, repair Windows boot files or delete deployments to recover. F12 → Windows Boot Manager remains the everyday Windows return path.
 
 ### Keep recovered stock as the default
 

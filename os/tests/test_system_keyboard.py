@@ -1,4 +1,5 @@
 import importlib.machinery
+import copy
 import json
 import pathlib
 import sys
@@ -16,15 +17,23 @@ loader.exec_module(session)
 
 
 class SystemKeyboardTest(unittest.TestCase):
+    def starting(self, count=2):
+        fixtures = ROOT / 'os/tests/fixtures/keyboard'
+        state = json.loads((fixtures/'stock-two-rpm.json').read_text())
+        bootc = json.loads((fixtures/'stock-two-bootc.json').read_text())
+        if count == 1:
+            state['deployments'] = state['deployments'][:1]
+            bootc['status']['rollback'] = None
+        return state, bootc
+
     def test_all_starting_states_preserve_identity_and_unrelated_arguments(self):
-        for value in ('de', 'us', 'fr', None, 'de vconsole.keymap=us rd.vconsole.keymap=fr vconsole.keymap_toggle=us'):
-            with self.subTest(value=value):
+        for count, value in ((count, value) for count in (1,2) for value in ('de', 'us', 'fr', None, 'de vconsole.keymap=us rd.vconsole.keymap=fr vconsole.keymap_toggle=us')):
+            with self.subTest(value=value, count=count):
                 original = 'root=UUID=abc rw ostree=/ostree/boot.0/test/0'
                 if value is not None:
                     original += ' vconsole.keymap=' + value
                 corrected = 'root=UUID=abc rw ostree=/ostree/boot.1/test/0'
-                state = dict(transaction=None, deployments=[dict(checksum='abc', serial=0, osname='default', booted=True, pinned=False)])
-                bootc = dict(status=dict(booted=dict(image=dict(imageDigest='sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151'), ostree=dict(checksum='abc'))))
+                state, bootc = self.starting(count)
                 answers = [json.dumps(bootc), json.dumps(state), original, json.dumps(state), corrected if value else original]
                 with patch.object(repair, 'output', side_effect=answers), patch.object(repair.subprocess, 'run') as run, patch('builtins.print'):
                     repair.fix()
@@ -33,11 +42,41 @@ class SystemKeyboardTest(unittest.TestCase):
                     self.assertEqual(run.call_args_list[0].args[0], ['ostree', 'admin', 'instutil', 'set-kargs', 'root=UUID=abc', 'rw', 'ostree=/ostree/boot.0/test/0'])
 
     def test_identity_rejects_duplicates_pending_nonbooted_and_layered(self):
-        good = dict(checksum='abc', serial=0, osname='default', booted=True, pinned=False)
-        for deployments in ([good, good], [dict(good, staged=True)], [dict(good, booted=False)],
-                            [dict(good, **{'requested-base-local-replacements': ['bad']})]):
+        state, _ = self.starting()
+        good, old = state['deployments']
+        bad = [[], [good, good], [good, old, dict(old, serial=2)], [dict(good, staged=True)],
+               [dict(good, booted=False)], [old,good], [dict(good, pinned=True)],
+               [good,dict(old,pinned=True)], [good,dict(old,checksum='b'*64)],
+               [good,dict(old,**{'container-image-reference':'other:stable'})]]
+        for field in ('requested-base-local-replacements','requested-base-remote-replacements','packages','modules'):
+            bad.append([good,dict(old,**{field:['bad']})])
+        for deployments in bad:
             with self.subTest(deployments=deployments), self.assertRaises(AssertionError):
                 repair.identity(dict(deployments=deployments))
+
+    def test_whole_list_changes_fail_even_when_booted_identity_is_unchanged(self):
+        for change in ('serial','pinned','removed','reordered'):
+            state,bootc=self.starting(); after=copy.deepcopy(state)
+            if change=='removed': after['deployments'].pop()
+            elif change=='reordered': after['deployments'].reverse()
+            else: after['deployments'][1][change] = 7 if change=='serial' else True
+            answers=[json.dumps(bootc),json.dumps(state),'rw ostree=/ostree/test vconsole.keymap=us',json.dumps(after)]
+            with self.subTest(change=change),patch.object(repair,'output',side_effect=answers),patch.object(repair.subprocess,'run'),self.assertRaises(AssertionError):
+                repair.fix()
+
+    def test_retained_11f_staged_update_and_mismatched_bootc_are_refused_before_write(self):
+        state,bootc=self.starting()
+        original=json.loads((ROOT/'os/manifest/ci/11f/full-2/two-disk/stock-status.json').read_text())
+        for field,value in (('staged',original['status']['staged']),('rollbackQueued',True)):
+            bad=copy.deepcopy(bootc);bad['status'][field]=value
+            with self.subTest(field=field),patch.object(repair,'output',return_value=json.dumps(bad)),patch.object(repair.subprocess,'run') as run,self.assertRaises(AssertionError):
+                repair.fix()
+            run.assert_not_called()
+        for field,value in (('checksum','b'*64),('deploySerial',0),('stateroot','other')):
+            bad=copy.deepcopy(bootc);bad['status']['booted']['ostree'][field]=value
+            with self.subTest(field=field),patch.object(repair,'output',side_effect=[json.dumps(bad),json.dumps(state)]),patch.object(repair.subprocess,'run') as run,self.assertRaises(AssertionError):
+                repair.fix()
+            run.assert_not_called()
 
     def test_quoted_arguments_fail_closed(self):
         with self.assertRaises(AssertionError):

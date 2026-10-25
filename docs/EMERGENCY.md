@@ -18,6 +18,15 @@ keep the printed identities privately and get help. Leave stock updates paused
 during the trial; re-enable them only after stock is your permanent choice and
 its second default boot has passed.
 
+Stock hardware setup can leave two stock entries of the same checksum before
+the switch. The keyboard block repairs the booted serial only, then pin retains
+that corrected serial. The older unpinned serial stays untouched temporarily;
+do not boot it or remove it. Switch finalization on the first AresOS boot should
+leave exactly AresOS plus the corrected pinned stock. Normal rollback reorders
+that pair; it does not bring the old serial back. A surviving old stock serial,
+an unexpected list, or failure before the final pair/menu title is confirmed
+means F12 → Windows and get help. The 13e lifecycle VM check is still OPEN.
+
 ## The three rules
 
 1. **F12 → Windows Boot Manager is your way back.** AresOS lives on its own SSD and is built never to write to the Windows SSD, so Windows should keep starting on its own. That's the intended return route, checked with your install records. It isn't a guarantee: if Windows Boot Manager is missing or Windows doesn't start, stop and get help.
@@ -31,7 +40,7 @@ its second default boot has passed.
 ## Two different menus
 
 - **F12 menu (the laptop's own menu):** tap F12 right after pressing the power button. It lists **Windows Boot Manager** and the Linux entry (possibly called Fedora or Bazzite). It picks which SSD starts, for this one start only. Automatic entries for unplugged devices, such as the installer stick, may disappear; that is normal. A missing Windows Boot Manager still means stop.
-- **Boot menu (GRUB, on the AresOS SSD):** appears only after you pick the Linux entry. Both AresOS and stock can be labelled **Bazzite**. Before the switch reboot, INSTALL §6 records which `(ostree:N)` belongs to the saved stock checksum: deployment rows count from0 at the top, normally stock is **Bazzite (ostree:1)** after the single switch. Match that exact recorded title; a changed or unclear menu means stop and get help.
+- **Boot menu (GRUB, on the AresOS SSD):** appears only after you pick the Linux entry. Both AresOS and stock can be labelled **Bazzite**. After the first successful AresOS boot confirms the final pair, INSTALL §6 records which `(ostree:N)` belongs to the saved stock checksum: deployment rows count from0 at the top, normally stock is **Bazzite (ostree:1)** after the single switch. Match that exact recorded title; a changed or unclear menu means stop and get help.
 
 Immediately after installation Linux is the default, including stock's one-time hardware-setup reboot and first-login pause/pin. **Windows becomes the default only after INSTALL §5's F2 → Windows first → Save and Exit and its successful unattended Windows check.** From then on, pressing nothing starts Windows; F12 selects one Linux start.
 
