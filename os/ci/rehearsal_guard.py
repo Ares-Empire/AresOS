@@ -190,7 +190,7 @@ def budget(reserve, current=None):
     for run in runs:
         if start is None or run['created_at'] < start:
             continue
-        if PACKAGE == '13' and run['event'] == 'workflow_dispatch':
+        if PACKAGE in ('13', '14') and run['event'] == 'workflow_dispatch':
             kind, = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
             assert run.get('run_attempt') == 1, 'STOP: a rerun is an additional dispatch, not a free retry'
             counts[kind] += 1
@@ -203,7 +203,7 @@ def budget(reserve, current=None):
         assert run['status'] == 'completed', 'Another branch workflow is active; cannot reserve its cost'
         response = api(f'actions/runs/{run["id"]}/jobs?per_page=100')
         jobs = response['jobs']
-        if PACKAGE == '13':
+        if PACKAGE in ('13', '14'):
             assert response.get('total_count') == len(jobs) <= 100, 'STOP: incomplete job listing'
             for job in jobs:
                 steps = job.get('steps', [])
@@ -260,7 +260,7 @@ def native_gate(kind, mode, result, sha, current_run=None):
     if kind=='probe' and mode in ('probe','probe-budget-ci'):
         # Scheduling/budget receipt only. keyboard_vm refuses this pending state.
         return dict(status='pending',sha=sha,required='completed native step before any VM')
-    native=[r for r in result['runs'] if r['title']==SETTINGS['titles']['checks']
+    native=[r for r in result['runs'] if r['title']==SETTINGS['titles'].get('checks')
             and r['sha']==sha and r['conclusion']=='success']
     assert len(native)<=1, 'STOP: duplicate native checks on this head'
     if native:
@@ -281,14 +281,14 @@ def main():
     reserve = int(sys.argv[2])
     ci = mode in ('ci', 'publish-ci', 'probe-budget-ci')
     current = os.environ.get('GITHUB_RUN_ID') if ci else None
-    if PACKAGE == '13':
+    if PACKAGE in ('13', '14'):
         assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
     result = budget(reserve, current)
     if mode=='probe-budget-ci':
-        assert PACKAGE=='13' and os.environ.get('REHEARSAL_MODE')=='probe', 'STOP: native deferral is only for probe budget reservation'
+        assert PACKAGE in ('13', '14') and os.environ.get('REHEARSAL_MODE')=='probe', 'STOP: native deferral is only for probe budget reservation'
     history = result.get('history')
     assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
-    if PACKAGE == '13':
+    if PACKAGE in ('13', '14'):
         kind = os.environ['REHEARSAL_MODE'] if ci else mode
         assert kind in SETTINGS['dispatch_caps'], 'STOP: mode is not authorized for package 13'
         if ci:
@@ -303,17 +303,19 @@ def main():
         if mode == 'publish-ci':
             assert kind == 'release-13' and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
             assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY
-        if kind in ('probe', 'keyboard'):
+        if kind in ('probe', 'keyboard', 'owner-tools'):
             sha=os.environ.get('GITHUB_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
             result['native']=native_gate(kind,mode,result,sha,run if ci else None)
     if mode == 'part-b':
         assert result['part_b_dispatched'] < PART_B_CAP, 'STOP: no Part B qualification dispatch remains'
-    if mode == 'ci' and os.environ.get('REHEARSAL_MODE') in ('part-b', 'keyboard'):
+    if (mode == 'ci' and os.environ.get('REHEARSAL_MODE') in ('part-b', 'keyboard', 'owner-tools') or
+            PACKAGE == '14' and not ci and mode == 'owner-tools'):
+        expected_sha = os.environ.get('GITHUB_SHA') or subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
         if PACKAGE == '11c':
             assert result['part_b_dispatched'] == PART_B_CAP, 'STOP: Part B current dispatch is absent or duplicated'
         probe_id = os.environ.get('PROBE_RUN', '')
         assert probe_id.isdigit(), 'Full run requires an explicit passing probe ID'
-        require_probe(api('actions/runs/' + probe_id), os.environ['GITHUB_SHA'])
+        require_probe(api('actions/runs/' + probe_id), expected_sha)
         artifacts = api(f'actions/runs/{probe_id}/artifacts')['artifacts']
         artifact, = [item for item in artifacts if item['name'] == 'two-disk-evidence' and not item['expired']]
         raw = read_only(f'repos/{REPOSITORY}/actions/artifacts/{artifact["id"]}/zip')
@@ -321,8 +323,15 @@ def main():
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             proof = json.loads(archive.read('two-disk/probe-result.json'))
         assert proof['status'] == 'passed' and proof['installed'] is False
-        assert proof['commit'] == os.environ['GITHUB_SHA']
-        assert proof['both_orders'] and proof['review_validated']
+        assert proof['commit'] == expected_sha
+        if PACKAGE == '14':
+            assert proof['order'] == 'protected-second' and proof['both_orders'] is False
+            assert proof['offline_link'] and proof['tools_hotplug'] and proof['tools_absent_before_reboot']
+            assert proof['bundle_equality'] and proof['host_walk'] and proof['review_validated']
+            assert proof['bootnext_checked'] and proof['bootloader_source_verified']
+            assert proof['native_job_auth'] and proof['guest_credential_share'] is False
+        else:
+            assert proof['both_orders'] and proof['review_validated']
         assert proof['detached_windows'] and proof['target_reset']
         assert proof['owner_auth_read_only'] and proof['signature_verified']
         assert proof['firmware_rule'] == '11f-linux-position'
@@ -331,7 +340,7 @@ def main():
         assert proof['part_b_tools_probe'] and proof['stock_idle_source_verified']
         if PACKAGE == '13':
             assert proof['package13_keyboard_tools'] and proof['live_desktop_keyboard']=='laptop-followability-only'
-        if PACKAGE == '13':
+        if PACKAGE in ('13', '14'):
             from registry_auth import REFERENCE, DIGEST
         else:
             from rehearsal_auth import REFERENCE, DIGEST
@@ -340,12 +349,12 @@ def main():
             pull = json.loads(archive.read('owner-release-pull.json'))
             cleanup = json.loads(archive.read('owner-auth-cleanup.json'))
         assert manifest['status'] == 'passed' and manifest['reference'] == REFERENCE and manifest['registry_digest'] == DIGEST
-        assert manifest['secret'] == ('GITHUB_TOKEN' if PACKAGE == '13' else 'GHCR_READ_TOKEN') and manifest['owner_token_api_calls'] == 0
+        assert manifest['secret'] == ('GITHUB_TOKEN' if PACKAGE in ('13', '14') else 'GHCR_READ_TOKEN') and manifest['owner_token_api_calls'] == 0
         assert pull['status'] == 'passed' and pull['reference'] == REFERENCE and pull['preserved_digest']
         assert cleanup['status'] == 'passed' and cleanup['removed'] and cleanup['outside_workspace']
         result['probe_run'] = probe_id
         result['probe'] = proof
-    if PACKAGE == '13' and not ci:
+    if PACKAGE in ('13', '14') and not ci:
         result['organization_budget'] = organization_budget(reserve)
     result['read_retries'] = list(READ_RETRIES)
     directory = pathlib.Path('evidence' if ci else '.work/' + PACKAGE)
@@ -354,6 +363,8 @@ def main():
     (directory / suffix).write_text(json.dumps(result, indent=2) + '\n')
     if PACKAGE == '13' and mode != 'publish-ci':
         (directory / '13-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
+    if PACKAGE == '14':
+        (directory / '14-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 
 

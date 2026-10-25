@@ -23,8 +23,10 @@ def org_release():
 def require_dispatch():
     assert os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch'
     assert os.environ['GITHUB_REPOSITORY'] == 'Ares-Empire/AresOS'
-    assert os.environ['GITHUB_REF_NAME'] == 'pkg/13-keyboard-layout'
-    assert os.environ['REHEARSAL_MODE'] in ('probe', 'keyboard')
+    branch = os.environ['GITHUB_REF_NAME']
+    assert (branch == 'pkg/13-keyboard-layout' and os.environ['REHEARSAL_MODE'] in ('probe', 'keyboard') or
+            branch == 'pkg/14-owner-tools' and os.environ.get('REHEARSAL_PACKAGE') == '14'
+            and os.environ['REHEARSAL_MODE'] in ('probe', 'owner-tools'))
     assert org_release() and RELEASE['visibility'] == 'private'
 
 
@@ -101,7 +103,11 @@ def cleanup():
         return legacy.cleanup()
     path = directory()
     if path.exists():
-        assert set(p.name for p in path.iterdir()) <= {'auth.json'}
+        assert set(p.name for p in path.iterdir()) <= {'auth.json', 'config.json'}
+        config = path / 'config.json'
+        if config.exists() or config.is_symlink():
+            assert config.is_symlink() and config.readlink() == pathlib.Path('auth.json')
+            config.unlink()
         (path / 'auth.json').unlink(missing_ok=True)
         path.rmdir()
     pathlib.Path('evidence').mkdir(exist_ok=True)
@@ -111,5 +117,27 @@ def cleanup():
 
 guest_mount_command = legacy.guest_mount_command
 
+
+def signature(cosign):
+    require_dispatch()
+    assert os.environ['GITHUB_REF_NAME'] == 'pkg/14-owner-tools'
+    tool = pathlib.Path(cosign)
+    assert tool.is_absolute() and tool.is_file() and os.access(tool, os.X_OK), 'Resolve cosign before sudo'
+    config = directory() / 'config.json'
+    assert not config.exists() and not config.is_symlink()
+    config.symlink_to('auth.json')
+    result = subprocess.run([str(tool), 'verify', '--certificate-identity', RELEASE['signature']['identity'],
+        '--certificate-oidc-issuer', RELEASE['signature']['issuer'], REFERENCE],
+        env=dict(os.environ, DOCKER_CONFIG=str(directory())), capture_output=True, timeout=180)
+    assert result.returncode == 0, 'STOP: exact private release signature failed; no credential fallback'
+    pathlib.Path('evidence/private-release-signatures.json').write_bytes(result.stdout)
+    pathlib.Path('evidence/private-release-signature-proof.json').write_text(json.dumps(dict(status='passed',
+        reference=REFERENCE, identity=RELEASE['signature']['identity'], issuer=RELEASE['signature']['issuer'],
+        sha=os.environ['GITHUB_SHA'], context='native host; guest NIC remains link-down',
+        signature_sha256=hashlib.sha256(result.stdout).hexdigest())) + '\n')
+
 if __name__ == '__main__':
-    {'create': create, 'preflight': preflight, 'pull': pull, 'cleanup': cleanup}[sys.argv[1]]()
+    if sys.argv[1] == 'signature':
+        signature(sys.argv[2])
+    else:
+        {'create': create, 'preflight': preflight, 'pull': pull, 'cleanup': cleanup}[sys.argv[1]]()
