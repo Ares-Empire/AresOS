@@ -1,12 +1,6 @@
-# 14: owner tools — STOP / PLAN-GAP before dispatch
+# 14: checked owner tools
 
-**Current status after 14b:** the integrator resolved the NVIDIA-only source
-blocker. The subsequent zero-cost stage walk found that the tools USB's expected
-automatic firmware entry is unsupported by the inherited device-path audit.
-The 11f stop rule applies before dispatch. No probe or qualification ran; PR #13
-stays draft and physical installation stays **NOT RELEASED**. See the
-[14b section](#14b--accepted-flatpak-deferral-and-tools-usb-stage-walk) for the
-current evidence, local whole-suite result and remaining work.
+**14c implementation and pre-dispatch verification in progress.** The integrator resolved both historic source gates with 14b and 14c. No VM acceptance is claimed yet; PR #13 stays draft until native/probe/qualification acceptance. The historical stops below are preserved as history. Physical installation remains **NOT RELEASED**.
 
 ## Original prerequisite stop, before 14b
 
@@ -392,3 +386,204 @@ NVIDIA notification when the tool route is actually qualified; do not present
 the ignored development prototype as an available command. Physical installation
 remains **NOT RELEASED**. No merge, force push, visibility change, real-laptop
 operation or secret printing/storage occurred.
+
+
+## 14c — tools stick after login, absent at every reboot
+
+### Done
+
+Pulled `e96310d` fast-forward first in this worktree; read briefs 14/14b/14c,
+AGENTS, README, the install-gate council, current guides/scripts/harness and
+retained evidence. Neither retired worktree nor the real laptop was accessed.
+The 14b classification/source gate stands: install and first stock boot use
+local content; copied live network profiles are forbidden; the NVIDIA runtime
+sync remains enabled and nonblocking because it cannot change deployments,
+BLS entries or disks. No image, package lock, frozen runtime or release changed.
+
+The reviewed bundle lives in `os/owner-tools/`, including its generated
+`payload/` and SHA256 manifest. The Windows module checks the actual volume,
+partition and USB disk before the shared copy implementation, checks every
+copied byte and sets ARESTOOLS. CI uses that same copy implementation on an
+attested disposable file-backed exFAT image. The first RO bootstrap validates
+label/manifest/disk identities and installs root-only tools under shared
+`/var/lib/ares`; all later entry points recheck the manifest and private tree.
+Python bytecode generation is disabled so execution cannot invalidate it.
+
+Short commands save full dated diagnostics and print compact PASS/STOP results.
+`prepare` uses the original pause, cleanup/pin and keyboard implementations,
+repairs only the booted serial, verifies the entire list and untouched old
+arguments, then pins. Rerun is observational. `title` validates the exact saved
+stock checksum/serial/stateroot/origin/digest/pin and resolves BLS afresh;
+its first post-network checkpoint requires the full list/pending/pin/BLS state
+equal to prepare. `records` captures target/protected disk identities, full
+partition tables and the target ESP/firmware mapping. `export` mounts the unique
+manifest-matching USB itself, inspects conflicts RO, copies only private record
+JSON with SHA256 readback, syncs and unmounts. Reboot refuses attached tools,
+unfinished layout proof or a stale title. No stage requires the stick across a
+reboot. Refusal diagnostics and transient RO inspection mounts are distinguished
+from persistent deployment/service/disk/credential mutations in tests.
+
+Login accepts the token only at a hidden physical terminal prompt, validates
+read access to the exact private manifest in memory, then writes only the
+mode0600 root-owned `/etc/ostree/auth.json`; no owner-token GitHub API call or
+fallback. Verify/switch use the unchanged release scripts after guards. Recovery
+requires the exact qualified pair; rollback on stock refuses and points to
+keep-stock. The guarded layout trial keeps the original tty3 login open,
+requires a fresh local login session on tty4 after the change/revert, loaded-map
+readback, fresh password sudo and physical text; an unfinished trial prevents
+reboot. Partial localectl failure restores the old settings and stops.
+
+`owner_vm.py` follows the same command catalog through physical QMP keys. Its
+NIC carrier is down before CPU start for the live install and first stock boot;
+WebUI bytes use a bounded virtio-serial relay to the unchanged guest loopback
+listener, with no request-body logging. The exact private release signature is
+verified natively before this offline guest. Guest registry login happens only
+at the owner's later step; no credential filesystem is shared with the guest.
+
+Hotplug uses explicit file/raw block nodes plus USB storage on the existing
+xHCI controller, after sign-in and a fresh whole-image hash check. After tool
+unmount, QMP device_del must emit DEVICE_DELETED, both block nodes are deleted,
+and guest absence is checked before reboot. Every inherited protected-disk,
+zero-write/failure-counter, NVRAM, BootNext, Windows-first and detached-device
+check stays unchanged. The firmware audit/decoder has **no USB exception**.
+The pinned QEMU8.2.2 net/QAPI/USB source files and hashes are retained in
+`os/manifest/ci/14/hotplug-sources/`; set_link controls peer carrier, blockdev-add
+owns the exact backing file, usb-storage exposes removable, and device_del has
+an explicit completion event. Host tests exercise those exact request shapes.
+
+INSTALL §4–§6 and EMERGENCY retain their anchors and safety checks while replacing
+hand-typed Linux blocks with the canonical commands. They explain offline
+installation, the two-stick restore/copy round trip, Windows-first restoration,
+hotplug/eject, title invalidation, complete recovery login/command/reboot/F12
+steps, and the backup's installer-layout exception. The existing laptop gates
+remain open; forgotten-stick-at-power-on is added as physically untested, never
+an accepted audit rule. Nothing breaks if forgotten: do not choose it; unplug
+and continue with Windows first.
+
+### Updated zero-cost stage walk, before any dispatch
+
+| Stage | Network / tools stick | Decision and required evidence |
+| --- | --- | --- |
+| Native preflight | host only; no VM | Complete local suite attempted first; complete native suite, PowerShell copy test, release/privacy/access checks before any VM. |
+| Probe | link down; no storage USB at boot | Read-only installer review/keyboard proof/OCR, stock recipe and idle/failure-counter probes. Hotplug tools after live root login, verify manifest/hash, unmount/device_del before shutdown; detached Windows and blank-target reset. No install. |
+| Live install | link down before CPU starts; no tools stick | Same pinned ISO, German installer choice and read-only localization diagnostic, full destination/summary/audits; no live KDE/KWrite automation. |
+| First stock | offline; USB absent | Hardware setup and its permitted automatic reboot, actual raw statuses, no staged/pinned/queued transaction, authenticated login. |
+| Windows round trip | USB absent for boot/comparison | Restore Windows first, unattended and detached Windows-like markers. Windows owner restores/copies/ejects stick only after Windows starts. |
+| Tools stock | offline boot; hotplug only after fresh tty3 password login/sudo | Install, prepare, unchanged prepared rerun; accept one/two qualified stock serials. Record raw statuses before repair, old arguments untouched, pin exact booted identity. |
+| First network | link up only after prepare; USB currently mounted only by tool | title/records require complete prepared state/BLS unchanged; record NVIDIA condition/state without waiting. Export with hashes, unmount/device_del, fresh title then guarded reboot. |
+| Prepared Windows / corrected stock | no tools storage at boot | Unattended Windows marker, BootNext Linux, German loaded-map/public text/password sudo, exact prepared state. Old stock override permitted only for the exact unchanged old serial until switch finalization. |
+| Private switch | network up; tools absent | Physical hidden login, verify, switch with same scripts; staged identity and full list, title refreshed/provisional, guarded reboot. |
+| AresOS German | tools absent | Exact final pair, no surviving old serial, no overrides, real tty3 password sudo and foot text, policy/Homebrew. Plain US trial rejects a German-position second login; reboot refuses pending proof; revert to de, fresh tty4 login/sudo/text proof, finish. |
+| Successful trial | no reboot with pending proof | US International console `us-intl`, X11 `us`/`intl`; unchanged umlaut password and physical `yz-/!ü` on fresh tty4, original tty3 finish. |
+| AresOS US International / German return | no tools at either boot | New loaded map/physical tty3/sudo/foot/policy checks; second-console proof back to de, finish/title/guarded reboot. |
+| Normal rollback | tools absent | Same pair/identity guard, queued stock identity, fresh BLS title before reboot; BootNext Linux to corrected pinned German stock. |
+| Recovered/default stock | tools absent | Rendered greeter, exact map/pair, physical login/password sudo/text and Homebrew; rollback refuses with zero mutations, keep-stock/title/reboot; second unattended-within-Linux stock default. Final unattended and detached Windows markers. |
+
+The host walk executes the actual qualification/console driver with explicit
+stand-ins and retained 13f JSON. It is not VM evidence. It walks every newly
+introduced command/layout/recovery branch, the QMP attach/detach/bad-hash paths,
+and every typed string against exact ISO maps plus pinned QEMU physical codes.
+Unknown characters still raise. Tests replay five real 13f states, the retained
+11f staged update, prepare de/us/no-override/one/two-serial cases, bad images,
+serials/stateroots/targets, manual clients/transactions/pending/foreign stages,
+stock rollback and damaged bundles, with zero persistent mutations on preflight
+refusals. Window-side wrong-drive/partial/tampered/duplicate cases also write
+nothing. Expected operation/postcondition failures stop with diagnostics;
+they do not claim an operation already started was atomic.
+
+### Budget and stops
+
+The same new package14 ledger starts at the first dispatch: **350 minutes,
+1 probe, at most 2 owner-tools qualifications, 0 image/publish attempts**. Fresh
+complete-history/job accounting and read-only billing precede every dispatch;
+no force push, main push, merge, rerun discount or audit widening is allowed.
+
+| Planned reservation before first probe | Minutes |
+| --- | ---: |
+| Probe job / native preflight | 42 |
+| Qualification 1 (job timeout130; VM step106) | 130 |
+| Qualification 2, only if a fresh complete-plan guard fits | 130 |
+| Closing push/PR privacy allowance | 12 |
+| **Total** | **314 / 350** |
+
+The preliminary billing GET reports **531 free org minutes**; reserving314
+leaves217, above the mandatory150. This is planning, not dispatch authorization;
+fresh usage/history/privacy are required immediately before POST. Pre-dispatch
+privacy costs are recorded separately; no probe or qualification has yet run.
+No image rebuild, release or publication is authorized or scheduled.
+
+### Not verified / physical gates
+
+No VM result is claimed in this pre-dispatch section. Real NVIDIA Flatpak sync,
+Media Writer restore labels/click path, physical media/eject, forgotten-stick
+power-on, real laptop hardware/keyboard/menu/logind, live KDE/KWrite and novice
+followability remain untested. Backup Bazzite keeps the installer layout; no
+US-then-direct-rollback run is claimed. Physical installation stays NOT RELEASED.
+
+### JUDGMENT-CALL
+
+Use root-only shared `/var/lib/ares`, with a reviewed RO label-based bootstrap
+and an installed manifest check on every later command. USB inspection mounts
+are temporary access, not a new boot-device/firmware allowance. Use plain US only
+for the deliberately failed login/revert and US International for a successful
+change retaining the exact umlaut password, as approved in14c. These choices
+are owner-review items; changing commands/bundle later requires regeneration,
+equality tests and a new qualification. No frozen image changes are needed.
+
+### For package 15
+
+Rewrite the whole novice route and emergency card around these commands without
+moving checks back into prose-only assumptions. Improve record navigation,
+STOP/help/photo handling, the FMW German click path, two-stick round-trip/eject
+reminders, recovery menu followability, account/session entry/exit instructions,
+and laptop physical gates. Test the unaided reader including a forgotten stick
+and damaged-battery refusal. Keep the explicit backup-layout exception and
+NVIDIA deferred-work distinction. Preserve the canonical command/bundle tests.
+
+### PLAN-GAP / open questions
+
+The historic NVIDIA and firmware-USB gaps are resolved by the integrator's14b
+and14c decisions. There is no stage requiring a stick across reboot. Any new
+unsupported runtime/audit state stops before another dispatch; no fallback is
+preapproved. Native/probe/qualification acceptance and final privacy remain
+pending until recorded below.
+
+
+### 14c local verification before dispatch
+
+- `python reviews/14-owner-tools/walk-host.py`: focused owner tests and complete
+  host route pass; source-bound result and every captured guest command are in
+  `os/manifest/ci/14/host-walk/`. Stand-ins never start a VM. The final adapter
+  check also exercises the existing marker's 30-second shutdown API; its keyword
+  timeout is preserved by the new USB-absence hook.
+- `pwsh -NoProfile -File os/tests/owner-tools.Tests.ps1 -Bundle os/owner-tools/payload -Work <new worktree folder>`:
+  PASS11 zero-write destination/bundle refusals, pure copy equality and public
+  Windows entry with Storage commands replaced by stand-ins. No real hardware
+  query or label change ran. Manifest SHA256
+  `c55de63b4290de42a9f3e1d2b3cffd51ef1c98f6bd979f263030e19bed27c5be`.
+- Captured route syntax: PASS257 guest shell commands (`bash -n`) and233 embedded
+  Python programs compiled; none executed. Python compilation and
+  `git diff --check` pass. The actual shared switch/rollback Bash fixtures retain
+  every negative assertion; the fixture now supplies the real rollback script's
+  required previous-image metadata instead of relying on the former guide's
+  shorter block.
+- Whole discovery was rerun after fixture/workflow expectation fixes. WSL has
+  eight distinct host-limited cases: three greeter pixel tests lack Pillow;
+  three Homebrew tests require privileged tmpfiles/chown/ACL access; one sysusers
+  test requires privilege; one credential-mode test sees DrvFS0777 instead of0600.
+  The no-privilege shim returns126 for privileged calls. These are listed, not
+  skipped or weakened. The complete native suite and Windows-copy check must
+  pass in the probe preflight, confirmed via GitHub's completed step before any
+  VM is authorized. Final local discovery counts/log are retained below.
+- `git diff --quiet 775be05 --` the frozen runtime/config/policy/base/release,
+  keys, package lock and image Containerfile paths: PASS, no changes. The
+  firmware decoder/audit is unchanged. No Gradle daemon was started; no mod or
+  real Minecraft path was used. Repository visibility remains private.
+
+
+Final local discovery: **273 tests / 251.355s;265 pass;8 distinct host-limited
+cases (2 failure and9 error records including cleanup);0 skips**. Focused host
+walk: **36 tests PASS /26.251s**, all48 source hashes fresh. Exact local logs
+and summary are retained in
+`os/manifest/ci/14/local-verification/14c/`. None of these local failures is
+reported green; the complete native suite must close them before any probe VM.

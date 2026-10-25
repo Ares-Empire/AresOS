@@ -75,847 +75,324 @@ Prepare a fitting Phillips screwdriver, plastic opening tool and screw-position 
 
 ## 4. Install Bazzite on Crucial only
 
-Use AC, lid open, backups/recovery stick disconnected. F12-boot the installer in UEFI mode; never click a Windows volume in the live desktop.
+Use AC, lid open, backups/recovery stick disconnected. Stay offline: no live Wi-Fi profile and no network cable until prepare passes. F12-boot the installer in UEFI mode; never click a Windows volume in the live desktop.
 
 1. **Set the live desktop's German keyboard before opening Konsole:** open **System Settings**, search **Keyboard → Layouts → Enable (accessible name “Configure Layouts”) → Add → German → OK**. Make German the first/active layout, choose **Global** switching if offered, and **Apply**. In a text editor (not a terminal), type `y z / - " $ ä ö ü` using the physical keys; every character must match. Otherwise stop and correct the layout. Repeat this after each live boot. [K1] Then open **Konsole** and collect [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): fill the live identity/path columns and require PASS for identity, Micron unchanged and Crucial empty. Fill its installer columns/check when reaching steps 3 and 5 below.
 2. Start the installer with **English (United States)**. On **Welcome → Change system keyboard layout**, add **German**, remove the initial US layout so the selected list contains only **de**, then **Save**. Require **de** in the Welcome keyboard summary before **Next**. This is the installed-system choice; keep the live-desktop physical-key test from step 1. On **Date and time**, turn off **Automatically set timezone**, then choose **Europe → Berlin**. These pages were previewed on the pinned ISO in [11b](../reviews/11-two-disk-rehearsal/REPORT.md); a preview does not release installation. [B1]
 3. **Installation method → Change destination**: use record C's **same-session whole-disk path** to find the exact Crucial entry; copy/photograph its full text in the mapping. Deselect every other drive. **Destination** must show only this entry; choose **Use entire disk**. This erases the selected disk. [B3] A missing/ambiguous device name means stop. Do not choose alongside Windows, reclaim or manual partitioning.
 4. At **Storage configuration**, leave **Encrypt my data** unchecked for the proposed disposable first trial; personal-data encryption needs a separate decision. At **Create Account**, keep **Use local account** checked; its description promises administrator access. Enter **ares-recovery** as **User name** first, then the full name and a strong unique passphrase twice. Do not create `ares` or enable root. The actual screen was previewed in 11b; **installed UID/group, encryption and two-drive qualification remain OPEN; do not install yet**. The required account checks are in [§6](#accounts-before-switching).
 5. At **Review and install**, before **Erase data and install**, complete record C's **installer plan** check: require **only Crucial storage rows**, including a **new EFI partition at `/boot/efi`**, boot and system/data storage. [B4] Resolve every path through the same-session mapping, not example `vda` or a remembered `nvme0n1`. Photograph the whole summary privately. **Any Micron write/mount/EFI reuse, shared Windows EFI, missing new EFI or unclear target means FAIL — Quit.** Never dismiss Windows EFI wording as harmless. Every check must be PASS before continuing.
-6. After all checks, install. On error, stop; do not retry with wider erase options. Reboot, remove USB and press nothing: **Linux is the firmware default at this point**. Let stock Bazzite finish its one-time hardware setup, including its possible automatic reboot, then sign in and complete the pause-and-retain block below. Unexpected enrollment/signature screens stop the trial; Secure Boot stays off. [B1]
+6. After all checks, install. On error, stop; do not retry with wider erase options. Reboot, remove USB and press nothing: **Linux is the firmware default at this point**. Let stock Bazzite finish its one-time hardware setup, including its possible automatic reboot, then sign in while still offline and follow the tools-stick round trip below. Unexpected enrollment/signature screens stop the trial; Secure Boot stays off. [B1]
 
 The pinned live installer's whole-drive route passed the automated two-disk VM rehearsal in **both drive orders**: Linux EFI/boot/root stayed on the selected target and the protected disk stayed unchanged. See [11k](../reviews/11-two-disk-rehearsal/REPORT.md#11k-bounded-read-only-guard-retry-and-final-qualification-2026-10-24). Physical media, the laptop and unaided followability still need qualification before release. Do not improvise legacy/manual or shared EFI.
 
 ### Let the system keyboard setting decide before retaining stock
 
-An NVIDIA Flatpak runtime notification while stock is offline is expected.
-Leave its sync service enabled: it retries and should finish after the network
-is available. This notification alone is not a deployment STOP. Keep networking
-off until OS updaters have been paused; never suppress the notification by
-disabling the sync. Its completion and unchanged deployments remain a physical
-release-gate check below.
+Keep **all networking off** from the live session until `prepare` passes below:
+no Wi-Fi profile and no network cable. Anaconda copies network profiles. The
+pinned installer uses its local image cache and works offline; stock hardware
+setup uses local files and can reboot once before login. Its installer keymap
+value is untrusted (`de` and `us` have both been observed). `prepare` removes
+all console keymap overrides from **only the booted deployment**; normal system
+settings then decide. It accepts one or two unpinned stock serials with the
+qualified checksum, repairs that exact booted identity and pins it. The older
+serial stays untouched until switch finalization removes it. Never select or
+remove it yourself.
 
-At the first installed stock login, open Konsole and run `sudo -i`. Run the
-following block **before** the pause/pin block. It removes installer-supplied
-console keymap overrides, whatever their value, without adding a deployment.
-It accepts one or two unmodified deployments of the exact qualified stock
-checksum/origin, exactly one booted and first in the deployment list, with no
-staged update, queued rollback, active transaction or pin. It repairs only that
-booted deployment and checks the whole list's identities before and after. Any STOP
-means stop and retain the diagnostics. This is exactly
-[system-keyboard.sh](../os/release/system-keyboard.sh).
-
-```bash
-#!/usr/bin/bash
-set -euo pipefail
-test "$(id -u)" = 0
-python3 - <<'SYSTEM_KEYBOARD'
-import json
-import re
-import shlex
-import subprocess
-
-
-def output(*args):
-    return subprocess.check_output(args, text=True).strip()
-
-
-def identity(state):
-    deployments = state['deployments']
-    assert 1 <= len(deployments) <= 2, 'STOP: expected one or two stock deployments'
-    booted = [d for d in deployments if d['booted']]
-    assert len(booted) == 1, 'STOP: expected exactly one booted stock deployment'
-    stock, = booted
-    assert all(type(d['booted']) is bool and type(d['pinned']) is bool for d in deployments), 'STOP: invalid deployment flags'
-    # v2026.4 set-kargs targets deployments[0], not a booted-deployment lookup.
-    assert deployments[0] is stock, 'STOP: booted stock is not the default; get help'
-    reference = stock['container-image-reference']
-    assert re.fullmatch(r'(?:ostree-image-signed:docker://|ostree-unverified-registry:)?'
-        r'ghcr\.io/ublue-os/bazzite-nvidia-open(?::[A-Za-z0-9_.-]+|@sha256:[0-9a-f]{64})', reference), 'STOP: unqualified stock origin'
-    identities = []
-    for deployment in deployments:
-        assert not deployment.get('staged') and not deployment['pinned'], 'STOP: staged or already pinned stock'
-        assert deployment['checksum'] == stock['checksum'] and deployment['osname'] == stock['osname'], 'STOP: mixed stock identities'
-        assert deployment['container-image-reference'] == reference, 'STOP: mixed stock origins'
-        assert deployment['container-image-reference-digest'] == 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151', 'STOP: unqualified stock digest'
-        assert not any(deployment.get(key) for key in ('requested-packages', 'requested-base-removals',
-            'requested-base-local-replacements', 'requested-base-remote-replacements', 'requested-local-packages',
-            'requested-local-fileoverride-packages', 'base-removals', 'base-local-replacements',
-            'base-remote-replacements', 'packages', 'modules', 'requested-modules', 'regenerate-initramfs')) and deployment.get('unlocked', 'none') == 'none', 'STOP: modified stock'
-        assert re.fullmatch('[0-9a-f]{64}', deployment['checksum']) and type(deployment['serial']) is int and deployment['serial'] >= 0, 'STOP: incomplete stock identity'
-        identities.append({key: deployment[key] for key in ('checksum', 'serial', 'osname', 'booted', 'pinned')})
-    assert len({(d['checksum'], d['serial'], d['osname']) for d in identities}) == len(identities), 'STOP: duplicate deployment identity'
-    return identities
-
-
-def arguments(text):
-    args = shlex.split(text)
-    assert ' '.join(args) == text, 'STOP: unqualified quoted kernel arguments; get help'
-    return args
-
-
-def keymap_argument(arg):
-    return arg.split('=', 1)[0] in ('vconsole.keymap', 'rd.vconsole.keymap',
-        'vconsole.keymap_toggle', 'rd.vconsole.keymap_toggle', 'vconsole.keymap.toggle', 'rd.vconsole.keymap.toggle')
-
-
-def fix():
-    bootc = json.loads(output('bootc', 'status', '--json'))['status']
-    assert not bootc.get('staged') and not bootc.get('rollbackQueued'), 'STOP: pending deployment; get help'
-    assert bootc['booted']['image']['imageDigest'] == 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151', 'STOP: unqualified stock digest'
-    state = json.loads(output('rpm-ostree', 'status', '--json'))
-    assert 'transaction' in state and state['transaction'] is None, 'STOP: deployment transaction active or unknown'
-    before = identity(state)
-    assert before[0]['checksum'] == bootc['booted']['ostree']['checksum'] and before[0]['serial'] == bootc['booted']['ostree']['deploySerial'] and before[0]['osname'] == bootc['booted']['ostree']['stateroot'], 'STOP: inconsistent stock identity'
-    assert not bootc['booted']['pinned'], 'STOP: bootc stock already pinned'
-    original = arguments(output('rpm-ostree', 'kargs'))
-    corrected = [arg for arg in original if not keymap_argument(arg)]
-    assert corrected and any(arg.startswith('ostree=') for arg in corrected), 'STOP: missing deployment boot target'
-    if corrected != original:
-        subprocess.run(['ostree', 'admin', 'instutil', 'set-kargs', *corrected], check=True)
-        subprocess.run(['rpm-ostree', 'reload'], check=True)
-    after = identity(json.loads(output('rpm-ostree', 'status', '--json')))
-    assert after == before, 'STOP: deployment identity/count changed during keymap repair'
-    observed = arguments(output('rpm-ostree', 'kargs'))
-    assert not any(keymap_argument(arg) for arg in observed), 'STOP: keymap override remains'
-    # libostree may regenerate the bootlink; no other argument may change.
-    strip_bootlink = lambda args: [arg for arg in args if not arg.startswith('ostree=')]
-    assert strip_bootlink(observed) == strip_bootlink(corrected), 'STOP: unrelated kernel argument changed'
-    print('ARESOS_SYSTEM_KEYBOARD_RESULT ' + json.dumps(dict(status='passed', identity=after,
-        deployment_count=len(after), before_arguments=original, after_arguments=observed,
-        reboot_required=corrected != original)))
-
-
-if __name__ == '__main__':
-    fix()
-SYSTEM_KEYBOARD
-```
-
-Stock's hardware setup can leave two entries of the same commit: the newer
-booted serial and an older unpinned serial. This block leaves the older entry
-untouched; **do not boot that older entry during preparation**. Pinning retains
-the corrected booted serial and leaves the older one temporarily present. After
-the signed switch is staged, the old entry can still appear until the reboot
-finalizes it. Pinned OSTree's normal finalization then retains AresOS and the
-corrected pinned stock, and drops the old unpinned serial. No manual removal is
-part of this recipe. If the old serial survives after the AresOS boot, or more
-than the expected pair remains, STOP and get help; do not remove it yourself.
-13f verified this complete lifecycle in a protected-second VM: the old serial0
-remained while the switch was staged, then disappeared on finalization. The
-corrected pinned stock serial1 and AresOS serial0 were the exact final pair.
-Both BLS labels still say **Bazzite**; a label alone does not identify the image:
-
-| Observed state | AresOS label | Corrected pinned stock label |
-| --- | --- | --- |
-| AresOS booted after switch (including the layout round trip) | `Bazzite (ostree:0)` | `Bazzite (ostree:1)` |
-| Stock booted after normal rollback | `Bazzite (ostree:1)` | `Bazzite (ostree:0)` |
-
-These are the frozen release's observed labels, not selection by menu digits.
-Record the checksum-resolved stock title after your own successful AresOS boot;
-the recovery checks must still match your saved stock identity. If the first
-switch fails before you confirm that final pair, use **F12 → Windows** and get
-help: the staged state can still contain both stock serials. Physical installation
-and manual GRUB/followability checks remain NOT RELEASED.
-
-The running kernel still has its original arguments until reboot. Complete the
-pause/pin block and its stock-title checkpoint, then complete §5's Windows-first
-firmware setting and unattended Windows comparison. To check corrected stock,
-restart Windows, press **F12 → the recorded Linux entry**, and sign in as
-**`ares-recovery`**, using the installer's layout for its password. In Konsole,
-require `cat /proc/cmdline` to contain no `vconsole.keymap` or
-`rd.vconsole.keymap` override; `localectl status` must show the selected console
-and X11 settings. On tty3, test the physical keys before entering a password.
-A failed test stops the trial. Windows remains the firmware default.
-
-### Change the AresOS layout later; recovery keeps the installer layout
-
-**Owner decision, 2026-10-25:** the retained backup Bazzite keeps the keyboard
-layout chosen in the installer (**German in this guide**). A later layout
-change in AresOS changes only that running deployment's `/etc`; it does **not**
-change the backup. At a backup/recovery login, type the `ares-recovery` password
-using the **installer layout**, even if AresOS last used US. No mechanism writes
-the later setting into stock. This is the approved exception to “one setting
-everywhere,” keeping the tested backup frozen. It follows from bootc's
-[per-deployment `/etc`](https://bootc.dev/bootc/bootc-filesystem.7.html#etc).
-
-To change the layout while running AresOS:
-
-1. Press **Ctrl+Alt+F3**, sign in as **`ares-recovery`** using the current AresOS
-   layout, and wait for its shell prompt. Daily **`ares` cannot use sudo**.
-2. Run the setting command below as `ares-recovery` (this example selects German;
-   choose your own layout and corresponding console map). Stop on any error:
-
-```bash
-sudo localectl --no-convert set-keymap de && sudo localectl --no-convert set-x11-keymap de pc105 '' ''
-```
-
-3. Run `sudo systemctl reboot` as `ares-recovery`. At startup press **F12 → the
-   recorded Linux entry**; do not change firmware order. Pressing nothing starts
-   Windows. Let AresOS start, then use **Ctrl+Alt+F3 → `ares-recovery`** with the
-   **new AresOS layout** to check `localectl status` and the physical keys.
-   Log out of that TTY before returning with Ctrl+Alt+F1.
-
-The next AresOS boot uses its console keymap, and its labwc session reads the
-X11 layout, model, variant and options from localed. The image contains no chosen
-layout. Qualification 13f checked **de → us → de, then rollback to de** with loaded
-maps and physical tty3/foot text. **A run that left AresOS on US and then rolled
-back was not performed.** The backup's installer-layout behavior in that case is
-source-verified, not runtime-verified. Layout changes alone do not reorder the
-deployments; any separate deployment transaction invalidates the saved stock
-title and requires the checkpoint below before rebooting.
+An NVIDIA Flatpak runtime notification while offline is expected. Leave its
+sync enabled: it retries after networking comes up and only changes the system
+Flatpak installation. `prepare` records its state without waiting. An unfinished
+sync is not a deployment STOP. Its real NVIDIA completion is a physical gate.
 
 ### Pause and retain stock before the Windows comparison
 
-At the very first **ares-recovery** login, after stock's initial hardware setup,
-open Konsole and run **sudo -i**. Before restarting into Windows, run this block.
-It stops the reviewed stock OS updaters, disables their automatic timers across
-reboots, and records deployment work. If a transaction remains after the updaters
-stop, it records and cancels that transaction once, then waits up to five minutes
-for idle. The daemon itself is recorded separately from update clients. It checks the ISO's exact stock
-digest, records and discards at most one staged upstream Bazzite update, then pins
-the unchanged booted stock deployment. A newer deployment already booted, an
-unexpected origin or any other error means **STOP and get help**; see EMERGENCY.
-Do not reboot past a STOP, change pins or choose a rollback by guesswork.
+The tools stick is made from the now-unused **ARESOS INSTALLER — ERASE OK**;
+keep WINDOWS RECOVERY untouched. After stock finishes its offline hardware
+setup and reaches login, shut down normally **while still offline**. Remove the
+installer USB first. In **F2**, put the recorded **Windows Boot Manager first**,
+Save and Exit, and press nothing: require Windows to start unattended. Windows
+stays the firmware default from here onward; **F12 → the recorded Linux entry**
+selects just one Linux start.
 
-This block is also [pin-stock.sh](../os/release/pin-stock.sh); its first part is
-[pause-stock-updates.sh](../os/release/pause-stock-updates.sh). Keep any printed
-unit/transaction/process diagnostics, any cancelled transaction, staged
-reference/digest/checksum/version and the pinned stock checksum privately
-with record C. The pending update must be discarded **before** the Windows reboot,
-which would otherwise finalize it.
+In Windows, plug in only the former installer stick. Open the pinned **Fedora
+Media Writer 5.3.2**, use **Wiederherstellen (Restore)** for that exact stick,
+confirm, wait for completion and choose **Fertig (Finish)**. This destroys the
+installer partitions and creates a normal exFAT stick. Source verification is
+in the [14 report](../reviews/14-owner-tools/REPORT.md); the German click path
+still needs the expendable-media gate. Cancel Windows format prompts; no Disk
+Management, diskpart, Format or third-stick fallback. Stop on any difference.
 
-```bash
-#!/usr/bin/bash
-set -euo pipefail
-test "$(id -u)" = 0
-python3 - <<'PAUSE_STOCK'
-import json
-import pathlib
-import subprocess
-import time
+From the reviewed repository copy used for the record helper, open PowerShell
+7 in that repository. Substitute the restored stick's actual D–Z drive letter
+for T (check its identity in Explorer; never use C:):
 
-# Names and commands come from the frozen image's existing updater audit.
-SYSTEM = (
-    'uupd.service', 'uupd-manual.service', 'uupd.timer',
-    'rpm-ostreed-automatic.service', 'rpm-ostreed-automatic.timer',
-    'bootc-fetch-apply-updates.service', 'bootc-fetch-apply-updates.timer',
-    'bootc-update.service', 'bootc-update.timer',
-    'systemd-sysupdate.service', 'systemd-sysupdate.timer',
-    'systemd-sysupdate-reboot.service', 'systemd-sysupdate-reboot.timer',
-    'systemd-sysupdated.service', 'dbus-org.freedesktop.sysupdate1.service',
-    'dnf-automatic.service', 'dnf-automatic.timer',
-    'dnf5-automatic.service', 'dnf5-automatic.timer',
-    'dnf5-offline-transaction.service',
-    'packagekit.service', 'packagekit-offline-update.service',
-)
-USER = ('uupd.service', 'uupd.timer')
-
-
-def output(command):
-    return subprocess.check_output(command, text=True, timeout=30)
-
-
-def unit_files(command):
-    return {p[0]: p[1] for line in output([*command, 'list-unit-files']).splitlines()
-            if len(p := line.split()) >= 2}
-
-
-def unit_state(command, name):
-    fields = dict(line.split('=', 1) for line in output(
-        [*command, 'show', name, '--property=LoadState,ActiveState,SubState']).splitlines() if '=' in line)
-    assert fields.get('LoadState') in ('loaded', 'masked'), 'Updater unit could not be inspected: ' + name
-    return fields
-
-
-def pause_units():
-    system = ['systemctl', '--no-pager', '--no-legend']
-    global_user = ['systemctl', '--global', '--no-pager', '--no-legend']
-    scopes = []
-    receipt = []
-    for command, names, scope in ((system, SYSTEM, 'system'), (global_user, USER, 'user')):
-        files = unit_files(command)
-        selected = [n for n in names if n in files]
-        if scope == 'system':
-            assert {'uupd.service', 'uupd.timer'} <= set(selected), 'Pinned stock updater units are missing'
-        services = [n for n in selected if n.endswith('.service')]
-        timers = [n for n in selected if n.endswith('.timer')]
-        for timer in timers:
-            assert files[timer] != 'masked-runtime', 'A temporary timer mask cannot prove persistent disablement'
-        # Services cannot reactivate while the current maintenance session runs.
-        # Timers remain persistently disabled after the runtime masks disappear.
-        if services:
-            flags = ['--runtime', 'mask'] + (['--now'] if scope == 'system' else [])
-            subprocess.run([*command, *flags, *services], check=True)
-        disable = [n for n in timers if files[n] != 'masked']
-        if disable:
-            flags = ['disable'] + (['--now'] if scope == 'system' else [])
-            subprocess.run([*command, *flags, *disable], check=True)
-        if scope == 'system':
-            scopes.append((system, selected))
-        elif selected:
-            # Stock's first administrator is UID 1000. Inspect any active user
-            # managers too, rather than treating a global disable as a stop.
-            for bus in pathlib.Path('/run/user').glob('*/bus'):
-                uid = bus.parent.name
-                if not uid.isdigit():
-                    continue
-                user = output(['getent', 'passwd', uid]).split(':', 1)[0]
-                manager = ['runuser', '-u', user, '--', 'env',
-                    'XDG_RUNTIME_DIR=/run/user/' + uid,
-                    'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/' + uid + '/bus',
-                    'systemctl', '--user', '--no-pager', '--no-legend']
-                subprocess.run([*manager, 'daemon-reload'], check=True)
-                subprocess.run([*manager, 'stop', *selected], check=True)
-                scopes.append((manager, selected))
-        after = unit_files(command)
-        assert all(after[n] in ('disabled', 'masked') for n in timers), 'Updater timer is not persistently disabled'
-        receipt.append(dict(scope=scope, present=selected, absent=[n for n in names if n not in files],
-                            timers={n: after[n] for n in timers}))
-    return scopes, receipt
-
-
-def deployment_processes(root=pathlib.Path('/proc')):
-    processes = []
-    for process in sorted(root.iterdir(), key=lambda p: int(p.name) if p.name.isdigit() else -1):
-        if not process.name.isdigit():
-            continue
-        try:
-            executable = str((process / 'exe').readlink())
-            if pathlib.Path(executable.removesuffix(' (deleted)')).name not in ('bootc', 'rpm-ostree'):
-                continue
-            cmdline = (process / 'cmdline').read_bytes().decode().rstrip('\0').split('\0')
-            cgroup = (process / 'cgroup').read_text()
-        except (FileNotFoundError, ProcessLookupError):
-            # A process which exited while being read cannot keep a client active.
-            continue
-        paths = [line.split(':', 2)[2] for line in cgroup.splitlines()]
-        daemon = any(path == '/system.slice/rpm-ostreed.service' or
-                     path.startswith('/system.slice/rpm-ostreed.service/') for path in paths)
-        processes.append(dict(pid=int(process.name), exe=executable, cmdline=cmdline,
-                              cgroup=cgroup, excluded_as_daemon=daemon))
-    return processes
-
-
-def pause_stock():
-    decision = dict(units=[], transaction=None, transaction_observed=False, processes=[],
-                    units_inactive=False, transaction_idle=False, clients_idle=False,
-                    cancel=dict(ran=False, transaction=None))
-    receipt = []
-    try:
-        scopes, receipt = pause_units()
-        deadline = time.monotonic() + 300
-        while True:
-            decision['units'] = []
-            decision['units_inactive'] = False
-            for index, (command, names) in enumerate(scopes):
-                for name in names:
-                    decision['units'].append(dict(scope=index, name=name, **unit_state(command, name)))
-            decision['units_inactive'] = all(u['ActiveState'] in ('inactive', 'failed') for u in decision['units'])
-            status = json.loads(output(['rpm-ostree', 'status', '--json']))
-            decision['transaction_observed'] = 'transaction' in status
-            assert decision['transaction_observed'], 'Cannot inspect rpm-ostree transaction state'
-            decision['transaction'] = status['transaction']
-            decision['transaction_idle'] = status['transaction'] is None
-            transaction = status['transaction']
-            assert transaction is None or (isinstance(transaction, list) and len(transaction) == 3 and
-                   all(isinstance(value, str) for value in transaction)), 'Unexpected rpm-ostree transaction shape'
-            decision['processes'] = deployment_processes()
-            decision['clients_idle'] = not any(not p['excluded_as_daemon'] for p in decision['processes'])
-            if decision['units_inactive'] and not decision['transaction_idle'] and not decision['cancel']['ran']:
-                remaining = deadline - time.monotonic()
-                assert remaining > 0, 'Idle deadline reached before cancellation'
-                decision['cancel'] = dict(ran=True, transaction=status['transaction'])
-                print('ARESOS_STOCK_CANCEL_REQUEST ' + json.dumps(decision), flush=True)
-                result = subprocess.run(['rpm-ostree', 'cancel'], capture_output=True, text=True,
-                                        timeout=remaining, check=False)
-                decision['cancel'].update(returncode=result.returncode, stdout=result.stdout, stderr=result.stderr)
-                assert result.returncode == 0, 'rpm-ostree cancel failed'
-                # Re-read all predicates after cancel, including a transaction that raced completion.
-            elif all(decision[key] for key in ('units_inactive', 'transaction_idle', 'clients_idle')):
-                print('ARESOS_STOCK_UPDATERS_PAUSED ' + json.dumps(dict(status='passed', units=receipt,
-                      transactions_idle=True, service_masks='runtime', timer_disable='persistent', decision=decision)))
-                print('Stock OS update timers are paused; leave them paused during the trial.')
-                return
-            assert time.monotonic() < deadline, 'Updater/deployment transaction did not become idle'
-            time.sleep(2)
-    except (AssertionError, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
-        print('STOP: stock updaters could not be paused. See EMERGENCY.md / get help.', flush=True)
-        failed = [key for key in ('units_inactive', 'transaction_idle', 'clients_idle') if not decision[key]]
-        print('ARESOS_STOCK_PAUSE_STOP ' + json.dumps(dict(status='stopped', error=str(error),
-              false_predicates=failed, units=receipt, decision=decision)), flush=True)
-        raise SystemExit(1) from error
-
-
-if __name__ == '__main__':
-    pause_stock()
-
-PAUSE_STOCK
-
-# Repeat the same pause immediately before inspecting/discarding/pinning.
-python3 - <<'PIN_STOCK'
-import json
-import re
-import subprocess
-
-ISO_DIGEST = 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151'
-IMAGE = 'ghcr.io/ublue-os/bazzite-nvidia-open'
-
-
-def require(ok, message):
-    if not ok:
-        raise SystemExit('STOP: ' + message + '. See EMERGENCY.md / get help; do not reboot, roll back or repin automatically.')
-
-
-def status():
-    value = json.loads(subprocess.check_output(['rpm-ostree', 'status', '--json'], text=True))
-    require('transaction' in value and value['transaction'] is None, 'A deployment transaction is active or cannot be inspected')
-    deployments = value['deployments']
-    booted = [(i, d) for i, d in enumerate(deployments) if d.get('booted')]
-    require(len(booted) == 1, 'Expected exactly one booted stock deployment')
-    index, stock = booted[0]
-    bootc = json.loads(subprocess.check_output(['bootc', 'status', '--json'], text=True))['status']
-    require(stock.get('container-image-reference-digest') == ISO_DIGEST
-            and bootc['booted']['image']['imageDigest'] == ISO_DIGEST, 'Booted stock differs from the recorded ISO digest')
-    require(stock['checksum'] == bootc['booted']['ostree']['checksum'], 'Stock checksum observations disagree')
-    require(not bootc.get('rollbackQueued'), 'A rollback is queued')
-    return deployments, index, stock, bootc
-
-
-def upstream(reference):
-    return bool(re.fullmatch(r'(?:ostree-image-signed:docker://|ostree-unverified-registry:)?'
-                + re.escape(IMAGE) + r'(?::[A-Za-z0-9_.-]+|@sha256:[0-9a-f]{64})', reference))
-
-
-deployments, index, stock, bootc = status()
-require(upstream(stock.get('container-image-reference', '')), 'Booted origin is not the recorded upstream Bazzite')
-checksum = stock['checksum']
-staged = [d for d in deployments if d.get('staged')]
-require(len(staged) <= 1, 'More than one staged deployment')
-discarded = None
-if staged:
-    candidate, = staged
-    require(not candidate.get('booted') and not candidate.get('pinned'), 'The staged deployment is booted or pinned')
-    reference = candidate.get('container-image-reference', '')
-    digest = candidate.get('container-image-reference-digest', '')
-    require(upstream(reference), 'Staged origin is not upstream Bazzite')
-    require(re.fullmatch(r'sha256:[0-9a-f]{64}', digest) and re.fullmatch(r'[0-9a-f]{64}', candidate['checksum']),
-            'Staged deployment identity is incomplete')
-    require(bootc.get('staged') and bootc['staged']['image']['imageDigest'] == digest
-            and bootc['staged']['ostree']['checksum'] == candidate['checksum'], 'Staged identity observations disagree')
-    discarded = dict(reference=reference, digest=digest, checksum=candidate['checksum'], version=candidate.get('version'))
-    print('ARESOS_STOCK_DISCARD ' + json.dumps(discarded), flush=True)
-    subprocess.run(['rpm-ostree', 'cleanup', '-p'], check=True)
-    deployments, index, stock, bootc = status()
-    require(stock['checksum'] == checksum, 'Booted checksum changed after pending cleanup')
-require(not any(d.get('staged') for d in deployments) and not bootc.get('staged'), 'A staged deployment remains')
-subprocess.run(['ostree', 'admin', 'pin', str(index)], check=True)
-deployments, index, stock, bootc = status()
-require(stock['checksum'] == checksum and stock.get('pinned'), 'Pin did not preserve the booted stock deployment')
-require(not any(d.get('staged') for d in deployments) and not bootc.get('staged'), 'A staged deployment appeared while pinning')
-print('Pinned booted stock deployment:', checksum)
-print('ARESOS_STOCK_PIN_RESULT ' + json.dumps(dict(status='passed', booted_checksum=checksum,
-      booted_digest=ISO_DIGEST, staged_discarded=discarded is not None, discarded=discarded,
-      pinned=True, no_staged=True)))
-PIN_STOCK
+```powershell
+Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
+Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require the final **Pinned booted stock deployment** line and no error before
-continuing. Still in this `ares-recovery` root shell, save the corrected stock's
-full checksum, serial and stateroot, then complete the
-[stock-title checkpoint](#refresh-the-recorded-stock-title-before-reboot).
-Any permitted pending-update cleanup invalidates an earlier title; this initial
-record describes pre-switch stock only. Repeat the checkpoint if this pause/pin
-block is run again. Leave updates paused throughout the trial. After returning to stock
-for good and confirming its second default boot, run **sudo systemctl enable --now
-uupd.timer** to turn stock updates back on.
+Require `PASS tools manifest SHA256 c55de63b4290de42a9f3e1d2b3cffd51ef1c98f6bd979f263030e19bed27c5be` and `PASS ARESTOOLS ready`.
+The copy checks removable/USB/exFAT/boot/system identity before writing,
+verifies every copied file, and labels it **ARESTOOLS**. A STOP means preserve
+it and get help. Safely eject and **unplug** it before [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), shutdown or restart. Record B must pass with
+both USBs absent; Windows must boot from its original Micron EFI target.
+
+Use **F12 → the recorded Linux entry**, sign in as **ares-recovery** using the
+installer's German layout, then **Ctrl+Alt+F3**, sign in there with the same
+password and run `sudo -i`. Keep that administrator console open. **Only now**
+plug in ARESTOOLS. Type this first bootstrap command exactly:
+
+```bash
+sudo bash -c 'set -e; mount -o ro LABEL=ARESTOOLS /mnt; trap "umount /mnt" EXIT; bash /mnt/ares-tools/at install'
+```
+
+At its prompts enter the independently photographed Crucial serial and record
+A's Micron serial. Require `PASS install` with that manifest fingerprint. It
+checks the label, removable USB, complete manifest and both internal identities
+before installing root-only tools in shared `/var/lib/ares`; the frozen AresOS
+image does not shadow that path. The read-only bootstrap unmounts even on STOP.
+A failed bootstrap means stop and preserve the screen, not another mount path.
+
+```bash
+sudo /var/lib/ares/at prepare
+```
+
+Require `PASS prepare`, the exact corrected stock checksum/serial/stateroot,
+`pin yes; pending none; updaters paused`. This one implementation pauses every
+reviewed OS updater, waits for idle, cancels at most one leftover transaction,
+discards only a permitted upstream staged update, repairs booted stock, then
+pins it. A manual deployment client/transaction or unknown state refuses before
+mutation. A five-minute idle failure names the blocker in saved diagnostics;
+do not reboot, reconnect or guess a repair. Get help. Rerun that same command:
+require `Already prepared; no OS mutations`. Leave updaters paused throughout.
+
+Now enable networking using stock's normal controls. Then type:
+
+```bash
+sudo /var/lib/ares/at title
+sudo /var/lib/ares/at records
+sudo /var/lib/ares/at export
+```
+
+Require PASS for each. `title` first proves the **entire deployment list, pin,
+pending state and BLS list unchanged since prepare**, and records Flatpak state.
+`records` saves post-install record C: disk/partition GUIDs, target EFI mapping
+and firmware entries. Compare those values with the private record; Micron
+must still match record A. Each command saves full dated diagnostics under
+`/var/lib/ares/records`; export finds the unique labelled manifest-matching
+stick, mounts it itself, copies only those JSON records with SHA256 readback,
+and unmounts. Require **SAFE TO REMOVE ARESTOOLS**, then **unplug it**. Never
+remove a mounted/busy stick. No stick is needed across any reboot.
+
+Save the current exact stock title and invalidate every earlier title. Then:
+
+```bash
+sudo /var/lib/ares/at reboot
+```
+
+Require the guarded reboot; press nothing and require unattended Windows, then
+repeat record B with both USBs absent and copy the exported records off-device.
+If you need to inspect them in Windows, plug ARESTOOLS in only for that copy,
+then eject/unplug before comparisons or restarting. Return via **F12 → Linux**.
+
+**Stick rule at every later boot:** plug it in only after Linux is up and you
+are signed in; export/unmount and unplug before every shutdown or restart.
+The tool refuses reboot while it is attached. If forgotten at power-on,
+**nothing breaks: never pick the stick in F12, unplug it and continue**; Windows
+stays first. A data-only stick present at power-on is physically untested, not
+an accepted USB firmware-audit rule. Never delete a firmware entry to hide it.
 
 ## 5. Check installed Bazzite
 
-After the successful first-login pause-and-retain block, finish [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): save Crucial's new GUIDs and Linux firmware entry; prove `/boot/efi` resolves to Crucial. Restart into **F2 → put Windows Boot Manager first → Save and Exit**. On the next start **press nothing: Windows must start**. This checks the saved firmware default; choosing Windows once with F12 would not check it. Then run [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage). A missing entry, unexpected default, mismatch or Windows repair/recovery prompt stops the trial. Keep records independently. From this step onward Windows stays the firmware default; use F12 for one Linux start.
+After **F12 → Linux**, sign in as **ares-recovery** using the installer layout;
+Ctrl+Alt+F3 → fresh password login → `sudo -i`:
 
-To continue with corrected stock and §6, restart Windows, press **F12**, choose
-the **recorded installed Linux entry** (not the USB), then sign in to Bazzite as
-**`ares-recovery`** with the installer-layout password. Complete the corrected
-stock keyboard checks above, open Konsole and follow the account checks below.
-Every later “reboot into Linux” step explicitly uses this one-time selection;
-do not make Linux the firmware default to avoid F12.
+```bash
+sudo /var/lib/ares/at check
+sudo /var/lib/ares/at title
+sudo /var/lib/ares/at records
+```
+
+Require PASS and override-free loaded German console keys. Prove `yz-/!ü` by
+physical typing; the same password must work with password-authenticated sudo.
+Check stock's rendered greeter, network and hardware. Compare record C's target
+EFI identity and record B's untouched Windows before switching. Every STOP
+means keep diagnostics, stop this trial and get help. Windows remains first.
 
 ## 6. Switch to AresOS
 
-**Package 13's private keyboard release passed 13f's full protected-second qualification: stock repair for both de/us starting states, exact pin/switch/final-entry identities, loaded maps and physical tty3/foot typing through de/us/de, policy/Homebrew and rollback to the rendered stock greeter. All audits passed. The separate laptop, live KDE/KWrite, physical media/menu and owner-review gates remain open; physical installation is NOT RELEASED.** The following 06e/11n results are historical evidence for the old release, retained in [06.json](../os/manifest/releases/06.json). **06e VM qualification passed for that historical release and the revised 06d recipe.** [Full switch-only run 39851266266](https://github.com/carlsenares/AresOS/actions/runs/39851266266) reused the unchanged signed image and verified the rendered stock greeter, transaction identity inspections before reboot, daily session/account, strengthened updater policy, inherited Homebrew restrictions, real tty3 administrator password login/sudo/logout with the getty prompt confirmed, unchanged attached-disk partitions across four states, exact-stock rollback with a visually inspected rendered greeter, and another stock default boot. The [image job](https://github.com/carlsenares/AresOS/actions/runs/39818554327) passed two fresh AresOS boots before private publication/signing. See the [06e report](../reviews/06-image-release/REPORT.md#06e-vm-qualification-2026-10-22). **11n later qualified GRUB recovery/promotion in a protected-second VM.** Physical installation remains NOT RELEASED until every [maintainer gate](#maintainer-release-gate) is closed. Subsequent 11k passed the real-ISO two-disk Part A in VMs; physical GRUB interaction, media, laptop and followability gates remain open. This changes an existing Bazzite deployment; it does not install or partition a disk. The image contains labwc and a terminal, without Minecraft or Prism.
-
-Release: **`ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb`**, private GHCR, immutable tag **`13-2abc12e8aa6089f7576143d1fbccb6648a3291bd`**. [Release manifest](../os/manifest/release.json), [verification and screenshots](../reviews/13-keyboard-layout/REPORT.md). Base: signed `bazzite-nvidia-open` KDE **44.20261012.1**, digest `ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151`; no Steam Gaming Mode. The earlier switch-only fixture constructed its stock disk directly from upstream; 11k/11n later used the real pinned live installer. Physical installer/media/laptop/followability checks remain open.
-
-Official ISO metadata and complete download hashes, checked **2026-10-23** (the `stable` download names can change; a different hash means stop):
-
-| Role | Official ISO | Official SHA-256 |
-|---|---|---|
-| Current live route retained by this guide | [bazzite-nvidia-open-stable-live-amd64.iso](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso) | `776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6` |
-| Legacy ISO identified as requested by brief 06; not substituted for §2–§4 | [bazzite-nvidia-open-stable-amd64.iso](https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso) | `85e701c0f53189b0fa32797ffe8144202dcaa8db6c7692fd4677f615537b24b8` |
-
-The [live checksum](https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM), [legacy checksum](https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso-CHECKSUM) and official picker sources are recorded in [installer-isos.json](../os/manifest/installer-isos.json). Package 11 verified the complete [live download](../os/manifest/ci/11/inspect-2/installer/iso-download.json) and [legacy download](../reviews/11-two-disk-rehearsal/media/additional-downloads.json). The live ISO's [embedded container metadata](../os/manifest/ci/11/inspect-2/installer/var_lib_containers_storage_overlay-images_images.json) identifies the exact tested upstream digest. That metadata is not installation qualification: the installed deployment must still pass the two-disk gate below. Raw CI disks are never installation media.
+The frozen private release is
+`ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb`.
+It keeps the qualified base and packages; this package builds no image. Signature
+identity, issuer and exact digest are checked by the shared release script.
 
 ### Accounts, before switching
 
-In Bazzite's **Create Account** page, keep **Use local account** checked and use **`ares-recovery`**, with a strong unique passphrase held independently of AresOS. The actual pinned screen describes this as an account with administrator access; no separate administrator checkbox appeared in the 11b preview. Set the username before full name to avoid the page's automatic name suggestion. It must be the first ordinary account: **UID 1000**, member of **`wheel`**, verified after installation. Do not name it `ares`, enable root/passwordless administrator login, or reuse a game/Windows password. The real account page and backend wheel/password/root-lock state passed the 11b preview, but installed-account qualification on this ISO remains OPEN; the earlier 06e image-builder stand-in's UID proof is separate. Finish stock Bazzite's first-boot hardware setup before proceeding; upstream can reboot once to apply kernel arguments before allowing login.
-
-The image supplies **`ares`, UID/GID 1001**, a locked password and no `wheel`/sudo rights. Its `sysusers.d` declaration creates this account at boot even when the installer's local passwd/group files survive the rebase. greetd automatically starts its labwc session on tty1. It is the daily account; keep it out of administrative groups. UID 1001 must be unused on stock Bazzite before switching. If the expected account/UID/group checks fail, stop rather than renumbering existing users or files.
-
-Finish §5 and its Windows comparison first. Restart from Windows with **F12 →
-the recorded Linux entry**. In installed Bazzite, sign into **`ares-recovery`**
-with the installer layout, open Konsole and check:
-
-```bash
-id -u ares-recovery
-id -nG ares-recovery
-getent passwd ares
-getent passwd 1001
-sudo -v
-```
-
-Require `1000`, a group list containing `wheel`, **no output from either `getent`**, and successful sudo authentication with the recovery password. To perform the following maintenance, open a root shell with **`sudo -i`**. Root's direct login remains locked. Run each block separately and stop on any error. Keep AC connected, lid open, and all boot writes on Crucial; repartition neither disk.
+Use **ares-recovery**, UID1000 in wheel, for administration. The daily `ares`
+account (UID1001 without wheel) must not exist on stock; the image creates it.
+`login`, `verify` and `switch` recheck those accounts, the complete saved stock
+state, paused updaters and disk identities before doing their work. A STOP is
+not permission to create/delete an account or use root as the everyday user.
 
 ### Retain stock Bazzite and authenticate the private pull
 
-Repeat the complete [pause-and-retain block above](#pause-and-retain-stock-before-the-windows-comparison)
-before the private pull. Running it again is harmless: it pauses stock's updaters
-again and requires no staged deployment at the moment of pinning. A permitted
-pending upstream update is discarded only while the original ISO digest remains
-booted; any changed booted identity stops the recipe. Refresh the stock-title
-record after this repeated block, then run `bootc status --json`.
-
-Record the printed stock checksum, **serial and stateroot**, image reference,
-installer layout and freshly resolved GRUB title privately with record C.
-Require **`status.booted.image.imageDigest`** to equal the upstream SHA-256 above,
-with no layered packages or local OS modifications. Its origin reference may
-end in `:stable`; the payload digest, rather than that mutable tag, identifies
-the tested stock contents. An older/newer ISO deployment is outside this tested
-recipe. Do not discard the pinned deployment after this switch.
+Stock is already corrected/pinned by prepare. Do not pin again or select the
+older serial. Full diagnostics and the compact current title are your record.
 
 ### Refresh the recorded stock title before reboot
 
-**Every deployment reorder invalidates the previous title immediately**,
-including a staged switch, queued rollback, pending-update cleanup or
-`ostree admin set-default`. Refresh after each such operation **before rebooting**,
-then confirm it again after the boot. A known checksum with a stale title is
-not a recovery record. Keep records private, outside Git, in
-[record C](INSTALL-RECORD.md#private-comparison-sheet).
-
-Use **`ares-recovery`**, open Konsole on stock or **Ctrl+Alt+F3** on AresOS,
-wait for the shell prompt, then run **`sudo -i`** (unless already in that root
-shell). Use the current deployment's layout for this login; backup stock uses
-the installer layout. These commands only read status and BLS files:
+**Every reorder immediately invalidates the old title**, including cleanup,
+staging a switch, queuing rollback and making stock default. Both entries may
+say Bazzite. Never infer a title from a remembered position or checksum alone.
 
 ```bash
-rpm-ostree status --json
-bootc status --json
-ostree admin status
-grep -H -E '^(title|options) ' /boot/loader/entries/*.conf
+sudo /var/lib/ares/at title
 ```
 
-1. On the first run after pinning, record the **booted, pinned** stock deployment's
-   complete `checksum`, `serial` and `osname` from JSON; `osname` is its stateroot.
-   Compare them with bootc's `ostree.checksum`, `deploySerial` and `stateroot`.
-   Later runs must match that saved triple and pin, not just the checksum.
-2. For **each BLS file** printed by grep, keep its `title` together with its own
-   `options` line. Copy only the value after `ostree=` from that line (it must
-   start `/ostree/`), then run this read-only resolution for that value:
-
-   ```bash
-   read -r -p 'Value after ostree= from this BLS options line: ' stockBootLink
-   readlink -e "/sysroot$stockBootLink"
-   ```
-
-3. Require exactly **one** resolved path of the form
-   `/sysroot/ostree/deploy/<saved-stateroot>/deploy/<saved-checksum>.<saved-serial>`.
-   Record **that file's exact `title`**, the full identity, current transaction
-   state and time. Two stock entries may share a checksum before finalization;
-   the serial distinguishes corrected stock from the untouched older copy.
-   Do not derive a title from a filename, from JSON row numbers (which may
-   include a staged deployment), or from a remembered `(ostree:N)`.
-4. Mark the preceding title **INVALID — superseded**. Keep this new title valid
-   only while the recorded deployment/BLS state is unchanged. Missing, duplicate,
-   unresolved or inconsistent identity/title means **STOP; do not reboot**.
-
-**First-switch exception:** the pre-reboot staged record describes only the
-current BLS state. Shutdown finalization can change it again. Mark that title
-**provisional, not usable for first-switch recovery**. Only after the first
-successful AresOS boot confirms the exact final pair may you refresh it as a
-usable recovery title. If that first switch boot fails, **F12 → Windows and
-get help**, even if a provisional title was saved. No backup content or setting
-is written by this checkpoint.
+Require PASS with the saved **checksum, serial, stateroot and pin**, no active
+transaction, exact pending state and resolved BLS title. Record all of it with
+the time; mark previous titles INVALID. A staged switch title is provisional:
+refresh after the first successful AresOS boot, before relying on recovery.
+A stale or missing title, failed first switch boot or unexpected list means
+**F12 → Windows and help**, never guess a GRUB row. `reboot` checks freshness.
 
 ### Authenticate the private pull
 
-Continue in the `ares-recovery` root shell on installed stock Bazzite, selected
-for this boot with F12 → Linux. Do not run these maintenance steps as daily `ares`.
-
-GitHub currently supports **personal access tokens (classic)** for private GHCR pulls; a fine-grained PAT cannot do this. Create a **classic token with only `read:packages`**, an expiry and no `repo`, write or delete scope, from [GitHub's token settings](https://github.com/settings/tokens/new?scopes=read:packages). This classic scope is not restricted to this one package. The account must have read access to this private package; the package owner is `Ares-Empire`, and the example installing account is `carlsenares`. Keep the token in the owner's password manager, never Git, the install record, screenshots or shell command arguments. The new org release passed a CI job-token manifest read. Its rehearsal jobs use only the read-only job token, with no owner-token fallback. The old owner secret remains configured until the owner removes it; it was used only for historical image comparison in this release build. Laptop installation still uses the owner’s own classic read token.
-
-In the root shell:
+From the open tty3 **ares-recovery → sudo -i** session, type:
 
 ```bash
-install -d -m 0700 /etc/ostree
-podman login --authfile /etc/ostree/auth.json --username carlsenares ghcr.io
-chmod 0600 /etc/ostree/auth.json
+sudo /var/lib/ares/at login
+sudo /var/lib/ares/at verify
 ```
 
-Paste the read-only token only at the hidden **Password** prompt; require **Login Succeeded**. `/etc/ostree/auth.json` is root-owned mode 0600 and contains reusable, base64-encoded credentials, not encrypted storage. Bootc reads this persistent file across reboots. Exclude it from shared evidence and world backups; reissue the token during recovery. To rotate, repeat the login with the replacement token and then revoke the old token in GitHub. An expired/revoked token blocks new pulls; the installed and retained deployments remain bootable.
-
-Verify the exact release using Bazzite's installed cosign and this workflow certificate identity:
-
-```bash
-install -d -m 0700 /run/aresos-registry
-ln -sfn /etc/ostree/auth.json /run/aresos-registry/config.json
-DOCKER_CONFIG=/run/aresos-registry cosign verify \
-  --certificate-identity 'https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/13-keyboard-layout' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  'ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb'
-```
-
-Require successful verification and the exact release digest in the signed payload. A failure stops the switch. The signature uses GitHub OIDC and an ephemeral certificate, with no stored signing key. Sigstore's public transparency log exposes the signing repository/workflow identity and image digest; image layers remain private. Signature trust is separate from firmware Secure Boot, which stays off.
+Enter the GitHub username at its prompt and the approved **read:packages-only,
+unexpired token only at the hidden prompt**. Never type it in a command, paste
+it into chat, photograph it or save it in records. It is accepted only for the
+exact private release pull, written only to root-owned mode0600
+`/etc/ostree/auth.json`; no owner-token GitHub API call or secret fallback.
+Require PASS login, then PASS verify for the exact digest/signature. Otherwise
+stop and get help; do not make the package public or bypass a signature check.
 
 ### Switch, reboot, and check recovery
 
-Start from **F12 → the recorded Linux entry → installed stock Bazzite → sign in
-as `ares-recovery`** using the installer layout. Open Konsole and run **`sudo -i`**
-if not already in that root shell; complete the account/pin/authentication and
-signature checks above. Run the checked switch script below in its own block.
-It repeats the account and pending-deployment checks immediately before
-switching. Any failure stops the block; do not reboot:
-
 ```bash
-#!/usr/bin/bash
-set -euo pipefail
-test "$(id -u ares-recovery)" = 1000
-if getent passwd ares; then
-    echo 'Refusing switch: daily account ares already exists'
-    exit 1
-fi
-test -z "$(getent passwd 1001)"
-test -r /etc/ostree/auth.json
-python3 - <<'PY'
-import json, subprocess
-state = json.loads(subprocess.check_output(['bootc', 'status', '--json']))['status']
-assert not state.get('staged') and not state.get('rollbackQueued'), 'STOP: pending deployment before switch; see EMERGENCY.md / get help'
-PY
-bootc switch --retain ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb
+sudo /var/lib/ares/at switch
 ```
 
-**If the transaction prints an error, stop and don't reboot.** After success, run the inspection separately:
+Require PASS, the exact staged signed release, retained corrected pin and the
+new identity-resolved stock title. Save it as provisional; invalidate the old
+one. The shared `switch.sh` retains stock and refuses pending transactions.
+With all sticks absent:
 
 ```bash
-bootc status --json
+sudo /var/lib/ares/at reboot
 ```
 
-Read the output before continuing: require **`status.staged.image.image.image`** to equal the full release reference above and **`status.staged.image.imageDigest`** to equal its `sha256:9b19…f3eb` digest. The booted deployment must still have your recorded stock checksum; `status.rollbackQueued` must be false. Stop on missing/mismatched identity or pull, authentication, signature, disk-space or staging errors; do not try a mutable tag, change signature policy, remove the pinned stock deployment or alter partitions. CI uses this same transaction → identity inspection → reboot order.
+**F12 → Linux**, then let AresOS start. Windows remains the default. On tty3
+sign in as **ares-recovery** with German and run `sudo -i`; then run `check`
+and `title` as in §5. Require the final pair (AresOS + corrected pinned stock),
+no old serial, exact release, loaded German console map and no overrides in
+any retained boot entry. Save the refreshed stock title before any later reboot.
+Test physical typing and password sudo; §7 covers the daily foot terminal.
 
-**Before rebooting, invalidate the previous stock title and complete the
-[stock-title checkpoint](#refresh-the-recorded-stock-title-before-reboot)** in
-this `ares-recovery` root shell. Resolve the BLS target by the saved **checksum,
-serial and stateroot**, and record its current exact title as **provisional —
-switch staged**. The older unpinned stock serial may still exist; never choose
-by the duplicated checksum alone or count the staged JSON row as a GRUB row.
-Finalization can change the title during shutdown. **A failed first switch boot
-still means F12 → Windows and help, not using this provisional title.**
+### Change the AresOS layout later; recovery keeps the installer layout
 
-Only after those identity/title checks, run the following in the same
-`ares-recovery` root shell. At startup press **F12 → the recorded Linux entry**.
-Leave Windows Boot Manager first in firmware; pressing nothing starts Windows.
+**Backup Bazzite keeps the installer's layout (German here)**. Later changes
+apply only to AresOS; no mechanism writes the new layout into stock. A US-then-
+rollback run was not performed; source verification of per-deployment `/etc`
+is not a runtime result. Qualification returns AresOS to German before rollback.
+
+Keep the original **tty3 ares-recovery → sudo -i** administrator session OPEN.
+For the safe successful trial use US International so the unchanged umlaut
+password remains typeable (plain US is deliberately the failure/revert trial):
 
 ```bash
-systemctl reboot
+sudo /var/lib/ares/at layout begin us-intl
 ```
 
-After **F12 → Linux**, expect **labwc with foot**, automatically running as `ares`.
-In that terminal, `id -u` must print **1001**. CI verified labwc/foot, GID1001,
-the locked password and absence of wheel/sudo rights. **Super+Ctrl+Escape** opens
-another terminal as that same daily user, without administrator rights.
-Press **Ctrl+Alt+F3**, log in as **`ares-recovery`** using the current AresOS
-layout (initially the installer layout), and run **`sudo -v`** to test password
-administration. CI performed a QMP tty3 login and password sudo.
+Require PASS; **do not reboot**. Ctrl+Alt+F4 → fresh **ares-recovery password
+login** in US International. Type `sudo -k` to clear authentication, then:
 
-Run **`sudo -i`** and repeat the **stock-title checkpoint after finalization**.
-Require exactly AresOS plus the corrected pinned stock; the older unpinned stock
-serial must be absent. Re-resolve stock's BLS target by the saved full identity,
-then save its current exact title as **valid — final pair confirmed** before
-another reboot. In 13f it was **`Bazzite (ostree:1)`**, while AresOS was
-**`Bazzite (ostree:0)`**; both names say Bazzite. The actual identity-resolved
-result is authoritative. A missing/duplicate identity, unexpected pair or BLS
-disagreement stops the trial. Every later reorder invalidates this title again.
+```bash
+sudo -k; sudo /var/lib/ares/at layout proof
+```
 
-Still in this administrator root shell, `bootc status --json` must show the
-release digest under **`status.booted.image`**, the recorded stock deployment
-under **`status.rollback`**, and no unexpected pending update. CI verified these
-deployment identities and compared the attached Linux disk before switch,
-after switch and after rollback. That comparison covers one file-backed Linux
-disk; protection of a real Windows disk remains the two-disk/hardware gate.
+Supply the unchanged password to sudo, then physically type `yz-/!ü` as prompted
+(US International ü is AltGr+y). Require PASS. Exit that second login completely,
+return Ctrl+Alt+F3 to the original open root session, then:
 
-When finished, **exit any root shell** with `exit`, then run `sudo -k` as
-`ares-recovery` and log out with `exit`. Confirm tty3 shows the **login prompt**
-before **Ctrl+Alt+F1** returns to labwc. Do not unlock `ares` or add it to `wheel`.
-Physical keyboard and hardware TTY behavior remain laptop checks.
+```bash
+sudo /var/lib/ares/at layout finish
+```
 
-Continue with §7 only after those release gates permit the trial, then repeat
-record B in Windows.
+Require PASS and the refreshed title. If typing or login failed, return to that
+original tty3 session immediately instead and run:
 
-The daily account cannot execute or read inherited Homebrew in `/var/home/linuxbrew`, write its prefix, or find brew on its session/login PATH. Boot tmpfiles applies a deny ACL only to reserved UID 1001 on that parent; existing owner UID 1000, files and other ACL entries are preserved. Brew setup/update/upgrade services remain masked alongside the other inherited updaters. CI ran the unchanged full updater audit and verified the original owner could run `brew --version` and write the prefix in all three deployments; it requested no install/update.
+```bash
+sudo /var/lib/ares/at layout revert
+```
+
+Require restored settings; log out tty4 and prove a **fresh** password login,
+sudo and `layout proof` with the old layout, then original tty3 `layout finish`.
+Never reboot with an unfinished trial. For returning to German the same sequence
+starts with `sudo /var/lib/ares/at layout begin de`. Plain US's failure trial
+starts with `sudo /var/lib/ares/at layout begin us`: a failed second login must
+be reverted from the original session, never by changing the password.
+After a completed trial use `title` then `reboot` → **F12 → Linux**; sign in
+on tty3 using the new layout, run `check`, prove physical console/password sudo
+and foot typing. Return to German with the same second-console proof and reboot
+before the rollback trial. The VM does not automate live KDE/KWrite settings.
 
 ### Roll back to the retained stock deployment
 
-If AresOS is usable enough for tty3, press **Ctrl+Alt+F3**, sign in as
-**`ares-recovery`** with the **current AresOS layout**, wait for its shell prompt,
-run **`sudo -i`**, and inspect `bootc status --json` and `rpm-ostree status --json`.
-Require the rollback deployment to match the saved stock **checksum, serial and
-stateroot**, pin and Bazzite reference, with **`status.rollback.image.imageDigest`**
-equal to `sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151`.
-A `:stable` origin still rolls back to the retained local deployment; it does not
-fetch the tag again. **The backup uses the installer layout**, even if the
-current AresOS layout is US. Use that installer layout for the stock password
-after reboot. US-then-rollback was not runtime-tested; 13f restored de first.
-If already booted into stock, use the identity-checked default step below instead
-of blindly running `bootc rollback`, which could select AresOS. Otherwise run
-the rollback transaction alone in this `ares-recovery` root shell:
+On booted AresOS: **Ctrl+Alt+F3 → ares-recovery** with the current AresOS layout
+→ `sudo -i`, then:
 
 ```bash
-(
-set -euo pipefail
-bootc rollback
-)
+sudo /var/lib/ares/at rollback
+sudo /var/lib/ares/at title
 ```
 
-**If the transaction prints an error, stop and don't reboot.** After success, inspect separately:
+Require PASS rollback: exact saved stock checksum/serial/stateroot, origin,
+digest and pin, idle before queuing; then PASS title with rollback queued.
+Invalidate the old title and save the new one **before reboot**. Booted stock
+refuses rollback with a keep-stock direction and makes zero deployment changes.
 
 ```bash
-bootc status --json
+sudo /var/lib/ares/at reboot
 ```
 
-Read the output: require **`status.rollbackQueued: true`**, no staged deployment,
-and the same recorded stock identity/reference/digest under `status.rollback`.
-AresOS remains booted until restart, but **queuing rollback has already changed
-the deployment order and titles**. Mark the old title **INVALID**, repeat the
-[stock-title checkpoint](#refresh-the-recorded-stock-title-before-reboot), and
-record the newly resolved title by checksum **and serial** before rebooting.
-13f observed stock **`Bazzite (ostree:0)`** and AresOS **`Bazzite (ostree:1)`**
-at this queued checkpoint, not only after the boot. If identity/title checks
-fail, stop without rebooting; never keep the old `(ostree:1)` recovery title.
-
-Only then run this command in the same `ares-recovery` root shell. At startup,
-press **F12 → the recorded Linux entry**, leaving Windows first in firmware:
-
-```bash
-systemctl reboot
-```
-
-After **F12 → Linux**, require the stock greeter. Sign in as **`ares-recovery`
-using the installer layout**, open Konsole, run **`sudo -i`**, and repeat both
-status commands and the stock-title checkpoint. Require the saved stock
-checksum/serial/stateroot to be booted and pinned, with only corrected stock
-and AresOS remaining. The older unpinned stock serial must be absent. 13f
-verified this normal rollback and a rendered greeter after restoring German
-before the transaction; it did **not** run US-then-rollback.
-
-Normal rollback preserves the corrected stock serial/pin and restores its own
-`/etc`, including the installer keyboard layout; later AresOS layout changes do
-not follow it. Shared `/var` and home data are not rolled back or erased. The
-original owner still ran Homebrew 7.0.9 with the same brew script hash. The
-UID1001 deny ACL remains on `/var/home/linuxbrew` without restricting owner
-UID1000. To reverse it on stock if that UID later needs Homebrew, an administrator
-runs `sudo setfacl -x u:1001 /var/home/linuxbrew`; AresOS reapplies its rule on its
-next boot. Stock OS update timers stay paused for this trial; enable uupd.timer
-only after choosing stock for good and verifying its second default boot.
-This OS rollback does not replace a data backup.
-
-If a later AresOS boot cannot reach a TTY, use **F12 → the recorded Linux entry**
-to reach Bazzite's [GRUB previous-deployment recovery](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rolling_back_system_updates/).
-Use only the stock title resolved by the saved checksum/serial **after the most
-recent deployment reorder**, including any queued rollback, and before reboot.
-A title recorded only after the original switch is stale once rollback is
-queued. **If the first switch boot never succeeded, or the latest reorder has
-no refreshed record, use F12 → Windows and get help.** Both entries may say
-Bazzite; matching a familiar old title does not make it valid. If the menu is
-hidden, Bazzite documents **Esc once, then ↓**. Select only the currently valid,
-identity-resolved stock title; a changed or unclear state means stop. Do not infer
-from filenames or menu position. After selecting stock, sign in as
-**`ares-recovery` using the installer layout**, then follow the default step below.
-Selecting stock in GRUB recovers that boot only; it does not set the next Linux
-default. Windows remains the firmware default. Do not format, repair Windows
-boot files or delete deployments to recover.
+**F12 → Linux**, let stock start. At its rendered greeter sign in as
+**ares-recovery using the installer layout**, then tty3 → password login →
+`sudo -i` → `check` and `title`. Require the corrected pinned stock booted,
+AresOS retained, loaded German and the full refreshed record. Windows stays first.
 
 ### Keep recovered stock as the default
 
-**GRUB recovery promotion: VM PASSED in protected-second; physical gate OPEN.** [11n](../reviews/11-two-disk-rehearsal/REPORT.md#11n-safe-switch-test-prerequisites-and-continued-qualification-2026-10-24) selected the recorded stock from the real menu, verified its previous-index boot while AresOS stayed default, promoted it and verified another stock default boot. The report preserves a limitation in the selected-highlight screenshot. The revised §5 Windows-first timing passed in this one order; 11k's both-order Part A used the earlier timing. Physical menu/keyboard interaction remains unqualified and installation remains NOT RELEASED. Do not guess a position; prefer F12 → Windows and getting help.
-
-After **F12 → Linux → the currently valid, identity-resolved stock entry** in
-GRUB, **or if already booted into stock**, sign in as **`ares-recovery` using the
-installer layout**, open Konsole and run **`sudo -i`**. Confirm the saved stock
-checksum/serial/stateroot at the stock-title checkpoint before proceeding.
-Substitute your privately recorded stock checksum for
-`REPLACE_WITH_RECORDED_STOCK_CHECKSUM` below; do not copy one from CI. This
-unchanged transaction checks the booted stock reference/digest/checksum,
-resolves its current index, refuses a staged update, and makes that deployment
-first. An already-default stock deployment is handled safely. Windows remains
-the firmware default; this does not change the F12 menu's saved order:
+If GRUB recovery was needed, select only the fresh identity-resolved stock
+title, then **ares-recovery with the installer layout → tty3 → sudo -i**:
 
 ```bash
-(
-set -euo pipefail
-python3 - <<'PY'
-import json, re, subprocess
-expected = 'REPLACE_WITH_RECORDED_STOCK_CHECKSUM'
-assert re.fullmatch(r'[0-9a-f]{64}', expected), 'Supply the privately recorded stock checksum'
-status = json.loads(subprocess.check_output(['bootc', 'status', '--json']))['status']
-stock = status['booted']
-assert stock['ostree']['checksum'] == expected, stock
-assert stock['image']['imageDigest'] == 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151', stock
-assert stock['image']['image']['image'].startswith(('ghcr.io/ublue-os/bazzite-nvidia-open@sha256:', 'ghcr.io/ublue-os/bazzite-nvidia-open:')), stock
-deployments = json.loads(subprocess.check_output(['rpm-ostree', 'status', '--json']))['deployments']
-assert not any(d.get('staged') for d in deployments), deployments
-booted = [(i, d) for i, d in enumerate(deployments) if d.get('booted')]
-assert len(booted) == 1 and booted[0][1]['checksum'] == expected, deployments
-index, deployment = booted[0]
-subprocess.run(['ostree', 'admin', 'set-default', str(index)], check=True)
-after = json.loads(subprocess.check_output(['rpm-ostree', 'status', '--json']))['deployments']
-assert after[0]['booted'] and after[0]['checksum'] == expected, after
-print('Default is the identity-checked booted stock deployment:', expected)
-PY
-)
+sudo /var/lib/ares/at keep-stock
+sudo /var/lib/ares/at title
 ```
 
-**If the transaction prints an error, stop and don't reboot.** Inspect in a separate block:
+Require PASS, saved corrected stock identity and pin, no pending work, and
+stock first. Invalidate/record the title again. Then with all sticks absent:
 
 ```bash
-rpm-ostree status --json
-bootc status --json
+sudo /var/lib/ares/at reboot
 ```
 
-Read both outputs. Require the **first `deployments` entry** to be booted stock
-with the saved checksum/serial/stateroot, the expected stock digest under
-`status.booted.image.imageDigest`, no staged deployment and
-`status.rollbackQueued: false`. **Set-default may have reordered the pair:**
-invalidate the previous title, repeat the stock-title checkpoint, and record
-the newly resolved stock title **before rebooting**. Stop on any discrepancy.
+**F12 → Linux**, no GRUB selection: require stock again. Sign in as
+**ares-recovery with installer layout → tty3 → sudo -i → check and title**.
+Compare Windows record B again afterward. Leave updaters paused until the
+owner chooses stock permanently and its second default boot passes.
 
-In this same `ares-recovery` root shell, run the command below. At startup press
-**F12 → the recorded Linux entry**, then **make no GRUB selection**: the Linux
-default must now be stock. F12 selects Linux only for this boot; Windows remains
-the firmware default. Pressing nothing at power-on would test Windows, not stock:
-
-```bash
-systemctl reboot
-```
-
-Require the stock greeter again. Sign in as **`ares-recovery` using the installer
-layout**, open Konsole, run **`sudo -i`**, and repeat the two status commands and
-stock-title checkpoint. Require the recorded stock identity to remain booted
-and first. Stop if AresOS returns or the identity differs. Stock update timers
-stay paused during this trial. If you return to stock for good, use the
-re-enable command recorded before §5; a later stock update can intentionally
-change its checksum and invalidates this frozen recovery record.
-
-Semantics checked against the [bootc rollback manual](https://bootc.dev/bootc/man/bootc-rollback.8.html), [OSTree set-default manual](https://github.com/ostreedev/ostree/blob/main/man/ostree-admin-set-default.xml) and [implementation](https://github.com/ostreedev/ostree/blob/main/src/ostree/ot-admin-builtin-set-default.c): rollback queues the rollback slot; set-default persistently moves the selected deployment to the front and writes the deployment list. This is why a blind rollback after booting stock from GRUB is not this recipe.
-
-**If the owner later chooses public visibility:** no such change is made here. Public pulls can omit the token/login/auth-file steps; the digest, signature check, account rules, switch and rollback stay the same. Remove local registry credentials and revoke the private-pull token only after verifying anonymous access. Changing visibility exposes every published image layer and remains an owner decision. [Current GHCR authentication/visibility docs](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry), [free container-storage/bandwidth policy checked 2026-10-22](https://docs.github.com/en/billing/concepts/product-billing/github-packages).
+To leave an administrator console, exit root, run `sudo -k`, then `exit` and
+wait for the login prompt before Ctrl+Alt+F1. Keep full diagnostics privately;
+plug the tools stick in only after sign-in, use `export`, require SAFE TO REMOVE,
+unplug before every restart. A STOP never authorizes a wider write/repair.
 
 ## 7. First AresOS check: plain terminal, no Minecraft yet
 
@@ -925,7 +402,7 @@ suspend are unqualified. Using handoff controls, check RTX4060 (`nvidia-smi`),
 display/brightness, Wi-Fi after reboot, audible sound, the selected AresOS
 keyboard layout and touchpad. For a restart during these checks, press
 **Ctrl+Alt+F3 → sign in as `ares-recovery` using the current AresOS layout →
-`sudo systemctl reboot` → F12 → the recorded Linux entry**. Let AresOS start;
+`sudo /var/lib/ares/at reboot` → F12 → the recorded Linux entry**. Let AresOS start;
 Windows stays the firmware default. Test Super+Ctrl+Escape, authenticated tty3,
 return to session, safe shutdown and a second Linux boot selected with F12.
 This is the proposed P1a acceptance list, not released functionality.
@@ -936,18 +413,17 @@ terminal session, use **Ctrl+Alt+F3 → `ares-recovery`** with the current AresO
 layout. Log out using §6's supplied steps, return to the session, then verify a
 short physical power-button press reaches logind and cleanly powers off. Power
 on, press **F12 → the recorded Linux entry**, let AresOS start, then use
-**Ctrl+Alt+F3 → sign in as `ares-recovery` → `sudo -i`**. Inspect the previous
-persistent journal in that root shell:
+**Ctrl+Alt+F3 → sign in as `ares-recovery` → `sudo -i`**. Collect the previous
+persistent journal in that root shell (PASS means collected; inspect the saved logind and full journal for the actual button/shutdown evidence):
 
 ```bash
-journalctl -b -1 -u systemd-logind.service --no-pager
-journalctl -b -1 --no-pager
+sudo /var/lib/ares/at logs
 ```
 
 Retain both outputs, the image digest and pass/fail privately. Require the button
 record and orderly shutdown; merely seeing the laptop turn off is insufficient
 to establish the logind path. Repeat the fresh boot/session/recovery trial as
-`ares-recovery`: run `systemctl reboot` in that root shell, then **F12 → the
+`ares-recovery`: run `sudo /var/lib/ares/at reboot` in that root shell, then **F12 → the
 recorded Linux entry**, let AresOS start and sign in on tty3 as `ares-recovery`
 with its current layout. Keep Windows first in firmware. Missing records or an
 unreadable journal leave this hardware gate unmet. CI may label its offline
@@ -963,12 +439,12 @@ Boot Windows directly with USB absent and present (select Windows explicitly), c
 ## 8. Choose the OS at startup
 
 **F12 chooses once**: Windows Boot Manager or the recorded Linux entry (possibly
-still called Fedora/Bazzite). After §5, **Windows Boot Manager stays first** for
+still called Fedora/Bazzite). After §4's round trip, **Windows Boot Manager stays first** for
 every step of this trial. If that order needs restoring, after §1's encryption
 check use **F2 → More Settings → Boot → UEFI → Windows Boot Manager first →
 Save and Exit**, then verify a no-key/no-USB restart starts Windows. Do not make
 Linux first to avoid F12. The initial installer/hardware-setup Linux-default
-phase in §4 ends at §5. Preserve Windows Boot Manager. [L3]
+phase ends before §4's Windows/tools round trip. Preserve Windows Boot Manager. [L3]
 
 If an update changes the order, use F12 for AresOS, then restore Windows Boot Manager first as above. The laptop may drop automatic F12 entries for unplugged devices, such as the installer USB; that is normal. Missing Windows Boot Manager or the Linux entry while its SSD is attached, unfamiliar screens, changed Secure Boot or Windows recovery prompts mean stop with the record. Do not reset firmware defaults, clear TPM, delete entries or run Windows boot repair commands.
 
@@ -984,6 +460,11 @@ If an update changes the order, use F12 for AresOS, then restore Windows Boot Ma
 Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay until reviewed cleanup. If Windows does not boot independently or any identity check fails, remove/erase nothing.
 
 ## Maintainer release gate
+
+- **OPEN — package 14 physical gates:** Fedora Media Writer 5.3.2 restore German click path, reviewed bundle copy/eject, novice offline round trip, root-only shared tools across stock/AresOS, and tools-stick hotplug/export/unplug. A forgotten data-only stick at power-on is physically untested; it is never an accepted firmware-audit exception.
+- **OPEN — NVIDIA deferred runtime (14b):** after first network, confirm the enabled sync finishes for the real GPU and the entire deployment/pin/pending/BLS state stays unchanged. Virtio graphics cannot exercise its NVIDIA condition. Never mask or delay it.
+- **Package 14 automated owner-tools qualification:** pending; see [REPORT](../reviews/14-owner-tools/REPORT.md). No image rebuilt or published. Installation stays NOT RELEASED.
+
 
 - **OPEN — 14b NVIDIA Flatpak sync on the real GPU:** after the qualified
   first-login preparation and then network connection, confirm the stock sync
