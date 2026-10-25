@@ -9,10 +9,11 @@
   "13": {
     "branch": "pkg/13-keyboard-layout",
     "start": "first-dispatch",
-    "minute_cap": 380,
+    "minute_cap": 460,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"release-13": 3, "checks": 1, "probe": 3, "keyboard": 2},
+    "dispatch_caps": {"release-13": 3, "checks": 1, "probe": 4, "keyboard": 3},
+    "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 150},
     "publish_cap": 1,
     "titles": {
       "release-13": "Package 13 image release",

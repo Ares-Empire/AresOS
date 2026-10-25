@@ -32,7 +32,7 @@ class KeyboardReleaseTest(unittest.TestCase):
     def test_package13_starts_at_dispatch_counts_privacy_and_rejects_overrun(self):
         guard.configure('13')
         self.addCleanup(guard.configure, '11c')
-        self.assertEqual((guard.MINUTE_CAP, guard.FULL_CAP), (380, 0))
+        self.assertEqual((guard.MINUTE_CAP, guard.FULL_CAP), (460, 0))
         base = dict(head_sha='a'*40, status='completed', conclusion='success', run_attempt=1)
         runs = [dict(base, id=1, event='push', display_title='privacy', created_at='2026-10-25T00:00:00Z'),
                 dict(base, id=2, event='workflow_dispatch', display_title='Package 13 image release', created_at='2026-10-25T01:00:00Z'),
@@ -41,11 +41,11 @@ class KeyboardReleaseTest(unittest.TestCase):
         def api(path):
             return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
         with patch.object(guard, 'api', side_effect=api):
-            result = guard.budget(376)
+            result = guard.budget(456)
             self.assertEqual(result['consumed_minutes'], 4)
             self.assertEqual(result['dispatch_counts']['release-13'], 1)
-            with self.assertRaisesRegex(AssertionError, 'exceeds 380'):
-                guard.budget(377)
+            with self.assertRaisesRegex(AssertionError, 'exceeds 460'):
+                guard.budget(457)
             runs.append(dict(runs[1], id=4))
             self.assertEqual(guard.budget(0)['dispatch_counts']['release-13'], 2)
             runs.append(dict(runs[1], id=5))

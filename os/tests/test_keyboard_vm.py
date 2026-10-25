@@ -52,7 +52,7 @@ class KeyboardVMTest(unittest.TestCase):
         self.assertEqual(physical_keys('y','de'),['z'])
         self.assertEqual(physical_keys('/','de'),['shift','7'])
         self.assertEqual(physical_keys('!','de'),['shift','1'])
-        for char in ('Ä', '"', ';'):
+        for char in ('Ä', '"', '@', '`', 'A', '', 'abc', '\x00'):
             with self.assertRaises(AssertionError): physical_keys(char,'de')
 
     def test_diagnostic_exports_only_allowlisted_localization_get_reply_pairs(self):

@@ -50,12 +50,15 @@ print(json.dumps(entries))
 
 def physical_keys(char, layout):
     assert layout in ('de', 'us')
-    special = {' ': ['spc'], '\n': ['ret'], '!': ['shift', '1']}
+    # QEMU 8.2.2 physical positions; xkeyboard-config 2.47 / kbd 2.9.0.
+    # Source rows and the complete typed-string walk are retained under 13f.
+    special = {' ': ['spc'], '\n': ['ret'], '!': ['shift', '1'], '.': ['dot']}
     if layout == 'de':
-        special.update({'y': ['z'], 'z': ['y'], '-': ['slash'], '/': ['shift', '7']})
+        special.update({'y': ['z'], 'z': ['y'], '-': ['slash'], '/': ['shift', '7'],
+                        ';': ['shift', 'comma'], "'": ['shift', 'backslash']})
     else:
-        special.update({'-': ['minus'], '/': ['slash']})
-    assert char.isascii() and (char.islower() or char.isdigit() or char in special), char
+        special.update({'-': ['minus'], '/': ['slash'], ';': ['semicolon'], "'": ['apostrophe']})
+    assert len(char) == 1 and char.isascii() and (char.islower() or char.isdigit() or char in special), char
     return special.get(char, [char])
 
 

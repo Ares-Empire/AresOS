@@ -124,6 +124,52 @@ def job_minutes(job):
     return max(1, math.ceil((end - start).total_seconds() / 60))
 
 
+def organization_budget(reserve, now=None):
+    """Scheduling-only GET with the owner's existing login; no billing token in CI."""
+    assert type(reserve) is int and reserve >= 0, 'STOP: invalid organization reservation'
+    settings = SETTINGS['organization_budget']
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    path = ('organizations/' + settings['organization'] + '/settings/billing/usage/summary'
+            + f'?year={now.year}&month={now.month}')
+    raw = read_only(path)
+    response = json.loads(raw)
+    assert isinstance(response, dict) and set(response) == {'timePeriod', 'organization', 'usageItems'}, 'STOP: malformed billing summary'
+    assert response['organization'] == settings['organization'], 'STOP: wrong billing organization'
+    assert response['timePeriod'] == dict(year=now.year, month=now.month), 'STOP: stale billing period'
+    rows = response['usageItems']
+    assert isinstance(rows, list) and rows, 'STOP: missing billing usage'
+    used, seen, actions = 0, set(), []
+    for row in rows:
+        assert isinstance(row, dict) and isinstance(row.get('product'), str), 'STOP: malformed billing row'
+        if row['product'] != 'Actions':
+            continue
+        sku, unit = row.get('sku'), row.get('unitType')
+        assert isinstance(sku, str) and sku not in seen, 'STOP: duplicate or missing billing SKU'
+        seen.add(sku)
+        values = {}
+        for field in ('grossQuantity', 'discountQuantity', 'netQuantity', 'grossAmount', 'discountAmount', 'netAmount'):
+            value = row.get(field)
+            assert type(value) in (int, float) and math.isfinite(value) and value >= 0, 'STOP: invalid billing quantity/amount'
+            values[field] = value
+        assert values['netQuantity'] == values['netAmount'] == 0, 'STOP: Actions usage outside the free allowance'
+        # The current org uses standard Linux runners only. Unknown SKUs fail
+        # closed instead of guessing free-quota eligibility or multipliers.
+        assert (sku, unit) in (('actions_linux', 'minutes'), ('actions_storage', 'gigabyte-hours')), 'STOP: unsupported Actions billing SKU/unit'
+        if unit == 'minutes':
+            # Credits/refresh timing can make discountQuantity slightly higher.
+            used += math.ceil(max(values['grossQuantity'], values['discountQuantity']))
+        actions.append(dict(sku=sku, unit=unit, **values))
+    assert 'actions_linux' in seen, 'STOP: missing Actions minute usage'
+    remaining = settings['included_minutes'] - used
+    spare = remaining - reserve
+    assert spare >= settings['other_repos_reserve'], f'STOP: organization has {remaining} free minutes; {reserve} reserved must leave {settings["other_repos_reserve"]}'
+    return dict(status='passed', source=path, checked_at=now.isoformat(),
+                response_sha256=hashlib.sha256(raw).hexdigest(), usage=actions,
+                used_minutes=used, included_minutes=settings['included_minutes'],
+                remaining_minutes=remaining, reserved_minutes=reserve, after_reservation=spare,
+                other_repos_reserve=settings['other_repos_reserve'], credential='existing local gh login; GET only')
+
+
 def budget(reserve, current=None):
     # Push/PR privacy checks consume the same account minutes as VM dispatches.
     listing = api(RUN_HISTORY_PATH)
@@ -299,6 +345,8 @@ def main():
         assert cleanup['status'] == 'passed' and cleanup['removed'] and cleanup['outside_workspace']
         result['probe_run'] = probe_id
         result['probe'] = proof
+    if PACKAGE == '13' and not ci:
+        result['organization_budget'] = organization_budget(reserve)
     result['read_retries'] = list(READ_RETRIES)
     directory = pathlib.Path('evidence' if ci else '.work/' + PACKAGE)
     directory.mkdir(parents=True, exist_ok=True)
