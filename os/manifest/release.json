@@ -1,16 +1,82 @@
 {
-  "reference": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
-  "tag": "06-5578ab21b880091f26bfdc2eda22dd4f304a602b",
-  "source_commit": "5578ab21b880091f26bfdc2eda22dd4f304a602b",
+  "reference": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+  "tag": "13-2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+  "source_commit": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
   "base": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
   "visibility": "private",
   "signature": {
     "method": "cosign keyless",
-    "identity": "https://github.com/carlsenares/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/06-image-release",
+    "identity": "https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/13-keyboard-layout",
     "issuer": "https://token.actions.githubusercontent.com"
   },
-  "run": "https://github.com/carlsenares/AresOS/actions/runs/39818554327",
-  "switch_qualification": "passed",
-  "switch_qualification_run": "https://github.com/carlsenares/AresOS/actions/runs/39851266266",
-  "switch_qualification_source": "613b826777836d59f15be96547654d725e1984de"
+  "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40154642447",
+  "image_diff": {
+    "status": "passed",
+    "previous": "ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402",
+    "pinned_base": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+    "package_count": 2801,
+    "packages_equal": true,
+    "units_equal": true,
+    "compared_files": [
+      690388,
+      690389
+    ],
+    "files": {
+      "usr/bin/aresos-session": {
+        "before": {
+          "mode": 493,
+          "uid": 0,
+          "gid": 0,
+          "kind": 32768,
+          "xattrs": {},
+          "sha256": "0644b36a2bee814a53d3e39a57a1247f69eb1ef26a1d781a652dc3bdd7027fc8",
+          "bytes": 229
+        },
+        "after": {
+          "mode": 493,
+          "uid": 0,
+          "gid": 0,
+          "kind": 32768,
+          "xattrs": {},
+          "sha256": "b1c340fb3bca42b8b8ff5a3fac524a64df7aeaf4bd6a8162bf3092a9c2f9d2ce",
+          "bytes": 258
+        }
+      },
+      "usr/libexec/aresos-keyboard": {
+        "before": null,
+        "after": {
+          "mode": 493,
+          "uid": 0,
+          "gid": 0,
+          "kind": 32768,
+          "xattrs": {},
+          "sha256": "c12e826bbc663f45677011c94f6e1014a04989cb9b4118071ed558d39014f1bd",
+          "bytes": 1618
+        }
+      }
+    },
+    "labels": {
+      "org.opencontainers.image.source": {
+        "before": "https://github.com/carlsenares/AresOS",
+        "after": "https://github.com/Ares-Empire/AresOS"
+      },
+      "org.opencontainers.image.revision": {
+        "before": "5578ab21b880091f26bfdc2eda22dd4f304a602b",
+        "after": "2abc12e8aa6089f7576143d1fbccb6648a3291bd"
+      }
+    },
+    "metadata_note": "New OCI creation/history and layer digests describe this build; file mtimes/inodes are storage metadata, excluded from the semantic inventory.",
+    "base_ancestry_verified": true,
+    "previous_layer_prefix_preserved": true
+  },
+  "job_token_read": {
+    "status": "passed",
+    "reference": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+    "secret": "GITHUB_TOKEN",
+    "owner_token_used": false,
+    "visibility": "private",
+    "manifest_read": true
+  },
+  "keyboard_qualification": "pending",
+  "owner_review": "required-before-merge"
 }

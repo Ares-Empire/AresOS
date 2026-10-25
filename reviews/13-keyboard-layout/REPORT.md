@@ -494,3 +494,89 @@ No unexplained difference is authorized by the added attempt allowance.
 PLAN-GAP established. No mod/Gradle/Minecraft or local privileged operations.
 
 13c complete local suite before source push: **216 tests in 143.422s; 2 failures/9 errors, exactly the same eight host-limited cases recorded in 13b; all other cases passed**. Native CI must pass all 216, including the new stripped-PATH and publish-boundary tests. After adding the explicit skipped-image-job case to that boundary test, its five-test module passed again; the complete final rerun is running before dispatch.
+
+
+### 13c image attempt 2 — passed, private publication used once
+
+[Run 40154642447](https://github.com/Ares-Empire/AresOS/actions/runs/40154642447)
+at `2abc12e8aa6089f7576143d1fbccb6648a3291bd` passed. The image job ran
+02:29:39–03:34:20 UTC: **64m41s, rounded to 65 minutes**. This is the first
+successful publication, second image dispatch overall. The final unused image
+attempt may not publish again; the guard now rejects any new image dispatch.
+
+Native suite: **216 tests in 5.183s, OK**, including stripped-PATH regressions;
+no skips. Final local pre-dispatch rerun: **216 tests / 127.642s**, only the same
+eight host limitations. Source push/PR privacy checks 40154503307/40154507842
+passed all three rules; personal terms were not skipped. Their rounded cost was
+2 + 1 minutes, already in the 15-minute ledger before this run.
+
+Resolved host tools: `/usr/bin/bash`, `/usr/bin/python3.12`, `/usr/bin/sudo`,
+`/home/runner/.cosign/cosign`, `/usr/bin/podman`, `/usr/bin/skopeo`. Old private
+signature verification, exact pull and strict diff all passed. Root-only old
+credentials were always removed before upload; the cosign symlink was removed.
+No credential scope/permissions were widened.
+
+**Image diff:** 2,801 actual package entries equal, lock equal; 690,388 old paths
+and 690,389 new paths compared, including modes, UID/GID, types and xattrs.
+Only `usr/bin/aresos-session` (229→258 bytes) and the added
+`usr/libexec/aresos-keyboard` (1,618 bytes) differ. Both are root:root 0755.
+All systemd units and OCI runtime configuration are equal; exact pinned base
+ancestry and the old layer prefix are preserved. The only changed labels are
+source URL (personal repo→org) and source revision (original 5578ab2→2abc12e).
+Buildah version did not change. Creation/history/layer identities describe the
+new build, as declared in the accepted construction plan. No unexplained
+semantic difference was found. Full compressed path inventories are in the ZIP.
+
+**New release:**
+`ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb`,
+immutable tag `13-2abc12e8aa6089f7576143d1fbccb6648a3291bd`, **PRIVATE**.
+Keyless signature subject:
+`https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/13-keyboard-layout`;
+issuer `https://token.actions.githubusercontent.com`. Retained cosign payload
+matches that exact digest, subject and issuer. Job-token authenticated manifest
+read and private metadata checks passed; owner token was not used to publish or
+read the new manifest. The old release is preserved in `releases/06.json`; the
+new current manifest and owner guide reference this digest. Secret removal is
+left to the owner. Rehearsal job-token layer reads remain to be proved.
+
+**Both image VM passes passed:** locked daily account/session, 1,084-unit updater
+audit, recovery getty/PAM correct and wrong password cases, terminal shortcut,
+lid/sleep policy and offline poweroff journal ordering. Both offline checks say
+`status:passed`; no hardware-only exception was needed. The CI-only overlay
+sets ordinary US console/X11 settings; release isolation passed. The second
+labwc screenshot was visually inspected: rendered AresOS foot terminal/prompt.
+These do not substitute for the upcoming installed sensitive-password typing
+and inherited-Homebrew/rollback qualification.
+
+**Evidence:** [receipts](../../os/manifest/ci/13/release-2/),
+[complete log](logs/release-2.txt),
+[original ZIP](artifacts/13c-release-2-os-image-evidence.zip), 60,406,461 bytes,
+SHA-256 `c2b95dea3db16c092e45fbb765b5ae28d7c13ae26b96994b63d2d7027aa87d0b`
+(GitHub artifact 12585308939). Raw log ZIP SHA-256
+`c28f0b71b7e0c44bfb55958b69646d065939d9453302bad36bcd4373d3760ee6`.
+Peak runner usage 72,349,507,584 bytes; minimum free 4,520,869,888; release
+uncompressed size 13,428,543,841 bytes. All evidence bounds passed.
+
+### Final-head preparation before native/probe dispatch
+
+The rehearsal checkout now fetches complete history so the frozen-release
+verifier can prove source ancestry; a depth-one HEAD is an explicit ancestry
+boundary even when a separately fetched source object exists. The image payload
+remains frozen at 2abc12e. The accessibility selector now ignores same-named
+static text when choosing actionable KDE controls; the editor fixture creates
+an empty destination file and waits boundedly for Ctrl-S to finish. Expected
+physical text is unchanged and still supplied only through QMP. No installer
+source or choice is changed. Whole local suite must pass except the documented
+host limits before dispatch; all tests are mandatory in native CI.
+
+Budget after publication: **80 / 380 minutes**, 2/3 image dispatches, 1/1 publish,
+0/1 checks-only native, 0/1 probe, 0/2 qualifications. Fresh guard reserves the
+remaining 15 + 42 + 130 + 16 = **203**, total **283 ≤ 380**, before final source
+privacy. The next source push adds its actual privacy job rounding. Continue
+the previously committed walk-through unchanged: native on final head → fresh
+probe → protected-second qualification on the exact same head. No image rebuild
+or publication. All diagnostic/typing/layout-change/rollback acceptance is still
+pending, and PR #12 stays draft. Construction still needs owner review before
+merge. No new PLAN-GAP; physical installation stays NOT RELEASED.
+
+Final-head local suite: **217 tests / 148.291s**, exactly the same eight documented host-limited cases (2 failures / 9 errors); all others passed. Complete Bash/Python syntax and diff checks passed. The new frozen org-release verifier ran locally against run 40154642447 and passed source/run/signature metadata plus unchanged-runtime checks; git diff of every frozen runtime path against 2abc12e was empty. Image pass 1 tty3 screenshot was also visually checked: rendered getty prompt on tty3. Artifact text was checked for unmasked GitHub token forms, SHA-512 password hashes and private-key headers; none found.
