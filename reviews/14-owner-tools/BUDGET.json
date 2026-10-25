@@ -124,6 +124,14 @@
           "path": ".github/workflows/privacy-check.yml"
         }
       ]
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "afaa9e65dc20404097bc1c37c3afb38484f04c67",
+      "checked_at": "2026-10-25T21:56:32.400263+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ]
 }
