@@ -1,0 +1,405 @@
+{
+  "diagnostic_only": true,
+  "installer_unmodified": true,
+  "service": "org.fedoraproject.Anaconda.Modules.Localization",
+  "message_count": 976,
+  "values": [
+    {
+      "property": "Language",
+      "client": ":1.24",
+      "request_cookie": 6,
+      "request_realtime": 1792911603879473,
+      "reply_realtime": 1792911603888279,
+      "value": [
+        {
+          "type": "s",
+          "data": "en_US.UTF-8"
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.24",
+      "request_cookie": 360,
+      "request_realtime": 1792911604764495,
+      "reply_realtime": 1792911604767830,
+      "value": [
+        {
+          "type": "as",
+          "data": []
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.24",
+      "request_cookie": 373,
+      "request_realtime": 1792911605663229,
+      "reply_realtime": 1792911605663830,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "us"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.24",
+      "request_cookie": 374,
+      "request_realtime": 1792911605663254,
+      "reply_realtime": 1792911605664752,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "us"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.24",
+      "request_cookie": 387,
+      "request_realtime": 1792911605731114,
+      "reply_realtime": 1792911605732265,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "us"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.24",
+      "request_cookie": 408,
+      "request_realtime": 1792911606908615,
+      "reply_realtime": 1792911606910720,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.24",
+      "request_cookie": 409,
+      "request_realtime": 1792911606909173,
+      "reply_realtime": 1792911606912075,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.24",
+      "request_cookie": 422,
+      "request_realtime": 1792911607015221,
+      "reply_realtime": 1792911607106297,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.28",
+      "request_cookie": 2,
+      "request_realtime": 1792911607281519,
+      "reply_realtime": 1792911607281918,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.29",
+      "request_cookie": 2,
+      "request_realtime": 1792911608288372,
+      "reply_realtime": 1792911608289298,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.30",
+      "request_cookie": 2,
+      "request_realtime": 1792911609296862,
+      "reply_realtime": 1792911609296896,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.31",
+      "request_cookie": 2,
+      "request_realtime": 1792911610304109,
+      "reply_realtime": 1792911610304149,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.32",
+      "request_cookie": 2,
+      "request_realtime": 1792911611309639,
+      "reply_realtime": 1792911611309720,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.33",
+      "request_cookie": 2,
+      "request_realtime": 1792911612086719,
+      "reply_realtime": 1792911612091603,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "VirtualConsoleKeymap",
+      "client": ":1.34",
+      "request_cookie": 2,
+      "request_realtime": 1792911612094826,
+      "reply_realtime": 1792911612096088,
+      "value": [
+        {
+          "type": "s",
+          "data": ""
+        }
+      ]
+    },
+    {
+      "property": "LayoutSwitchOptions",
+      "client": ":1.35",
+      "request_cookie": 2,
+      "request_realtime": 1792911612100658,
+      "reply_realtime": 1792911612100697,
+      "value": [
+        {
+          "type": "as",
+          "data": []
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.36",
+      "request_cookie": 2,
+      "request_realtime": 1792911613141131,
+      "reply_realtime": 1792911613141955,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "VirtualConsoleKeymap",
+      "client": ":1.37",
+      "request_cookie": 2,
+      "request_realtime": 1792911613147284,
+      "reply_realtime": 1792911613148354,
+      "value": [
+        {
+          "type": "s",
+          "data": ""
+        }
+      ]
+    },
+    {
+      "property": "LayoutSwitchOptions",
+      "client": ":1.38",
+      "request_cookie": 2,
+      "request_realtime": 1792911613152969,
+      "reply_realtime": 1792911613153168,
+      "value": [
+        {
+          "type": "as",
+          "data": []
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.39",
+      "request_cookie": 2,
+      "request_realtime": 1792911618517147,
+      "reply_realtime": 1792911618521392,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "VirtualConsoleKeymap",
+      "client": ":1.40",
+      "request_cookie": 2,
+      "request_realtime": 1792911618526144,
+      "reply_realtime": 1792911618527812,
+      "value": [
+        {
+          "type": "s",
+          "data": ""
+        }
+      ]
+    },
+    {
+      "property": "LayoutSwitchOptions",
+      "client": ":1.41",
+      "request_cookie": 2,
+      "request_realtime": 1792911618533150,
+      "reply_realtime": 1792911618533551,
+      "value": [
+        {
+          "type": "as",
+          "data": []
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.42",
+      "request_cookie": 2,
+      "request_realtime": 1792911619566320,
+      "reply_realtime": 1792911619566800,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "VirtualConsoleKeymap",
+      "client": ":1.43",
+      "request_cookie": 2,
+      "request_realtime": 1792911619571269,
+      "reply_realtime": 1792911619572224,
+      "value": [
+        {
+          "type": "s",
+          "data": ""
+        }
+      ]
+    },
+    {
+      "property": "LayoutSwitchOptions",
+      "client": ":1.44",
+      "request_cookie": 2,
+      "request_realtime": 1792911619575775,
+      "reply_realtime": 1792911619576785,
+      "value": [
+        {
+          "type": "as",
+          "data": []
+        }
+      ]
+    },
+    {
+      "property": "XLayouts",
+      "client": ":1.46",
+      "request_cookie": 2,
+      "request_realtime": 1792911619943942,
+      "reply_realtime": 1792911619944152,
+      "value": [
+        {
+          "type": "as",
+          "data": [
+            "de"
+          ]
+        }
+      ]
+    },
+    {
+      "property": "VirtualConsoleKeymap",
+      "client": ":1.47",
+      "request_cookie": 2,
+      "request_realtime": 1792911619949464,
+      "reply_realtime": 1792911619949629,
+      "value": [
+        {
+          "type": "s",
+          "data": ""
+        }
+      ]
+    },
+    {
+      "property": "VirtualConsoleKeymap",
+      "client": ":1.7",
+      "request_cookie": 6692,
+      "request_realtime": 1792912310789333,
+      "reply_realtime": 1792912310802697,
+      "value": [
+        {
+          "type": "s",
+          "data": "de"
+        }
+      ]
+    }
+  ],
+  "note": "Chronological Get/reply pairs with client/cookie; final VirtualConsoleKeymap read is the candidate pinned _set_kargs boundary. Interpret against retained source; cause is not an acceptance gate."
+}

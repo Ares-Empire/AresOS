@@ -4,4 +4,4 @@ export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=AresOS
 export XDG_SESSION_DESKTOP=aresos
 . /etc/profile.d/aresos.sh
-exec dbus-run-session -- labwc --config-dir /usr/share/aresos/labwc
+exec /usr/libexec/aresos-keyboard dbus-run-session -- labwc --config-dir /usr/share/aresos/labwc

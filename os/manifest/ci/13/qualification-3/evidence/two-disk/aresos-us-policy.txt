@@ -1,0 +1,480 @@
+[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
++ test -d /sys/firmware/efi
++ systemctl is-active --quiet greetd.service
+++ systemctl get-default
++ test graphical.target = graphical.target
++ pgrep -u ares -x labwc
+1358
++ pgrep -u ares -x foot
+1400
+++ id -u ares
++ test 1001 = 1001
+++ id -g ares
++ test 1001 = 1001
++ python3 -
+ARESOS_DAILY_ACCOUNT_LOCKED
++ id -nG ares
++ grep -qw wheel
+++ LC_ALL=C
+++ sudo -l -U ares
++ sudo_policy='User ares is not allowed to run sudo on bazzite.'
++ printf '%s\n' 'User ares is not allowed to run sudo on bazzite.'
+User ares is not allowed to run sudo on bazzite.
++ grep -Eq '^User ares is not allowed to run sudo on .+\.$'
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v uupd
++ path=/usr/sbin/uupd
++ [[ -z /usr/sbin/uupd ]]
++ runuser -u ares -- test '!' -x /usr/sbin/uupd
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v ujust
++ path=/usr/sbin/ujust
++ [[ -z /usr/sbin/ujust ]]
++ runuser -u ares -- test '!' -x /usr/sbin/ujust
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v topgrade
+++ true
++ path=
++ [[ -z '' ]]
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v bazzite-updater
++ path=/usr/sbin/bazzite-updater
++ [[ -z /usr/sbin/bazzite-updater ]]
++ runuser -u ares -- test '!' -x /usr/sbin/bazzite-updater
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v bazzite-portal
+++ true
++ path=
++ [[ -z '' ]]
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v bazaar
++ path=/usr/sbin/bazaar
++ [[ -z /usr/sbin/bazaar ]]
++ runuser -u ares -- test '!' -x /usr/sbin/bazaar
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v plasma-discover
+++ true
++ path=
++ [[ -z '' ]]
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v gnome-software
+++ true
++ path=
++ [[ -z '' ]]
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v flatpak
++ path=/usr/sbin/flatpak
++ [[ -z /usr/sbin/flatpak ]]
++ runuser -u ares -- test '!' -x /usr/sbin/flatpak
++ for executable in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software flatpak brew
+++ command -v brew
++ path=/home/linuxbrew/.linuxbrew/bin/brew
++ [[ -z /home/linuxbrew/.linuxbrew/bin/brew ]]
++ runuser -u ares -- test '!' -x /home/linuxbrew/.linuxbrew/bin/brew
++ for unit in sddm gdm lightdm
++ systemctl is-active --quiet sddm.service
++ for unit in sddm gdm lightdm
++ systemctl is-active --quiet gdm.service
++ for unit in sddm gdm lightdm
++ systemctl is-active --quiet lightdm.service
++ pgrep -x 'kwin_wayland|plasmashell|gnome-shell|powerdevil|gsd-power'
++ read -r unit
+++ systemctl is-enabled uupd.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled uupd.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled uupd-manual.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled rpm-ostreed-automatic.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled rpm-ostreed-automatic.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled bootc-fetch-apply-updates.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled bootc-fetch-apply-updates.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled bootc-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled bootc-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled dnf-automatic.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled dnf-automatic.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled dnf5-automatic.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled dnf5-automatic.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled packagekit.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled packagekit-offline-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled fwupd-refresh.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled fwupd-refresh.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled flatpak-system-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled flatpak-system-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled bazzite-flatpak-manager.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled ublue-nvidia-flatpak-runtime-sync.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled ublue-nvidia-flatpak-runtime-verify.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled flatpak-add-fedora-repos.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled brew-setup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled bazzite-hardware-setup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled bootloader-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-sysupdate.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-sysupdate.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-sysupdate-reboot.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-sysupdate-reboot.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-sysupdated.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled dbus-org.freedesktop.sysupdate1.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled podman-auto-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled podman-auto-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled qemu-guest-agent.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled acpid.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled sddm.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled gdm.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled lightdm.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled bazzite-autologin.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled sleep.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled suspend.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled hibernate.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled hybrid-sleep.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled suspend-then-hibernate.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-suspend.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-hibernate.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-hybrid-sleep.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-suspend-then-hibernate.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled bootc-finalize-staged.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled ostree-finalize-staged.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled brew-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled brew-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled brew-upgrade.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled brew-upgrade.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled dnf-makecache.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled dnf5-offline-transaction.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled dnf5-offline-transaction-cleanup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled flatpak-system-helper.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled fwupd.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled foomaticrip-upgrade.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled mariadb.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled mariadb@.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled system-update.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled system-update-pre.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled system-update-cleanup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled systemd-boot-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl is-enabled cockpit-container.service
+++ true
++ test masked = masked
++ read -r unit
++ read -r unit
+++ systemctl --global is-enabled bazzite-user-setup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled bazzite-dynamic-fixes.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled flatpak-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled flatpak-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled brew-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled brew-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled uupd.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled uupd.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled plasma-powerdevil.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled org.gnome.SettingsDaemon.Power.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled brew-upgrade.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled brew-upgrade.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled flatpak-oci-authenticator.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled flatpak-portal.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled flatpak-session-helper.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled podman-auto-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --global is-enabled podman-auto-update.timer
+++ true
++ test masked = masked
++ read -r unit
++ python3 /usr/libexec/aresos-audit --live --output /run/aresos-updaters.json
+Updater audit passed: 1200 system/user units inspected
++ for target in sleep suspend hibernate hybrid-sleep suspend-then-hibernate
++ systemctl start sleep.target
+[0;1;31mFailed to start sleep.target: Unit sleep.target is masked.[0m
+
++ for target in sleep suspend hibernate hybrid-sleep suspend-then-hibernate
++ systemctl start suspend.target
+[0;1;31mFailed to start suspend.target: Unit suspend.target is masked.[0m
+
++ for target in sleep suspend hibernate hybrid-sleep suspend-then-hibernate
++ systemctl start hibernate.target
+[0;1;31mFailed to start hibernate.target: Unit hibernate.target is masked.[0m
+
++ for target in sleep suspend hibernate hybrid-sleep suspend-then-hibernate
++ systemctl start hybrid-sleep.target
+[0;1;31mFailed to start hybrid-sleep.target: Unit hybrid-sleep.target is masked.[0m
+
++ for target in sleep suspend hibernate hybrid-sleep suspend-then-hibernate
++ systemctl start suspend-then-hibernate.target
+[0;1;31mFailed to start suspend-then-hibernate.target: Unit suspend-then-hibernate.target is masked.[0m
+
+++ busctl call org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager CanSuspend
++ test 's "no"' = 's "no"'
++ grep -qx AutomaticUpdatePolicy=none /etc/rpm-ostreed.conf
++ grep -F '"Ignore"'
++ busctl call org.freedesktop.UPower /org/freedesktop/UPower org.freedesktop.UPower GetCriticalAction
+s "Ignore"
++ bootc status --json
+⠁ Waiting for sysroot lock...
+[2K⠁ Waiting for sysroot lock...
+[2K+ python3 -
+Deployment backend: bootc (OSTree storage)
++ loginctl list-sessions
+
+[4mSESSION[0m[4m [0m[4m UID[0m[4m [0m[4mUSER         [0m[4m [0m[4mSEAT [0m[4m [0m[4mLEADER[0m[4m [0m[4mCLASS  [0m[4m [0m[4mTTY  [0m[4m [0m[4mIDLE[0m[4m [0m[4mSINCE[0m[m
+      1 1001 ares          seat0 1154   user    tty1  no   [0;38:5:245m-    [0m[m
+      2 1001 ares          [0;38:5:245m-    [0m 1187   manager [0;38:5:245m-    [0m no   [0;38:5:245m-    [0m[m
+      3 1000 ares-recovery [0;38:5:245m-    [0m 1146   user    ttyS0 no   [0;38:5:245m-    [0m[m
+      4 1000 ares-recovery [0;38:5:245m-    [0m 1441   manager [0;38:5:245m-    [0m no   [0;38:5:245m-    [0m[m
+[m
+4 sessions listed.[m
+
+[K+ echo ARESOS_GUEST_CHECKS_PASSED
+ARESOS_GUEST_CHECKS_PASSED
+
+ARESOS_CMD_DONE:0

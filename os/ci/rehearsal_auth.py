@@ -26,7 +26,10 @@ def auth_directory():
 
 def require_dispatch():
     assert os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'Owner auth requires workflow_dispatch'
-    assert os.environ.get('REHEARSAL_MODE') in ('probe', 'part-b'), 'Owner auth requires the 11l probe or Part B qualification'
+    mode = os.environ.get('REHEARSAL_MODE')
+    release_diff = (mode == 'release-13' and os.environ.get('GITHUB_REF_NAME') == 'pkg/13-keyboard-layout'
+                    and os.environ.get('GITHUB_REPOSITORY') == 'Ares-Empire/AresOS')
+    assert mode in ('probe', 'part-b') or release_diff, 'Owner auth requires an authorized dispatch'
 
 
 def create():

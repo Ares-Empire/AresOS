@@ -1,0 +1,1 @@
+{"status": "passed", "reference": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb", "secret": "GITHUB_TOKEN", "owner_token_api_calls": 0, "owner_token_used": false, "preserved_digest": true, "credential_file_copied": false, "local_copy_removed": true}

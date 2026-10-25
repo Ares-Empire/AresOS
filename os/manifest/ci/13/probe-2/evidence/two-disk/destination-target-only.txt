@@ -1,0 +1,20 @@
+Bazzite installation
+Welcome
+Date and time
+Installation method
+Storage configuration
+Create Account
+Review and install
+Destination
+Virtio Block Device (vdb)
+52.6 GB disk
+Warning alert:
+Insufficient disk space
+Minimum of required
+Change destination
+How would you like to install?
+To continue, select the devices to install to.
+: indeterminate status;
+Back
+Next
+Quit

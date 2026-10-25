@@ -1,0 +1,100 @@
+{
+  "diagnostic_only": true,
+  "message_count": 976,
+  "values": {
+    "Language": {
+      "reply_pairs": 1,
+      "last": {
+        "property": "Language",
+        "client": ":1.24",
+        "request_cookie": 6,
+        "request_realtime": 1792911603879473,
+        "reply_realtime": 1792911603888279,
+        "value": [
+          {
+            "type": "s",
+            "data": "en_US.UTF-8"
+          }
+        ]
+      }
+    },
+    "XLayouts": {
+      "reply_pairs": 17,
+      "last": {
+        "property": "XLayouts",
+        "client": ":1.46",
+        "request_cookie": 2,
+        "request_realtime": 1792911619943942,
+        "reply_realtime": 1792911619944152,
+        "value": [
+          {
+            "type": "as",
+            "data": [
+              "de"
+            ]
+          }
+        ]
+      }
+    },
+    "VirtualConsoleKeymap": {
+      "reply_pairs": 6,
+      "last": {
+        "property": "VirtualConsoleKeymap",
+        "client": ":1.7",
+        "request_cookie": 6692,
+        "request_realtime": 1792912310789333,
+        "reply_realtime": 1792912310802697,
+        "value": [
+          {
+            "type": "s",
+            "data": "de"
+          }
+        ]
+      }
+    },
+    "LayoutSwitchOptions": {
+      "reply_pairs": 4,
+      "last": {
+        "property": "LayoutSwitchOptions",
+        "client": ":1.44",
+        "request_cookie": 2,
+        "request_realtime": 1792911619575775,
+        "reply_realtime": 1792911619576785,
+        "value": [
+          {
+            "type": "as",
+            "data": []
+          }
+        ]
+      }
+    }
+  },
+  "initial_cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=d7b45786-19da-4498-9223-5d0b792eabc0 vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1",
+  "initial_console": "KEYMAP=\"de\"\nFONT=\"eurlatgr\"\n",
+  "initial_x11": "# Written by systemd-localed(8), read by systemd-localed and Xorg. It's\n# probably wise not to edit this file manually. Use localectl(1) to\n# update this file.\nSection \"InputClass\"\n        Identifier \"system-keyboard\"\n        MatchIsKeyboard \"on\"\n        Option \"XkbLayout\" \"de\"\n        Option \"XkbModel\" \"pc105\"\nEndSection\n",
+  "bls": {
+    "/boot/loader/entries/ostree-1.conf": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=d7b45786-19da-4498-9223-5d0b792eabc0 vconsole.keymap=de rootflags=subvol=root rw\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+    "/boot/loader/entries/ostree-2.conf": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=d7b45786-19da-4498-9223-5d0b792eabc0 vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n"
+  },
+  "loaded_keycodes": [
+    "keycode  21 = +z              ",
+    "keycode  44 = +y              "
+  ],
+  "note": "The final keymap Get/reply is consistent with the pinned argument-writing boundary and observed de kernel argument; client-to-process identity is not independently exported. It does not explain historical us observations.",
+  "unreached_parser_gap": {
+    "observed_rows": [
+      "keycode  21 = +z              ",
+      "keycode  44 = +y              "
+    ],
+    "bare_letter_regexes": [
+      "^keycode\\s+21\\s*=\\s+z\\b",
+      "^keycode\\s+44\\s*=\\s+y\\b"
+    ],
+    "bare_letter_matches": [
+      false,
+      false
+    ],
+    "no_assertion_changed": true,
+    "note": "Verify pinned dumpkeys notation and preserve semantic y/z checks in a separately authorized follow-up."
+  }
+}

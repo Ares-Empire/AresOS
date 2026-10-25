@@ -1,0 +1,114 @@
+{
+  "gpt": {
+    "bytes": 52613349376,
+    "disk_guid": "461f3403-5796-4c61-a790-11cbbefd4877",
+    "first_usable": 34,
+    "last_usable": 102760414,
+    "count": 128,
+    "width": 128,
+    "partitions": [
+      {
+        "number": 1,
+        "type_guid": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+        "guid": "0c2ba812-1b1d-49fa-92ab-b2c07d99b205",
+        "start_lba": 2048,
+        "end_lba": 1230847,
+        "bytes": 629145600,
+        "flags": 0,
+        "name": "EFI System Partition"
+      },
+      {
+        "number": 2,
+        "type_guid": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+        "guid": "0cb7dad8-783e-431e-bff2-90c96aaba085",
+        "start_lba": 1230848,
+        "end_lba": 5425151,
+        "bytes": 2147483648,
+        "flags": 0,
+        "name": ""
+      },
+      {
+        "number": 3,
+        "type_guid": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+        "guid": "8f3f0729-a0a9-4a56-93c5-001abc807c31",
+        "start_lba": 5425152,
+        "end_lba": 102758399,
+        "bytes": 49834622976,
+        "flags": 0,
+        "name": ""
+      }
+    ]
+  },
+  "efi_files": {
+    "::/efi/fedora/grubia32.efi": {
+      "sha256": "b8207403b5bb763a63be03332fe53104821a91adcc728bff9283dd8b81b5ccdf",
+      "bytes": 3084712
+    },
+    "::/efi/fedora/grubx64.efi": {
+      "sha256": "937365096bcb96b6a1fd79c772d11460e0a8cc0031b6596af7a9ad28c7dcd02f",
+      "bytes": 4153768
+    },
+    "::/efi/fedora/mmia32.efi": {
+      "sha256": "1a84728114e7768654a85074ede9fb5ad018e1b0585aab6c05a78a43fbd39c6c",
+      "bytes": 695024
+    },
+    "::/efi/fedora/mmx64.efi": {
+      "sha256": "ed4442fa88cccba3a9e6a32d21a8f4c56bf5aab184f1fb9aadde8d3a9d04dc27",
+      "bytes": 874360
+    },
+    "::/efi/fedora/shim.efi": {
+      "sha256": "351e131d3c4a636704e9cae7d1296baf8a05beca9922cfebbfa48933c9bf1ad3",
+      "bytes": 1036008
+    },
+    "::/efi/fedora/shimx64.efi": {
+      "sha256": "351e131d3c4a636704e9cae7d1296baf8a05beca9922cfebbfa48933c9bf1ad3",
+      "bytes": 1036008
+    },
+    "::/efi/fedora/bootia32.csv": {
+      "sha256": "43f8aba93558f40b14e10d2cace57111014b041b40e3f57344e40681cfde4fd5",
+      "bytes": 112
+    },
+    "::/efi/fedora/bootx64.csv": {
+      "sha256": "282a3b2872bebcf3d1ba42fe17c17ebe32a60759a20f058b5e960e542785fe82",
+      "bytes": 110
+    },
+    "::/efi/fedora/shimia32.efi": {
+      "sha256": "f18994c84f8191b0bda4e504b9e028bc2f428f45ca3e543dcddc6294277808f9",
+      "bytes": 806195
+    },
+    "::/efi/fedora/grub.cfg": {
+      "sha256": "713311575e97fe8dadac271459455ea1a23df5b11189f7ab3c2d836c37dc01ce",
+      "bytes": 657
+    },
+    "::/efi/fedora/bootuuid.cfg": {
+      "sha256": "d818c1dd83c1eac5fb37b86eb4c3745e09d07e56020f731bb889c0eb68225e5c",
+      "bytes": 53
+    },
+    "::/efi/boot/fbx64.efi": {
+      "sha256": "73c123a0ae3b91d8e9410e0c194bf25dbcc71dbd44a97ee2b169a90b2f7dc6df",
+      "bytes": 119288
+    },
+    "::/efi/boot/bootx64.efi": {
+      "sha256": "351e131d3c4a636704e9cae7d1296baf8a05beca9922cfebbfa48933c9bf1ad3",
+      "bytes": 1036008
+    },
+    "::/efi/boot/fbia32.efi": {
+      "sha256": "b813d2547c9809b146daf6805ae8305054f1aee9a5086f62ece3cf3054179695",
+      "bytes": 91584
+    },
+    "::/efi/boot/bootia32.efi": {
+      "sha256": "f18994c84f8191b0bda4e504b9e028bc2f428f45ca3e543dcddc6294277808f9",
+      "bytes": 806195
+    }
+  },
+  "entry": {
+    "description": "Bazzite",
+    "partition": {
+      "number": 1,
+      "start_lba": 2048,
+      "sectors": 1228800,
+      "guid": "0c2ba812-1b1d-49fa-92ab-b2c07d99b205"
+    },
+    "file": "\\EFI\\fedora\\shimx64.efi"
+  }
+}

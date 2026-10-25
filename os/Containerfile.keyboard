@@ -1,0 +1,9 @@
+# The qualified release already contains the exact pinned base and package lock.
+# Preserve those bytes, including RPM state, rather than rerun package transactions.
+FROM ghcr.io/carlsenares/aresos@sha256:362af9b7d2a5573363d2cc441505dd076603d1d96c1b5c01af55589db2b6c402
+ARG ARESOS_SOURCE_REVISION=unrecorded
+LABEL org.opencontainers.image.source="https://github.com/Ares-Empire/AresOS" \
+      org.opencontainers.image.revision="${ARESOS_SOURCE_REVISION}"
+COPY config/usr/bin/aresos-session /usr/bin/aresos-session
+COPY config/usr/libexec/aresos-keyboard /usr/libexec/aresos-keyboard
+RUN chmod 0755 /usr/bin/aresos-session /usr/libexec/aresos-keyboard && bootc container lint

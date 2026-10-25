@@ -1,0 +1,45 @@
+[
+  {
+    "file": "xkb-de",
+    "url": "https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/raw/xkeyboard-config-2.47/symbols/de",
+    "bytes": 101708,
+    "sha256": "151007e7c8a0e7d37854663f623a78f64653a7d833a136f682cc929304e97e27"
+  },
+  {
+    "file": "xkb-us",
+    "url": "https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/raw/xkeyboard-config-2.47/symbols/us",
+    "bytes": 113892,
+    "sha256": "cd38b88f81c4d37505fd4908d2bf37eedb26eb8dd80897b3120d987a97079b22"
+  },
+  {
+    "file": "kbd-de.map",
+    "url": "https://raw.githubusercontent.com/legionus/kbd/v2.9.0/data/keymaps/i386/qwertz/de.map",
+    "bytes": 2282,
+    "sha256": "4580207f14713ac583b6452957830a39024afc22dca132ad4b630803d342b092"
+  },
+  {
+    "file": "qemu-ui.json",
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/qapi/ui.json",
+    "bytes": 41726,
+    "sha256": "7a1d902337600bbe44ec5c34126f33e2807afe66e69641c54ff8a37010f426cf"
+  },
+  {
+    "file": "qemu-keymap.csv",
+    "url": "https://raw.githubusercontent.com/qemu/keycodemapdb/f5772a62ec52591ff6870b7e8ef32482371f22c6/data/keymaps.csv",
+    "bytes": 34905,
+    "sha256": "26a8da612aafebc67b69d7c47a35a86a912f5576d15f6e1447928d49b4de6117",
+    "pin": "QEMU v8.2.2 subprojects/keycodemapdb.wrap"
+  },
+  {
+    "file": "kbd-qwertz-layout.inc",
+    "url": "https://raw.githubusercontent.com/legionus/kbd/v2.9.0/data/keymaps/i386/include/qwertz-layout.inc",
+    "bytes": 456,
+    "sha256": "96a0644b9151674d79d13e3c33de76f0fcdc245589f4428eb1dd4c30591e7e49"
+  },
+  {
+    "file": "xkb-latin",
+    "url": "https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/raw/xkeyboard-config-2.47/symbols/latin",
+    "bytes": 14780,
+    "sha256": "442253255e7aade71aab3caf325041cd2242d248ce856252e7eb364fef30b91b"
+  }
+]

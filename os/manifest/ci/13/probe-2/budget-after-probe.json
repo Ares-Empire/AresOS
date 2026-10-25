@@ -1,0 +1,210 @@
+{
+  "allowance": "13",
+  "start": "2026-10-25T02:02:34Z",
+  "cap": 380,
+  "full_cap": 0,
+  "full_dispatched": 0,
+  "part_b_cap": 0,
+  "part_b_dispatched": 0,
+  "dispatch_caps": {
+    "release-13": 3,
+    "checks": 1,
+    "probe": 2,
+    "keyboard": 2
+  },
+  "dispatch_counts": {
+    "release-13": 2,
+    "checks": 1,
+    "probe": 2,
+    "keyboard": 0
+  },
+  "consumed_minutes": 141,
+  "reserved_minutes": 144,
+  "runs": [
+    {
+      "run": 40168412078,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+      "conclusion": "success",
+      "minutes": 29
+    },
+    {
+      "run": 40168276342,
+      "title": "Follow system keyboard settings across console, labwc and rollback",
+      "sha": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40168272698,
+      "title": "Record the 13d stage plan, local verification and physical keyboard gate",
+      "sha": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40167718420,
+      "title": "Follow system keyboard settings across console, labwc and rollback",
+      "sha": "10cf1e985d7a5ce96bc28f626e6481c9d9272302",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40167715241,
+      "title": "Brief 13d: qualify the installed system without automating the live K\u2026",
+      "sha": "10cf1e985d7a5ce96bc28f626e6481c9d9272302",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40161099908,
+      "title": "Follow system keyboard settings across console, labwc and rollback",
+      "sha": "a4f57fc620f08de4be843edc5f5038420ea9a446",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40161098160,
+      "title": "Report the keyboard probe stop and retain private release qualificati\u2026",
+      "sha": "a4f57fc620f08de4be843edc5f5038420ea9a446",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40159515328,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "777b78202580e19ed1ec0b5fc838931e2609f77e",
+      "conclusion": "failure",
+      "minutes": 15
+    },
+    {
+      "run": 40159399419,
+      "title": "OS regressions only (no VM)",
+      "sha": "777b78202580e19ed1ec0b5fc838931e2609f77e",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40159246354,
+      "title": "Follow system keyboard settings across console, labwc and rollback",
+      "sha": "777b78202580e19ed1ec0b5fc838931e2609f77e",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40159241920,
+      "title": "Prepare full source ancestry and bounded editor input proof for keybo\u2026",
+      "sha": "777b78202580e19ed1ec0b5fc838931e2609f77e",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40154642447,
+      "title": "Package 13 image release",
+      "sha": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+      "conclusion": "success",
+      "minutes": 65
+    },
+    {
+      "run": 40154507842,
+      "title": "Follow system keyboard settings across console, labwc and rollback",
+      "sha": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 40154503307,
+      "title": "Allow two guarded image retries with one publish on the package 13 le\u2026",
+      "sha": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40153919146,
+      "title": "Follow system keyboard settings across console, labwc and rollback",
+      "sha": "62a3c17a38cb1f753a498d7b165be87d31899228",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40153916476,
+      "title": "Brief 13c: resolve the privileged build wrapper's tool paths, allow t\u2026",
+      "sha": "62a3c17a38cb1f753a498d7b165be87d31899228",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40153706252,
+      "title": "Follow system keyboard settings across console, labwc and rollback",
+      "sha": "62948b01e951f57e4adc4e5fc2314735fcb6e7f2",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40153703131,
+      "title": "Report package 13 image tooling stop and retain native verification e\u2026",
+      "sha": "62948b01e951f57e4adc4e5fc2314735fcb6e7f2",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40152936417,
+      "title": "Package 13 image release",
+      "sha": "b140fafc106826db904d9100b046a1304e21a828",
+      "conclusion": "failure",
+      "minutes": 4
+    }
+  ],
+  "publish_cap": 1,
+  "publish_attempts": [
+    {
+      "run": 40154642447,
+      "conclusion": "success"
+    }
+  ],
+  "history": {
+    "complete": true,
+    "pages_read": 1,
+    "ids_count": 27,
+    "total_count": 27,
+    "page_limit": 20,
+    "snapshot_reads": 1,
+    "pages": [
+      {
+        "page": 1,
+        "returned": 27,
+        "total_count": 27,
+        "ids_sha256": "fc4c81fbaa049c50593597ada7b0ee3fe7b0c9a9d92b1f0358668c688160a180"
+      }
+    ],
+    "run_ids": [
+      40168412078,
+      40168276342,
+      40168272698,
+      40167718420,
+      40167715241,
+      40161099908,
+      40161098160,
+      40159515328,
+      40159399419,
+      40159246354,
+      40159241920,
+      40154642447,
+      40154507842,
+      40154503307,
+      40153919146,
+      40153916476,
+      40153706252,
+      40153703131,
+      40152936417,
+      40152707578,
+      40152704371,
+      40152663016,
+      40152660874,
+      40150925950,
+      40150922492,
+      40149707822,
+      40149691251
+    ]
+  }
+}

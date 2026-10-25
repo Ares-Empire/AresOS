@@ -1,0 +1,20 @@
+]3008;end=24134c35-847a-44dc-bec5-c5e860176f99;exit=success\]3008;start=df368396-9a2d-4eb7-aec5-068503bedd01;type=shell;machineid=799b1781394e4477bcf135fe4f96e330;user=root;hostname=localhost-live;bootid=9af1849f-37e5-4ab7-9d07-46e37ebb1dba;pid=2283;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=f9fe360c-ac7d-4c47-88fc-9a96f92ac210;type=command;machineid=799b1781394e4477bcf135fe4f96e330;user=root;hostname=localhost-live;bootid=9af1849f-37e5-4ab7-9d07-46e37ebb1dba;pid=2283;cwd=/root\
+ARESOS_EXPORT_START
+eyJYS0JfREVGQVVMVF9MQVlPVVQiOiAiZGUiLCAiWEtCX0RFRkFVTFRfVkFSSUFOVCI6ICIiLCAi
+WEtCX0RFRkFVTFRfT1BUSU9OUyI6ICIiLCAiWEtCX0RFRkFVTFRfTU9ERUwiOiAicGMxMDUifQo=
+ARESOS_EXPORT_END
+ARESOS_EXPORT_SHA256 ee0f9285a6a96df8ef4a6f75f2f3d3bc4bbb4e5c660128f0871957f8f57031b8  guest.json
+
+ARESOS_CMD_DONE:0

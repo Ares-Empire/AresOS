@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "head": "777b78202580e19ed1ec0b5fc838931e2609f77e",
+  "runs": [
+    {
+      "run": 40159246354,
+      "event": "pull_request",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/40159246354",
+      "checks": {
+        "No secrets (gitleaks)": "success",
+        "Only private commit emails": "success",
+        "No personal terms": "success"
+      },
+      "personal_terms_not_skipped": true,
+      "minutes": 2,
+      "log_zip_sha256": "c6c3a7f1122e2891f63fb6ec7520a64d516cbc8cd79521d7104f9b7373cb2633"
+    },
+    {
+      "run": 40159241920,
+      "event": "push",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/40159241920",
+      "checks": {
+        "No secrets (gitleaks)": "success",
+        "Only private commit emails": "success",
+        "No personal terms": "success"
+      },
+      "personal_terms_not_skipped": true,
+      "minutes": 2,
+      "log_zip_sha256": "9c2e972515f69f6d6c634d4461daeff7d490134f35c370de2df22fa78c173009"
+    }
+  ]
+}

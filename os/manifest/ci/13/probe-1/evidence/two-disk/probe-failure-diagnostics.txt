@@ -1,0 +1,44 @@
+]3008;end=9462aa6d-0125-43b6-9eb5-3c21106d3649;exit=success\]3008;start=e036fb95-0130-417b-b2b0-19d6408b2b54;type=shell;machineid=2b8bde73584446e4ba4a9d401896f90e;user=root;hostname=localhost-live;bootid=46caadcd-771f-4849-93ea-7e3bb985084d;pid=2295;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=035189d9-6bab-4da9-aed0-60d55393a1af;type=command;machineid=2b8bde73584446e4ba4a9d401896f90e;user=root;hostname=localhost-live;bootid=46caadcd-771f-4849-93ea-7e3bb985084d;pid=2295;cwd=/root\cat: /tmp/rehearsal-webui-launch.log: No such file or directory
+Oct 25 04:00:05 localhost-live systemd[1]: Started webui-cockpit-ws.service - Cockpit Web Service for Anaconda Installer.
+State     Recv-Q    Send-Q       Local Address:Port        Peer Address:Port    Process
+LISTEN    0         4096            127.0.0.54:53               0.0.0.0:*        users:(("systemd-resolve",pid=931,fd=22))
+LISTEN    0         4096             127.0.0.1:631              0.0.0.0:*        users:(("cupsd",pid=2606,fd=8))
+LISTEN    0         4096               0.0.0.0:5355             0.0.0.0:*        users:(("systemd-resolve",pid=931,fd=13))
+LISTEN    0         10               127.0.0.1:80               0.0.0.0:*        users:(("cockpit-ws",pid=3299,fd=4))
+LISTEN    0         4096         127.0.0.53%lo:53               0.0.0.0:*        users:(("systemd-resolve",pid=931,fd=20))
+LISTEN    0         4096                  [::]:5355                [::]:*        users:(("systemd-resolve",pid=931,fd=15))
+LISTEN    0         50                       *:1716                   *:*        users:(("kdeconnectd",pid=2712,fd=17))
+LISTEN    0         4096                 [::1]:631                 [::]:*        users:(("cupsd",pid=2606,fd=7))
+3296 /usr/bin/bash /usr/libexec/anaconda/webui-desktop -t live
+3297 /usr/bin/python3 /sbin/anaconda --liveinst --graphical
+3302 /usr/bin/bash /usr/libexec/anaconda/cockpit-coproc-wrapper.sh 127.0.0.1
+3342 dbus-daemon --print-address --syslog --config-file=/usr/share/anaconda/dbus/anaconda-bus.conf
+3344 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.boss
+3345 python3 -m pyanaconda.modules.boss
+3368 /usr/lib64/firefox/firefox --new-instance --profile /run/user/1000/anaconda/firefox-profile http://127.0.0.1/cockpit/@localhost/anaconda-webui/index.html
+3396 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.services
+3398 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.network
+3399 python3 -m pyanaconda.modules.services
+3402 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.storage
+3404 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.users
+3405 python3 -m pyanaconda.modules.storage
+3407 python3 -m pyanaconda.modules.network
+3412 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.security
+3413 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.runtime
+3414 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.timezone
+3418 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.payloads
+3420 /usr/bin/bash /usr/libexec/anaconda/start-module pyanaconda.modules.localization
+3421 python3 -m pyanaconda.modules.users
+3423 python3 -m pyanaconda.modules.payloads
+3425 python3 -m pyanaconda.modules.security
+3427 python3 -m pyanaconda.modules.runtime
+3431 python3 -m pyanaconda.modules.timezone
+3433 python3 -m pyanaconda.modules.localization
+
+ARESOS_CMD_DONE:0

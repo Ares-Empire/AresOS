@@ -1,0 +1,68 @@
+[
+  {
+    "file": "ostree-sysroot-cleanup.c",
+    "url": "https://raw.githubusercontent.com/ostreedev/ostree/v2026.4/src/libostree/ostree-sysroot-cleanup.c",
+    "bytes": 23040,
+    "sha256": "eb3120306547b3707e9faf5baa143d291af63b62cedb9bb5394912eea42624d4"
+  },
+  {
+    "file": "rpm-ostree-deployment-utils.cxx",
+    "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/v2026.3/src/daemon/rpmostreed-deployment-utils.cxx",
+    "bytes": 34650,
+    "sha256": "7810a3813629e0405ed82499ece68a11c4b60ff221b303f0c498673845f2e20d"
+  },
+  {
+    "file": "rpm-ostree-status.cxx",
+    "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/v2026.3/src/app/rpmostree-builtin-status.cxx",
+    "bytes": 59048,
+    "sha256": "0f830e7cde8fb55ce43d56d9241f028b31bcb2f2a83b6c3daf041aefdfedaa49"
+  },
+  {
+    "file": "rpm-ostree-workstation-status.json",
+    "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/v2026.3/rust/rpmostree-client/tests/fixtures/workstation-status.json",
+    "bytes": 10846,
+    "sha256": "7d3a306b0d0f3ec798115f64f60c9cf6c5356474bb847c665cd16d6ecec5cabd"
+  },
+  {
+    "file": "kbd-dump.c",
+    "url": "https://raw.githubusercontent.com/legionus/kbd/v2.9.0/src/libkeymap/dump.c",
+    "bytes": 14572,
+    "sha256": "d554fb5fd452b30b27aee611cf7cb85ecdd629e6ea88c27bc4cc60c2a0585a2a"
+  },
+  {
+    "file": "kbd-keymaps.5",
+    "url": "https://raw.githubusercontent.com/legionus/kbd/v2.9.0/docs/man/man5/keymaps.5",
+    "bytes": 12722,
+    "sha256": "63c1eb52e352909a9379fe25915a275c5338dbdf2c6ce8313a8c88ad43c74f07"
+  },
+  {
+    "file": "kbd-us.map",
+    "url": "https://raw.githubusercontent.com/legionus/kbd/v2.9.0/data/keymaps/i386/qwerty/us.map",
+    "bytes": 2004,
+    "sha256": "524034a6fe793d38a9b554e6ee1feae9aba6d0fd55b319c17cf1cf4064e8c9a5"
+  },
+  {
+    "file": "bazzite-hardware-setup",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/libexec/bazzite-hardware-setup",
+    "bytes": 11126,
+    "sha256": "b3f3d6dcba56b7226b4a29e4557aa78174973794b4bde67caff21eb8a6551507"
+  },
+  {
+    "file": "ostree-sysroot.c",
+    "url": "https://raw.githubusercontent.com/ostreedev/ostree/v2026.4/src/libostree/ostree-sysroot.c",
+    "bytes": 86044,
+    "sha256": "d61dcfc6cb639c7756b6c8c24ed82e1458391f9db81c94dbbe9ef867b13dc8b8"
+  },
+  {
+    "file": "rpm-ostree-daemon.rs",
+    "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/v2026.3/rust/src/daemon.rs",
+    "bytes": 22196,
+    "sha256": "d03abcdd7b949dd16c3186e2e17e5d8a281e1d0a4f0ee9d3fd9f710822ac244a"
+  },
+  {
+    "file": "kbd-qwerty-layout.inc",
+    "url": "https://raw.githubusercontent.com/legionus/kbd/v2.9.0/data/keymaps/i386/include/qwerty-layout.inc",
+    "bytes": 456,
+    "sha256": "c11c01db868b1d95b04841329dfc16ff7373b8e2b19374d6a8c9d219f63b8125"
+  }
+]

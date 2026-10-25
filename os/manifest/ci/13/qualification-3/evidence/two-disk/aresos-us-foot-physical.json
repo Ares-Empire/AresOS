@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "layout": "us",
+  "text": "yz-/!",
+  "physical_qcodes": [
+    [
+      "y"
+    ],
+    [
+      "z"
+    ],
+    [
+      "minus"
+    ],
+    [
+      "slash"
+    ],
+    [
+      "shift",
+      "1"
+    ]
+  ],
+  "uid": 1001,
+  "transport": "QMP USB keyboard; serial observation only"
+}

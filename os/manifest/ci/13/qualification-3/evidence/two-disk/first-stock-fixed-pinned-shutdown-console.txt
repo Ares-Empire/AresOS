@@ -1,0 +1,30 @@
+SOS_ROOT> [?2004l
+
+
+Broadcast message from root@bazzite on pts/0 (Sun 2026-10-25 12:09:20 CET):
+
+The system will power off now!
+
+[?2004hARESOS_ROOT> ]3008;end=adbeae40239d4112a08ee08913395a58\]3008;end=6d6926ae7bf943769160106e1d03595b\[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n[24;80H]3008;e[  172.886182] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[  172.892187] systemd-shutdown[1]: Unmounting file systems.
+[  172.895557] (sd-umount)[3953]: Unmounting '/run/credentials/systemd-journald.service'.
+[  172.898865] (sd-remount)[3954]: Remounting '/sysroot' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  172.903930] (sd-umount)[3955]: Unmounting '/sysroot'.
+[  172.906192] (sd-remount)[3956]: Remounting '/etc' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[  172.910854] (sd-umount)[3957]: Unmounting '/etc'.
+[  172.914820] systemd-shutdown[1]: All filesystems unmounted.
+[  172.917095] systemd-shutdown[1]: Deactivating swaps.
+[  172.918883] systemd-shutdown[1]: All swaps deactivated.
+[  172.920693] systemd-shutdown[1]: Detaching loop devices.
+[  172.922816] systemd-shutdown[1]: All loop devices detached.
+[  172.924797] systemd-shutdown[1]: Stopping MD devices.
+[  172.926652] systemd-shutdown[1]: All MD devices stopped.
+[  172.928522] systemd-shutdown[1]: Detaching DM devices.
+[  172.930314] systemd-shutdown[1]: All DM devices detached.
+[  172.932062] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[  172.953352] systemd-shutdown[1]: Syncing filesystems and block devices.
+[  172.955423] systemd-shutdown[1]: Powering off.
+[  172.965179] Console: switching to colour dummy device 80x25
+[  172.994188] ACPI: PM: Preparing to enter system sleep state S5
+[  172.996168] kvm: exiting hardware virtualization
+[  172.997772] reboot: Power down

@@ -1,0 +1,11 @@
+]3008;end=78a01449-0070-41c4-8927-65e0beafe279;exit=success\]3008;start=556b3e26-83d1-44d7-900f-56e71efd8954;type=shell;machineid=225a84a0fb4541eeb5c362adde59e222;user=root;hostname=localhost-live;bootid=b2dff42e-f85c-467e-bddf-ec179693d667;pid=2281;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=03074fff-d4c7-4caf-afb6-e0a2209240f8;type=command;machineid=225a84a0fb4541eeb5c362adde59e222;user=root;hostname=localhost-live;bootid=b2dff42e-f85c-467e-bddf-ec179693d667;pid=2281;cwd=/root\{"selected": "as 1 \"vdb\"", "xlayouts": "as 1 \"de\"", "keymap": "s \"\"", "timezone": "s \"Europe/Berlin\"", "recovery_admin": "ares-recovery", "wheel": true, "password_set": true, "root_locked": true}
+
+ARESOS_CMD_DONE:0

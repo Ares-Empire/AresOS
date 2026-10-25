@@ -1,0 +1,8 @@
+{
+  "failure_path": true,
+  "probe_only": false,
+  "boot": 4,
+  "status": "recorded",
+  "counter": "first-stock-fixed-pinned-blockstats.json",
+  "vm_paused": true
+}

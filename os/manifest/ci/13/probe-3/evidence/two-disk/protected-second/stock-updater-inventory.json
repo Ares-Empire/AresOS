@@ -1,0 +1,1297 @@
+[
+  {
+    "scope": "system",
+    "name": "anaconda-fips.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/update-crypto-policies --set FIPS"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/anaconda-fips.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "anaconda-s390-device-config-import.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/sbin/chzdev --import /run/zdev.initrd.config --persistent --yes --no-root-update --force --verbose"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/anaconda-s390-device-config-import.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "auditd.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/auditd"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/auditd.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "authselect-apply-changes.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/authselect apply-changes --upgrade"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/authselect-apply-changes.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bazzite-flatpak-manager.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/bazzite-flatpak-manager"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bazzite-flatpak-manager.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bazzite-hardware-setup.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/bazzite-hardware-setup"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bazzite-hardware-setup.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-fetch-apply-updates.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/bootc upgrade --apply --quiet"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bootc-fetch-apply-updates.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-fetch-apply-updates.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bootc-fetch-apply-updates.timer"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-finalize-staged.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStop=/usr/bin/bootc composefs-finalize-staged"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bootc-finalize-staged.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-publish-rhsm-facts.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/bootc internals publish-rhsm-facts"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bootc-publish-rhsm-facts.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-status-updated-onboot.target",
+    "state": "static",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bootc-status-updated-onboot.target"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-status-updated.path",
+    "state": "static",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bootc-status-updated.path"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootc-status-updated.target",
+    "state": "static",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bootc-status-updated.target"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "bootloader-update.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecCondition=/bin/bash -c '[[ ! $(findmnt -n -o FSTYPE /sysroot) =~ ^(erofs|squashfs)$ ]]'",
+      "ExecStart=/usr/bin/bootupctl update",
+      "ExecStart=/usr/bin/bootupctl migrate-static-grub-config"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/bootloader-update.service",
+      "/usr/lib/systemd/system/bootloader-update.service.d/migrate-static-grub-config.conf"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "brew-setup.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/mkdir -p /tmp/homebrew",
+      "ExecStart=/usr/bin/mkdir -p /home/linuxbrew",
+      "ExecStart=/usr/bin/tar --zstd -xf /usr/share/homebrew.tar.zst -C /tmp/homebrew",
+      "ExecStart=/usr/bin/cp -R -n /tmp/homebrew/home/linuxbrew/.linuxbrew /home/linuxbrew",
+      "ExecStart=/usr/bin/chown -R 1000:1000 /home/linuxbrew",
+      "ExecStart=/usr/bin/rm -rf /tmp/homebrew",
+      "ExecStart=/usr/bin/touch /etc/.linuxbrew"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/brew-setup.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "brew-update.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/bash -c \"/home/linuxbrew/.linuxbrew/bin/brew update\""
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/brew-update.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "brew-update.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/brew-update.timer"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "brew-upgrade.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/bash -c \"/home/linuxbrew/.linuxbrew/bin/brew upgrade\""
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/brew-upgrade.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "brew-upgrade.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/brew-upgrade.timer"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "capsule@.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd --user --unit=capsule@%i.target"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/capsule@.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "chrony-wait.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/chronyc -h 127.0.0.1,::1 waitsync 0 0.1 0.0 1"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/chrony-wait.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cockpit-container.service",
+    "state": "generated",
+    "suspicious": true,
+    "commands": [
+      "Exec=/container/label-run",
+      "ExecStop=/usr/bin/podman rm -v -f -i cockpit-ws",
+      "ExecStopPost=-/usr/bin/podman rm -v -f -i cockpit-ws",
+      "ExecStart=/usr/bin/podman run --name cockpit-ws --replace --rm --cgroups=split --sdnotify=conmon -d -v /:/host --env NAME=cockpit-ws --label io.containers.autoupdate=registry --privileged --pid=host --cgroups=split quay.io/cockpit/ws:latest /container/label-run"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/run/systemd/generator/cockpit-container.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cockpit-issue.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/usr/share/cockpit/issue/update-issue"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/cockpit-issue.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cockpit.socket",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStartPost=-/usr/share/cockpit/issue/update-issue '' localhost",
+      "ExecStartPost=-/bin/ln -snf active.issue /run/cockpit/issue",
+      "ExecStopPost=-/bin/ln -snf inactive.issue /run/cockpit/issue"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/cockpit.socket"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "cups.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/cupsd -l"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/cups.service",
+      "/usr/lib/systemd/system/cups.service.d/10-foomaticrip-upgrade.conf"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dbus-org.freedesktop.sysupdate1.service",
+    "state": "alias",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": []
+  },
+  {
+    "scope": "system",
+    "name": "dnf-makecache.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/dnf5 makecache"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/dnf-makecache.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dnf5-offline-transaction-cleanup.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/rm -fv /system-update",
+      "ExecStart=/usr/bin/systemctl --no-block reboot"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/dnf5-offline-transaction-cleanup.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "dnf5-offline-transaction.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/dnf5 offline _execute"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/dnf5-offline-transaction.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fedora-atomic-desktop-mandb-update.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=mandb -q"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/fedora-atomic-desktop-mandb-update.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "flatpak-add-fedora-repos.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/flatpak remote-add --system --if-not-exists flathub /etc/flatpak/remotes.d/flathub.flatpakrepo",
+      "ExecStart=/usr/bin/flatpak remote-add --system --if-not-exists --disable --title \"Fedora Flatpaks\" fedora oci+https://registry.fedoraproject.org",
+      "ExecStart=/usr/bin/flatpak remote-add --system --if-not-exists --disable --title \"Fedora Flatpaks (testing)\" fedora-testing oci+https://registry.fedoraproject.org#testing",
+      "ExecStartPost=/usr/bin/touch /var/lib/flatpak/.ublue-initialized"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/flatpak-add-fedora-repos.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "flatpak-system-helper.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/flatpak-system-helper"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/flatpak-system-helper.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "foomaticrip-upgrade.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=bash -c /usr/libexec/cups-filters/posttrans.sh"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/foomaticrip-upgrade.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fwupd-refresh.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/fwupdmgr refresh"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/fwupd-refresh.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "fwupd.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/fwupd/fwupd"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/fwupd.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "grub-boot-indeterminate.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/grub2-editenv - incr boot_indeterminate"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/grub-boot-indeterminate.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ldconfig.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=ldconfig -X"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/ldconfig.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "man-db-cache-update.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/bin/sh -c '[ \"$SERVICE\" != \"no\" ] && /usr/bin/mandb $OPTS || true'",
+      "ExecStopPost=/bin/sh -c '[ \"$SERVICE_RESULT\" == \"signal\" ] && /usr/bin/systemctl enable man-db-restart-cache-update.service || true'"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/man-db-cache-update.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "man-db-restart-cache-update.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStartPre=/usr/bin/rm -rf /var/cache/man/*",
+      "ExecStart=/usr/bin/systemd-run /usr/bin/systemctl start man-db-cache-update.service",
+      "ExecStartPost=/usr/bin/systemctl disable man-db-restart-cache-update.service"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/man-db-restart-cache-update.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mariadb.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStartPre=/usr/libexec/mariadb-check-socket",
+      "ExecStartPre=/usr/libexec/mariadb-prepare-db-dir %n",
+      "ExecStartPre=/bin/sh -c \"[ ! -e /usr/bin/galera_recovery ] && VAR= || \\",
+      "ExecStart=/usr/libexec/mariadbd --basedir=/usr $MYSQLD_OPTS $_WSREP_NEW_CLUSTER $_WSREP_START_POSITION",
+      "ExecStartPost=/usr/libexec/mariadb-check-upgrade",
+      "ExecStartPost=/bin/rm -f /run/mariadb/wsrep-start-position"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/mariadb.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "mariadb@.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStartPre=/usr/libexec/mariadb-check-socket --defaults-group-suffix=.%I",
+      "ExecStartPre=/usr/libexec/mariadb-prepare-db-dir --defaults-group-suffix=.%I %n",
+      "ExecStartPre=/bin/sh -c \"[ ! -e /usr/bin/galera_recovery ] && VAR= || \\",
+      "ExecStart=/usr/libexec/mariadbd --defaults-group-suffix=.%I --basedir=/usr $MYSQLD_OPTS $_WSREP_NEW_CLUSTER $_WSREP_START_POSITION",
+      "ExecStartPost=/usr/libexec/mariadb-check-upgrade --defaults-group-suffix=.%I",
+      "ExecStartPost=/bin/rm -f /run/mariadb/wsrep-start-position"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/mariadb@.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "nfs-utils.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/bin/true"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/nfs-utils.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ostree-finalize-staged.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStop=/usr/bin/ostree admin finalize-staged"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/ostree-finalize-staged.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-read-write.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/usr/bin/plymouth update-root-fs --read-write"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/plymouth-read-write.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-switch-root-initramfs.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/usr/bin/plymouth update-root-fs --new-root-dir=/run/initramfs"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/plymouth-switch-root-initramfs.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "plymouth-switch-root.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/usr/bin/plymouth update-root-fs --new-root-dir=/sysroot"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/plymouth-switch-root.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "podman-auto-update.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/podman auto-update",
+      "ExecStartPost=/usr/bin/podman image prune -f"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/podman-auto-update.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "podman-auto-update.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/podman-auto-update.timer"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "qemu-guest-agent.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStartPre=/bin/sh -c \"if grep '^BLACKLIST_RPC' /etc/sysconfig/qemu-ga >/dev/null ; then sed -i 's/^BLACKLIST_RPC=/QEMU_GA_ARGS=--block-rpcs=/' /etc/sysconfig/qemu-ga ; fi\"",
+      "ExecStart=/usr/bin/qemu-ga \\"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/qemu-guest-agent.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostree-fix-shadow-mode.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=rpm-ostree fix-shadow-perms"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/rpm-ostree-fix-shadow-mode.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostreed-automatic.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=rpm-ostree upgrade --quiet --trigger-automatic-update-policy"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/rpm-ostreed-automatic.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "rpm-ostreed-automatic.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/rpm-ostreed-automatic.timer"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "selinux-check-proper-disable.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecCondition=test \"$SELINUX\" = disabled",
+      "ExecStart=/usr/bin/echo 'SELINUX=disabled in /etc/selinux/config, but no selinux=0 on kernel command line - SELinux may not be fully disabled. Please update bootloader configuration to pass selinux=0 to kernel at boot.'"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/selinux-check-proper-disable.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "ssh-host-keys-migration.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=-/usr/libexec/openssh/ssh-host-keys-migration.sh",
+      "ExecStart=touch /var/lib/.ssh-host-keys-migration"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/ssh-host-keys-migration.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "system-update-cleanup.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=rm -fv /system-update /etc/system-update"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/system-update-cleanup.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "system-update-pre.target",
+    "state": "static",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/system-update-pre.target"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "system-update.target",
+    "state": "static",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/system-update.target"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-boot-random-seed.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=bootctl --graceful random-seed"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-boot-random-seed.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-boot-update.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=bootctl --variables=no --graceful update"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-boot-update.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-hwdb-update.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=systemd-hwdb update"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-hwdb-update.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-journal-catalog-update.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=journalctl --update-catalog"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-journal-catalog-update.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-mountfsd.service",
+    "state": "indirect",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-mountfsd"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-mountfsd.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdate-reboot.service",
+    "state": "indirect",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sysupdate reboot"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-sysupdate-reboot.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdate-reboot.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-sysupdate-reboot.timer"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdate.service",
+    "state": "indirect",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sysupdate update"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-sysupdate.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdate.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-sysupdate.timer"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysupdated.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-sysupdated"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-sysupdated.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-sysusers.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=systemd-sysusers"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-sysusers.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-udevd.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-udevd"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-udevd.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-update-done.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-update-done"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-update-done.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "systemd-update-utmp.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd-update-utmp reboot",
+      "ExecStop=/usr/lib/systemd/systemd-update-utmp shutdown"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/systemd-update-utmp.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "unbound-anchor.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/bin/bash -c 'if [ \"$DISABLE_UNBOUND_ANCHOR\" = \"yes\" ] || [ -f /run/unbound/anchor-disable ]; then echo \"Updates of root keys with unbound-anchor is disabled\"; else /usr/sbin/unbound-anchor $UNBOUND_ANCHOR_OPTIONS; fi'"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/unbound-anchor.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "unbound-anchor.timer",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/unbound-anchor.timer"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "user@.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/lib/systemd/systemd --user"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/user@.service",
+      "/usr/lib/systemd/system/user@.service.d/00-uresourced.conf",
+      "/usr/lib/systemd/system/user@.service.d/10-login-barrier.conf"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "uupd-manual.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/uupd --hw-check=false --json --log-level=debug"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/uupd-manual.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "uupd.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/uupd --log-level=debug --json"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/uupd.service"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "uupd.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/system/uupd.timer"
+    ]
+  },
+  {
+    "scope": "system",
+    "name": "var-lib-flatpak.mount",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/etc/systemd/system/var-lib-flatpak.mount"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "flatpak-oci-authenticator.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/flatpak-oci-authenticator"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/user/flatpak-oci-authenticator.service"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "flatpak-portal.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/flatpak-portal"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/user/flatpak-portal.service"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "flatpak-session-helper.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/flatpak-session-helper"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/user/flatpak-session-helper.service"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "podman-auto-update.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/podman auto-update",
+      "ExecStartPost=/usr/bin/podman image prune -f"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/user/podman-auto-update.service"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "podman-auto-update.timer",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/user/podman-auto-update.timer"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "unity-gtk-module.service",
+    "state": "disabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/bin/sh -ec '\\",
+      "ExecStopPost=/bin/sh -ec '\\"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/user/unity-gtk-module.service"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-document-portal.service",
+    "state": "static",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/libexec/xdg-document-portal"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/user/xdg-document-portal.service"
+    ]
+  },
+  {
+    "scope": "user",
+    "name": "xdg-user-dirs.service",
+    "state": "enabled",
+    "suspicious": true,
+    "commands": [
+      "ExecStart=/usr/bin/xdg-user-dirs-update"
+    ],
+    "active_state": null,
+    "load_state": null,
+    "sub_state": null,
+    "sources": [
+      "/usr/lib/systemd/user/xdg-user-dirs.service"
+    ]
+  }
+]

@@ -151,9 +151,42 @@ Write **PASS** or **FAIL** beside each required comparison; any blank/FAIL block
 | Crucial GPT GUID (blank permitted only before first install) | | | |
 | Every Crucial partition: PARTUUID, type, start/end sectors | | | |
 | Linux entry Boot####, EFI PARTUUID, loader path | — | | |
+| Corrected pinned stock: full checksum, serial, stateroot (`osname`), image reference/digest | After initial repair/pin | Same saved identity at recovery checkpoints | |
+| Installer keyboard layout (backup keeps this even after an AresOS layout change) | | Backup password uses this layout | |
+| Stock BLS resolved deployment path and exact title; transaction state/time; valid or provisional | | Refresh after each reorder, before reboot | |
 | Direct Windows boot entry from latest before-undo JSON | — | | |
 | Recovery USB model/label/boot-test date | | | |
 | Installer USB model/label; writer/ISO versions and SHA-256 | | | |
+
+### Recovery-title history — refresh before every affected reboot
+
+Keep the complete output from INSTALL's
+[stock-title checkpoint](INSTALL.md#refresh-the-recorded-stock-title-before-reboot).
+Resolve the BLS target by the saved corrected stock **checksum, serial and
+stateroot**, then copy that file's exact title. A checksum alone cannot separate
+the two pre-finalization stock serials. Never infer a title from JSON row count
+or a BLS filename.
+
+**Any deployment reorder immediately invalidates the previous title**, including
+pending-update cleanup, switch staging, queued rollback and set-default. Mark
+each superseded row INVALID and fill a new row **before rebooting**. If no fresh
+record is available, use F12 → Windows and get help, even if the old title still
+appears in GRUB. A first-switch staged title is provisional and cannot be used
+for recovery; confirm the final pair after the first successful AresOS boot.
+
+| Checkpoint / time | Saved stock checksum + serial + stateroot | Resolved BLS target and exact title | Validity / previous title invalidated |
+| --- | --- | --- | --- |
+| Initial repair/pin; repeat after any pending cleanup | | | Pre-switch only |
+| Switch staged, before reboot | | | Provisional; not first-switch recovery |
+| First successful AresOS boot, final pair confirmed | | | |
+| Rollback queued, **before** reboot | | | |
+| Set-default completed, **before** reboot | | | |
+| After each recovery/default boot, confirm again | | | |
+| Any later reorder (new row per event) | | | |
+
+Record the **installer layout separately from the current AresOS layout**.
+Backup Bazzite keeps the former; type its recovery password with that layout.
+The VM restored German before rollback; US-then-rollback was not performed.
 
 ## D. Before erasing Crucial from live media
 

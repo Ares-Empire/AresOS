@@ -1,0 +1,358 @@
+{
+  "status": "STOP-PLAN-GAP",
+  "verification_gate": "origin-of-us-not-established",
+  "date": "2026-10-25",
+  "source_head": "3459111",
+  "iso": {
+    "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+    "bytes": 9068650496,
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "local_download_verified": true,
+    "squashfs_offset": 314167296,
+    "rpmdb_sha256": "31acc9d4496f3d1633e2467341170d6cc974d805833f6bd68ffad91a94defcd7"
+  },
+  "iso_versions": [
+    {
+      "name": "libxkbcommon",
+      "version": "1.13.1",
+      "release": "2.fc44",
+      "arch": "x86_64"
+    },
+    {
+      "name": "systemd",
+      "version": "259.9",
+      "release": "1.fc44",
+      "arch": "x86_64"
+    },
+    {
+      "name": "ostree",
+      "version": "2026.4",
+      "release": "1.fc44",
+      "arch": "x86_64"
+    },
+    {
+      "name": "bootc",
+      "version": "1.16.13",
+      "release": "1.fc44",
+      "arch": "x86_64"
+    },
+    {
+      "name": "rpm-ostree",
+      "version": "2026.3",
+      "release": "2.fc44",
+      "arch": "x86_64"
+    },
+    {
+      "name": "libxkbcommon",
+      "version": "1.13.1",
+      "release": "2.fc44",
+      "arch": "i686"
+    },
+    {
+      "name": "anaconda-core",
+      "version": "44.30",
+      "release": "2.fc44",
+      "arch": "x86_64"
+    }
+  ],
+  "source_files": [
+    {
+      "file": "anaconda-version.py",
+      "bytes": 62,
+      "sha256": "333838b585266c7b04ee1cff424cf01a43fb4fc360cd133da71874660504cab0",
+      "source_url": "https://github.com/rhinstaller/anaconda/blob/anaconda-44.30/pyanaconda/version.py.in",
+      "iso_path": "usr/lib64/python3.14/site-packages/pyanaconda/version.py"
+    },
+    {
+      "file": "anaconda-modules_payloads_payload_rpm_ostree_installation.py",
+      "bytes": 41715,
+      "sha256": "614ac3f3061d959144e0a2e80919012c7254d44b1fab04daea35b2bef52f3f86",
+      "source_url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py",
+      "iso_path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/payload/rpm_ostree/installation.py"
+    },
+    {
+      "file": "anaconda-modules_boss_installation.py",
+      "bytes": 29175,
+      "sha256": "e13a19312256866c54455620f894e99d6e92104b856939632c7f1cbc46fb5721",
+      "source_url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/boss/installation.py",
+      "iso_path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/boss/installation.py"
+    },
+    {
+      "file": "anaconda-modules_localization_localization.py",
+      "bytes": 17519,
+      "sha256": "1bd3dee9f0fed8b3d57abb300522d8d7e1ce70f09d6df36ece5d69c7b7ef861a",
+      "source_url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/localization/localization.py",
+      "iso_path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/localization.py"
+    },
+    {
+      "file": "anaconda-modules_localization_localed.py",
+      "bytes": 17659,
+      "sha256": "f0f8eb597455f88e656c81c9bcb3f3636418a6d92883b2c9ef4f9c012292a8af",
+      "source_url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/localization/localed.py",
+      "iso_path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/localed.py"
+    },
+    {
+      "file": "anaconda-modules_localization_utils.py",
+      "bytes": 3498,
+      "sha256": "9131865a34cb8e978d34083f9c981e84401fbf9852f7ca4f213b2dc9abb001e1",
+      "source_url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/localization/utils.py",
+      "iso_path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/utils.py"
+    },
+    {
+      "file": "anaconda-modules_localization_installation.py",
+      "bytes": 9483,
+      "sha256": "f3a348993523390c757aeab826a86110f9c92f817372173f91af2b06c34381db",
+      "source_url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/localization/installation.py",
+      "iso_path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/installation.py"
+    },
+    {
+      "file": "anaconda-modules_localization_runtime.py",
+      "bytes": 7853,
+      "sha256": "8a50fc44aba6a8eb825940ed1e28d979339b1efe37e4115f9db192bde7a01ba5",
+      "source_url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/localization/runtime.py",
+      "iso_path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/localization/runtime.py"
+    },
+    {
+      "file": "labwc-src_input_keyboard.c",
+      "bytes": 24195,
+      "sha256": "21a62ef5496e248133cfc77c9444788a922f2ee64d8b65cc323c7c79782584e5",
+      "source_url": "https://raw.githubusercontent.com/labwc/labwc/0.9.6/src/input/keyboard.c",
+      "iso_path": null
+    },
+    {
+      "file": "labwc-src_config_session.c",
+      "bytes": 8040,
+      "sha256": "fc0f80f3a153b4517f60d51ce62b5458cf4e54827d7ce245f8195b0a3ba9a6e7",
+      "source_url": "https://raw.githubusercontent.com/labwc/labwc/0.9.6/src/config/session.c",
+      "iso_path": null
+    },
+    {
+      "file": "libxkbcommon-src_context-priv.c",
+      "bytes": 5898,
+      "sha256": "c2ffff03f40181e4110d5549d4cab3be002cfc4258125a15d6f4876f31724c10",
+      "source_url": "https://raw.githubusercontent.com/xkbcommon/libxkbcommon/xkbcommon-1.13.1/src/context-priv.c",
+      "iso_path": null
+    },
+    {
+      "file": "libxkbcommon-meson_options.txt",
+      "bytes": 2411,
+      "sha256": "496455ea3c5b368b382e3b155e66eb43226f66b0a0d1eeabbca450976175c32d",
+      "source_url": "https://raw.githubusercontent.com/xkbcommon/libxkbcommon/xkbcommon-1.13.1/meson_options.txt",
+      "iso_path": null
+    },
+    {
+      "file": "ostree-src_ostree_ot-admin-instutil-builtin-set-kargs.c",
+      "bytes": 3818,
+      "sha256": "f8ddaa98802a3900079c14620b6b47173e12cdd161ff4383e7df0136d64e2965",
+      "source_url": "https://raw.githubusercontent.com/ostreedev/ostree/v2026.4/src/ostree/ot-admin-instutil-builtin-set-kargs.c",
+      "iso_path": null
+    },
+    {
+      "file": "ostree-src_ostree_ot-admin-builtin-pin.c",
+      "bytes": 4443,
+      "sha256": "0b21ba83b177a92d52910ad6e5a2e58bff00c9ca057c805e2f9f6551808c3bd0",
+      "source_url": "https://raw.githubusercontent.com/ostreedev/ostree/v2026.4/src/ostree/ot-admin-builtin-pin.c",
+      "iso_path": null
+    },
+    {
+      "file": "ostree-src_libostree_ostree-sysroot-deploy.c",
+      "bytes": 175963,
+      "sha256": "e018b3af47e85b507f1c31dc1c73f0d47c73459bd63292960db46d11728ddab9",
+      "source_url": "https://raw.githubusercontent.com/ostreedev/ostree/v2026.4/src/libostree/ostree-sysroot-deploy.c",
+      "iso_path": null
+    },
+    {
+      "file": "bootc-crates_lib_src_bootc_kargs.rs",
+      "bytes": 16149,
+      "sha256": "26f3cbb31bf6a11ae9e30b8a6f2e0c659920ccc647895a51747ba1bf754696a2",
+      "source_url": "https://raw.githubusercontent.com/bootc-dev/bootc/v1.16.13/crates/lib/src/bootc_kargs.rs",
+      "iso_path": null
+    },
+    {
+      "file": "bootc-crates_lib_src_deploy.rs",
+      "bytes": 58881,
+      "sha256": "60c34942c55a3966b7b366769a5486044642596f72b1f8cd5fdc984f4d2a91d6",
+      "source_url": "https://raw.githubusercontent.com/bootc-dev/bootc/v1.16.13/crates/lib/src/deploy.rs",
+      "iso_path": null
+    },
+    {
+      "file": "bootc-crates_lib_src_cli.rs",
+      "bytes": 108907,
+      "sha256": "64690fb26c9c5cf57f586d046e8e2838024b5f12f49bbd656189b164b405390b",
+      "source_url": "https://raw.githubusercontent.com/bootc-dev/bootc/v1.16.13/crates/lib/src/cli.rs",
+      "iso_path": null
+    },
+    {
+      "file": "systemd-src_vconsole_vconsole-setup.c",
+      "bytes": 22944,
+      "sha256": "929adf50764fe95bc0995b7850ceec0e7cb4cd8f559aa39fce9686ec64302e4e",
+      "source_url": "https://raw.githubusercontent.com/systemd/systemd/v259.9/src/vconsole/vconsole-setup.c",
+      "iso_path": null
+    },
+    {
+      "file": "systemd-src_locale_localed.c",
+      "bytes": 26302,
+      "sha256": "c05546b45b8126137ec72c3c3d203508af649e7f954f58ad0c6779b643914a79",
+      "source_url": "https://raw.githubusercontent.com/systemd/systemd/v259.9/src/locale/localed.c",
+      "iso_path": null
+    },
+    {
+      "file": "systemd-src_locale_localed-util.c",
+      "bytes": 20290,
+      "sha256": "ac7bd387e5e592ff7e9406a09005c4e4b12d6f56e2e5c30f4d583d382b42a436",
+      "source_url": "https://raw.githubusercontent.com/systemd/systemd/v259.9/src/locale/localed-util.c",
+      "iso_path": null
+    },
+    {
+      "file": "anaconda.spec",
+      "bytes": 544519,
+      "sha256": "a2a5716c3836650f7973e7b238745b719783d4dcfc0ec46b2e86ba1a7f3c0674",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/anaconda/44.30/2.fc44/src/anaconda-44.30-2.fc44.src.rpm",
+      "iso_path": null
+    },
+    {
+      "file": "labwc.spec",
+      "bytes": 10367,
+      "sha256": "b54f37688c8f3e4b29f06a722f99d5691bd64666cd4bc2e4c8dba8f6069b4365",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/labwc/0.9.6/1.fc44/src/labwc-0.9.6-1.fc44.src.rpm",
+      "iso_path": null
+    },
+    {
+      "file": "libxkbcommon.spec",
+      "bytes": 15021,
+      "sha256": "3a452abee049facf83d693c7779ed9f72d3d97c7b90c73e00a6cde27f3fd9976",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/libxkbcommon/1.13.1/2.fc44/src/libxkbcommon-1.13.1-2.fc44.src.rpm",
+      "iso_path": null
+    },
+    {
+      "file": "ostree.spec",
+      "bytes": 36043,
+      "sha256": "749d82537b03fb0e79da26d3d8b0a1ca1a63a1b07126d57369e3776111f39246",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/ostree/2026.4/1.fc44/src/ostree-2026.4-1.fc44.src.rpm",
+      "iso_path": null
+    },
+    {
+      "file": "systemd.spec",
+      "bytes": 66725,
+      "sha256": "77a5acafc8e96460462a0373eb2647535b89c9be27474ec27e59b16dd24505f4",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/systemd/259.9/1.fc44/src/systemd-259.9-1.fc44.src.rpm",
+      "iso_path": null
+    }
+  ],
+  "source_packages": [
+    {
+      "file": "anaconda-44.30-2.fc44.src.rpm",
+      "bytes": 5270824,
+      "sha256": "9ab17d167d4461cb43445f864bdfd1112cbd8fee8301d2c4b1263b888acedb16",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/anaconda/44.30/2.fc44/src/anaconda-44.30-2.fc44.src.rpm"
+    },
+    {
+      "file": "labwc-0.9.6-1.fc44.src.rpm",
+      "bytes": 573204,
+      "sha256": "75626824211cda457d292b914f1e80a79c300dc3bf234317edb1c302022058de",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/labwc/0.9.6/1.fc44/src/labwc-0.9.6-1.fc44.src.rpm"
+    },
+    {
+      "file": "libxkbcommon-1.13.1-2.fc44.src.rpm",
+      "bytes": 1255277,
+      "sha256": "c2b5e244e0e98ca5f536e4cf00a89dbb4cb44232f1c6b40a9c44ce724e649fce",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/libxkbcommon/1.13.1/2.fc44/src/libxkbcommon-1.13.1-2.fc44.src.rpm"
+    },
+    {
+      "file": "ostree-2026.4-1.fc44.src.rpm",
+      "bytes": 2200815,
+      "sha256": "e304a66f0c0b829a7db3f7e5c6f35b566906da0f0e48a5657731a23f125f6bcc",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/ostree/2026.4/1.fc44/src/ostree-2026.4-1.fc44.src.rpm"
+    },
+    {
+      "file": "systemd-259.9-1.fc44.src.rpm",
+      "bytes": 17681576,
+      "sha256": "543ab9bbce9aaabfe2ae78e661d3cce963fa774f11cc1b0547ca1bbe24290fc5",
+      "source_url": "https://kojipkgs.fedoraproject.org/packages/systemd/259.9/1.fc44/src/systemd-259.9-1.fc44.src.rpm"
+    }
+  ],
+  "retained_inputs": {
+    "os/manifest/ci/11n/b-1/two-disk/b-bls-entries.json": {
+      "bytes": 1511,
+      "sha256": "2327917cb403ffaeedd54110a9d4ec9f9f0c41228f32a3bf0679f369fe25046b"
+    },
+    "os/manifest/ci/11n/b-1/two-disk/installed-keyboard-files.json": {
+      "bytes": 493,
+      "sha256": "0653fa81b7f05743cf02704ef21418c55f9df384348831c45485e3e6e942bfe0"
+    },
+    "os/manifest/ci/11n/b-1/two-disk/webui-keyboard-proof.json": {
+      "bytes": 1761,
+      "sha256": "d1b6c4def81a5aeed0b322cba67b2ba6886b61aadd84643041130f06b9d947e2"
+    },
+    "os/manifest/ci/11n/b-1/two-disk/protected-second-install-server.txt": {
+      "bytes": 12822,
+      "sha256": "44c79d0c97fdd6295ebb0fa5374f31ccd36855c369f8a6e996156ca860b5708f"
+    },
+    "os/manifest/ci/11n/probe-1/two-disk/webui-probe-bootloader-console-source.txt": {
+      "bytes": 11896,
+      "sha256": "6a6313d99d845779766bfe8f807f379e1d946c58ae1abfe0edf2a8d3d9ea54d1"
+    },
+    "os/manifest/ci/11n/b-1/installer/EFI_BOOT_grub.cfg": {
+      "bytes": 607,
+      "sha256": "e8163ba80850892ef2d947cceb36c10a87004c8a18335c84c3f66db47c2a9b85"
+    },
+    "os/manifest/ci/11k/full-5/two-disk/tty-keymap-proof.txt": {
+      "bytes": 373353,
+      "sha256": "426f1504db7bf8590c564699f00891f1a1281a527402010ddc646e25be7c8d48"
+    },
+    "os/manifest/ci/11k/full-5/two-disk/aresos-boot-console.txt": {
+      "bytes": 110025,
+      "sha256": "10cc3621cd88ad950e250f5c67cb7ce658de572073ed9f6e1937c8cb28b084c6"
+    },
+    "os/manifest/ci/11k/full-5/two-disk/tty-admin-login.txt": {
+      "bytes": 141,
+      "sha256": "6ceb83d4c2d5ac2d8337515d0897649b0f5dcb5b56bffb1b6ded8b386697fe44"
+    },
+    "os/ci/two_disk_vm.py": {
+      "bytes": 50393,
+      "sha256": "3432126e0b64796b0a64faa87fc65b845041e91f6d48bd08c73bc0f57dabe3be"
+    },
+    "os/ci/switch_vm.py": {
+      "bytes": 26350,
+      "sha256": "9e3fc6cb82e432a684d46e6f08777891c8e6835c9595f803532c7c3e61775aa6"
+    },
+    "os/ci/verify_release.py": {
+      "bytes": 3107,
+      "sha256": "9d9f501f119675e06074cef317b79edaf2b2cd0271b40030989903eea674ea72"
+    },
+    "os/config/usr/bin/aresos-session": {
+      "bytes": 229,
+      "sha256": "0644b36a2bee814a53d3e39a57a1247f69eb1ef26a1d781a652dc3bdd7027fc8"
+    },
+    "os/config/etc/profile.d/aresos.sh": {
+      "bytes": 233,
+      "sha256": "820dfd5e667f3d75ab4949425ee1cfb3253e271b3b87ce4de3c0503a9e3f9633"
+    },
+    "os/manifest/ci/packages.txt": {
+      "bytes": 100050,
+      "sha256": "e76903e3ed888c8facb83c1a3ba95429046d983ed6fa843f071162f5bc23c058"
+    },
+    "os/packages.lock.json": {
+      "bytes": 1283,
+      "sha256": "b46a374ecf058e1acff309435c970f94a653ca1d77a4eeb7a11174869b01cac7"
+    }
+  },
+  "budget": {
+    "branch": "pkg/13-keyboard-layout",
+    "start": null,
+    "start_rule": "first workflow_dispatch",
+    "cap_minutes": 250,
+    "probe_cap": 1,
+    "qualification_cap": 2,
+    "dispatches": 0,
+    "probes": 0,
+    "qualifications": 0,
+    "consumed_ledger_minutes": 0
+  },
+  "unresolved": [
+    "The retained pre-install module console keymap is empty; the installed file is de; both BLS entries have only us.",
+    "Pinned Anaconda schedules missing keyboard population before payload/bootloader, then the writer reads the module property.",
+    "No retained value at the argument-writing boundary or original installation program/module logs establish how us was obtained.",
+    "The earlier successful German-position tty3 run booted with vconsole.keymap=de; it cannot establish the loaded map of the 11n us-argument run."
+  ]
+}

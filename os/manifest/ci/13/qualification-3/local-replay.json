@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "run": 40184846815,
+  "qualification_passed": true,
+  "repairs_passed": [
+    "repair-installer-value",
+    "repair-starting-de",
+    "repair-starting-us"
+  ],
+  "protected_sha256": "cc13e0c68c85ebfab98f8dd14e8bd19474e1f56b216207cb45ddf7f606064cc2",
+  "protected_captures": 13,
+  "zero_write_counters": 14,
+  "bootnext_audits": 13,
+  "nvram_replays": 12
+}

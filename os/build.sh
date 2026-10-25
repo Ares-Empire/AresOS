@@ -42,7 +42,7 @@ fi
 systemd-sysusers /usr/lib/sysusers.d/aresos.conf
 passwd --lock ares
 passwd --lock root
-chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/libexec/aresos-audit
+chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/libexec/aresos-audit /usr/libexec/aresos-keyboard
 
 while read -r unit; do
     systemctl disable "$unit" 2>/dev/null || true

@@ -1,0 +1,10 @@
+COMMAND: ['C:\\Users\\pab\\AppData\\Local\\Programs\\Python\\Python313\\python.exe', '-c', "import sys; sys.path.insert(0,'os/ci'); from keyboard_vm import physical_keys; physical_keys('.', 'de')"]
+EXIT: 1
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys; sys.path.insert(0,'os/ci'); from keyboard_vm import physical_keys; physical_keys('.', 'de')
+                                                                                   ~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\pab\AresOS-13-keyboard-layout\os/ci\keyboard_vm.py", line 58, in physical_keys
+    assert char.isascii() and (char.islower() or char.isdigit() or char in special), char
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: .

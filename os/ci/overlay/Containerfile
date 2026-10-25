@@ -12,4 +12,7 @@ RUN install -Dm0644 /tmp/aresos-ci/aresos-ci.service /usr/lib/systemd/system/are
     rm -rf /tmp/aresos-ci && \
     mkdir -p /usr/lib/systemd/system/multi-user.target.wants && \
     ln -s ../aresos-ci.service /usr/lib/systemd/system/multi-user.target.wants/aresos-ci.service && \
+    printf 'KEYMAP=us\n' > /etc/vconsole.conf && \
+    mkdir -p /etc/X11/xorg.conf.d && \
+    printf 'Section "InputClass"\n Identifier "ci-keyboard"\n MatchIsKeyboard "on"\n Option "XkbLayout" "us"\nEndSection\n' > /etc/X11/xorg.conf.d/00-keyboard.conf && \
     bootc container lint

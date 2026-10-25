@@ -1,0 +1,12 @@
+[
+  {
+    "file": "/boot/loader/entries/ostree-1.conf",
+    "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+    "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+  },
+  {
+    "file": "/boot/loader/entries/ostree-2.conf",
+    "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+    "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0"
+  }
+]

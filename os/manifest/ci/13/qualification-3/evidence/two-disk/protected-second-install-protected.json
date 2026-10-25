@@ -1,0 +1,64 @@
+{
+  "sha256": "cc13e0c68c85ebfab98f8dd14e8bd19474e1f56b216207cb45ddf7f606064cc2",
+  "gpt": {
+    "bytes": 53687091200,
+    "disk_guid": "9bb84d90-8bdf-4143-9c0f-a5611c9468af",
+    "first_usable": 34,
+    "last_usable": 104857566,
+    "count": 128,
+    "width": 128,
+    "partitions": [
+      {
+        "number": 1,
+        "type_guid": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+        "guid": "0a56678f-ce36-4d72-aa08-8974cd6c5a09",
+        "start_lba": 2048,
+        "end_lba": 534527,
+        "bytes": 272629760,
+        "flags": 0,
+        "name": "Windows ESP"
+      },
+      {
+        "number": 2,
+        "type_guid": "e3c9e316-0b5c-4db8-817d-f92df00215ae",
+        "guid": "f8aa5ac0-3d20-4474-8a1b-3f0fa2fc92ef",
+        "start_lba": 534528,
+        "end_lba": 567295,
+        "bytes": 16777216,
+        "flags": 0,
+        "name": "Microsoft reserved"
+      },
+      {
+        "number": 3,
+        "type_guid": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7",
+        "guid": "047ccb92-ed33-4db6-85ad-1a5d70ef41c3",
+        "start_lba": 567296,
+        "end_lba": 102760414,
+        "bytes": 52322876928,
+        "flags": 0,
+        "name": "Windows data"
+      },
+      {
+        "number": 4,
+        "type_guid": "de94bba4-06d1-4d40-a16a-bfd50179d6ac",
+        "guid": "557119eb-2766-46b9-bcde-fb5cc76f1a4b",
+        "start_lba": 102760448,
+        "end_lba": 104857566,
+        "bytes": 1073724928,
+        "flags": 0,
+        "name": "Windows recovery"
+      }
+    ]
+  },
+  "offline": true,
+  "efi_files": {
+    "::/efi/microsoft/boot/bootmgfw.efi": {
+      "sha256": "41335ca2a9ff2e0b9f7c089f174d32631e904ad12296626317a60dc139b02893",
+      "bytes": 49801
+    },
+    "::/efi/boot/bootx64.efi": {
+      "sha256": "41335ca2a9ff2e0b9f7c089f174d32631e904ad12296626317a60dc139b02893",
+      "bytes": 49801
+    }
+  }
+}

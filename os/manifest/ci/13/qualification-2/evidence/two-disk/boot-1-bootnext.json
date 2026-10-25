@@ -1,0 +1,19 @@
+{
+  "for_boot": 1,
+  "purpose": "baseline-firmware",
+  "mode": "marker-baseline",
+  "order": "protected-second",
+  "destination": null,
+  "value": null,
+  "written": false,
+  "prepared_store": {
+    "Boot0000": {
+      "attributes": 7,
+      "hex": "010000007400570069006e0064006f0077007300200042006f006f00740020004d0061006e006100670065007200000004012a000100000000080000000000000020080000000000b1cc707d7ed5d14083a4df2648c427960202040446005c004500460049005c004d006900630072006f0073006f00660074005c0042006f006f0074005c0062006f006f0074006d006700660077002e0065006600690000007fff0400"
+    },
+    "BootOrder": {
+      "attributes": 7,
+      "hex": "0000"
+    }
+  }
+}

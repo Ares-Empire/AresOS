@@ -1,0 +1,40 @@
+{
+  "status": "passed",
+  "identity": [
+    {
+      "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "serial": 1,
+      "osname": "default",
+      "booted": true,
+      "pinned": false
+    },
+    {
+      "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "serial": 0,
+      "osname": "default",
+      "booted": false,
+      "pinned": false
+    }
+  ],
+  "deployment_count": 2,
+  "before_arguments": [
+    "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0",
+    "console=tty0",
+    "console=ttyS0,115200n8",
+    "root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db",
+    "rootflags=subvol=root",
+    "rw",
+    "bluetooth.disable_ertm=1",
+    "vconsole.keymap=de"
+  ],
+  "after_arguments": [
+    "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0",
+    "console=tty0",
+    "console=ttyS0,115200n8",
+    "root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db",
+    "rootflags=subvol=root",
+    "rw",
+    "bluetooth.disable_ertm=1"
+  ],
+  "reboot_required": true
+}

@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
+  "checked_at": "2026-10-25T11:40:10.108490+00:00",
+  "response_sha256": "eee382364902c71f0909114f41af29b5aeab5d9820f0931e728739c8a872fde1",
+  "usage": [
+    {
+      "sku": "actions_linux",
+      "unit": "minutes",
+      "grossQuantity": 1360.0,
+      "discountQuantity": 1360.0,
+      "netQuantity": 0.0,
+      "grossAmount": 8.16,
+      "discountAmount": 8.16,
+      "netAmount": 0.0
+    },
+    {
+      "sku": "actions_storage",
+      "unit": "gigabyte-hours",
+      "grossQuantity": 2.820628416,
+      "discountQuantity": 2.820628416,
+      "netQuantity": 0.0,
+      "grossAmount": 0.000947763,
+      "discountAmount": 0.000947763,
+      "netAmount": 0.0
+    }
+  ],
+  "used_minutes": 1360,
+  "included_minutes": 2000,
+  "remaining_minutes": 640,
+  "reserved_minutes": 12,
+  "after_reservation": 628,
+  "other_repos_reserve": 150,
+  "credential": "existing local gh login; GET only"
+}

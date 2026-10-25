@@ -1,0 +1,1261 @@
+{
+  "deployments": {
+    "after-pin-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": true,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "after-rollback-queued-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": false,
+          "pinned": true,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "serial": 0,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "after-switch-staged-deployments": {
+      "rpm": [
+        {
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": true,
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": true,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "aresos-back-de-deployments": {
+      "rpm": [
+        {
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "serial": 0,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": false,
+          "pinned": true,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "aresos-deployments": {
+      "rpm": [
+        {
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "serial": 0,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": false,
+          "pinned": true,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "aresos-us-deployments": {
+      "rpm": [
+        {
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "serial": 0,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": false,
+          "pinned": true,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "corrected-stock-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": true,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "corrected-stock-temporary-stock-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": true,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "first-stock-before-repair-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "repair-installer-value-after-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "repair-installer-value-before-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "repair-starting-de-after-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "repair-starting-de-before-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1 vconsole.keymap=de"
+          ]
+        }
+      ]
+    },
+    "repair-starting-us-after-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    },
+    "repair-starting-us-before-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1 vconsole.keymap=us"
+          ]
+        }
+      ]
+    },
+    "rollback-deployments": {
+      "rpm": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": true,
+          "staged": false,
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+        },
+        {
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false,
+          "staged": false,
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb"
+        }
+      ],
+      "bls": [
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "file": "/boot/loader/entries/ostree-1.conf",
+          "title": [
+            "Bazzite (ostree:1)"
+          ],
+          "version": [
+            "1"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        },
+        {
+          "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "file": "/boot/loader/entries/ostree-2.conf",
+          "title": [
+            "Bazzite (ostree:0)"
+          ],
+          "version": [
+            "2"
+          ],
+          "options": [
+            "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+          ]
+        }
+      ]
+    }
+  },
+  "keyboards": {
+    "aresos-back-de-keyboard": {
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1",
+      "console": "# Written by systemd-localed(8) or systemd-firstboot(1), read by systemd-localed\n# and systemd-vconsole-setup(8). Use localectl(1) to update this file.\nKEYMAP=de\nFONT=eurlatgr\nXKBLAYOUT=de\nXKBMODEL=pc105\n",
+      "layout": "de",
+      "rows": [
+        "keycode  21 = +z",
+        "keycode  44 = +y"
+      ]
+    },
+    "aresos-keyboard": {
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1",
+      "console": "KEYMAP=\"de\"\nFONT=\"eurlatgr\"\n",
+      "layout": "de",
+      "rows": [
+        "keycode  21 = +z",
+        "keycode  44 = +y"
+      ]
+    },
+    "aresos-us-keyboard": {
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1",
+      "console": "# Written by systemd-localed(8) or systemd-firstboot(1), read by systemd-localed\n# and systemd-vconsole-setup(8). Use localectl(1) to update this file.\nKEYMAP=us\nFONT=eurlatgr\nXKBLAYOUT=us\nXKBMODEL=pc105\n",
+      "layout": "us",
+      "rows": [
+        "keycode  21 = +y",
+        "keycode  44 = +z"
+      ]
+    },
+    "corrected-stock-keyboard": {
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1",
+      "console": "KEYMAP=\"de\"\nFONT=\"eurlatgr\"\n",
+      "layout": "de",
+      "rows": [
+        "keycode  21 = +z",
+        "keycode  44 = +y"
+      ]
+    },
+    "first-stock-diagnostic-keyboard": {
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1",
+      "console": "KEYMAP=\"de\"\nFONT=\"eurlatgr\"\n",
+      "layout": "de",
+      "rows": [
+        "keycode  21 = +z",
+        "keycode  44 = +y"
+      ]
+    },
+    "rollback-keyboard": {
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1",
+      "console": "KEYMAP=\"de\"\nFONT=\"eurlatgr\"\n",
+      "layout": "de",
+      "rows": [
+        "keycode  21 = +z",
+        "keycode  44 = +y"
+      ]
+    }
+  },
+  "physical": {
+    "aresos-back-de-foot-physical": {
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ]
+      ],
+      "uid": 1001,
+      "transport": "QMP USB keyboard; serial observation only"
+    },
+    "aresos-back-de-tty-physical": {
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ]
+      ],
+      "uid": 1000,
+      "transport": "QMP USB keyboard; serial observation only"
+    },
+    "aresos-foot-physical": {
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ]
+      ],
+      "uid": 1001,
+      "transport": "QMP USB keyboard; serial observation only"
+    },
+    "aresos-tty-physical": {
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ]
+      ],
+      "uid": 1000,
+      "transport": "QMP USB keyboard; serial observation only"
+    },
+    "aresos-us-foot-physical": {
+      "status": "passed",
+      "layout": "us",
+      "text": "yz-/!",
+      "physical_qcodes": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ]
+      ],
+      "uid": 1001,
+      "transport": "QMP USB keyboard; serial observation only"
+    },
+    "aresos-us-tty-physical": {
+      "status": "passed",
+      "layout": "us",
+      "text": "yz-/!",
+      "physical_qcodes": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ]
+      ],
+      "uid": 1000,
+      "transport": "QMP USB keyboard; serial observation only"
+    },
+    "corrected-stock-tty-physical": {
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ]
+      ],
+      "uid": 1000,
+      "transport": "QMP USB keyboard; serial observation only"
+    },
+    "rollback-tty-physical": {
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ]
+      ],
+      "uid": 1000,
+      "transport": "QMP USB keyboard; serial observation only"
+    }
+  },
+  "proofs": {
+    "keyboard-result": {
+      "status": "passed",
+      "order": "protected-second",
+      "commit": "1a95433cc2c25015a61376aa2abe9de83a02b29f",
+      "release": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+      "starting_states": [
+        "de",
+        "us"
+      ],
+      "layouts": [
+        "de",
+        "us",
+        "de"
+      ],
+      "physical_text": "yz-/!",
+      "tty3_login_password_sudo": true,
+      "foot_physical": true,
+      "all_entries_no_keymap_override": true,
+      "all_entries_scope": "after-switch-finalization-and-rollback",
+      "temporary_old_stock_removed_by_finalization": true,
+      "rollback_stock_checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "protected_disk_unchanged": true,
+      "bootnext_audited": true,
+      "windows_default": true
+    },
+    "repair-installer-value": {
+      "status": "passed",
+      "identity": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false
+        }
+      ],
+      "deployment_count": 2,
+      "before_arguments": [
+        "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0",
+        "console=tty0",
+        "console=ttyS0,115200n8",
+        "root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db",
+        "vconsole.keymap=de",
+        "rootflags=subvol=root",
+        "rw",
+        "bluetooth.disable_ertm=1"
+      ],
+      "after_arguments": [
+        "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0",
+        "console=tty0",
+        "console=ttyS0,115200n8",
+        "root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db",
+        "rootflags=subvol=root",
+        "rw",
+        "bluetooth.disable_ertm=1"
+      ],
+      "reboot_required": true
+    },
+    "repair-starting-de": {
+      "status": "passed",
+      "identity": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false
+        }
+      ],
+      "deployment_count": 2,
+      "before_arguments": [
+        "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0",
+        "console=tty0",
+        "console=ttyS0,115200n8",
+        "root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db",
+        "rootflags=subvol=root",
+        "rw",
+        "bluetooth.disable_ertm=1",
+        "vconsole.keymap=de"
+      ],
+      "after_arguments": [
+        "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0",
+        "console=tty0",
+        "console=ttyS0,115200n8",
+        "root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db",
+        "rootflags=subvol=root",
+        "rw",
+        "bluetooth.disable_ertm=1"
+      ],
+      "reboot_required": true
+    },
+    "repair-starting-us": {
+      "status": "passed",
+      "identity": [
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 1,
+          "osname": "default",
+          "booted": true,
+          "pinned": false
+        },
+        {
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "serial": 0,
+          "osname": "default",
+          "booted": false,
+          "pinned": false
+        }
+      ],
+      "deployment_count": 2,
+      "before_arguments": [
+        "ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0",
+        "console=tty0",
+        "console=ttyS0,115200n8",
+        "root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db",
+        "rootflags=subvol=root",
+        "rw",
+        "bluetooth.disable_ertm=1",
+        "vconsole.keymap=us"
+      ],
+      "after_arguments": [
+        "ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0",
+        "console=tty0",
+        "console=ttyS0,115200n8",
+        "root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db",
+        "rootflags=subvol=root",
+        "rw",
+        "bluetooth.disable_ertm=1"
+      ],
+      "reboot_required": true
+    },
+    "stock-pin-result": {
+      "status": "passed",
+      "booted_checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "booted_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+      "staged_discarded": false,
+      "discarded": null,
+      "pinned": true,
+      "no_staged": true
+    },
+    "stock-initialization-reboot": {
+      "status": "orderly-pre-login-reboot",
+      "count": 1,
+      "source": "https://github.com/ublue-os/bazzite/blob/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/libexec/bazzite-hardware-setup",
+      "kernel_reboot_marker": true,
+      "qmp_guest_reset": true
+    }
+  },
+  "homebrew": {
+    "aresos-back-de-homebrew": [
+      "c9a27029eb72dab04f4595041f7670bb03b4cb467297abba817883afb23e0bf3"
+    ],
+    "aresos-homebrew": [
+      "c9a27029eb72dab04f4595041f7670bb03b4cb467297abba817883afb23e0bf3"
+    ],
+    "aresos-us-homebrew": [
+      "c9a27029eb72dab04f4595041f7670bb03b4cb467297abba817883afb23e0bf3"
+    ],
+    "corrected-stock-homebrew": [
+      "c9a27029eb72dab04f4595041f7670bb03b4cb467297abba817883afb23e0bf3"
+    ],
+    "rollback-homebrew": [
+      "c9a27029eb72dab04f4595041f7670bb03b4cb467297abba817883afb23e0bf3"
+    ]
+  },
+  "native_tests": [
+    "Ran 237 tests in 5.400s"
+  ],
+  "errors": []
+}
