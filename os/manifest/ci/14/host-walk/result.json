@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 47,
+  "tests": 49,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -52,7 +52,7 @@
   ],
   "sources": [
     {
-      "sha256": "caeac2cefc3d7fbabf796c9570080bff1a34b580ee67e63cc9be4f9777ad6da7",
+      "sha256": "09f581e6664ed39189621a9031531de2873e1d9831a91f8db8081b10924125cd",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -84,7 +84,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "00df05ceff52778ba93c731000489360187daf693971b800d33e6e527e8ac152",
+      "sha256": "924702637c52cc601c51340c581caa39cea1217f3ed2fd8d4fc55c81e68ddd69",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -96,7 +96,7 @@
       "path": "os/ci/two_disk_vm.py"
     },
     {
-      "sha256": "99dc895f62f0645578818922811dbecbe49a5e83ce51cc3677cf1f588b04a947",
+      "sha256": "457370d367f809c70bd6d2053665a08142dfb28062a8abf32d15fa531ac7e30b",
       "path": "os/ci/verify_release.py"
     },
     {
@@ -216,6 +216,10 @@
       "path": "os/tests/owner_shim.py"
     },
     {
+      "sha256": "7a5443a9afdd2037408e75902cb1c8550658c7ee409d15f8fe8768e65f4d3abe",
+      "path": "os/tests/test_ci_api_permissions.py"
+    },
+    {
       "sha256": "b2951362395e0489a29e997e4a3d7ffecf725890d440574826ccef65abe388ae",
       "path": "os/tests/test_owner_commands.py"
     },
@@ -228,7 +232,7 @@
       "path": "os/tests/test_owner_export.py"
     },
     {
-      "sha256": "4dcaa847db9db51d634dbc5024ab0f34cd03433d3e6b24367db2195a2f0ab130",
+      "sha256": "09722f716cae17d095b3895b92001baa7f971ae40192f086c89a686f4f9f8122",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -244,11 +248,11 @@
       "path": "os/tests/test_owner_walk.py"
     },
     {
-      "sha256": "992efc624401d0ee667bc1b9106ef6c31fe46955ff781de52273b43cfbbd3b7b",
+      "sha256": "2dbe49b016751482b109667389575f242cc516ff7a8bb33faa92ced267b89d9d",
       "path": "os/tests/test_release_squash_binding.py"
     },
     {
-      "sha256": "8ae791fe100362972305f97effd74c622e49bbfeb95e3adb792502be6dfb05e9",
+      "sha256": "333846f3db38462540b1c72d3cfdc5571d05d65eada9afc4caa15b6cb3a66e5c",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

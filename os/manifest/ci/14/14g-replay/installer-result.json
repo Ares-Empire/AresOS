@@ -1,0 +1,13 @@
+{
+  "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "path": ".work/14/bazzite-nvidia-open-stable-live-amd64.iso",
+  "status": "passed",
+  "kind": "actual installer_inspect.main replay before probe3; no VM",
+  "bytes": 9068650496,
+  "official_checksum": "fresh public HTTPS GET; exact pin",
+  "iso_source": "all retained ISO bytes rehashed by actual inspection loop",
+  "adapters": "Windows system bsdtar, WSL unsquashfs, path spellings and Linux LF writes",
+  "localization_sources": 4,
+  "webui_sources": 102,
+  "ci_inspector_changed": false
+}

@@ -1,13 +1,95 @@
 # 14: checked owner tools
 
-**Current 14f status: STOP / PLAN-GAP at the CI PR12 API read.** All **284 native
-tests** and **15 PowerShell refusal cases** passed, then the accepted release
-binding's `GET /pulls/12` returned HTTP403 for the integration token. The four
-CI-only package/registry checks and VM were skipped. No rerun or qualification
-was sent. Snapshot: **40/350 minutes**, **2/2 probes**, **0/2 qualifications**,
-plus **12 minutes reserved for closing privacy**. PR #13 stays **draft**;
-acceptance is unmet. Physical installation stays **NOT RELEASED**. Earlier
-stops below are historical; their decisions are retained.
+**Current 14g status: local verification; probe3/3 and qualification pending.**
+The integrator resolved the historical PR-read403 with the git-only binding
+below. No additional dispatch has occurred yet. Planning snapshot: **51/350
+minutes consumed**, **184 reserved**, **2/3 probes**, **0/2 qualifications**;
+org **447 free**, **263 after reservation**, above150. PR #13 stays **draft**
+until automated acceptance passes. Physical installation stays **NOT RELEASED**.
+Earlier stops below are historical; their evidence and decisions are retained.
+
+## 14g — Git-only squash binding and permission inventory
+
+**Done:** ran `git pull --ff-only` first (already at integrator commit
+`2d934d7`). The org verifier no longer reads the PR API. PR12's merged state,
+exact squash SHA, head and base are pinned historical facts, verified by the
+integrator on2026-10-25 in14e/14g. A changed pin refuses before external reads.
+The verifier fetches the source, retained `refs/pull/12/head` and exact squash;
+requires source ancestry in that PR head and squash ancestry in HEAD; and
+compares all eight runtime paths source→HEAD **and** source→squash. Every other
+release/run/job/signature/image-diff/job-token-read check remains intact.
+Shallow or unknown history refuses explicitly before API reads. Both verifier
+jobs (`switch`, `rehearsal`) now use full checkout history. No workflow
+permission, credential, owner script, bundle, frozen runtime or release changed.
+
+The permission regression inventories every Python `gh api` construction in
+the CI tree, the verifier's suffixes and every caller of the guard GET wrapper,
+plus shell/inline workflow API commands. It follows conservative local import/
+literal-script-reference closures for each job and checks its declared grants.
+Remaining calls are Actions run/jobs/artifact GETs (`actions: read`) and the
+org package GET (`packages: read`, already qualified in package13's frozen
+record). Billing stays scheduling-only under `not ci`; the existing runtime
+regression also verifies CI never calls it. Unknown calls, endpoints or methods
+refuse. Negative cases remove job grants/history or add unsupported calls.
+This checks the declared contract; live package access remains fail-closed in
+the four unchanged CI-only steps from14f.
+
+**Verified so far:** the actual verifier passed using real original-run/jobs
+GETs and all fetched Git checks, without a PR API request. Seven binding tests
+cover all five pins, all three failed fetches, both ancestry links, both payload
+diffs and shallow/unknown output. Four permission regressions passed. The
+refreshed **49-test host walk** passed in48.621s, binds51 source files, and
+requires no tools stick across any reboot. Windows copy passed **15 zero-write
+refusals** with the unchanged bundle fingerprint. The offline14b source gate
+again passed all53 source files and the complete retained listing. Frozen
+runtime paths compare byte-identically with775be05.
+
+The whole local discovery printed **`Ran 286 tests in 152.881s`** and
+**`FAILED (failures=2, errors=9)`**, exit1, no skips: **278 tests passed** and
+eight distinct cases retain the documented host limits. Three need absent
+WSL Pillow, three inherited-Homebrew cases and one sysusers case require
+privileged Linux operations (the local no-privilege shim refused every sudo),
+and the credential-mode case sees DrvFS0777 instead of0600. Cleanup errors
+account for the additional error records. These are not green local results
+or waived assertions; all286 must pass natively before the VM.
+
+The actual complete9,068,650,496-byte ISO replay passed, including a fresh
+official checksum GET, four localization and102 Web UI sources. All four
+retained firmware source hashes and the exact automatic-option predicate
+passed. CI/overlay/owner Python compilation, every CI/release shell syntax
+check, **257 guest shell checks** and **233 embedded Python compilations**
+passed. The compilation command temporarily generated two `pyc` files inside
+the bundle; its exact-file guard correctly refused. Removed only those cache
+files and their empty directory; all four equality tests then passed. The
+tracked bundle is unchanged. Compact results, exact inspector adapter,
+host-walk log and **143 canonical source hashes** are retained in
+`os/manifest/ci/14/14g-replay/`. The final source hashes will be checked against
+the pushed Git blobs before dispatch.
+
+The stage walk remains the14c owner sequence: offline install and stock
+hardware reboot; Windows-first round trip with tools absent; Linux sign-in,
+hotplug/install/prepare/rerun; network deployment/pin/pending/BLS invariance;
+export and detach; Windows checkpoint; corrected stock and signed switch;
+AresOS German; plain-US failed fresh login and revert; US International success;
+back to German; rollback/keep-stock and Windows checkpoints. All protected-disk,
+NVRAM, BootNext, detached-device and Windows-default checks remain mandatory.
+
+**Budget:** probe cap is now3, qualifications remain2, total cap350. The required
+plan reserves42 probe/native +130 one qualification +12 closing privacy =184.
+The optional second qualification requires its own fresh guard and all STOP
+rules; it is not reserved as an assumed rerun. The complete33/33 planning read
+reported51 consumed and447 org minutes free. Fresh ledger, billing and all
+three executed privacy checks are required on the pushed head immediately
+before dispatch. The pinned local gitleaks8.21.2 full-history scan must report
+zero findings before every push; no privacy policy or ignore entry is changed.
+
+**Not verified:** the fresh probe and owner-tools VM qualification remain
+pending. The four private CI-only checks stay CI-only under14f. All physical
+NVIDIA, media, forgotten-stick-at-power-on and laptop/followability gates stay
+open. No real laptop action, image build or publication is authorized.
+**JUDGMENT-CALL:** no new owner-facing decision; implemented the integrator's
+historical binding and unchanged safety contract. **PLAN-GAP / Open questions:**
+none newly observed in the local binding; actual CI/VM acceptance is pending.
 
 ## 14f — CI-only credential checks, unchanged fail-closed enforcement
 
