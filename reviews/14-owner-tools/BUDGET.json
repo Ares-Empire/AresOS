@@ -14,12 +14,40 @@
     "probe": 1,
     "owner-tools": 0
   },
-  "consumed_minutes": 17,
-  "reserved_minutes": 12,
+  "consumed_minutes": 28,
+  "reserved_minutes": 184,
   "runs": [
     {
+      "run": 40240890854,
+      "title": "14: owner tools; local package metadata replay blocked",
+      "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40240887069,
+      "title": "Brief 14f: CI-only classification for steps needing the job's package\u2026",
+      "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40240457809,
+      "title": "14: owner tools; local package metadata replay blocked",
+      "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40240454787,
+      "title": "Record the clean squash-binding history scan in the package ledger",
+      "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
       "run": 40239504514,
-      "title": "14: owner tools; release ancestry blocks VM qualification",
+      "title": "14: owner tools; local package metadata replay blocked",
       "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
       "conclusion": "success",
       "minutes": 3
@@ -33,7 +61,7 @@
     },
     {
       "run": 40239030452,
-      "title": "14: owner tools; release ancestry blocks VM qualification",
+      "title": "14: owner tools; local package metadata replay blocked",
       "sha": "bfbb3c696b9107966eddeb1281954de318f3e476",
       "conclusion": "success",
       "minutes": 3
@@ -58,19 +86,23 @@
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 22,
-    "total_count": 22,
+    "ids_count": 26,
+    "total_count": 26,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 22,
-        "total_count": 22,
-        "ids_sha256": "a4e7a44848b271fa09c9ba81d98f46af703b76e9d65e573b390e10d3b7224ed7"
+        "returned": 26,
+        "total_count": 26,
+        "ids_sha256": "a80e59ae758cd66b729249e30a9d90de9a5fdf48346ef2ba8311b4e8c97ca354"
       }
     ],
     "run_ids": [
+      40240890854,
+      40240887069,
+      40240457809,
+      40240454787,
       40239504514,
       40239499609,
       40239030452,
@@ -95,42 +127,48 @@
       40216222435
     ]
   },
+  "native": {
+    "status": "pending",
+    "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+    "required": "completed native step before any VM"
+  },
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-25T22:24:33.916142+00:00",
-    "response_sha256": "de66ec6012b9adf01b95e6356329b55c2ef8fae3c4b72eb0039521c6a1438083",
+    "checked_at": "2026-10-25T22:40:51.418943+00:00",
+    "response_sha256": "558299c683b6122f3a4263bdcc38e06f9a920391abf4ba7a2c667112c16c4f1d",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 1513.0,
-        "discountQuantity": 1513.0,
+        "grossQuantity": 1527.0,
+        "discountQuantity": 1527.0,
         "netQuantity": 0.0,
-        "grossAmount": 9.078,
-        "discountAmount": 9.078,
+        "grossAmount": 9.162,
+        "discountAmount": 9.162,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
         "grossQuantity": 4.713368466,
-        "discountQuantity": 4.713368466,
+        "discountQuantity": 4.902682582,
         "netQuantity": 0.0,
         "grossAmount": 0.001583753,
-        "discountAmount": 0.001583753,
+        "discountAmount": 0.001647366,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 1513,
+    "used_minutes": 1527,
     "included_minutes": 2000,
-    "remaining_minutes": 487,
-    "reserved_minutes": 12,
-    "after_reservation": 475,
+    "remaining_minutes": 473,
+    "reserved_minutes": 184,
+    "after_reservation": 289,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   },
-  "status": "STOP: local package metadata API replay blocked",
+  "read_retries": [],
+  "status": "14f planning snapshot, not dispatch or VM acceptance",
   "local_privacy_scans": [
     {
       "version": "8.21.2",
@@ -196,6 +234,13 @@
       "version": "8.21.2",
       "checked_commit": "839d9623ea15e2c79eebeffcedbd4963a69c3d0a",
       "checked_at": "2026-10-25T22:29:14.873404+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0

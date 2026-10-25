@@ -1,14 +1,85 @@
 # 14: checked owner tools
 
-**Current 14e status: STOP before dispatch at local package-visibility replay.**
-The pinned squash binding and its nine refusal/positive tests pass locally;
-the actual release verifier now passes. The next read-only job API call returns
-HTTP403 because the existing local `gh` credential cannot read package metadata.
-14e requires every local replay check to pass before dispatch. No new probe or
-qualification was sent; the fresh probe allowance is unused. Ledger snapshot:
-**17/350 minutes**, **1/2 probes**, **0/2 qualifications**, plus **12 minutes
-reserved for closing privacy**. PR #13 stays **draft**; acceptance is unmet.
-Physical installation stays **NOT RELEASED**. Earlier stops below are historical.
+**Current 14f status:** the integrator classifies checks requiring the CI job's
+private-package access as CI-only. Local noncredential replay has passed;
+every such step must pass, then privacy, ledger and billing must be fresh before
+the final allowed probe. No new dispatch has occurred yet. PR #13 stays
+**draft** until acceptance is met. Physical installation stays **NOT RELEASED**.
+Earlier stops below are historical; their decisions are retained.
+
+## 14f — CI-only credential checks, unchanged fail-closed enforcement
+
+Ran `git pull --ff-only` first; the worktree already contained `335141c`.
+The integrator accepts the existing local package-metadata403 as an access
+difference from the CI job, rather than a deterministic source mismatch.
+No credential, local `gh` scope, owner secret or CI implementation changed.
+
+The replay result explicitly records these four checks and their enforcing
+steps. A failure of any one in the probe means **STOP and report, no rerun**.
+
+| CI-only check | Reason | Enforcing CI step |
+|---|---|---|
+| Org package metadata visibility | Requires the job's `GITHUB_TOKEN` with `packages: read`; the local login lacks that access | Verify exact private manifest with scoped credentials |
+| Registry digest inspect | Requires the scoped job auth file for the private image; success and exact pinned digest remain mandatory | Verify exact private manifest with scoped credentials |
+| Private layer pull | Requires scoped job access; preserve digest, inspect the raw manifest and remove the temporary copy | Qualify the exact pinned layer pull without installing |
+| Registry signature verification | Requires scoped job package access through its temporary `DOCKER_CONFIG`; exact release, identity and issuer remain mandatory | Verify the exact private signature natively for the offline guest |
+
+Credential setup and always-run cleanup retain the existing outside-workspace,
+job-token-only lifecycle. No owner-token fallback was added. The existing
+privileged native bootstrap, full native suite, current-run proof and VM remain
+on the disposable runner under brief14; they are not new credential exceptions.
+
+### Local replay and stage walk before dispatch
+
+The actual release verifier again passed using real original-run/job and PR12
+APIs, source/PR fetches, both ancestry predicates and the entire eight-path
+payload diff. The source gate14b again passed all53 retained source files and
+the full listing. All50 bound host-walk source hashes still match current bytes;
+the full284-case local discovery from14e covers this identical implementation
+(276 passed, eight documented native-host limits, no skips). No new code change
+requires repeating that discovery; the probe still runs the complete native
+suite before its VM. The four CI-only implementations are unchanged.
+
+Windows copy again passed **15 zero-write refusals** with unchanged bundle
+fingerprint `118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba`.
+The **257** guest shell syntax checks and **233** embedded Python compilations
+passed again. The exact firmware automatic-option predicate and retained
+source hashes passed, without changing the firmware audit or decoding rules.
+
+The actual `installer_inspect.main` file inspection passed against
+the retained ISO: its complete9,068,650,496-byte SHA-256 matches the pin and
+the fresh public official checksum GET agrees. Only cached input transport and
+the local archive executable/path spelling are adapted; no assertion, file
+content or extractor result is substituted. Existing Windows system libarchive
+and Linux `unsquashfs` operated on ordinary files inside this worktree. This
+did not install software, mount a device or start a VM. All **four localization
+sources** and **102 Web UI sources** passed the actual inspector's checks.
+The exact local transport adapter, compact result, refreshed **47-test** host
+walk output (**61.307s**), four CI-only classifications and **118 canonical
+source input hashes** are retained in `os/manifest/ci/14/14f-replay/`.
+The large raw replay output and extracted ordinary files remain under ignored
+`.work/14/`; their source ISO is pinned. Every recorded file hash precedes its
+path. Before the qualification the same local checks must be replayed again.
+
+The owner stage table in14c remains unchanged: offline install/first stock and
+hardware reboot; Windows-first round trip with tools absent; Linux sign-in,
+hotplug/install/prepare/rerun; network unchanged-state proof and export/detach;
+Windows checkpoint; corrected stock/signed switch; AresOS German; plain-US
+failed fresh login and revert; US International success; back to German;
+rollback/keep-stock and Windows checkpoints. No stage needs the stick across
+a reboot. Every protected-disk, NVRAM, BootNext and Windows-first audit remains.
+
+### Planning snapshot, not dispatch authorization
+
+Complete **26/26** history at this read: **28 minutes** consumed, **1/2 probes**,
+**0/2 qualifications**. The required remaining plan reserves **184 minutes**:
+**42** for the fresh probe including native preflight, **130** for one
+qualification and **12** for closing privacy. Total **212/350**. Org billing
+reported **473** free and **289** after reservation, above **150**. Any optional
+second qualification needs its own fresh guard and remains subject to all STOP
+rules; it is not part of the currently planned run. No image build or publish
+is permitted. The ledger, billing and all three privacy steps will be rechecked
+immediately before dispatch on the pushed head.
 
 ## 14e — pinned PR12 squash binding and local replay STOP
 
