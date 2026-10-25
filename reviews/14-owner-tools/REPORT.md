@@ -1,12 +1,13 @@
 # 14: checked owner tools
 
-**Current 14g status: local verification; probe3/3 and qualification pending.**
-The integrator resolved the historical PR-read403 with the git-only binding
-below. No additional dispatch has occurred yet. Planning snapshot: **51/350
-minutes consumed**, **184 reserved**, **2/3 probes**, **0/2 qualifications**;
-org **447 free**, **263 after reservation**, above150. PR #13 stays **draft**
-until automated acceptance passes. Physical installation stays **NOT RELEASED**.
-Earlier stops below are historical; their evidence and decisions are retained.
+**Current 14g status: STOP / PLAN-GAP at the runner's exFAT mount.** Probe3/3
+passed all286 native tests,15 Windows refusals, the git-only release binding,
+all four private CI-only checks and ISO inspection. Tools-media construction
+then failed with `unknown filesystem type 'exfat'`, before any VM boot. No
+rerun or qualification was sent. Snapshot: **69/350 consumed +12 closing
+privacy reserved**, **3/3 probes**, **0/2 qualifications**, org **429 free**.
+PR #13 stays **draft**; automated acceptance is unmet. Physical installation
+stays **NOT RELEASED**. Earlier stops below retain their historical evidence.
 
 ## 14g — Git-only squash binding and permission inventory
 
@@ -34,7 +35,7 @@ refuse. Negative cases remove job grants/history or add unsupported calls.
 This checks the declared contract; live package access remains fail-closed in
 the four unchanged CI-only steps from14f.
 
-**Verified so far:** the actual verifier passed using real original-run/jobs
+**Local verification before dispatch:** the actual verifier passed using real original-run/jobs
 GETs and all fetched Git checks, without a PR API request. Seven binding tests
 cover all five pins, all three failed fetches, both ancestry links, both payload
 diffs and shallow/unknown output. Four permission regressions passed. The
@@ -63,8 +64,8 @@ the bundle; its exact-file guard correctly refused. Removed only those cache
 files and their empty directory; all four equality tests then passed. The
 tracked bundle is unchanged. Compact results, exact inspector adapter,
 host-walk log and **143 canonical source hashes** are retained in
-`os/manifest/ci/14/14g-replay/`. The final source hashes will be checked against
-the pushed Git blobs before dispatch.
+`os/manifest/ci/14/14g-replay/`. All143 replay hashes and51 host-walk hashes
+were checked against the pushed Git blobs before dispatch.
 
 The stage walk remains the14c owner sequence: offline install and stock
 hardware reboot; Windows-first round trip with tools absent; Linux sign-in,
@@ -74,22 +75,114 @@ AresOS German; plain-US failed fresh login and revert; US International success;
 back to German; rollback/keep-stock and Windows checkpoints. All protected-disk,
 NVRAM, BootNext, detached-device and Windows-default checks remain mandatory.
 
-**Budget:** probe cap is now3, qualifications remain2, total cap350. The required
-plan reserves42 probe/native +130 one qualification +12 closing privacy =184.
+**Planning snapshot:** probe cap is now3, qualifications remain2, total cap350.
+The required plan reserved42 probe/native +130 one qualification +12 closing privacy =184.
 The optional second qualification requires its own fresh guard and all STOP
 rules; it is not reserved as an assumed rerun. The complete33/33 planning read
-reported51 consumed and447 org minutes free. Fresh ledger, billing and all
-three executed privacy checks are required on the pushed head immediately
-before dispatch. The pinned local gitleaks8.21.2 full-history scan must report
-zero findings before every push; no privacy policy or ignore entry is changed.
+reported51 consumed and447 org minutes free. The optional second qualification
+remained behind its own fresh guard, not an assumed rerun.
 
-**Not verified:** the fresh probe and owner-tools VM qualification remain
-pending. The four private CI-only checks stay CI-only under14f. All physical
+### Actual fresh gates and third-probe media STOP
+
+Pushed `4268a94d612a0d6890b14afbd332516dbae11c31` fast-forward after the
+checksum-verified pinned gitleaks8.21.2 full-history scan reported **0 findings**.
+Both privacy runs [40245221350](https://github.com/Ares-Empire/AresOS/actions/runs/40245221350)
+and [40245226417](https://github.com/Ares-Empire/AresOS/actions/runs/40245226417)
+passed gitleaks, private commit emails and personal terms; actual annotations
+confirmed personal terms ran. Immediately before POST the actual verifier
+passed again, all input hashes matched, and the guard proved complete **35/35**
+history: **56 consumed +184 reserved /350**, **2/3 probes**, org **442 free**,
+**258 after reservation**, above150. No credential or permission changed.
+
+Sent one probe: [40245433868](https://github.com/Ares-Empire/AresOS/actions/runs/40245433868),
+on that exact head. Native output was **`Ran 286 tests in 14.997s` / `OK`**,
+no skips, including all eight local host-limited cases. PowerShell printed
+**`PASS 15 destination refusals with zero writes; copied payload equals source`**.
+The real release verifier passed. Org package visibility, exact registry digest,
+signature identity/issuer and digest-preserving layer pull **all passed**.
+Cleanup passed and removed the outside-workspace job credentials. None of the
+four CI-only checks failed; no owner secret or local scope change was used.
+
+Native ISO inspection then passed the full9,068,650,496-byte pin and fresh
+official checksum, four localization sources and102 Web UI sources. The next
+step created only disposable file-backed target/protected fixtures and began
+the tools stick. `mkfs.exfat1.2.2` completed, but its subsequent mount failed:
+
+```text
+mount: .../.work/installer/owner-media-mount: unknown filesystem type 'exfat'.
+subprocess.CalledProcessError: Command ['mount', '-t', 'exfat', '-o',
+ 'nodev,nosuid,noexec', '/dev/loop0p1', ...] returned non-zero exit status 32.
+```
+
+The traceback ends at `Media.create` (`os/ci/owner_media.py:70`), called before
+the VM baseline/start in `owner_vm.main`. There is no `two-disk/` VM evidence
+directory. The media's Windows-copy step, backing-hash completion, QMP hotplug,
+firmware baseline and installation were not reached. The failure path executes
+the existing loop-detach `finally`; no detach exception replaced the mount
+error. No claim of guest or protected-disk/NVRAM/BootNext qualification follows
+from fixture creation alone.
+
+**PLAN-GAP:** the native prerequisite qualified exFAT formatting tools without
+proving the runner could mount the file-backed exFAT filesystem. The observed
+runner was `ubuntu24`, image`20261023.334.3`, kernel`6.17.0-1022-azure`;
+`exfatprogs1.2.2-1build1` was installed. No matching `linux-modules-extra`
+package appears in the retained installed-package list. The exact driver,
+package or load-policy cause is **not established** by these records. No
+driver/package repair, alternative filesystem or audit exception was tried.
+A reviewed runner prerequisite and renewed passing-probe authorization are
+needed before continuation; all three current probe allowances are spent.
+Stopped without changing the harness, owner scripts, release or frozen image.
+
+Artifact **12618767635** (`two-disk-evidence`,153 members,3,015,368 bytes) was
+checked against GitHub's SHA-256 **before reading**:
+`1f49f16f1dd1c251806dc301d2085a8620ed9a49880a7b4ad2070d11d26ffbca`.
+Compact actual native/STOP output, CI step outcomes, four private-check and
+cleanup proofs, original artifact provenance, fresh guard/privacy receipts and
+the prospective qualification's local replay are retained under
+`os/manifest/ci/14/14g-probe-stop/`. JSON key ordering is hash-first; original
+member provenance is retained where copies were reformatted. No credential
+value was printed or stored.
+
+While the probe ran, the qualification's local prerequisites were replayed on
+the unchanged head: **49 tests in56.841s**,15 Windows refusals, the53-source
+offline gate, complete ISO inspection,257 shell checks,233 embedded Python
+compilations and46 Python sources compiled without creating caches. They
+passed, but no passing probe exists, so **no qualification was dispatched**.
+No image or publication job ran; those jobs were skipped. No real laptop was
+touched. No Gradle work or daemon was started (the mod is unchanged).
+
+### Stopped ledger
+
+The fresh stopped read proves complete **36 unique IDs / total_count36**.
+The19 charged records since the first dispatch total69 minutes:45 privacy and
+24 across the three probes. The ledger reserves only closing privacy now;
+there is no VM reservation or additional dispatch authorization.
+
+| Item | Actual at stopped read | Cap/reservation |
+|---|---:|---:|
+| Probe1 / probe2 / probe3 | 5 +6 +13 =24 min | 3/3 probes spent |
+| Privacy since first dispatch | 45 min | same ledger |
+| Package consumed | 69 min | 350 min |
+| Closing privacy reserved | 12 min | 81/350 including reservation |
+| Qualifications | 0 | 2; blocked by missing passing probe |
+| Image builds / publications | 0 /0 | 0 /0 |
+| Org free / after closing reservation | 429 /417 min | minimum150 |
+
+The report push is covered by that12-minute reservation. Its final scan,
+privacy receipts and actual closure cost are recorded in PR #13 after the
+checks finish. Every push requires the pinned full-history local scan to
+report zero findings. No privacy workflow, ignore entry, rule or allowlist
+was changed. PR #13 remains draft because acceptance is unmet.
+
+**Not verified:** no package14 VM boot, live probe, offline installation/first
+stock boot, network invariance, physical owner commands, layout failure/revert/
+success, switch/rollback/keep-stock or associated guest audits ran. All physical
 NVIDIA, media, forgotten-stick-at-power-on and laptop/followability gates stay
-open. No real laptop action, image build or publication is authorized.
+open. INSTALL, EMERGENCY and the release gate retain **NOT RELEASED**.
 **JUDGMENT-CALL:** no new owner-facing decision; implemented the integrator's
-historical binding and unchanged safety contract. **PLAN-GAP / Open questions:**
-none newly observed in the local binding; actual CI/VM acceptance is pending.
+historical binding and unchanged safety contract. **Open questions:** which
+reviewed runner-side prerequisite will prove exFAT mount support before the
+next expensive inspection, and whether a new probe allowance is granted.
 
 ## 14f — CI-only credential checks, unchanged fail-closed enforcement
 

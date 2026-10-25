@@ -1,0 +1,32 @@
+{
+  "checked_at": "2026-10-25T23:34:52.805273+00:00",
+  "head": "4268a94d612a0d6890b14afbd332516dbae11c31",
+  "private_repository": true,
+  "source_hashes_match": true,
+  "runs": [
+    {
+      "log_zip_sha256": "68cc34f3cdd3101900b97b178546e804919a48163c6b5e5fd98ba8f6a0417f47",
+      "run": 40245226417,
+      "head": "4268a94d612a0d6890b14afbd332516dbae11c31",
+      "event": "pull_request",
+      "steps": {
+        "No secrets (gitleaks)": "success",
+        "Only private commit emails": "success",
+        "No personal terms": "success"
+      },
+      "personal_terms_not_skipped": true
+    },
+    {
+      "log_zip_sha256": "56effbdcbb400605e066bf65bc24be16e09485ac29454314b19a86c486d3c426",
+      "run": 40245221350,
+      "head": "4268a94d612a0d6890b14afbd332516dbae11c31",
+      "event": "push",
+      "steps": {
+        "No secrets (gitleaks)": "success",
+        "Only private commit emails": "success",
+        "No personal terms": "success"
+      },
+      "personal_terms_not_skipped": true
+    }
+  ]
+}

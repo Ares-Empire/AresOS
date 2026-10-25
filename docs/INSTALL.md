@@ -463,7 +463,7 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
 
 - **OPEN — package 14 physical gates:** Fedora Media Writer 5.3.2 restore German click path, reviewed bundle copy/eject, novice offline round trip, root-only shared tools across stock/AresOS, and tools-stick hotplug/export/unplug. A forgotten data-only stick at power-on is physically untested; it is never an accepted firmware-audit exception.
 - **OPEN — NVIDIA deferred runtime (14b):** after first network, confirm the enabled sync finishes for the real GPU and the entire deployment/pin/pending/BLS state stays unchanged. Virtio graphics cannot exercise its NVIDIA condition. Never mask or delay it.
-- **PENDING — Package 14 automated owner-tools qualification:** 14g replaces the historical CI PR-read refusal with the reviewed git-only squash binding. Fresh probe3/3 and owner-tools qualification remain required. See [REPORT](../reviews/14-owner-tools/REPORT.md). No image rebuilt or published. Installation stays NOT RELEASED.
+- **STOP — Package 14 automated owner-tools qualification:** 14g's git-only binding, all286 native tests,15 Windows refusals, private-access checks and ISO inspection pass. Probe3/3 then stopped at the runner's exFAT tools-stick mount before any VM boot. Qualification is unrun and all probes are spent. See [REPORT](../reviews/14-owner-tools/REPORT.md). No image rebuilt or published. Installation stays NOT RELEASED.
 
 
 - **OPEN — 14b NVIDIA Flatpak sync on the real GPU:** after the qualified
@@ -472,11 +472,11 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
   prepared deployment list, pins, pending/transaction state and BLS entries are
   unchanged. The source permits this Flatpak-only deferred work; virtual graphics
   makes its NVIDIA condition false, so a VM cannot close this physical gate.
-- **PENDING — package 14 owner tools:** 14b accepts NVIDIA's Flatpak-only retry;
+- **STOP — package 14 owner tools:** 14b accepts NVIDIA's Flatpak-only retry;
   14c keeps the tools stick absent at firmware startup, preserving every audit.
-  The14g git-only squash binding passes locally; 14f reserves private package/
-  registry checks for the scoped CI job. A fresh passing probe3/3 and
-  qualification remain required for this route.
+  The14g git-only squash binding and all four private-access checks passed in
+  CI. Probe3/3 stopped at the runner's exFAT mount before VM boot; no passing
+  probe or qualification exists for this route. All probe allowances are spent.
   The new commands are not released for physical installation. Existing laptop
   and followability gates remain open; see the [14 report](../reviews/14-owner-tools/REPORT.md).
 
