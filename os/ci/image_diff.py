@@ -1,5 +1,6 @@
 """Compare complete merged image files; only the reviewed keyboard files may differ."""
 import hashlib
+import gzip
 import json
 import os
 import pathlib
@@ -65,7 +66,11 @@ def main():
             mounts.append(container)
             root = pathlib.Path(command('podman', 'mount', container))
             record = inventory(root)
-            (evidence / (name + '-files.json')).write_text(json.dumps(record, sort_keys=True) + '\n')
+            # Full inventories stay reviewable without exceeding the inherited
+            # evidence cap; compression does not omit any path or metadata.
+            with gzip.open(evidence / (name + '-files.json.gz'), 'wt', encoding='utf-8') as stream:
+                json.dump(record, stream, sort_keys=True)
+                stream.write('\n')
             actual = command('podman', 'run', '--pull=never', '--network=none', '--read-only', '--rm',
                              '--entrypoint=/usr/bin/rpm', image, '-qa', '--qf', '%{NEVRA}\n').splitlines()
             packages.append(sorted(actual))
