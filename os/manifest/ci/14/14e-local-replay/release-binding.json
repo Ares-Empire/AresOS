@@ -1,0 +1,70 @@
+{
+  "status": "passed",
+  "pr": 12,
+  "merged": true,
+  "merge_commit_sha": "775be05b7f0d6971cbdc8a3bd1aea617fc008c4d",
+  "head_ref": "pkg/13-keyboard-layout",
+  "base_ref": "main",
+  "pr_head": "5b0e5bd3a6032ab0e28fd4d881e27d597dcc40c9",
+  "source": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+  "commands": [
+    {
+      "command": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+        "FETCH_HEAD"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "775be05b7f0d6971cbdc8a3bd1aea617fc008c4d",
+        "HEAD"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+        "HEAD",
+        "--",
+        "os/Containerfile.keyboard",
+        "os/.containerignore",
+        "os/packages.lock.json",
+        "os/config",
+        "os/policy",
+        "os/manifest/base.json",
+        "os/keys",
+        "os/tests/audit.py"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+        "775be05b7f0d6971cbdc8a3bd1aea617fc008c4d",
+        "--",
+        "os/Containerfile.keyboard",
+        "os/.containerignore",
+        "os/packages.lock.json",
+        "os/config",
+        "os/policy",
+        "os/manifest/base.json",
+        "os/keys",
+        "os/tests/audit.py"
+      ],
+      "exit_code": 0
+    }
+  ]
+}

@@ -40,7 +40,17 @@ if org:
         identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/13-keyboard-layout',
         issuer='https://token.actions.githubusercontent.com')
     subprocess.run(['git', 'fetch', '--no-tags', 'origin', source], check=True)
-    subprocess.run(['git', 'merge-base', '--is-ancestor', source, 'HEAD'], check=True)
+    # PR12 was squash-merged: bind the signed branch source to that exact review
+    # and the reachable merge, rather than requiring its discarded ancestry.
+    merged = '775be05b7f0d6971cbdc8a3bd1aea617fc008c4d'
+    pr = json.loads(subprocess.check_output(['gh', 'api', 'repos/Ares-Empire/AresOS/pulls/12']))
+    assert pr['merged'] is True, 'Release PR must be merged'
+    assert pr['merge_commit_sha'] == merged, 'Release PR merge commit differs'
+    assert pr['head']['ref'] == 'pkg/13-keyboard-layout', 'Release PR head differs'
+    assert pr['base']['ref'] == 'main', 'Release PR base differs'
+    subprocess.run(['git', 'fetch', '--no-tags', 'origin', 'refs/pull/12/head'], check=True)
+    subprocess.run(['git', 'merge-base', '--is-ancestor', source, 'FETCH_HEAD'], check=True)
+    subprocess.run(['git', 'merge-base', '--is-ancestor', merged, 'HEAD'], check=True)
     payload = ['os/Containerfile.keyboard', 'os/.containerignore', 'os/packages.lock.json',
                'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys', 'os/tests/audit.py']
     subprocess.run(['git', 'diff', '--exit-code', source, 'HEAD', '--', *payload], check=True)

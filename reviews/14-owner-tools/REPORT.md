@@ -1,14 +1,110 @@
 # 14: checked owner tools
 
-**Current 14d status: STOP / PLAN-GAP at release-source ancestry after the
-package13 squash.** Privacy CI passed all three steps. Native Python **275/275**
-and PowerShell **15 zero-write refusals** passed, then the inherited release
-verifier rejected the frozen image source as a non-ancestor. The single probe
-dispatch stopped before any VM; no qualification was dispatched. Ledger:
-**5/350 minutes**, **1/1 probe**, **0/2 qualifications**, plus **12 minutes
+**Current 14e status: STOP before dispatch at local package-visibility replay.**
+The pinned squash binding and its nine refusal/positive tests pass locally;
+the actual release verifier now passes. The next read-only job API call returns
+HTTP403 because the existing local `gh` credential cannot read package metadata.
+14e requires every local replay check to pass before dispatch. No new probe or
+qualification was sent; the fresh probe allowance is unused. Ledger snapshot:
+**17/350 minutes**, **1/2 probes**, **0/2 qualifications**, plus **12 minutes
 reserved for closing privacy**. PR #13 stays **draft**; acceptance is unmet.
-Physical installation stays **NOT RELEASED**. The earlier NVIDIA, USB and
-privacy stops below are historical; 14b, 14c and 14d record their owner decisions.
+Physical installation stays **NOT RELEASED**. Earlier stops below are historical.
+
+## 14e — pinned PR12 squash binding and local replay STOP
+
+**Done:** ran `git pull --ff-only` first; the worktree already contained
+`e58457c`. In the org branch of `os/ci/verify_release.py`, replaced only the
+source-to-HEAD ancestry command with the approved binding: PR12 must be merged,
+its merge SHA exactly `775be05b7f0d6971cbdc8a3bd1aea617fc008c4d`, its head ref
+`pkg/13-keyboard-layout`, and its base ref `main`. Fetch the retained
+`refs/pull/12/head`, require the signed source in that history, and require the
+pinned squash in current HEAD's history. All Git commands fail closed.
+
+The verifier bytes before and after that replacement are unchanged from
+`e58457c`: source fetch, release/run/job/branch/signature identities, every
+release field, image diff, job-token read and the complete eight-path payload
+diff are retained exactly. The legacy history-rewrite branch is unchanged.
+
+`test_release_squash_binding.py` runs the complete actual verifier against
+closed Git/GitHub stand-ins. **Nine tests passed in 0.029s**, with no CI
+dispatch: the valid binding, unmerged PR, wrong merge SHA, wrong head, wrong
+base, missing fields, source outside PR history, squash outside HEAD history,
+and changed payload. No stub may fall through to a real command. The guard
+now allows **two total probes**, keeps **two qualifications**, **350 minutes**
+and the **150-minute org reserve**; its regression accepts two probes and
+refuses a third. The source-bound host walk includes the verifier and tests.
+
+### Actual zero-cost job replay
+
+Copied the unchanged frozen release metadata to local ignored
+`evidence/release.json` and ran the actual verifier with repository
+`Ares-Empire/AresOS` and release run **40154642447**. All file, original-run/job
+API, PR12 API, source/PR fetch, ancestry and payload checks passed. It printed:
+
+```text
+Qualified private org release 2abc12e8aa6089f7576143d1fbccb6648a3291bd; runtime payload unchanged; testing ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb
+```
+
+The next read-only GitHub check is the exact package visibility API used by
+`registry_auth.py` before native registry preflight:
+
+```text
+gh api orgs/Ares-Empire/packages/container/aresos
+HTTP 403: You need at least read:packages scope to get a package.
+```
+
+The existing local `gh` login is sufficient for repository/PR/run metadata,
+but this endpoint refuses it. No authentication value was printed, read out,
+stored or substituted; no scope was changed. In particular, no owner Actions
+secret was retrieved or used as an API fallback. The CI job's own
+`packages: read` context is distinct and has not been exercised by a new run.
+
+**PLAN-GAP:** 14e requires every git/file/read-only `gh` step of the job to pass
+locally before dispatch. That condition is not met. A decision on how this
+local package-metadata read may be satisfied is needed before continuation;
+this follow-up does not choose a new credential or a CI exception. Remaining
+job replay stages are not claimed complete. The release ancestry issue itself
+is resolved and the accepted binding remains ready for review.
+
+The local refusal tests, Windows copy tests and offline source replay use no
+Actions dispatch. Windows again printed **15 refusals with zero writes** and
+the unchanged bundle fingerprint
+`118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba`.
+Offline replay again passed14b with all53 retained sources and the complete
+listing. The refreshed host walk passed **47 tests in67.769s**, then its full
+stand-in stage walk; all **50 source hashes** match. The complete local suite
+ran **284 tests in218.778s**: **276 passed**, the same **eight** documented host
+limitations, **0 skips**, `failures=2, errors=9` including cleanup records.
+The limitations remain three missing-Pillow cases, three privileged
+Homebrew/ACL cases, privileged sysusers and DrvFS auth-file modes. No test was
+weakened or skipped; no native284-test result is claimed. **257** guest shell
+syntax checks and **233** embedded Python compilations passed without execution.
+`git diff --check` passed. Exact local output and hash-before-path receipts
+are retained in `os/manifest/ci/14/14e-local-replay/`.
+No new native run, VM, image build, publication, owner-script or frozen runtime
+change occurred. INSTALL and EMERGENCY now name this current STOP.
+
+| Ledger before closing push | Result |
+|---|---:|
+| Package first dispatch (unchanged) | 2026-10-25 22:01:22 UTC |
+| Consumed including privacy | 17 minutes |
+| Closing privacy reservation | 12 minutes |
+| Consumed plus reservation /cap | 29/350 |
+| Total probes /allowance | 1/2 |
+| Total qualifications /allowance | 0/2 |
+| Complete branch history | 22/22 runs |
+| Org free /after closing reservation | 487 /475 minutes |
+| Required org reserve | 150 minutes |
+
+`BUDGET.json` and `os/manifest/ci/14/14e-local-replay/` retain the read-only
+ledger and sanitized replay result. Before every eventual dispatch, all replay
+steps, privacy CI, the complete ledger and billing guard must be fresh. No
+dispatch is authorized by this stopped snapshot. Closing privacy outcomes and
+actual costs will be recorded in the PR after its reserved jobs finish.
+
+**Not verified:** a new passing probe, owner-tools qualification and remaining
+job replay stages. **JUDGMENT-CALL:** none beyond the explicit14e decision; the
+local API refusal was preserved. Physical and package15 gates remain open.
 
 ## 14d — hash-before-path manifests and resumed privacy gates
 

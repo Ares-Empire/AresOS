@@ -6,9 +6,10 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 ## Stock preparation stops before the switch
 
-Package14's new checked commands pass native tests and privacy CI. The release
-source ancestry check rejects the package13 squash history, so the single probe
-dispatch stopped before the VM. Owner-tools VM qualification remains unrun.
+Package14's new checked commands passed native tests and privacy CI in14d.
+14e's pinned squash binding passes locally, but the required local package
+visibility API replay returns HTTP403. No fresh probe was dispatched;
+owner-tools VM qualification remains unrun.
 They are not released for physical installation; see the
 [14 report](../reviews/14-owner-tools/REPORT.md).
 

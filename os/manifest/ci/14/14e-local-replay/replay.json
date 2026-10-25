@@ -1,0 +1,28 @@
+{
+  "status": "STOP-before-dispatch",
+  "reason": "local read-only package metadata replay returns HTTP 403",
+  "command": [
+    "gh",
+    "api",
+    "orgs/Ares-Empire/packages/container/aresos"
+  ],
+  "returncode": 1,
+  "http_status": 403,
+  "diagnostic": "You need at least read:packages scope to get a package.",
+  "scope_changed": false,
+  "token_retrieved": false,
+  "owner_token_fallback": false,
+  "release_verifier_replay": "passed with actual Git/GitHub data",
+  "other_verifier_checks_byte_identical": true,
+  "refusal_tests": {
+    "tests": 9,
+    "passed": 9,
+    "ci_dispatches": 0
+  },
+  "new_probe_dispatched": false,
+  "qualification_dispatched": false,
+  "prior_probe_dispatches": 1,
+  "total_probe_allowance": 2,
+  "qualification_allowance": 2,
+  "checked_at": "2026-10-25T22:24:29.304516+00:00"
+}

@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 38,
+  "tests": 47,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -84,7 +84,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "55fc096232f79fe33ca763c72925a37566f536da71c53a4ac22201032ea68abe",
+      "sha256": "00df05ceff52778ba93c731000489360187daf693971b800d33e6e527e8ac152",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -94,6 +94,10 @@
     {
       "sha256": "dc1b812003e2d30f8a7ed6e1d18a2e9e6b667cd07fc97cb599dae2490eac7df1",
       "path": "os/ci/two_disk_vm.py"
+    },
+    {
+      "sha256": "99dc895f62f0645578818922811dbecbe49a5e83ce51cc3677cf1f588b04a947",
+      "path": "os/ci/verify_release.py"
     },
     {
       "sha256": "7ed3c328e2e41f45638b8666cecf6aed3821a2e7cd8a9ee148aaea8c514b9947",
@@ -224,7 +228,7 @@
       "path": "os/tests/test_owner_export.py"
     },
     {
-      "sha256": "796d1c4265767874670c40a9109bb2fbd00aac7280ad095d0bd249ca9c1c7220",
+      "sha256": "4dcaa847db9db51d634dbc5024ab0f34cd03433d3e6b24367db2195a2f0ab130",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -240,7 +244,11 @@
       "path": "os/tests/test_owner_walk.py"
     },
     {
-      "sha256": "9f8cdd034fc7c1b048b12fb7d483f2c333b7c0ff057c1401701c8a309ccfda30",
+      "sha256": "992efc624401d0ee667bc1b9106ef6c31fe46955ff781de52273b43cfbbd3b7b",
+      "path": "os/tests/test_release_squash_binding.py"
+    },
+    {
+      "sha256": "8ae791fe100362972305f97effd74c622e49bbfeb95e3adb792502be6dfb05e9",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]
