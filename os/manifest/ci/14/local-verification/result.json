@@ -1,5 +1,6 @@
 {
   "whole_suite": {
+    "sha256": "25b4c6277ecf77ec0ddacc56a600bfd1a0f2fe3c732d1ba54f2c649db3b25624",
     "command": "python3 -m unittest discover -s os/tests -v",
     "environment": "WSL Python3.12 on DrvFS; repo TMPDIR and denying sudo shim, no elevation",
     "tests": 237,
@@ -10,7 +11,6 @@
     "unique_cases_not_passed": 8,
     "passed": 229,
     "log": "whole-suite.log",
-    "sha256": "25b4c6277ecf77ec0ddacc56a600bfd1a0f2fe3c732d1ba54f2c649db3b25624",
     "limitations": [
       "3 Pillow greeter cases: WSL has no PIL",
       "3 inherited Homebrew cases: sudo denied, including cleanup errors",

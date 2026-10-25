@@ -11,6 +11,22 @@ ROOT = common.ROOT
 
 
 class EqualityTest(unittest.TestCase):
+    def test_package_hash_manifests_put_hashes_before_paths(self):
+        def check(value):
+            if isinstance(value, list):
+                for row in value: check(row)
+            elif isinstance(value, dict):
+                hashes = [key for key in value if key.endswith('sha256')]
+                names = [key for key in value if key in ('path', 'file', 'member', 'archive', 'url', 'log')]
+                for digest in hashes:
+                    for name in names: self.assertLess(list(value).index(digest), list(value).index(name))
+                self.assertFalse(value and all(isinstance(v, str) and re.fullmatch('[0-9a-f]{64}', v)
+                                               for v in value.values()), 'Old path-to-hash map')
+                for child in value.values(): check(child)
+        for folder in ('os/manifest/ci/14', 'os/tests/fixtures/owner-tools', 'os/owner-tools/payload'):
+            for path in (ROOT/folder).rglob('*.json'):
+                if not path.name.startswith('qapi_'): check(json.loads(path.read_text()))
+
     def test_reviewed_windows_payload_is_exact_generated_ci_payload(self):
         fingerprint = common.bundle.check(ROOT/'os/owner-tools/payload')
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as temporary:

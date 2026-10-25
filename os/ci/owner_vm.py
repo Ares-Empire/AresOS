@@ -540,8 +540,11 @@ def main():
         assert authorization['probe']['status'] == 'passed' and authorization['probe']['commit'] == os.environ['GITHUB_SHA']
     walk = json.loads(pathlib.Path('os/manifest/ci/14/host-walk/result.json').read_text())
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
-    for name, expected in walk['sources'].items():
-        assert hashlib.sha256(pathlib.Path(name).read_bytes()).hexdigest() == expected, 'Host walk is stale'
+    assert isinstance(walk['sources'], list) and walk['sources']
+    assert len({row['path'] for row in walk['sources']}) == len(walk['sources']), 'Duplicate host source'
+    for row in walk['sources']:
+        assert list(row) == ['sha256', 'path'], 'Host source must put hash before path'
+        assert hashlib.sha256(pathlib.Path(row['path']).read_bytes()).hexdigest() == row['sha256'], 'Host walk is stale'
     td.EVIDENCE.mkdir(parents=True, exist_ok=True)
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest

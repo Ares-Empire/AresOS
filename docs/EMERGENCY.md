@@ -6,8 +6,8 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 ## Stock preparation stops before the switch
 
-Package14's new checked commands pass local tests, but their native/VM
-qualification is blocked by the required privacy scan on five source pins.
+Package14's new checked commands pass local tests; 14d resolves the historical
+privacy findings. Fresh privacy CI and native/VM qualification remain required.
 They are not released for physical installation; see the
 [14 report](../reviews/14-owner-tools/REPORT.md).
 

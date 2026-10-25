@@ -1,12 +1,79 @@
-# 14: checked owner tools — STOP at privacy gate
+# 14: checked owner tools
 
-**Current 14c status:** implementation, local whole discovery and zero-cost host
-walk are complete and pushed. The required privacy check fails on five source
-integrity hashes in committed history. No native preflight, probe, qualification,
-image build or publication was dispatched. PR #13 stays **draft**; package
-acceptance is unmet. Physical installation stays **NOT RELEASED**. See the
-[14c privacy stop](#14c-privacy-stop-before-any-vm-dispatch) below. Earlier
-NVIDIA/USB stops are historical and resolved by14b/14c.
+**Current 14d status:** the owner resolved the five historical hash findings in
+`1272b3e`; the pinned local full-history scan reports **0 findings** on that
+commit. Hash manifests now put hashes before paths, including the generated
+bundle and host walk. Fresh native/probe/qualification gates remain pending.
+PR #13 stays **draft** until package acceptance is met. Physical installation
+stays **NOT RELEASED**. The earlier NVIDIA, USB and privacy stops below are
+historical; 14b, 14c and 14d record their owner decisions.
+
+## 14d — hash-before-path manifests and resumed privacy gates
+
+**Done:** pulled `1272b3e` fast-forward before resuming. The owner added exactly
+the five historical fingerprints; this follow-up changes no ignore entry,
+allowlist, rule or privacy workflow. The original finding classifier still
+recomputes the original commit's Git blobs, rather than treating the rewritten
+manifest as historical evidence.
+
+The bundle manifest is now a list of `{sha256, path}` rows. Python and Windows
+readers reject the old shape, reversed fields, duplicate paths/fields, extra
+fields, malformed values, traversal, partial bundles and changed bytes before
+any target write. Windows remains the same copy implementation CI uses. The
+new reviewed bundle fingerprint is
+`118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba`.
+The earlier fingerprint and logs below are historical evidence, not the current
+payload. INSTALL states the new fingerprint.
+
+The host walk uses the same hash-before-path rows and the VM checks their shape,
+uniqueness and current source bytes. All other package14 file/hash metadata now
+puts hashes first, including source indices, archive members, retained fixture
+provenance and old verification-log manifests. Their hash values, source/raw
+archives and results did not change. A regression checks this ordering across
+package14 metadata and the payload. Native preflight now explicitly runs the
+PowerShell refusal suite as well as the complete Python suite before the VM.
+
+**Verified so far:**
+
+- Pinned portable gitleaks **8.21.2**, binary SHA-256 checked against the retained
+  checksum-verified distribution: full-history `git . --redact=100 --no-banner
+  --log-level warn` at `1272b3e`: exit **0**, **0 findings**. This is not a claim
+  about a later unscanned commit. Every push requires a new clean scan.
+- `pwsh -NoProfile -File os/tests/owner-tools.Tests.ps1 -Bundle
+  os/owner-tools/payload -Work .work/14/14d-powershell`: **15 refusals with zero
+  writes**, source/copy fingerprints equal, public entry tested with process-local
+  storage stand-ins only.
+- `python3 reviews/14-owner-tools/walk-host.py`: **38 tests passed**, then the
+  actual host control-flow walk passed. All 48 source hashes match. The shell
+  wrapper's exit-status forwarding had a quoting error after the successful
+  Python command; the retained Python output says `OK` and the final PASS.
+- **257** guest shell syntax checks and **233** embedded Python compilations
+  passed without execution. Python source compilation and `git diff --check`
+  passed. Offline source replay again reports `SOURCE-GATE-PASSED-14b`, with all
+  53 retained files and the complete listing verified.
+- Read-only planning guard: complete **15/15** run history, **0 dispatches**,
+  **314/350** reserved, **512** org minutes free, **198** after reservation,
+  required other-repository reserve **150**. A fresh guard is required before
+  each dispatch; this is not dispatch authorization for a future state.
+
+The complete local discovery ran **275 tests in 248.873s**: **267 passed**,
+**8 host-limited cases**, **0 skips** (`failures=2, errors=9`, including cleanup
+errors). These are the same local limits as14c: three Pillow cases without
+WSL's PIL, three privileged Homebrew/ACL cases, privileged sysusers and DrvFS
+auth-file modes. None was weakened or omitted. The full native suite must pass
+all cases. Exact output is retained under
+`os/manifest/ci/14/local-verification/14d/`; its file hashes precede paths.
+
+**Pending:** clean scan of the pushed head, all three privacy CI steps,
+native preflight, one fresh probe and qualification.
+No image/release/publication, laptop or physical USB operation was performed.
+The stage table in14c remains the route: offline live install and first stock,
+Windows-first round trip with the stick absent, attach after signed-in Linux,
+prepare/rerun/network equality/export/detach, signed switch, guarded plain-US
+failure/revert, US International success and back to German, rollback and
+keep-stock. No stick is required across any reboot. All audit and STOP rules
+remain in force. PR #13 stays draft until these automated gates pass; physical
+release and package15/followability items remain open.
 
 ## Original prerequisite stop, before 14b
 

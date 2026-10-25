@@ -61,8 +61,18 @@ def checked_bundle(root):
             require(name not in result, 'Duplicate manifest entry')
             result[name] = value
         return result
-    entries = json.loads(raw, object_pairs_hook=unique)
-    require(isinstance(entries, dict) and {'at', 'owner.py', 'release.json'} <= entries.keys(), 'Incomplete manifest')
+    rows = json.loads(raw, object_pairs_hook=unique)
+    require(isinstance(rows, list), 'Manifest must be a hash-before-path list')
+    entries = {}
+    for row in rows:
+        require(isinstance(row, dict) and list(row) == ['sha256', 'path'], 'Invalid manifest fields/order')
+        name, digest = row['path'], row['sha256']
+        require(isinstance(name, str) and re.fullmatch('[a-zA-Z0-9._/-]+', name)
+                and not name.startswith('/') and '..' not in name.split('/')
+                and isinstance(digest, str) and re.fullmatch('[0-9a-f]{64}', digest), 'Invalid manifest entry')
+        require(name not in entries, 'Duplicate manifest path')
+        entries[name] = digest
+    require({'at', 'owner.py', 'release.json'} <= entries.keys(), 'Incomplete manifest')
     actual = set()
     for path in root.rglob('*'):
         require(not path.is_symlink(), 'Bundle contains a link')
@@ -70,9 +80,6 @@ def checked_bundle(root):
             actual.add(path.relative_to(root).as_posix())
     require(actual == set(entries) | {'SHA256.json'}, 'Partial bundle or unexpected file')
     for name, digest in entries.items():
-        require(isinstance(name, str) and re.fullmatch('[a-zA-Z0-9._/-]+', name)
-                and not name.startswith('/') and '..' not in name.split('/')
-                and isinstance(digest, str) and re.fullmatch('[0-9a-f]{64}', digest), 'Invalid manifest entry')
         require(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest, 'Bundle hash mismatch: ' + name)
     return hashlib.sha256(raw).hexdigest()
 

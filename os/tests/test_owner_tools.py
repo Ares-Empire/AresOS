@@ -167,8 +167,23 @@ class RefusalTest(unittest.TestCase):
             self.refuse(owner.checked_bundle, path)
             (path / 'extra').unlink()
             entries = json.loads((path / 'SHA256.json').read_text())
-            entries['../outside'] = 'a' * 64
+            entries.append(dict(sha256='a' * 64, path='../outside'))
             (path / 'SHA256.json').write_text(json.dumps(entries))
+            self.refuse(owner.checked_bundle, path)
+
+    def test_manifest_shape_duplicate_paths_fields_and_order_refuse_without_mutation(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            path = pathlib.Path(temporary) / 'payload'
+            bundle.build(path)
+            entries = bundle.manifest()
+            for bad in (entries + entries[:1], {'at': 'a' * 64},
+                        [dict(path=row['path'], sha256=row['sha256']) for row in entries],
+                        [dict(entries[0], extra='x')] + entries[1:],
+                        [dict(entries[0], sha256=None)] + entries[1:]):
+                (path / 'SHA256.json').write_text(json.dumps(bad))
+                self.refuse(owner.checked_bundle, path)
+            raw = json.dumps(entries).replace('"sha256":', '"sha256":"' + 'a' * 64 + '","sha256":', 1)
+            (path / 'SHA256.json').write_text(raw)
             self.refuse(owner.checked_bundle, path)
 
     def test_cleanup_only_uses_shared_pin_validation_without_pinning(self):

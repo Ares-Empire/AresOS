@@ -1,36 +1,36 @@
 {
+  "sha256": "479cd76b54864b41338b82afb5a5d23b4f9ceefe73d3c4200a0cb5bd0ca069bd",
   "tag": "edk2-stable202402",
   "archive": "source-files.zip",
   "bytes": 39398,
-  "sha256": "479cd76b54864b41338b82afb5a5d23b4f9ceefe73d3c4200a0cb5bd0ca069bd",
   "files": [
     {
+      "sha256": "e961d1bc0ad7df99156a030dee92585fb2608ad5722f34d494459c2f74e6f3c6",
       "path": "MdeModulePkg/Library/UefiBootManagerLib/BmBoot.c",
       "url": "https://raw.githubusercontent.com/tianocore/edk2/edk2-stable202402/MdeModulePkg/Library/UefiBootManagerLib/BmBoot.c",
       "file": "BmBoot.c",
-      "bytes": 85463,
-      "sha256": "e961d1bc0ad7df99156a030dee92585fb2608ad5722f34d494459c2f74e6f3c6"
+      "bytes": 85463
     },
     {
+      "sha256": "fac83fe8039a38b16de7386b280506da06d425af63e96f7a4f598ca34113de83",
       "path": "MdeModulePkg/Bus/Usb/UsbBusDxe/UsbEnumer.c",
       "url": "https://raw.githubusercontent.com/tianocore/edk2/edk2-stable202402/MdeModulePkg/Bus/Usb/UsbBusDxe/UsbEnumer.c",
       "file": "UsbEnumer.c",
-      "bytes": 30618,
-      "sha256": "fac83fe8039a38b16de7386b280506da06d425af63e96f7a4f598ca34113de83"
+      "bytes": 30618
     },
     {
+      "sha256": "f1cd283646c8a9449545c1c632c426dde06ccbf1791b437166ccf243c7c5c088",
       "path": "MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassImpl.c",
       "url": "https://raw.githubusercontent.com/tianocore/edk2/edk2-stable202402/MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassImpl.c",
       "file": "UsbMassImpl.c",
-      "bytes": 35035,
-      "sha256": "f1cd283646c8a9449545c1c632c426dde06ccbf1791b437166ccf243c7c5c088"
+      "bytes": 35035
     },
     {
+      "sha256": "81b9d259bfc475966b0e477ecc20904306069a69a113595fba6a72aa3501a9f2",
       "path": "MdePkg/Include/Protocol/DevicePath.h",
       "url": "https://raw.githubusercontent.com/tianocore/edk2/edk2-stable202402/MdePkg/Include/Protocol/DevicePath.h",
       "file": "DevicePath.h",
-      "bytes": 39730,
-      "sha256": "81b9d259bfc475966b0e477ecc20904306069a69a113595fba6a72aa3501a9f2"
+      "bytes": 39730
     }
   ],
   "pinned_binary_binding": {

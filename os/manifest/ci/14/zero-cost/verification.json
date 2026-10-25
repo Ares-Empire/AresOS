@@ -1,10 +1,10 @@
 {
+  "iso_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
   "status": "STOP-PLAN-GAP",
   "gate": "offline-first-boot-with-no-deferred-network-work",
   "source_integrity": "passed",
   "retained_files_verified": 53,
   "full_listing_replayed": true,
-  "iso_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
   "stock_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
   "stock_nvidia_version": "615.78.08",
   "live_network_profiles_copied": true,

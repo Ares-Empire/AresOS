@@ -16,8 +16,8 @@ for name in ('pause-stock-updates', 'pin-stock', 'system-keyboard', 'stock-sessi
 
 
 def manifest(root=ROOT):
-    return {name: hashlib.sha256((root / source).read_bytes()).hexdigest()
-            for name, source in sorted(PAYLOAD.items())}
+    return [dict(sha256=hashlib.sha256((root / source).read_bytes()).hexdigest(), path=name)
+            for name, source in sorted(PAYLOAD.items())]
 
 
 def build(destination, root=ROOT):
@@ -29,14 +29,14 @@ def build(destination, root=ROOT):
         target = destination / name
         target.parent.mkdir(exist_ok=True)
         shutil.copyfile(root / source, target)
-    raw = (json.dumps(manifest(root), sort_keys=True, indent=2) + '\n').encode()
+    raw = (json.dumps(manifest(root), indent=2) + '\n').encode()
     (destination / 'SHA256.json').write_bytes(raw)
     return hashlib.sha256(raw).hexdigest()
 
 
 def check(destination, root=ROOT):
     destination = pathlib.Path(destination)
-    expected = (json.dumps(manifest(root), sort_keys=True, indent=2) + '\n').encode()
+    expected = (json.dumps(manifest(root), indent=2) + '\n').encode()
     assert (destination / 'SHA256.json').read_bytes() == expected, 'Regenerate the reviewed payload'
     assert {p.relative_to(destination).as_posix() for p in destination.rglob('*') if p.is_file()} == set(PAYLOAD) | {'SHA256.json'}
     for name, source in PAYLOAD.items():
@@ -56,7 +56,7 @@ if __name__ == '__main__':
                 assert not target.is_symlink()
                 target.parent.mkdir(exist_ok=True)
                 target.write_bytes((ROOT / source).read_bytes())
-            (destination / 'SHA256.json').write_text(json.dumps(manifest(), sort_keys=True, indent=2) + '\n', newline='\n')
+            (destination / 'SHA256.json').write_text(json.dumps(manifest(), indent=2) + '\n', newline='\n')
         print('PASS bundle manifest SHA256 ' + check(destination))
     else:
         print('PASS bundle manifest SHA256 ' + build(sys.argv[1]))

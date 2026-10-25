@@ -131,7 +131,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 c55de63b4290de42a9f3e1d2b3cffd51ef1c98f6bd979f263030e19bed27c5be` and `PASS ARESTOOLS ready`.
+Require `PASS tools manifest SHA256 118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba` and `PASS ARESTOOLS ready`.
 The copy checks removable/USB/exFAT/boot/system identity before writing,
 verifies every copied file, and labels it **ARESTOOLS**. A STOP means preserve
 it and get help. Safely eject and **unplug** it before [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), shutdown or restart. Record B must pass with
@@ -463,7 +463,7 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
 
 - **OPEN — package 14 physical gates:** Fedora Media Writer 5.3.2 restore German click path, reviewed bundle copy/eject, novice offline round trip, root-only shared tools across stock/AresOS, and tools-stick hotplug/export/unplug. A forgotten data-only stick at power-on is physically untested; it is never an accepted firmware-audit exception.
 - **OPEN — NVIDIA deferred runtime (14b):** after first network, confirm the enabled sync finishes for the real GPU and the entire deployment/pin/pending/BLS state stays unchanged. Virtio graphics cannot exercise its NVIDIA condition. Never mask or delay it.
-- **STOP — Package 14 automated owner-tools qualification:** privacy scan flags five verified source pins; native/probe/qualification not run. See [REPORT](../reviews/14-owner-tools/REPORT.md). No image rebuilt or published. Installation stays NOT RELEASED.
+- **PENDING — Package 14 automated owner-tools qualification:** 14d resolves the historical privacy findings; fresh privacy CI, native suite, probe and qualification are required. See [REPORT](../reviews/14-owner-tools/REPORT.md). No image rebuilt or published. Installation stays NOT RELEASED.
 
 
 - **OPEN — 14b NVIDIA Flatpak sync on the real GPU:** after the qualified
@@ -472,11 +472,11 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
   prepared deployment list, pins, pending/transaction state and BLS entries are
   unchanged. The source permits this Flatpak-only deferred work; virtual graphics
   makes its NVIDIA condition false, so a VM cannot close this physical gate.
-- **BLOCKED — package 14 owner tools:** the updated source prerequisite accepts
-  NVIDIA's retry, but the tools USB's expected firmware path fails the inherited
-  audit. See the [14b report](../reviews/14-owner-tools/REPORT.md#14b--accepted-flatpak-deferral-and-tools-usb-stage-walk).
-  No package 14 probe or qualification has run; the new command route is not
-  released. Existing laptop and followability gates remain open.
+- **PENDING — package 14 owner tools:** 14b accepts NVIDIA's Flatpak-only retry;
+  14c keeps the tools stick absent at firmware startup, preserving every audit.
+  Fresh native/probe/qualification evidence is still required for this route.
+  The new commands are not released for physical installation. Existing laptop
+  and followability gates remain open; see the [14 report](../reviews/14-owner-tools/REPORT.md).
 
 - **OWNER DECISION / guide-only (13g, 2026-10-25) — recovery layout exception:**
   later AresOS layout changes affect only its running deployment. Retained

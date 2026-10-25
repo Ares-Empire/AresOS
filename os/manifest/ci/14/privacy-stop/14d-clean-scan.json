@@ -1,0 +1,30 @@
+{
+  "version": "8.21.2",
+  "checked_commit": "1272b3e57ce79378212019c2efbb52cc1dbdd5a9",
+  "scope": "git full history",
+  "flags": [
+    "git",
+    ".",
+    "--redact=100",
+    "--no-banner",
+    "--log-level",
+    "warn"
+  ],
+  "exit_code": 0,
+  "findings": 0,
+  "privacy_configuration_unchanged": true,
+  "files": [
+    {
+      "sha256": "375b95b3b6b2a74779b7257321238262b1d240b8d57be465bb692b3407c2eaac",
+      "path": ".gitleaksignore"
+    },
+    {
+      "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742",
+      "path": ".gitleaks.toml"
+    },
+    {
+      "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2",
+      "path": ".github/workflows/privacy-check.yml"
+    }
+  ]
+}

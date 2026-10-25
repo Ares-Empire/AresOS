@@ -1,62 +1,62 @@
 [
   {
+    "sha256": "99d1a9d1e89600a65ee53d4856a6b5b4576df91554f88dd9b531d470fea0bf46",
     "path": "usr/share/anaconda/interactive-defaults.ks",
     "file": "iso-files/usr_share_anaconda_interactive-defaults.ks",
-    "bytes": 2830,
-    "sha256": "99d1a9d1e89600a65ee53d4856a6b5b4576df91554f88dd9b531d470fea0bf46"
+    "bytes": 2830
   },
   {
+    "sha256": "f908bcdb4af5c105278eebebda603cd33917a356f5c2ea0086637a6e06e7aced",
     "path": "usr/share/anaconda/post-scripts/install-configure-upgrade.ks",
     "file": "iso-files/usr_share_anaconda_post-scripts_install-configure-upgrade.ks",
-    "bytes": 199,
-    "sha256": "f908bcdb4af5c105278eebebda603cd33917a356f5c2ea0086637a6e06e7aced"
+    "bytes": 199
   },
   {
+    "sha256": "8d647eb3a5ca7ec9e463723a1f0b2e18a249626b4b1f388a2b146dd4fa291618",
     "path": "usr/share/anaconda/post-scripts/install-flatpaks.ks",
     "file": "iso-files/usr_share_anaconda_post-scripts_install-flatpaks.ks",
-    "bytes": 333,
-    "sha256": "8d647eb3a5ca7ec9e463723a1f0b2e18a249626b4b1f388a2b146dd4fa291618"
+    "bytes": 333
   },
   {
+    "sha256": "46687ade0ee4621a48ef41d745f935e082c2252a4394c67b6716244d122f5a00",
     "path": "usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks",
     "file": "iso-files/usr_share_anaconda_post-scripts_disable-fedora-flatpak.ks",
-    "bytes": 139,
-    "sha256": "46687ade0ee4621a48ef41d745f935e082c2252a4394c67b6716244d122f5a00"
+    "bytes": 139
   },
   {
+    "sha256": "6af6e29c9e30900d377963d765997d6117e8d6c32c28de2e20c873b3cb7c51b3",
     "path": "usr/share/anaconda/post-scripts/restore-selinux-labels.ks",
     "file": "iso-files/usr_share_anaconda_post-scripts_restore-selinux-labels.ks",
-    "bytes": 303,
-    "sha256": "6af6e29c9e30900d377963d765997d6117e8d6c32c28de2e20c873b3cb7c51b3"
+    "bytes": 303
   },
   {
+    "sha256": "a4d82f16acaf7ce3784f33e80b255c2851962fac4a1c1808ab4fbb3bb997a94e",
     "path": "etc/anaconda/profile.d/bazzite.conf",
     "file": "iso-files/etc_anaconda_profile.d_bazzite.conf",
-    "bytes": 527,
-    "sha256": "a4d82f16acaf7ce3784f33e80b255c2851962fac4a1c1808ab4fbb3bb997a94e"
+    "bytes": 527
   },
   {
+    "sha256": "3725b5043f2fe67237995e5abf63228b7908b3c980b849579d609ce87b9a66bc",
     "path": "var/lib/containers/storage/overlay-images/images.json",
     "file": "iso-files/var_lib_containers_storage_overlay-images_images.json",
-    "bytes": 1765,
-    "sha256": "3725b5043f2fe67237995e5abf63228b7908b3c980b849579d609ce87b9a66bc"
+    "bytes": 1765
   },
   {
+    "sha256": "dfe5cc144792138239ea630b1a9e9c6f743cb4d438dad7d74c8691597cbdf975",
     "path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/network/installation.py",
     "file": "iso-files/usr_lib64_python3.14_site-packages_pyanaconda_modules_network_installation.py",
-    "bytes": 15109,
-    "sha256": "dfe5cc144792138239ea630b1a9e9c6f743cb4d438dad7d74c8691597cbdf975"
+    "bytes": 15109
   },
   {
+    "sha256": "01ba8a28bf2da7751b2e1ed52536f3b3429f64bc8f33a81e16f3f070d3120c6f",
     "path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/network/network.py",
     "file": "iso-files/usr_lib64_python3.14_site-packages_pyanaconda_modules_network_network.py",
-    "bytes": 32630,
-    "sha256": "01ba8a28bf2da7751b2e1ed52536f3b3429f64bc8f33a81e16f3f070d3120c6f"
+    "bytes": 32630
   },
   {
+    "sha256": "b98917b734f54c212b854e0e90bf23e2e946b05b199187087feb935f1c7b0698",
     "path": "usr/lib64/python3.14/site-packages/pyanaconda/modules/payloads/source/rpm_ostree_container/rpm_ostree_container.py",
     "file": "iso-files/usr_lib64_python3.14_site-packages_pyanaconda_modules_payloads_source_rpm_ostree_container_rpm_ostree_container.py",
-    "bytes": 3933,
-    "sha256": "b98917b734f54c212b854e0e90bf23e2e946b05b199187087feb935f1c7b0698"
+    "bytes": 3933
   }
 ]

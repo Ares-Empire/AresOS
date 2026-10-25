@@ -1,23 +1,23 @@
 [
   {
-    "path": "usr/lib/kbd/keymaps/xkb/de.map.gz",
     "compressed_sha256": "065533905c756b418c23cc126cf55b33b4cb97d96e2df9d88d59bef20bac8808",
+    "sha256": "b635598d31059279adb4d8fd9d06195568acbcb0d5bfefd554687b8acb836c09",
+    "path": "usr/lib/kbd/keymaps/xkb/de.map.gz",
     "bytes": 3921,
-    "file": "de.map",
-    "sha256": "b635598d31059279adb4d8fd9d06195568acbcb0d5bfefd554687b8acb836c09"
+    "file": "de.map"
   },
   {
-    "path": "usr/lib/kbd/keymaps/xkb/us.map.gz",
     "compressed_sha256": "11acf4df23fa06176185dd5a1db91531248e1336430e5cb1b0c56b825df20dbc",
+    "sha256": "06e81bf550edf93d2a9129b573adb9d3bdfb8a3939364088f62de58bc36c4041",
+    "path": "usr/lib/kbd/keymaps/xkb/us.map.gz",
     "bytes": 3566,
-    "file": "us.map",
-    "sha256": "06e81bf550edf93d2a9129b573adb9d3bdfb8a3939364088f62de58bc36c4041"
+    "file": "us.map"
   },
   {
-    "path": "usr/lib/kbd/keymaps/xkb/us-intl.map.gz",
     "compressed_sha256": "dfd37b6869729648ce83be5e83ff69c833e4ae97f16891238766d2c027bacfd1",
+    "sha256": "ae279da2f69b22d4a732089e7a7ac4bdf084ab3591a550d40e0d1277b66e5c30",
+    "path": "usr/lib/kbd/keymaps/xkb/us-intl.map.gz",
     "bytes": 3912,
-    "file": "us-intl.map",
-    "sha256": "ae279da2f69b22d4a732089e7a7ac4bdf084ab3591a550d40e0d1277b66e5c30"
+    "file": "us-intl.map"
   }
 ]

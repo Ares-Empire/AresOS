@@ -1,47 +1,47 @@
 [
   {
+    "sha256": "cbbd6852b3bc2740721d1c956af12444107e79205a63a0bd22746bb1377e7110",
     "file": "net_net.c",
-    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/net/net.c",
-    "sha256": "cbbd6852b3bc2740721d1c956af12444107e79205a63a0bd22746bb1377e7110"
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/net/net.c"
   },
   {
+    "sha256": "9f1d208a44d46dc18aba99eef6c9ae7cce7952357ff7db20eb3631844a32519b",
     "file": "qapi_net.json",
-    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/qapi/net.json",
-    "sha256": "9f1d208a44d46dc18aba99eef6c9ae7cce7952357ff7db20eb3631844a32519b"
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/qapi/net.json"
   },
   {
+    "sha256": "6942b099b20a65a4bd4747d26c2f1e1ec99bb1171daf96f1e9f975874060c6e5",
     "file": "qapi_block-core.json",
-    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/qapi/block-core.json",
-    "sha256": "6942b099b20a65a4bd4747d26c2f1e1ec99bb1171daf96f1e9f975874060c6e5"
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/qapi/block-core.json"
   },
   {
+    "sha256": "f8069239e7e361f6a999567ccba6286871d13c1d10e0ae84663b83583bdc6e49",
     "file": "qapi_qdev.json",
-    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/qapi/qdev.json",
-    "sha256": "f8069239e7e361f6a999567ccba6286871d13c1d10e0ae84663b83583bdc6e49"
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/qapi/qdev.json"
   },
   {
+    "sha256": "18d2554b4256eccb6cc3f56edc2829fd6f8a6e18092bf2e6161b1116ca9a7869",
     "file": "hw_usb_dev-storage.c",
-    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/dev-storage.c",
-    "sha256": "18d2554b4256eccb6cc3f56edc2829fd6f8a6e18092bf2e6161b1116ca9a7869"
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/dev-storage.c"
   },
   {
+    "sha256": "29f5d722ffd5ee895c46df333b1e81d73561f2531d93edd187a48a4ad3a62dad",
     "file": "hw_usb_hcd-xhci.c",
-    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/hcd-xhci.c",
-    "sha256": "29f5d722ffd5ee895c46df333b1e81d73561f2531d93edd187a48a4ad3a62dad"
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/hcd-xhci.c"
   },
   {
+    "sha256": "75e51513e85ee1dfd7153d55eb00d43f3321c3f21f10967565c549332cfd776b",
     "file": "hw_usb_dev-storage-bot.c",
-    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/dev-storage-bot.c",
-    "sha256": "75e51513e85ee1dfd7153d55eb00d43f3321c3f21f10967565c549332cfd776b"
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/dev-storage-bot.c"
   },
   {
+    "sha256": "7ed3c328e2e41f45638b8666cecf6aed3821a2e7cd8a9ee148aaea8c514b9947",
     "file": "hw_usb_bus.c",
-    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/bus.c",
-    "sha256": "7ed3c328e2e41f45638b8666cecf6aed3821a2e7cd8a9ee148aaea8c514b9947"
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/bus.c"
   },
   {
+    "sha256": "41516450961aaf5382a3fb02fa6537fd781a17ccc17ee2fae9ed6e2a1a3f4c7c",
     "file": "hw_usb_dev-storage-classic.c",
-    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/dev-storage-classic.c",
-    "sha256": "41516450961aaf5382a3fb02fa6537fd781a17ccc17ee2fae9ed6e2a1a3f4c7c"
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/dev-storage-classic.c"
   }
 ]

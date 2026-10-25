@@ -10,10 +10,29 @@ function Test-AresToolsBundle {
     $manifest = Join-Path $root 'SHA256.json'
     $raw = Get-Content -LiteralPath $manifest -Raw
     $document = [System.Text.Json.JsonDocument]::Parse($raw)
-    $keys = @($document.RootElement.EnumerateObject() | ForEach-Object { $_.Name })
-    if (@($keys | Sort-Object -Unique).Count -ne $keys.Count) { throw 'STOP: duplicate manifest entries.' }
-    $entries = $raw | ConvertFrom-Json -AsHashtable
-    if ($entries.Count -lt 3) { throw 'STOP: incomplete bundle manifest.' }
+    $entries = @{}
+    try {
+        if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Array) {
+            throw 'STOP: manifest must be a hash-before-path list.'
+        }
+        foreach ($row in $document.RootElement.EnumerateArray()) {
+            if ($row.ValueKind -ne [System.Text.Json.JsonValueKind]::Object) { throw 'STOP: invalid manifest row.' }
+            $keys = @($row.EnumerateObject() | ForEach-Object { $_.Name })
+            if (($keys -join ',') -cne 'sha256,path') { throw 'STOP: invalid or duplicate manifest fields/order.' }
+            if ($row.GetProperty('path').ValueKind -ne [System.Text.Json.JsonValueKind]::String -or
+                $row.GetProperty('sha256').ValueKind -ne [System.Text.Json.JsonValueKind]::String) {
+                throw 'STOP: invalid manifest value.'
+            }
+            $name = $row.GetProperty('path').GetString()
+            $digest = $row.GetProperty('sha256').GetString()
+            if ($name -notmatch '^[a-zA-Z0-9._/-]+$' -or $name.Split('/') -contains '..' -or
+                $name.StartsWith('/') -or $digest -cnotmatch '^[0-9a-f]{64}$') { throw 'STOP: invalid manifest entry.' }
+            if ($entries.ContainsKey($name)) { throw 'STOP: duplicate manifest path.' }
+            $entries[$name] = $digest
+        }
+    } finally { $document.Dispose() }
+    if (-not $entries.ContainsKey('at') -or -not $entries.ContainsKey('owner.py') -or
+        -not $entries.ContainsKey('release.json')) { throw 'STOP: incomplete bundle manifest.' }
     $files = @(Get-ChildItem -LiteralPath $root -Recurse -Force)
     if (@($files | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) {
         throw 'STOP: bundle contains a link.'

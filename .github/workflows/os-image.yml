@@ -358,6 +358,7 @@ jobs:
           .work/browser-env/bin/python -c 'import crypt, PIL, playwright.sync_api'
           dpkg-query -W > evidence/rehearsal-host-packages.txt
           env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests -v
+          pwsh -NoProfile -File os/tests/owner-tools.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/owner-tools-unit-copy
           python3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/owner-tools/*.py
           bash -n os/owner-tools/at
           for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done

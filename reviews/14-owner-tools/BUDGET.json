@@ -1,76 +1,50 @@
 {
-  "package": "14-owner-tools",
-  "branch": "pkg/14-owner-tools",
-  "cap_minutes": 350,
-  "start_policy": "first workflow_dispatch",
+  "allowance": "14",
   "start": null,
-  "stopped_before_first_dispatch": true,
-  "consumed_dispatch_minutes": 0,
-  "probe_cap": 1,
-  "qualification_cap": 2,
-  "probe_runs": 0,
-  "qualification_runs": 0,
-  "image_builds": 0,
-  "publications": 0,
-  "reserved_vm_minutes": 0,
-  "closing_privacy_reservation": 12,
-  "observed_pre_dispatch_privacy_minutes": 17,
-  "pre_dispatch_runs": [
-    {
-      "id": 40219764089,
-      "event": "pull_request",
-      "sha": "11728c531a6930a348bdaa2ae831a216d1f4d130",
-      "conclusion": "success",
-      "minutes": 3
-    },
-    {
-      "id": 40219760184,
-      "event": "push",
-      "sha": "11728c531a6930a348bdaa2ae831a216d1f4d130",
-      "conclusion": "success",
-      "minutes": 2
-    },
-    {
-      "id": 40219068763,
-      "event": "pull_request",
-      "sha": "9e3dae68effba087a20e02e924c0fd2cc47a6c57",
-      "conclusion": "success",
-      "minutes": 6
-    },
-    {
-      "id": 40219035460,
-      "event": "push",
-      "sha": "9e3dae68effba087a20e02e924c0fd2cc47a6c57",
-      "conclusion": "success",
-      "minutes": 3
-    },
-    {
-      "id": 40216222435,
-      "event": "push",
-      "sha": "362d0770033b5146940f696ee2a9a40a70b6283a",
-      "conclusion": "success",
-      "minutes": 3
-    }
-  ],
-  "history_complete": true,
-  "history_total_count": 5,
-  "history_unique_ids": 5,
+  "cap": 350,
+  "full_cap": 0,
+  "full_dispatched": 0,
+  "part_b_cap": 0,
+  "part_b_dispatched": 0,
+  "dispatch_caps": {
+    "probe": 1,
+    "owner-tools": 2
+  },
+  "dispatch_counts": {
+    "probe": 0,
+    "owner-tools": 0
+  },
+  "consumed_minutes": 0,
+  "reserved_minutes": 314,
+  "runs": [],
+  "publish_cap": 0,
+  "publish_attempts": [],
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 5,
-    "total_count": 5,
+    "ids_count": 15,
+    "total_count": 15,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 5,
-        "total_count": 5,
-        "ids_sha256": "7a4ddf44f84906097f7da0e7fa542767ed24491bcf5f9f3eaf68bc2e25302d8a"
+        "returned": 15,
+        "total_count": 15,
+        "ids_sha256": "246e1732c6fc736d56aa788663047cc123ba37bd22b7b433c06580901fa3418a"
       }
     ],
     "run_ids": [
+      40236884399,
+      40236881214,
+      40232135063,
+      40232129389,
+      40230932763,
+      40230930408,
+      40223185778,
+      40223182504,
+      40222801527,
+      40222797405,
       40219764089,
       40219760184,
       40219068763,
@@ -78,39 +52,78 @@
       40216222435
     ]
   },
-  "organization": {
+  "native": {
+    "status": "pending",
+    "sha": "1272b3e57ce79378212019c2efbb52cc1dbdd5a9",
+    "required": "completed native step before any VM"
+  },
+  "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-25T18:40:40.005611+00:00",
-    "response_sha256": "ba9b4f2fa84a3c6f687a8bc3341e2f09c47c1c52e12f3d7d232a9a9b7a2e6dd7",
+    "checked_at": "2026-10-25T21:53:36.572356+00:00",
+    "response_sha256": "cd13efa72a83a4a7315d7da8dadc1a7213210932740629416c51eb83cbfb5ee5",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 1438.0,
-        "discountQuantity": 1438.0,
+        "grossQuantity": 1488.0,
+        "discountQuantity": 1488.0,
         "netQuantity": 0.0,
-        "grossAmount": 8.628,
-        "discountAmount": 8.628,
+        "grossAmount": 8.928,
+        "discountAmount": 8.928,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 4.145546451,
-        "discountQuantity": 4.145546451,
+        "grossQuantity": 4.713368466,
+        "discountQuantity": 4.713368466,
         "netQuantity": 0.0,
-        "grossAmount": 0.001392956,
-        "discountAmount": 0.001392956,
+        "grossAmount": 0.001583753,
+        "discountAmount": 0.001583753,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 1438,
+    "used_minutes": 1488,
     "included_minutes": 2000,
-    "remaining_minutes": 562,
-    "reserved_minutes": 12,
-    "after_reservation": 550,
+    "remaining_minutes": 512,
+    "reserved_minutes": 314,
+    "after_reservation": 198,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
-  }
+  },
+  "read_retries": [],
+  "status": "planning snapshot, not a VM result",
+  "local_privacy_scans": [
+    {
+      "version": "8.21.2",
+      "checked_commit": "1272b3e57ce79378212019c2efbb52cc1dbdd5a9",
+      "scope": "git full history",
+      "flags": [
+        "git",
+        ".",
+        "--redact=100",
+        "--no-banner",
+        "--log-level",
+        "warn"
+      ],
+      "exit_code": 0,
+      "findings": 0,
+      "privacy_configuration_unchanged": true,
+      "files": [
+        {
+          "sha256": "375b95b3b6b2a74779b7257321238262b1d240b8d57be465bb692b3407c2eaac",
+          "path": ".gitleaksignore"
+        },
+        {
+          "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742",
+          "path": ".gitleaks.toml"
+        },
+        {
+          "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2",
+          "path": ".github/workflows/privacy-check.yml"
+        }
+      ]
+    }
+  ]
 }

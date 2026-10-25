@@ -37,10 +37,11 @@ def main():
     proof=dict(status='passed',kind='local stand-ins, not VM qualification',tests=result.testsRun,
         stick_across_reboot=False, stages=walk['stages'],markers=walk['markers'],checks=walk['checks'],
         typed_profiles=sorted({profile for text,profile in walk['typed']}),
-        sources={p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(files)})
+        sources=[dict(sha256=hashlib.sha256(p.read_bytes()).hexdigest(), path=p.relative_to(ROOT).as_posix())
+                 for p in sorted(files)])
     folder=ROOT/'os/manifest/ci/14/host-walk';folder.mkdir(exist_ok=True)
-    (folder/'result.json').write_text(json.dumps(proof,indent=2)+'\n')
-    (folder/'guest-commands.json').write_text(json.dumps(walk['commands'],indent=2)+'\n')
+    (folder/'result.json').write_text(json.dumps(proof,indent=2)+'\n', newline='\n')
+    (folder/'guest-commands.json').write_text(json.dumps(walk['commands'],indent=2)+'\n', newline='\n')
     print('PASS local owner host walk; no stick across any reboot; no VM started')
 
 

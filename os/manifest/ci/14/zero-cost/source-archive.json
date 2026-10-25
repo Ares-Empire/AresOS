@@ -1,272 +1,272 @@
 {
+  "sha256": "6abf473564d7c6685df4d1330201c81d7743e67e93a35587bb7f68988a56ff2d",
   "file": "source-files.zip",
   "bytes": 99977,
-  "sha256": "6abf473564d7c6685df4d1330201c81d7743e67e93a35587bb7f68988a56ff2d",
   "members": [
     {
+      "sha256": "78fa778c36bac8f008e7177630fafb5219b5d356667558e3febd68e3aacb885f",
       "member": "base-files/etc_systemd_system_multi-user.target.wants_ublue-nvidia-flatpak-runtime-sync.service",
-      "bytes": 65,
-      "sha256": "78fa778c36bac8f008e7177630fafb5219b5d356667558e3febd68e3aacb885f"
+      "bytes": 65
     },
     {
+      "sha256": "7036e0bb062f669230fcd7975872a9af6e4af58233e5f96b26618e9eb58f3a59",
       "member": "base-files/usr_lib_systemd_system-preset_01-homebrew.preset",
-      "bytes": 77,
-      "sha256": "7036e0bb062f669230fcd7975872a9af6e4af58233e5f96b26618e9eb58f3a59"
+      "bytes": 77
     },
     {
+      "sha256": "ee52f89348cf6923f926e0ee18896f4a77f081cfb9bec96ce6fe90d66e96139b",
       "member": "base-files/usr_lib_systemd_system_bazzite-hardware-setup.service",
-      "bytes": 324,
-      "sha256": "ee52f89348cf6923f926e0ee18896f4a77f081cfb9bec96ce6fe90d66e96139b"
+      "bytes": 324
     },
     {
+      "sha256": "fc4341cafce6e208888d87458539a88d21c4cf22d2adb2d0af8f032265f10307",
       "member": "base-files/usr_lib_systemd_system_brew-setup.service",
-      "bytes": 662,
-      "sha256": "fc4341cafce6e208888d87458539a88d21c4cf22d2adb2d0af8f032265f10307"
+      "bytes": 662
     },
     {
+      "sha256": "42bfb2d0a4557a5854e46b982f4ed510e8eb50568a2be62b4dedfed92435a134",
       "member": "base-files/usr_lib_systemd_system_brew-update.service",
-      "bytes": 509,
-      "sha256": "42bfb2d0a4557a5854e46b982f4ed510e8eb50568a2be62b4dedfed92435a134"
+      "bytes": 509
     },
     {
+      "sha256": "1e864adc66d9e677348f64fc54d9e70010cd1f3e0e3b8ccb5ab0f86b7fee403a",
       "member": "base-files/usr_lib_systemd_system_brew-update.timer",
-      "bytes": 182,
-      "sha256": "1e864adc66d9e677348f64fc54d9e70010cd1f3e0e3b8ccb5ab0f86b7fee403a"
+      "bytes": 182
     },
     {
+      "sha256": "b137176bb4d6a9e73a6ae843318b2cc5ee8fbea4eda9a193608d0adf46b29b0a",
       "member": "base-files/usr_lib_systemd_system_brew-upgrade.service",
-      "bytes": 489,
-      "sha256": "b137176bb4d6a9e73a6ae843318b2cc5ee8fbea4eda9a193608d0adf46b29b0a"
+      "bytes": 489
     },
     {
+      "sha256": "fb2b3633e0c91d7c6b7250af031f92c065f48d458e011d92b285394b384f14ba",
       "member": "base-files/usr_lib_systemd_system_brew-upgrade.timer",
-      "bytes": 184,
-      "sha256": "fb2b3633e0c91d7c6b7250af031f92c065f48d458e011d92b285394b384f14ba"
+      "bytes": 184
     },
     {
+      "sha256": "0fd86be2917101691f36ff7faa59d17153e83f6b42824c5ced67fb991a89ef54",
       "member": "base-files/usr_lib_systemd_system_ublue-nvidia-flatpak-runtime-sync.service",
-      "bytes": 528,
-      "sha256": "0fd86be2917101691f36ff7faa59d17153e83f6b42824c5ced67fb991a89ef54"
+      "bytes": 528
     },
     {
+      "sha256": "c3830d6f10a5bf76ff570996384e93d85259c7d7ea9c587a243972361bfeeba1",
       "member": "base-files/usr_lib_systemd_system_ublue-nvidia-flatpak-runtime-verify.service",
-      "bytes": 598,
-      "sha256": "c3830d6f10a5bf76ff570996384e93d85259c7d7ea9c587a243972361bfeeba1"
+      "bytes": 598
     },
     {
+      "sha256": "8bec1ef2e76b5a59743ed6969d3ff577e484424b406023e8e8fea4c55889f1fa",
       "member": "base-files/usr_lib_systemd_user_bazzite-user-setup.service",
-      "bytes": 177,
-      "sha256": "8bec1ef2e76b5a59743ed6969d3ff577e484424b406023e8e8fea4c55889f1fa"
+      "bytes": 177
     },
     {
+      "sha256": "b3f3d6dcba56b7226b4a29e4557aa78174973794b4bde67caff21eb8a6551507",
       "member": "base-files/usr_libexec_bazzite-hardware-setup",
-      "bytes": 11126,
-      "sha256": "b3f3d6dcba56b7226b4a29e4557aa78174973794b4bde67caff21eb8a6551507"
+      "bytes": 11126
     },
     {
+      "sha256": "c8bb96e48b22ad7c6aa212a5baa15219f38f3e017968dcc63d68c3009596841d",
       "member": "base-files/usr_libexec_bazzite-privileged-user-setup",
-      "bytes": 132,
-      "sha256": "c8bb96e48b22ad7c6aa212a5baa15219f38f3e017968dcc63d68c3009596841d"
+      "bytes": 132
     },
     {
+      "sha256": "7f47d95cad0163ed7f166d32ff52e3abed68c4ebe9596b4aecdf4f72932725fb",
       "member": "base-files/usr_libexec_bazzite-user-setup",
-      "bytes": 11944,
-      "sha256": "7f47d95cad0163ed7f166d32ff52e3abed68c4ebe9596b4aecdf4f72932725fb"
+      "bytes": 11944
     },
     {
+      "sha256": "c2819e44ace1a2031914ff9168426be760049135c866f59a0b63ae3e157024a8",
       "member": "base-files/usr_libexec_ublue-nvidia-flatpak-runtime-sync",
-      "bytes": 1301,
-      "sha256": "c2819e44ace1a2031914ff9168426be760049135c866f59a0b63ae3e157024a8"
+      "bytes": 1301
     },
     {
+      "sha256": "09b314cab17a326fc29de1c3182a26be0312cb6ddcea9ad8f73e05c98913d671",
       "member": "base-files/usr_share_ublue-os_image-info.json",
-      "bytes": 340,
-      "sha256": "09b314cab17a326fc29de1c3182a26be0312cb6ddcea9ad8f73e05c98913d671"
+      "bytes": 340
     },
     {
+      "sha256": "a4d82f16acaf7ce3784f33e80b255c2851962fac4a1c1808ab4fbb3bb997a94e",
       "member": "iso-files/etc_anaconda_profile.d_bazzite.conf",
-      "bytes": 527,
-      "sha256": "a4d82f16acaf7ce3784f33e80b255c2851962fac4a1c1808ab4fbb3bb997a94e"
+      "bytes": 527
     },
     {
+      "sha256": "dfe5cc144792138239ea630b1a9e9c6f743cb4d438dad7d74c8691597cbdf975",
       "member": "iso-files/usr_lib64_python3.14_site-packages_pyanaconda_modules_network_installation.py",
-      "bytes": 15109,
-      "sha256": "dfe5cc144792138239ea630b1a9e9c6f743cb4d438dad7d74c8691597cbdf975"
+      "bytes": 15109
     },
     {
+      "sha256": "01ba8a28bf2da7751b2e1ed52536f3b3429f64bc8f33a81e16f3f070d3120c6f",
       "member": "iso-files/usr_lib64_python3.14_site-packages_pyanaconda_modules_network_network.py",
-      "bytes": 32630,
-      "sha256": "01ba8a28bf2da7751b2e1ed52536f3b3429f64bc8f33a81e16f3f070d3120c6f"
+      "bytes": 32630
     },
     {
+      "sha256": "b98917b734f54c212b854e0e90bf23e2e946b05b199187087feb935f1c7b0698",
       "member": "iso-files/usr_lib64_python3.14_site-packages_pyanaconda_modules_payloads_source_rpm_ostree_container_rpm_ostree_container.py",
-      "bytes": 3933,
-      "sha256": "b98917b734f54c212b854e0e90bf23e2e946b05b199187087feb935f1c7b0698"
+      "bytes": 3933
     },
     {
+      "sha256": "99d1a9d1e89600a65ee53d4856a6b5b4576df91554f88dd9b531d470fea0bf46",
       "member": "iso-files/usr_share_anaconda_interactive-defaults.ks",
-      "bytes": 2830,
-      "sha256": "99d1a9d1e89600a65ee53d4856a6b5b4576df91554f88dd9b531d470fea0bf46"
+      "bytes": 2830
     },
     {
+      "sha256": "46687ade0ee4621a48ef41d745f935e082c2252a4394c67b6716244d122f5a00",
       "member": "iso-files/usr_share_anaconda_post-scripts_disable-fedora-flatpak.ks",
-      "bytes": 139,
-      "sha256": "46687ade0ee4621a48ef41d745f935e082c2252a4394c67b6716244d122f5a00"
+      "bytes": 139
     },
     {
+      "sha256": "f908bcdb4af5c105278eebebda603cd33917a356f5c2ea0086637a6e06e7aced",
       "member": "iso-files/usr_share_anaconda_post-scripts_install-configure-upgrade.ks",
-      "bytes": 199,
-      "sha256": "f908bcdb4af5c105278eebebda603cd33917a356f5c2ea0086637a6e06e7aced"
+      "bytes": 199
     },
     {
+      "sha256": "8d647eb3a5ca7ec9e463723a1f0b2e18a249626b4b1f388a2b146dd4fa291618",
       "member": "iso-files/usr_share_anaconda_post-scripts_install-flatpaks.ks",
-      "bytes": 333,
-      "sha256": "8d647eb3a5ca7ec9e463723a1f0b2e18a249626b4b1f388a2b146dd4fa291618"
+      "bytes": 333
     },
     {
+      "sha256": "6af6e29c9e30900d377963d765997d6117e8d6c32c28de2e20c873b3cb7c51b3",
       "member": "iso-files/usr_share_anaconda_post-scripts_restore-selinux-labels.ks",
-      "bytes": 303,
-      "sha256": "6af6e29c9e30900d377963d765997d6117e8d6c32c28de2e20c873b3cb7c51b3"
+      "bytes": 303
     },
     {
+      "sha256": "3725b5043f2fe67237995e5abf63228b7908b3c980b849579d609ce87b9a66bc",
       "member": "iso-files/var_lib_containers_storage_overlay-images_images.json",
-      "bytes": 1765,
-      "sha256": "3725b5043f2fe67237995e5abf63228b7908b3c980b849579d609ce87b9a66bc"
+      "bytes": 1765
     },
     {
+      "sha256": "dfe5cc144792138239ea630b1a9e9c6f743cb4d438dad7d74c8691597cbdf975",
       "member": "sources/anaconda-pyanaconda_modules_network_installation.py",
-      "bytes": 15109,
-      "sha256": "dfe5cc144792138239ea630b1a9e9c6f743cb4d438dad7d74c8691597cbdf975"
+      "bytes": 15109
     },
     {
+      "sha256": "01ba8a28bf2da7751b2e1ed52536f3b3429f64bc8f33a81e16f3f070d3120c6f",
       "member": "sources/anaconda-pyanaconda_modules_network_network.py",
-      "bytes": 32630,
-      "sha256": "01ba8a28bf2da7751b2e1ed52536f3b3429f64bc8f33a81e16f3f070d3120c6f"
+      "bytes": 32630
     },
     {
+      "sha256": "893d7c0a7e937bc1caee63603c1909db5e96fee00a77a1ac38afe2cd22488054",
       "member": "sources/anaconda-pyanaconda_modules_payloads_payload_rpm_ostree_flatpak_installation.py",
-      "bytes": 2364,
-      "sha256": "893d7c0a7e937bc1caee63603c1909db5e96fee00a77a1ac38afe2cd22488054"
+      "bytes": 2364
     },
     {
+      "sha256": "775e7e988c3eeb134afb23480a254bd62c7992b2e9bdc0ae546f4356aacfb48e",
       "member": "sources/anaconda-pyanaconda_modules_payloads_payload_rpm_ostree_flatpak_manager.py",
-      "bytes": 13146,
-      "sha256": "775e7e988c3eeb134afb23480a254bd62c7992b2e9bdc0ae546f4356aacfb48e"
+      "bytes": 13146
     },
     {
+      "sha256": "43f1570a4a4b396f79cb5e82b52c9ee85b6a0039c9097165e5303dc601f6c58d",
       "member": "sources/anaconda-pyanaconda_modules_payloads_payload_rpm_ostree_rpm_ostree.py",
-      "bytes": 9346,
-      "sha256": "43f1570a4a4b396f79cb5e82b52c9ee85b6a0039c9097165e5303dc601f6c58d"
+      "bytes": 9346
     },
     {
+      "sha256": "b98917b734f54c212b854e0e90bf23e2e946b05b199187087feb935f1c7b0698",
       "member": "sources/anaconda-pyanaconda_modules_payloads_source_rpm_ostree_container_rpm_ostree_container.py",
-      "bytes": 3933,
-      "sha256": "b98917b734f54c212b854e0e90bf23e2e946b05b199187087feb935f1c7b0698"
+      "bytes": 3933
     },
     {
+      "sha256": "1dc47eb6b7981bd711fc7cc6a5dfc01fd5ef1ba94d8d46aea2e29c690ba83ece",
       "member": "sources/bazzite-installer_build.sh",
-      "bytes": 4254,
-      "sha256": "1dc47eb6b7981bd711fc7cc6a5dfc01fd5ef1ba94d8d46aea2e29c690ba83ece"
+      "bytes": 4254
     },
     {
+      "sha256": "b561b615de0b59166537eb39cc193de4f9cb2acda75912b61160ad06c365d980",
       "member": "sources/bazzite-installer_Containerfile",
-      "bytes": 570,
-      "sha256": "b561b615de0b59166537eb39cc193de4f9cb2acda75912b61160ad06c365d980"
+      "bytes": 570
     },
     {
+      "sha256": "96493fa210a46a19953b962f85a1111d2a53f49457ae3f6e9def2ceb15ea0d35",
       "member": "sources/bazzite-installer_kde_flatpaks_flatpaks",
-      "bytes": 884,
-      "sha256": "96493fa210a46a19953b962f85a1111d2a53f49457ae3f6e9def2ceb15ea0d35"
+      "bytes": 884
     },
     {
+      "sha256": "46687ade0ee4621a48ef41d745f935e082c2252a4394c67b6716244d122f5a00",
       "member": "sources/bazzite-installer_system_files_shared_usr_share_anaconda_post-scripts_disable-fedora-flatpak.ks",
-      "bytes": 139,
-      "sha256": "46687ade0ee4621a48ef41d745f935e082c2252a4394c67b6716244d122f5a00"
+      "bytes": 139
     },
     {
+      "sha256": "8d647eb3a5ca7ec9e463723a1f0b2e18a249626b4b1f388a2b146dd4fa291618",
       "member": "sources/bazzite-installer_system_files_shared_usr_share_anaconda_post-scripts_install-flatpaks.ks",
-      "bytes": 333,
-      "sha256": "8d647eb3a5ca7ec9e463723a1f0b2e18a249626b4b1f388a2b146dd4fa291618"
+      "bytes": 333
     },
     {
+      "sha256": "e67cff7398a8a045745ed0cdb34c7e0741e41dc6e09024c521d8eef2d501e888",
       "member": "sources/bazzite-installer_titanoboa_hook_postrootfs.sh",
-      "bytes": 10892,
-      "sha256": "e67cff7398a8a045745ed0cdb34c7e0741e41dc6e09024c521d8eef2d501e888"
+      "bytes": 10892
     },
     {
+      "sha256": "fd88a8e2ecdca8867eb0c5a1c0f22775e3789f56c4b8346f10a6ea3f59df9d5b",
       "member": "sources/bazzite-system_files_desktop_shared_usr_lib_systemd_system_bazzite-flatpak-manager.service",
-      "bytes": 242,
-      "sha256": "fd88a8e2ecdca8867eb0c5a1c0f22775e3789f56c4b8346f10a6ea3f59df9d5b"
+      "bytes": 242
     },
     {
+      "sha256": "ee52f89348cf6923f926e0ee18896f4a77f081cfb9bec96ce6fe90d66e96139b",
       "member": "sources/bazzite-system_files_desktop_shared_usr_lib_systemd_system_bazzite-hardware-setup.service",
-      "bytes": 324,
-      "sha256": "ee52f89348cf6923f926e0ee18896f4a77f081cfb9bec96ce6fe90d66e96139b"
+      "bytes": 324
     },
     {
+      "sha256": "8bec1ef2e76b5a59743ed6969d3ff577e484424b406023e8e8fea4c55889f1fa",
       "member": "sources/bazzite-system_files_desktop_shared_usr_lib_systemd_user_bazzite-user-setup.service",
-      "bytes": 177,
-      "sha256": "8bec1ef2e76b5a59743ed6969d3ff577e484424b406023e8e8fea4c55889f1fa"
+      "bytes": 177
     },
     {
+      "sha256": "3a5f5c7dd5c3b25ae22443a68818725641494e6af21f4f331f260151c4670731",
       "member": "sources/bazzite-system_files_desktop_shared_usr_libexec_bazzite-flatpak-manager",
-      "bytes": 4358,
-      "sha256": "3a5f5c7dd5c3b25ae22443a68818725641494e6af21f4f331f260151c4670731"
+      "bytes": 4358
     },
     {
+      "sha256": "b3f3d6dcba56b7226b4a29e4557aa78174973794b4bde67caff21eb8a6551507",
       "member": "sources/bazzite-system_files_desktop_shared_usr_libexec_bazzite-hardware-setup",
-      "bytes": 11126,
-      "sha256": "b3f3d6dcba56b7226b4a29e4557aa78174973794b4bde67caff21eb8a6551507"
+      "bytes": 11126
     },
     {
+      "sha256": "c8bb96e48b22ad7c6aa212a5baa15219f38f3e017968dcc63d68c3009596841d",
       "member": "sources/bazzite-system_files_desktop_shared_usr_libexec_bazzite-privileged-user-setup",
-      "bytes": 132,
-      "sha256": "c8bb96e48b22ad7c6aa212a5baa15219f38f3e017968dcc63d68c3009596841d"
+      "bytes": 132
     },
     {
+      "sha256": "7f47d95cad0163ed7f166d32ff52e3abed68c4ebe9596b4aecdf4f72932725fb",
       "member": "sources/bazzite-system_files_desktop_shared_usr_libexec_bazzite-user-setup",
-      "bytes": 11944,
-      "sha256": "7f47d95cad0163ed7f166d32ff52e3abed68c4ebe9596b4aecdf4f72932725fb"
+      "bytes": 11944
     },
     {
+      "sha256": "0fd86be2917101691f36ff7faa59d17153e83f6b42824c5ced67fb991a89ef54",
       "member": "sources/bazzite-system_files_nvidia_shared_usr_lib_systemd_system_ublue-nvidia-flatpak-runtime-sync.service",
-      "bytes": 528,
-      "sha256": "0fd86be2917101691f36ff7faa59d17153e83f6b42824c5ced67fb991a89ef54"
+      "bytes": 528
     },
     {
+      "sha256": "c2819e44ace1a2031914ff9168426be760049135c866f59a0b63ae3e157024a8",
       "member": "sources/bazzite-system_files_nvidia_shared_usr_libexec_ublue-nvidia-flatpak-runtime-sync",
-      "bytes": 1301,
-      "sha256": "c2819e44ace1a2031914ff9168426be760049135c866f59a0b63ae3e157024a8"
+      "bytes": 1301
     },
     {
+      "sha256": "0a2eebbf1eccd9ac47b18ffe5ebc3921179a598d66908db81161f85878283ce3",
       "member": "sources/mediawriter-po_mediawriter_de.po",
-      "bytes": 46089,
-      "sha256": "0a2eebbf1eccd9ac47b18ffe5ebc3921179a598d66908db81161f85878283ce3"
+      "bytes": 46089
     },
     {
+      "sha256": "86dc36a452550fdd2e57ec04afa89ab456b8647cd7f91e37fe0b3f73333a8c6e",
       "member": "sources/mediawriter-src_app_main.cpp",
-      "bytes": 3083,
-      "sha256": "86dc36a452550fdd2e57ec04afa89ab456b8647cd7f91e37fe0b3f73333a8c6e"
+      "bytes": 3083
     },
     {
+      "sha256": "48a7ebd10cc7401cf6b4c331af1337ca3880beb93a5db970876ac93652975136",
       "member": "sources/mediawriter-src_app_qml_MainPage.qml",
-      "bytes": 2520,
-      "sha256": "48a7ebd10cc7401cf6b4c331af1337ca3880beb93a5db970876ac93652975136"
+      "bytes": 2520
     },
     {
+      "sha256": "563f83cc2eabede8a82afc147072f433b0442790389a5554ee77cf4420cfa0db",
       "member": "sources/mediawriter-src_app_qml_RestorePage.qml",
-      "bytes": 6056,
-      "sha256": "563f83cc2eabede8a82afc147072f433b0442790389a5554ee77cf4420cfa0db"
+      "bytes": 6056
     },
     {
+      "sha256": "796291215961d2c5f3776d9e120b1350802122bc0288b7bf5b29600c34702847",
       "member": "sources/mediawriter-src_helper_win_restorejob.cpp",
-      "bytes": 7232,
-      "sha256": "796291215961d2c5f3776d9e120b1350802122bc0288b7bf5b29600c34702847"
+      "bytes": 7232
     },
     {
+      "sha256": "4ba70eac7a95ea5b6e0f6913fcfc9313775e9795e7fc5fbaea49ffc75260cd06",
       "member": "sources/mediawriter-src_lib_libwindisk_windisk.cpp",
-      "bytes": 58712,
-      "sha256": "4ba70eac7a95ea5b6e0f6913fcfc9313775e9795e7fc5fbaea49ffc75260cd06"
+      "bytes": 58712
     }
   ],
   "note": "Public source and frozen-base data only; preserves original bytes including whitespace. Enabled-unit symlink targets retained as ordinary text; no scripts were executed."

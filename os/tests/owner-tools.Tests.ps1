@@ -23,16 +23,21 @@ foreach ($bad in $cases) {
     if (-not $refused -or @(Get-ChildItem -LiteralPath $usb -Force).Count -ne 0) { throw 'Refusal wrote files.' }
     $count++
 }
-foreach ($kind in 'tamper','partial','duplicate') {
+foreach ($kind in 'tamper','partial','duplicate','duplicate-field','old-shape','path-first','traversal') {
     $badBundle = Join-Path $full $kind
     Copy-Item -LiteralPath $Bundle -Destination $badBundle -Recurse
     if ($kind -eq 'tamper') { Add-Content -LiteralPath (Join-Path $badBundle 'at') -Value 'BAD' }
     if ($kind -eq 'partial') { Remove-Item -LiteralPath (Join-Path $badBundle 'at') }
-    if ($kind -eq 'duplicate') {
+    if ($kind -notin 'tamper','partial') {
         $manifest = Join-Path $badBundle 'SHA256.json'
         $raw = Get-Content -LiteralPath $manifest -Raw
-        $entry = [regex]::Match($raw, '"at"\s*:\s*"[0-9a-f]+"').Value
-        Set-Content -LiteralPath $manifest -Value ('{' + $entry + ',' + $raw.Trim().Substring(1))
+        $rows = @($raw | ConvertFrom-Json -AsHashtable)
+        if ($kind -eq 'duplicate') { $raw = ConvertTo-Json -Depth 5 -InputObject @($rows + @($rows[0])) }
+        if ($kind -eq 'duplicate-field') { $raw = $raw.Replace('"path": "at"', '"path": "at", "path": "at"') }
+        if ($kind -eq 'old-shape') { $raw = '{"at":"' + ('a' * 64) + '"}' }
+        if ($kind -eq 'path-first') { $raw = '[{"path":"at","sha256":"' + ('a' * 64) + '"}]' }
+        if ($kind -eq 'traversal') { $rows[0].path = '../outside'; $raw = ConvertTo-Json -Depth 5 -InputObject $rows }
+        Set-Content -LiteralPath $manifest -Value $raw
     }
     $refused = $false
     try { Copy-AresToolsPayload -Source $badBundle -Destination (Join-Path $usb 'ares-tools') -Drive $good }
