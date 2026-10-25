@@ -6,6 +6,12 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 ## Stock preparation stops before the switch
 
+An NVIDIA Flatpak runtime notification while offline is expected. Leave its
+sync enabled; it retries after networking becomes available. That notification
+alone is not an OS deployment STOP. Keep networking off until the checked OS
+updater pause; do not disable the sync to hide it. Completion and unchanged
+deployments still need the physical check in INSTALL's release gate.
+
 Run INSTALL's [pause-and-retain block](INSTALL.md#pause-and-retain-stock-before-the-windows-comparison)
 at the first stock login, before restarting into Windows, and repeat it before
 switching to AresOS. It first stops the reviewed OS updaters, records their

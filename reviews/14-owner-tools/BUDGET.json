@@ -13,9 +13,37 @@
   "image_builds": 0,
   "publications": 0,
   "reserved_vm_minutes": 0,
-  "closing_privacy_reservation": 8,
-  "observed_pre_dispatch_privacy_minutes": 3,
+  "closing_privacy_reservation": 12,
+  "observed_pre_dispatch_privacy_minutes": 17,
   "pre_dispatch_runs": [
+    {
+      "id": 40219764089,
+      "event": "pull_request",
+      "sha": "11728c531a6930a348bdaa2ae831a216d1f4d130",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "id": 40219760184,
+      "event": "push",
+      "sha": "11728c531a6930a348bdaa2ae831a216d1f4d130",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "id": 40219068763,
+      "event": "pull_request",
+      "sha": "9e3dae68effba087a20e02e924c0fd2cc47a6c57",
+      "conclusion": "success",
+      "minutes": 6
+    },
+    {
+      "id": 40219035460,
+      "event": "push",
+      "sha": "9e3dae68effba087a20e02e924c0fd2cc47a6c57",
+      "conclusion": "success",
+      "minutes": 3
+    },
     {
       "id": 40216222435,
       "event": "push",
@@ -25,40 +53,63 @@
     }
   ],
   "history_complete": true,
-  "history_total_count": 1,
-  "history_unique_ids": 1,
+  "history_total_count": 5,
+  "history_unique_ids": 5,
+  "history": {
+    "complete": true,
+    "pages_read": 1,
+    "ids_count": 5,
+    "total_count": 5,
+    "page_limit": 20,
+    "snapshot_reads": 1,
+    "pages": [
+      {
+        "page": 1,
+        "returned": 5,
+        "total_count": 5,
+        "ids_sha256": "7a4ddf44f84906097f7da0e7fa542767ed24491bcf5f9f3eaf68bc2e25302d8a"
+      }
+    ],
+    "run_ids": [
+      40219764089,
+      40219760184,
+      40219068763,
+      40219035460,
+      40216222435
+    ]
+  },
   "organization": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-25T17:49:28.702184+00:00",
-    "response_sha256": "794645943d52203cd026a8bae126e1f51411fd9a07090e4db1ca30dee426908a",
+    "checked_at": "2026-10-25T18:40:40.005611+00:00",
+    "response_sha256": "ba9b4f2fa84a3c6f687a8bc3341e2f09c47c1c52e12f3d7d232a9a9b7a2e6dd7",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 1421.0,
-        "discountQuantity": 1421.0,
+        "grossQuantity": 1438.0,
+        "discountQuantity": 1438.0,
         "netQuantity": 0.0,
-        "grossAmount": 8.526,
-        "discountAmount": 8.526,
+        "grossAmount": 8.628,
+        "discountAmount": 8.628,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 3.956272446,
-        "discountQuantity": 3.956272446,
+        "grossQuantity": 4.145546451,
+        "discountQuantity": 4.145546451,
         "netQuantity": 0.0,
-        "grossAmount": 0.001329357,
-        "discountAmount": 0.001329357,
+        "grossAmount": 0.001392956,
+        "discountAmount": 0.001392956,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 1421,
+    "used_minutes": 1438,
     "included_minutes": 2000,
-    "remaining_minutes": 579,
-    "reserved_minutes": 8,
-    "after_reservation": 571,
+    "remaining_minutes": 562,
+    "reserved_minutes": 12,
+    "after_reservation": 550,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   }

@@ -88,6 +88,13 @@ The pinned live installer's whole-drive route passed the automated two-disk VM r
 
 ### Let the system keyboard setting decide before retaining stock
 
+An NVIDIA Flatpak runtime notification while stock is offline is expected.
+Leave its sync service enabled: it retries and should finish after the network
+is available. This notification alone is not a deployment STOP. Keep networking
+off until OS updaters have been paused; never suppress the notification by
+disabling the sync. Its completion and unchanged deployments remain a physical
+release-gate check below.
+
 At the first installed stock login, open Konsole and run `sudo -i`. Run the
 following block **before** the pause/pin block. It removes installer-supplied
 console keymap overrides, whatever their value, without adding a deployment.
@@ -977,6 +984,18 @@ If an update changes the order, use F12 for AresOS, then restore Windows Boot Ma
 Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay until reviewed cleanup. If Windows does not boot independently or any identity check fails, remove/erase nothing.
 
 ## Maintainer release gate
+
+- **OPEN — 14b NVIDIA Flatpak sync on the real GPU:** after the qualified
+  first-login preparation and then network connection, confirm the stock sync
+  finishes, both matching NVIDIA GL/GL32 runtimes are installed, and the complete
+  prepared deployment list, pins, pending/transaction state and BLS entries are
+  unchanged. The source permits this Flatpak-only deferred work; virtual graphics
+  makes its NVIDIA condition false, so a VM cannot close this physical gate.
+- **BLOCKED — package 14 owner tools:** the updated source prerequisite accepts
+  NVIDIA's retry, but the tools USB's expected firmware path fails the inherited
+  audit. See the [14b report](../reviews/14-owner-tools/REPORT.md#14b--accepted-flatpak-deferral-and-tools-usb-stage-walk).
+  No package 14 probe or qualification has run; the new command route is not
+  released. Existing laptop and followability gates remain open.
 
 - **OWNER DECISION / guide-only (13g, 2026-10-25) — recovery layout exception:**
   later AresOS layout changes affect only its running deployment. Retained

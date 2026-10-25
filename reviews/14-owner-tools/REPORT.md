@@ -1,5 +1,15 @@
 # 14: owner tools — STOP / PLAN-GAP before dispatch
 
+**Current status after 14b:** the integrator resolved the NVIDIA-only source
+blocker. The subsequent zero-cost stage walk found that the tools USB's expected
+automatic firmware entry is unsupported by the inherited device-path audit.
+The 11f stop rule applies before dispatch. No probe or qualification ran; PR #13
+stays draft and physical installation stays **NOT RELEASED**. See the
+[14b section](#14b--accepted-flatpak-deferral-and-tools-usb-stage-walk) for the
+current evidence, local whole-suite result and remaining work.
+
+## Original prerequisite stop, before 14b
+
 **The zero-cost offline first-boot prerequisite fails its explicit prohibition
 on deferred first-boot network work.** The pinned stock enables NVIDIA Flatpak
 runtime setup; the ISO does not contain either required matching runtime. With
@@ -199,8 +209,186 @@ Physical/novice gates remain separate; no source check closes them.
 
 ## Open questions
 
-The owner must decide the permitted handling of NVIDIA's deferred first-boot
-network setup before this package resumes. No user question or permission
+At the original stop the owner needed to decide the handling of NVIDIA's
+deferred first-boot network setup; **14b has now resolved that question**.
+The rest of this paragraph records the original close. No user question or permission
 prompt was issued mid-run, and no fallback was selected. No merge, force push,
 visibility change, image dispatch or publication occurred. No token was printed
 or retained in the evidence.
+
+## 14b — accepted Flatpak deferral and tools USB stage walk
+
+### Done
+
+Ran `git pull --ff-only` first: **Already up to date**, on
+`pkg/14-owner-tools` at `11728c531a6930a348bdaa2ae831a216d1f4d130`.
+Read 14b and the inherited brief, council, guide, scripts and safety rules in
+this worktree. Neither retired worktree was accessed.
+
+Applied the integrator's NVIDIA decision to the source verifier, preserving
+the original failed result as history. The new
+[classification](../../os/manifest/ci/14/zero-cost/deferred-work-14b.json) and
+[accepted source result](../../os/manifest/ci/14/zero-cost/verification-14b.json)
+cover the retained scripts and known updaters:
+
+| Work | Classification / handling |
+| --- | --- |
+| NVIDIA GL/GL32 sync and notification | Accepted deferred Flatpak-only work; never mask, disable, delay or replace it. Record its unit, check exit/result and runtime IDs without waiting. |
+| Bazzite Flatpak manager 36 | Remotes, overrides, runtime cleanup, Firefox defaults and manager stamps; no deployment/BLS/disk operation in its complete script. |
+| Homebrew setup/update/upgrade | Setup uses the local archive; mutable-prefix updates run as UID1000. Preserve the frozen AresOS Homebrew restrictions. |
+| User setup 57 and its privileged helper | Desktop configuration/stamps, NTP and Tailscale operator settings; no network-dependent deployment path. |
+| Hardware setup 83 | Local mandatory kargs/reboot before the round trip; not a deferred network job. Its one/two-serial result remains identity-checked. |
+| OS updaters | Deployment-capable: pause before network, inspect system/global-user/active-manager units and transactions, and catch rpm-ostree/bootc/ostree clients. Never infer OS idleness from Flatpak's state. |
+
+INSTALL and EMERGENCY now explain the expected offline notification. INSTALL's
+release gate explicitly requires real-NVIDIA completion and unchanged complete
+deployments/pins/pending/transactions/BLS after the network comes up. Virtio's
+false NVIDIA condition cannot qualify that physical path. No stock service,
+image policy or frozen runtime changed.
+
+Read the actual ISO's XKB-derived console maps as data and retained them under
+[keyboard-sources](../../os/manifest/ci/14/keyboard-sources/README.md). German
+keycode26 includes U+00FC; US International includes U+00FC at AltGr+keycode21.
+This supports a future plain-US failure/revert and US-International successful
+trial with the unchanged umlaut password. No map was loaded; no physical trial
+is claimed.
+
+Drafted the bundle, copy checks, guarded commands and offline virtio-serial
+WebUI transport locally before the stage walk reached the USB issue. **They
+are not shipped or qualified.** The draft and its candidate patch are retained
+only under ignored `.work/14/prototype/`; the active release scripts, harness,
+workflow and test suite were restored exactly to the reviewed head. The
+candidate's 11 pure preflight/bundle tests and eight PowerShell destination
+refusals passed, but are development observations, not acceptance evidence for
+an owner route. In particular, all-refusal shim coverage, full prepare/rerun,
+stick diagnostics export and end-to-end layout proof still need completion.
+No generated bundle/fingerprint or new owner command appears in the guide.
+
+### PLAN-GAP: the virtual tools USB creates an unsupported firmware path
+
+The expected attach transition is source-verifiable before spending minutes:
+
+1. **OVMF 2024.02-2ubuntu0.10** enumerates whole BlockIo devices, fixed or
+   removable, and creates missing automatic options from their device paths.
+   This branch has **no filesystem or EFI boot-file test**. A data-only exFAT
+   tools stick does not avoid enumeration.
+2. The retained **whole BmBoot.c hash matches exactly** the hash recorded with
+   that installed runner binary: `e961d1bc0ad7df99156a030dee92585fb2608ad5722f34d494459c2f74e6f3c6`.
+   The tagged USB driver appends a USB messaging node, with port/interface;
+   multi-LUN storage can add a logical-unit node. The latter driver/header
+   files are upstream tagged source, not separately attested Ubuntu binaries.
+3. The unchanged `disk_audit.firmware_hardware` only recognizes the retained
+   PCI/SATA/NIC paths. Three source-derived USB path fixtures all produce
+   **`PLAN-GAP: unsupported firmware device path`**, even with the exact
+   16-byte automatic-option ownership GUID. These are synthetic fixtures,
+   **not** a new observed VM store, and no exact future option number is assumed.
+4. Reducing the USB identity to PCI controller `00:05.0` would be unsafe: the
+   keyboard/controller remain present after removing the stick. It would hide
+   the required detached-device failure. That shortcut was not implemented.
+
+Pinned sources, hashes and scope are in
+[firmware-walk](../../os/manifest/ci/14/firmware-walk/README.md). Primary sources:
+[BmBoot.c](https://github.com/tianocore/edk2/blob/edk2-stable202402/MdeModulePkg/Library/UefiBootManagerLib/BmBoot.c),
+[UsbEnumer.c](https://github.com/tianocore/edk2/blob/edk2-stable202402/MdeModulePkg/Bus/Usb/UsbBusDxe/UsbEnumer.c),
+[device-path definitions](https://github.com/tianocore/edk2/blob/edk2-stable202402/MdePkg/Include/Protocol/DevicePath.h).
+
+The applicable [11f stop rule](../../briefs/11f-linux-order-and-full-length.md#4-before-spending-minutes-walk-the-remaining-stages)
+is explicit: **“If a transition you can foresee would fail the rules, stop and
+report it as a PLAN-GAP before dispatching. Don't widen any rule yourself.”**
+Stopped here. No controller-only exemption, USB-entry filtering, hotplug/media
+substitution or other workaround was selected. The integrator must settle the
+USB identity contract (exact port/interface/LUN, per-boot QMP attachment and
+verified image backing), while keeping exact GUID ownership, detached-device
+refusal, number takeover, fixed-entry order, Windows-first, Linux ESP/loader,
+BootNext and protected-disk checks intact.
+
+### Zero-cost stage walk, updated before any dispatch
+
+All rows below are **planned**, not newly executed evidence.
+
+| Stage | Expected NVRAM transition / existing rule |
+| --- | --- |
+| Baseline and live probe/install, protected second | Attached target/protected/DVD/NIC auto set; exact GUID and per-boot QMP ownership. Full disk/GPT/EFI/zero-write audits unchanged. |
+| Installer completion | Target-only Fedora ESP/loader entry may be created/moved; Linux-first is permitted before the Windows-first step (11f). DVD removal recorded at next boot. |
+| Offline first stock / hardware reboot | Local kargs initialization, at most the recognized orderly reboot; full audits at each reached stop. No external NIC traffic or copied live Wi-Fi profile is permitted. |
+| Shutdown / detached Windows round trip | Target auto removal and any firmware relabel/number recycling under 11e; Windows entry byte-identical and first, no BootNext left over. |
+| **Tools stick attached, next Linux start** | **Expected USB auto entry has an unsupported device path: STOP here before dispatch.** Existing one-time Linux BootNext must still be exact, recorded and consumed. |
+| Install/prepare/network/title/records | Once unblocked, bundle copy/install equality and physical commands; pause/cleanup/repair/pin; complete deployment/BLS equality after network. Flatpak completion is diagnostic only. |
+| Signed switch and AresOS boots | Exact staged target; pinned corrected stock preserved; expected final pair; title refreshed after each reorder; Windows remains firmware default. |
+| Plain-US failure, revert, successful change/back | Original administrator session remains open; fresh second-console password/physical proof before every permitted reboot; no deployment/NVRAM change from localectl. |
+| Rollback, stock, keep-stock and next default boot | Exact saved checksum/serial/stateroot/ref/digest/pin, no unrelated pending work; refreshed titles; all protected/NVRAM/BootNext checks at every stage. |
+| Final Windows and detached Windows | Exact Windows default/entry and unchanged protected data; permitted auto-set removals/relabels only. |
+
+For later scheduling only, 13f's full job took about **69 rounded minutes**.
+A preliminary allowance of 42 for the probe plus 130 per qualification and 12
+for closing privacy would total **314/350**, leaving 248 of the currently 562
+free org minutes, above the 150 reserve. This is an estimate, **not a dispatch
+authorization**; the USB contract, complete host walk, local checks, fresh
+complete-history/org guard and same-head probe must all pass first. No timeout
+or budget constant was changed while blocked.
+
+### Verified
+
+Actual receipts and the full unchanged-suite log are in
+[local-verification](../../os/manifest/ci/14/local-verification/result.json).
+
+| Command | Actual result |
+| --- | --- |
+| `python -X utf8 reviews/14-owner-tools/verify-zero-cost.py --14b --listing .work/14/squashfs-files.txt --record` | Exit 0; `SOURCE-GATE-PASSED-14b`; all 53 retained hashes and the complete 1,439,437-line listing replay passed. Original result preserved. |
+| `python -X utf8 reviews/14-owner-tools/verify-firmware-walk.py --record` | Expected native script exit **2**; `STOP-PLAN-GAP`; four source hashes and pinned whole-file binding passed; all three USB fixtures rejected. A subprocess readback independently confirmed returncode2. |
+| WSL `python3 -m unittest discover -s os/tests -v` | **237 tests /169.476s**, exit1, **2 failures +9 error records in eight distinct cases**, 229 passed; no skips or weakened tests. Repo TMPDIR; denying `sudo` shim returned126 before privileged commands. |
+| Targeted exact owner keyboard/switch blocks, `test_disk_audit`, `test_firmware_contract` | **26 tests /0.301s, OK**, after the guide additions; current owner blocks still exactly match the release scripts. |
+| `pwsh -NoProfile -File reviews/10b-own-ssd-fixes/test-install-record.ps1` | **78 checks passed**, PowerShell7.6.8. Synthetic inventory/decoder guards and unelevated pre-check; no disk/firmware query or setting change. |
+| `git diff --check` | Passed. |
+| Unchanged-path comparison with `11728c5` | Active `os/ci`, `os/tests`, `os/release`, workflow and release manifest unchanged. |
+| Frozen runtime comparison with `2abc12e8aa6089f7576143d1fbccb6648a3291bd` | Containerfile/context/lock/config/policy/base/keys/audit unchanged; no image build/publication. |
+
+Local limitations are explicit: three greeter cases lack WSL Pillow; three
+Homebrew cases require forbidden privileged tmpfiles/ownership/ACL operations
+(including duplicate cleanup errors); the sysusers case requires privilege;
+one auth-file mode case sees DrvFS0777 rather than0600. Nothing was installed
+or elevated to make these pass. Native CI must run the whole suite successfully
+before a future probe VM. **No new native CI or VM run happened.** No Gradle
+build/client test ran, no mod changed, no product-green claim is made and no
+Gradle daemon was started.
+
+### Ledger and privacy
+
+[BUDGET.json](BUDGET.json) continues the same package ledger; it does not reset.
+Fresh complete history: **5 unique IDs /total_count5**, one page, all completed
+privacy runs, **17 rounded pre-dispatch privacy minutes**. **0/1 probes, 0/2
+qualifications, 0 VM/image/publication minutes**, first dispatch/start still
+null. Closing privacy reserves **12** minutes; even charging all pre-dispatch
+privacy conservatively gives **29/350**. No POST dispatch was sent.
+
+Read-only org billing at **2026-10-25T18:40:40Z** reports **1,438/2,000 used**,
+**562 free**; reserving12 leaves **550**, above150. Current-period SKU/zero-paid
+checks passed. Repo remains private; PR13 is open/draft against main. Closing
+head privacy results, actual minutes and log hashes will be recorded in the PR
+body after this push, without a report-only push loop.
+
+### Not verified / remaining acceptance
+
+The owner bundle, Windows copy route, short commands, every-refusal fake-tool
+trace coverage, prepare/rerun/record exports, guarded layout and command/bundle
+equivalence are **not shipped or accepted**. No offline install, first stock
+boot, tools USB boot, network-after-prepare comparison, token login, signed
+switch, umlaut failure/revert, successful change/back, rollback/keep-stock or
+next-default VM evidence was produced for package14. All physical/followability
+gates remain open. PR13 must remain draft; acceptance is not met.
+
+### JUDGMENT-CALL and open decision
+
+No new device-path exception was chosen. Resuming the deferred-Flatpak work is
+authorized by14b; extending the firmware path contract independently would
+contradict11f's explicit stop instruction. The needed integrator decision is
+the narrow USB identity/evidence rule above. The physical owner route remains
+two sticks, offline until the checked pause; no third stick or manual-block
+fallback was substituted.
+
+For package15, the council findings1,4,8–11 listed in the original section still
+stand. Add the tools round-trip acquisition/return checkpoints and the expected
+NVIDIA notification when the tool route is actually qualified; do not present
+the ignored development prototype as an available command. Physical installation
+remains **NOT RELEASED**. No merge, force push, visibility change, real-laptop
+operation or secret printing/storage occurred.
