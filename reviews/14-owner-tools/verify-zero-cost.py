@@ -26,6 +26,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--listing', type=pathlib.Path)
     parser.add_argument('--record', action='store_true')
+    parser.add_argument('--14b', dest='accepted_flatpak', action='store_true',
+                        help='Apply the integrator decision in commit 11728c5; preserve the original gate result')
     args = parser.parse_args()
     receipt = load(DATA / 'source-archive.json')
     raw = (DATA / receipt['file']).read_bytes()
@@ -145,10 +147,20 @@ def main():
         conclusion='With the NVIDIA module loaded, offline first boot retains a network-dependent setup retry. This contradicts the zero-cost prerequisite; no VM dispatch is authorized.',
         offline_vm_run=False, owner_bundle_implemented=False, dispatches=0, image_builds=0, publications=0,
         media_writer_restore_source_verified=True, physical_writer_ui_verified=False)
+    if args.accepted_flatpak:
+        classification = load(DATA / 'deferred-work-14b.json')
+        assert classification['decision_commit'] == '11728c5'
+        assert classification['unclassified_deployment_capable_work'] == []
+        result.update(status='SOURCE-GATE-PASSED-14b',
+            gate='offline-first-boot-with-no-deferred-deployment-bls-or-disk-work',
+            classification=classification,
+            conclusion='11728c5 accepts the Flatpak-only retry. Source gate permits continuation; offline VM, bundle and qualification remain separate acceptance gates.',
+            nvidia_sync_physically_tested=False)
     if args.record:
-        (DATA / 'verification.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
+        name = 'verification-14b.json' if args.accepted_flatpak else 'verification.json'
+        (DATA / name).write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(json.dumps(result, indent=2))
-    return 2
+    return 0 if args.accepted_flatpak else 2
 
 
 if __name__ == '__main__':

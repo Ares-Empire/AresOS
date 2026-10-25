@@ -1,4 +1,19 @@
-# Package 14 zero-cost prerequisite: STOP / PLAN-GAP
+# Package 14 zero-cost source prerequisite
+
+**14b supersedes the original NVIDIA blocker.** Commit `11728c5` accepts its
+Flatpak-only deferred retry. The original `verification.json` below remains
+historical evidence. `deferred-work-14b.json` classifies the retained setup
+paths; `verification-14b.json` records the accepted source gate. Replay with:
+
+```powershell
+python -X utf8 reviews/14-owner-tools/verify-zero-cost.py --14b
+```
+
+That source replay exits **0**; it does not authorize a dispatch or prove a VM
+installation. The subsequent tools-USB stage walk is **STOP / PLAN-GAP**, recorded
+in [../firmware-walk](../firmware-walk/README.md). No new audit rule was assumed.
+
+## Original gate, before the integrator decision
 
 The offline first-boot prerequisite fails its no-deferred-network-work condition.
 This is a source/data finding, **not a newly executed offline VM failure**.
@@ -59,5 +74,6 @@ The first-boot counterexample needs the installed NVIDIA module. Stock enables
 GL32 NVIDIA runtimes, its sync command installs missing runtimes from Flathub,
 and systemd retries failed starts every 30 seconds (600-second start timeout).
 The virtio-only VM is not evidence that this hardware-dependent path is idle.
-No workaround, alternative media route, helper implementation or dispatch was
-authorized by this failed prerequisite.
+At that original stop no workaround, alternative media route, helper
+implementation or dispatch was authorized by the failed prerequisite. 14b now
+permits continuation subject to the separate unchanged safety gates.
