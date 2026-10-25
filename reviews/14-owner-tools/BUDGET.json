@@ -365,6 +365,14 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "0c3169d7df84a277fb0a7e9d51b408d81ca69779",
+      "checked_at": "2026-10-25T23:53:54.993570+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
   "pre_probe_privacy": {
