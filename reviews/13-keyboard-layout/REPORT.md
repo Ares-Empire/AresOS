@@ -1,6 +1,10 @@
-# 13: keyboard layout — 13e stopped in physical-input setup
+# 13: keyboard layout — 13f qualification in preparation
 
-**Current: STOP / PLAN-GAP; PR #12 stays draft.** 13e’s fresh probe passed.
+**Current: 13f zero-cost preparation; PR #12 stays draft pending acceptance.**
+The typer and scheduling guards are being qualified under brief 13f; no new VM
+success is claimed. Physical installation remains NOT RELEASED.
+
+**Historical 13e: STOP / PLAN-GAP.** 13e’s fresh probe passed.
 Real two-entry stock repair passed for both de/us starting states, pin and the
 corrected German stock boot/login/password-sudo passed. Qualification then stopped
 at an unsupported `.` in the physical-input setup command. No signed switch,
@@ -1444,3 +1448,143 @@ construction before merge; this run never merges or makes anything public.
 diff against dispatched head 314bca3 is empty; frozen payload diff against the
 published 2abc12e is empty. Both blocked release manifests match; raw artifact
 ZIP digests rechecked. No new code change requires or authorizes another VM run.
+
+
+## 13f — physical typer coverage and one final qualification
+
+### Done before dispatch
+
+Fetched, then pulled with `--ff-only` first, on `pkg/13-keyboard-layout` in the
+package 13 worktree only. Read 13f with 13–13e and the retained 13e stop. No
+retired package 11 worktree was accessed. No product, owner-script, image,
+publication, workflow timeout or audit change is authorized or made by 13f.
+
+`os/ci/keyboard_vm.py` now covers period, semicolon and apostrophe using actual
+per-layout QMP positions. Unknown characters still raise; empty and multi-character
+inputs now also fail explicitly. Existing `y`, `z`, `-`, `/`, `!` distinctions
+are unchanged. `test_keyboard_walk.py` collects every actual physical typing call
+from the real qualification main, adds the whole generated password alphabet,
+and includes both layout-change command strings. Their serial-root transport is
+unchanged. All collected strings must be typable on **both** layouts.
+
+Pinned source verification precedes dispatch: installed xkeyboard-config
+**2.47-1.fc44**, kbd **2.9.0-4.fc44**, runner QEMU
+**1:8.2.2+ds-0ubuntu1.18**. The retained
+[source copies, hashes and key table](../../os/manifest/ci/13/13f-zero-cost/README.md)
+link to the exact [XKB 2.47 German source](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/raw/xkeyboard-config-2.47/symbols/de),
+[US source](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/raw/xkeyboard-config-2.47/symbols/us),
+[kbd 2.9.0 German map](https://raw.githubusercontent.com/legionus/kbd/v2.9.0/data/keymaps/i386/qwertz/de.map),
+[QEMU 8.2.2 QMP schema](https://raw.githubusercontent.com/qemu/qemu/v8.2.2/qapi/ui.json)
+and its pinned keycodemapdb revision `f5772a62ec52591ff6870b7e8ef32482371f22c6`.
+Period is `dot` on both. Semicolon is German Shift+comma versus US semicolon;
+apostrophe is German Shift+backslash versus US apostrophe. Letter/digit/space/Return
+positions and the existing layout-sensitive symbols were checked in the same
+sources, including German's inherited Latin definitions and console QWERTZ map.
+
+### Zero-cost stage walk-through, completed before any dispatch
+
+The [host walk receipt](../../os/manifest/ci/13/13f-zero-cost/host-walk.json)
+is explicitly **stand-in execution, not VM evidence**. It executes the actual
+`keyboard_vm.main`, tty/foot/input functions and host assertions. The stock
+prefix comes from retained 13e observations. Future AresOS, staged and rollback
+states are explicitly source-derived synthetic inputs (new checksum `b` ×64).
+No guest command, owner script, sudo, QEMU or credential operation runs locally.
+
+| Previously unreached path after the 13e stop | Local execution before dispatch | Still requires the real VM |
+| --- | --- | --- |
+| Corrected-stock tty3 public text | Real `physical_input`, every `physical_keys` call, UID/result checks dispatched to safe stand-in; public proof emitted | Actual tty3 keystrokes and guest UID/output |
+| Corrected-stock Homebrew | Actual command construction and single SHA parser; same SHA enforced through all five boots | Real inherited brew ownership, access, execution and bytes |
+| Verify and signed switch | Exact existing verify/switch script text collected; transaction and staged whole-list assertions executed | Network/signature verification and real bootc transaction |
+| AresOS boots and policy | All three AresOS host branches, exact release reference/digest, loaded-map and final-pair checks executed | Real new image boot, guest policy and kernel maps |
+| Foot typing | Actual compositor-layout assertion, physical input and UID1001 proof path executed for de/us/de | Actual labwc environment and terminal input |
+| US change and back | Both actual localectl command strings collected, shell syntax checked and all their characters covered for both layouts; next-boot map assertions run | Guest localectl changes and persistence across reboots |
+| Rollback | Exact rollback script collected; queued transaction, checksum and retained-pair checks executed | Real rollback and corrected pinned stock boot |
+| Rendered rollback greeter | Real readiness/capture loop and thresholds; Windows Pillow metrics on retained real 06c greeter PNG | New guest greeter readiness and newly drawn framebuffer |
+| Final entry lists | Actual BLS-to-(checksum,serial,stateroot) bijection and pair assertions at AresOS and rollback; negative surviving-old-entry case stops | Real old serial removal and final menu titles |
+
+The walk collected **41 physical typing calls**, covering all five tty3 stages
+and three foot stages, plus the complete password domain and both layout commands.
+Generated shell commands passed `bash -n` with LF bytes. No product or owner-script
+defect was found. The first whole-suite run caught a new test-fixture class leak;
+the stand-in now restores `switch_vm.Guest`, and the whole suite was rerun.
+
+### Verified locally before dispatch
+
+- `python -X utf8 -m unittest discover -s os/tests -p test_keyboard_walk.py -v`:
+  **3 tests, OK** (0.226s); complete walk, surviving-old negative and source-based
+  punctuation/layout regressions. The complete suite rerun includes the fixture
+  restoration fix.
+- `python -X utf8 -m unittest discover -s os/tests -p test_organization_budget.py -v`:
+  **5 tests, OK** (0.005s). Includes exact 150-minute boundary, 149 rejection,
+  stale/malformed/duplicate/unknown billing rows, paid usage, unreadable billing,
+  scheduling denial before receipt, and CI requiring no new billing credential.
+- `python -X utf8 -m unittest discover -s os/tests -p test_probe_native.py -v`:
+  **4 tests, OK** (0.002s); new cumulative allowance is four probes and three
+  qualifications, admitting only the one additional pair. A fifth probe fails.
+- `.work/13/13f-zero-cost.py`: completed all host stages, **1,140 QMP key events**
+  sent only to a stand-in; real retained-frame Pillow path passed.
+- `wsl bash .work/13/13f-walk-syntax.sh`: **ALL_WALK_COMMANDS_SYNTAX_PASSED**.
+- `wsl bash .work/13/syntax.sh`: **ALL_SYNTAX_CHECKS_PASSED**.
+- `wsl bash .work/13/local-suite.sh`: **237 tests in 80.670s**,
+  **FAILED (failures=2, errors=9), no skips**. The only eight affected cases are
+  the inherited, explicitly local host limits: three greeter tests lack WSL
+  Pillow; three inherited Homebrew tests need forbidden local root/ACL/tmpfiles
+  operations (rejecting sudo shim returns126, including cleanup duplicates);
+  sysusers needs forbidden root; registry-auth mode0600 is reported0777 on DrvFS.
+  Every other test passed. All 237 must pass natively before any VM starts.
+  The full exact output is retained in `logs/13f-local-wsl-suite.txt`.
+- `git diff --exit-code 2abc12e8aa6089f7576143d1fbccb6648a3291bd --`
+  the frozen Containerfile/context/locks/config/policy/base/keys/audit paths:
+  **exit0**. `git diff --exit-code dc586f4 -- os/release`: **exit0**.
+  No Gradle/mod code changed, no daemon started, and no Minecraft test was claimed.
+
+### Budget and dispatch gate
+
+Same ledger, first dispatch **2026-10-25T02:02:34Z**. The fresh read before source
+push showed **271/460 minutes**, **40 unique run IDs / total_count40**, complete
+one-page history, no active run, image attempts2, publication1, checks1, probes3,
+qualifications2. Owner brief privacy runs 40181565867 and 40181571264 add four
+minutes to the closed 13e total267.
+
+| Reservation before the one fresh probe | Minutes |
+| --- | ---: |
+| Completed package work before source push | 271 |
+| Expected source push + PR privacy checks | 4 |
+| Fresh probe (unchanged full reservation) | 42 |
+| One full qualification (unchanged full reservation) | 130 |
+| Closing privacy reserve | 12 |
+| Planned ceiling | **459 / 460** |
+
+**JUDGMENT-CALL:** closing reserve12 comprises four expected privacy minutes and
+eight contingency. Earlier14 was an agent contingency, not a required timeout.
+Probe42, full130 and every VM/job timeout remain unchanged. No second
+qualification, image dispatch, publication or rerun is allowed. Fresh scheduling
+guards before **each** POST must reserve the remaining whole plan:184 before
+probe,142 before qualification. If actual privacy costs or fresh usage break
+either cap, stop rather than shorten a run or weaken a gate.
+
+The scheduling guard also performs the read-only current-month org
+[billing summary GET](https://docs.github.com/en/rest/billing/usage?apiVersion=2022-11-28#get-billing-usage-summary-for-an-organization)
+using the existing local gh login. It stores aggregate SKU quantities and a
+response hash, no credentials or other-repository names. It requires the exact
+organization/period, known standard-Linux minutes and storage units, complete
+nonempty usage, finite nonnegative values and zero paid net usage. Unknown units,
+SKUs, malformed data or access errors fail closed. Storage GB-hours do not become
+minutes. Used minutes conservatively round up the larger gross/discount quantity;
+`netQuantity=0` is never treated as zero free minutes consumed. The source check
+at09:54UTC reported **1,261 used / 2,000 included**,739 remaining; reserving184
+leaves555, above the required **150 for other repos**. The owner states the
+spending limit is$0 with usage blocked at exhaustion; no paid fallback is used.
+The CI job token gains no billing scope or secret: the fresh local scheduling
+receipt is made immediately before dispatch; native CI retains its package,
+probe, private-auth and every audit gate. Token scopes and cleanup are unchanged.
+
+### Not verified / execution pending
+
+Real QMP typing, guest commands, new-image boots, loaded maps, policy, signatures,
+Homebrew, bootc finalization, entry titles and a new rendered rollback greeter
+remain pending the single authorized qualification. Local stand-ins cannot
+satisfy acceptance. INSTALL/EMERGENCY and the physical/laptop followability gate
+remain open. PR #12 stays draft until all acceptance is reached. The 13e
+F12→Windows caution remains pending real pair evidence. No new PLAN-GAP is
+inferred from the local environment limits; native preflight is mandatory.
