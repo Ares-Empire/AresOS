@@ -12,7 +12,8 @@
     "minute_cap": 380,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"release-13": 1, "checks": 1, "probe": 1, "keyboard": 2},
+    "dispatch_caps": {"release-13": 3, "checks": 1, "probe": 1, "keyboard": 2},
+    "publish_cap": 1,
     "titles": {
       "release-13": "Package 13 image release",
       "checks": "OS regressions only (no VM)",

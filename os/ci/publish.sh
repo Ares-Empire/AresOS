@@ -5,6 +5,7 @@ umask 077
 test "$GITHUB_EVENT_NAME" = workflow_dispatch
 test "$GITHUB_REPOSITORY" = Ares-Empire/AresOS
 test "$GITHUB_REF_NAME" = pkg/13-keyboard-layout
+python3 os/ci/rehearsal_guard.py publish-ci 0
 test "$(jq -r .status evidence/image-diff/result.json)" = passed
 image=ghcr.io/ares-empire/aresos
 tag="13-$GITHUB_SHA"

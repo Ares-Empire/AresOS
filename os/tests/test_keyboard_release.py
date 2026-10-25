@@ -1,5 +1,6 @@
 import copy
 import json
+import os
 import pathlib
 import sys
 import unittest
@@ -46,8 +47,44 @@ class KeyboardReleaseTest(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError, 'exceeds 380'):
                 guard.budget(377)
             runs.append(dict(runs[1], id=4))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['release-13'], 2)
+            runs.append(dict(runs[1], id=5))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['release-13'], 3)
+            runs.append(dict(runs[1], id=6))
             with self.assertRaisesRegex(AssertionError, 'dispatch allowance exhausted'):
                 guard.budget(0)
+
+    def test_publish_boundary_counts_success_and_failure_but_not_skipped_steps(self):
+        guard.configure('13')
+        self.addCleanup(guard.configure, '11c')
+        run = dict(id=1, event='workflow_dispatch', head_sha='a'*40, run_attempt=1, status='completed',
+                   conclusion='failure', created_at='2026-10-25T01:00:00Z', display_title='Package 13 image release')
+        step = dict(name=guard.PUBLISH_STEP, status='completed', conclusion='skipped')
+        job = dict(name='image',conclusion='failure', started_at='2026-10-25T01:00:00Z', completed_at='2026-10-25T01:01:00Z', steps=[step])
+        def api(path):
+            return dict(workflow_runs=[run]) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
+        with patch.object(guard, 'api', side_effect=api):
+            self.assertEqual(guard.budget(0)['publish_attempts'], [])
+            for conclusion in ('success','failure','cancelled'):
+                step['conclusion']=conclusion
+                self.assertEqual(guard.budget(0)['publish_attempts'], [dict(run=1,conclusion=conclusion)])
+            job.update(conclusion='skipped',steps=[])
+            self.assertEqual(guard.budget(0)['publish_attempts'],[])
+            job['conclusion']='failure'
+            with self.assertRaisesRegex(AssertionError,'boundary missing'):
+                guard.budget(0)
+
+    def test_prior_publish_blocks_another_dispatch_or_publish_authorization(self):
+        result=dict(history=dict(complete=True,ids_count=1,total_count=1),
+                    dispatch_counts={'release-13':2},publish_attempts=[dict(run=1,conclusion='failure')])
+        env=dict(REHEARSAL_PACKAGE='13',REHEARSAL_MODE='release-13',GITHUB_REF_NAME='pkg/13-keyboard-layout',
+                 GITHUB_RUN_ID='2',GITHUB_SHA='a'*40,GITHUB_EVENT_NAME='workflow_dispatch',GITHUB_REPOSITORY=guard.REPOSITORY)
+        run=dict(head_branch=env['GITHUB_REF_NAME'],head_sha=env['GITHUB_SHA'],event='workflow_dispatch',display_title='Package 13 image release')
+        for mode in ('release-13','publish-ci'):
+            with patch.dict(os.environ,env),patch.object(sys,'argv',['guard',mode,'0']),patch.object(guard,'budget',return_value=result),patch.object(guard,'api',return_value=run):
+                with self.assertRaisesRegex(AssertionError,'prior attempt reached publishing'):
+                    guard.main()
+        guard.configure('11c')
 
     def test_org_auth_fails_closed_without_job_token_and_never_uses_owner_fallback(self):
         env = dict(GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REPOSITORY='Ares-Empire/AresOS',

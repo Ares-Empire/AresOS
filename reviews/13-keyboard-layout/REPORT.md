@@ -412,3 +412,85 @@ an endless sequence of report-only pushes. No rerun, force-push or merge.
 item is the build-wrapper PATH error above. **Not verified/open:** every new-image
 and VM acceptance item listed above, and the unchanged physical install gates.
 No Gradle daemon was started. Work stayed in package 13; no retired worktree access.
+
+
+## 13c — absolute privileged tool paths and continued qualification (2026-10-25)
+
+**Status: implementation/local verification; no 13c dispatch yet.** The earlier
+13b stop and its four-minute failed image attempt remain historical. Brief 13c
+authorizes at most two additional image dispatches on the same ledger, publishing
+at most once. The ledger start remains 2026-10-25T02:02:34Z, cap 380 minutes.
+
+**Done:** `build_tools.py` resolves every directly invoked host executable before
+the credential-creation step: Bash, Python, sudo, cosign, podman and skopeo. The
+privileged shell receives the absolute Python/manifest paths through an argv
+list; Python validates the exact tool set and absolute/existing/executable paths
+again before importing/calling credential access. The build and full image diff,
+including cleanup, call only the validated absolute paths. JSON/files/directories,
+symlinks, hashes and manifest copying use Python standard-library operations;
+the wrapper no longer invokes jq, mkdir, ln, rm, rmdir or sha256sum. No buildah or
+oras process is invoked. Container commands use `/usr/bin/python3`/`rpm` from
+the exact pinned image, a separate namespace from the host sudo boundary.
+The old-image signature check and root-only temporary credential share remain
+mandatory; owner-token scope/visibility is unchanged.
+
+**Guard:** settings permit three total image dispatches (old 13b + two 13c),
+with the same first-dispatch start, privacy accounting, pagination and bounded
+read retries. Every completed image job must expose exactly one publish step.
+Entering that step, even if failed/cancelled, conservatively consumes the single
+publish allowance because a registry write may have happened. A fresh guard
+immediately before publish refuses a prior publish boundary; no subsequent image
+dispatch is allowed either. Immutable tag/private visibility checks remain.
+
+**Verified so far:** stripped-PATH wrapper/diff tests passed (3 / 1.208s), including
+missing/relative/non-executable paths rejected before auth, the unprivileged
+resolution-before-secret ordering and explicit sudo argv. Five release/guard
+tests passed, including second/third image allowance, fourth refusal, publish
+success/failure/cancellation accounting and prior-publish refusal. Full Bash/Python
+syntax and `git diff --check` passed. Whole suite is running; its exact result
+must be recorded before dispatch. All native tests remain mandatory in image CI.
+
+**JUDGMENT-CALL:** deriving from the exact frozen qualified image is now accepted
+by the integrator in 13c; it still requires owner review before merge. The strict
+two-file diff, exact packages/units/config/base ancestry checks are unchanged.
+No unexplained difference is authorized by the added attempt allowance.
+
+### Updated zero-cost walk-through before dispatch
+
+1. Finish the complete local suite, keeping the same eight documented local host
+   limitations; run those and all new tests natively before image work. Push FF,
+   require all three source privacy checks with personal terms not skipped, then
+   a fresh complete-history guard. Current observed ledger is 12 minutes,
+   including the owner's 13c brief push/PR checks; 12 + 293 planned = 305 ≤ 380.
+2. Image attempt 2 overall: own guard → pinned tools + all native regressions →
+   cosign install/upstream verification → resolve all host tools unprivileged →
+   only then create root-only old-image auth → absolute-path wrapper validates
+   every executable before auth access → old signature/pull → exact frozen-image
+   derivation → unchanged full semantic image diff. No unexplained difference
+   may proceed to publish or be excused by another attempt.
+3. Existing isolated overlay/release separation and both image VM passes remain
+   required. Only their success permits a fresh single-publish guard, private
+   immutable org push, keyless signing/verification and job-token read proof.
+   Credential cleanup and evidence bounds apply on every path.
+4. If this attempt stops before publishing for a covered tooling/infrastructure
+   issue, inspect/record/fix it without weakening a check; at most one final image
+   attempt remains and must fit a fresh guard plus the remaining plan. If both
+   stop, or any unexplained diff/product/protected-disk/firmware stop occurs,
+   stop and report. Any attempt reaching publish prevents another publication.
+5. After a successful private release, continue 13b stages 3–9 unchanged: new
+   exact digest/identity/frozen verifier/owner references; source privacy; final
+   head checks-only native (15), one fresh probe (42), then protected-second
+   qualification (130) on the exact same head. All de/us repairs, live editor,
+   tty3 login/password sudo, foot physical keys, layout change/back, cmdline/maps,
+   rollback and Windows/disk/NVRAM/BootNext audits remain mandatory. No Part B.
+6. Budget plan for the next attempt is 90 + 15 + 42 + 130 + 16 closing/privacy =
+   293 reserved, plus actual consumed minutes. A final additional image attempt
+   is conditional on remaining rounded minutes; the extra attempt allowance
+   does not enlarge the 380-minute cap. Report every attempt. PR #12 stays draft
+   until all acceptance is met; never merge, force-push, delete old releases or
+   make anything public. Physical installation remains NOT RELEASED.
+
+**Not verified/open:** all new image/VM acceptance remains pending. No new
+PLAN-GAP established. No mod/Gradle/Minecraft or local privileged operations.
+
+13c complete local suite before source push: **216 tests in 143.422s; 2 failures/9 errors, exactly the same eight host-limited cases recorded in 13b; all other cases passed**. Native CI must pass all 216, including the new stripped-PATH and publish-boundary tests. After adding the explicit skipped-image-job case to that boundary test, its five-test module passed again; the complete final rerun is running before dispatch.

@@ -25,6 +25,7 @@ RETRY_WAITS = (10, 20, 40, 60)
 READ_RETRIES = []
 RUN_HISTORY_PATH = f'actions/runs?branch={BRANCH}&per_page=100'
 HISTORY_PAGE_LIMIT = 20
+PUBLISH_STEP = 'Publish the tested private release and sign with GitHub OIDC'
 
 
 def configure(package):
@@ -136,6 +137,7 @@ def budget(reserve, current=None):
             if str(run['id']) != str(current):
                 assert run['status'] == 'completed', 'Another branch workflow is active; cannot reserve its cost'
     records = []
+    publishes = []
     full = 0
     part_b = 0
     for run in runs:
@@ -156,6 +158,15 @@ def budget(reserve, current=None):
         jobs = response['jobs']
         if PACKAGE == '13':
             assert response.get('total_count') == len(jobs) <= 100, 'STOP: incomplete job listing'
+            for job in jobs:
+                steps = job.get('steps', [])
+                assert isinstance(steps, list), 'STOP: malformed job steps'
+                if job.get('name') == 'image' and job['conclusion'] != 'skipped':
+                    assert len([s for s in steps if s['name'] == PUBLISH_STEP]) == 1, 'STOP: image publish boundary missing or duplicated'
+                for step in steps:
+                    if step['name'] == PUBLISH_STEP and step['conclusion'] != 'skipped':
+                        assert step['status'] == 'completed', 'STOP: publish outcome is not settled'
+                        publishes.append(dict(run=run['id'], conclusion=step['conclusion']))
         records.append(dict(run=run['id'], title=run['display_title'], sha=run['head_sha'],
                             conclusion=run['conclusion'], minutes=sum(job_minutes(job) for job in jobs)))
     consumed = sum(record['minutes'] for record in records)
@@ -164,10 +175,12 @@ def budget(reserve, current=None):
     assert part_b <= PART_B_CAP, 'STOP: Part B qualification allowance exhausted'
     for kind, count in counts.items():
         assert count <= SETTINGS['dispatch_caps'][kind], 'STOP: ' + kind + ' dispatch allowance exhausted'
+    assert len(publishes) <= SETTINGS.get('publish_cap', 0), 'STOP: publish allowance exceeded'
     return dict(allowance=PACKAGE, start=start, cap=MINUTE_CAP, full_cap=FULL_CAP, full_dispatched=full,
                 part_b_cap=PART_B_CAP, part_b_dispatched=part_b,
                 dispatch_caps=SETTINGS.get('dispatch_caps', {}), dispatch_counts=counts,
                 consumed_minutes=consumed, reserved_minutes=reserve, runs=records,
+                publish_cap=SETTINGS.get('publish_cap', 0), publish_attempts=publishes,
                 history=listing.get('history'))
 
 
@@ -185,22 +198,28 @@ def main():
     mode = sys.argv[1]
     assert mode != 'full' and not (mode == 'ci' and os.environ.get('REHEARSAL_MODE') == 'full'), 'STOP: 11l permits no further full run'
     reserve = int(sys.argv[2])
-    current = os.environ.get('GITHUB_RUN_ID') if mode == 'ci' else None
+    ci = mode in ('ci', 'publish-ci')
+    current = os.environ.get('GITHUB_RUN_ID') if ci else None
     if PACKAGE == '13':
         assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
     result = budget(reserve, current)
     history = result.get('history')
     assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
     if PACKAGE == '13':
-        kind = os.environ['REHEARSAL_MODE'] if mode == 'ci' else mode
+        kind = os.environ['REHEARSAL_MODE'] if ci else mode
         assert kind in SETTINGS['dispatch_caps'], 'STOP: mode is not authorized for package 13'
-        if mode == 'ci':
+        if ci:
             run = api('actions/runs/' + current)
             assert run['head_branch'] == BRANCH and run['head_sha'] == os.environ['GITHUB_SHA']
             assert run['display_title'] == SETTINGS['titles'][kind] and run['event'] == 'workflow_dispatch'
             assert result['dispatch_counts'][kind] >= 1, 'STOP: current dispatch is missing from complete history'
         else:
             assert result['dispatch_counts'][kind] < SETTINGS['dispatch_caps'][kind], 'STOP: no dispatch remains'
+        if kind == 'release-13':
+            assert not result['publish_attempts'], 'STOP: a prior attempt reached publishing; no further image/publish attempt'
+        if mode == 'publish-ci':
+            assert kind == 'release-13' and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+            assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY
         if kind in ('probe', 'keyboard'):
             native = [r for r in result['runs'] if r['title'] == SETTINGS['titles']['checks']
                       and r['sha'] == os.environ.get('GITHUB_SHA', subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip())
@@ -246,10 +265,11 @@ def main():
         result['probe_run'] = probe_id
         result['probe'] = proof
     result['read_retries'] = list(READ_RETRIES)
-    directory = pathlib.Path('evidence' if mode == 'ci' else '.work/' + PACKAGE)
+    directory = pathlib.Path('evidence' if ci else '.work/' + PACKAGE)
     directory.mkdir(parents=True, exist_ok=True)
-    (directory / '11c-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
-    if PACKAGE == '13':
+    suffix = 'publish-authorization.json' if mode == 'publish-ci' else '11c-dispatch-authorization.json'
+    (directory / suffix).write_text(json.dumps(result, indent=2) + '\n')
+    if PACKAGE == '13' and mode != 'publish-ci':
         (directory / '13-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 
