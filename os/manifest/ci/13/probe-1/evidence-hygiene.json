@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "scope": "139 text members in the native/probe ZIPs plus both expanded logs",
+  "checks": [
+    "artifact SHA-256 equals GitHub digest",
+    "safe ZIP member paths",
+    "no auth.json, credentials.json or config.toml members",
+    "no unmasked GitHub token forms, SHA-512 password hashes or private-key headers"
+  ],
+  "source_privacy_head": "777b78202580e19ed1ec0b5fc838931e2609f77e",
+  "source_privacy": "source-privacy.json",
+  "final_evidence_commit_privacy": "checked after push and recorded in PR #12"
+}

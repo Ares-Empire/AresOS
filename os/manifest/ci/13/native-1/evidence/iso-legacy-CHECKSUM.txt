@@ -1,0 +1,1 @@
+85e701c0f53189b0fa32797ffe8144202dcaa8db6c7692fd4677f615537b24b8  bazzite-nvidia-open-stable-amd64.iso

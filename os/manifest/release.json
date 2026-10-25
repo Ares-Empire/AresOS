@@ -77,6 +77,15 @@
     "visibility": "private",
     "manifest_read": true
   },
-  "keyboard_qualification": "pending",
-  "owner_review": "required-before-merge"
+  "keyboard_qualification": "blocked",
+  "owner_review": "required-before-merge",
+  "keyboard_qualification_attempt": {
+    "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40159515328",
+    "head": "777b78202580e19ed1ec0b5fc838931e2609f77e",
+    "status": "failed-probe",
+    "stage": "live-kde-select",
+    "error": "KDE normal settings control unavailable: German",
+    "installation_performed": false,
+    "qualification_runs": 0
+  }
 }

@@ -1,0 +1,8 @@
+{
+  "failure_path": true,
+  "probe_only": false,
+  "boot": 2,
+  "status": "recorded",
+  "counter": "live-ui-probe-blockstats.json",
+  "vm_paused": true
+}

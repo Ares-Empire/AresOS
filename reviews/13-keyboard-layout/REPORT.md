@@ -1,6 +1,15 @@
-# 13: keyboard layout — stopped at the zero-cost prerequisite
+# 13: keyboard layout — 13c stopped after the fresh probe failed
 
-**STOP / PLAN-GAP. No implementation or VM qualification is claimed.** The
+**Current status: STOP; PR #12 stays draft.** The privileged-tool path fix,
+private release/signature/two-file image comparison and 217 native tests passed.
+The single fresh probe failed at live KDE German-layout selection; no
+installation or qualification was performed. See the final 13c section below.
+Physical installation remains **NOT RELEASED**. Earlier sections are dated
+history, including the original source-verification stop and the 13b wrapper stop.
+
+## Original brief 13 — historical zero-cost stop
+
+**Historical STOP / PLAN-GAP. No implementation or VM qualification was claimed.** The
 argument-emitting code is identified, but the required explanation of the **US
 value** is not established by the retained evidence and pinned source. The brief
 requires this verification before any dispatch. No dispatch was made to guess at
@@ -416,7 +425,7 @@ No Gradle daemon was started. Work stayed in package 13; no retired worktree acc
 
 ## 13c — absolute privileged tool paths and continued qualification (2026-10-25)
 
-**Status: implementation/local verification; no 13c dispatch yet.** The earlier
+**Status at pre-dispatch planning: implementation/local verification. Final status: STOP after probe 40159515328 failed; see the execution record below.** The earlier
 13b stop and its four-minute failed image attempt remain historical. Brief 13c
 authorizes at most two additional image dispatches on the same ledger, publishing
 at most once. The ledger start remains 2026-10-25T02:02:34Z, cap 380 minutes.
@@ -580,3 +589,158 @@ pending, and PR #12 stays draft. Construction still needs owner review before
 merge. No new PLAN-GAP; physical installation stays NOT RELEASED.
 
 Final-head local suite: **217 tests / 148.291s**, exactly the same eight documented host-limited cases (2 failures / 9 errors); all others passed. Complete Bash/Python syntax and diff checks passed. The new frozen org-release verifier ran locally against run 40154642447 and passed source/run/signature metadata plus unchanged-runtime checks; git diff of every frozen runtime path against 2abc12e was empty. Image pass 1 tty3 screenshot was also visually checked: rendered getty prompt on tty3. Artifact text was checked for unmasked GitHub token forms, SHA-512 password hashes and private-key headers; none found.
+
+
+### 13c final-head native checks and fresh probe — required stop
+
+**STOP. Acceptance is not met; PR #12 stays draft.** On the unchanged head
+`777b78202580e19ed1ec0b5fc838931e2609f77e`, the checks-only native run passed,
+then the single fresh probe failed. No qualification, additional probe, image
+attempt, publication or source workaround followed that failure. Remaining
+minutes and the two unused qualification slots do not authorize bypassing the
+passing-probe gate. Nothing was merged, force-pushed or made public.
+
+**Verified:** [native 40159399419](https://github.com/Ares-Empire/AresOS/actions/runs/40159399419)
+ran `python3 -m unittest discover -s os/tests -v`: **217 tests in 5.078s, OK**,
+with no skips, including every case that cannot run on the local host. Bash and
+Python syntax passed. The read-only job token checked that the new org package
+is private. No VM or image build ran in this checks-only job. Its running job
+was 03:45:45–03:46:34 UTC, **1 rounded minute**.
+
+[Probe 40159515328](https://github.com/Ares-Empire/AresOS/actions/runs/40159515328)
+ran once on exactly the same head. Its fresh complete-history guard, source
+ancestry/frozen-release verifier, toolchain/OVMF contract, upstream signature,
+full pinned ISO hash and native suite (**217 / 5.127s, OK**, no skips) passed.
+The read-only job token verified private visibility and pulled the exact new
+release layers with its digest preserved. `owner_token_used:false`,
+`owner_token_api_calls:0`, `credential_file_copied:false`; always cleanup passed
+with `removed:true`, `outside_workspace:true`. CI therefore needs no owner
+read-token fallback for this org release. The existing secret stays until the
+owner removes it; laptop installation still uses the owner's own token.
+
+**Failure:** in the first, protected-first live-desktop probe,
+`live-kde-enable` and `live-kde-search` completed. The next guest command failed:
+`Guest command failed: live-kde-select, exit 1`. The retained guest traceback is
+`AssertionError: KDE normal settings control unavailable: German`, from
+`action('German')` after its bounded 40-second wait. The accessibility tree
+contains German **list items** and multiple Add Layout dialog subtrees, but the
+fixture could not invoke an accepted action on one. The dump does not include
+state/action/selection-interface details, so it does not prove which interface
+or dialog caused the failure. This is an uncovered UI-fixture integration
+failure, not evidence that the new image types correctly or incorrectly.
+
+The [search-phase screenshot](screenshots/probe-1-live-kde-search.png) was
+visually inspected: the Bazzite Portal is in front, with no visible German
+selection confirmation. It supplies no passing keyboard evidence. The full
+[guest selector trace](../../os/manifest/ci/13/probe-1/evidence/two-disk/live-kde-select.txt)
+and source script are retained. A future authorized repair should inspect the
+active dialog and its state/action/selection interfaces, preserve the guide's
+normal-settings interaction, and retain the expected physical text unchanged.
+No such repair or rerun is claimed in this stop.
+
+The harness did not reach the live editor's physical-key test or its installer
+UI preview. Failure diagnostics show that the ISO had started Anaconda/browser
+processes; this is not a claim that no installer process existed. No install
+was performed, no localization argument-writing boundary was reached, and no
+diagnostic values from that boundary exist. The reverse-order probe was not
+reached. No successful `probe-result.json` exists or may authorize a full run.
+
+**Failure-path safety:** both reached offline protected captures match the
+baseline exactly, including the entire 50-GiB image hash
+`db11ae0b975673c820f57cf12c8ea239215184b671b25a2785f9aa54e99a8a00`,
+GPT/partition metadata and EFI-file evidence. The retained final paused-VM
+failure counter reports zero protected write bytes/operations and zero unmap
+bytes/operations; target counters are also zero. BootNext audit passed (absent,
+not consumed), BootOrder is identical, and the audited boot-entry/firmware
+changes are empty. The full-variable diff records only `MTC` under
+`eb704011-1402-11d3-8e77-00a0c969723b`; it is retained rather than described as
+bit-identical NVRAM. No unrecorded boot change or disk exception is used.
+
+**Not verified:** real installed `de` and injected `us` starting-state repair;
+localization writer-boundary diagnostic; stock/AresOS/backup cmdlines and loaded
+console maps; layout-sensitive tty3 login and password sudo; physical typing in
+foot; US change and German restoration; pin/signed switch; inherited Homebrew
+and rendered rollback greeter on this new release. The two successful image
+VM passes do not fill these installed-system acceptance items. All laptop,
+media, physical keyboard and followability gates remain open. INSTALL's loaded
+keyboard gate and both new-release manifests now explicitly record the block.
+
+**Evidence/privacy:** retained [native receipts](../../os/manifest/ci/13/native-1/),
+[probe receipts and failure audits](../../os/manifest/ci/13/probe-1/), complete
+[native log](logs/native-1.txt) and [probe log](logs/probe-1.txt). Original ZIPs:
+
+| Artifact | Bytes / ID | SHA-256 |
+| --- | --- | --- |
+| [Native release inputs](artifacts/13c-native-1-release-inputs.zip) | 33,511 / 12584859391 | `0b87c304782e14f988eab007df1501d8ce0e3b36be91d639fb5dd0017d1a22f7` |
+| [Probe evidence](artifacts/13c-probe-1-two-disk-evidence.zip) | 4,042,193 / 12585957073 | `f21ced3c8fec023d6daaac595afa8beecae3352eb9839cc90c7af34203aa32ed` |
+
+Both match GitHub's artifact digests. Downloaded raw log ZIP SHA-256 values:
+native `93c2cfa936e6ff2889fc48bdb5efb80e4449b88a0cae475a47d57be24ffe0bd6`;
+probe `d2726ab8c10c86aace5998d03a6c3cd9382dd27bc4c75f3c7f8b19ac10a9d2a8`.
+Those original [native log ZIP](artifacts/13c-native-1-logs.zip) and
+[probe log ZIP](artifacts/13c-probe-1-logs.zip) are retained unchanged. Expanded
+text copies normalize line endings and trailing whitespace; original artifact
+ZIPs preserve all guest output bytes.
+All 139 text members and both expanded logs were checked for unmasked GitHub
+token forms, SHA-512 password hashes and private-key headers: none found.
+Safe member-path and credential-file exclusion checks passed. No sensitive
+test password was entered in this probe. The original ZIP includes disposable
+firmware snapshots, not VM disk images or owner credentials.
+
+Final dispatched-head source privacy runs
+[40159241920](https://github.com/Ares-Empire/AresOS/actions/runs/40159241920) (push)
+and [40159246354](https://github.com/Ares-Empire/AresOS/actions/runs/40159246354)
+(PR) passed gitleaks, private commit emails and personal terms; the personal-term
+check was **not skipped**. Their log hashes and executed-step proof are retained
+with each receipt. The closing evidence commit is checked again after its
+fast-forward push; exact closing run IDs/results and final rounding go in
+[PR #12](https://github.com/Ares-Empire/AresOS/pull/12), avoiding endless
+report-only pushes.
+
+### 13c actual package budget and open decisions
+
+Same first-dispatch ledger, **2026-10-25T02:02:34Z**, cap **380 minutes**.
+Probe job: 03:47:40–04:01:41 UTC = **14m01s, rounded to 15 minutes**.
+The final read-only guard proved all **20 unique history IDs / total_count 20**
+in one complete snapshot; eight pre-first-dispatch privacy runs are retained
+in history and excluded from this ledger. No active jobs remained.
+
+| Run(s) / item | Result | Rounded minutes |
+| --- | --- | ---: |
+| 40152936417, image attempt 1 | cosign PATH failure before build/publish | 4 |
+| 40153703131 / 40153706252, 13b closing privacy | passed | 2 + 2 |
+| 40153916476 / 40153919146, owner 13c brief privacy | passed | 2 + 2 |
+| 40154503307 / 40154507842, image-source privacy | passed | 2 + 1 |
+| 40154642447, image attempt 2 | passed; single private publication | 65 |
+| 40159241920 / 40159246354, dispatched-head privacy | passed | 2 + 2 |
+| 40159399419, checks-only native | passed | 1 |
+| 40159515328, fresh probe | failed at German list-item activation | 15 |
+| Qualifications | not dispatched | 0 |
+| **Observed total before closing evidence push** | | **100** |
+| Closing push/PR privacy | automatic; actuals recorded in PR after completion | **4 reserved** |
+| **Observed + closing reservation** | within 380 cap | **104** |
+
+[Complete budget receipt](../../os/manifest/ci/13/probe-1/budget-before-closing.json).
+Dispatch counts: images **2/3**, native **1/1**, probe **1/1**, qualifications
+**0/2**, publish **1/1**. Image attempt 3 was not used; after publication the
+guard rejects another image dispatch. No Part B or package-11 budget was used.
+An exhausted probe allowance and missing passing proof stop qualification even
+though minutes remain.
+
+**JUDGMENT-CALL:** the integrator-approved exact frozen-image derivation, with
+only the two keyboard files differing, still requires owner review before merge.
+No additional product decision was made to work around the failed UI check.
+**PLAN-GAP:** no new contradiction in pinned source is established; the concrete
+blocker is the fixture's inability to activate the real KDE German list item.
+**Open questions:** which active-dialog/interface handling is required, and all
+unreached installed-system/hardware results above. A follow-up must authorize
+any new probe; no additional CI is dispatched in this run. No Gradle daemon was
+started. Work stayed in package 13; no retired worktree access.
+
+Closing documentation/metadata checks: both exact owner-block equality tests
+passed locally in WSL (**2 / 0.030s, OK**). The first test selection misspelled
+the GRUB test class and failed to load it; the corrected selection above passed.
+WSL Git cannot resolve this Windows worktree's absolute Git pointer, so the
+frozen-runtime comparison and `git diff --check` ran with host Git and passed.
+Both current/history-13 manifests match and record private/blocked/zero
+qualification runs. Runtime payload still equals the published 2abc12e source.
