@@ -1,0 +1,42 @@
+{
+  "605dab50-e046-4300-abb6-3dd810dd8b23/MokTimeout": {
+    "before": null,
+    "after": {
+      "attributes": 7,
+      "sha256": "ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e",
+      "bytes": 4
+    }
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/BootOrder": {
+    "before": {
+      "attributes": 7,
+      "sha256": "3c7acfa845b57df9e3a46779d4f17c7eb9d697d63dd8b2c30c176c6fec90051b",
+      "bytes": 20
+    },
+    "after": {
+      "attributes": 7,
+      "sha256": "b36996ab530b11ba2ff2f192f297c80111e8ff04f8d5d9493cfe957c32c75bee",
+      "bytes": 22
+    }
+  },
+  "eb704011-1402-11d3-8e77-00a0c969723b/MTC": {
+    "before": {
+      "attributes": 7,
+      "sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450",
+      "bytes": 4
+    },
+    "after": {
+      "attributes": 7,
+      "sha256": "26b25d457597a7b0463f9620f666dd10aa2c4373a505967c7c8d70922a2d6ece",
+      "bytes": 4
+    }
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot000A": {
+    "before": null,
+    "after": {
+      "attributes": 7,
+      "sha256": "9ab7f62029ff5814147fc56e5b93d84ffbed7153163af625040634cb253776e0",
+      "bytes": 120
+    }
+  }
+}

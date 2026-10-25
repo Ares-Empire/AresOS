@@ -1,0 +1,42 @@
+{
+  "target": "vda",
+  "protected": "vdb",
+  "new_target_efi": {
+    "device": "vda1",
+    "action": "format as efi",
+    "mount": "/boot/efi"
+  },
+  "tables": [
+    {
+      "disk": "vda",
+      "text": "Device\n\t\nSize\n\t\nActions\n\t\nEncrypted\n\t\nMount point\n\t\nHelper text\n\nvda1\t629 MB\tformat as efi\t\t/boot/efi\t\nvda2\t2.15 GB\tformat as ext4\t\t/boot\t\nvda3\t49.8 GB\tformat as btrfs subvolume\t\t/\t\nvda3\t49.8 GB\tformat as btrfs subvolume\t\t/home\t\nvda3\t49.8 GB\tformat as btrfs subvolume\t\t/var\t",
+      "rows": [
+        {
+          "device": "vda1",
+          "action": "format as efi",
+          "mount": "/boot/efi"
+        },
+        {
+          "device": "vda2",
+          "action": "format as ext4",
+          "mount": "/boot"
+        },
+        {
+          "device": "vda3",
+          "action": "format as btrfs subvolume",
+          "mount": "/"
+        },
+        {
+          "device": "vda3",
+          "action": "format as btrfs subvolume",
+          "mount": "/home"
+        },
+        {
+          "device": "vda3",
+          "action": "format as btrfs subvolume",
+          "mount": "/var"
+        }
+      ]
+    }
+  ]
+}

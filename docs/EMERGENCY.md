@@ -68,4 +68,4 @@ If Windows doesn't start, use Claude on your phone. Either way, describe what yo
 
 This is the last step, not the first, and it's rarely needed: [INSTALL §9](INSTALL.md#9-undo-return-to-everyday-windows) shows that the normal undo leaves the SSD in. Remove it only through §9's full procedure. That means backups verified first, Windows starting on its own with its checks passing, and every battery-safety step. **If those checks can't pass, leave the SSD in and get help.** Taking it out doesn't undo every change: firmware boot entries or settings may still need tidying.
 
-The system keyboard setting is `localectl`; see INSTALL’s “Let the system keyboard setting decide” block before pinning stock, and its tested change-layout command. A keymap or identity STOP requires help before any reboot or switch.
+The system keyboard setting is `localectl`; see INSTALL’s “Let the system keyboard setting decide” block before pinning stock, and its change-layout command. A keymap or identity STOP requires help before any reboot or switch.

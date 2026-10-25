@@ -1,0 +1,20 @@
+]3008;end=7d3d7102-c295-4233-8e1b-850665367436;exit=success\]3008;start=9aaf70a9-6a36-446f-b59c-fa69f7a7f93b;type=shell;machineid=e0432007aee440fcac555cbf4c08e7f9;user=root;hostname=localhost-live;bootid=b4e35d2e-8ba4-4b8c-aec5-c7c53e3c1669;pid=2299;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=caae9f6a-71be-4078-b720-8aaff09e6b02;type=command;machineid=e0432007aee440fcac555cbf4c08e7f9;user=root;hostname=localhost-live;bootid=b4e35d2e-8ba4-4b8c-aec5-c7c53e3c1669;pid=2299;cwd=/root\State     Recv-Q    Send-Q       Local Address:Port        Peer Address:Port    Process
+LISTEN    0         4096            127.0.0.54:53               0.0.0.0:*        users:(("systemd-resolve",pid=932,fd=22))
+LISTEN    0         4096               0.0.0.0:5355             0.0.0.0:*        users:(("systemd-resolve",pid=932,fd=13))
+LISTEN    0         5                  0.0.0.0:8080             0.0.0.0:*        users:(("python3",pid=4209,fd=3))
+LISTEN    0         4096             127.0.0.1:631              0.0.0.0:*        users:(("cupsd",pid=2604,fd=8))
+LISTEN    0         4096         127.0.0.53%lo:53               0.0.0.0:*        users:(("systemd-resolve",pid=932,fd=20))
+LISTEN    0         10               127.0.0.1:80               0.0.0.0:*        users:(("cockpit-ws",pid=3287,fd=4))
+LISTEN    0         50                       *:1716                   *:*        users:(("kdeconnectd",pid=2704,fd=16))
+LISTEN    0         4096                  [::]:5355                [::]:*        users:(("systemd-resolve",pid=932,fd=15))
+LISTEN    0         4096                 [::1]:631                 [::]:*        users:(("cupsd",pid=2604,fd=7))
+
+ARESOS_CMD_DONE:0

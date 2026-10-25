@@ -1,0 +1,7 @@
+{
+  "root": "/",
+  "files": {
+    "etc/vconsole.conf": "KEYMAP=\"de\"\nFONT=\"eurlatgr\"\n",
+    "etc/X11/xorg.conf.d/00-keyboard.conf": "# Written by systemd-localed(8), read by systemd-localed and Xorg. It's\n# probably wise not to edit this file manually. Use localectl(1) to\n# update this file.\nSection \"InputClass\"\n        Identifier \"system-keyboard\"\n        MatchIsKeyboard \"on\"\n        Option \"XkbLayout\" \"de\"\n        Option \"XkbModel\" \"pc105\"\nEndSection\n"
+  }
+}

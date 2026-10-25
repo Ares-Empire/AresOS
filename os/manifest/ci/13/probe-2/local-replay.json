@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "probe_run": 40168412078,
+  "protected_sha256": "176063934d8c6fa2d5bba01d002d86ca21820df0d01bd449af70a6f1aa3c9305",
+  "protected_captures": 6,
+  "zero_write_counters": 8,
+  "bootnext_audits": 6,
+  "nvram_replays": 4
+}

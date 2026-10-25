@@ -1,0 +1,258 @@
+{
+  "total_count": 4,
+  "jobs": [
+    {
+      "id": 121099401628,
+      "run_id": 40170232822,
+      "workflow_name": "Two-disk rehearsal (keyboard)",
+      "head_branch": "pkg/13-keyboard-layout",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40170232822",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcMhY5nA",
+      "head_sha": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/121099401628",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40170232822/job/121099401628",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-10-25T06:45:27Z",
+      "started_at": "2026-10-25T06:45:28Z",
+      "completed_at": "2026-10-25T07:20:19Z",
+      "name": "Pinned live ISO inspection and two-disk rehearsal",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-25T06:45:29Z",
+          "completed_at": "2026-10-25T06:45:31Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-25T06:45:31Z",
+          "completed_at": "2026-10-25T06:45:38Z"
+        },
+        {
+          "name": "Reserve the separate 11c minute budget (including privacy checks)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-25T06:45:38Z",
+          "completed_at": "2026-10-25T06:45:49Z"
+        },
+        {
+          "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-25T06:45:49Z",
+          "completed_at": "2026-10-25T06:47:37Z"
+        },
+        {
+          "name": "Qualify tools, regressions, rewritten release identity and private access",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-25T06:47:37Z",
+          "completed_at": "2026-10-25T06:49:55Z"
+        },
+        {
+          "name": "Require completed native preflight before any package 13 VM",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-10-25T06:49:55Z",
+          "completed_at": "2026-10-25T06:49:55Z"
+        },
+        {
+          "name": "Create runner-temporary pinned-image credentials",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-25T06:49:55Z",
+          "completed_at": "2026-10-25T06:49:55Z"
+        },
+        {
+          "name": "Prepare package 13 job-token credentials without owner-secret fallback",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-25T06:49:55Z",
+          "completed_at": "2026-10-25T06:49:55Z"
+        },
+        {
+          "name": "Verify exact private manifest with scoped credentials",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-25T06:49:55Z",
+          "completed_at": "2026-10-25T06:49:57Z"
+        },
+        {
+          "name": "Qualify the exact pinned layer pull without installing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-25T06:49:57Z",
+          "completed_at": "2026-10-25T06:51:08Z"
+        },
+        {
+          "name": "Inspect the exact pinned live ISO before assuming an installer path",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-25T06:51:08Z",
+          "completed_at": "2026-10-25T06:57:13Z"
+        },
+        {
+          "name": "Prepare disposable file disks and qualify the real live environment",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 12,
+          "started_at": "2026-10-25T06:57:13Z",
+          "completed_at": "2026-10-25T07:20:14Z"
+        },
+        {
+          "name": "Remove owner registry credentials",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13,
+          "started_at": "2026-10-25T07:20:14Z",
+          "completed_at": "2026-10-25T07:20:14Z"
+        },
+        {
+          "name": "Remove package 13 job-token credentials",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-25T07:20:14Z",
+          "completed_at": "2026-10-25T07:20:15Z"
+        },
+        {
+          "name": "Bound retained evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-25T07:20:15Z",
+          "completed_at": "2026-10-25T07:20:15Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-25T07:20:15Z",
+          "completed_at": "2026-10-25T07:20:17Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 32,
+          "started_at": "2026-10-25T07:20:17Z",
+          "completed_at": "2026-10-25T07:20:17Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33,
+          "started_at": "2026-10-25T07:20:17Z",
+          "completed_at": "2026-10-25T07:20:17Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/121099401628",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000000385,
+      "runner_name": "GitHub Actions 1000000385",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 121099402434,
+      "run_id": 40170232822,
+      "workflow_name": "Two-disk rehearsal (keyboard)",
+      "head_branch": "pkg/13-keyboard-layout",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40170232822",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcMhY8wg",
+      "head_sha": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/121099402434",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40170232822/job/121099402434",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-25T06:45:27Z",
+      "started_at": "2026-10-25T06:45:27Z",
+      "completed_at": "2026-10-25T06:45:26Z",
+      "name": "image",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/121099402434",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 121099402444,
+      "run_id": 40170232822,
+      "workflow_name": "Two-disk rehearsal (keyboard)",
+      "head_branch": "pkg/13-keyboard-layout",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40170232822",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcMhY8zA",
+      "head_sha": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/121099402444",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40170232822/job/121099402444",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-25T06:45:27Z",
+      "started_at": "2026-10-25T06:45:27Z",
+      "completed_at": "2026-10-25T06:45:26Z",
+      "name": "Regression checks only (no image build or VM)",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/121099402444",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 121099402556,
+      "run_id": 40170232822,
+      "workflow_name": "Two-disk rehearsal (keyboard)",
+      "head_branch": "pkg/13-keyboard-layout",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/40170232822",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVSkw388AAAAcMhY9PA",
+      "head_sha": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/121099402556",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/40170232822/job/121099402556",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-25T06:45:27Z",
+      "started_at": "2026-10-25T06:45:27Z",
+      "completed_at": "2026-10-25T06:45:27Z",
+      "name": "Published-image switch and rollback",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/121099402556",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

@@ -80,12 +80,36 @@
   "keyboard_qualification": "blocked",
   "owner_review": "required-before-merge",
   "keyboard_qualification_attempt": {
-    "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40159515328",
-    "head": "777b78202580e19ed1ec0b5fc838931e2609f77e",
-    "status": "failed-probe",
-    "stage": "live-kde-select",
-    "error": "KDE normal settings control unavailable: German",
-    "installation_performed": false,
-    "qualification_runs": 0
-  }
+    "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40170232822",
+    "head": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+    "status": "failed-qualification",
+    "stage": "repair-installer-value",
+    "error": "STOP: fix the keyboard before pin/switch; expected one stock deployment",
+    "installation_performed": true,
+    "repair_write_performed": false,
+    "qualification_runs": 1,
+    "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40168412078"
+  },
+  "keyboard_qualification_attempts": [
+    {
+      "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40159515328",
+      "head": "777b78202580e19ed1ec0b5fc838931e2609f77e",
+      "status": "failed-probe",
+      "stage": "live-kde-select",
+      "error": "KDE normal settings control unavailable: German",
+      "installation_performed": false,
+      "qualification_runs": 0
+    },
+    {
+      "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40170232822",
+      "head": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+      "status": "failed-qualification",
+      "stage": "repair-installer-value",
+      "error": "STOP: fix the keyboard before pin/switch; expected one stock deployment",
+      "installation_performed": true,
+      "repair_write_performed": false,
+      "qualification_runs": 1,
+      "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40168412078"
+    }
+  ]
 }
