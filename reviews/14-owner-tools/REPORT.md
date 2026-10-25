@@ -1,12 +1,14 @@
 # 14: checked owner tools
 
-**Current 14d status:** the owner resolved the five historical hash findings in
-`1272b3e`; the pinned local full-history scan reports **0 findings** on that
-commit. Hash manifests now put hashes before paths, including the generated
-bundle and host walk. Fresh native/probe/qualification gates remain pending.
-PR #13 stays **draft** until package acceptance is met. Physical installation
-stays **NOT RELEASED**. The earlier NVIDIA, USB and privacy stops below are
-historical; 14b, 14c and 14d record their owner decisions.
+**Current 14d status: STOP / PLAN-GAP at release-source ancestry after the
+package13 squash.** Privacy CI passed all three steps. Native Python **275/275**
+and PowerShell **15 zero-write refusals** passed, then the inherited release
+verifier rejected the frozen image source as a non-ancestor. The single probe
+dispatch stopped before any VM; no qualification was dispatched. Ledger:
+**5/350 minutes**, **1/1 probe**, **0/2 qualifications**, plus **12 minutes
+reserved for closing privacy**. PR #13 stays **draft**; acceptance is unmet.
+Physical installation stays **NOT RELEASED**. The earlier NVIDIA, USB and
+privacy stops below are historical; 14b, 14c and 14d record their owner decisions.
 
 ## 14d — hash-before-path manifests and resumed privacy gates
 
@@ -64,8 +66,80 @@ auth-file modes. None was weakened or omitted. The full native suite must pass
 all cases. Exact output is retained under
 `os/manifest/ci/14/local-verification/14d/`; its file hashes precede paths.
 
-**Pending:** clean scan of the pushed head, all three privacy CI steps,
-native preflight, one fresh probe and qualification.
+### Actual continuation and PLAN-GAP
+
+The final pre-push scan at `5dfe2b00955955eecaca6a9edb62da34b7bb5865`
+reported **0 findings**, then the branch was pushed fast-forward. Both privacy
+runs [40237880873](https://github.com/Ares-Empire/AresOS/actions/runs/40237880873)
+and [40237883460](https://github.com/Ares-Empire/AresOS/actions/runs/40237883460)
+passed **gitleaks, private commit emails and personal terms** on that head.
+The personal-term step emitted no unset-secret/skip warning. An initial local
+log check mistakenly matched the echoed workflow command; a read-only check of
+actual warning annotations corrected that before dispatch.
+
+A fresh complete **17/17** history and billing guard passed: package
+**0 consumed +314 reserved /350**, org **506 free**, **192** after reservation,
+above the required **150**. The single fresh probe was dispatched on the same
+head: [40238209435](https://github.com/Ares-Empire/AresOS/actions/runs/40238209435).
+
+Native output was **`Ran 275 tests in 17.307s` / `OK`**, no skips; all eight
+local host limitations passed natively. The PowerShell suite printed **`PASS 15
+destination refusals with zero writes; copied payload equals source`**. Source
+compilation and shell syntax checks also completed. The next command failed:
+
+```text
+os/ci/verify_release.py:43
+git merge-base --is-ancestor 2abc12e8aa6089f7576143d1fbccb6648a3291bd HEAD
+exit status 1
+```
+
+That is the signed private image's historical source, while package13 was merged
+as squash `775be05b7f0d6971cbdc8a3bd1aea617fc008c4d`. Read-only replay in this
+worktree reproduces the failed ancestry test. Diffing the verifier's **entire
+eight-path runtime payload** from that source to this head returns **0**; the
+payload is unchanged. Diffing the frozen paths, including release metadata,
+against `775be05` also returns **0**. The verifier's ancestry requirement remains
+unchanged. No check was bypassed, no release manifest/image was altered, and no
+second probe or job rerun was attempted. This ancestry incompatibility could
+have been caught at zero cost before dispatch; the native failure is retained,
+not counted as a passing probe.
+
+**PLAN-GAP / integrator decision needed:** the current release-source ancestry
+rule cannot accept the approved squash history. Any future continuation needs
+an explicitly reviewed binding from the qualified historical source to the
+reachable squash's exact runtime tree, while retaining all release-run,
+signature, digest, private-access and payload checks. It also needs a fresh
+probe allowance; the existing **1/1** is consumed. Removing the ancestry check
+or rerunning against the exhausted allowance is not authorized here.
+
+The native-preflight gate, credentials creation, signature/pull, ISO inspection
+and VM steps after the failure were skipped. Cleanup passed. The private
+artifact **12615638956** was verified against GitHub's archive digest before
+reading. Its hash precedes its path in
+`os/manifest/ci/14/14d-probe-stop/result.json`; that directory retains the exact
+native test/STOP excerpt, privacy proof, pre-dispatch guard and cleanup result.
+There is no `probe-result.json`, installed system or qualification evidence.
+
+| Final dispatch ledger snapshot | Result |
+|---|---:|
+| First dispatch start | 2026-10-25 22:01:22 UTC |
+| Failed probe, including native preflight | 5 rounded minutes |
+| Package cap | 350 minutes |
+| Probe dispatches | 1/1 |
+| Qualification dispatches | 0/2 |
+| Closing privacy reservation | 12 minutes |
+| Consumed plus closing reservation | 17/350 minutes |
+| Complete history at stop | 18/18 runs |
+| Org free / after closing reservation | 501 /489 minutes |
+| Required org reserve | 150 minutes |
+
+`BUDGET.json` retains the fresh stopped ledger and clean pre-push scan receipts.
+Closing push privacy will be checked and recorded in the PR; its 12-minute
+reservation remains charged until actual jobs finish. No further dispatch is
+permitted under this probe allowance. Package acceptance remains unmet.
+
+**Not verified:** the package14 VM route and all owner-tools qualification
+stages. The prior source, unit and stand-in checks remain prerequisites only.
 No image/release/publication, laptop or physical USB operation was performed.
 The stage table in14c remains the route: offline live install and first stock,
 Windows-first round trip with the stick absent, attach after signed-in Linux,

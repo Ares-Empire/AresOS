@@ -1,6 +1,6 @@
 {
   "allowance": "14",
-  "start": null,
+  "start": "2026-10-25T22:01:22Z",
   "cap": 350,
   "full_cap": 0,
   "full_dispatched": 0,
@@ -11,30 +11,41 @@
     "owner-tools": 2
   },
   "dispatch_counts": {
-    "probe": 0,
+    "probe": 1,
     "owner-tools": 0
   },
-  "consumed_minutes": 0,
-  "reserved_minutes": 314,
-  "runs": [],
+  "consumed_minutes": 5,
+  "reserved_minutes": 12,
+  "runs": [
+    {
+      "run": 40238209435,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "5dfe2b00955955eecaca6a9edb62da34b7bb5865",
+      "conclusion": "failure",
+      "minutes": 5
+    }
+  ],
   "publish_cap": 0,
   "publish_attempts": [],
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 15,
-    "total_count": 15,
+    "ids_count": 18,
+    "total_count": 18,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 15,
-        "total_count": 15,
-        "ids_sha256": "246e1732c6fc736d56aa788663047cc123ba37bd22b7b433c06580901fa3418a"
+        "returned": 18,
+        "total_count": 18,
+        "ids_sha256": "7f76cb46115680e3426d5e00e8fa6962c4a82c1120f0061eb23c13d0d2c8ee92"
       }
     ],
     "run_ids": [
+      40238209435,
+      40237883460,
+      40237880873,
       40236884399,
       40236881214,
       40232135063,
@@ -52,25 +63,20 @@
       40216222435
     ]
   },
-  "native": {
-    "status": "pending",
-    "sha": "1272b3e57ce79378212019c2efbb52cc1dbdd5a9",
-    "required": "completed native step before any VM"
-  },
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-25T21:53:36.572356+00:00",
-    "response_sha256": "cd13efa72a83a4a7315d7da8dadc1a7213210932740629416c51eb83cbfb5ee5",
+    "checked_at": "2026-10-25T22:07:34.398132+00:00",
+    "response_sha256": "bcc8c84e1f3cf67b0985774c3137a5a66a75cf2d826252baad1b7263c9256294",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 1488.0,
-        "discountQuantity": 1488.0,
+        "grossQuantity": 1499.0,
+        "discountQuantity": 1499.0,
         "netQuantity": 0.0,
-        "grossAmount": 8.928,
-        "discountAmount": 8.928,
+        "grossAmount": 8.994,
+        "discountAmount": 8.994,
         "netAmount": 0.0
       },
       {
@@ -84,16 +90,15 @@
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 1488,
+    "used_minutes": 1499,
     "included_minutes": 2000,
-    "remaining_minutes": 512,
-    "reserved_minutes": 314,
-    "after_reservation": 198,
+    "remaining_minutes": 501,
+    "reserved_minutes": 12,
+    "after_reservation": 489,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   },
-  "read_retries": [],
-  "status": "planning snapshot, not a VM result",
+  "status": "STOP-PLAN-GAP: release source ancestry after squash",
   "local_privacy_scans": [
     {
       "version": "8.21.2",
@@ -132,6 +137,42 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "checked_commit": "5dfe2b00955955eecaca6a9edb62da34b7bb5865",
+      "version": "8.21.2",
+      "scope": "full history",
+      "findings": 0,
+      "exit_code": 0,
+      "checked_at": "2026-10-25T21:57:09.454170+00:00"
     }
-  ]
+  ],
+  "privacy_ci": {
+    "sha": "5dfe2b00955955eecaca6a9edb62da34b7bb5865",
+    "checked_at": "2026-10-25T22:01:15.420095+00:00",
+    "runs": [
+      {
+        "run": 40237880873,
+        "event": "push",
+        "conclusion": "success",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true
+      },
+      {
+        "run": 40237883460,
+        "event": "pull_request",
+        "conclusion": "success",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true
+      }
+    ]
+  }
 }
