@@ -1,3 +1,7 @@
+# Package 13 review
+
+## First review of 1c4a249 — CHANGES-NEEDED
+
 Reviewed head `1c4a249`. Three findings:
 
 1. **Blocking — Later layout changes do not follow into recovery stock.**  
@@ -20,3 +24,19 @@ The keyboard repair block exactly matches its script. Frozen runtime paths match
 No files changed. Tests could not be rerun: native Python was unavailable and WSL returned access denied.
 
 CHANGES-NEEDED
+
+## Fix re-review of cadc9f4 (13g) — SAFE
+
+Reviewed `cadc9f4`, limited to the requested fixes and touched documentation. **All three findings are resolved.**
+
+1. **Original blocking finding — resolved.** [INSTALL:225](C:/Users/pab/AresOS-13-keyboard-layout/docs/INSTALL.md:225) and [EMERGENCY:57](C:/Users/pab/AresOS-13-keyboard-layout/docs/EMERGENCY.md:57) plainly state that backup Bazzite keeps the installer layout and recovery passwords use that layout. No propagation mechanism was added. Both truthfully distinguish the tested **de → us → de → rollback** sequence from the **US-then-rollback run that was not performed**. No further fix needed.
+
+2. **Original should-fix finding — resolved.** [INSTALL:588](C:/Users/pab/AresOS-13-keyboard-layout/docs/INSTALL.md:588) resolves actual BLS targets against the saved checksum, serial and stateroot. Refreshes are required after cleanup, switch staging, queued rollback and set-default, before rebooting. [EMERGENCY:38](C:/Users/pab/AresOS-13-keyboard-layout/docs/EMERGENCY.md:38) explicitly invalidates stale titles even when labels look familiar. Retained snapshots confirm stock changes from `(ostree:1)` to `(ostree:0)` when rollback is queued. The provisional first-switch record retains the Windows/help restriction. No further fix needed.
+
+3. **Original should-fix finding — resolved.** The affected layout-change, switch, rollback, stock-default and hardware-check sequences now specify `ares-recovery`, the command, reboot, **F12 → recorded Linux entry**, and the appropriate password layout. Windows remains the firmware default after §5. The emergency card agrees. No further fix needed.
+
+I found no new blocking, should-fix or nit issues introduced by these edits, and no introduced unsafe instruction or INSTALL/EMERGENCY inconsistency.
+
+`git diff --exit-code 1c4a249..cadc9f4 -- os/ci os/tests os/release` returned **0**: all three directories are unchanged. Scoped `git diff --check` passed. No files changed; no runtime tests rerun. Physical installation remains **NOT RELEASED**.
+
+SAFE
