@@ -1,12 +1,16 @@
-# 13: keyboard layout — 13f VM acceptance passed
+# 13: keyboard layout — 13g recovery guide fixes
 
-**Current: 13f VM acceptance passed.** The fresh probe and one complete
-protected-second qualification passed on the same head, including both starting
-state repairs, every typing/layout/entry stage and all audits. PR #12 can be
-marked ready after closing privacy passes; final privacy receipts and the actual
-closed ledger are recorded in the PR body. Owner review before merge and the
-physical/live-desktop/laptop followability gates remain open. Physical
-installation remains **NOT RELEASED**. No merge or new publication occurred.
+**Current: 13g guide-only review fixes completed; 13f VM acceptance retained.**
+The owner approved keeping backup Bazzite on the installer's layout; a direct
+US-in-AresOS → rollback run was **not performed**. The guides now refresh stock's
+identity-resolved title before every reboot after a reorder, invalidate stale
+titles, and spell out recovery-account commands and F12 → Linux while Windows
+stays the firmware default after §5. No harness, owner script, image or VM changed.
+PR #12 stays ready, subject to privacy passing on this pushed head; closing
+privacy receipts and the actual closed ledger are recorded in the PR body.
+Owner review before merge and physical/live-desktop/laptop followability gates
+remain open. Physical installation remains **NOT RELEASED**. No merge or new
+publication occurred. See the [13g section](#13g--review-fixes-for-recovery-steps-2026-10-25).
 
 **Historical 13e: STOP / PLAN-GAP.** 13e’s fresh probe passed.
 Real two-entry stock repair passed for both de/us starting states, pin and the
@@ -1793,3 +1797,127 @@ The preliminary tty cache-clear timing observation above is recorded for
 future fixture work; no clean-command assertion is claimed. No product change
 or extra run was made to address it. VM acceptance in 13f was reached in full;
 PR readiness additionally requires the closing privacy check. Never merge.
+
+## 13g — review fixes for recovery steps (2026-10-25)
+
+### Done
+
+Fetched and pulled `--ff-only` first; the branch was already up to date at
+`25475975ceda68afbed6c49dcb3fdc956dd0c321`. Read the owner review of `1c4a249`
+and brief 13g. This follow-up changes only INSTALL, EMERGENCY, INSTALL-RECORD
+and this REPORT. The retired worktree was not accessed.
+
+- **INSTALL:** documents the approved recovery-layout exception and the full
+  `ares-recovery` login → command → reboot → F12 → recorded Linux entry sequence
+  for layout changes, switch, rollback, stock-default promotion and subsequent
+  hardware/recovery checks. Windows stays the firmware default after §5; the
+  initial installer/hardware-setup Linux-default phase is unchanged. Daily
+  `ares` cannot run the maintenance commands. Current AresOS layout is used for
+  its administrator login; installer layout is used after booting backup stock.
+- **INSTALL's title checkpoint:** reads rpm-ostree/bootc status and actual BLS
+  title/options, resolves each `ostree=` target with readlink, and matches stock's
+  complete saved checksum, serial and stateroot. Requires exactly one matching
+  BLS target and records its exact title/state/time. Repeat after every reorder
+  before reboot, including pending-update cleanup, staged switch, queued
+  rollback and set-default, then confirm again after boot. Neither staged JSON
+  row counts nor BLS filenames identify menu rows. The first-switch staged
+  record remains provisional because shutdown finalization can change it again.
+  A failed first switch boot still requires **F12 → Windows and help**.
+- **EMERGENCY / INSTALL-RECORD:** any reorder immediately invalidates old titles,
+  even when familiar labels remain visible. A stale/missing record requires
+  Windows/help. The blank private record now captures stock checksum/serial/
+  stateroot, installer layout and title history with invalidation checkpoints.
+  No actual machine identifiers or credentials were collected into this form.
+- **Release gate:** records the owner's 2026-10-25 decision and distinguishes
+  source verification from historical VM coverage. Physical installation and
+  novice/laptop followability remain **NOT RELEASED**.
+
+### Verified
+
+Commands ran locally, without elevation, real boot/disk queries or execution of
+the guide's maintenance commands:
+
+| Command / check | Actual result |
+| --- | --- |
+| `wsl bash .work/13/13d-closing-checks.sh` | `test_system_keyboard.SystemKeyboardTest.test_owner_block_equals_script` and `test_grub_bls.GrubSelectionTest.test_owner_switch_block_is_exact_release_script`: **2 tests in 0.040s, OK**. Both owner blocks remain exactly equal to their scripts. |
+| `python -X utf8 .work/13/13g-verify.py` | All five retained BLS/whole-identity checks passed; confirmed historical `de, us, de` sequence before rollback. Exported 18 guide Bash blocks for syntax checking only. |
+| `wsl bash .work/13/13g-guide-syntax.sh` | `GUIDE_BASH_SYNTAX_PASSED_NO_COMMAND_EXECUTED`; all 18 blocks passed `bash -n`. |
+| `git diff --check` | Exit 0; no whitespace errors. |
+| `git diff --exit-code 1c4a2495b503b9342af06360f0bfd18a5366fa2d -- os/ci os/tests os/release os/Containerfile.keyboard os/.containerignore os/packages.lock.json os/config os/policy os/manifest/base.json os/keys` | Exit 0; harness, tests, owner scripts and runtime paths unchanged from the reviewed head. |
+| `git diff --exit-code 2abc12e8aa6089f7576143d1fbccb6648a3291bd -- os/Containerfile.keyboard os/.containerignore os/packages.lock.json os/config os/policy os/manifest/base.json os/keys os/tests/audit.py` | Exit 0; frozen runtime paths and audit still match the published image source. Earlier 13d–13f harness/test changes are retained; this guide follow-up changes none. |
+| `git diff --name-only` | Exactly the four documentation files listed above. |
+
+The read-only title procedure was checked against the actual retained
+[13f deployment/BLS exports](../../os/manifest/ci/13/qualification-3/evidence/two-disk/).
+The same pinned corrected stock checksum/serial1/stateroot was selected in every
+snapshot; the untouched old stock serial0 was not mistaken for it:
+
+| Snapshot | Corrected stock's actual title |
+| --- | --- |
+| After pin | `Bazzite (ostree:0)` |
+| Switch staged, before shutdown finalization | `Bazzite (ostree:0)` — provisional |
+| Successful AresOS boot, final pair | `Bazzite (ostree:1)` |
+| Rollback queued, **before reboot** | `Bazzite (ostree:0)` |
+| Stock booted after rollback | `Bazzite (ostree:0)` |
+
+The staged rpm-ostree JSON includes the new image before it has a BLS entry;
+this is why the guide resolves actual BLS targets instead of deriving a title
+from JSON position. These are retained-evidence checks, not a new VM execution
+or a physical readlink test. Root commands in the guide were syntax-checked,
+never run against the owner's system.
+
+The [bootc filesystem documentation](https://bootc.dev/bootc/bootc-filesystem.7.html#etc)
+describes deployment-specific `/etc` and staged finalization. Together with the
+retained pinned sources and historical layout sequence, this supports the
+recovery-layout exception. A later localectl setting in AresOS does not update
+the retained stock deployment's earlier configuration.
+
+### JUDGMENT-CALL — owner-approved recovery layout and title validity
+
+**Owner decision in brief 13g, 2026-10-25:** backup Bazzite keeps the installer
+layout (German for this laptop), matching the frozen-backup decision. Later
+AresOS layout changes apply to AresOS; recovery passwords must be typed using
+the installer layout. No mechanism writes later settings into stock. This
+narrows the earlier “one setting everywhere” requirement. Propagating layout
+changes into the retained deployment was rejected by the owner; changing that
+decision later would require a separately authorized mechanism and new runtime
+qualification, rather than a guide edit.
+
+Keep the existing failed-first-switch F12 → Windows rule. A staged switch can
+still contain both stock serials, and its current BLS title can change during
+finalization. Recording that provisional title does not authorize using it for
+recovery. Once the first successful AresOS boot confirms the final pair, the
+latest checksum/serial-resolved title is usable only until the next reorder.
+
+### Not verified / PLAN-GAP / open questions
+
+**A run leaving AresOS on US and then rolling back was not performed.** 13f
+restored German before rollback. Installer-layout recovery after a later US
+change is source-verified, not runtime-verified. This limitation is now explicit
+in INSTALL, EMERGENCY, the release gate and this report; it is not claimed as
+new VM coverage. The owner-approved exception resolves the review's requirement
+gap without changing or writing into stock.
+
+No new VM, image build/publication, native/full suite or Actions dispatch was
+run for this guide-only brief. The two exact-block tests above are the requested
+local regressions. No Gradle build/client test ran because mod/product code is
+unchanged; no Gradle daemon was started. Historical 13f acceptance remains the
+qualification evidence. Physical media, laptop keyboard/firmware/GRUB and live
+KDE/KWrite/unaided followability remain open release gates. Owner review before
+merge remains required; PR #12 stays ready. No merge or visibility change.
+
+### Package ledger and closing privacy
+
+Read-only `python -X utf8 .work/13/13d-ledger.py 8` returned complete history:
+**50 unique IDs / total_count 50**, one page, no active job. Completed package
+cost is **384 / 460 minutes** (the previous 374 plus 10 for the owner's 13g brief
+and review privacy jobs). Reserving **8** for this closing push/PR privacy gives
+**392 / 460**. Existing dispatch totals stay images 2/3, publish 1/1, checks 1/1,
+probes 4/4 and qualifications 3/3; no further dispatch is authorized or needed.
+
+Only the normal push/pull-request privacy workflows may run on this closing
+head. Their actual job minutes, all three executed checks, log hashes and final
+zero-reserve ledger will be recorded in PR #12's body after the push, avoiding
+a report-only push loop. This pre-push report does not invent their results.
+No tokens were printed or stored; no harness, owner-script, frozen runtime,
+image, VM, protected-disk or audit change was made.

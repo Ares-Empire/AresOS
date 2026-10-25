@@ -211,23 +211,51 @@ help: the staged state can still contain both stock serials. Physical installati
 and manual GRUB/followability checks remain NOT RELEASED.
 
 The running kernel still has its original arguments until reboot. Complete the
-pause/pin block, reboot stock once, then require `cat /proc/cmdline` to contain
-no `vconsole.keymap` or `rd.vconsole.keymap` override. The installed
-`localectl status` must show the selected console and X11 settings. On tty3,
-test the physical keys before entering a password. A failed test stops the trial.
+pause/pin block and its stock-title checkpoint, then complete §5's Windows-first
+firmware setting and unattended Windows comparison. To check corrected stock,
+restart Windows, press **F12 → the recorded Linux entry**, and sign in as
+**`ares-recovery`**, using the installer's layout for its password. In Konsole,
+require `cat /proc/cmdline` to contain no `vconsole.keymap` or
+`rd.vconsole.keymap` override; `localectl status` must show the selected console
+and X11 settings. On tty3, test the physical keys before entering a password.
+A failed test stops the trial. Windows remains the firmware default.
 
-To change the layout later, use the normal system setting (this example selects
-German; choose your own layout and corresponding console map), then reboot:
+### Change the AresOS layout later; recovery keeps the installer layout
+
+**Owner decision, 2026-10-25:** the retained backup Bazzite keeps the keyboard
+layout chosen in the installer (**German in this guide**). A later layout
+change in AresOS changes only that running deployment's `/etc`; it does **not**
+change the backup. At a backup/recovery login, type the `ares-recovery` password
+using the **installer layout**, even if AresOS last used US. No mechanism writes
+the later setting into stock. This is the approved exception to “one setting
+everywhere,” keeping the tested backup frozen. It follows from bootc's
+[per-deployment `/etc`](https://bootc.dev/bootc/bootc-filesystem.7.html#etc).
+
+To change the layout while running AresOS:
+
+1. Press **Ctrl+Alt+F3**, sign in as **`ares-recovery`** using the current AresOS
+   layout, and wait for its shell prompt. Daily **`ares` cannot use sudo**.
+2. Run the setting command below as `ares-recovery` (this example selects German;
+   choose your own layout and corresponding console map). Stop on any error:
 
 ```bash
-sudo localectl --no-convert set-keymap de && sudo localectl --no-convert set-x11-keymap de pc105 '' '' && sudo systemctl reboot
+sudo localectl --no-convert set-keymap de && sudo localectl --no-convert set-x11-keymap de pc105 '' ''
 ```
 
-The next boot uses the console keymap and the next AresOS session reads the X11
-layout, model, variant and options from localed. Qualification 13f rehearsed the
-same settings with `us` and back to `de`, with loaded console maps, physical tty3
-login/password sudo and physical foot text checked after each reboot.
-The image contains no chosen layout.
+3. Run `sudo systemctl reboot` as `ares-recovery`. At startup press **F12 → the
+   recorded Linux entry**; do not change firmware order. Pressing nothing starts
+   Windows. Let AresOS start, then use **Ctrl+Alt+F3 → `ares-recovery`** with the
+   **new AresOS layout** to check `localectl status` and the physical keys.
+   Log out of that TTY before returning with Ctrl+Alt+F1.
+
+The next AresOS boot uses its console keymap, and its labwc session reads the
+X11 layout, model, variant and options from localed. The image contains no chosen
+layout. Qualification 13f checked **de → us → de, then rollback to de** with loaded
+maps and physical tty3/foot text. **A run that left AresOS on US and then rolled
+back was not performed.** The backup's installer-layout behavior in that case is
+source-verified, not runtime-verified. Layout changes alone do not reorder the
+deployments; any separate deployment transaction invalidates the saved stock
+title and requires the checkpoint below before rebooting.
 
 ### Pause and retain stock before the Windows comparison
 
@@ -485,13 +513,25 @@ PIN_STOCK
 ```
 
 Require the final **Pinned booted stock deployment** line and no error before
-continuing. Leave updates paused throughout the trial. After returning to stock
+continuing. Still in this `ares-recovery` root shell, save the corrected stock's
+full checksum, serial and stateroot, then complete the
+[stock-title checkpoint](#refresh-the-recorded-stock-title-before-reboot).
+Any permitted pending-update cleanup invalidates an earlier title; this initial
+record describes pre-switch stock only. Repeat the checkpoint if this pause/pin
+block is run again. Leave updates paused throughout the trial. After returning to stock
 for good and confirming its second default boot, run **sudo systemctl enable --now
 uupd.timer** to turn stock updates back on.
 
 ## 5. Check installed Bazzite
 
 After the successful first-login pause-and-retain block, finish [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux): save Crucial's new GUIDs and Linux firmware entry; prove `/boot/efi` resolves to Crucial. Restart into **F2 → put Windows Boot Manager first → Save and Exit**. On the next start **press nothing: Windows must start**. This checks the saved firmware default; choosing Windows once with F12 would not check it. Then run [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage). A missing entry, unexpected default, mismatch or Windows repair/recovery prompt stops the trial. Keep records independently. From this step onward Windows stays the firmware default; use F12 for one Linux start.
+
+To continue with corrected stock and §6, restart Windows, press **F12**, choose
+the **recorded installed Linux entry** (not the USB), then sign in to Bazzite as
+**`ares-recovery`** with the installer-layout password. Complete the corrected
+stock keyboard checks above, open Konsole and follow the account checks below.
+Every later “reboot into Linux” step explicitly uses this one-time selection;
+do not make Linux the firmware default to avoid F12.
 
 ## 6. Switch to AresOS
 
@@ -514,7 +554,9 @@ In Bazzite's **Create Account** page, keep **Use local account** checked and use
 
 The image supplies **`ares`, UID/GID 1001**, a locked password and no `wheel`/sudo rights. Its `sysusers.d` declaration creates this account at boot even when the installer's local passwd/group files survive the rebase. greetd automatically starts its labwc session on tty1. It is the daily account; keep it out of administrative groups. UID 1001 must be unused on stock Bazzite before switching. If the expected account/UID/group checks fail, stop rather than renumbering existing users or files.
 
-Finish §5 and its Windows comparison first. In installed Bazzite, sign into `ares-recovery`, open Konsole and check:
+Finish §5 and its Windows comparison first. Restart from Windows with **F12 →
+the recorded Linux entry**. In installed Bazzite, sign into **`ares-recovery`**
+with the installer layout, open Konsole and check:
 
 ```bash
 id -u ares-recovery
@@ -532,9 +574,74 @@ Repeat the complete [pause-and-retain block above](#pause-and-retain-stock-befor
 before the private pull. Running it again is harmless: it pauses stock's updaters
 again and requires no staged deployment at the moment of pinning. A permitted
 pending upstream update is discarded only while the original ISO digest remains
-booted; any changed booted identity stops the recipe. Then run `bootc status --json`.
+booted; any changed booted identity stops the recipe. Refresh the stock-title
+record after this repeated block, then run `bootc status --json`.
 
-Record the printed stock checksum, its image reference and current GRUB entry privately with record C. Require **`status.booted.image.imageDigest`** to equal the upstream SHA-256 above, with no layered packages or local OS modifications. Its origin reference may end in `:stable`; the payload digest, rather than that mutable tag, identifies the tested stock contents. An older/newer ISO deployment is outside this tested recipe. Do not discard the pinned deployment after this switch.
+Record the printed stock checksum, **serial and stateroot**, image reference,
+installer layout and freshly resolved GRUB title privately with record C.
+Require **`status.booted.image.imageDigest`** to equal the upstream SHA-256 above,
+with no layered packages or local OS modifications. Its origin reference may
+end in `:stable`; the payload digest, rather than that mutable tag, identifies
+the tested stock contents. An older/newer ISO deployment is outside this tested
+recipe. Do not discard the pinned deployment after this switch.
+
+### Refresh the recorded stock title before reboot
+
+**Every deployment reorder invalidates the previous title immediately**,
+including a staged switch, queued rollback, pending-update cleanup or
+`ostree admin set-default`. Refresh after each such operation **before rebooting**,
+then confirm it again after the boot. A known checksum with a stale title is
+not a recovery record. Keep records private, outside Git, in
+[record C](INSTALL-RECORD.md#private-comparison-sheet).
+
+Use **`ares-recovery`**, open Konsole on stock or **Ctrl+Alt+F3** on AresOS,
+wait for the shell prompt, then run **`sudo -i`** (unless already in that root
+shell). Use the current deployment's layout for this login; backup stock uses
+the installer layout. These commands only read status and BLS files:
+
+```bash
+rpm-ostree status --json
+bootc status --json
+ostree admin status
+grep -H -E '^(title|options) ' /boot/loader/entries/*.conf
+```
+
+1. On the first run after pinning, record the **booted, pinned** stock deployment's
+   complete `checksum`, `serial` and `osname` from JSON; `osname` is its stateroot.
+   Compare them with bootc's `ostree.checksum`, `deploySerial` and `stateroot`.
+   Later runs must match that saved triple and pin, not just the checksum.
+2. For **each BLS file** printed by grep, keep its `title` together with its own
+   `options` line. Copy only the value after `ostree=` from that line (it must
+   start `/ostree/`), then run this read-only resolution for that value:
+
+   ```bash
+   read -r -p 'Value after ostree= from this BLS options line: ' stockBootLink
+   readlink -e "/sysroot$stockBootLink"
+   ```
+
+3. Require exactly **one** resolved path of the form
+   `/sysroot/ostree/deploy/<saved-stateroot>/deploy/<saved-checksum>.<saved-serial>`.
+   Record **that file's exact `title`**, the full identity, current transaction
+   state and time. Two stock entries may share a checksum before finalization;
+   the serial distinguishes corrected stock from the untouched older copy.
+   Do not derive a title from a filename, from JSON row numbers (which may
+   include a staged deployment), or from a remembered `(ostree:N)`.
+4. Mark the preceding title **INVALID — superseded**. Keep this new title valid
+   only while the recorded deployment/BLS state is unchanged. Missing, duplicate,
+   unresolved or inconsistent identity/title means **STOP; do not reboot**.
+
+**First-switch exception:** the pre-reboot staged record describes only the
+current BLS state. Shutdown finalization can change it again. Mark that title
+**provisional, not usable for first-switch recovery**. Only after the first
+successful AresOS boot confirms the exact final pair may you refresh it as a
+usable recovery title. If that first switch boot fails, **F12 → Windows and
+get help**, even if a provisional title was saved. No backup content or setting
+is written by this checkpoint.
+
+### Authenticate the private pull
+
+Continue in the `ares-recovery` root shell on installed stock Bazzite, selected
+for this boot with F12 → Linux. Do not run these maintenance steps as daily `ares`.
 
 GitHub currently supports **personal access tokens (classic)** for private GHCR pulls; a fine-grained PAT cannot do this. Create a **classic token with only `read:packages`**, an expiry and no `repo`, write or delete scope, from [GitHub's token settings](https://github.com/settings/tokens/new?scopes=read:packages). This classic scope is not restricted to this one package. The account must have read access to this private package; the package owner is `Ares-Empire`, and the example installing account is `carlsenares`. Keep the token in the owner's password manager, never Git, the install record, screenshots or shell command arguments. The new org release passed a CI job-token manifest read. Its rehearsal jobs use only the read-only job token, with no owner-token fallback. The old owner secret remains configured until the owner removes it; it was used only for historical image comparison in this release build. Laptop installation still uses the owner’s own classic read token.
 
@@ -563,7 +670,12 @@ Require successful verification and the exact release digest in the signed paylo
 
 ### Switch, reboot, and check recovery
 
-Run the checked switch script below in its own block. It repeats the account and pending-deployment checks immediately before switching. Any failure stops the block; do not reboot:
+Start from **F12 → the recorded Linux entry → installed stock Bazzite → sign in
+as `ares-recovery`** using the installer layout. Open Konsole and run **`sudo -i`**
+if not already in that root shell; complete the account/pin/authentication and
+signature checks above. Run the checked switch script below in its own block.
+It repeats the account and pending-deployment checks immediately before
+switching. Any failure stops the block; do not reboot:
 
 ```bash
 #!/usr/bin/bash
@@ -591,23 +703,72 @@ bootc status --json
 
 Read the output before continuing: require **`status.staged.image.image.image`** to equal the full release reference above and **`status.staged.image.imageDigest`** to equal its `sha256:9b19…f3eb` digest. The booted deployment must still have your recorded stock checksum; `status.rollbackQueued` must be false. Stop on missing/mismatched identity or pull, authentication, signature, disk-space or staging errors; do not try a mutable tag, change signature policy, remove the pinned stock deployment or alter partitions. CI uses this same transaction → identity inspection → reboot order.
 
-**Before the switch reboot, record the corrected pinned stock checksum and serial. After the first successful AresOS boot, note down its final stock menu title.** Run `rpm-ostree status` and find your recorded stock checksum. Count the deployment rows from **0 at the top**: the number is the `N` in that entry's **`(ostree:N)`** menu title. Both final entries can be called **Bazzite**, including AresOS; the name alone does not identify stock. After switch finalization on the first AresOS boot, only AresOS and the corrected pinned stock may remain. While the switch is still staged the unrepaired older stock serial can remain temporarily: its checksum duplicates the corrected stock checksum, so do not guess a menu title then. After finalization, AresOS should be row0 and your recorded stock row1, titled **Bazzite (ostree:1)**. Write the exact stock title/number next to its checksum and corrected serial in record C. Until that successful boot confirms the final pair, an emergency means F12 → Windows and get help; do not guess between the temporary duplicate stock entries. If the checksum is missing, occurs twice, or the rows differ, stop and get help rather than guessing from a filename or remembered position.
+**Before rebooting, invalidate the previous stock title and complete the
+[stock-title checkpoint](#refresh-the-recorded-stock-title-before-reboot)** in
+this `ares-recovery` root shell. Resolve the BLS target by the saved **checksum,
+serial and stateroot**, and record its current exact title as **provisional —
+switch staged**. The older unpinned stock serial may still exist; never choose
+by the duplicated checksum alone or count the staged JSON row as a GRUB row.
+Finalization can change the title during shutdown. **A failed first switch boot
+still means F12 → Windows and help, not using this provisional title.**
 
-Only after reading and accepting those checkpoints, reboot as its own step:
+Only after those identity/title checks, run the following in the same
+`ares-recovery` root shell. At startup press **F12 → the recorded Linux entry**.
+Leave Windows Boot Manager first in firmware; pressing nothing starts Windows.
 
 ```bash
 systemctl reboot
 ```
 
-After reboot, expect **labwc with foot**, automatically running as `ares`. In that terminal, `id -u` must print **1001**. CI verified labwc/foot, GID 1001, the locked password and absence of wheel/sudo rights. **Super+Ctrl+Escape** opens another recovery terminal as the same daily user. **Ctrl+Alt+F3** opens an independent TTY: log in as **`ares-recovery`** with its password, then run **`sudo -v`** to test password-authenticated administration. CI performed an actual QMP-keyboard login on tty3 and password-authenticated sudo there. Maintenance happens from that account with `sudo`, or `sudo -i` when a root shell is required. When finished, **exit any root shell** with `exit`, then run `sudo -k` as `ares-recovery` and **log out of `ares-recovery`** with `exit`. Confirm tty3 shows the **login prompt** again. Only then press **Ctrl+Alt+F1** to return to labwc. Do not unlock `ares` or add it to `wheel`. Physical keyboard and hardware TTY behavior remain laptop checks.
+After **F12 → Linux**, expect **labwc with foot**, automatically running as `ares`.
+In that terminal, `id -u` must print **1001**. CI verified labwc/foot, GID1001,
+the locked password and absence of wheel/sudo rights. **Super+Ctrl+Escape** opens
+another terminal as that same daily user, without administrator rights.
+Press **Ctrl+Alt+F3**, log in as **`ares-recovery`** using the current AresOS
+layout (initially the installer layout), and run **`sudo -v`** to test password
+administration. CI performed a QMP tty3 login and password sudo.
 
-In the administrator TTY, `sudo bootc status --json` must show the release digest under **`status.booted.image`**, the recorded stock deployment under **`status.rollback`**, and no unexpected pending update. CI verified these deployment identities and compared the attached Linux disk before switch, after switch and after rollback. That comparison covers one file-backed Linux disk; protection of a real Windows disk remains the two-disk/hardware gate. Continue with §7 only after those release gates permit the trial, then repeat record B in Windows.
+Run **`sudo -i`** and repeat the **stock-title checkpoint after finalization**.
+Require exactly AresOS plus the corrected pinned stock; the older unpinned stock
+serial must be absent. Re-resolve stock's BLS target by the saved full identity,
+then save its current exact title as **valid — final pair confirmed** before
+another reboot. In 13f it was **`Bazzite (ostree:1)`**, while AresOS was
+**`Bazzite (ostree:0)`**; both names say Bazzite. The actual identity-resolved
+result is authoritative. A missing/duplicate identity, unexpected pair or BLS
+disagreement stops the trial. Every later reorder invalidates this title again.
+
+Still in this administrator root shell, `bootc status --json` must show the
+release digest under **`status.booted.image`**, the recorded stock deployment
+under **`status.rollback`**, and no unexpected pending update. CI verified these
+deployment identities and compared the attached Linux disk before switch,
+after switch and after rollback. That comparison covers one file-backed Linux
+disk; protection of a real Windows disk remains the two-disk/hardware gate.
+
+When finished, **exit any root shell** with `exit`, then run `sudo -k` as
+`ares-recovery` and log out with `exit`. Confirm tty3 shows the **login prompt**
+before **Ctrl+Alt+F1** returns to labwc. Do not unlock `ares` or add it to `wheel`.
+Physical keyboard and hardware TTY behavior remain laptop checks.
+
+Continue with §7 only after those release gates permit the trial, then repeat
+record B in Windows.
 
 The daily account cannot execute or read inherited Homebrew in `/var/home/linuxbrew`, write its prefix, or find brew on its session/login PATH. Boot tmpfiles applies a deny ACL only to reserved UID 1001 on that parent; existing owner UID 1000, files and other ACL entries are preserved. Brew setup/update/upgrade services remain masked alongside the other inherited updaters. CI ran the unchanged full updater audit and verified the original owner could run `brew --version` and write the prefix in all three deployments; it requested no install/update.
 
 ### Roll back to the retained stock deployment
 
-If AresOS is usable enough for tty3, log in as `ares-recovery`, run `sudo -i`, and inspect `bootc status --json`. Require the rollback deployment to have the recorded stock checksum and Bazzite reference, with **`status.rollback.image.imageDigest`** equal to `sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151`. A `:stable` origin still rolls back to the retained local deployment; it does not fetch the tag again. If already booted into stock, use the identity-checked default step below instead of blindly running `bootc rollback`, which could select AresOS. Otherwise run the rollback transaction alone:
+If AresOS is usable enough for tty3, press **Ctrl+Alt+F3**, sign in as
+**`ares-recovery`** with the **current AresOS layout**, wait for its shell prompt,
+run **`sudo -i`**, and inspect `bootc status --json` and `rpm-ostree status --json`.
+Require the rollback deployment to match the saved stock **checksum, serial and
+stateroot**, pin and Bazzite reference, with **`status.rollback.image.imageDigest`**
+equal to `sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151`.
+A `:stable` origin still rolls back to the retained local deployment; it does not
+fetch the tag again. **The backup uses the installer layout**, even if the
+current AresOS layout is US. Use that installer layout for the stock password
+after reboot. US-then-rollback was not runtime-tested; 13f restored de first.
+If already booted into stock, use the identity-checked default step below instead
+of blindly running `bootc rollback`, which could select AresOS. Otherwise run
+the rollback transaction alone in this `ares-recovery` root shell:
 
 ```bash
 (
@@ -622,21 +783,72 @@ bootc rollback
 bootc status --json
 ```
 
-Read the output: require **`status.rollbackQueued: true`**, no staged deployment, and the same recorded stock checksum/reference/digest under `status.rollback`. AresOS remains booted until the restart. If any identity differs, stop. Only then reboot in a separate step:
+Read the output: require **`status.rollbackQueued: true`**, no staged deployment,
+and the same recorded stock identity/reference/digest under `status.rollback`.
+AresOS remains booted until restart, but **queuing rollback has already changed
+the deployment order and titles**. Mark the old title **INVALID**, repeat the
+[stock-title checkpoint](#refresh-the-recorded-stock-title-before-reboot), and
+record the newly resolved title by checksum **and serial** before rebooting.
+13f observed stock **`Bazzite (ostree:0)`** and AresOS **`Bazzite (ostree:1)`**
+at this queued checkpoint, not only after the boot. If identity/title checks
+fail, stop without rebooting; never keep the old `(ostree:1)` recovery title.
+
+Only then run this command in the same `ares-recovery` root shell. At startup,
+press **F12 → the recorded Linux entry**, leaving Windows first in firmware:
 
 ```bash
 systemctl reboot
 ```
 
-06c booted the exact retained stock checksum again, verified its display manager and password-protected administrator, and compared every attached-disk partition identity/boundary across stock, AresOS and rollback. The final deployment list must contain only corrected pinned stock and AresOS; the pre-repair unpinned stock serial must be absent. A normal rollback reorders this pair and preserves the corrected stock serial/pin; it does not recreate the old serial. The original owner still ran Homebrew 7.0.9 with the same brew script hash. Rollback restores that deployment's `/etc`; shared `/var` and home data are not rolled back or erased. The UID 1001 deny ACL remains on `/var/home/linuxbrew` without restricting owner UID 1000. To reverse it on stock if that UID later needs Homebrew, an administrator runs `sudo setfacl -x u:1001 /var/home/linuxbrew`; AresOS reapplies its rule on its next boot. Stock Bazzite's OS update timers stay paused for this trial; enable uupd.timer only after choosing stock for good and verifying its second default boot. This OS rollback does not replace a data backup.
+After **F12 → Linux**, require the stock greeter. Sign in as **`ares-recovery`
+using the installer layout**, open Konsole, run **`sudo -i`**, and repeat both
+status commands and the stock-title checkpoint. Require the saved stock
+checksum/serial/stateroot to be booted and pinned, with only corrected stock
+and AresOS remaining. The older unpinned stock serial must be absent. 13f
+verified this normal rollback and a rendered greeter after restoring German
+before the transaction; it did **not** run US-then-rollback.
 
-If a later AresOS boot cannot reach a TTY, use Bazzite's [GRUB previous-deployment recovery](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rolling_back_system_updates/): select the exact stock title/`(ostree:N)` recorded after the first successful AresOS boot confirmed the final pair. If that first boot never succeeded, stop at F12 → Windows and get help; the temporary duplicate stock entries have not been ruled out. **Both final entries may say Bazzite**; match the recorded checksum-to-row number, normally **Bazzite (ostree:1)** after this single switch. Bazzite documents **Esc once, then ↓** if the menu is hidden. A different or unclear title/order means stop; never infer the position from an `ostree-…` filename or reuse a number after further transactions. **Selecting stock in GRUB recovers that boot only. Complete the default step below before another unattended Linux boot.** Do not format, repair Windows boot files or delete deployments to recover. F12 → Windows Boot Manager remains the everyday Windows return path.
+Normal rollback preserves the corrected stock serial/pin and restores its own
+`/etc`, including the installer keyboard layout; later AresOS layout changes do
+not follow it. Shared `/var` and home data are not rolled back or erased. The
+original owner still ran Homebrew 7.0.9 with the same brew script hash. The
+UID1001 deny ACL remains on `/var/home/linuxbrew` without restricting owner
+UID1000. To reverse it on stock if that UID later needs Homebrew, an administrator
+runs `sudo setfacl -x u:1001 /var/home/linuxbrew`; AresOS reapplies its rule on its
+next boot. Stock OS update timers stay paused for this trial; enable uupd.timer
+only after choosing stock for good and verifying its second default boot.
+This OS rollback does not replace a data backup.
+
+If a later AresOS boot cannot reach a TTY, use **F12 → the recorded Linux entry**
+to reach Bazzite's [GRUB previous-deployment recovery](https://docs.bazzite.gg/Installing_and_Managing_Software/Updates_Rollbacks_and_Rebasing/rolling_back_system_updates/).
+Use only the stock title resolved by the saved checksum/serial **after the most
+recent deployment reorder**, including any queued rollback, and before reboot.
+A title recorded only after the original switch is stale once rollback is
+queued. **If the first switch boot never succeeded, or the latest reorder has
+no refreshed record, use F12 → Windows and get help.** Both entries may say
+Bazzite; matching a familiar old title does not make it valid. If the menu is
+hidden, Bazzite documents **Esc once, then ↓**. Select only the currently valid,
+identity-resolved stock title; a changed or unclear state means stop. Do not infer
+from filenames or menu position. After selecting stock, sign in as
+**`ares-recovery` using the installer layout**, then follow the default step below.
+Selecting stock in GRUB recovers that boot only; it does not set the next Linux
+default. Windows remains the firmware default. Do not format, repair Windows
+boot files or delete deployments to recover.
 
 ### Keep recovered stock as the default
 
 **GRUB recovery promotion: VM PASSED in protected-second; physical gate OPEN.** [11n](../reviews/11-two-disk-rehearsal/REPORT.md#11n-safe-switch-test-prerequisites-and-continued-qualification-2026-10-24) selected the recorded stock from the real menu, verified its previous-index boot while AresOS stayed default, promoted it and verified another stock default boot. The report preserves a limitation in the selected-highlight screenshot. The revised §5 Windows-first timing passed in this one order; 11k's both-order Part A used the earlier timing. Physical menu/keyboard interaction remains unqualified and installation remains NOT RELEASED. Do not guess a position; prefer F12 → Windows and getting help.
 
-After booting the recorded stock entry from GRUB, **or if already booted into stock**, sign into `ares-recovery` and run `sudo -i`. Substitute your privately recorded stock checksum for `REPLACE_WITH_RECORDED_STOCK_CHECKSUM` below; do not copy one from CI. This transaction checks the booted stock reference/digest/checksum, resolves its current index, refuses a staged update, and makes that deployment first. An already-default stock deployment is handled safely:
+After **F12 → Linux → the currently valid, identity-resolved stock entry** in
+GRUB, **or if already booted into stock**, sign in as **`ares-recovery` using the
+installer layout**, open Konsole and run **`sudo -i`**. Confirm the saved stock
+checksum/serial/stateroot at the stock-title checkpoint before proceeding.
+Substitute your privately recorded stock checksum for
+`REPLACE_WITH_RECORDED_STOCK_CHECKSUM` below; do not copy one from CI. This
+unchanged transaction checks the booted stock reference/digest/checksum,
+resolves its current index, refuses a staged update, and makes that deployment
+first. An already-default stock deployment is handled safely. Windows remains
+the firmware default; this does not change the F12 menu's saved order:
 
 ```bash
 (
@@ -670,13 +882,29 @@ rpm-ostree status --json
 bootc status --json
 ```
 
-Read both outputs. Require the **first `deployments` entry** to be booted stock with your recorded checksum, the expected stock digest under `status.booted.image.imageDigest`, no staged deployment and `status.rollbackQueued: false`. Only then perform a **second reboot with no GRUB selection**:
+Read both outputs. Require the **first `deployments` entry** to be booted stock
+with the saved checksum/serial/stateroot, the expected stock digest under
+`status.booted.image.imageDigest`, no staged deployment and
+`status.rollbackQueued: false`. **Set-default may have reordered the pair:**
+invalidate the previous title, repeat the stock-title checkpoint, and record
+the newly resolved stock title **before rebooting**. Stop on any discrepancy.
+
+In this same `ares-recovery` root shell, run the command below. At startup press
+**F12 → the recorded Linux entry**, then **make no GRUB selection**: the Linux
+default must now be stock. F12 selects Linux only for this boot; Windows remains
+the firmware default. Pressing nothing at power-on would test Windows, not stock:
 
 ```bash
 systemctl reboot
 ```
 
-Require the stock greeter again, then sign in and repeat the two status commands (using `sudo` for bootc if needed). Require the recorded stock identity to remain booted and first. Stop if AresOS returns or the identity differs. Stock update timers stay paused during this trial. If you return to stock for good, use the re-enable command recorded before §5; a later stock update can intentionally change its checksum.
+Require the stock greeter again. Sign in as **`ares-recovery` using the installer
+layout**, open Konsole, run **`sudo -i`**, and repeat the two status commands and
+stock-title checkpoint. Require the recorded stock identity to remain booted
+and first. Stop if AresOS returns or the identity differs. Stock update timers
+stay paused during this trial. If you return to stock for good, use the
+re-enable command recorded before §5; a later stock update can intentionally
+change its checksum and invalidates this frozen recovery record.
 
 Semantics checked against the [bootc rollback manual](https://bootc.dev/bootc/man/bootc-rollback.8.html), [OSTree set-default manual](https://github.com/ostreedev/ostree/blob/main/man/ostree-admin-set-default.xml) and [implementation](https://github.com/ostreedev/ostree/blob/main/src/ostree/ot-admin-builtin-set-default.c): rollback queues the rollback slot; set-default persistently moves the selected deployment to the front and writes the deployment list. This is why a blind rollback after booting stock from GRUB is not this recipe.
 
@@ -684,24 +912,58 @@ Semantics checked against the [bootc rollback manual](https://bootc.dev/bootc/ma
 
 ## 7. First AresOS check: plain terminal, no Minecraft yet
 
-Expect **labwc with foot terminal** after the released switch. Stay on AC, lid open: battery-critical handling and suspend are unqualified. Using handoff controls, check RTX 4060 (`nvidia-smi`), display/brightness, Wi-Fi after reboot, audible sound, German keyboard and touchpad. Test Super+Ctrl+Escape, authenticated Ctrl+Alt+F3, return to session, safe shutdown and second boot. This is the proposed P1a acceptance list, not released functionality.
+Expect **labwc with foot terminal** after the released switch and **F12 → the
+recorded Linux entry**. Stay on AC, lid open: battery-critical handling and
+suspend are unqualified. Using handoff controls, check RTX4060 (`nvidia-smi`),
+display/brightness, Wi-Fi after reboot, audible sound, the selected AresOS
+keyboard layout and touchpad. For a restart during these checks, press
+**Ctrl+Alt+F3 → sign in as `ares-recovery` using the current AresOS layout →
+`sudo systemctl reboot` → F12 → the recorded Linux entry**. Let AresOS start;
+Windows stays the firmware default. Test Super+Ctrl+Escape, authenticated tty3,
+return to session, safe shutdown and a second Linux boot selected with F12.
+This is the proposed P1a acceptance list, not released functionality.
 
-**First-hardware-boot logind gate (03c procedure, authorized by brief 03e):** after the existing installation and recovery-account prerequisites, on AC with the plain terminal session, try an interactive Ctrl+Alt+F3 login with the independently provisioned recovery administrator. Return using the supplied session steps, then verify a short physical power-button press reaches logind and cleanly powers off. On the next boot, inspect the previous persistent journal with journal-reading privileges:
+**First-hardware-boot logind gate (03c procedure, authorized by brief 03e):** after
+the installation and recovery-account prerequisites, on AC with the plain
+terminal session, use **Ctrl+Alt+F3 → `ares-recovery`** with the current AresOS
+layout. Log out using §6's supplied steps, return to the session, then verify a
+short physical power-button press reaches logind and cleanly powers off. Power
+on, press **F12 → the recorded Linux entry**, let AresOS start, then use
+**Ctrl+Alt+F3 → sign in as `ares-recovery` → `sudo -i`**. Inspect the previous
+persistent journal in that root shell:
 
 ```bash
 journalctl -b -1 -u systemd-logind.service --no-pager
 journalctl -b -1 --no-pager
 ```
 
-Retain both outputs, the image digest and pass/fail privately. Require the button record and orderly shutdown; merely seeing the laptop turn off is insufficient to establish the logind path. Also repeat a fresh boot/session/recovery trial. Missing records or an unreadable journal leave this hardware gate unmet. CI may label its offline logind check **REPORTED, NOT BLOCKING: first hardware boot required** only when the kernel Btrfs mount is explicitly unsupported **and** its userspace reader tooling is explicitly absent (03f). That single path then remains a hardware gate; CI still requires QMP guest shutdown, `poweroff.target` and two fresh VM passes. Filesystem/extraction/verification errors, absent journals or expected boots, wrong boots and missing required logind records remain blocking CI failures.
+Retain both outputs, the image digest and pass/fail privately. Require the button
+record and orderly shutdown; merely seeing the laptop turn off is insufficient
+to establish the logind path. Repeat the fresh boot/session/recovery trial as
+`ares-recovery`: run `systemctl reboot` in that root shell, then **F12 → the
+recorded Linux entry**, let AresOS start and sign in on tty3 as `ares-recovery`
+with its current layout. Keep Windows first in firmware. Missing records or an
+unreadable journal leave this hardware gate unmet. CI may label its offline
+logind check **REPORTED, NOT BLOCKING: first hardware boot required** only when
+the kernel Btrfs mount is explicitly unsupported **and** its userspace reader
+tooling is explicitly absent (03f). That path remains a hardware gate; CI still
+requires QMP guest shutdown, `poweroff.target` and two fresh VM passes.
+Filesystem/extraction/verification errors, absent journals or expected boots,
+wrong boots and missing required logind records remain blocking CI failures.
 
 Boot Windows directly with USB absent and present (select Windows explicitly), check files/sound/network and repeat record B against the **original** baseline. On failure, return to Windows and report it. Minecraft/app/save/restore and daily battery use are later milestones.
 
 ## 8. Choose the OS at startup
 
-**F12 chooses once**: Windows Boot Manager or the recorded Linux entry (possibly still called Fedora/Bazzite). Keep Windows default for the first trial. For persistent order, after §1's encryption check: **F2 → More Settings → Boot → UEFI**, move the identified entry first using displayed controls, **Save and Exit**. Verify a no-key/no-USB restart. Preserve Windows Boot Manager. [L3]
+**F12 chooses once**: Windows Boot Manager or the recorded Linux entry (possibly
+still called Fedora/Bazzite). After §5, **Windows Boot Manager stays first** for
+every step of this trial. If that order needs restoring, after §1's encryption
+check use **F2 → More Settings → Boot → UEFI → Windows Boot Manager first →
+Save and Exit**, then verify a no-key/no-USB restart starts Windows. Do not make
+Linux first to avoid F12. The initial installer/hardware-setup Linux-default
+phase in §4 ends at §5. Preserve Windows Boot Manager. [L3]
 
-If an update changes the order, use F12 for AresOS, then restore the preferred order as above. The laptop may drop automatic F12 entries for unplugged devices, such as the installer USB; that is normal. Missing Windows Boot Manager or the Linux entry while its SSD is attached, unfamiliar screens, changed Secure Boot or Windows recovery prompts mean stop with the record. Do not reset firmware defaults, clear TPM, delete entries or run Windows boot repair commands.
+If an update changes the order, use F12 for AresOS, then restore Windows Boot Manager first as above. The laptop may drop automatic F12 entries for unplugged devices, such as the installer USB; that is normal. Missing Windows Boot Manager or the Linux entry while its SSD is attached, unfamiliar screens, changed Secure Boot or Windows recovery prompts mean stop with the record. Do not reset firmware defaults, clear TPM, delete entries or run Windows boot repair commands.
 
 ## 9. Undo: return to everyday Windows
 
@@ -715,6 +977,19 @@ If an update changes the order, use F12 for AresOS, then restore the preferred o
 Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay until reviewed cleanup. If Windows does not boot independently or any identity check fails, remove/erase nothing.
 
 ## Maintainer release gate
+
+- **OWNER DECISION / guide-only (13g, 2026-10-25) — recovery layout exception:**
+  later AresOS layout changes affect only its running deployment. Retained
+  backup Bazzite keeps the installer layout; recovery passwords use that layout.
+  No mechanism writes later settings into stock. The VM proved de → us → de
+  **before** rollback; **US-then-rollback was not performed**. The exception is
+  source-verified from bootc's per-deployment `/etc`, not runtime-verified.
+  Guides now resolve stock's title by checksum/serial after every reorder and
+  before reboot, invalidate stale records even on queued rollback, and spell
+  out `ares-recovery` → command → reboot → F12 → Linux while Windows stays the
+  firmware default after §5. These guide revisions have no new VM qualification;
+  physical installation/followability remains **NOT RELEASED**. See the
+  [13g REPORT](../reviews/13-keyboard-layout/REPORT.md#13g--review-fixes-for-recovery-steps-2026-10-25).
 
 - **DONE — 06e revised recipe and graphical rollback qualification:** [run 39851266266](https://github.com/carlsenares/AresOS/actions/runs/39851266266) passed the corrected Plasma Login observer, switch/rollback identity checkpoints, explicit negative assertions, real tty3 login/sudo/logout with the getty prompt confirmed, partition equality across four states, a visually inspected rendered rollback greeter and another stock default boot. The unchanged signed image and harness were used; one of two 06e full-run allowances was consumed. [Evidence](../reviews/06-image-release/REPORT.md#06e-vm-qualification-2026-10-22).
 
