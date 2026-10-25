@@ -2,16 +2,22 @@
 set -euo pipefail
 umask 077
 
-image=ghcr.io/carlsenares/aresos
-tag="06-$GITHUB_SHA"
-mkdir -p .work/registry
-export DOCKER_CONFIG="$PWD/.work/registry"
+test "$GITHUB_EVENT_NAME" = workflow_dispatch
+test "$GITHUB_REPOSITORY" = Ares-Empire/AresOS
+test "$GITHUB_REF_NAME" = pkg/13-keyboard-layout
+test "$(jq -r .status evidence/image-diff/result.json)" = passed
+image=ghcr.io/ares-empire/aresos
+tag="13-$GITHUB_SHA"
+export DOCKER_CONFIG="$RUNNER_TEMP/aresos-13-publish"
+mkdir -m 0700 "$DOCKER_CONFIG"
+trap 'rm -f "$DOCKER_CONFIG/config.json"; rmdir "$DOCKER_CONFIG"' EXIT
 printf '%s' "$GH_TOKEN" | sudo podman login --authfile "$DOCKER_CONFIG/config.json" --username "$GITHUB_ACTOR" --password-stdin ghcr.io
 sudo chown "$(id -u):$(id -g)" "$DOCKER_CONFIG/config.json"
 
 # A new GHCR package is private. Refuse an existing public package rather than
 # silently uploading private content into it or changing the owner's visibility.
-if gh api users/carlsenares/packages/container/aresos > .work/package.json 2>.work/package-error.txt; then
+mkdir -p .work
+if gh api orgs/Ares-Empire/packages/container/aresos > .work/package.json 2>.work/package-error.txt; then
     test "$(jq -r .visibility .work/package.json)" = private
     if skopeo inspect --authfile "$DOCKER_CONFIG/config.json" "docker://$image:$tag" >.work/existing-image.json 2>.work/existing-image-error.txt; then
         echo 'Refusing to overwrite an immutable release tag' >&2
@@ -31,8 +37,9 @@ digest=$(cat evidence/published-digest.txt)
 reference="$image@$digest"
 skopeo inspect --authfile "$DOCKER_CONFIG/config.json" --raw "docker://$reference" > evidence/published-manifest.json
 test "sha256:$(sha256sum evidence/published-manifest.json | cut -d' ' -f1)" = "$digest"
-gh api users/carlsenares/packages/container/aresos --jq '{name,visibility}' > evidence/package-visibility.json
+gh api orgs/Ares-Empire/packages/container/aresos --jq '{name,visibility}' > evidence/package-visibility.json
 test "$(jq -r .visibility evidence/package-visibility.json)" = private
+jq -n --arg reference "$reference" '{status:"passed",reference:$reference,secret:"GITHUB_TOKEN",owner_token_used:false,visibility:"private",manifest_read:true}' > evidence/org-job-token-read.json
 
 # GitHub OIDC -> ephemeral Fulcio certificate. No signing key/PAT is retained.
 # Rekor publishes certificate/repository identity and the digest, not image layers.
@@ -42,5 +49,6 @@ cosign verify --certificate-identity "$identity" --certificate-oidc-issuer https
 jq -n --arg reference "$reference" --arg tag "$tag" --arg commit "$GITHUB_SHA" \
     --arg base "$(jq -r .reference os/manifest/base.json)" --arg identity "$identity" \
     --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
-    '{reference:$reference,tag:$tag,source_commit:$commit,base:$base,visibility:"private",signature:{method:"cosign keyless",identity:$identity,issuer:"https://token.actions.githubusercontent.com"},run:$run}' > evidence/release.json
+    --slurpfile diff evidence/image-diff/result.json --slurpfile read evidence/org-job-token-read.json \
+    '{reference:$reference,tag:$tag,source_commit:$commit,base:$base,visibility:"private",signature:{method:"cosign keyless",identity:$identity,issuer:"https://token.actions.githubusercontent.com"},run:$run,image_diff:$diff[0],job_token_read:$read[0]}' > evidence/release.json
 echo "Published private signed image: $reference"

@@ -178,3 +178,152 @@ logging and all existing disk/NVRAM/BootNext audits? That observation would need
 revised prerequisite; no exception or extra dispatch is assumed here. The simpler
 identity-preserving argument update and a frozen-image-compatible session provision
 can then be evaluated against the observed cause. Never merge this incomplete PR.
+
+
+## 13b — system setting, private org release and qualification (2026-10-25)
+
+**Status: implementation and local verification; dispatch not yet started.** This
+section supersedes the cause gate in the original 13 report. The historical
+zero-cost receipts above are unchanged. Owner brief 13b explicitly makes the
+localization value diagnostic, approves one new private org release, and raises
+the package ledger to 380 minutes. PR #12 stays draft until all acceptance passes.
+
+### Done and source decisions
+
+- `system-keyboard.sh` removes all console keymap/toggle overrides, of any value,
+  before pause/pin. INSTALL contains its exact bytes. It restricts the operation
+  to the pinned base, one booted unmodified deployment, no active/staged/queued
+  transaction, and rechecks checksum/serial/count/pin identity and unrelated args.
+  It uses `ostree admin instutil set-kargs`, then `rpm-ostree reload`.
+- Verified pinned [OSTree v2026.4 CLI](https://github.com/ostreedev/ostree/blob/v2026.4/src/ostree/ot-admin-instutil-builtin-set-kargs.c)
+  and [deployment implementation](https://github.com/ostreedev/ostree/blob/v2026.4/src/libostree/ostree-sysroot-deploy.c):
+  `deployment_set_kargs` clones/replaces the deployment in the list; it does not
+  add a second checksum/serial. Bootlink regeneration is allowed; all other
+  unrelated arguments and identity fields must remain equal. The existing
+  checksum uniqueness checks in pin/rollback/GRUB remain unchanged.
+- `aresos-keyboard` reads one localed GetAll snapshot and passes the system X11
+  layout/model/variant/options to labwc, clearing inherited XKB defaults. No
+  chosen layout is in the release. German and US are test/guide choices only.
+  JSON shapes checked against pinned systemd v259.9 `bus-dump-json.c`.
+- `keyboard_vm.py` reuses package 11's Guest/Audit/BootNext/protected-disk code.
+  The password includes `yz-/!` plus random hex. Public physical input `yz-/!`
+  distinguishes US/German at all four sensitive positions. Serial observes
+  results; QMP USB key positions supply login, sudo and foot text. No password
+  screenshot or raw interactive transcript is exported.
+- Read-only D-Bus monitoring is restricted to Anaconda Localization. Only
+  allowlisted property Get/reply pairs are retained, not account/user data.
+  The installer source and choices remain unmodified. The console model is
+  untrusted regardless of `de`, `us`, another value or none.
+- The ISO RPMDB identifies plasma-desktop/workspace 6.7.5. Its normal KCM uses
+  Enable/Configure Layouts and Add layout rather than the guide's old tab label;
+  guide updated from [pinned KDE UI source](https://github.com/KDE/plasma-desktop/blob/v6.7.5/kcms/keyboard/ui/main.qml).
+  Probe will exercise accessible controls in the actual KCM and German physical
+  typing into KWrite before the unmodified installer UI. This is not yet VM evidence.
+
+**JUDGMENT-CALL — image construction:** derive the release from the exact frozen
+private qualified image, instead of repeating DNF against mutable repositories.
+The complete merged files, ownership/modes/xattrs, actual RPM NEVRAs, package
+lock, systemd units, OCI runtime configuration and base layer ancestry are
+compared. Only `usr/bin/aresos-session` and `usr/libexec/aresos-keyboard` may
+differ. Explained OCI label changes: org source URL, source revision and the
+actual builder version, if changed. OCI creation/history/layer IDs describe this
+build; mtimes/inodes are storage metadata excluded from semantic file equality.
+An unexplained difference stops before publish. This retains precisely the same
+pinned base and packages; changing the recipe later needs another qualification.
+
+**Token boundary:** old classic read-only secret is used only to pull/verify the
+historical private input for the approved comparison. It is not used for API
+requests or publishing. The org job token publishes/signs and must prove private
+manifest reads. New-release rehearsals use only the job token, with no fallback.
+Both credential files are root-owned 0600 under RUNNER_TEMP outside checkout,
+always removed before upload. Secret retained for the owner to remove later.
+[GitHub registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
+supports initial private visibility and linked-repo job-token access. Laptop
+instructions continue to require the owner's own read token. No visibility change.
+
+### Zero-cost stage walk-through before any dispatch
+
+1. Run complete local suite and syntax checks; list host limits. Commit/push FF,
+   require all three privacy checks including executed personal-term scan.
+   Fresh complete-history guard reserves 90 image minutes (all dispatches and
+   later privacy jobs count from first dispatch). One image dispatch only.
+2. Image job runs every regression natively before building. Verify old signature,
+   pinned upstream signature, exact base ancestry, locked/actual packages, full
+   files/units/config diff. Any unexplained difference stops. Run existing image
+   policy/session/Homebrew/power/recovery checks twice on disposable overlay,
+   whose ordinary system X11/console settings explicitly choose US. Exclude all
+   CI configuration/credentials from release. Publish PRIVATE org digest, sign
+   with org workflow identity, verify signature/private metadata/job-token read.
+3. Retain old release manifest as `releases/06.json`; record new exact digest,
+   signature, run/source, diff and job-token proof. Update frozen verifier and
+   owner references/equality checks. Commit/push; require privacy again. No
+   runtime payload change after image source.
+4. Fresh guard, one native checks-only run on final head (15-minute reservation),
+   then one fresh probe (42). Same head for probe and qualification. Probe retains
+   every inherited predicate: both disk mappings, real installer through review,
+   cached exact stock CLI help, update pause idempotence, failure counters, OCR,
+   installed-file reader, private layer pull, Windows detached marker, target
+   reset, complete protected/NVRAM/BootNext checks. Also qualify normal KDE
+   physical editor input, set-kargs/reload help and live localed reader shape.
+5. Only passing probe/native/privacy authorize qualification (130 reserved),
+   protected disk second. Baseline marker → exact §4 live normal settings/editor
+   and unmodified installer pages → first stock firmware-default boot (normal
+   hardware initialization reset only, if source-verified) → installed keyboard
+   files and initial cmdline/loaded-map diagnostic → repair actual value → inject
+   `de`, repair → inject `us`, repair → pause/pin exact stock → power off/audit.
+   Require one stock checksum/serial throughout, no extra deployment.
+6. Restore Windows-first exactly; unattended attached/detached Windows markers.
+   Corrected stock boot: every BLS/cmdline clean, loaded German map, tty3 real
+   login/password sudo and physical text; inherited Homebrew. Signed switch to
+   new exact release, inspect staged identity. Offline audit at shutdown.
+7. AresOS German boot: all args/maps, tty3/sudo/text, actual labwc environment,
+   foot physical text, policy and inherited Homebrew. Use normal localectl
+   console+X11 US setting; reboot/audit. US boot repeats both physical screens;
+   change normally back to German; reboot/audit. German boot repeats, then exact
+   rollback and queued identity check.
+8. Backup boot: exact stock checksum/digest, every entry free of overrides,
+   loaded German map and tty3/password sudo/text, Homebrew and rendered Plasma
+   greeter. Final attached/detached Windows markers and all offline audits.
+   No Part B/menu rerun. Stop on any product/protected-disk/firmware gap.
+9. Retain credential-safe bounded evidence and budget, require final privacy.
+   Mark PR #12 ready only if all acceptance is met. Physical laptop stays
+   NOT RELEASED; never merge, force-push, delete old packages or make public.
+
+### Budget plan (package 13, 380-minute cap)
+
+| Item | Allowed | Reservation |
+| --- | ---: | ---: |
+| Image build/publish including two image VM passes | 1 | 90 |
+| Checks-only native suite on qualification head | 1 | 15 |
+| Fresh probe | 1 | 42 |
+| Qualification | up to 2, subject to remaining budget/stop rules | 130 for first |
+| Closing/privacy allowance | counted by actual job rounding | 16 |
+| Planned total | | **293** |
+
+No dispatch yet. A second qualification is not preauthorized to evade a stop;
+it must independently fit the remaining ledger. Historical pre-dispatch push/PR
+privacy jobs are outside the first-dispatch interval, retained above.
+
+### Verification in progress / not verified
+
+Targeted Windows keyboard/session/release tests: 15 passed. First whole Windows
+run: 190 tests, 8 failures/10 errors (Linux-only imports/privileges/sockets plus
+workflow expectations subsequently updated). Whole WSL run: 209 tests,
+2 failures/9 errors, representing eight unique environment-limited cases:
+three Pillow framebuffer tests (Pillow absent in WSL; Windows equivalents pass),
+three privileged inherited-Homebrew tests (sudo deliberately rejected locally),
+one privileged sysusers test, one 0600 auth-permission test on DrvFS (reports0777).
+The WSL suite has no other failures. Full rerun after final edits still required.
+All remain mandatory in native CI; no skip/assertion weakening. Initial Windows
+run used default temporary-file placement; subsequent runs explicitly confine
+temporary fixtures to this worktree. No local privileged operation permitted.
+
+New image, diagnostic, real de/us starting-state repair, typing, layout change,
+rollback and budget remain **NOT VERIFIED** until the actual runs below.
+No mod/Gradle/Minecraft work, no daemon started, no retired-worktree access.
+
+**PLAN-GAP:** no additional product gap established yet; old cause gap was
+explicitly superseded by 13b. **Open questions:** actual VM/registry results and
+all unchanged physical laptop/media/firmware/followability gates.
+
+Final pre-dispatch local run: python3 -m unittest discover -s os/tests -v in WSL: **211 tests / 144.806s; 2 failures, 9 errors, exactly the same eight environment-limited cases listed above; all other cases passed**. Windows 	est_greeter.py: all 3 passed. Full Bash/Python syntax and git diff --check: passed. Fresh complete-history guard: four unique runs / total_count four, zero dispatches, ledger start null, 0 + 293 reserved ≤ 380. Repo visibility independently queried: PRIVATE.

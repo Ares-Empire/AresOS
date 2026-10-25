@@ -40,24 +40,35 @@ class OwnerAuthTest(unittest.TestCase):
                 if 'secrets.GHCR_READ_TOKEN' in json.dumps(step):
                     references.append((name, step))
                 self.assertNotIn('secrets.GHCR_READ_TOKEN', step.get('run', ''))
-        self.assertEqual(len(references), 1)
-        name, step = references[0]
+        self.assertEqual(len(references), 2)
+        release_name, release_step = next((n,s) for n,s in references if n == 'image')
+        self.assertEqual(release_name, 'image')
+        for required in ("github.event_name == 'workflow_dispatch'", 'inputs.release_13', "github.ref_name == 'pkg/13-keyboard-layout'"):
+            self.assertIn(required, release_step['if'])
+        self.assertEqual(release_step['env']['REHEARSAL_MODE'], 'release-13')
+        self.assertNotIn('GH_TOKEN', release_step['env'])
+        self.assertEqual(release_step['run'], 'sudo -E python3 os/ci/rehearsal_auth.py create')
+        name, step = next((n,s) for n,s in references if n == 'rehearsal')
         self.assertEqual(name, 'rehearsal')
         self.assertIn("github.event_name == 'workflow_dispatch'", workflow['jobs'][name]['if'])
         for required in ("github.event_name == 'workflow_dispatch'", "inputs.rehearsal == 'probe'", "inputs.rehearsal == 'part-b'"):
             self.assertIn(required, step['if'])
         self.assertEqual(step['env']['GHCR_READ_TOKEN'], '${{ secrets.GHCR_READ_TOKEN }}')
         self.assertNotIn('GH_TOKEN', step['env'])
+        self.assertIn("github.ref_name != 'pkg/13-keyboard-layout'", step['if'])
         self.assertEqual(step['run'], 'sudo -E python3 os/ci/rehearsal_auth.py create')
 
     def test_auth_is_outside_workspace_and_always_removed_before_artifact_upload(self):
         workflow = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
         steps = workflow['jobs']['rehearsal']['steps']
         index, cleanup = next((i, s) for i, s in enumerate(steps) if s.get('run') == 'sudo -E python3 os/ci/rehearsal_auth.py cleanup')
-        self.assertEqual(cleanup['if'], 'always()')
+        self.assertEqual(cleanup['if'], "always() && github.ref_name != 'pkg/13-keyboard-layout'")
+        org_index, org_cleanup = next((i,s) for i,s in enumerate(steps) if s.get('run') == 'sudo -E python3 os/ci/registry_auth.py cleanup')
+        self.assertEqual(org_cleanup['if'], "always() && github.ref_name == 'pkg/13-keyboard-layout'")
         for i, step in enumerate(steps):
             if 'actions/upload-artifact@' in step.get('uses', ''):
                 self.assertGreater(i, index)
+                self.assertGreater(i, org_index)
                 self.assertEqual(step['with']['path'], 'evidence/')
         output = io.StringIO()
         with patch.dict(os.environ, self.environment, clear=True), contextlib.chdir(self.workspace), contextlib.redirect_stdout(output):

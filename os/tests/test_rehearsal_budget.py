@@ -13,11 +13,11 @@ class BudgetTest(unittest.TestCase):
         workflow = yaml.load((pathlib.Path(__file__).resolve().parents[2] /
                               '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
         job = workflow['jobs']['rehearsal']
-        self.assertEqual(job['timeout-minutes'], "${{ inputs.rehearsal == 'part-b' && 130 || 40 }}")
+        self.assertEqual(job['timeout-minutes'], "${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}")
         vm, = [s for s in job['steps'] if 'two_disk_vm.py' in s.get('run', '')]
-        self.assertEqual(vm['timeout-minutes'], "${{ inputs.rehearsal == 'part-b' && 106 || 80 }}")
+        self.assertEqual(vm['timeout-minutes'], "${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
         reserve, = [s for s in job['steps'] if 'rehearsal_guard.py' in s.get('run', '')]
-        self.assertIn("'${{ inputs.rehearsal == 'part-b' && 130 || 42 }}'", reserve['run'])
+        self.assertIn("'${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'", reserve['run'])
         self.assertNotIn('full', workflow['on']['workflow_dispatch']['inputs']['rehearsal']['options'])
         self.assertEqual(vm['run'].count('two_disk_vm.py'), 1)
 

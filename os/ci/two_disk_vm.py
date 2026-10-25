@@ -14,7 +14,7 @@ import time
 
 import switch_vm as sw
 from grub_bls import stock_bls_entry, confirm_menu_ocr, StockSelectionError
-from rehearsal_auth import auth_file, guest_mount_command, REFERENCE
+from registry_auth import auth_file, guest_mount_command, REFERENCE
 from disk_audit import (all_variables, boot_variables, compare_disk, offline_disk,
                         protected_writes, set_variable, gpt, efi_files, entry_target, firmware_baseline, nvram_audit,
                         check_boot_next, linux_entry, ordered_options)
@@ -497,6 +497,9 @@ def install(audit, password, password_hash):
     stage = Guest.order + '-install'
     try:
         guest.login_live()
+        if os.environ.get('REHEARSAL_PACKAGE') == '13':
+            from live_keyboard_ui import run as live_keyboard
+            live_keyboard(guest, stage)
         protected, target = live_inventory(guest, stage)
         run(guest, EVIDENCE, protected, target, password, install=True, stage=stage)
         guest.poweroff(stage)
@@ -811,6 +814,9 @@ def live_probe(audit):
     guest = Guest(WORK / 'target.raw', '', [])
     try:
         guest.login_live()
+        if os.environ.get('REHEARSAL_PACKAGE') == '13':
+            from live_keyboard_ui import run as live_keyboard
+            live_keyboard(guest, 'live')
         protected, target = live_inventory(guest, 'live')
         save('live-assumptions', dict(order=Guest.order, protected=protected, target=target))
         probe(guest, EVIDENCE, protected, target)
@@ -825,6 +831,11 @@ def live_probe(audit):
              context='actual live QMP screenshot; OCR tool only, not GRUB menu qualification'))
         installed_keyboard_reader_probe(guest)
         stock_recipe_probe(guest)
+        if os.environ.get('REHEARSAL_PACKAGE') == '13':
+            source = pathlib.Path('os/config/usr/libexec/aresos-keyboard').read_text()
+            program = source.split("if __name__ == '__main__':", 1)[0]
+            program += "\nreply=json.loads(subprocess.check_output(['busctl','--system','--json=short','call','org.freedesktop.locale1','/org/freedesktop/locale1','org.freedesktop.DBus.Properties','GetAll','s','org.freedesktop.locale1']))\nprint(json.dumps({k:v for k,v in environment(reply,{}).items() if k.startswith('XKB_DEFAULT_')}))\n"
+            guest.capture_json('localed-session-reader-probe', sw.framed('python3 -c ' + shlex.quote(program)))
         assert guest.failure_counter('failure-counter-probe', probe_only=True)
         assert json.loads((EVIDENCE / 'failure-counter-probe-failure-counter.json').read_text())['vm_paused']
         guest.monitor.command('cont')
@@ -885,6 +896,8 @@ def main():
                      part_b_tools_probe=True, stock_idle_source_verified=True,
                      bootnext_checked=True, bootloader_source_verified=True,
                      commit=os.environ['GITHUB_SHA'])
+        if os.environ.get('REHEARSAL_PACKAGE') == '13':
+            proof.update(package13_keyboard_tools=True, live_german_physical=True)
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)
         return

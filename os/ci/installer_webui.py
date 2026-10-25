@@ -5,6 +5,7 @@ import pathlib
 import re
 import shlex
 import time
+import os
 
 UI_BUNDLE_SHA256 = '9e456995a4be3d09b2b81b7e55f363d09577e688b8361d90081e1484cfb4f449'
 UI_SOURCE_MAP_SHA256 = 'de301b46d770b5ce75ee3b00be8416c5b8de1a5348dfe0c4ab282f8e8b3ef36a'
@@ -66,8 +67,10 @@ def validate_keyboard_selection(text):
     assert text.split() == ['de'], 'German must be the only selected keyboard'
 
 
-def validate_keyboard_proof(proof):
-    assert proof['xlayouts'] == ['de'] and proof['model_keymap'] in ('', 'de')
+def validate_keyboard_proof(proof, untrusted_console=False):
+    assert proof['xlayouts'] == ['de']
+    if not untrusted_console:
+        assert proof['model_keymap'] in ('', 'de')
     assert proof['read_only'] and proof['same_installation_resolver']
     assert proof['module_configuration_unchanged'] and proof['module_before'] == proof['module_after']
     assert proof['layout_switching_options'] == proof['module_before']['LayoutSwitchOptions']
@@ -81,9 +84,10 @@ def read_keyboard(guest):
     expected, = [item['sha256'] for item in receipt['sources'] if item['path'].endswith('/installation.py')]
     interface, = [item['sha256'] for item in receipt['sources'] if item['path'].endswith('/localization_interface.py')]
     script = pathlib.Path('os/ci/keyboard_proof.py').read_text()
-    script += '\nprint(json.dumps(read_only_proof(' + repr(expected) + ', ' + repr(interface) + ')))\n'
+    untrusted_console = os.environ.get('REHEARSAL_PACKAGE') == '13'
+    script += '\nprint(json.dumps(read_only_proof(' + repr(expected) + ', ' + repr(interface) + ', ' + repr(untrusted_console) + ')))\n'
     proof = guest.capture_json('webui-keyboard-proof', framed('python3 -c ' + shlex.quote(script)))
-    validate_keyboard_proof(proof)
+    validate_keyboard_proof(proof, untrusted_console)
     assert proof['installation_source_sha256'] == expected
     assert proof['interface_source_sha256'] == interface
     return proof
@@ -442,7 +446,9 @@ assert selected == 'as 1 "@TARGET@"', 'Wrong backend disk selection'
 xlayouts = prop('Localization', '', '', 'XLayouts')
 keymap = prop('Localization', '', '', 'VirtualConsoleKeymap')
 timezone = prop('Timezone', '', '', 'Timezone')
-assert xlayouts == 'as 1 "de"' and keymap in ('s ""', 's "de"'), 'Wrong keyboard choices; installed console check follows installation'
+assert xlayouts == 'as 1 "de"', 'Wrong committed X11 keyboard choice'
+if '@PACKAGE@' != '13':
+    assert keymap in ('s ""', 's "de"'), 'Wrong keyboard choice'
 assert timezone == 's "Europe/Berlin"', 'Wrong timezone'
 users = prop('Users', '', '', 'Users')
 assert '"name" s "ares-recovery"' in users and '"wheel"' in users, 'Recovery administrator missing'
@@ -451,13 +457,16 @@ assert prop('Users', '', '', 'IsRootAccountLocked') == 'b true', 'Root is not lo
 print(json.dumps(dict(selected=selected, xlayouts=xlayouts, keymap=keymap,
     timezone=timezone, recovery_admin='ares-recovery', wheel=True, password_set=True, root_locked=True)))
 PY
-'''.replace('@TARGET@', target)
+'''.replace('@TARGET@', target).replace('@PACKAGE@', os.environ.get('REHEARSAL_PACKAGE', '11c'))
     return guest.command(stage + '-backend-readback', script)
 
 
 def run(guest, evidence, protected, target, password, install=False, stage='webui-probe'):
     from playwright.sync_api import sync_playwright
     start(guest, stage)
+    if os.environ.get('REHEARSAL_PACKAGE') == '13':
+        import keyboard_diagnostic
+        keyboard_diagnostic.start(guest, stage)
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=['--no-sandbox'])
         (pathlib.Path(evidence) / 'browser-transport.json').write_text(json.dumps(dict(
@@ -474,6 +483,8 @@ def run(guest, evidence, protected, target, password, install=False, stage='webu
             guest.command(stage + '-heartbeat', 'true', timeout=30)
             if install:
                 pages.install(guest, stage)
+                if os.environ.get('REHEARSAL_PACKAGE') == '13':
+                    keyboard_diagnostic.collect(guest, stage)
             return proof
         finally:
             pages.snapshot('probe-final-page')

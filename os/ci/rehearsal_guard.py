@@ -1,4 +1,4 @@
-"""Fail closed on the separate 11c allowance and same-commit probe authorization."""
+"""Fail closed on a package allowance and same-commit probe authorization."""
 import datetime
 import hashlib
 import io
@@ -13,15 +13,27 @@ import time
 import zipfile
 
 REPOSITORY = 'Ares-Empire/AresOS'
-BRANCH = 'pkg/11-two-disk-rehearsal'
-START = '2026-10-23T16:21:00Z'
-MINUTE_CAP = 900
-FULL_CAP = 5
-PART_B_CAP = 1
+PACKAGES = json.loads(pathlib.Path(__file__).with_name('rehearsal-packages.json').read_text())
+PACKAGE = '11c'
+SETTINGS = PACKAGES[PACKAGE]
+BRANCH = SETTINGS['branch']
+START = SETTINGS['start']
+MINUTE_CAP = SETTINGS['minute_cap']
+FULL_CAP = SETTINGS['full_cap']
+PART_B_CAP = SETTINGS['part_b_cap']
 RETRY_WAITS = (10, 20, 40, 60)
 READ_RETRIES = []
 RUN_HISTORY_PATH = f'actions/runs?branch={BRANCH}&per_page=100'
 HISTORY_PAGE_LIMIT = 20
+
+
+def configure(package):
+    global PACKAGE, SETTINGS, BRANCH, START, MINUTE_CAP, FULL_CAP, PART_B_CAP, RUN_HISTORY_PATH
+    assert package in PACKAGES, 'STOP: unknown package ledger'
+    PACKAGE, SETTINGS = package, PACKAGES[package]
+    BRANCH, START = SETTINGS['branch'], SETTINGS['start']
+    MINUTE_CAP, FULL_CAP, PART_B_CAP = (SETTINGS[k] for k in ('minute_cap', 'full_cap', 'part_b_cap'))
+    RUN_HISTORY_PATH = f'actions/runs?branch={BRANCH}&per_page=100'
 
 
 def failure_status(stderr):
@@ -114,12 +126,25 @@ def budget(reserve, current=None):
     # Push/PR privacy checks consume the same account minutes as VM dispatches.
     listing = api(RUN_HISTORY_PATH)
     runs = listing['workflow_runs']
+    assert type(reserve) is int and reserve >= 0, 'STOP: invalid reservation'
+    start = START
+    counts = {key: 0 for key in SETTINGS.get('dispatch_caps', {})}
+    if START == 'first-dispatch':
+        dispatched = [r for r in runs if r['event'] == 'workflow_dispatch']
+        start = min((r['created_at'] for r in dispatched), default=None)
+        for run in runs:
+            if str(run['id']) != str(current):
+                assert run['status'] == 'completed', 'Another branch workflow is active; cannot reserve its cost'
     records = []
     full = 0
     part_b = 0
     for run in runs:
-        if run['created_at'] < START:
+        if start is None or run['created_at'] < start:
             continue
+        if PACKAGE == '13' and run['event'] == 'workflow_dispatch':
+            kind, = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
+            assert run.get('run_attempt') == 1, 'STOP: a rerun is an additional dispatch, not a free retry'
+            counts[kind] += 1
         if run['display_title'] == 'Two-disk rehearsal (full)':
             full += 1
         if run['display_title'] == 'Two-disk rehearsal (part-b)':
@@ -127,15 +152,21 @@ def budget(reserve, current=None):
         if str(run['id']) == str(current):
             continue
         assert run['status'] == 'completed', 'Another branch workflow is active; cannot reserve its cost'
-        jobs = api(f'actions/runs/{run["id"]}/jobs?per_page=100')['jobs']
+        response = api(f'actions/runs/{run["id"]}/jobs?per_page=100')
+        jobs = response['jobs']
+        if PACKAGE == '13':
+            assert response.get('total_count') == len(jobs) <= 100, 'STOP: incomplete job listing'
         records.append(dict(run=run['id'], title=run['display_title'], sha=run['head_sha'],
                             conclusion=run['conclusion'], minutes=sum(job_minutes(job) for job in jobs)))
     consumed = sum(record['minutes'] for record in records)
     assert consumed + reserve <= MINUTE_CAP, f'STOP: {consumed} + {reserve} reserved exceeds {MINUTE_CAP} minutes'
     assert full <= FULL_CAP, 'STOP: full-run allowance exhausted'
     assert part_b <= PART_B_CAP, 'STOP: Part B qualification allowance exhausted'
-    return dict(allowance='11c', start=START, cap=MINUTE_CAP, full_cap=FULL_CAP, full_dispatched=full,
+    for kind, count in counts.items():
+        assert count <= SETTINGS['dispatch_caps'][kind], 'STOP: ' + kind + ' dispatch allowance exhausted'
+    return dict(allowance=PACKAGE, start=start, cap=MINUTE_CAP, full_cap=FULL_CAP, full_dispatched=full,
                 part_b_cap=PART_B_CAP, part_b_dispatched=part_b,
+                dispatch_caps=SETTINGS.get('dispatch_caps', {}), dispatch_counts=counts,
                 consumed_minutes=consumed, reserved_minutes=reserve, runs=records,
                 history=listing.get('history'))
 
@@ -150,17 +181,36 @@ def require_probe(run, sha):
 
 
 def main():
+    configure(os.environ.get('REHEARSAL_PACKAGE', '11c'))
     mode = sys.argv[1]
     assert mode != 'full' and not (mode == 'ci' and os.environ.get('REHEARSAL_MODE') == 'full'), 'STOP: 11l permits no further full run'
     reserve = int(sys.argv[2])
     current = os.environ.get('GITHUB_RUN_ID') if mode == 'ci' else None
+    if PACKAGE == '13':
+        assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
     result = budget(reserve, current)
     history = result.get('history')
     assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
+    if PACKAGE == '13':
+        kind = os.environ['REHEARSAL_MODE'] if mode == 'ci' else mode
+        assert kind in SETTINGS['dispatch_caps'], 'STOP: mode is not authorized for package 13'
+        if mode == 'ci':
+            run = api('actions/runs/' + current)
+            assert run['head_branch'] == BRANCH and run['head_sha'] == os.environ['GITHUB_SHA']
+            assert run['display_title'] == SETTINGS['titles'][kind] and run['event'] == 'workflow_dispatch'
+            assert result['dispatch_counts'][kind] >= 1, 'STOP: current dispatch is missing from complete history'
+        else:
+            assert result['dispatch_counts'][kind] < SETTINGS['dispatch_caps'][kind], 'STOP: no dispatch remains'
+        if kind in ('probe', 'keyboard'):
+            native = [r for r in result['runs'] if r['title'] == SETTINGS['titles']['checks']
+                      and r['sha'] == os.environ.get('GITHUB_SHA', subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip())
+                      and r['conclusion'] == 'success']
+            assert len(native) == 1, 'STOP: complete native suite must pass on this head before the probe'
     if mode == 'part-b':
         assert result['part_b_dispatched'] < PART_B_CAP, 'STOP: no Part B qualification dispatch remains'
-    if mode == 'ci' and os.environ.get('REHEARSAL_MODE') == 'part-b':
-        assert result['part_b_dispatched'] == PART_B_CAP, 'STOP: Part B current dispatch is absent or duplicated'
+    if mode == 'ci' and os.environ.get('REHEARSAL_MODE') in ('part-b', 'keyboard'):
+        if PACKAGE == '11c':
+            assert result['part_b_dispatched'] == PART_B_CAP, 'STOP: Part B current dispatch is absent or duplicated'
         probe_id = os.environ.get('PROBE_RUN', '')
         assert probe_id.isdigit(), 'Full run requires an explicit passing probe ID'
         require_probe(api('actions/runs/' + probe_id), os.environ['GITHUB_SHA'])
@@ -179,21 +229,28 @@ def main():
         assert proof['stock_recipe_probe'] and proof['failure_counter_probe']
         assert proof['read_only_keyboard_proof'] and proof['installed_keyboard_reader_probe']
         assert proof['part_b_tools_probe'] and proof['stock_idle_source_verified']
-        from rehearsal_auth import REFERENCE, DIGEST
+        if PACKAGE == '13':
+            assert proof['package13_keyboard_tools'] and proof['live_german_physical']
+        if PACKAGE == '13':
+            from registry_auth import REFERENCE, DIGEST
+        else:
+            from rehearsal_auth import REFERENCE, DIGEST
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             manifest = json.loads(archive.read('private-registry-preflight.json'))
             pull = json.loads(archive.read('owner-release-pull.json'))
             cleanup = json.loads(archive.read('owner-auth-cleanup.json'))
         assert manifest['status'] == 'passed' and manifest['reference'] == REFERENCE and manifest['registry_digest'] == DIGEST
-        assert manifest['secret'] == 'GHCR_READ_TOKEN' and manifest['owner_token_api_calls'] == 0
+        assert manifest['secret'] == ('GITHUB_TOKEN' if PACKAGE == '13' else 'GHCR_READ_TOKEN') and manifest['owner_token_api_calls'] == 0
         assert pull['status'] == 'passed' and pull['reference'] == REFERENCE and pull['preserved_digest']
         assert cleanup['status'] == 'passed' and cleanup['removed'] and cleanup['outside_workspace']
         result['probe_run'] = probe_id
         result['probe'] = proof
     result['read_retries'] = list(READ_RETRIES)
-    directory = pathlib.Path('evidence' if mode == 'ci' else '.work/11c')
+    directory = pathlib.Path('evidence' if mode == 'ci' else '.work/' + PACKAGE)
     directory.mkdir(parents=True, exist_ok=True)
     (directory / '11c-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
+    if PACKAGE == '13':
+        (directory / '13-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 
 

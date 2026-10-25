@@ -24,6 +24,8 @@ rpm-ostree cleanup --help | grep -- --pending
 rpm-ostree status --help | grep -- --json
 ostree admin pin --help
 ostree admin set-default --help
+ostree admin instutil set-kargs --help
+rpm-ostree reload --help
 grub2-reboot --help
 grub2-editenv --help
 probe=$(mktemp -d)
