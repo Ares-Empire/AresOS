@@ -1,0 +1,15 @@
+{
+  "status": "failure-safety-audits-passed",
+  "run": 40177141104,
+  "qualification_passed": false,
+  "repairs_passed": [
+    "repair-installer-value",
+    "repair-starting-de",
+    "repair-starting-us"
+  ],
+  "protected_sha256": "7b04da245c69cd551e7f150225f67a2cfb36d31115fdaab15a066e1cf6bf95b0",
+  "protected_captures": 7,
+  "zero_write_counters": 8,
+  "bootnext_audits": 7,
+  "nvram_replays": 6
+}

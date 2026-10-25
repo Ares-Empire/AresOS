@@ -80,15 +80,25 @@
   "keyboard_qualification": "blocked",
   "owner_review": "required-before-merge",
   "keyboard_qualification_attempt": {
-    "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40170232822",
-    "head": "25f58cf6dbf819493f810e5bcdcde94f439cd91f",
+    "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40177141104",
+    "head": "314bca3c596abbd54bc6505b6ecee6fb835d63f0",
     "status": "failed-qualification",
-    "stage": "repair-installer-value",
-    "error": "STOP: fix the keyboard before pin/switch; expected one stock deployment",
+    "stage": "corrected-stock-tty-physical-command-setup",
+    "error": "AssertionError: . (physical_keys rejects the dot in the setup command)",
     "installation_performed": true,
-    "repair_write_performed": false,
-    "qualification_runs": 1,
-    "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40168412078"
+    "repair_write_performed": true,
+    "starting_state_repairs": [
+      "de",
+      "us"
+    ],
+    "deployment_count": 2,
+    "whole_list_preserved": true,
+    "tty3_login_passed": true,
+    "password_sudo_passed": true,
+    "physical_text_passed": false,
+    "switch_performed": false,
+    "qualification_runs": 2,
+    "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40175267914"
   },
   "keyboard_qualification_attempts": [
     {
@@ -110,6 +120,27 @@
       "repair_write_performed": false,
       "qualification_runs": 1,
       "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40168412078"
+    },
+    {
+      "run": "https://github.com/Ares-Empire/AresOS/actions/runs/40177141104",
+      "head": "314bca3c596abbd54bc6505b6ecee6fb835d63f0",
+      "status": "failed-qualification",
+      "stage": "corrected-stock-tty-physical-command-setup",
+      "error": "AssertionError: . (physical_keys rejects the dot in the setup command)",
+      "installation_performed": true,
+      "repair_write_performed": true,
+      "starting_state_repairs": [
+        "de",
+        "us"
+      ],
+      "deployment_count": 2,
+      "whole_list_preserved": true,
+      "tty3_login_passed": true,
+      "password_sudo_passed": true,
+      "physical_text_passed": false,
+      "switch_performed": false,
+      "qualification_runs": 2,
+      "passing_probe": "https://github.com/Ares-Empire/AresOS/actions/runs/40175267914"
     }
   ]
 }

@@ -25,7 +25,7 @@ do not boot it or remove it. Switch finalization on the first AresOS boot should
 leave exactly AresOS plus the corrected pinned stock. Normal rollback reorders
 that pair; it does not bring the old serial back. A surviving old stock serial,
 an unexpected list, or failure before the final pair/menu title is confirmed
-means F12 → Windows and get help. The 13e lifecycle VM check is still OPEN.
+means F12 → Windows and get help. 13e proved repair/pin and the corrected stock boot/login/password-sudo in a VM, then stopped in the physical-input fixture before switching. The post-switch/rollback lifecycle VM check is still OPEN; physical installation stays NOT RELEASED.
 
 ## The three rules
 

@@ -1,0 +1,259 @@
+]3008;end=2d1b66bf-8204-4927-9e43-cc9b65fc510a;exit=success\]3008;start=8abcba20-2c79-4e8a-9f12-a5a5a6578239;type=shell;machineid=acb393a8c24f438e91ed8a88dcaff0d3;user=root;hostname=localhost-live;bootid=c1e93226-1823-4158-8f48-771d6b679c8d;pid=2295;cwd=/root\[?2004hARESOS_ROOT> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+[?2004h> [?2004l
+
+]3008;start=84c4fcd1-468d-4f9f-b6e3-470968449fae;type=command;machineid=acb393a8c24f438e91ed8a88dcaff0d3;user=root;hostname=localhost-live;bootid=c1e93226-1823-4158-8f48-771d6b679c8d;pid=2295;cwd=/root\root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image console=tty0 console=ttyS0,115200n8 initrd=initrd
+/usr/lib64/python3.14/site-packages/pyanaconda/modules/storage/bootloader/base.py SHA256 6a559c365c0197c4651e5fd2bc7d4d21caf7b75b854ad2fa7f72f443266151f1
+221:         self.encrypted_password = None
+222:         self.secure = None
+223:
+224:         # console/serial stuff
+225:         self.console = ""
+226:         self.console_options = ""
+227:         self._set_console()
+228:
+229:         # list of BootLoaderImage instances representing bootable OSs
+230:         self.linux_images = []
+231:         self.chain_images = []
+810:         """
+811:         self._set_extra_boot_args()
+812:         self._set_storage_boot_args(storage)
+813:         self._preserve_some_boot_args()
+814:         self._set_graphical_boot_args()
+815:         self._set_security_boot_args()
+816:
+817:     def _set_extra_boot_args(self):
+939:         if len(glob("/sys/firmware/iscsi_boot*")) > 0:
+940:             self.boot_args.add("rd.iscsi.firmware")
+941:
+942:     def _preserve_some_boot_args(self):
+943:         """Preserve some of the boot args."""
+944:         for opt in conf.bootloader.preserved_arguments:
+945:             if opt not in kernel_arguments:
+946:                 continue
+947:
+948:             arg = kernel_arguments.get(opt)
+949:
+950:             # [RHEL-101789]
+951:             # Parse and store multiple console options to reproduce them
+952:             # in the same order on deployed system
+953:             if opt == "console" and arg and " " in arg:
+954:                 log.debug('Multiple "console=" kernel parameters to be preserved')
+955:                 for item in arg.split():
+956:                     self.boot_args.add("%s=%s" % (opt, item))
+957:             else:
+958:                 new_arg = opt if not arg else "%s=%s" % (opt, arg)
+971:             ts = rpm.TransactionSet(conf.target.system_root)
+972:
+973:             # Only add "rhgb quiet" on non-s390, non-serial installs.
+974:             if util.isConsoleOnVirtualTerminal() \
+975:                     and (ts.dbMatch('provides', 'rhgb').count()
+976:                          or ts.dbMatch('provides', 'plymouth').count()):
+977:
+978:                 args = ["rhgb", "quiet"]
+1002:
+1003:         return prefix
+1004:
+1005:     def _set_console(self):
+1006:         """ Set console options based on boot arguments. """
+1007:         console = kernel_arguments.get("console")
+1008:
+1009:         if not console:
+1010:             return
+1011:
+1012:         # Handle multiple console= entries (RHEL-101789)
+1013:         # e.g., "ttyS0,115200n8 tty0" -> "console=ttyS0,115200n8 console=tty0"
+1014:         if " " in console:
+1015:             log.debug('Multiple "console=" kernel parameters found: %s', console)
+1016:             console = console.split()[-1]
+1017:             log.debug("Main console set to: %s", console)
+1018:
+1019:         console = os.path.basename(console)
+1020:         self.console, _x, self.console_options = console.partition(",")
+1021:
+1022:         log.debug("Console is set to %s with options '%s'", self.console, self.console_options)
+1023:
+1024:     def write_config_password(self, config):
+1025:         """Write password-related configuration lines."""
+1026:         pass
+/usr/lib64/python3.14/site-packages/pyanaconda/modules/storage/bootloader/efi.py SHA256 ac2e74b68e31c5dc9f169b76d6a611c844c1d6ccc815d5d9642836e345cac3fe
+249:
+250:
+251: class Aarch64EFIGRUB(EFIGRUB):
+252:     _serial_consoles = ["ttyAMA", "ttyS"]
+253:     _efi_binary = "\\shimaa64.efi"
+254:
+255:     def __init__(self):
+256:         super().__init__()
+258:
+259:
+260: class Aarch64EFISystemdBoot(EFISystemdBoot):
+261:     _serial_consoles = ["ttyAMA", "ttyS"]
+262:     _efi_binary = "\\systemd-bootaa64.efi"
+263:
+264:     def __init__(self):
+265:         super().__init__()
+275:
+276:
+277: class ArmEFIGRUB(EFIGRUB):
+278:     _serial_consoles = ["ttyAMA", "ttyS"]
+279:     _efi_binary = "\\grubarm.efi"
+280:
+281:     def __init__(self):
+282:         super().__init__()
+285:
+286:
+287: class RISCV64EFIGRUB(EFIGRUB):
+288:     _serial_consoles = ["ttyS"]
+289:     _efi_binary = "\\grubriscv64.efi"
+290:
+291:     def __init__(self):
+292:         super().__init__()
+/usr/lib64/python3.14/site-packages/pyanaconda/modules/storage/bootloader/grub2.py SHA256 73cc452fca65f3d31a5951319c63e6dcee8c6ec9794d56b3f55de4092ac7d2bd
+34: __all__ = ["GRUB2", "IPSeriesGRUB2"]
+35:
+36:
+37: class SerialConsoleOptions:
+38:     """The serial console options."""
+39:
+40:     def __init__(self):
+41:         self.speed = None
+42:         self.parity = None
+46:
+47:
+48: def _parse_serial_opt(arg):
+49:     """Parse and split serial console options.
+50:
+51:     .. NOTE::
+52:
+53:        Documentation/kernel-parameters.txt says:
+64:        all valid: 9600, 19200n, 38400n8, 9600e7r.
+65:        Also note that the kernel assumes 1 stop bit; this can't be changed.
+66:     """
+67:     opts = SerialConsoleOptions()
+68:     m = re.match(r'\d+', arg)
+69:     if m is None:
+70:         return opts
+71:     opts.speed = m.group()
+106:     _config_dir = "grub2"
+107:     _passwd_file = "user.cfg"
+108:     defaults_file = "/etc/default/grub"
+109:     terminal_type = "console"
+110:     stage2_max_end = None
+111:
+112:     _device_map_file = "device.map"
+113:
+121:     stage2_raid_member_types = ["partition"]
+122:     stage2_raid_metadata = ["0", "0.90", "1.0", "1.2"]
+123:
+124:     _serial_consoles = ["ttyS"]
+125:
+126:     # XXX we probably need special handling for raid stage1 w/ gpt disklabel
+127:     #     since it's unlikely there'll be a bios boot partition on each disk
+128:
+150:         return "%s/%s" % (self.config_dir, self._device_map_file)
+151:
+152:     @property
+153:     def has_serial_console(self):
+154:         """ true if the console is a serial console. """
+155:
+156:         return any(self.console.startswith(sconsole) for sconsole in self._serial_consoles)
+157:
+158:     @property
+159:     def serial_command(self):
+160:         command = ""
+161:         if self.console and self.has_serial_console:
+162:             unit = self.console[-1]
+163:             command = ["serial"]
+164:             s = _parse_serial_opt(self.console_options)
+165:             if unit and unit != '0':
+166:                 command.append("--unit=%s" % unit)
+167:             if s.speed and s.speed != '9600':
+168:                 command.append("--speed=%s" % s.speed)
+247:         defaults.write("GRUB_DISTRIBUTOR=\"$(sed 's, release .*$,,g' /etc/system-release)\"\n")
+248:         defaults.write("GRUB_DEFAULT=saved\n")
+249:         defaults.write("GRUB_DISABLE_SUBMENU=true\n")
+250:         if self.console and self.has_serial_console:
+251:             defaults.write("GRUB_TERMINAL=\"serial console\"\n")
+252:             defaults.write("GRUB_SERIAL_COMMAND=\"%s\"\n" % self.serial_command)
+253:         else:
+254:             defaults.write("GRUB_TERMINAL_OUTPUT=\"%s\"\n" % self.terminal_type)
+255:
+257:         # linux installations or even multiple boot entries with different
+258:         # boot arguments
+259:         log.info("bootloader.py: used boot args: %s ", self.boot_args)
+260:         defaults.write("GRUB_CMDLINE_LINUX=\"%s\"\n" % self.boot_args)
+261:         defaults.write("GRUB_DISABLE_RECOVERY=\"true\"\n")
+262:         #defaults.write("GRUB_THEME=\"/boot/grub2/themes/system/theme.txt\"\n")
+263:
+264:         if self.use_bls and os.path.exists(conf.target.system_root + "/usr/sbin/new-kernel-pkg"):
+541:     # partition will be marked bootable. Confusing.
+542:
+543:     stage2_bootable = False
+544:     terminal_type = "ofconsole"
+545:
+546:     #
+547:     # installation
+548:     #
+569:
+570:     #
+571:     # In addition to the normal grub configuration variable, add one more to set the size
+572:     # of the console's window to a standard 80x24
+573:     #
+574:     def write_defaults(self):
+575:         super().write_defaults()
+576:
+577:         defaults_file = "%s%s" % (conf.target.system_root, self.defaults_file)
+578:         defaults = open(defaults_file, "a+")
+579:         # The terminfo's X and Y size, and output location could change in the future
+580:         defaults.write("GRUB_TERMINFO=\"terminfo -g 80x24 console\"\n")
+581:         # Disable OS Prober on pSeries systems
+582:         # TODO: This will disable across all POWER platforms. Need to get
+583:         #       into blivet and rework how it segments the POWER systems
+584:         #       to allow for differentiation between PowerNV and
+/usr/lib64/python3.14/site-packages/pyanaconda/modules/storage/bootloader/systemd.py SHA256 c687597fb66ccb2ae6011315f3114f7ffc82b8dae7670a8136c8a992927f6ae7
+36:     and injects the kernel parms into an efi stubbed kernel, which in turn
+37:     (optionally) loads it's initrd. As such there aren't any filesystem or
+38:     drivers to worry about as everything needed is provided by UEFI. Even the
+39:     console remains on the UEFI framebuffer, or serial as selected by UEFI.
+40:     Basically rather than trying to be another mini-os (like grub) and duplicate
+41:     much of what UEFI provides, it simply utilizes the existing services.
+42:
+43:     Further, while we could keep stage1 (ESP) and stage2 (/boot) seperate it
+110:
+111:         with open(config_path, "w") as config:
+112:             config.write("timeout "+ str(self.timeout) + "\n")
+113:             config.write("#console-mode keep\n")
+114:
+115:         # update /etc/kernel/cmdline
+116:         # should look something like "root=UUID=45b931b7-592a-46dc-9c33-d38d5901ec29 ro resume=/dev/sda3"
+117:         config_path = join_paths(conf.target.system_root, "/etc/kernel/cmdline")
+118:         log.info("systemd.py: write_config systemd commandline : %s ", config_path)
+119:         with open(config_path, "w") as config:
+120:             args = str(self.boot_args)
+121:             log.info("systemd.py: systemd used boot args: %s ", args)
+133:
+134:         # rather than creating a mess in python lets just
+135:         # write the options above, and run a script which will merge the
+136:         # boot cmdline (after stripping inst. and BOOT_) with the anaconda
+137:         # settings and the kernel-install recovery/etc options.
+138:         rc = util.execWithRedirect(
+139:             "/usr/sbin/updateloaderentries",
+140:             [" "],
+/usr/lib64/python3.14/site-packages/pyanaconda/modules/storage/bootloader/utils.py SHA256 ebe065844b2a1a6fa92cd26aa7dcfed1b864dae50bc2b003d911136512dd430e
+223:                 )
+224:
+225:     # Update the bootloader configuration to make sure that the BLS
+226:     # entries will have the correct kernel cmdline and not the value
+227:     # taken from /proc/cmdline, that is used to boot the live image.
+228:     rc = execWithRedirect(
+229:         "grub2-mkconfig",
+230:         ["-o", "/etc/grub2.cfg"],
+231:         root=sysroot
+ACTUAL BOOTLOADER CONFIG {'type': 'DEFAULT', 'efi_dir': 'fedora', 'menu_auto_hide': 'True', 'nonibft_iscsi_boot': 'False', 'preserved_arguments': '\ncio_ignore zfcp.allow_lun_scan\nspeakup_synth apic noapic apm ide noht acpi video\npci nodmraid nompath nomodeset noiswmd fips selinux\nbiosdevname ipv6.disable net.ifnames net.ifnames.prefix\nnosmt vga rd.net.dns rd.net.dns-resolve-mode rd.net.dns-backend console\nclk_ignore_unused pd_ignore_unused arm64.nopauth'}
+
+ARESOS_CMD_DONE:0

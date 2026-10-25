@@ -1,8 +1,11 @@
-# 13: keyboard layout — 13e qualification pending
+# 13: keyboard layout — 13e stopped in physical-input setup
 
-**Current:** 13e source verification and implementation are complete; native/local
-verification, fresh probe and qualification are pending. PR #12 stays draft.
-Physical installation and live-KDE/laptop followability remain NOT RELEASED.
+**Current: STOP / PLAN-GAP; PR #12 stays draft.** 13e’s fresh probe passed.
+Real two-entry stock repair passed for both de/us starting states, pin and the
+corrected German stock boot/login/password-sudo passed. Qualification then stopped
+at an unsupported `.` in the physical-input setup command. No signed switch,
+AresOS/foot, layout round trip or rollback ran. Physical installation and live
+KDE/laptop followability remain NOT RELEASED. See the final 13e execution below.
 
 **Historical 13d status: STOP / PLAN-GAP; PR #12 stayed draft.** The privileged-tool path fix
 and private release/signature/two-file image comparison passed. The latest native
@@ -1209,7 +1212,7 @@ stays unused; the owner laptop/followability step and physical release gate stay
 
 ### Verified / not verified / decisions
 
-Local whole-suite result and Actions evidence: pending. The source facts and
+This was the pre-dispatch status; actual local and Actions results follow below. The source facts and
 new fixture/parser tests above do not claim VM success. No frozen path changes,
 image dispatch or publication. **JUDGMENT-CALL:** the first-entry-is-booted guard
 is necessary to use the pinned CLI safely; a different booted/default ordering
@@ -1237,3 +1240,207 @@ owner-block equality rerun: **2 / 0.014s OK**. Source hash/frozen-payload replay
 source 2abc12e is empty. Repository API still PRIVATE. No Gradle/Minecraft files
 changed and no Gradle daemon started. The earlier Windows targeted run hit its
 default cp1252 decoding limit reading INSTALL; the final WSL equality run passed.
+
+
+### 13e execution — repair passed; physical setup requires a stop
+
+Both dispatches used exactly **`314bca3c596abbd54bc6505b6ecee6fb835d63f0`**.
+No source commit/push occurred between them. No further probe, qualification,
+image dispatch, publication, workaround or weakened assertion followed the stop.
+
+**Fresh probe:** [40175267914](https://github.com/Ares-Empire/AresOS/actions/runs/40175267914),
+08:05:37–08:31:03 UTC, **25m26s → 26 rounded minutes**. All **229 native tests /
+4.746s, OK**, no skips; all eight local host-limited cases passed natively.
+The completed-native-step guard, private manifest/layer pull, signature, pinned
+ISO inspection and every inherited both-order probe predicate passed. The
+saved-German [protected-second summary](screenshots/13e-probe-3-protected-second--keyboard-save-committed.png)
+was visually checked. The proof explicitly says `live_desktop_keyboard:
+laptop-followability-only`; no live KDE/KWrite proof is claimed.
+Local replay passed **6 protected captures, 8 zero-write/unmap counters,
+6 BootNext audits and 4 NVRAM transitions**; protected SHA-256
+`b2140dd71cd540ec5537749b7197074068709a942762802366325059379a0495`.
+
+**Qualification:** [40177141104](https://github.com/Ares-Empire/AresOS/actions/runs/40177141104),
+08:34:16–09:22:30 UTC, **48m14s → 49 rounded minutes**. Explicit passing probe
+40175267914, protected disk second (`vdb`), Linux target `vda`. Native discovery
+passed **229 / 5.311s, OK**, no skips. Pinned tools/source/frozen release and
+private manifest/layer/signature preflight passed. The actual unmodified
+installer finished with German keyboard, Europe/Berlin and synthetic
+`ares-recovery`; its [review](screenshots/13e-qualification-2-review-full.png)
+was visually checked. One source-authorized orderly hardware-setup reboot ran.
+
+#### Real deployment identities and both starting states
+
+Raw [rpm-ostree status](../../os/manifest/ci/13/qualification-2/evidence/two-disk/first-stock-before-repair-rpm-ostree-status.json)
+and [bootc status](../../os/manifest/ci/13/qualification-2/evidence/two-disk/first-stock-before-repair-bootc-status.json)
+were exported **before** the repair. They agree on qualified stock checksum
+`aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71`,
+qualified `ed93…5151` payload and stateroot `default`:
+
+| Observation | First deployment | Second deployment | Count / pending state |
+|---|---|---|---|
+| Before any repair | serial1, booted, unpinned | serial0, not booted, unpinned | 2; no staged/queued/transaction |
+| Actual installer de repaired | identical identities | identical identity and args | 2; booted override removed |
+| Injected de repaired | identical identities | identical identity and args | 2; booted override removed |
+| Injected us repaired | identical identities | identical identity and args | 2; booted override removed |
+| After pin | serial1, booted, **pinned** | serial0, not booted, unpinned | 2; only booted pin flag changes |
+| Corrected stock boot | serial1, booted, pinned | serial0, not booted, unpinned | 2; no extra deployment |
+| Switch / final AresOS / rollback | **unreached** | **unreached** | no runtime lifecycle claim |
+
+All three [repair proofs](../../os/manifest/ci/13/qualification-2/evidence/two-disk/repair-starting-us.json)
+passed; their before/after snapshots compare the **whole ordered identity list**.
+The old serial0's arguments remained unchanged across every repair and the pin.
+Resolved BLS paths independently identify `aa669eff…0c71.1` and `.0`; the kernel
+boot checksum `a25775…` is **not** used as a deployment identity.
+The corrected serial1's entry and running cmdline have no keymap override;
+`bluetooth.disable_ertm=1` and unrelated args remain. The deliberately untouched
+old serial0 still has its original `vconsole.keymap=de` during preparation.
+No old entry was removed manually. Pin reported no staged discard; the pause
+needed no transaction cancellation. Actual cancellation/discard stays unexercised.
+
+After pin, exact Windows-first order restoration, attached unattended Windows-like
+boot, detached Windows-like boot and the corrected-stock BootNext selection/
+consumption all passed. [Corrected stock keyboard](../../os/manifest/ci/13/qualification-2/evidence/two-disk/corrected-stock-keyboard.json)
+has console/X11 `de`, no cmdline override and loaded rows **`keycode 21 = +z`** /
+**`keycode 44 = +y`**. The fixed parser accepted them. Its temporary old-entry
+exception is identity-resolved and limited to pre-switch stock; the final-pair
+and all-entry checks remain mandatory after switch finalization.
+
+#### Exact failure and limits of the typing evidence
+
+Physical QMP tty3 username/password login reached UID1000 bash. Login echo-off
+was verified, password sudo produced the required root-owned marker, and all
+four readiness/result commands exited 0. The password contained the sensitive
+layout positions `y`, `z`, `-`, `/`, `!`; its value is absent from retained/shared evidence.
+Then the public-text test tried to type **its setup command**, not `yz-/!` yet:
+
+```text
+tty() → physical_input() → type_text('python3 /run/aresos-physical.py\n')
+physical_keys('.', 'de')
+AssertionError: .
+```
+
+`physical_keys` accepts letters/digits and a small explicit punctuation set;
+`.` is absent, although the harness types a `.py` filename. This pre-existing
+package-13 fixture path was previously unreached. I missed its command-character
+coverage in preflight: all 229 native tests passed but did not test this setup
+string. A zero-cost check during the run reproduced the exact assertion on the
+unchanged head; the real job then confirmed the same stack at line58.
+[Local reproduction output](logs/13e-physical-command-repro.txt).
+
+**Do not claim a passing public-text tty3 test or complete login/sudo/logout
+flow:** `corrected-stock-tty-physical.json`, its input-ready result and safe tty3
+screenshot were never reached. The failure happened while screenshots were
+disabled for the password-sensitive phase, so no unsafe failure image was made.
+Corrected-stock Homebrew check, release verification/switch, AresOS boots/policy/
+foot, US change/back, rollback and rendered rollback greeter were all unreached.
+There is no `keyboard-result.json`. No image/runtime failure is inferred from
+this host fixture assertion, and no completion is inferred from earlier gates.
+
+**Safety replay:** all **7 protected captures, 8 zero-write/unmap counters,
+7 BootNext audits and 6 NVRAM transitions** passed unchanged inherited rules.
+Qualification protected SHA-256
+`7b04da245c69cd551e7f150225f67a2cfb36d31115fdaab15a066e1cf6bf95b0`.
+The corrected-stock failure-path counter is recorded with `probe_only:false`,
+`vm_paused:true`, boot7; final protected writes/unmaps are zero. BootNext was
+consumed and absent, with Windows still default. Initial Linux EFI creation and
+reviewed BootOrder changes were audited, not falsely called identical NVRAM.
+Local replay also rechecked pin-only identity changes, unchanged old-entry args
+and successful tty login/sudo result markers.
+
+#### Diagnostic only; guide and remaining acceptance
+
+Boundary observer retained 978 messages, allowlisted Get/reply pairs: Language
+1 (last `en_US.UTF-8`), XLayouts17 (last `[de]`), VirtualConsoleKeymap6 (last `de`),
+LayoutSwitchOptions4 (last empty). Final console Get client `:1.7`, cookie9049;
+request/reply times are in [stop-summary.json](../../os/manifest/ci/13/qualification-2/stop-summary.json).
+These agree with this install's `de` argument; they remain diagnostic only,
+with no independently exported client-to-process identity and no explanation
+of historical `us`. Repair success does not depend on this value.
+
+INSTALL and EMERGENCY now distinguish the **observed** two entries through pin/
+corrected-stock boot from the **source-verified, runtime-unverified** switch
+finalization (AresOS + corrected pinned stock only) and rollback reordering.
+A surviving old serial in a final state must stop; it has not been observed
+because no switch ran. The stale abbreviated old-release digest in INSTALL's
+inspection prose is corrected to `9b19…f3eb`; full reference/owner switch block
+already selected that exact existing private release. No frozen path changes.
+
+**JUDGMENT-CALL:** the guide records the final unique stock menu title only after
+a successful AresOS boot confirms the pair. Before that, duplicated stock
+checksums make a guessed title unsafe, so an initial failed switch boot uses
+F12 → Windows/get help. An automatic checksum+serial recovery selector would
+need a separately authorized plan and qualification; it is not added here.
+Owner review of 13c's exact-frozen-image construction still precedes merge.
+
+**PLAN-GAP / required stop:** the physical typer must cover every character in
+its own setup commands (including the dot's real QMP key position), with de/us
+regressions preserving the layout-sensitive assertions. It is not changed
+after the passing probe: that would require a fresh same-head probe and full
+qualification. This follow-up's one fresh probe is consumed, and a fresh guard
+also refuses another full+closing reservation: **263 + 144 = 407 > 380**.
+No retry, workaround, deleted assertion or extra dispatch follows. This is an
+unresolved fixture coverage gap, not green acceptance. PR #12 stays draft;
+physical installation, live KDE/KWrite, hardware/media and followability stay
+**OPEN / NOT RELEASED**. The post-switch real entry list, foot, layout round
+trip and rollback are explicit unverified acceptance items.
+
+### 13e evidence, privacy and package budget
+
+Original immutable artifacts and logs are retained; expanded JSON/TXT mirrors
+are under [probe-3](../../os/manifest/ci/13/probe-3) and
+[qualification-2](../../os/manifest/ci/13/qualification-2). Expanded text only
+normalizes line endings/trailing whitespace; original ZIP bytes are unchanged.
+
+| Artifact | Bytes / ID | SHA-256 |
+|---|---:|---|
+| [Probe](artifacts/13e-probe-3-two-disk-evidence.zip) | 6,419,010 / 12593210665 | `769fd134690f87cf6936878020609a08f140a996975d8e281d4f42e8e32078e6` |
+| [Qualification](artifacts/13e-qualification-2-two-disk-evidence.zip) | 7,265,559 / 12594221308 | `20e7fc82cf62d17a79acc27009c8181ca93c64d75024c3cc576fcd59499d401f` |
+
+[Probe log ZIP](artifacts/13e-probe-3-logs.zip) SHA-256
+`13f7cfbec8dd84071ce51e2be3e1fde80ba89b705b1d26887a341c05f3d0b4eb`;
+[qualification log ZIP](artifacts/13e-qualification-2-logs.zip)
+`009206b02b93a594f3e3dfc123196ac5910c726fd43d7fd1b508628a59f82438`.
+Expanded logs: [probe](logs/probe-3.txt), [qualification](logs/qualification-2.txt).
+352 probe and 374 qualification text members plus logs passed credential-pattern
+checks; artifact digests/member paths verified, forbidden auth/credential files
+absent. Both jobs' preflight reports PRIVATE, read-only **GITHUB_TOKEN**, no owner
+token use/API calls; credential cleanup passed outside the checkout. No new
+signing, publication, visibility change or token output/storage occurred.
+
+Source push/PR privacy **40175080660 / 40175083403** passed gitleaks/private
+commit emails/personal terms, **personal terms not skipped**, 2+2 rounded minutes.
+Their log ZIP hashes are in each run folder's source-privacy.json. Closing
+evidence privacy and final actual rounding will be recorded on PR #12 after
+the closing FF push, avoiding a self-referential report-only push loop.
+
+| Package-13 ledger item | Rounded minutes |
+|---|---:|
+| Final 13d total | 180 |
+| Owner 13e brief privacy 40173924648 / 40173927826 | 2 + 2 |
+| 13e source privacy 40175080660 / 40175083403 | 2 + 2 |
+| Fresh probe 40175267914 | 26 |
+| Qualification 40177141104 | 49 |
+| **Actual subtotal before closing** | **263 / 380** |
+| Closing reserved by fresh guard | **14** (4 expected; actual to be verified) |
+
+Fresh complete history proves **36 unique IDs / total_count36**, one complete
+page, no active jobs. First dispatch remains 2026-10-25T02:02:34Z. Counts:
+images2/3, publish1/1, checks-only1/1, probes3/3, qualifications2/2. No image or
+publication occurred in 13e. Another full+closing guard explicitly refused
+`263 + 144 reserved exceeds 380 minutes`; the retained refusal records the
+complete history. Remaining wall/billed minutes do not authorize an extra probe
+or cure the failed fixture. No further dispatch is planned.
+
+**Open questions:** authorization and budget for a separately tested physical
+command-key fix and fresh probe/qualification; then runtime confirmation of the
+source-verified final entry lifecycle and every unverified gate above. No
+mid-run owner answer is requested. The owner still reviews the frozen-image
+construction before merge; this run never merges or makes anything public.
+
+
+**Closing local checks:** exact keyboard and switch owner-block equality:
+**2 tests / 0.162s, OK**. `git diff --check` passed. Harness/release/test source
+diff against dispatched head 314bca3 is empty; frozen payload diff against the
+published 2abc12e is empty. Both blocked release manifests match; raw artifact
+ZIP digests rechecked. No new code change requires or authorizes another VM run.

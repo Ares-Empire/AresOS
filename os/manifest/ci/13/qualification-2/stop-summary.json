@@ -1,0 +1,94 @@
+{
+  "status": "STOP-PLAN-GAP",
+  "run": 40177141104,
+  "head": "314bca3c596abbd54bc6505b6ecee6fb835d63f0",
+  "failed_stage": "corrected-stock-tty-physical-command-setup",
+  "error": "AssertionError: .",
+  "installation_performed": true,
+  "repairs_passed": [
+    "installer-de",
+    "injected-de",
+    "injected-us"
+  ],
+  "deployment_count": 2,
+  "whole_list_preserved": true,
+  "nonbooted_arguments_unchanged": true,
+  "corrected_stock_cmdline_no_override": true,
+  "corrected_stock_loaded_map_de": true,
+  "tty3_login_passed": true,
+  "password_sudo_passed": true,
+  "public_physical_text_passed": false,
+  "switch_performed": false,
+  "final_entry_lifecycle": "source-verified-only; switch/rollback unreached",
+  "diagnostic_only": true,
+  "message_count": 978,
+  "values": {
+    "Language": {
+      "reply_pairs": 1,
+      "last": {
+        "property": "Language",
+        "client": ":1.23",
+        "request_cookie": 6,
+        "request_realtime": 1792918114308231,
+        "reply_realtime": 1792918114313618,
+        "value": [
+          {
+            "type": "s",
+            "data": "en_US.UTF-8"
+          }
+        ]
+      }
+    },
+    "XLayouts": {
+      "reply_pairs": 17,
+      "last": {
+        "property": "XLayouts",
+        "client": ":1.46",
+        "request_cookie": 2,
+        "request_realtime": 1792918137074387,
+        "reply_realtime": 1792918137077617,
+        "value": [
+          {
+            "type": "as",
+            "data": [
+              "de"
+            ]
+          }
+        ]
+      }
+    },
+    "VirtualConsoleKeymap": {
+      "reply_pairs": 6,
+      "last": {
+        "property": "VirtualConsoleKeymap",
+        "client": ":1.7",
+        "request_cookie": 9049,
+        "request_realtime": 1792919087742412,
+        "reply_realtime": 1792919087749548,
+        "value": [
+          {
+            "type": "s",
+            "data": "de"
+          }
+        ]
+      }
+    },
+    "LayoutSwitchOptions": {
+      "reply_pairs": 4,
+      "last": {
+        "property": "LayoutSwitchOptions",
+        "client": ":1.44",
+        "request_cookie": 2,
+        "request_realtime": 1792918136525807,
+        "reply_realtime": 1792918136525969,
+        "value": [
+          {
+            "type": "as",
+            "data": []
+          }
+        ]
+      }
+    }
+  },
+  "pin_changes_only_booted_pinned_flag": true
+}

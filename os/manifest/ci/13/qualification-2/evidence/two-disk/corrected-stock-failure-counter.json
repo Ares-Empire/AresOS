@@ -1,0 +1,8 @@
+{
+  "failure_path": true,
+  "probe_only": false,
+  "boot": 7,
+  "status": "recorded",
+  "counter": "corrected-stock-blockstats.json",
+  "vm_paused": true
+}
