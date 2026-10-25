@@ -164,6 +164,8 @@ jobs:
           skopeo inspect "docker://$image" > evidence/base-inspect.json
           skopeo inspect --raw "docker://$image" > evidence/base-oci-manifest.json
           df -B1 / | tee evidence/runner-disk.txt
+      - name: Resolve all privileged host tools before credentials
+        run: python3 os/ci/build_tools.py resolve evidence/build-tools.json
       - name: Authorize only the historical private image read for comparison
         if: github.event_name == 'workflow_dispatch' && inputs.release_13 && github.ref_name == 'pkg/13-keyboard-layout'
         env:
@@ -177,7 +179,7 @@ jobs:
         run: |
           set -euo pipefail
           date +%s > evidence/build-start-time.txt
-          sudo -E bash os/ci/build-keyboard-release.sh
+          python3 os/ci/build_tools.py launch "$PWD/evidence/build-tools.json"
       - name: Remove historical image credentials
         if: always()
         run: sudo -E python3 os/ci/rehearsal_auth.py cleanup
@@ -231,6 +233,7 @@ jobs:
       - name: Publish the tested private release and sign with GitHub OIDC
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: release-13
         run: bash os/ci/publish.sh
       - name: Measure and bound evidence
         id: evidence

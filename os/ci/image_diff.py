@@ -9,6 +9,7 @@ import subprocess
 
 CHANGES = {'usr/bin/aresos-session': 'os/config/usr/bin/aresos-session',
            'usr/libexec/aresos-keyboard': 'os/config/usr/libexec/aresos-keyboard'}
+TOOLS = None
 
 
 def inventory(root):
@@ -50,10 +51,14 @@ def compare(old, new, expected):
 
 
 def command(*args):
-    return subprocess.check_output(args, text=True).strip()
+    assert TOOLS is not None and args[0] in ('podman', 'skopeo'), 'STOP: image diff tools were not validated'
+    return subprocess.check_output([TOOLS[args[0]], *args[1:]], text=True).strip()
 
 
-def main():
+def main(tools):
+    global TOOLS
+    from build_tools import validate
+    TOOLS = validate(tools)
     evidence = pathlib.Path('evidence/image-diff'); evidence.mkdir(parents=True)
     release = json.loads(pathlib.Path('os/manifest/releases/06.json').read_text())
     previous = release['reference']
@@ -106,9 +111,11 @@ def main():
         print('IMAGE_DIFF_PASSED: exact packages/units/base ancestry; only the two reviewed keyboard files changed')
     finally:
         for container in reversed(mounts):
-            subprocess.run(['podman', 'unmount', container], check=True)
-            subprocess.run(['podman', 'rm', container], check=True)
+            command('podman', 'unmount', container)
+            command('podman', 'rm', container)
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+    from build_tools import load
+    main(load(sys.argv[1]))
