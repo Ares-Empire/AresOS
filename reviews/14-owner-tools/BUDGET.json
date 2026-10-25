@@ -145,6 +145,13 @@
       "findings": 0,
       "exit_code": 0,
       "checked_at": "2026-10-25T21:57:09.454170+00:00"
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "6c2118773b68aaf4bf0fb034d4e626f690626a28",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
   "privacy_ci": {
