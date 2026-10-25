@@ -1,11 +1,13 @@
 # 14: checked owner tools
 
-**Current 14f status:** the integrator classifies checks requiring the CI job's
-private-package access as CI-only. Local noncredential replay has passed;
-every such step must pass, then privacy, ledger and billing must be fresh before
-the final allowed probe. No new dispatch has occurred yet. PR #13 stays
-**draft** until acceptance is met. Physical installation stays **NOT RELEASED**.
-Earlier stops below are historical; their decisions are retained.
+**Current 14f status: STOP / PLAN-GAP at the CI PR12 API read.** All **284 native
+tests** and **15 PowerShell refusal cases** passed, then the accepted release
+binding's `GET /pulls/12` returned HTTP403 for the integration token. The four
+CI-only package/registry checks and VM were skipped. No rerun or qualification
+was sent. Snapshot: **40/350 minutes**, **2/2 probes**, **0/2 qualifications**,
+plus **12 minutes reserved for closing privacy**. PR #13 stays **draft**;
+acceptance is unmet. Physical installation stays **NOT RELEASED**. Earlier
+stops below are historical; their decisions are retained.
 
 ## 14f — CI-only credential checks, unchanged fail-closed enforcement
 
@@ -80,6 +82,100 @@ second qualification needs its own fresh guard and remains subject to all STOP
 rules; it is not part of the currently planned run. No image build or publish
 is permitted. The ledger, billing and all three privacy steps will be rechecked
 immediately before dispatch on the pushed head.
+
+### Actual fresh gates, final probe and PR-read PLAN-GAP
+
+The replay and its scan ledger were pushed fast-forward at
+`8fa7224ace336b6b1f6d0c181bd80a9303386a84` after a checksum-verified pinned
+gitleaks8.21.2 full-history scan: **0 findings**. The scan is recorded in the
+ledger. Both privacy runs
+[40242272088](https://github.com/Ares-Empire/AresOS/actions/runs/40242272088)
+and [40242274817](https://github.com/Ares-Empire/AresOS/actions/runs/40242274817)
+passed **gitleaks, private commit emails and personal terms** on that head.
+Actual warning annotations were checked: personal terms were not skipped.
+
+Immediately before POST, the actual release verifier passed again on that
+pushed head and all118 replay source hashes matched its Git blobs. Complete
+**28/28** run history and billing passed: **34 consumed +184 reserved /350**,
+**1/2** probes before dispatch, org **467** free and **283** after reservation,
+above150. The single fresh/final allowed probe was dispatched once, on the
+same head: [40242538685](https://github.com/Ares-Empire/AresOS/actions/runs/40242538685).
+
+Native output: **`Ran 284 tests in 14.614s` / `OK`**, no skips. All eight local
+host limitations passed natively. PowerShell printed **`PASS 15 destination
+refusals with zero writes; copied payload equals source`**. Python and shell
+compilation completed. The subsequent release verifier failed at line46:
+
+```text
+gh api repos/Ares-Empire/AresOS/pulls/12
+gh: Resource not accessible by integration (HTTP 403)
+subprocess.CalledProcessError ... returned non-zero exit status 1
+```
+
+The job's setup log reports effective **Actions: read, Contents: read,
+Metadata: read, Packages: read**. Its YAML explicitly declares contents,
+packages and actions read, with no `pull-requests` grant. The local login can
+read PR12; that successful local replay did not establish integration access.
+The replay review did not account for this difference before dispatch.
+
+**Evidence versus inference:** HTTP403 on the required PR read is observed.
+The missing explicit PR permission is a candidate explanation, not a proven
+fix. GitHub's current [Get a pull request documentation](https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request)
+lists either Pull requests read or Contents read, while its
+[workflow permission documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idpermissions)
+says omitted permissions become none when others are specified. Since this
+job does have Contents read, those documents alone do not establish the exact
+authorization cause. No permission change was tested or applied, and no new
+credential was chosen. A narrowly reviewed PR-read grant is a possible next
+integrator decision; it is not represented here as verified remediation.
+
+**PLAN-GAP:** the pinned PR binding is mandatory but the actual CI integration
+cannot read its record. The integrator must settle the permitted job access
+for that read before continuation. Both **2/2 probes** are now spent, so a
+new passing-probe allowance is also required. No owner token, scope refresh,
+permission expansion, check bypass, job rerun or qualification dispatch was
+used to get past this failure. This is **not** a failure or success of the four
+package/registry CI-only checks: all four were **not reached**. No inference
+about changed package visibility or signatures is supported by this run.
+
+The completed-native gate, credential creation, registry checks, remote ISO
+inspection and VM were skipped after the native-preflight failure. Cleanup
+passed. Artifact **12617103845** was checked against GitHub's SHA-256 before
+reading; exact native test/STOP output, pre-probe privacy/guard receipts,
+cleanup result and compact artifact provenance are retained under
+`os/manifest/ci/14/14f-probe-stop/`. All file hashes precede paths.
+
+While the probe ran, the required local file inspection was repeated for the
+prospective qualification, using native Windows file IO plus WSL extraction
+and Linux LF output. Again the full ISO pin, fresh official checksum, four
+localization and102 Web UI sources passed. The **47-test** host walk also
+passed again. These receipts and the exact adapter are retained; they are
+local prerequisites only and never qualification evidence. No qualification
+was dispatched and no VM started in either package14 probe.
+
+| Stopped ledger before closing push | Result |
+|---|---:|
+| First package dispatch (unchanged) | 2026-10-25 22:01:22 UTC |
+| Final probe job | 2026-10-25 22:57:18–23:02:56 UTC |
+| Final probe cost | 6 rounded minutes |
+| Package consumed /cap | 40/350 minutes |
+| Closing privacy reservation | 12 minutes |
+| Consumed plus reservation | 52/350 minutes |
+| Probes /allowance | 2/2 |
+| Qualifications /allowance | 0/2 |
+| Complete history | 29/29 runs |
+| Org free /after closing reservation | 461 /449 minutes |
+| Required org reserve | 150 minutes |
+
+`BUDGET.json` retains this snapshot and scan receipts. Closing privacy and
+actual costs will be checked and recorded in the PR after the reserved jobs
+finish. No additional dispatch is permitted under the current probe allowance.
+
+**Not verified:** live package checks, a passing package14 probe, VM owner-tools
+qualification and all physical gates. **JUDGMENT-CALL:** no new permission or
+credential decision was taken. CI-only implementations, workflow permissions,
+all audits, owner scripts, frozen release/runtime paths and privacy policy stay
+unchanged. INSTALL/EMERGENCY retain NOT RELEASED and name the current STOP.
 
 ## 14e — pinned PR12 squash binding and local replay STOP
 

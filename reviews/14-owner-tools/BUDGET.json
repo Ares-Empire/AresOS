@@ -11,15 +11,36 @@
     "owner-tools": 2
   },
   "dispatch_counts": {
-    "probe": 1,
+    "probe": 2,
     "owner-tools": 0
   },
-  "consumed_minutes": 28,
-  "reserved_minutes": 184,
+  "consumed_minutes": 40,
+  "reserved_minutes": 12,
   "runs": [
     {
+      "run": 40242538685,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "conclusion": "failure",
+      "minutes": 6
+    },
+    {
+      "run": 40242274817,
+      "title": "14: checked owner tools and tools-stick round trip",
+      "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40242272088,
+      "title": "Record the clean replay history scan in the package ledger",
+      "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
       "run": 40240890854,
-      "title": "14: owner tools; local package metadata replay blocked",
+      "title": "14: checked owner tools and tools-stick round trip",
       "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
       "conclusion": "success",
       "minutes": 3
@@ -33,7 +54,7 @@
     },
     {
       "run": 40240457809,
-      "title": "14: owner tools; local package metadata replay blocked",
+      "title": "14: checked owner tools and tools-stick round trip",
       "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
       "conclusion": "success",
       "minutes": 3
@@ -47,7 +68,7 @@
     },
     {
       "run": 40239504514,
-      "title": "14: owner tools; local package metadata replay blocked",
+      "title": "14: checked owner tools and tools-stick round trip",
       "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
       "conclusion": "success",
       "minutes": 3
@@ -61,7 +82,7 @@
     },
     {
       "run": 40239030452,
-      "title": "14: owner tools; local package metadata replay blocked",
+      "title": "14: checked owner tools and tools-stick round trip",
       "sha": "bfbb3c696b9107966eddeb1281954de318f3e476",
       "conclusion": "success",
       "minutes": 3
@@ -86,19 +107,22 @@
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 26,
-    "total_count": 26,
+    "ids_count": 29,
+    "total_count": 29,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 26,
-        "total_count": 26,
-        "ids_sha256": "a80e59ae758cd66b729249e30a9d90de9a5fdf48346ef2ba8311b4e8c97ca354"
+        "returned": 29,
+        "total_count": 29,
+        "ids_sha256": "c34c3b485e4a0b27a1b403b75c6f24d18c03f9c7564737ffeb19a53913b56226"
       }
     ],
     "run_ids": [
+      40242538685,
+      40242274817,
+      40242272088,
       40240890854,
       40240887069,
       40240457809,
@@ -127,48 +151,42 @@
       40216222435
     ]
   },
-  "native": {
-    "status": "pending",
-    "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
-    "required": "completed native step before any VM"
-  },
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-25T22:40:51.418943+00:00",
-    "response_sha256": "558299c683b6122f3a4263bdcc38e06f9a920391abf4ba7a2c667112c16c4f1d",
+    "checked_at": "2026-10-25T23:05:24.409883+00:00",
+    "response_sha256": "8e00d5953276c00e15df11752bac96d7cdba6058567468a1f39a8b02b04c01c6",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 1527.0,
-        "discountQuantity": 1527.0,
+        "grossQuantity": 1539.0,
+        "discountQuantity": 1539.0,
         "netQuantity": 0.0,
-        "grossAmount": 9.162,
-        "discountAmount": 9.162,
+        "grossAmount": 9.234,
+        "discountAmount": 9.234,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 4.713368466,
+        "grossQuantity": 4.902682582,
         "discountQuantity": 4.902682582,
         "netQuantity": 0.0,
-        "grossAmount": 0.001583753,
+        "grossAmount": 0.001647366,
         "discountAmount": 0.001647366,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 1527,
+    "used_minutes": 1539,
     "included_minutes": 2000,
-    "remaining_minutes": 473,
-    "reserved_minutes": 184,
-    "after_reservation": 289,
+    "remaining_minutes": 461,
+    "reserved_minutes": 12,
+    "after_reservation": 449,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   },
-  "read_retries": [],
-  "status": "14f planning snapshot, not dispatch or VM acceptance",
+  "status": "STOP: CI PR12 read403 before private-package checks",
   "local_privacy_scans": [
     {
       "version": "8.21.2",
@@ -252,6 +270,40 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "checked_at": "2026-10-25T22:53:27.669431+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
-  ]
+  ],
+  "pre_probe_privacy": {
+    "checked_at": "2026-10-25T22:57:06.483039+00:00",
+    "head": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+    "runs": [
+      {
+        "run": 40242272088,
+        "head": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true
+      },
+      {
+        "run": 40242274817,
+        "head": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true
+      }
+    ]
+  }
 }

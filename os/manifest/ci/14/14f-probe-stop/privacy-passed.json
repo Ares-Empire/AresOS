@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-10-25T22:57:06.483039+00:00",
+  "head": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+  "runs": [
+    {
+      "run": 40242272088,
+      "head": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "steps": {
+        "No secrets (gitleaks)": "success",
+        "Only private commit emails": "success",
+        "No personal terms": "success"
+      },
+      "personal_terms_not_skipped": true
+    },
+    {
+      "run": 40242274817,
+      "head": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "steps": {
+        "No secrets (gitleaks)": "success",
+        "Only private commit emails": "success",
+        "No personal terms": "success"
+      },
+      "personal_terms_not_skipped": true
+    }
+  ]
+}

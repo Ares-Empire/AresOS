@@ -8,8 +8,9 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 Package14's new checked commands passed native tests and privacy CI in14d.
 14e's pinned squash binding passes locally; 14f reserves the four private
-package/registry checks for CI's scoped job token. Fresh probe and owner-tools
-VM qualification remain required before this route is accepted.
+package/registry checks for CI's scoped job token. The final probe stopped at
+the CI PR12 API read (HTTP403), before those checks or VM. Both probes are
+spent; owner-tools VM qualification remains unrun and the route is unaccepted.
 They are not released for physical installation; see the
 [14 report](../reviews/14-owner-tools/REPORT.md).
 
