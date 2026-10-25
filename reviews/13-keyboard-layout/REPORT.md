@@ -1,9 +1,11 @@
-# 13: keyboard layout — 13c stopped after the fresh probe failed
+# 13: keyboard layout — 13d installed-system qualification
 
-**Current status: STOP; PR #12 stays draft.** The privileged-tool path fix,
+**Current status: 13d preparation; PR #12 stays draft pending acceptance.** The privileged-tool path fix,
 private release/signature/two-file image comparison and 217 native tests passed.
-The single fresh probe failed at live KDE German-layout selection; no
-installation or qualification was performed. See the final 13c section below.
+The 13c probe failed at live KDE German-layout selection; no installation or
+qualification was performed then. Brief 13d now moves that live-desktop step to
+the laptop gate and authorizes one fresh probe, then installed-system qualification.
+See the final 13d section for current results.
 Physical installation remains **NOT RELEASED**. Earlier sections are dated
 history, including the original source-verification stop and the 13b wrapper stop.
 
@@ -744,3 +746,136 @@ WSL Git cannot resolve this Windows worktree's absolute Git pointer, so the
 frozen-runtime comparison and `git diff --check` ran with host Git and passed.
 Both current/history-13 manifests match and record private/blocked/zero
 qualification runs. Runtime payload still equals the published 2abc12e source.
+
+## 13d — installed-system qualification; live desktop stays a laptop gate (2026-10-25)
+
+**Status before dispatch: preparation and local whole-suite verification.**
+Fetched and pulled `--ff-only` first; clean branch at owner brief `10cf1e9`.
+The complete 13c result, published private digest, image comparison, signature,
+217 native successes and failed probe remain historical evidence above.
+
+**Done:** neither `two_disk_vm.install()` nor `live_probe()` invokes
+`live_keyboard_ui.run()` now. That fixture file and its unit test are retained,
+unchanged, but no qualification entry point uses it. Its KDE settings/KWrite
+physical typing is explicitly **not VM-qualified**; it belongs to the real
+laptop/followability checklist. INSTALL §4 step 1 remains the owner's exact
+normal-settings/text-editor instruction. The release gate states that successful
+installed-system CI cannot close this physical gate. The installer Web UI's
+German choice, saved localization confirmation and all installed-system checks
+are unchanged. Probe evidence records `live_desktop_keyboard:
+laptop-followability-only`; it no longer claims live German physical typing.
+
+**Native gate / allowance:** the single checks-only dispatch was already used.
+No additional one is dispatched. Each fresh probe already runs the complete
+native suite and syntax/source verification before any VM. Its initial guard now
+reserves the budget with **pending** native status; after that existing native
+step passes, a second fresh guard reads GitHub's completed step on this exact
+head and writes passed authorization before registry credentials/VM preparation.
+The VM entry point refuses pending, failed or different-head native proof.
+Qualification requires the passing same-head probe and its completed native
+step; full probe artifact/signature/disk/firmware predicates still apply.
+This preserves native-before-VM without an unapproved checks-only dispatch.
+Regression cases cover failed/skipped/pending native steps, incomplete/ambiguous
+job listings, wrong source/event/attempt, pending VM rejection and a third probe
+refused. The probe cap becomes two total (13c's failed one + this one); all other
+dispatch caps, the ledger start, minute cap and publication boundary stay intact.
+
+**Verified before whole-suite completion:** 18 focused tests / 0.055s, OK. The
+new tests exercise the actual install/probe entry points with a fixture that
+fails if the unused KDE code is called, and validate the native authorization
+protocol. Existing package-11 budget assertions still cover unchanged probe/job
+timeouts and full/B caps. The complete local suite and syntax checks must finish
+before source push/dispatch; every local host-limited case remains mandatory in
+the probe's native preflight.
+
+### Zero-cost stage walk-through before any 13d dispatch
+
+1. Finish complete local discovery, syntax and frozen-runtime comparison.
+   Source push must pass gitleaks/private emails/personal terms with no skipped
+   personal-term scan. Fresh complete-history guard must fit the whole plan.
+   At owner head, all 24 unique history IDs matched total_count 24, and the
+   ledger is **108/380**: 104 from 13c plus owner-brief privacy 2 + 2. No jobs
+   were active. Reserve probe 42 + one qualification 130 + closing/privacy 14 =
+   **186**; 108 + 186 = **294**, plus actual source privacy rounding (plan 4).
+   No image build, publication or extra standalone native dispatch.
+2. One fresh probe on the final harness head: initial budget reservation →
+   pinned toolchain and full native/syntax/frozen-image verification → GitHub
+   completed-native-step guard → read-only job-token private metadata/signature
+   and exact layer pull → full pinned ISO hash/source inspection → both live
+   disk mappings and unmodified installer UI through review, saved German choice,
+   read-only keyboard/reader checks, localed session-reader transport, stock
+   pause/kargs-help recipe and failure counter/OCR preflight → detached Windows
+   marker/target reset → reverse mapping. Every reached protected-disk, NVRAM,
+   BootNext and final counter remains required. No KDE/KWrite action or live
+   physical typing is attempted or asserted. Stop if any probe predicate fails.
+3. Only passing probe/privacy/native on that exact head permit a fresh guard
+   and one **protected-second** qualification (130 reserved). No Part B.
+   Baseline marker → real installer English/German choice/removal of US/save
+   and Berlin settings → credential-safe boundary localization diagnostic →
+   installation → first stock firmware-default start without BootNext, with
+   the pinned-source-authorized hardware initialization reset only if observed.
+4. Read installed console/X11/options plus initial cmdline and loaded map before
+   pause. Run the exact owner repair on the actual installer value; inject `de`
+   then repair, inject `us` then repair. Require the same stock checksum/serial,
+   one deployment and unchanged unrelated arguments. Pause then pin exact stock;
+   shutdown/audit. Restore Windows-first, then unattended attached and detached
+   Windows markers with BootNext absent.
+5. Corrected stock boot: every BLS entry and cmdline free of console overrides,
+   loaded German map, physical-key tty3 login with `yz-/!` sensitive password,
+   password sudo, public `yz-/!` text and inherited Homebrew audit. Verify the
+   existing signed private release, run the exact owner switch and inspect the
+   pending deployment before shutdown/audit.
+6. AresOS German boot: cmdline/maps, tty3/password sudo/text, policy, Homebrew,
+   actual labwc XKB environment and physical QMP typing in foot. Change normal
+   console/X11 settings to US, reboot/audit, repeat both physical screens/maps;
+   change back to German, reboot/audit and repeat. Then run exact rollback and
+   require the queued stock identity before shutdown/audit.
+7. Backup stock boot: exact retained checksum/digest, every entry/cmdline clean,
+   loaded German map, real tty3/password sudo/text and unchanged Homebrew marker;
+   rendered Plasma rollback greeter. Final unattended attached/detached Windows
+   markers, all offline disk/firmware/BootNext checks. Only complete evidence may
+   pass the installed-system acceptance items. No physical laptop work.
+8. A second qualification is conditional on a fresh guard fitting its full
+   130-minute reservation plus closing costs; no failed product/audit can be
+   excused by unused slots. Preserve the same passing-probe head. No additional
+   probe, image or publish is authorized. Retain bounded credential-safe evidence,
+   update this REPORT/manifest/gates, fast-forward push and require final privacy.
+   PR #12 becomes ready only if package acceptance is met; never merge.
+
+Qualification stage estimate within the 130-minute job: setup/pull/ISO 20–24;
+install/first stock 25–30; repair/pause/pin/Windows 8–12; corrected stock/signed
+switch 10–15; three AresOS layout boots 12–18; rollback/greeter/final Windows
+8–12; shutdown/evidence/guard margin 10–19. The VM step retains 106 minutes and
+the job 130; probe reservation remains 42 with its 40-minute job limit.
+
+**Not verified / laptop gate:** setting KDE live German and physically entering
+`y z / - " $ ä ö ü` in a text editor on the real laptop, physical media/hardware,
+menu interaction and unaided followability remain OPEN. The unused fixture is
+not evidence for these. All installed-system results above remain pending until
+their actual run. **JUDGMENT-CALL:** moving only the live-desktop fixture is the
+integrator's explicit 13d decision; no additional product change. The accepted
+two-file image derivation still needs owner review before merge. **PLAN-GAP:**
+none established by the zero-cost stage walk-through. No Gradle/Minecraft or
+local privileged operation is needed; the retired worktree is never accessed.
+
+**Complete local verification before source push:**
+`python3 -m unittest discover -s os/tests -v` under existing WSL, with TMPDIR
+inside this worktree and sudo replaced by a rejecting shim, printed **223 tests
+in 78.671s; FAILED (failures=2, errors=9)**. Exactly the same eight host-limited
+cases as 13b/13c account for these; every other case, including all six new
+cases, passed. No skip or assertion change:
+
+- Three `test_greeter` image cases need Pillow, absent in WSL (no local install).
+- Three `test_inherited_homebrew` cases need privileged ownership/tmpfiles/ACL
+  setup and cleanup; the local shim returns `LOCAL_ADMIN_OPERATION_FORBIDDEN`,
+  exit 126. Cleanup errors add to the error count for the same test cases.
+- `test_sysusers` requires privileged isolated-root sysusers setup; also denied
+  by that shim with exit 126.
+- The owner-auth mode test expects 0600; DrvFS reports 0777 (`511 != 384`).
+
+All eight remain mandatory and must pass in this fresh probe's native preflight
+before VM authorization. Full Bash/Python syntax printed
+`ALL_SYNTAX_CHECKS_PASSED`; `git diff --check` passed. Host Git found no difference
+from published 2abc12e in every frozen runtime/package/base/policy/key/audit path,
+and no difference in the retained unused KDE fixture. No Gradle was run because
+this is OS harness/documentation work, with no mod change or green game claim.
