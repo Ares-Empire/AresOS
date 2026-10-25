@@ -1,0 +1,30 @@
+{
+  "status": "STOP-PLAN-GAP",
+  "gate": "offline-first-boot-with-no-deferred-network-work",
+  "source_integrity": "passed",
+  "retained_files_verified": 53,
+  "full_listing_replayed": true,
+  "iso_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "stock_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "stock_nvidia_version": "615.78.08",
+  "live_network_profiles_copied": true,
+  "local_install_payload": true,
+  "local_flatpak_copy": true,
+  "bootc_inplace_origin_change_does_not_pull": true,
+  "homebrew_setup_uses_local_archive": true,
+  "nvidia_sync_enabled_on_stock": true,
+  "matching_nvidia_flatpak_runtimes": [
+    "org.freedesktop.Platform.GL.nvidia-615-78-08",
+    "org.freedesktop.Platform.GL32.nvidia-615-78-08"
+  ],
+  "matching_runtimes_installed_in_iso": [],
+  "nvidia_sync_restart": "on-failure, every 30 seconds; 600-second start timeout",
+  "conclusion": "With the NVIDIA module loaded, offline first boot retains a network-dependent setup retry. This contradicts the zero-cost prerequisite; no VM dispatch is authorized.",
+  "offline_vm_run": false,
+  "owner_bundle_implemented": false,
+  "dispatches": 0,
+  "image_builds": 0,
+  "publications": 0,
+  "media_writer_restore_source_verified": true,
+  "physical_writer_ui_verified": false
+}

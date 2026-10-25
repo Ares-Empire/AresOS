@@ -1,0 +1,7 @@
+{
+  "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+  "checksum_url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM",
+  "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "bytes": 9068650496,
+  "transfer": "initial sequential prefix plus checked disjoint HTTP ranges"
+}

@@ -1,0 +1,146 @@
+[
+  {
+    "path": "usr/libexec/bazzite-hardware-setup",
+    "file": "usr_libexec_bazzite-hardware-setup",
+    "bytes": 11126,
+    "sha256": "b3f3d6dcba56b7226b4a29e4557aa78174973794b4bde67caff21eb8a6551507",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/system/bazzite-hardware-setup.service",
+    "file": "usr_lib_systemd_system_bazzite-hardware-setup.service",
+    "bytes": 324,
+    "sha256": "ee52f89348cf6923f926e0ee18896f4a77f081cfb9bec96ce6fe90d66e96139b",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/libexec/bazzite-user-setup",
+    "file": "usr_libexec_bazzite-user-setup",
+    "bytes": 11944,
+    "sha256": "7f47d95cad0163ed7f166d32ff52e3abed68c4ebe9596b4aecdf4f72932725fb",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/libexec/bazzite-privileged-user-setup",
+    "file": "usr_libexec_bazzite-privileged-user-setup",
+    "bytes": 132,
+    "sha256": "c8bb96e48b22ad7c6aa212a5baa15219f38f3e017968dcc63d68c3009596841d",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/user/bazzite-user-setup.service",
+    "file": "usr_lib_systemd_user_bazzite-user-setup.service",
+    "bytes": 177,
+    "sha256": "8bec1ef2e76b5a59743ed6969d3ff577e484424b406023e8e8fea4c55889f1fa",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/libexec/ublue-nvidia-flatpak-runtime-sync",
+    "file": "usr_libexec_ublue-nvidia-flatpak-runtime-sync",
+    "bytes": 1301,
+    "sha256": "c2819e44ace1a2031914ff9168426be760049135c866f59a0b63ae3e157024a8",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/system/ublue-nvidia-flatpak-runtime-sync.service",
+    "file": "usr_lib_systemd_system_ublue-nvidia-flatpak-runtime-sync.service",
+    "bytes": 528,
+    "sha256": "0fd86be2917101691f36ff7faa59d17153e83f6b42824c5ced67fb991a89ef54",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/system/ublue-nvidia-flatpak-runtime-verify.service",
+    "file": "usr_lib_systemd_system_ublue-nvidia-flatpak-runtime-verify.service",
+    "bytes": 598,
+    "sha256": "c3830d6f10a5bf76ff570996384e93d85259c7d7ea9c587a243972361bfeeba1",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "etc/systemd/system/multi-user.target.wants/ublue-nvidia-flatpak-runtime-sync.service",
+    "file": "etc_systemd_system_multi-user.target.wants_ublue-nvidia-flatpak-runtime-sync.service",
+    "bytes": 65,
+    "sha256": "78fa778c36bac8f008e7177630fafb5219b5d356667558e3febd68e3aacb885f",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/system/brew-setup.service",
+    "file": "usr_lib_systemd_system_brew-setup.service",
+    "bytes": 662,
+    "sha256": "fc4341cafce6e208888d87458539a88d21c4cf22d2adb2d0af8f032265f10307",
+    "layer_digest": "sha256:89d10b98b70c78334cec97d599be064fe7920d6d0f2ce2befa9585be3be10b89",
+    "layer_bytes": 156741603,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/system/brew-update.service",
+    "file": "usr_lib_systemd_system_brew-update.service",
+    "bytes": 509,
+    "sha256": "42bfb2d0a4557a5854e46b982f4ed510e8eb50568a2be62b4dedfed92435a134",
+    "layer_digest": "sha256:89d10b98b70c78334cec97d599be064fe7920d6d0f2ce2befa9585be3be10b89",
+    "layer_bytes": 156741603,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/system/brew-update.timer",
+    "file": "usr_lib_systemd_system_brew-update.timer",
+    "bytes": 182,
+    "sha256": "1e864adc66d9e677348f64fc54d9e70010cd1f3e0e3b8ccb5ab0f86b7fee403a",
+    "layer_digest": "sha256:89d10b98b70c78334cec97d599be064fe7920d6d0f2ce2befa9585be3be10b89",
+    "layer_bytes": 156741603,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/system/brew-upgrade.service",
+    "file": "usr_lib_systemd_system_brew-upgrade.service",
+    "bytes": 489,
+    "sha256": "b137176bb4d6a9e73a6ae843318b2cc5ee8fbea4eda9a193608d0adf46b29b0a",
+    "layer_digest": "sha256:89d10b98b70c78334cec97d599be064fe7920d6d0f2ce2befa9585be3be10b89",
+    "layer_bytes": 156741603,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/system/brew-upgrade.timer",
+    "file": "usr_lib_systemd_system_brew-upgrade.timer",
+    "bytes": 184,
+    "sha256": "fb2b3633e0c91d7c6b7250af031f92c065f48d458e011d92b285394b384f14ba",
+    "layer_digest": "sha256:89d10b98b70c78334cec97d599be064fe7920d6d0f2ce2befa9585be3be10b89",
+    "layer_bytes": 156741603,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/lib/systemd/system-preset/01-homebrew.preset",
+    "file": "usr_lib_systemd_system-preset_01-homebrew.preset",
+    "bytes": 77,
+    "sha256": "7036e0bb062f669230fcd7975872a9af6e4af58233e5f96b26618e9eb58f3a59",
+    "layer_digest": "sha256:89d10b98b70c78334cec97d599be064fe7920d6d0f2ce2befa9585be3be10b89",
+    "layer_bytes": 156741603,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  },
+  {
+    "path": "usr/share/ublue-os/image-info.json",
+    "file": "usr_share_ublue-os_image-info.json",
+    "bytes": 340,
+    "sha256": "09b314cab17a326fc29de1c3182a26be0312cb6ddcea9ad8f73e05c98913d671",
+    "layer_digest": "sha256:1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+    "layer_bytes": 324644312,
+    "manifest": "os\\manifest\\ci\\06\\image-6\\base-oci-manifest.json"
+  }
+]

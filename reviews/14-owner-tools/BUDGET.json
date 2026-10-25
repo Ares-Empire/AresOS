@@ -1,0 +1,65 @@
+{
+  "package": "14-owner-tools",
+  "branch": "pkg/14-owner-tools",
+  "cap_minutes": 350,
+  "start_policy": "first workflow_dispatch",
+  "start": null,
+  "stopped_before_first_dispatch": true,
+  "consumed_dispatch_minutes": 0,
+  "probe_cap": 1,
+  "qualification_cap": 2,
+  "probe_runs": 0,
+  "qualification_runs": 0,
+  "image_builds": 0,
+  "publications": 0,
+  "reserved_vm_minutes": 0,
+  "closing_privacy_reservation": 8,
+  "observed_pre_dispatch_privacy_minutes": 3,
+  "pre_dispatch_runs": [
+    {
+      "id": 40216222435,
+      "event": "push",
+      "sha": "362d0770033b5146940f696ee2a9a40a70b6283a",
+      "conclusion": "success",
+      "minutes": 3
+    }
+  ],
+  "history_complete": true,
+  "history_total_count": 1,
+  "history_unique_ids": 1,
+  "organization": {
+    "status": "passed",
+    "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
+    "checked_at": "2026-10-25T17:49:28.702184+00:00",
+    "response_sha256": "794645943d52203cd026a8bae126e1f51411fd9a07090e4db1ca30dee426908a",
+    "usage": [
+      {
+        "sku": "actions_linux",
+        "unit": "minutes",
+        "grossQuantity": 1421.0,
+        "discountQuantity": 1421.0,
+        "netQuantity": 0.0,
+        "grossAmount": 8.526,
+        "discountAmount": 8.526,
+        "netAmount": 0.0
+      },
+      {
+        "sku": "actions_storage",
+        "unit": "gigabyte-hours",
+        "grossQuantity": 3.956272446,
+        "discountQuantity": 3.956272446,
+        "netQuantity": 0.0,
+        "grossAmount": 0.001329357,
+        "discountAmount": 0.001329357,
+        "netAmount": 0.0
+      }
+    ],
+    "used_minutes": 1421,
+    "included_minutes": 2000,
+    "remaining_minutes": 579,
+    "reserved_minutes": 8,
+    "after_reservation": 571,
+    "other_repos_reserve": 150,
+    "credential": "existing local gh login; GET only"
+  }
+}
