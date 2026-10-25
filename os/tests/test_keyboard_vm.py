@@ -1,12 +1,25 @@
 import pathlib
 import sys
 import unittest
+import types
+from unittest.mock import Mock, patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/'ci'))
 from keyboard_vm import physical_keys
 from keyboard_diagnostic import localization_values
+from live_keyboard_ui import ACCESSIBLE
 
 
 class KeyboardVMTest(unittest.TestCase):
+    def test_accessibility_selects_controls_instead_of_same_named_static_text(self):
+        namespace={}
+        with patch.dict(sys.modules,pyatspi=types.SimpleNamespace()):
+            exec(ACCESSIBLE.split('phase=sys.argv[1]')[0],namespace)
+        static=Mock(); static.queryAction.side_effect=NotImplementedError
+        label=Mock(); label.queryAction.return_value.nActions=0
+        button=Mock(); button.queryAction.return_value.nActions=1
+        namespace['candidates']=lambda pattern:[static,button,label]
+        self.assertEqual(namespace['actionable']('German'),[(button,button.queryAction.return_value)])
+
     def test_physical_positions_distinguish_layouts_and_password_characters(self):
         for char in 'yz-/':
             self.assertNotEqual(physical_keys(char,'de'),physical_keys(char,'us'))

@@ -13,16 +13,19 @@ def nodes(root,depth=0):
         if child is not None: yield from nodes(child,depth+1)
 def candidates(pattern):
     return [n for n in nodes(pyatspi.Registry.getDesktop(0)) if re.fullmatch(pattern,n.name or '',re.I) and n.getState().contains(pyatspi.STATE_SHOWING)]
+def actionable(pattern):
+    result=[]
+    for n in candidates(pattern):
+        try: a=n.queryAction()
+        except NotImplementedError: continue
+        if a.nActions: result.append((n,a))
+    return result
 def action(pattern,checked=False):
     deadline=time.monotonic()+40
     while time.monotonic()<deadline:
-        found=candidates(pattern)
-        for n in found:
+        for n,a in actionable(pattern):
             if checked and n.getState().contains(pyatspi.STATE_CHECKED): return
-            try:
-                a=n.queryAction()
-                if a.nActions and a.doAction(0): return
-            except NotImplementedError: pass
+            if a.doAction(0): return
         time.sleep(.5)
     print(json.dumps([(n.name,n.getRoleName()) for n in nodes(pyatspi.Registry.getDesktop(0))]))
     raise AssertionError('KDE normal settings control unavailable: '+pattern)
@@ -37,12 +40,12 @@ elif phase=='search':
 elif phase=='select':
     action('German'); time.sleep(.5)
     # Both list columns expose German; select the default, unqualified variant.
-    found=candidates('German')
+    found=actionable('German')
     if len(found)>1:
-        a=found[-1].queryAction(); assert a.doAction(0)
+        assert found[-1][1].doAction(0)
     action('OK')
-    for n in candidates('Remove layout (English.*|.*US.*)'):
-        a=n.queryAction(); assert a.doAction(0)
+    for n,a in actionable('Remove layout (English.*|.*US.*)'):
+        assert a.doAction(0)
     action('Apply')
 elif phase=='save':
     action('Save')
@@ -69,13 +72,13 @@ def run(guest, stage):
         guest.screenshot(stage+'-kde-'+phase)
     guest.command(stage+'-live-layout',user_command('kreadconfig6 --file kxkbrc --group Layout --key LayoutList | grep -x de'))
     guest.command(stage+'-global-switching',user_command('value=$(kreadconfig6 --file kxkbrc --group Layout --key SwitchMode); test -z "$value" || test "$value" = Global'))
-    guest.command(stage+'-live-editor',user_command('QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 kwrite /tmp/aresos-live-physical.txt >/tmp/aresos-live-editor.log 2>&1 </dev/null &'))
+    guest.command(stage+'-live-editor',user_command(': > /tmp/aresos-live-physical.txt; QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1 kwrite /tmp/aresos-live-physical.txt >/tmp/aresos-live-editor.log 2>&1 </dev/null &'))
     time.sleep(3)
     # This is the guide's editor check, before any terminal commands or install.
     for keys in (['z'],['spc'],['y'],['spc'],['shift','7'],['spc'],['slash'],['spc'],['shift','2'],['spc'],['shift','4'],['spc'],['apostrophe'],['spc'],['semicolon'],['spc'],['bracketleft']):
         guest.keys(keys); time.sleep(.12)
     guest.keys(['ctrl','s'])
-    guest.command(stage+'-live-editor-result',"python3 - <<'PY'\nimport pathlib\np=pathlib.Path('/tmp/aresos-live-physical.txt')\nassert p.read_text()=='y z / - \" $ ä ö ü', repr(p.read_text())\nprint('LIVE_GERMAN_PHYSICAL_KEYS_PASSED')\nPY")
+    guest.command(stage+'-live-editor-result',"python3 - <<'PY'\nimport pathlib,time\np=pathlib.Path('/tmp/aresos-live-physical.txt')\ndeadline=time.monotonic()+20\nwhile time.monotonic()<deadline:\n    if p.read_text()=='y z / - \" $ ä ö ü':\n        print('LIVE_GERMAN_PHYSICAL_KEYS_PASSED')\n        break\n    time.sleep(.1)\nelse:\n    raise AssertionError('Physical live editor text differs: '+repr(p.read_text()))\nPY")
     guest.screenshot(stage+'-live-physical')
     # Close only our normal settings/editor windows, with their application quit action.
     guest.keys(['ctrl','q'])
