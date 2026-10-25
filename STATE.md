@@ -61,7 +61,7 @@ Updated 2026-10-25. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Next, in order
 
-1. **Close the remaining install gates** (INSTALL.md "Maintainer release gate"). The CI rehearsal (PR #11) and the keyboard fix (PR #12) are done. The safety and followability council ran 2026-10-25 (`reviews/councils/2026-10-25-install-gate/VERDICT.md`): GAPS-FOUND (11), 7 blocking. Next: a fix package for those findings (owner go pending), then the chair's delta check. Hardware items (fitting/firmware screens, helper trials, the real menu, live-desktop typing) happen on the laptop with the owner.
+1. **Close the remaining install gates** (INSTALL.md "Maintainer release gate"). The CI rehearsal (PR #11) and the keyboard fix (PR #12) are done. The safety and followability council ran 2026-10-25 (`reviews/councils/2026-10-25-install-gate/VERDICT.md`): GAPS-FOUND (11), 7 blocking. Fixes: package 14 (owner tools: short checked commands, the installer stick reused as the tools stick, offline until updates are paused; running), then package 15 (the owner-path rewrite and emergency card), then the chair's delta check. Hardware items (fitting/firmware screens, helper trials, the real menu, live-desktop typing) happen on the laptop with the owner.
 2. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
