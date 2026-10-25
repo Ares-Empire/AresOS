@@ -1,0 +1,21 @@
+{
+  "install": "sudo bash -c 'set -e; mount -o ro LABEL=ARESTOOLS /mnt; trap \"umount /mnt\" EXIT; bash /mnt/ares-tools/at install'",
+  "prepare": "sudo /var/lib/ares/at prepare",
+  "records": "sudo /var/lib/ares/at records",
+  "title": "sudo /var/lib/ares/at title",
+  "login": "sudo /var/lib/ares/at login",
+  "verify": "sudo /var/lib/ares/at verify",
+  "switch": "sudo /var/lib/ares/at switch",
+  "rollback": "sudo /var/lib/ares/at rollback",
+  "keep-stock": "sudo /var/lib/ares/at keep-stock",
+  "export": "sudo /var/lib/ares/at export",
+  "check": "sudo /var/lib/ares/at check",
+  "reboot": "sudo /var/lib/ares/at reboot",
+  "logs": "sudo /var/lib/ares/at logs",
+  "layout-us": "sudo /var/lib/ares/at layout begin us",
+  "layout-intl": "sudo /var/lib/ares/at layout begin us-intl",
+  "layout-de": "sudo /var/lib/ares/at layout begin de",
+  "layout-proof": "sudo -k; sudo /var/lib/ares/at layout proof",
+  "layout-revert": "sudo /var/lib/ares/at layout revert",
+  "layout-finish": "sudo /var/lib/ares/at layout finish"
+}

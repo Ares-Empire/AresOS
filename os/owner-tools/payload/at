@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+set -euo pipefail
+# Everything privileged is in the checked payload; avoid a user-controlled PATH.
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+at_path=$(/usr/bin/readlink -f -- "$0")
+case "$at_path" in
+    */*) at_dir=${at_path%/*} ;;
+    *) at_dir=. ;;
+esac
+exec /usr/bin/python3 -I -B "$at_dir/owner.py" "$@"

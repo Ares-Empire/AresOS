@@ -106,7 +106,9 @@ class StockIdleTest(unittest.TestCase):
         exec(compile(prepare.program(prepare.PAUSE, 'PAUSE_STOCK'), str(prepare.PAUSE), 'exec'), scope)
         with tempfile.TemporaryDirectory(dir=prepare.ROOT / 'os/tests') as directory:
             root = pathlib.Path(directory)
-            for row in (DAEMON, CLIENT, dict(DAEMON, pid=303, cgroup='0::/system.slice/rpm-ostreed.service-evil\n')):
+            for row in (DAEMON, CLIENT, dict(DAEMON, pid=303, cgroup='0::/system.slice/rpm-ostreed.service-evil\n'),
+                        dict(DAEMON, pid=404, exe='/usr/bin/ostree', cmdline=['ostree', 'admin', 'deploy']),
+                        dict(DAEMON, pid=505, cmdline=['rpm-ostree', 'upgrade'])):
                 proc = root / str(row['pid'])
                 proc.mkdir()
                 (proc / 'exe').write_text(row['exe'])
@@ -114,7 +116,7 @@ class StockIdleTest(unittest.TestCase):
                 (proc / 'cgroup').write_text(row['cgroup'])
             with patch.object(pathlib.Path, 'readlink', lambda path: pathlib.PurePosixPath(path.read_text())):
                 result = scope['deployment_processes'](root)
-        self.assertEqual([p['excluded_as_daemon'] for p in result], [True, False, False])
+        self.assertEqual([p['excluded_as_daemon'] for p in result], [True, False, False, False, False])
         self.assertEqual(result[:2], [DAEMON, CLIENT])
 
 

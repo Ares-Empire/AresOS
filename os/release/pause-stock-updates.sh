@@ -94,7 +94,7 @@ def deployment_processes(root=pathlib.Path('/proc')):
             continue
         try:
             executable = str((process / 'exe').readlink())
-            if pathlib.Path(executable.removesuffix(' (deleted)')).name not in ('bootc', 'rpm-ostree'):
+            if pathlib.Path(executable.removesuffix(' (deleted)')).name not in ('bootc', 'rpm-ostree', 'ostree'):
                 continue
             cmdline = (process / 'cmdline').read_bytes().decode().rstrip('\0').split('\0')
             cgroup = (process / 'cgroup').read_text()
@@ -102,7 +102,7 @@ def deployment_processes(root=pathlib.Path('/proc')):
             # A process which exited while being read cannot keep a client active.
             continue
         paths = [line.split(':', 2)[2] for line in cgroup.splitlines()]
-        daemon = any(path == '/system.slice/rpm-ostreed.service' or
+        daemon = pathlib.Path(executable.removesuffix(' (deleted)')).name == 'rpm-ostree' and cmdline[1:] == ['start-daemon'] and any(path == '/system.slice/rpm-ostreed.service' or
                      path.startswith('/system.slice/rpm-ostreed.service/') for path in paths)
         processes.append(dict(pid=int(process.name), exe=executable, cmdline=cmdline,
                               cgroup=cgroup, excluded_as_daemon=daemon))
