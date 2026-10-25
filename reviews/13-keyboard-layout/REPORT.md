@@ -182,7 +182,7 @@ can then be evaluated against the observed cause. Never merge this incomplete PR
 
 ## 13b — system setting, private org release and qualification (2026-10-25)
 
-**Status: implementation and local verification; dispatch not yet started.** This
+**Status: STOP — image tooling integration failure; no new image built or published.** This
 section supersedes the cause gate in the original 13 report. The historical
 zero-cost receipts above are unchanged. Owner brief 13b explicitly makes the
 localization value diagnostic, approves one new private org release, and raises
@@ -300,7 +300,7 @@ instructions continue to require the owner's own read token. No visibility chang
 | Closing/privacy allowance | counted by actual job rounding | 16 |
 | Planned total | | **293** |
 
-No dispatch yet. A second qualification is not preauthorized to evade a stop;
+Pre-dispatch plan (historical): no dispatch had started when this walk-through was committed. A second qualification is not preauthorized to evade a stop;
 it must independently fit the remaining ledger. Historical pre-dispatch push/PR
 privacy jobs are outside the first-dispatch interval, retained above.
 
@@ -327,3 +327,88 @@ explicitly superseded by 13b. **Open questions:** actual VM/registry results and
 all unchanged physical laptop/media/firmware/followability gates.
 
 Final pre-dispatch local run: python3 -m unittest discover -s os/tests -v in WSL: **211 tests / 144.806s; 2 failures, 9 errors, exactly the same eight environment-limited cases listed above; all other cases passed**. Windows 	est_greeter.py: all 3 passed. Full Bash/Python syntax and git diff --check: passed. Fresh complete-history guard: four unique runs / total_count four, zero dispatches, ledger start null, 0 + 293 reserved ≤ 380. Repo visibility independently queried: PRIVATE.
+
+
+### 13b actual execution and required stop
+
+[Image attempt 40152936417](https://github.com/Ares-Empire/AresOS/actions/runs/40152936417)
+ran once at source `b140fafc106826db904d9100b046a1304e21a828`. Its own guard
+proved complete history: nine unique IDs against total_count nine, one page,
+current release dispatch counted once; 90 minutes reserved within 380.
+
+**Verified natively:** `python3 -m unittest discover -s os/tests -v` printed
+`Ran 211 tests in 4.385s` then `OK`. All local environment-limited cases passed;
+no tests were skipped. Python/Bash syntax passed. The pinned toolchain/EDK2
+contract and upstream Bazzite signature/digest verification passed. Both source
+privacy runs passed all three rules with the personal-term scan not skipped:
+push [40152704371](https://github.com/Ares-Empire/AresOS/actions/runs/40152704371)
+and PR [40152707578](https://github.com/Ares-Empire/AresOS/actions/runs/40152707578).
+The final whole WSL rerun before dispatch again ran 211 tests in 152.199s and
+had only the same eight environment-limited cases. Four Windows greeter tests
+passed (the earlier prose saying three referred to the three Pillow-dependent
+cases, not the total module count).
+
+**Failure, not acceptance:** the next wrapper ran as
+`sudo -E bash os/ci/build-keyboard-release.sh`. At line 12 it printed
+`cosign: command not found`, exit 127. The action-installed cosign had already
+worked in the unprivileged upstream verification step. The privileged wrapper
+did not inherit a usable cosign executable search path. This is an implementation
+integration error, not evidence of a changed image or a contradiction in the brief.
+The source fix must resolve and explicitly pass the verified executable path
+across the privilege boundary; do not broaden credential visibility or bypass
+old-image signature verification. No source workaround or second run was attempted
+after the stop. A follow-up must explicitly authorize another image attempt.
+
+**What did not run:** old-image signature verification/pull, image build, complete
+image diff, isolated overlay/VM image passes, publish/sign, org job-token read,
+checks-only final-head dispatch, probe, installation/diagnostic, real de/us
+starting-state repair, tty3/foot typing, layout change/back and rollback. The
+one image dispatch allowance is consumed even though it stopped before building.
+Zero probes and zero qualifications were dispatched. The old release manifest,
+owner reference and signature identity remain current; assigning a new digest
+without a successful publish would be false. PR #12 remains draft; all acceptance
+and physical laptop gates remain open. Nothing was made public or merged.
+
+**Credentials/privacy:** the owner read-only token was scoped only to the
+runner-temporary old-package auth file; its creation step passed. Cosign failed
+before a registry read; no owner-token API request/publish occurred. The always
+cleanup passed and retained `removed:true`, `outside_workspace:true`. The temporary
+cosign config symlink was removed by the wrapper trap. Auth/password/config
+files are absent from the artifact member list. Raw credential files and VM
+disks were never uploaded or copied into this repo. A laptop-session Packages API
+query returned 404; it is not used as proof of package absence or job-token access.
+Job-token access to the new org package is explicitly **NOT VERIFIED**.
+
+### Actual package ledger and retained evidence
+
+Ledger begins at first dispatch, `2026-10-25T02:02:34Z`; the guard receipt is the
+authority for its exact API timestamp. All earlier push/PR privacy runs are
+outside that interval. Current image job ran 02:02:37–02:06:24 UTC: ceil(227/60)
+= **4 minutes**. Three skipped jobs cost zero.
+
+| Item | Dispatches used / allowed | Minutes |
+| --- | ---: | ---: |
+| Image attempt 40152936417 | 1 / 1 | 4 actual |
+| Checks-only native dispatch | 0 / 1 | 0 |
+| Probe | 0 / 1 | 0 |
+| Qualification | 0 / 2 | 0 |
+| Closing push/PR privacy | automatic; verified after this report push | 4 reserved |
+| Before closing / including reservation | | **4 / 8 of 380** |
+
+The remaining minutes do not authorize another image attempt. Closing checks
+and the exact final ledger are also recorded in PR #12 after this commit, avoiding
+an endless sequence of report-only pushes. No rerun, force-push or merge.
+
+- [Run/jobs/budget/privacy receipts](../../os/manifest/ci/13/release-1/)
+- [Complete retained log](logs/release-1.txt)
+- [Unmodified evidence ZIP](artifacts/13b-release-1-os-image-evidence.zip),
+  121,791 bytes, SHA-256
+  `16b3ca6930074081f2a26a6f5b6ad6e657a4e2e930e2e4a5673b2dffb3605758`;
+  verified against GitHub artifact digest (ID 12582769224).
+- Downloaded raw log ZIP SHA-256
+  `68ac18ef829ddb6ca6e2c6c79317ad87fc5a64f4151f621e010d631de4549415`.
+
+**PLAN-GAP:** none newly established in product/source verification; the blocking
+item is the build-wrapper PATH error above. **Not verified/open:** every new-image
+and VM acceptance item listed above, and the unchanged physical install gates.
+No Gradle daemon was started. Work stayed in package 13; no retired worktree access.
