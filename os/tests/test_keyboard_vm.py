@@ -1,4 +1,6 @@
 import pathlib
+import json
+import os
 import sys
 import unittest
 import types
@@ -7,9 +9,33 @@ sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/'ci'))
 from keyboard_vm import physical_keys
 from keyboard_diagnostic import localization_values
 from live_keyboard_ui import ACCESSIBLE
+import keyboard_vm
+import two_disk_vm as td
 
 
 class KeyboardVMTest(unittest.TestCase):
+    def test_live_probe_and_install_do_not_run_the_laptop_keyboard_fixture(self):
+        guest=Mock()
+        for method,args in ((td.live_probe,(Mock(),)),(td.install,(Mock(),'secret','hash'))):
+            with self.subTest(method=method.__name__), patch.dict(os.environ,REHEARSAL_PACKAGE='13'), \
+                 patch.object(td,'Guest',return_value=guest),patch.object(td,'cleanup_live'), \
+                 patch.object(td,'live_inventory',side_effect=RuntimeError('inventory sentinel')), \
+                 patch('live_keyboard_ui.run',side_effect=AssertionError('unused laptop fixture called')) as live:
+                with self.assertRaisesRegex(RuntimeError,'inventory sentinel'):
+                    method(*args)
+                live.assert_not_called()
+
+    def test_no_vm_starts_with_pending_failed_or_wrong_head_native_proof(self):
+        for status,sha in (('pending','a'*40),('failed','a'*40),('passed','b'*40)):
+            authorization=dict(allowance='13',native=dict(status=status,sha=sha))
+            with self.subTest(status=status,sha=sha),patch.dict(os.environ,GITHUB_SHA='a'*40), \
+                 patch.object(sys,'argv',['keyboard_vm.py','probe']), \
+                 patch('pathlib.Path.read_text',return_value=json.dumps(authorization)), \
+                 patch.object(td,'main') as start:
+                with self.assertRaisesRegex(AssertionError,'before any VM'):
+                    keyboard_vm.main()
+                start.assert_not_called()
+
     def test_accessibility_selects_controls_instead_of_same_named_static_text(self):
         namespace={}
         with patch.dict(sys.modules,pyatspi=types.SimpleNamespace()):

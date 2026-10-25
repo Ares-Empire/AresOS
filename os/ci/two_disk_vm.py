@@ -497,9 +497,8 @@ def install(audit, password, password_hash):
     stage = Guest.order + '-install'
     try:
         guest.login_live()
-        if os.environ.get('REHEARSAL_PACKAGE') == '13':
-            from live_keyboard_ui import run as live_keyboard
-            live_keyboard(guest, stage)
+        # 13d: live KDE/KWrite interaction is a laptop/followability gate.
+        # The installed layout is still chosen in the real installer below.
         protected, target = live_inventory(guest, stage)
         run(guest, EVIDENCE, protected, target, password, install=True, stage=stage)
         guest.poweroff(stage)
@@ -814,9 +813,7 @@ def live_probe(audit):
     guest = Guest(WORK / 'target.raw', '', [])
     try:
         guest.login_live()
-        if os.environ.get('REHEARSAL_PACKAGE') == '13':
-            from live_keyboard_ui import run as live_keyboard
-            live_keyboard(guest, 'live')
+        # Keep the live keyboard fixture unused; installed-system checks remain.
         protected, target = live_inventory(guest, 'live')
         save('live-assumptions', dict(order=Guest.order, protected=protected, target=target))
         probe(guest, EVIDENCE, protected, target)
@@ -897,7 +894,8 @@ def main():
                      bootnext_checked=True, bootloader_source_verified=True,
                      commit=os.environ['GITHUB_SHA'])
         if os.environ.get('REHEARSAL_PACKAGE') == '13':
-            proof.update(package13_keyboard_tools=True, live_german_physical=True)
+            proof.update(package13_keyboard_tools=True,
+                         live_desktop_keyboard='laptop-followability-only')
         (probe_root / 'probe-result.json').write_text(json.dumps(proof, indent=2) + '\n')
         print('PROBE PASSED: both serial mappings, real UI through review, backend choices and zero protected writes; no installation', flush=True)
         return

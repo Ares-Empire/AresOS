@@ -26,6 +26,7 @@ READ_RETRIES = []
 RUN_HISTORY_PATH = f'actions/runs?branch={BRANCH}&per_page=100'
 HISTORY_PAGE_LIMIT = 20
 PUBLISH_STEP = 'Publish the tested private release and sign with GitHub OIDC'
+NATIVE_STEP = 'Qualify tools, regressions, rewritten release identity and private access'
 
 
 def configure(package):
@@ -193,16 +194,52 @@ def require_probe(run, sha):
     assert run['status'] == 'completed' and run['conclusion'] == 'success', 'Probe did not pass'
 
 
+def probe_native(run, sha, current=False):
+    """Read GitHub's completed native step, never a guest/self-written success flag."""
+    assert run['event']=='workflow_dispatch' and run['path']=='.github/workflows/os-image.yml'
+    assert run['head_branch']==BRANCH and run['head_sha']==sha and run['run_attempt']==1
+    assert run['display_title']==SETTINGS['titles']['probe']
+    if not current:
+        require_probe(run,sha)
+    response=api(f'actions/runs/{run["id"]}/jobs?per_page=100')
+    assert response['total_count']==len(response['jobs'])<=100, 'STOP: incomplete native job listing'
+    job,=[j for j in response['jobs'] if j['name']=='Pinned live ISO inspection and two-disk rehearsal']
+    assert job['head_sha']==sha
+    step,=[s for s in job['steps'] if s['name']==NATIVE_STEP]
+    assert step['status']=='completed' and step['conclusion']=='success', 'STOP: complete native preflight has not passed'
+    return dict(status='passed',sha=sha,run=run['id'],step=NATIVE_STEP,source='GitHub completed probe preflight step')
+
+
+def native_gate(kind, mode, result, sha, current_run=None):
+    if kind=='probe' and mode in ('probe','probe-budget-ci'):
+        # Scheduling/budget receipt only. keyboard_vm refuses this pending state.
+        return dict(status='pending',sha=sha,required='completed native step before any VM')
+    native=[r for r in result['runs'] if r['title']==SETTINGS['titles']['checks']
+            and r['sha']==sha and r['conclusion']=='success']
+    assert len(native)<=1, 'STOP: duplicate native checks on this head'
+    if native:
+        return dict(status='passed',sha=sha,run=native[0]['run'],source='checks-only dispatch')
+    if kind=='probe':
+        assert mode=='ci' and current_run is not None, 'STOP: no current probe native preflight'
+        return probe_native(current_run,sha,current=True)
+    probes=[r for r in result['runs'] if r['title']==SETTINGS['titles']['probe']
+            and r['sha']==sha and r['conclusion']=='success']
+    assert len(probes)==1, 'STOP: native preflight requires one passing probe on this head'
+    return probe_native(api('actions/runs/'+str(probes[0]['run'])),sha)
+
+
 def main():
     configure(os.environ.get('REHEARSAL_PACKAGE', '11c'))
     mode = sys.argv[1]
     assert mode != 'full' and not (mode == 'ci' and os.environ.get('REHEARSAL_MODE') == 'full'), 'STOP: 11l permits no further full run'
     reserve = int(sys.argv[2])
-    ci = mode in ('ci', 'publish-ci')
+    ci = mode in ('ci', 'publish-ci', 'probe-budget-ci')
     current = os.environ.get('GITHUB_RUN_ID') if ci else None
     if PACKAGE == '13':
         assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
     result = budget(reserve, current)
+    if mode=='probe-budget-ci':
+        assert PACKAGE=='13' and os.environ.get('REHEARSAL_MODE')=='probe', 'STOP: native deferral is only for probe budget reservation'
     history = result.get('history')
     assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
     if PACKAGE == '13':
@@ -221,10 +258,8 @@ def main():
             assert kind == 'release-13' and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
             assert os.environ.get('GITHUB_REPOSITORY') == REPOSITORY
         if kind in ('probe', 'keyboard'):
-            native = [r for r in result['runs'] if r['title'] == SETTINGS['titles']['checks']
-                      and r['sha'] == os.environ.get('GITHUB_SHA', subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip())
-                      and r['conclusion'] == 'success']
-            assert len(native) == 1, 'STOP: complete native suite must pass on this head before the probe'
+            sha=os.environ.get('GITHUB_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+            result['native']=native_gate(kind,mode,result,sha,run if ci else None)
     if mode == 'part-b':
         assert result['part_b_dispatched'] < PART_B_CAP, 'STOP: no Part B qualification dispatch remains'
     if mode == 'ci' and os.environ.get('REHEARSAL_MODE') in ('part-b', 'keyboard'):
@@ -249,7 +284,7 @@ def main():
         assert proof['read_only_keyboard_proof'] and proof['installed_keyboard_reader_probe']
         assert proof['part_b_tools_probe'] and proof['stock_idle_source_verified']
         if PACKAGE == '13':
-            assert proof['package13_keyboard_tools'] and proof['live_german_physical']
+            assert proof['package13_keyboard_tools'] and proof['live_desktop_keyboard']=='laptop-followability-only'
         if PACKAGE == '13':
             from registry_auth import REFERENCE, DIGEST
         else:

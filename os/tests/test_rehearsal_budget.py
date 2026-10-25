@@ -16,8 +16,13 @@ class BudgetTest(unittest.TestCase):
         self.assertEqual(job['timeout-minutes'], "${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}")
         vm, = [s for s in job['steps'] if 'two_disk_vm.py' in s.get('run', '')]
         self.assertEqual(vm['timeout-minutes'], "${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
-        reserve, = [s for s in job['steps'] if 'rehearsal_guard.py' in s.get('run', '')]
+        guards = [s for s in job['steps'] if 'rehearsal_guard.py' in s.get('run', '')]
+        self.assertEqual(len(guards), 2)
+        reserve, = [s for s in guards if s['name'].startswith('Reserve the separate 11c')]
         self.assertIn("'${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'", reserve['run'])
+        native, = [s for s in guards if s['name']=='Require completed native preflight before any package 13 VM']
+        self.assertEqual(native['if'], "github.ref_name == 'pkg/13-keyboard-layout' && inputs.rehearsal == 'probe'")
+        self.assertEqual(native['run'], 'python3 os/ci/rehearsal_guard.py ci 42')
         self.assertNotIn('full', workflow['on']['workflow_dispatch']['inputs']['rehearsal']['options'])
         self.assertEqual(vm['run'].count('two_disk_vm.py'), 1)
 

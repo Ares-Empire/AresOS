@@ -334,7 +334,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
           PROBE_RUN: ${{ inputs.probe_run }}
-        run: python3 os/ci/rehearsal_guard.py ci '${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'
+        run: python3 os/ci/rehearsal_guard.py '${{ github.ref_name == 'pkg/13-keyboard-layout' && inputs.rehearsal == 'probe' && 'probe-budget-ci' || 'ci' }}' '${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -359,6 +359,12 @@ jobs:
           for script in os/ci/*.sh os/release/*.sh; do bash -n "$script"; done
           cp os/manifest/release.json evidence/release.json
           python3 os/ci/verify_release.py "$(jq -r .run evidence/release.json | sed 's|.*/||')"
+      - name: Require completed native preflight before any package 13 VM
+        if: github.ref_name == 'pkg/13-keyboard-layout' && inputs.rehearsal == 'probe'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: probe
+        run: python3 os/ci/rehearsal_guard.py ci 42
       - name: Create runner-temporary pinned-image credentials
         if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/13-keyboard-layout' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
         env:

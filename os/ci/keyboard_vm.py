@@ -144,6 +144,7 @@ def main():
     assert mode in ('probe','keyboard')
     authorization=json.loads(pathlib.Path('evidence/13-dispatch-authorization.json').read_text())
     assert authorization['allowance']=='13'
+    assert authorization['native']['status']=='passed' and authorization['native']['sha']==os.environ['GITHUB_SHA'], 'STOP: native preflight must pass before any VM'
     td.EVIDENCE.mkdir(parents=True,exist_ok=True)
     sw.WORK,sw.EVIDENCE=td.WORK,td.EVIDENCE
     if mode=='probe':
