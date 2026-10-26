@@ -1,0 +1,9 @@
+test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback (test_owner_guard.GuardTest.test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback) ... ok
+test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun (test_owner_guard.GuardTest.test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun) ... ok
+test_pinned_qmp_contract_and_firmware_audit_are_not_widened (test_owner_guard.GuardTest.test_pinned_qmp_contract_and_firmware_audit_are_not_widened) ... ok
+test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media (test_owner_guard.GuardTest.test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.111s
+
+OK

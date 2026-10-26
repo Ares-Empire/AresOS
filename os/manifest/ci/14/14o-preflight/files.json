@@ -1,0 +1,65 @@
+{
+  "status": "local preparation only; no dispatch authorization",
+  "files": [
+    {
+      "sha256": "367efdc0906dcd042c09e49cd838ec4287d9c202b83ee9c244c117e160079191",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "9fce156b7ece72af728dfb076c31df56acbd66e7361f8ebcedf35a08dde35908",
+      "path": "baseline.json"
+    },
+    {
+      "sha256": "91311009ef5ef3993a1f77d2b90097336fd86ee23468b8bb85b091d00f826a27",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "569e5847ca3a5f326b474d1ae3a6064cd3d76e605fcebdb2fce4072034f3ee9f",
+      "path": "guard-regressions.log"
+    },
+    {
+      "sha256": "812f86a05839ac5a7f6695a24412b88de4d00280fbcb1c287d5d2bc73b11b794",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "bea41f773fbd443a9d226eda93788859d77b362941cc66f8ae810c0b0742fc71",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "18b94e245e16b5aaf41b711da1253bab22a795102dbcf91433b39333a4281d58",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "path": "parent-history-gitleaks.json"
+    },
+    {
+      "sha256": "f2d90658aa59a318652b173bebed82a675f73e5375e59cd285d6b065828ce231",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "e05233c06cd152afc447f0235592bbe3a4096641864a072cd2e3d04cb6458349",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": "release-replay.log"
+    },
+    {
+      "sha256": "4af4a9916312b2f0976d4c0a22557def0b2c8b39422ba66348f3b99ecbb50579",
+      "path": "strict-checks.py"
+    },
+    {
+      "sha256": "1622632b8a7fce6ce268bafd3e2ae0be3d8fe1d165e8399d87d0984a4e9ad57f",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "a699d00bbb75da32ec7c6d47661a19415830058e2e69b8094cd38866ebd25390",
+      "path": "windows-copy.log"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": "zero-cost-replay.log"
+    }
+  ]
+}

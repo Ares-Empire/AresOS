@@ -1,11 +1,55 @@
 # 14: checked owner tools
 
-**Current14n: fixes committed locally; STOP awaiting the owner's November
-resume, native test, fresh probe and qualification.** No pull, push, dispatch
-or merge. PR #13 remains draft / NOT RELEASED. Package15's worktree was not
-accessed. The current tools manifest fingerprint is
-`ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112`. Every section14m and earlier, its fingerprints and retained
-run receipts are historical; they do not qualify this changed bundle.
+**Current14o: owner approved execution now. Local preparation passed; one
+fast-forward push, fresh privacy/ledger/billing and live guard are still
+required before probe7.** No hosted run or acceptance is claimed here.
+PR #13 remains draft / NOT RELEASED. Older sections are historical;14o
+supersedes their November hold. Current bundle fingerprint:
+`ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112`.
+
+## 14o — Run now: cap440, probe7, org reserve20 (pre-dispatch planning)
+
+**Done:** applied exactly the three package14 settings approved in
+`briefs/14o-run-now.md`: cap440,7 probes,2 qualifications and org reserve20.
+Package13 is byte-for-byte unchanged. Refreshed the budget regression's literal
+binding:440 succeeds,441 refuses, seven probes count and the eighth refuses.
+The first local run caught its stale420/6/60 expectations; no guard algorithm,
+assertion or refusal was removed. Owner tools/native14n loop test,14m download
+controls, workflows/permissions, frozen runtime/release and privacy rules are
+unchanged from the local14m/14n work. All unpublished14m/14n commits accompany
+this one push; no pull, force push, merge, image build or publication.
+
+**Verified locally:**329-test whole suite has321 passes and exactly the same
+eight native-host limitations, no skips (unittest exit1);92 host-walk tests
+passed; all4 updated budget regressions passed. Strict parsing passed258
+guest scripts and258 serial wrappers,233 embedded Python snippets,12 shell
+files and45 CI/overlay/owner Python files. Windows copy passed15 zero-write
+refusals and source/copy equality with the current fingerprint.
+
+Actual14e/14f release git/file/read-only gh replay and53 retained offline
+sources/full listing passed. Actual ISO inspector rehashed all9,068,650,496
+bytes against the pin plus fresh publisher checksum and read4 localization /
+102 WebUI sources. Four credential-only checks stay CI-only and fail-closed;
+no scope/credential change or owner secret. Raw commands/logs are retained in
+`os/manifest/ci/14/14o-preflight/`; native and VM results remain pending.
+
+Fresh pre-push planning proved complete68/68 history: **249+190=439/440**
+(push6 + probe42 + qualification130 + closing privacy12). Fresh billing had
+**223 free;33 after reservation ≥20**. This receipt is planning, not dispatch
+authorization. The same immutable head must pass exact-head privacy's three
+checks, fresh complete ledger/billing and the184-minute guard before the sole
+probe7 POST. Only a successful probe including14n's native loop test can
+authorize qualification2, with its own fresh142-minute guard and local replay.
+
+**Not verified / stop:** actual native loop execution, probe7 and qualification2
+are not run at this planning commit. A guard refusal or stopped hosted run
+means STOP/report, no rerun, no lower limit and no additional push while the
+qualification has not finished. Acceptance alone permits a final reserve150
+commit and PR-ready transition. Physical laptop/followability release gates
+remain open. No real laptop or other worktree has been touched.
+
+**JUDGMENT-CALL / PLAN-GAP / open questions:** owner decision14o explicitly
+replaces the November wait and reserve margin; no additional product choice.
 
 ## 14n — Council delta: explicit disk trees and exact PASS actions
 

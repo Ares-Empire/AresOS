@@ -1,13 +1,13 @@
 {
   "allowance": "14",
   "start": "2026-10-25T22:01:22Z",
-  "cap": 420,
+  "cap": 440,
   "full_cap": 0,
   "full_dispatched": 0,
   "part_b_cap": 0,
   "part_b_dispatched": 0,
   "dispatch_caps": {
-    "probe": 6,
+    "probe": 7,
     "owner-tools": 2
   },
   "dispatch_counts": {
@@ -15,7 +15,7 @@
     "owner-tools": 1
   },
   "consumed_minutes": 249,
-  "reserved_minutes": 0,
+  "reserved_minutes": 190,
   "runs": [
     {
       "run": 40363137526,
@@ -463,41 +463,41 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-26T17:07:02.366418+00:00",
-  "snapshot_kind": "14l closed STOP ledger, committed locally by14m; historical billing, not dispatch authorization",
+  "checked_at": "2026-10-26T20:03:01.754116+00:00",
+  "snapshot_kind": "14o pre-push planning:249+190/440; not dispatch authorization",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-26T17:07:01.675233+00:00",
-    "response_sha256": "eb9e0448d85b92f6ba553d3f7bc7394f6bd7ba2f70a47c4d839671f94cb50f2d",
+    "checked_at": "2026-10-26T20:03:00.954317+00:00",
+    "response_sha256": "e01f5b7e81be036afa4aef90fe0755cc462feb733cd599ed15102fd2ee36c37e",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 1753.0,
-        "discountQuantity": 1753.0,
+        "grossQuantity": 1777.0,
+        "discountQuantity": 1777.0,
         "netQuantity": 0.0,
-        "grossAmount": 10.518,
-        "discountAmount": 10.518,
+        "grossAmount": 10.662,
+        "discountAmount": 10.662,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 8.364839872,
-        "discountQuantity": 8.364839872,
+        "grossQuantity": 9.193142781,
+        "discountQuantity": 9.193142781,
         "netQuantity": 0.0,
-        "grossAmount": 0.002810716,
-        "discountAmount": 0.002810716,
+        "grossAmount": 0.003089042,
+        "discountAmount": 0.003089042,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 1753,
+    "used_minutes": 1777,
     "included_minutes": 2000,
-    "remaining_minutes": 247,
-    "reserved_minutes": 0,
-    "after_reservation": 247,
-    "other_repos_reserve": 60,
+    "remaining_minutes": 223,
+    "reserved_minutes": 190,
+    "after_reservation": 33,
+    "other_repos_reserve": 20,
     "credential": "existing local gh login; GET only"
   },
   "local_privacy_scans": [
@@ -783,76 +783,22 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "2df39cdd3e7caa0b44d0ce848cc0f167ea98cf1d",
+      "checked_at": "2026-10-26T20:08:06.940516+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
-  "pre_dispatch_privacy": {
-    "checked_at": "2026-10-26T16:48:32.255654+00:00",
-    "head": "5156f5fac592e1e30077b22c196124a1feaafe89",
-    "private_repository": true,
-    "source_hashes_match": true,
-    "runs": [
-      {
-        "run": 40362028134,
-        "head": "5156f5fac592e1e30077b22c196124a1feaafe89",
-        "event": "pull_request",
-        "steps": {
-          "No secrets (gitleaks)": "success",
-          "Only private commit emails": "success",
-          "No personal terms": "success"
-        },
-        "personal_terms_not_skipped": true,
-        "log_zip_sha256": "bc17787204f96beb71ccd24c40921b118ac2038d42889e2c742a01e471e5c66e"
-      },
-      {
-        "run": 40362011848,
-        "head": "5156f5fac592e1e30077b22c196124a1feaafe89",
-        "event": "push",
-        "steps": {
-          "No secrets (gitleaks)": "success",
-          "Only private commit emails": "success",
-          "No personal terms": "success"
-        },
-        "personal_terms_not_skipped": true,
-        "log_zip_sha256": "6fc2125a47ef51e4aa09f78e5ce4d68681c9fee18cc329ef245812a2c8512cd2"
-      }
-    ]
+  "owner_decision": "14o run now, supersedes November hold",
+  "pre_dispatch_push_limit": 1,
+  "current_bundle": {
+    "sha256": "ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112",
+    "path": "os/owner-tools/payload/SHA256.json",
+    "qualification": "pending"
   },
-  "owner_decision": "14l 2026-10-26",
-  "pre_dispatch_pushes": 1,
-  "pre_dispatch_commits": 1,
-  "probe6_run": 40363137526,
-  "probe6_result": "failure: runner-tool installation10-minute timeout",
-  "qualification2_dispatched": false,
-  "no_rerun": true,
-  "acceptance_met": false,
-  "reserve_restoration_condition_met": false,
-  "local_follow_up_14m": {
-    "decision": "f0d2e22",
-    "status": "STOP: no push or dispatch before1November; await owner resume",
-    "extra_actions_minutes": 0,
-    "cap_changed": false,
-    "org_reserve_changed": false,
-    "allowances_changed": false,
-    "runtime_bound_changed": false,
-    "future_owner_resume": {
-      "not_before": "2026-11-01",
-      "reserve": 150,
-      "cap": "owner sets to cover new bound",
-      "probe": 7,
-      "qualification": 2,
-      "requires": "owner resume, one push, fresh exact-head privacy, complete ledger and billing"
-    }
-  },
-  "local_follow_up_14n": {
-    "decision": "cc11494",
-    "code_commit": "8eab7f6e40c8e88caf399ac7416b675e0cc1d4e8",
-    "status": "local fixes only; no push/dispatch before November owner resume",
-    "extra_actions_minutes": 0,
-    "current_bundle": {
-      "sha256": "ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112",
-      "path": "os/owner-tools/payload/SHA256.json",
-      "qualification": "pending"
-    },
-    "native_loop_test": "mandatory November probe native suite; not run locally"
-  }
+  "acceptance_met": false
 }
