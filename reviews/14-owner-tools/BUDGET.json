@@ -563,6 +563,14 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "443f9e6174c741c724be397a20ccb6570eb36223",
+      "checked_at": "2026-10-26T02:55:49.683710+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
   "phase": "14i local framing fix; final exact-head gates and fifth probe pending",
