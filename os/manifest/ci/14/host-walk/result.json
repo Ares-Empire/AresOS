@@ -52,7 +52,7 @@
   ],
   "sources": [
     {
-      "sha256": "4613e4da4ad0987522ebd43d1d89dba9f65e66036d23238963b13e1f4b1d4d3a",
+      "sha256": "2e7755ca85e75d2fdd6cff897806853a0503c31127eeaeb61e1ab9c3fcde9852",
       "path": ".github/workflows/os-image.yml"
     },
     {

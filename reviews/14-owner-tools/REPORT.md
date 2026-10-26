@@ -1,11 +1,80 @@
 # 14: checked owner tools
 
-**Current 14l status: STOP — probe6 timed out installing runner tools.**
-Exactly one commit/push preceded dispatch, head `5156f5f`. No native preflight,
-VM or second qualification ran. No rerun or additional push. PR #13 remains
-draft / NOT RELEASED. The actual STOP section below is a local, uncommitted
-report update; qualification never finished, so the owner's no-more-push rule
-remains in force. The same receipts are summarized on the existing PR.
+**Current 14m status: LOCAL ONLY STOP until the owner resumes on or after
+1 November.** No push, dispatch or merge in14m. PR #13 remains draft / NOT
+RELEASED; qualification2 has not run. Brief14m `f0d2e22` was already local;
+no pull was performed. The pending14l STOP report and closed ledger were
+committed locally first as `734c11b`.
+
+## 14m — Bounded snapshot download retries; November hold
+
+### Done
+
+Only the rehearsal step **Install pinned rehearsal tools on disposable
+runner** changes from10 to20 minutes in `.github/workflows/os-image.yml`.
+Its apt install gets `-o Acquire::Retries=3`. The same option joins the shared
+APT options in `os/ci/install-tools.sh`, covering the update, exact-version
+install, reinstall, source prerequisites and edk2 source download. `set -euo
+pipefail`, candidate equality and all original failure checks remain.
+
+An exact comparison against `f0d2e22` proves these are the only implementation
+changes. Job timeouts remain40/130 minutes. The dated snapshot, suites, signed
+indexes, every package/version and order, frozen runtime, owner scripts,
+release payload, workflow permissions and privacy rules are unchanged.
+
+Fresh evidence and hash-first source bindings are retained under
+`os/manifest/ci/14/14m-replay/`; active host-walk evidence was regenerated.
+Historical14j/14k/14l evidence has not been rewritten.
+
+### Verified locally
+
+| Command | Actual result |
+| --- | --- |
+| `wsl.exe bash -c 'cd /mnt/c/Users/pab/AresOS-14-owner-tools && python3 .work/14/14m-apt-regression.py'` | Four tests passed. Real workflow/install Bash text runs only repo-local shims: all six apt invocations receive exactly3 retries; all six injected failures preserve exit73 and stop without a shell rerun; wrong candidate refuses before install. Exact change scope, pins and packages match. |
+| `wsl.exe bash .work/14/local/whole-suite.sh` | Discovery315;307 passed, eight unchanged local-host limitations; no skips. Unittest exit1, failures2/error records9 including cleanup duplicates. This is not a native-suite pass. |
+| `wsl.exe bash -c 'cd /mnt/c/Users/pab/AresOS-14-owner-tools && python3 reviews/14-owner-tools/walk-host.py'` | 78 tests passed; no stick across reboot; no VM started. |
+| `wsl.exe bash -c 'cd /mnt/c/Users/pab/AresOS-14-owner-tools && python3 .work/14/14m-syntax.py'` | Strict real Bash parsing:258 guest commands and258 serial wrappers, no stdout/stderr warnings accepted;233 embedded Python snippets,12 CI/release shells and44 CI/overlay/owner Python files passed. |
+| `python -X utf8 .work/14/14m-read-only-replay.py` | Actual14e release verifier passed all git/file/read-only gh checks;53 retained offline sources and full ISO listing passed14b. Four14f CI-only checks remain explicitly classified and fail-closed, without changing credentials/scopes or using owner secrets. |
+| `python -X utf8 .work/14/14m-installer-windows.py` | Actual inspector rehashed all9,068,650,496 retained ISO bytes and verified the pin plus fresh publisher checksum;4 localization and102 WebUI sources. Existing Windows tar / WSL unsquashfs adapters only; no inspector assertion changed. |
+| `pwsh -NoProfile -File os/tests/owner-tools.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/14/14m-unit-copy` | All15 destination refusals had zero writes; copied payload equals source; manifest fingerprint unchanged. |
+| `git diff --exit-code f0d2e22 -- os/ci/toolchain.json os/ci/rehearsal-packages.json os/owner-tools os/release .gitleaksignore .gitleaks.toml .github/workflows/privacy.yml` and the frozen eight-path/runtime comparison against `775be05` | Passed. `git diff --check` passed. |
+
+The eight local limitations are unchanged: three require Pillow, four require
+privileged Homebrew/sysusers operations that the local denial shim refuses,
+and one requires0600 semantics unavailable on DrvFS. Exact test names and
+results are retained in `14m-replay/replay.json`; no skip or assertion changed.
+The download fixture's first scope check used Linux Git against this Windows
+worktree and failed on its Windows gitdir spelling. Using the existing Windows
+Git fixed that fixture boundary; all four tests then passed without changing
+any assertion or product code. No system software was installed.
+
+Pinned local gitleaks8.21.2 (verified binary fingerprint) returned0 findings
+over the full history including STOP commit `734c11b`. Pending retained changes
+are scanned before the local implementation/report commit; the committed
+history is scanned again afterwards. Scanner receipts stay under
+`.work/14/gitleaks/14m-*`. No ignore entry, rule or workflow is changed.
+
+### Budget / stop / not verified
+
+The closed ledger remains **249/420 minutes**,0 reserved,6/6 probes and1/2
+qualifications, with reserve60 unchanged. This local follow-up incurs **zero
+Actions minutes**. Billing and exact-head CI privacy in the ledger are
+historical14l receipts, not authorization for this changed head. No fresh
+guard, native CI, probe7 or qualification2 was dispatched, and no acceptance
+or physical-laptop result is claimed. The 184-minute complete-run bound stays
+unchanged because the job timeouts did not change.
+
+Per14m, wait for the owner to resume on/after1November. Then restore reserve150,
+set a package cap covering the new bound, and require the fresh local replay,
+pinned full-history privacy scan, single push, exact-head CI privacy, complete
+ledger and billing before probe7 and qualification2 on the same head. Those
+allowance/configuration changes have not been made prematurely. No rerun of
+probe6 and no push before1November. No image, release, publication, firmware
+audit, owner-tool or physical-laptop change was made.
+
+**JUDGMENT-CALL / PLAN-GAP / open questions:** no new product decision or gap.
+VM acceptance and the existing physical release gates remain pending. The
+November execution requires the owner's explicit resume described in14m.
 
 ## 14l — Actual probe6 STOP (local report after the single push)
 

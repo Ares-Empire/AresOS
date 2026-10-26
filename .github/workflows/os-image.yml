@@ -344,12 +344,12 @@ jobs:
         with:
           extra-squeeze: 'true'
       - name: Install pinned rehearsal tools on disposable runner
-        timeout-minutes: 10
+        timeout-minutes: 20
         run: |
           set -euo pipefail
           mkdir -p evidence .work/installer
           bash os/ci/install-tools.sh
-          sudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools gnu-efi ntfs-3g dosfstools exfatprogs exfat-fuse gdisk mtools psmisc tesseract-ocr python3-venv
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends libarchive-tools squashfs-tools gnu-efi ntfs-3g dosfstools exfatprogs exfat-fuse gdisk mtools psmisc tesseract-ocr python3-venv
           dpkg-query -W > evidence/rehearsal-host-packages.txt
       - name: Prove package 14 native host capabilities before expensive downloads
         if: github.ref_name == 'pkg/14-owner-tools'

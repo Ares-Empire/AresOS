@@ -464,7 +464,7 @@
     ]
   },
   "checked_at": "2026-10-26T17:07:02.366418+00:00",
-  "snapshot_kind": "LOCAL UNCOMMITTED14l closed STOP ledger; no extra push before qualification finishes",
+  "snapshot_kind": "14l closed STOP ledger, committed locally by14m; historical billing, not dispatch authorization",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
@@ -767,6 +767,14 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "734c11bf9f4db810a8acaee0680faafdcb946e65",
+      "checked_at": "2026-10-26T17:17:12.060191+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
   "pre_dispatch_privacy": {
@@ -809,5 +817,22 @@
   "qualification2_dispatched": false,
   "no_rerun": true,
   "acceptance_met": false,
-  "reserve_restoration_condition_met": false
+  "reserve_restoration_condition_met": false,
+  "local_follow_up_14m": {
+    "decision": "f0d2e22",
+    "status": "STOP: no push or dispatch before1November; await owner resume",
+    "extra_actions_minutes": 0,
+    "cap_changed": false,
+    "org_reserve_changed": false,
+    "allowances_changed": false,
+    "runtime_bound_changed": false,
+    "future_owner_resume": {
+      "not_before": "2026-11-01",
+      "reserve": 150,
+      "cap": "owner sets to cover new bound",
+      "probe": 7,
+      "qualification": 2,
+      "requires": "owner resume, one push, fresh exact-head privacy, complete ledger and billing"
+    }
+  }
 }

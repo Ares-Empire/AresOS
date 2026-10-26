@@ -10,7 +10,7 @@ while read -r suite; do
     printf 'deb-src [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg check-valid-until=no] %s %s main universe restricted multiverse\n' "$repository" "$suite"
 done < <(jq -r '.suites[]' os/ci/toolchain.json) > "$directory/sources.list"
 printf 'Package: *\nPin: release o=Ubuntu\nPin-Priority: 1001\n' > "$directory/preferences"
-options=(-o "Dir::Etc::sourcelist=$directory/sources.list" -o Dir::Etc::sourceparts=-
+options=(-o Acquire::Retries=3 -o "Dir::Etc::sourcelist=$directory/sources.list" -o Dir::Etc::sourceparts=-
          -o "Dir::State::lists=$directory/lists" -o "Dir::Etc::preferences=$directory/preferences"
          -o Dir::Etc::preferencesparts=-)
 sudo apt-get "${options[@]}" update
