@@ -1,11 +1,47 @@
 # 14: checked owner tools
 
-**Current14r: STOP — probe9 failed tools-stick creation before the OS VM;
-retained ISO-listing scan also has507 unresolved gitleaks findings.** No rerun,
-qualification2, second push, reserve restoration, ready transition or merge.
-PR #13 remains draft / NOT RELEASED. This actual STOP report and closed ledger
-are committed locally only; the pushed head retains the labelled pre-dispatch
-record. Historical sections below describe their own attempts.
+**Current14s: CI loop-node race fix verified locally; no push or dispatch.**
+The integrator's14s classification below supersedes14r's unresolved-listing
+classification. Historical STOP sections remain unchanged. NOT RELEASED;
+no ready transition or merge, pending the owner's budget/timing decision.
+
+## 14s — Loop partition readiness; local only
+
+**Done:** one shared wait covers all four `losetup --partscan` callers (media,
+protected-disk preparation, capabilities and native device regression). After
+backing-file/GPT verification it settles udev, then checks exact block nodes,
+sysfs start/size against the written GPT, and device identity. The15-second
+wait permits one `partx --update` plus settle, then STOPs with sysfs/udev state.
+It never selects another device. Native-device detach now settles udev too.
+A readiness failure cannot reach media formatting/copying/hashing. Only CI
+harness/tests and current walk bindings changed; owner bundle, image/runtime,
+guides, budgets, workflows and privacy rules are unchanged.
+
+**Verified locally:** `PYTHONPATH=os/tests python3 -m unittest test_loop_nodes
+ test_owner_media test_owner_capabilities test_owner_devices_native -v` passed
+30 tests. Final-source `python3 reviews/14-owner-tools/walk-host.py` passed112
+in155.682s, with76 checked source bindings. The whole-suite command
+`python3 -m unittest discover -s os/tests -v` ran349 in331.958s:341 distinct
+passes and exactly the same eight native-host limitations, no skips; it printed
+`FAILED (failures=2, errors=9)` (duplicate cleanup error records included).
+All258 guest commands/258 serial wrappers parsed without stderr;233 embedded
+Python snippets,12 shell files and45 Python files compiled. `git diff --check`
+and frozen-path comparisons passed. Pinned gitleaks8.21.2 reported0 findings
+over the full existing history and pending files. Logs are under `.work/14/`.
+
+**Privacy classification (integrator, brief14s):** all507 generic-api-key
+findings are public third-party file names in the pinned Bazzite ISO's
+`evidence/installer/squashfs-files.txt`, held in the private artifact and never
+committed. Redacted metadata confirms every finding is in that one listing.
+No listing, ignore entry, allowlist, rule or privacy-workflow change is added.
+Findings anywhere else remain a STOP; repository privacy remains mandatory.
+
+**Not verified / open gate:** real runner node timing and VM qualification are
+not rerun. Tests used stand-ins only; no local devices, privilege or installs.
+No push, dispatch, publication or merge. Ledger/budget settings are unchanged
+(last actual306/480,9/9 probes,1/2 qualifications). The owner decides paid
+Actions budget versus1 November before any resume. No new product judgment
+or PLAN-GAP; this implements the integrator's diagnosed CI race fix.
 
 ## 14r — Actual probe9 STOP after the one authorized push
 

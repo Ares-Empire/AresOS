@@ -16,7 +16,7 @@ import subprocess
 
 import owner_fuse
 import owner_media
-from prepare_two_disks import verify_loop
+from prepare_two_disks import verify_loop, wait_loop_partitions
 
 owner = owner_media.bundle_module('owner')
 WORK = pathlib.Path('.work').resolve()
@@ -152,6 +152,7 @@ def detach(loop, image, parts, observations):
         observations.note('cleanup mount rows',cleanup_mount_rows=rows)
         observations.check(not rows,'STOP: fixture partition remains mounted')
     run('losetup','--detach',loop)
+    run('udevadm','settle','--timeout=5')
     observations.note('backing-verified loop detached')
 
 
@@ -182,6 +183,9 @@ def prove_observed(directory, observations):
             verify_loop(loop,image)
             cleanup.callback(detach,loop,image,parts,observations)
             loops.append(loop)
+            observations.note('before GPT/node readiness check',loop=loop,image=str(image))
+            ready=wait_loop_partitions(loop,image)
+            observations.note('GPT partition nodes ready',loop_partition_readiness=ready)
         run('udevadm','settle')
         target, protected = loops
         protected_image=directory/'protected.raw'

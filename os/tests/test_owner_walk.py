@@ -191,6 +191,7 @@ class OwnerWalkTest(unittest.TestCase):
             volume=fake.volume;calls=fake.calls
             stack.enter_context(patch.object(owner_media.subprocess,'run',side_effect=fake.run))
             stack.enter_context(patch.object(owner_media.subprocess,'check_output',side_effect=fake.output))
+            fake.patch_nodes(stack)
             verify=stack.enter_context(patch.object(owner_media,'verify_loop',wraps=owner_media.verify_loop))
             media.create()
             self.assertEqual(media.path.stat().st_size,128*1024**2)

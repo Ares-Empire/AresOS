@@ -42,6 +42,7 @@ class CapabilitiesTest(unittest.TestCase):
             directory=pathlib.Path(temporary).resolve();volume=Volume(directory,directory/'fuse')
             stack.enter_context(patch.object(subprocess,'run',side_effect=volume.run))
             stack.enter_context(patch.object(subprocess,'check_output',side_effect=volume.output))
+            volume.patch_nodes(stack)
             original=pathlib.Path.open
             def opened(path,*args,**kwargs):
                 if path.name=='must-refuse' and volume.readonly:raise OSError(errno.EROFS,'synthetic read-only filesystem')

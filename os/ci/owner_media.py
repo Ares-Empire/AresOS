@@ -14,7 +14,7 @@ import time
 
 import two_disk_vm as td
 import owner_fuse
-from prepare_two_disks import verify_loop
+from prepare_two_disks import verify_loop, wait_loop_partitions
 
 
 def bundle_module(name):
@@ -54,8 +54,14 @@ class Media:
             command.append('--read-only')
         loop = subprocess.check_output([*command, str(self.path)], text=True).strip()
         verify_loop(loop, self.path)
-        self.mount.mkdir(exist_ok=True)
-        assert not self.mount.is_symlink() and not any(self.mount.iterdir())
+        try:
+            wait_loop_partitions(loop,self.path)
+            self.mount.mkdir(exist_ok=True)
+            assert not self.mount.is_symlink() and not any(self.mount.iterdir())
+        except BaseException:
+            verify_loop(loop,self.path)
+            owner_fuse.detach(loop,self.mount)
+            raise
         return loop
 
     def create(self):

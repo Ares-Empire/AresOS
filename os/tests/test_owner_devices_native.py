@@ -13,6 +13,7 @@ from unittest.mock import patch
 ROOT=pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'os/ci'))
 import owner_devices as native
+import prepare_two_disks as loops
 
 GUID='10000001-1111-2222-3333-444444444444'
 
@@ -28,7 +29,7 @@ class HostStandIn:
         self.calls.append(command)
         tool=pathlib.Path(command[0]).name
         if tool=='losetup' and '--find' in command:
-            loop='/dev/loopFIXTURE'+str(len(self.loops))
+            loop='/dev/loop'+str(90+len(self.loops))
             self.loops[loop]=command[-1]; result=loop+'\n'
         elif tool=='losetup' and '--list' in command:
             loop=command[-1]
@@ -97,6 +98,17 @@ class NativeWalkTest(unittest.TestCase):
             stack.enter_context(patch.object(subprocess,'run',side_effect=standin.run))
             stack.enter_context(patch.object(subprocess,'check_output',side_effect=standin.output))
             stack.enter_context(patch('shutil.which',side_effect=lambda name,**kw:'/fixture/'+name))
+            def layout(image):
+                first=dict(number=1,start_lba=2048,end_lba=133119 if image.stem=='target' else image.stat().st_size//512-34)
+                parts=[first]
+                if image.stem=='target':parts.append(dict(number=2,start_lba=133120,end_lba=image.stat().st_size//512-34))
+                return dict(partitions=parts)
+            def state(loop,number):
+                part=layout(pathlib.Path(standin.loops[loop]))['partitions'][number-1]
+                return dict(node=loop+'p'+str(number),block=True,start=part['start_lba'],
+                            size=part['end_lba']-part['start_lba']+1,dev='7:1',rdev='7:1')
+            stack.enter_context(patch.object(loops,'gpt',side_effect=layout))
+            stack.enter_context(patch.object(loops,'loop_partition_state',side_effect=state))
             observed=native.Observations(pathlib.Path(temporary)/'observations.json')
             try:
                 return native.prove(pathlib.Path(temporary)/'fixture',observed)
@@ -107,6 +119,9 @@ class NativeWalkTest(unittest.TestCase):
         host=HostStandIn(); result=self.exercise(host)
         self.assertEqual(host.loops,{})
         self.assertEqual(host.mounts,{})
+        for index,command in enumerate(host.calls):
+            if command[:2]==['losetup','--detach']:
+                self.assertEqual(host.calls[index+1],['udevadm','settle','--timeout=5'])
         self.assertEqual(result['helper_mutations'],0)
         self.assertTrue(result['protected_fixture_unchanged'])
         self.assertEqual(self.observed['status'],'passed')
@@ -141,8 +156,8 @@ class NativeWalkTest(unittest.TestCase):
     def test_unconfirmed_unmount_prevents_target_detach(self):
         host=HostStandIn(); host.linger=True
         with self.assertRaisesRegex(AssertionError,'unmount|mounted'): self.exercise(host)
-        self.assertIn('/dev/loopFIXTURE0',host.loops)
-        self.assertFalse(any(c[:2]==['losetup','--detach'] and c[-1]=='/dev/loopFIXTURE0' for c in host.calls))
+        self.assertIn('/dev/loop90',host.loops)
+        self.assertFalse(any(c[:2]==['losetup','--detach'] and c[-1]=='/dev/loop90' for c in host.calls))
 
     def test_wrong_backing_refuses_before_any_format_or_mount(self):
         host=HostStandIn(); host.bad_backing=True

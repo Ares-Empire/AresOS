@@ -32,6 +32,7 @@ def exfat(directory):
         loop = subprocess.check_output([*args, str(image)], text=True, timeout=10).strip()
         try:
             fixture.verify_loop(loop, image)
+            fixture.wait_loop_partitions(loop,image)
             if readonly:
                 owner_fuse.check(loop + 'p1')
             else:
@@ -146,7 +147,7 @@ def main():
     directory = base / '14-host-capabilities'
     assert directory.parent == base and not directory.exists(), 'STOP: fresh capability directory required'
     needed = ('mount.exfat-fuse', 'mkfs.exfat', 'fsck.exfat', 'findmnt', 'blkid', 'mount', 'umount',
-              'losetup', 'sgdisk', 'qemu-system-x86_64', 'pwsh', 'tesseract', 'ntfs-3g')
+              'losetup', 'sgdisk', 'udevadm', 'partx', 'qemu-system-x86_64', 'pwsh', 'tesseract', 'ntfs-3g')
     for name in needed:
         assert shutil.which(name), 'STOP: missing host capability tool ' + name
     directory.mkdir()
