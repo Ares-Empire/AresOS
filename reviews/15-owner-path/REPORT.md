@@ -1,5 +1,32 @@
 # 15: one owner checklist and a symptom-first emergency card
 
+## 15b — review fixes (2026-10-26)
+
+**Done — all five findings:**
+
+1. Battery action starts with stopping use/safely disconnecting the external charger, then safe separation from flammables, then the already-open/disconnected case. No battery handling/reconnection and no use/fitting before service clearance. Used the **LOQ guide’s own link to Lenovo Generic Safety and Compliance Notices**, plus LOQ HMM p.3; [source chain, pages and PDF hashes](SOURCES.md#15b-battery-source-review). The T490 page is superseded for this action.
+2. Every tool restart shows the full canonical command and expected PASS/message. Equality now covers inline invocations across all six owner documents; mutations reject bare inline reboot, shorthand for every owner verb and extra arguments. Existing command/driver/bundle assertions remain.
+3. Boot-order Secure Boot/recovery-prompt/missing-attached-entry STOPs appear before order restoration, each with Help and a named step-8 return.
+4. B/C/D returns select the **calling procedure before the stage**. Keep-stock returns to its completion then step 8; AresOS layout recovery goes revert → fresh proof → finish → completion → step 8. State-dependent tests reject valid links to the wrong OS and a skipped finish.
+5. Every status row has release/applicability labels: historical **362af9…** 06c/06e/11k/11n; current **9b19b7…** 13f with its protected-second/normal-rollback limits and no transferred manual-GRUB/promotion qualification.
+
+Removed exactly the **27 package-15 screenshots**. All other tracked screenshots, owner tools/bundle, harness, workflows, manifests/releases and mod remain unchanged. Initial client timeout/pass evidence is retained below; no Minecraft client, Gradle, VM or dispatch was run in 15b.
+
+**Verified in WSL Ubuntu** (existing Python 3.12.3/Bash; worktree TMPDIR):
+
+| Command after `python3 -m unittest discover -s os/tests` | Result |
+| --- | --- |
+| `-p test_owner_path.py -v` | **15 tests /8.266s, OK** |
+| `-p test_owner_equality.py -v` | **6 tests /13.258s, OK** |
+| `-p 'test_owner*.py' -v` | **76 tests /125.450s, OK**, no skips |
+
+`git diff --check` and report/source/owner link checks pass. Pinned portable **gitleaks 8.21.2** was freshly extracted here from the retained publisher-checksum-verified archive (`f238c85e5f47e18fac779ce71ee11091cf70a0a8fb4415f165efba2800eef133`). Full-history/all-ref command `gitleaks.exe git . --log-opts=--all --redact=100 --no-banner --log-level info --report-format json --report-path .work/15b/gitleaks/implementation.json` at **7bdb74d**: **531 commits /27.4s /no leaks found**, exit0. Final report head is rescanned before the single push; exact final head/scan and fresh read-only org billing (must be ≥150 free minutes) go in the PR receipt without another push.
+
+**Not verified:** physical gates and package 14 VM qualification remain open. Initial broader-suite host limits/client instability below remain unresolved; these owner-test passes do not close them. **JUDGMENT-CALL / PLAN-GAP / open questions:** none new; no runtime/tool change needed.
+
+The remaining sections retain the initial package-15 evidence at `562e29c`.
+
+
 **Documentation implemented; overall verification is NOT GREEN. Physical installation remains NOT RELEASED.** The new navigation/card tests and owner command/bundle checks pass. One client run timed out and the second sequential run passed; the native suite retains the eight package-14 host limitations. No VM, workflow dispatch, image build/publication, physical install or hardware query was performed.
 
 ## Done
@@ -27,7 +54,7 @@ Both package-14 “For package 15” lists and stage walk are covered: record na
 
 ## Verified
 
-Commands ran locally from this worktree. Full raw logs/portable scanner remain in ignored `.work/15/`; only nonpersonal test screenshots are committed. No skipped/removed/weakened assertion and no elevated or system-install fallback was used.
+Commands ran locally from this worktree. Full raw logs/portable scanner remain in ignored `.work/15/`; 15b removes the unrelated client screenshots; no owner data is committed. No skipped/removed/weakened assertion and no elevated or system-install fallback was used.
 
 | Command / check | Actual output/result | What it proves / does not prove |
 | --- | --- | --- |
@@ -52,11 +79,11 @@ WSL uses the existing Ubuntu Python/Bash with TMPDIR under this worktree and a l
 
 ### Screenshots
 
-[27 generated client captures](screenshots/) are retained (6,491,891 bytes), including [create-screen check](screenshots/04-nether-home/screenshots/04c/0030_04c-create-default.png), [live hotbar](screenshots/09-mode-inventories/screenshots/0004_09-live-hotbar.png) and the existing app/logo/mode tests. Historical screenshot files overwritten by the task's fixed output paths were restored; new captures were moved under package 15. These are dev-client captures, not physical installation, Media Writer or owner-followability screenshots. No new visual product behavior was implemented or claimed.
+The original package 15 client suite ran: **one timeout, then one sequential pass** (with an accidental overlapping invocation excluded). The 27 dev-client captures were removed in 15b because they are unrelated to this docs-only package. Other tracked screenshots remain unchanged. No physical installation, Media Writer or owner-followability screenshot is claimed; no new visual behavior was implemented.
 
 ### Word counts
 
-Whitespace-separated words from UTF-8 Markdown, including tables/code/URLs, comparing `5156f5f` to final files:
+Whitespace-separated words from UTF-8 Markdown, including tables/code/URLs, comparing `5156f5f` to the initial package 15 files at `562e29c` (before 15b):
 
 | File | Before | After |
 | --- | ---: | ---: |
