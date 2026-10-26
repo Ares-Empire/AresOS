@@ -1,22 +1,43 @@
 {
   "allowance": "14",
   "start": "2026-10-25T22:01:22Z",
-  "cap": 460,
+  "cap": 480,
   "full_cap": 0,
   "full_dispatched": 0,
   "part_b_cap": 0,
   "part_b_dispatched": 0,
   "dispatch_caps": {
-    "probe": 8,
+    "probe": 9,
     "owner-tools": 2
   },
   "dispatch_counts": {
-    "probe": 7,
+    "probe": 8,
     "owner-tools": 1
   },
-  "consumed_minutes": 265,
-  "reserved_minutes": 190,
+  "consumed_minutes": 285,
+  "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 40400763278,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+      "conclusion": "failure",
+      "minutes": 14
+    },
+    {
+      "run": 40400133838,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40400127175,
+      "title": "14p: bind native loop mode, cover every caller and record probe7 STOP",
+      "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+      "conclusion": "success",
+      "minutes": 3
+    },
     {
       "run": 40395477901,
       "title": "Two-disk rehearsal (probe)",
@@ -401,19 +422,22 @@
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 71,
-    "total_count": 71,
+    "ids_count": 74,
+    "total_count": 74,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 71,
-        "total_count": 71,
-        "ids_sha256": "486b548d83b526d3dc109a8c698c0b323c9fdc51ceb9d3e99d66611330bc5565"
+        "returned": 74,
+        "total_count": 74,
+        "ids_sha256": "01e3de7733d4fbd16318cbf534d30c27e118a85c55dbb4df5d6a0a729ad2a45a"
       }
     ],
     "run_ids": [
+      40400763278,
+      40400133838,
+      40400127175,
       40395477901,
       40394908641,
       40394899036,
@@ -487,40 +511,40 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-26T20:48:34.026804+00:00",
-  "snapshot_kind": "14p pre-push planning265+190/460; no dispatch authorization",
+  "checked_at": "2026-10-26T21:28:28.648706+00:00",
+  "snapshot_kind": "14q actual pre-push organization budget STOP; local commit only; no dispatch authorization",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-26T20:48:33.381007+00:00",
-    "response_sha256": "f747b5f4fea039372a67d0886ce1839e5eac9dbe8f739970433abb5fa99c6c35",
+    "checked_at": "2026-10-26T21:28:28.001339+00:00",
+    "response_sha256": "5a92b5aadfaf62ecec3ce840cd54291d718661cf692dd9828f929cc8642e71eb",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
         "grossQuantity": 1786.0,
-        "discountQuantity": 1787.0,
+        "discountQuantity": 1813.0,
         "netQuantity": 0.0,
         "grossAmount": 10.716,
-        "discountAmount": 10.722,
+        "discountAmount": 10.878,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 9.193142781,
-        "discountQuantity": 9.193142781,
+        "grossQuantity": 9.400211089,
+        "discountQuantity": 9.400211089,
         "netQuantity": 0.0,
-        "grossAmount": 0.003089042,
-        "discountAmount": 0.003089042,
+        "grossAmount": 0.003158621,
+        "discountAmount": 0.003158621,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 1787,
+    "used_minutes": 1813,
     "included_minutes": 2000,
-    "remaining_minutes": 213,
-    "reserved_minutes": 190,
-    "after_reservation": 23,
+    "remaining_minutes": 187,
+    "reserved_minutes": 0,
+    "after_reservation": 187,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
   },
@@ -839,20 +863,62 @@
       "scope": "full Git history, redacted",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "47f795d072abcef9d9c1173557174b7abd9dd466",
+      "checked_at": "2026-10-26T20:55:44.338052+00:00",
+      "scope": "full Git history; pinned binary; redacted",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "01611e226aa7ba9a7095fff160816f7bd7357125",
+      "checked_at": "2026-10-26T21:28:17.078407+00:00",
+      "scope": "full Git history before local14q commit; pinned binary, redacted",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
-  "previous_stop": {
-    "run": 40395477901,
-    "consumed_minutes": 265,
-    "reason": "missing step REHEARSAL_MODE",
-    "report": "14o actual STOP section"
+  "owner_decision": "14q cap480/probe9/reserve0; stop on insufficient organization minutes",
+  "budget_refusal": {
+    "command": "python -X utf8 .work/14/14q-baseline.py",
+    "required_minutes": 190,
+    "observed_free_minutes": 187,
+    "message": "STOP: organization has187 free minutes;190 reserved must leave0"
   },
-  "owner_decision": "14p use remaining October minutes; stop on first failure",
-  "pre_dispatch_push_limit": 1,
+  "pre_dispatch_pushes": 0,
+  "probe9_dispatched": false,
+  "qualification2_dispatched": false,
+  "acceptance_met": false,
+  "no_rerun": true,
+  "no_push": true,
+  "reserve_restoration_condition_met": false,
   "current_bundle": {
     "sha256": "ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112",
     "path": "os/owner-tools/payload/SHA256.json",
     "qualification": "pending"
   },
-  "acceptance_met": false
+  "previous_probe8": {
+    "run": 40400763278,
+    "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+    "status": "failed native firmware fixture after333 native tests passed"
+  },
+  "local_tests": {
+    "tests": 15,
+    "status": "passed",
+    "seconds": 10.914,
+    "skips": 0,
+    "command": "PYTHONPATH=os/tests python3 -m unittest test_owner_devices_native test_owner_guard -v"
+  },
+  "pending_checks": [
+    "local whole suite",
+    "host stage walk and active walk source-binding refresh",
+    "14e/14f local replay",
+    "14i strict composed-command checks",
+    "fresh exact-head privacy",
+    "probe9",
+    "qualification2"
+  ]
 }

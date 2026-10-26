@@ -43,7 +43,8 @@ def main():
                     'os/owner-tools/commands.json','os/release/*.sh','os/tests/test_owner*.py','os/tests/owner_shim.py',
                     'docs/install-tools/OwnerTools.psm1','reviews/14-owner-tools/walk-host.py',
                     'os/manifest/ci/14/hotplug-sources/*','os/manifest/ci/14/keyboard-sources/*',
-                    'os/tests/fixtures/owner-console/*','os/tests/fixtures/owner-tools/storage-*.json'):
+                    'os/tests/fixtures/owner-console/*','os/tests/fixtures/owner-tools/storage-*.json',
+                    'os/tests/fixtures/owner-tools/blkid-p-gpt*'):
         files.update(p for p in ROOT.glob(pattern) if p.is_file())
     files.update(ROOT/p for p in ('os/ci/installer_webui.py','os/ci/two_disk_vm.py','os/ci/registry_auth.py',
         'os/ci/rehearsal_guard.py','os/ci/rehearsal-packages.json','os/ci/verify_release.py',

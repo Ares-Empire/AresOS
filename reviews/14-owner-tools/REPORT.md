@@ -1,9 +1,154 @@
 # 14: checked owner tools
 
-**Current14p: local preparation passed; probe8 and qualification2 pending.**
-PR #13 remains draft / NOT RELEASED. The actual probe7 STOP report below is
-committed with the approved fix; its references to uncommitted files describe
-the state when that attempt stopped. No new hosted result is claimed here.
+**Current14q: STOP before push —187 free org minutes cannot cover the190-minute
+complete plan.** No push, probe9 or qualification2 in this continuation. The
+fixture-only fix, probe8 STOP report and this budget STOP are committed locally.
+PR #13 remains draft / NOT RELEASED. Earlier references to uncommitted reports
+describe the state at those historical stops. No acceptance is claimed.
+
+## 14q — Fixture PART_ENTRY_UUID fix; organization budget STOP
+
+**Done:** the retained probe8 traceback is consistent with the integrator's
+wrong-tag diagnosis; it contains no raw GUID/firmware values contradicting it.
+Changed only the native fixture in `os/ci/owner_devices.py`: read
+`blkid -p -s PART_ENTRY_UUID -o value <loop>p1`, cross-check against
+`sgdisk -i 1 <target-image>`'s Partition unique GUID case-insensitively, and
+require a full nonempty GUID. A bad or mismatched value stops with both shown.
+No change to owner tools, their firmware predicate, bundle or fingerprint:
+`ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112`.
+
+The fixture's evidence file is updated before checks and real-helper calls,
+including on failure: raw lsblk JSON/trees, native findmnt rows, independent
+GUID commands/output, expected GUID, synthetic firmware line and the GUID
+resolved by disk_record. Return values and cleanup checks are retained too.
+Recorded source rows are copied before fixture-only root identity adaptations.
+Subsequent media queries cannot erase the already resolved disk_record GUID.
+
+The local stand-in now honors the requested lsblk columns and exact blkid tag;
+it returns no GUID for the old PARTUUID low-level query. A real low-level output
+line containing PART_ENTRY_UUID and no PARTUUID is retained with provenance
+from [the upstream util-linux report](https://github.com/util-linux/util-linux/issues/1159).
+It is a GPT NTFS partition used only for tag/GUID parsing, not a claimed EFI
+capture. The runner's upstream2.39.3
+[partition-tag implementation](https://github.com/util-linux/util-linux/blob/v2.39.3/libblkid/src/partitions/partitions.c)
+uses PART_ENTRY_UUID as well. Native EFI type checking remains unchanged.
+
+Only package14's settings changed to **cap480,9 probes,2 qualifications,
+reserve0**. Package13 text is unchanged. The budget regression still refuses
+481 after accepting480, and refuses a tenth probe after counting nine.
+No workflow/permissions, owner script, image, frozen release/runtime, privacy
+rule or ignore changed. No pull or other worktree/real laptop operation.
+
+**Verified:** `PYTHONPATH=os/tests python3 -m unittest
+ test_owner_devices_native test_owner_guard -v` passed **15 tests in10.914s,
+no skips**. Coverage includes the real tag output and value-only output, empty /
+invalid / mismatched GUIDs, uppercase sgdisk agreement, failure before helpers,
+raw evidence on a firmware/shape refusal, and cleanup. All device/privileged
+commands were stand-ins; no real local mount, device query or installation.
+`git diff --check` passed. Git comparisons confirmed unchanged owner tools,
+release scripts, workflows, privacy rules and frozen runtime/release paths.
+Pinned local gitleaks8.21.2 is required clean before the local commit.
+
+**Actual STOP / budget:** the initial complete guard read **74/74 history**.
+The package fits: **285+190=475/480**. The organization guard refused:
+
+```text
+STOP: organization has 187 free minutes; 190 reserved must leave 0
+```
+
+The full190 is push6 + probe42 + qualification130 + closing privacy12. No
+margin or bound was reduced and no authorization retry was made. A separate
+zero-reservation bookkeeping snapshot confirmed **285/480 consumed,0 reserved;
+8/9 probes,1/2 qualifications,0 publications**,74/74 history and187 org minutes
+free. That snapshot is not dispatch authorization. Evidence and source bindings:
+`os/manifest/ci/14/14q-stop/`; BUDGET contains the closed actual ledger.
+
+**Not verified / next gate:** stopped before the whole local suite, refreshed
+host stage walk/current walk bindings,14e/14f replay and14i strict composed-
+command checks. The existing14p walk is historical and is not proof for this
+changed fixture. These checks, pinned privacy, fresh exact-head CI privacy and
+the complete ledger/billing guard must pass on resume before the sole probe9
+and same-head qualification2. Native GUID cross-check and failure-evidence
+behavior have not run on a disposable runner. No current VM acceptance.
+The remaining verification/dispatch work waits for November per14q; no rerun
+or push was made after refusal. Reserve0 is not restored to150 and PR #13 is
+not ready because acceptance is unmet. INSTALL/EMERGENCY/release gate remain
+unchanged and truthful; physical/followability checks stay open.
+
+**JUDGMENT-CALL / PLAN-GAP / open questions:** no product decision or alternate
+cause guessed. The approved plan is short of organization minutes by3. Nothing
+is scheduled automatically; resume requires the permitted fresh checks.
+
+## 14p — Actual probe8 STOP (after the one authorized push)
+
+**Done:** committed the probe7 STOP report together with the step-local mode
+fix, all-reader static regression,175 refreshed source bindings and the
+approved package14-only460/8/0 settings. Exactly one fast-forward push advanced
+`a80cacce5a29c4883e1f0b42e16f4cd860343969` to
+`47f795d072abcef9d9c1173557174b7abd9dd466` (including local brief a6bd1bf).
+Pinned gitleaks8.21.2 found0 over the complete pushed history and pending files.
+Package13's configuration text, owner bundle/fingerprint, frozen runtime and
+release are unchanged. No token/scope, privacy rule or permission change.
+
+**Verified / actual hosted evidence:** exact-head privacy runs40400133838
+and40400127175 passed all three required checks, with personal terms executed.
+The final guard proved complete73/73 history, **271+184=455/460**, and **23
+org minutes after reservation ≥0**. Probe8 was dispatched once, attempt1:
+[40400763278](https://github.com/Ares-Empire/AresOS/actions/runs/40400763278).
+
+Pinned tools and the early real native capabilities passed. **All333 native
+unit tests passed in25.639 seconds, no skips.** The new static test ran with
+them. `owner_devices.py` passed its mode guard, entered `prove`, created the
+scratch partitioned loop fixtures and FAT/exFAT filesystems, and reached the
+real `owner.disk_record`. It then stopped at `owner.py:437`:
+
+```text
+owner_owner.Stop: Linux firmware entry does not uniquely map to target EFI
+```
+
+The helper required exactly one matching synthetic firmware entry; that check
+was preserved. The traceback is at `owner_devices.py:107`, before media.find,
+protected-fixture final proof and the success JSON. The artifact contains no
+`14-native-owner-devices.json`. The observed native PARTUUID and generated
+synthetic firmware line were not exported before this assertion, so the raw
+mismatch and its underlying cause are **not proven** by retained evidence.
+Local stand-ins supplied a nonempty GUID; they did not reproduce this native
+failure. No helper, fixture, audit or workflow was changed after the stop.
+
+The rest of the native step (Windows-copy invocation, compile/shell checks,
+release verification), private metadata/digest/signature/pull checks, CI ISO
+inspection and the OS installer/owner-tools VM rehearsal were not reached.
+The separate capability smoke VM passed; that is not an OS qualification.
+Qualification2 was not dispatched. Local release/source/ISO/strict replay
+also passed for a possible qualification, but cannot replace its hosted gate.
+
+**Retained evidence / privacy:** artifact12688678736 was checked against its
+API digest before safe extraction:48,087 bytes,17 members, SHA256
+`f7a84d569a3e6b19d381164b61d675b411c3265e55bc736f900be0fcca38af73`.
+Raw receipts and logs are under `.work/14/run-40400763278/`; the private run
+retains the artifact. Scoped credential cleanup passed (removed, outside
+workspace, no owner token). No loop-cleanup error appears in the traceback,
+but there is no completed native-loop success proof. Pinned scans of retained
+evidence/logs found0. No local privileged operation or device test was run.
+
+**Closed ledger:** **285/460 consumed,0 reserved;74/74 complete history;
+8/8 probes;1/2 qualifications;0 publications**. This continuation cost20
+rounded minutes:6 privacy plus14 probe. Fresh billing reported190 org minutes
+free. The approved cap460/reserve0 and allowances8/2 remain; acceptance was
+not met, so reserve150 restoration and PR-ready are not authorized. No second
+push, rerun, image build, release/publication, merge, real laptop or other
+worktree operation. BUDGET and this actual STOP report remain local/uncommitted
+because no further push is authorized before qualification finishes.
+
+**Not verified / PLAN-GAP:** the native loop fixture failed its firmware
+mapping check, so native-loop acceptance and every later hosted/VM stage are
+unproven. Any correction or additional probe requires a new integrator/owner
+decision; none was attempted. The second qualification and physical laptop /
+followability release-gate checks remain open. INSTALL, EMERGENCY and the
+release gate were not changed or relaxed.
+
+**JUDGMENT-CALL / open questions:** no new product decision. Probe8 is exhausted;
+the firmware fixture mismatch needs review before any resumed execution.
 
 ## 14p — Step-local mode binding and October allowance (pre-dispatch)
 

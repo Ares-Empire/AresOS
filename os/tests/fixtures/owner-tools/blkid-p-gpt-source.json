@@ -1,0 +1,10 @@
+{
+  "sha256": "a4db20027ecc75ace51c1805a362fa38a3a03a37a2b94ffd22d723585d8c8740",
+  "path": "blkid-p-gpt.txt",
+  "source": "https://github.com/util-linux/util-linux/issues/1159",
+  "kind": "one verbatim real low-level blkid output line; GPT NTFS partition, not an EFI fixture; tests only tag/GUID parsing",
+  "pinned_runner_upstream": "2.39.3",
+  "pinned_source": "https://github.com/util-linux/util-linux/blob/v2.39.3/libblkid/src/partitions/partitions.c",
+  "tag": "PART_ENTRY_UUID",
+  "old_tag_absent": true
+}

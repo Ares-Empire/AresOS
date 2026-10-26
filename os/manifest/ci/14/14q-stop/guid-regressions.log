@@ -1,0 +1,20 @@
+test_complete_native_path_runs_real_helpers_and_confirms_cleanup (test_owner_devices_native.NativeWalkTest.test_complete_native_path_runs_real_helpers_and_confirms_cleanup) ... ok
+test_empty_invalid_or_disagreeing_guids_stop_with_both_values_recorded (test_owner_devices_native.NativeWalkTest.test_empty_invalid_or_disagreeing_guids_stop_with_both_values_recorded) ... ok
+test_empty_native_guid_stops_before_real_helpers_and_still_cleans_up (test_owner_devices_native.NativeWalkTest.test_empty_native_guid_stops_before_real_helpers_and_still_cleans_up) ... ok
+test_failed_fuse_mount_cleans_up_without_a_filesystem_fallback (test_owner_devices_native.NativeWalkTest.test_failed_fuse_mount_cleans_up_without_a_filesystem_fallback) ... ok
+test_firmware_failure_keeps_both_guids_native_rows_and_synthetic_line (test_owner_devices_native.NativeWalkTest.test_firmware_failure_keeps_both_guids_native_rows_and_synthetic_line) ... ok
+test_flat_native_result_fails_and_still_cleans_up (test_owner_devices_native.NativeWalkTest.test_flat_native_result_fails_and_still_cleans_up) ... ok
+test_local_invocation_refuses_before_any_host_command (test_owner_devices_native.NativeWalkTest.test_local_invocation_refuses_before_any_host_command) ... ok
+test_probe_native_suite_requires_the_loop_regression (test_owner_devices_native.NativeWalkTest.test_probe_native_suite_requires_the_loop_regression) ... ok
+test_real_low_level_blkid_output_uses_part_entry_uuid_without_partuuid (test_owner_devices_native.NativeWalkTest.test_real_low_level_blkid_output_uses_part_entry_uuid_without_partuuid) ... ok
+test_unconfirmed_unmount_prevents_target_detach (test_owner_devices_native.NativeWalkTest.test_unconfirmed_unmount_prevents_target_detach) ... ok
+test_wrong_backing_refuses_before_any_format_or_mount (test_owner_devices_native.NativeWalkTest.test_wrong_backing_refuses_before_any_format_or_mount) ... ok
+test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback (test_owner_guard.GuardTest.test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback) ... ok
+test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun (test_owner_guard.GuardTest.test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun) ... ok
+test_pinned_qmp_contract_and_firmware_audit_are_not_widened (test_owner_guard.GuardTest.test_pinned_qmp_contract_and_firmware_audit_are_not_widened) ... ok
+test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media (test_owner_guard.GuardTest.test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 10.914s
+
+OK
