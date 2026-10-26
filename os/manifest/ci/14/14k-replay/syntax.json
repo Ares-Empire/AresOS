@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "guest_scripts": 258,
+  "serial_wrappers": 258,
+  "stderr_policy": "any parse stderr, including warnings, refuses",
+  "embedded_python": 233,
+  "ci_release_shells": 12,
+  "ci_overlay_owner_python": 44,
+  "execution": "syntax/compile only; no guest, service, privilege or hardware operation"
+}

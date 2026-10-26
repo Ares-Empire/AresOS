@@ -1,0 +1,29 @@
+{
+  "status": "retained local checks; no dispatch",
+  "files": [
+    {
+      "sha256": "6b77e90a9524abe3700c7499b8eecac81f975cb2cece281bfa8cc2906446c2d1",
+      "path": "guard-preflight.py"
+    },
+    {
+      "sha256": "dfa36e8cbb9452dc4d4598026038fffc0cd9e12fe7aaeca7ef36ce90fd92a709",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": "release-replay.log"
+    },
+    {
+      "sha256": "738b8c83c546d06cbc761b0ad2c22cc313bcf8ef9c283b141bd5995e2e3b94fd",
+      "path": "replay.json"
+    },
+    {
+      "sha256": "da32227ff5798436f73aa6e819c8746373bd202c1035065af46e340d00f6ce17",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": "zero-cost-replay.log"
+    }
+  ]
+}

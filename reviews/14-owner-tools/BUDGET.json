@@ -1,25 +1,53 @@
 {
   "allowance": "14",
   "start": "2026-10-25T22:01:22Z",
-  "cap": 350,
+  "cap": 400,
   "full_cap": 0,
   "full_dispatched": 0,
   "part_b_cap": 0,
   "part_b_dispatched": 0,
   "dispatch_caps": {
-    "probe": 5,
+    "probe": 6,
     "owner-tools": 2
   },
   "dispatch_counts": {
     "probe": 5,
     "owner-tools": 1
   },
-  "consumed_minutes": 212,
+  "consumed_minutes": 224,
   "reserved_minutes": 12,
   "runs": [
     {
+      "run": 40356240144,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "bcf2070b874f07d6b9c9300544837db33e41dcc8",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40356233423,
+      "title": "Brief 14k: owner chose to run probe 6 and qualification 2 now (cap 40\u2026",
+      "sha": "bcf2070b874f07d6b9c9300544837db33e41dcc8",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40271459641,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "ec829b6abebe098632167dbb811e0ede9ea05ca1",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40271454264,
+      "title": "Record clean full-history scan and retained14j replay logs",
+      "sha": "ec829b6abebe098632167dbb811e0ede9ea05ca1",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
       "run": 40269676645,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "259648962f6cd052c16648904ab7399308088e90",
       "conclusion": "success",
       "minutes": 3
@@ -33,7 +61,7 @@
     },
     {
       "run": 40269119367,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "e95352af33e3f23593415c898105158cc5664fe1",
       "conclusion": "success",
       "minutes": 2
@@ -61,7 +89,7 @@
     },
     {
       "run": 40261603041,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
       "conclusion": "success",
       "minutes": 2
@@ -75,7 +103,7 @@
     },
     {
       "run": 40260375474,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "b71de4af3df67c9f7cbbbb530bf4731fa2383296",
       "conclusion": "success",
       "minutes": 2
@@ -89,7 +117,7 @@
     },
     {
       "run": 40254429101,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "2675f28d927b64834e5f7e2f4bfe153d91ab7fc8",
       "conclusion": "success",
       "minutes": 3
@@ -103,7 +131,7 @@
     },
     {
       "run": 40253972397,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "f1df3dae8b444532e8f0944e6213f3c471dcd509",
       "conclusion": "success",
       "minutes": 3
@@ -124,7 +152,7 @@
     },
     {
       "run": 40249682573,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "02eac4a226787a8879ee80d8d814221a22630323",
       "conclusion": "success",
       "minutes": 2
@@ -138,7 +166,7 @@
     },
     {
       "run": 40248937111,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "de322e9059fc359d75feb8be048f42533123e26e",
       "conclusion": "success",
       "minutes": 3
@@ -152,7 +180,7 @@
     },
     {
       "run": 40247173828,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "afd608b70f22a84c41ea848d4ae11a6f70e57d79",
       "conclusion": "success",
       "minutes": 3
@@ -166,7 +194,7 @@
     },
     {
       "run": 40246837954,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "754eafe273254f6856ec992b58e9ecf8f31700e3",
       "conclusion": "success",
       "minutes": 2
@@ -187,7 +215,7 @@
     },
     {
       "run": 40245226417,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
       "conclusion": "success",
       "minutes": 2
@@ -201,7 +229,7 @@
     },
     {
       "run": 40244218639,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "2d934d7487170bb9b04e9043ca0536c95d2eeec1",
       "conclusion": "success",
       "minutes": 3
@@ -215,7 +243,7 @@
     },
     {
       "run": 40243691197,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "500e597a9d87e8aba5ef286da0324ed448752d30",
       "conclusion": "success",
       "minutes": 3
@@ -236,7 +264,7 @@
     },
     {
       "run": 40242274817,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
       "conclusion": "success",
       "minutes": 3
@@ -250,7 +278,7 @@
     },
     {
       "run": 40240890854,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
       "conclusion": "success",
       "minutes": 3
@@ -264,7 +292,7 @@
     },
     {
       "run": 40240457809,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
       "conclusion": "success",
       "minutes": 3
@@ -278,7 +306,7 @@
     },
     {
       "run": 40239504514,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
       "conclusion": "success",
       "minutes": 3
@@ -292,7 +320,7 @@
     },
     {
       "run": 40239030452,
-      "title": "14: owner tools; tty3 readiness blocks qualification",
+      "title": "14: checked owner tools with idle-only console resync",
       "sha": "bfbb3c696b9107966eddeb1281954de318f3e476",
       "conclusion": "success",
       "minutes": 3
@@ -317,19 +345,23 @@
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 59,
-    "total_count": 59,
+    "ids_count": 63,
+    "total_count": 63,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 59,
-        "total_count": 59,
-        "ids_sha256": "525b4406e374d7c0be723e4d168f06d385151fda2f70199aacee40117ae4bd83"
+        "returned": 63,
+        "total_count": 63,
+        "ids_sha256": "8a405c4482d7d4f4625b2ddf8d4705e936c9767530813cfc78edbee004559189"
       }
     ],
     "run_ids": [
+      40356240144,
+      40356233423,
+      40271459641,
+      40271454264,
       40269676645,
       40269672103,
       40269119367,
@@ -391,41 +423,41 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-26T04:51:59.431968+00:00",
-  "snapshot_kind": "14j pre-push;12 closing privacy minutes reserved; no dispatch authorized",
+  "checked_at": "2026-10-26T16:13:40.536263+00:00",
+  "snapshot_kind": "14k STOP before any dispatch;12 closing/report privacy minutes only",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-26T04:51:58.784900+00:00",
-    "response_sha256": "9305377c3b419cf997608077795053b80a0a43f9662a4f32a4661971edda0971",
+    "checked_at": "2026-10-26T16:13:39.862329+00:00",
+    "response_sha256": "4b1ed39c72feb7d82ce8fd1f56843cfb35e422c2e4ff88e37b7f20b996ef0b62",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 1726.0,
-        "discountQuantity": 1726.0,
+        "grossQuantity": 1738.0,
+        "discountQuantity": 1738.0,
         "netQuantity": 0.0,
-        "grossAmount": 10.356,
-        "discountAmount": 10.356,
+        "grossAmount": 10.428,
+        "discountAmount": 10.428,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 6.086762037,
-        "discountQuantity": 6.086762037,
+        "grossQuantity": 8.364839872,
+        "discountQuantity": 8.364839872,
         "netQuantity": 0.0,
-        "grossAmount": 0.002045237,
-        "discountAmount": 0.002045237,
+        "grossAmount": 0.002810716,
+        "discountAmount": 0.002810716,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 1726,
+    "used_minutes": 1738,
     "included_minutes": 2000,
-    "remaining_minutes": 274,
+    "remaining_minutes": 262,
     "reserved_minutes": 12,
-    "after_reservation": 262,
-    "other_repos_reserve": 150,
+    "after_reservation": 250,
+    "other_repos_reserve": 80,
     "credential": "existing local gh login; GET only"
   },
   "local_privacy_scans": [
@@ -663,44 +695,31 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "ec829b6abebe098632167dbb811e0ede9ea05ca1",
+      "checked_at": "2026-10-26T04:54:30.005653+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
   "dispatch_in_this_run": false,
-  "next_resume_options": {
-    "no_dispatch_authority": true,
-    "enforced_probe_cap": 5,
-    "needed_probe_ordinal": 6,
-    "qualification_ordinal": 2,
-    "same_commit_passing_probe_required": true,
-    "estimated_probe_minutes": 25,
-    "qualification_hard_timeout": 130,
-    "plan_vm_minutes": 155,
-    "conservative_probe_reservation": 42,
-    "closing_privacy_reservation": 12,
-    "conservative_plan_reservation": 184,
-    "now": {
-      "org_remaining_before_closing": 274,
-      "org_after_vm_estimate": 119,
-      "org_after_closing_and_vm_estimate": 107,
-      "org_after_conservative_plan": 90,
-      "smaller_reserve_requires_owner_decision": true
+  "complete_plan_guard": [
+    {
+      "check": "package",
+      "status": "refused",
+      "reason": "STOP: 224 + 184 reserved exceeds 400 minutes"
     },
-    "november_1": {
-      "monthly_allowance": 2000,
-      "org_after_vm_estimate_if_unused": 1845,
-      "org_after_conservative_plan_if_unused": 1816,
-      "fresh_billing_required": true,
-      "package_ledger_does_not_reset": true
-    },
-    "package": {
-      "cap": 350,
-      "consumed_before_closing": 212,
-      "estimated_total_before_closing": 367,
-      "estimated_total_with_closing": 379,
-      "conservative_total": 396,
-      "cap_gap_even_before_closing": 17,
-      "owner_cap_decision_required": true
-    },
-    "configuration_changed": false
-  }
+    {
+      "check": "organization",
+      "status": "refused",
+      "reason": "STOP: organization has 262 free minutes; 184 reserved must leave 80"
+    }
+  ],
+  "required_plan_reservation": 184,
+  "decision": "bcf2070",
+  "acceptance_met": false,
+  "reserve_restoration_condition_met": false
 }

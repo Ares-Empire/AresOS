@@ -1,6 +1,104 @@
 # 14: checked owner tools
 
-**Current 14j status: local prompt-resync fix; NO DISPATCH, awaiting the
+**Current 14k status: STOP — package and organization budget guards refused
+the complete required reservation.** Package14's requested400-minute cap,
+six-probe allowance and80-minute org reserve are applied; package13 is
+unchanged. No probe or qualification was dispatched. PR #13 remains
+**draft / NOT RELEASED**.
+
+## 14k — October limits applied; complete-plan budget STOP
+
+### Done
+
+Ran `git pull --ff-only` first: already at `bcf2070`. Read14k, AGENTS, README,
+the14j ledger/report and existing guard, tests and replay code. Changed only
+package14's `minute_cap`350→400, probe allowance5→6, org reserve150→80.
+`owner-tools` remains2. Package13 and every other package setting are unchanged.
+
+Updated the guard regression to accept exactly400 minutes and six probes,
+refuse401 and seven probes, and assert package14's80 reserve with package13
+still150. The active host-walk bindings and new14k replay bind the current
+configuration/test bytes. Historical run/replay receipts remain unchanged.
+No owner tool, console fix, frozen release path, workflow permission, privacy
+rule/ignore entry, credential or scope changed.
+
+### Verified
+
+- Local owner host walk: **78 tests passed**, no skips. Strict composed-command
+  checks passed **258 guest scripts +258 serial wrappers**,233 embedded Python
+  programs,12 shell files and44 CI/overlay/owner Python files, refusing parse
+  stderr including warnings.
+- Full local discovery: **315 tests;307 passed; the same eight native-host
+  limitations**, no skips (2 failure/9 error records, including duplicate
+  cleanup errors). These remain the three Pillow greeter checks, three
+  privileged Homebrew fixtures, sysusers fixture and DrvFS auth-file mode.
+  No assertion or local restriction was waived.
+- Actual read-only release verifier and offline source replay passed: pinned
+  PR-head/squash ancestry, unchanged payload, release run/jobs,53 retained
+  sources and complete ISO listing. Four private-registry checks remain
+  explicitly CI-only with unchanged fail-closed implementations. No owner
+  secret was used. The ISO inspector was **not rerun after the budget STOP**;
+  retained14j evidence is labelled historical, not fresh VM qualification.
+- Windows copy suite: **15 destination refusals with zero writes**, copied
+  payload equal; fingerprint remains
+  `118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba`.
+- A preliminary read-only cost query deferred while the brief commit's normal
+  privacy jobs were active. Once they settled, the guard proved complete
+  **63/63** run history with all costs settled. The full184-minute reservation
+  was checked once; its package and organization checks both refused.
+
+### Guard STOP and ledger
+
+| Item | Settled pre-push value |
+|---|---:|
+| Package consumed | 224/400 min |
+| Complete branch history | 63/63 runs |
+| Dispatches spent | 5/6 probes;1/2 qualifications |
+| Required remaining plan | 42 probe/native +130 qualification +12 closing =184 min |
+| Package after reservation | 408/400;8 over cap |
+| Org minutes free | 262 |
+| Org after reservation | 78;2 below required80 |
+| Image publication attempts | 0 |
+
+Production guard messages:
+
+```text
+STOP: 224 + 184 reserved exceeds 400 minutes
+STOP: organization has 262 free minutes; 184 reserved must leave 80
+```
+
+Evidence: [`14k-ledger/preflight.json`](../../os/manifest/ci/14/14k-ledger/preflight.json)
+and [`14k-replay`](../../os/manifest/ci/14/14k-replay/replay.json). This is a
+pre-dispatch refusal, not a failed VM run. No smaller reservation was tried;
+no workflow was dispatched or rerun. The new head has no passing probe.
+
+The212 baseline in14k predates six minutes of14j closing privacy and six
+minutes of privacy for the new brief: actual consumed is224. The committed
+ledger therefore reserves **only12 closing/report privacy minutes** after
+STOP, not a VM plan:224+12=236≤400,262−12=250≥80. Actual closing receipts/cost
+will be recorded on PR #13 after those jobs settle, without another report
+push loop. Pinned local gitleaks8.21.2 must report0 over the full history
+before every push; no privacy exception is added.
+
+### Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
+
+**Stopped as14k requires.** Probe6, the second qualification, fresh native CI,
+private CI-only access checks and new VM acceptance were not run. No full-run
+allowance was consumed and no probe result was reused from another head.
+Physical installation remains NOT RELEASED. Acceptance is unmet, so PR #13
+stays draft and the acceptance-conditioned restoration to150 has not occurred;
+the explicitly requested80 stays in package14. Nothing was lowered further.
+
+**PLAN-GAP:** the authorized400/80 limits still cannot cover the complete
+hard-bound plan at the settled ledger/billing values. No further budget change
+or retry is inferred. Only the owner can authorize a different continuation.
+No product judgment, real-device action, image build/publication, merge or
+force push occurred. The guide/card's existing unaccepted-route status remains
+true; no new owner command or bypass was added.
+
+## Prior 14j status
+
+**14j status: local prompt-resync fix; NO DISPATCH, awaiting the
 owner's budget decision.** PR #13 remains **draft / NOT RELEASED**. The
 same-head qualification remains incomplete. This run changes no release,
 owner tool, workflow, privacy rule, allowance or reserve.
