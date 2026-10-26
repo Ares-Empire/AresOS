@@ -312,7 +312,9 @@ def framed(command):
     return '''set -e
 result=$(mktemp /run/aresos-json.XXXXXX)
 trap 'rm -f "$result"' EXIT
-''' + command + ''' > "$result"
+{
+''' + command + '''
+} > "$result"
 python3 - "$result" <<'ARESOS_JSON_EXPORT'
 import base64, hashlib, json, pathlib, sys
 raw = pathlib.Path(sys.argv[1]).read_bytes()

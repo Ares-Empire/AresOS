@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 60,
+  "tests": 69,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -92,12 +92,20 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "6706a34984e5cdfe057dc5dac1d49e7117e252604ee8e9736cbdd7a208d2a87a",
+      "sha256": "a27fdf3b9eac69cf294894e1399342e4a55c4ae26aa96251d4d9f92497db5b9f",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
       "sha256": "0444c0c1736a77e551042b38f99a79d8c7e1eabedc4cb67cc37d2cb7a7b98cf5",
       "path": "os/ci/rehearsal_guard.py"
+    },
+    {
+      "sha256": "8fed6d24fb29ec65d5641a3adf3b2fd272fbaa5541d4802880630cd6246bc3b6",
+      "path": "os/ci/serial_console.py"
+    },
+    {
+      "sha256": "aa2955d84469aad03bc015a3dd69bdd64abd6dc596e29c21885610b1717a6af8",
+      "path": "os/ci/switch_vm.py"
     },
     {
       "sha256": "dc1b812003e2d30f8a7ed6e1d18a2e9e6b667cd07fc97cb599dae2490eac7df1",
@@ -220,6 +228,10 @@
       "path": "os/release/verify.sh"
     },
     {
+      "sha256": "2cc6da1a77bed2f9c964f02a753fd6f4569fb9cf434898ff13751d30e8d65d7e",
+      "path": "os/tests/guest_shell.py"
+    },
+    {
       "sha256": "82aac75c97b02a61b116448d09e259ef2cd4bb83a45920d3c24854d7ad86dfcb",
       "path": "os/tests/owner_fuse_shim.py"
     },
@@ -232,11 +244,19 @@
       "path": "os/tests/test_ci_api_permissions.py"
     },
     {
+      "sha256": "567b73154c0d28eb9f935ae3649a1f3d1341da80a9c439c5007da7eb2d781186",
+      "path": "os/tests/test_guest_framing.py"
+    },
+    {
+      "sha256": "f4a354342eb255ae8a762bf02130120317082b9a701495b46f845374e35c1876",
+      "path": "os/tests/test_keyboard_walk.py"
+    },
+    {
       "sha256": "1f968cbdd73f24905bc0589cca68dbbc7c12e53a38963ad75d899771fd168ba2",
       "path": "os/tests/test_owner_capabilities.py"
     },
     {
-      "sha256": "b2951362395e0489a29e997e4a3d7ffecf725890d440574826ccef65abe388ae",
+      "sha256": "ed555b0c967901cd1729514658d3bb6abdd248c852ee72de1a434ca4ef02c8f8",
       "path": "os/tests/test_owner_commands.py"
     },
     {
@@ -248,7 +268,7 @@
       "path": "os/tests/test_owner_export.py"
     },
     {
-      "sha256": "fec7bf443ffc6d6a22aa15d475a35497041d3b974fac325670f960c192f99299",
+      "sha256": "5764b14125331b8fde635b89c2852a3afb3caa964469aa11e16d96b1c5d6b9cb",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -264,7 +284,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "d18a5d7da6c1320c3e332ba4ce7458d48fe30d578afe65dfb8ff7ae0bc841138",
+      "sha256": "2788f5597212255d48beb32b23089a4e61f81e45c0ad9d2680fffa8f2b50fee6",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -272,7 +292,7 @@
       "path": "os/tests/test_release_squash_binding.py"
     },
     {
-      "sha256": "469b7de93afdcbd3c84d8b4801cd5cff4d224d208cac2796392a8428ad357e72",
+      "sha256": "3072191c55d6c56d3fd30a8c0adb7f2cf09e837bf732f7886fc909c40b9fffe6",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

@@ -17,6 +17,7 @@ import unittest
 from unittest.mock import patch
 
 import test_owner_tools as common
+from guest_shell import syntax
 
 owner, bundle, ROOT = common.owner, common.bundle, common.ROOT
 RUN = subprocess.run
@@ -45,6 +46,7 @@ class ShimHost(owner.Host):
         self.trace.append(dict(command=command, mutation=True))
 
     def script(self, text, name, mutation=True):
+        syntax(name, text)
         # Execute the exact embedded Python, including cleanup_only's loader.
         marker = text.split("<<'", 1)[1].split("'", 1)[0]
         source = text.split("<<'" + marker + "'\n", 1)[1].split('\n' + marker, 1)[0]

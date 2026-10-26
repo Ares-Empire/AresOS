@@ -22,12 +22,13 @@ import test_release_squash_binding
 import test_ci_api_permissions
 import test_owner_media
 import test_owner_capabilities
+import test_guest_framing
 
 
 def main():
     suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(m) for m in
         (test_owner_commands,test_owner_export,test_owner_transport,test_owner_walk,test_owner_guard,test_owner_equality,test_owner_tools,
-         test_release_squash_binding,test_ci_api_permissions,test_owner_media,test_owner_capabilities))
+         test_release_squash_binding,test_ci_api_permissions,test_owner_media,test_owner_capabilities,test_guest_framing))
     result=unittest.TextTestRunner(verbosity=2).run(suite)
     assert result.wasSuccessful() and not result.skipped
     walk=test_owner_walk.walk()
@@ -40,6 +41,8 @@ def main():
     files.update(ROOT/p for p in ('os/ci/installer_webui.py','os/ci/two_disk_vm.py','os/ci/registry_auth.py',
         'os/ci/rehearsal_guard.py','os/ci/rehearsal-packages.json','os/ci/verify_release.py',
         'os/tests/test_release_squash_binding.py','os/tests/test_ci_api_permissions.py','os/tests/owner_fuse_shim.py',
+        'os/ci/switch_vm.py','os/ci/serial_console.py','os/tests/guest_shell.py','os/tests/test_guest_framing.py',
+        'os/tests/test_keyboard_walk.py',
         '.github/workflows/os-image.yml'))
     proof=dict(status='passed',kind='local stand-ins, not VM qualification',tests=result.testsRun,
         stick_across_reboot=False, stages=walk['stages'],markers=walk['markers'],checks=walk['checks'],

@@ -463,7 +463,7 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
 
 - **OPEN — package 14 physical gates:** Fedora Media Writer 5.3.2 restore German click path, reviewed bundle copy/eject, novice offline round trip, root-only shared tools across stock/AresOS, and tools-stick hotplug/export/unplug. A forgotten data-only stick at power-on is physically untested; it is never an accepted firmware-audit exception.
 - **OPEN — NVIDIA deferred runtime (14b):** after first network, confirm the enabled sync finishes for the real GPU and the entire deployment/pin/pending/BLS state stays unchanged. Virtio graphics cannot exercise its NVIDIA condition. Never mask or delay it.
-- **STOP — Package 14 automated owner-tools qualification:** 14h's native capability smoke, all297 tests, FUSE copy/fsck/readback and private-access checks pass. Probe4/4 stopped at guest JSON/heredoc framing after the offline payload printed carrier0, before WebUI transport or guest tools hotplug. All probes are spent; qualification is unrun. See [REPORT](../reviews/14-owner-tools/REPORT.md). No image rebuilt or published. Installation stays NOT RELEASED.
+- **OPEN — Package 14 automated owner-tools qualification:** 14h's native capability smoke, all297 tests, FUSE copy/fsck/readback and private-access checks pass. Probe4 stopped at guest JSON/heredoc framing. The14i brace-group fix and real-Bash regressions pass locally; the newly authorized fifth probe and qualification are pending. See [REPORT](../reviews/14-owner-tools/REPORT.md). No image rebuilt or published. Installation stays NOT RELEASED.
 
 
 - **OPEN — 14b NVIDIA Flatpak sync on the real GPU:** after the qualified
@@ -475,9 +475,10 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
 - **STOP — package 14 owner tools:** 14b accepts NVIDIA's Flatpak-only retry;
   14c keeps the tools stick absent at firmware startup, preserving every audit.
   The14g git-only squash binding and private-access checks passed in CI.
-  The14h FUSE path and native capability gate passed. Probe4/4 then stopped at
-  guest command framing before WebUI/hotplug; no passing probe or qualification
-  exists. All probe allowances are spent and the route remains unaccepted.
+  The14h FUSE path and native capability gate passed. Probe4 then stopped at
+  guest command framing before WebUI/hotplug. The14i fix passes real Bash
+  regressions locally; fifth probe and qualification are pending. The route
+  remains unaccepted.
   The new commands are not released for physical installation. Existing laptop
   and followability gates remain open; see the [14 report](../reviews/14-owner-tools/REPORT.md).
 

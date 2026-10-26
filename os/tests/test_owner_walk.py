@@ -22,6 +22,7 @@ import owner_vm as vm
 import owner_media
 import test_owner_tools as common
 from owner_fuse_shim import Volume
+from guest_shell import syntax
 
 FIXTURES = ROOT / 'os/tests/fixtures/owner-tools'
 
@@ -50,12 +51,16 @@ def walk():
             visits.append(stage)
 
         def command(self, name, source, **kw):
+            syntax(name, source)
             commands.append((name, source))
             if name.endswith('-homebrew'): return 'f' * 64 + '  /home/linuxbrew/.linuxbrew/bin/brew\n'
             return ''
 
         def capture_json(self, name, source):
+            syntax(name, source)
             commands.append((name, source))
+            if name in ('offline-first-stock-link', 'stock-offline-login', 'live-offline-before-webui'):
+                return dict(status='passed', physical_link_down=True)
             if name == 'owner-record-list': return []
             if name.endswith('-owner-result'):
                 return dict(status='stopped' if 'refus' in name else 'passed', trace=[])
@@ -72,7 +77,9 @@ def walk():
 
         def keys(self, keys): pass
         def screenshot(self, stage): assert self.screenshot_safe
-        def assert_offline(self, stage): checks.append(stage)
+        def assert_offline(self, stage):
+            vm.Guest.assert_offline(self, stage)
+            checks.append(stage)
         def media_absent(self, stage):
             assert self.owner_media is None, 'Stick crossed a reboot'
             checks.append(stage + '-tools-absent')
@@ -133,6 +140,18 @@ def walk():
 
 
 class OwnerWalkTest(unittest.TestCase):
+    def test_live_offline_command_is_composed_and_checked(self):
+        guest = object.__new__(vm.Guest)
+        checked = []
+        def capture(name, source):
+            syntax(name, source)
+            checked.append(source)
+            return dict(physical_link_down=True)
+        guest.capture_json = capture
+        guest.assert_offline('live-offline-before-webui')
+        self.assertEqual(len(checked), 1)
+        self.assertIn("\nPY\n} >", checked[0])
+
     def test_real_guest_boot_and_marker_shutdown_adapters_preserve_parent_api(self):
         monitor=Mock()
         def initialize(guest,*args,**kw):guest.monitor=monitor;guest.boot_number=1
@@ -177,7 +196,9 @@ class OwnerWalkTest(unittest.TestCase):
             self.assertFalse(media.attached)
 
     def test_all_remaining_host_paths_and_all_typed_characters(self):
-        result = walk()
+        with patch(__name__ + '.syntax', wraps=syntax) as checked:
+            result = walk()
+        self.assertEqual(checked.call_count, len(result['commands']))
         names = {name for name, source in result['commands']}
         for fragment in ('layout-us-begin','layout-plain-us-rejected','layout-us-revert','layout-intl-proof',
                          'layout-back-de-proof','rollback-from-stock-refused','owner-keep-stock'):

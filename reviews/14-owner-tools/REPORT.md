@@ -1,5 +1,90 @@
 # 14: checked owner tools
 
+**Current 14i status: local framing fix verified; fresh probe/qualification
+pending.** The integrator authorized a fifth probe. PR #13 stays draft until
+automated acceptance; physical installation stays **NOT RELEASED**.
+
+## 14i — Brace-group guest framing and real Bash execution
+
+**Done:** ran `git pull --ff-only` first, already at `b71de4a`. The only
+executable harness change puts the supplied command inside a brace group,
+with `{`, the command, and `} > "$result"` on separate lines. `set -e`, the
+temporary-file cleanup and the checksum/base64 JSON export are unchanged.
+No owner tool, script, frozen runtime, image or workflow permission changed.
+
+Eight new regression tests run the actual `framed()` output in existing WSL
+Bash, directly and through the unchanged `encode_command()` serial wrapper.
+They cover single-line, multi-line, heredoc-ending with/without trailing
+newline, exit7 with no export, and noisy stderr with byte-exact decoded JSON.
+The allocation-only `mktemp` shim validates the production `/run` template
+and allocates inside the test's ordinary worktree folder; the wrapper itself
+is not rewritten. Both success and failure must clean up the temporary file.
+Invalid syntax, an unterminated-heredoc warning with exit0, and an invalid
+serial wrapper are independently refused.
+
+`guest_shell.syntax` runs real `bash -n` on **both** the composed guest script
+and its serial wrapper at each owner/keyboard stand-in boundary. Any stderr,
+including warnings with exit0, fails the walk. Shared owner shell steps are
+also parsed before their Python/shim adapters run. The owner walk now calls
+the real offline-command composer instead of bypassing it; a separate test
+checks the live pre-WebUI heredoc. The all-path walk asserts one syntax check
+per stubbed command, so a synthetic response cannot silently bypass parsing.
+
+**Verified locally:** the initial updated host walk passed **69 tests in
+60.587s**, no skips. The real-Bash framing subset passed **8 in1.877s**.
+Whole discovery ran **306 tests in184.337s**, with **298 passed**, the same
+eight existing native-host limits, no skips; output was
+`FAILED (failures=2, errors=9)`, exit1. The eight are unchanged: three need
+absent local Pillow, three inherited-Homebrew and one sysusers fixture are
+refused by the no-privilege shim, and DrvFS exposes0777 instead of0600 for
+the credential-mode fixture. Cleanup produces extra error records. All306
+remain mandatory on the native runner, without skips or waivers.
+
+The actual release verifier again passed the read-only run/jobs requests,
+Git fetches, both ancestry checks and both frozen-payload diffs. The actual
+9,068,650,496-byte pinned ISO was freshly rehashed and inspected, including
+the current public checksum, four localization and102 WebUI source files.
+The53-source offline gate and full listing passed. Windows copy again passed
+all15 zero-write refusals with the unchanged bundle fingerprint. The four
+credential-limited registry checks remain explicitly CI-only under14f and
+fail closed in the probe; no credential, scope or owner secret changed.
+Final walk/source receipts are retained in `os/manifest/ci/14/14i-replay/`.
+The final walk passed **69 tests in62.897s**, with61 source bindings. Strict
+replay parsed all258 guest scripts **and** their258 serial wrappers without
+any stderr, compiled233 embedded Python programs and43 CI/release/overlay/
+owner Python files without writing caches, and parsed all12 CI/release shell
+scripts. All157 canonical replay input hashes are retained for Git-blob
+comparison before POST.
+
+**Updated stage walk before dispatch:** real Bash framing/strict parsing;
+whole/native suites; early loop/FUSE/QEMU capability gate; private checks and
+pinned ISO; offline live preview with tools hotplug/removal, detached Windows
+and target reset for the probe. On the same head, qualification follows the
+unchanged protected-second route: offline install, first-stock hardware
+setup/reboot, Windows round trip with tools absent, Linux sign-in/hotplug,
+install/prepare/rerun, first network with whole deployment/pin/pending/BLS
+invariance, record export/removal, Windows checkpoint, corrected stock and
+signed switch, German → plain-US failed fresh login/revert → US International
+success → German, rollback/keep-stock and Windows checkpoints. All protected
+disk, NVRAM, BootNext, Windows-default and detached-device checks remain.
+
+**Planning ledger:** complete51/51 history, **128 consumed +184 reserved /350**;
+**4/5 probes**, **0/2 qualifications**, no image/publication attempts. The184
+reserves42 probe/native +130 one qualification +12 closing privacy. Org billing
+leaves **177 after reservation**, above150. The optional second qualification
+needs its own fresh guard. Before every push, pinned gitleaks8.21.2 must scan
+the full history with0 findings; before POST, refresh exact-head privacy,
+14e/14f replay, complete ledger and billing. A different blocker means STOP,
+with no rerun.
+
+**Not verified:** fifth probe and qualification are pending. Physical NVIDIA,
+media, forgotten-stick, laptop and followability gates remain open.
+**JUDGMENT-CALL:** none beyond the integrator's prescribed brace grouping.
+**PLAN-GAP / open questions:** none new before dispatch; the14h framing gap is
+locally fixed and must still pass in the actual guest.
+
+## Historical 14h status
+
 **Current 14h status: STOP / PLAN-GAP at guest JSON command framing.** The
 native capability smoke, all297 native tests,15 Windows refusals, four private
 checks, ISO inspection and real FUSE media copy/fsck/readback passed. The live
