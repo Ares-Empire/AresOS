@@ -1,5 +1,17 @@
 # 15: one owner checklist and a symptom-first emergency card
 
+## 15c — Merge package 14n council fixes (2026-10-26)
+
+**Done:** merged `754cf7c` with `--no-ff` from `3e07271`, preserving package 15's numbered checklist, symptom card, safety gates and state-dependent returns. Imported tools/harness/workflow/release content equals `754cf7c`; no additional runtime changes. The regenerated tools manifest fingerprint is `ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112`. Earlier bundle receipts below and in package 14's historical sections do not qualify this bundle.
+
+All 19 CLI actions run through the real dispatcher with nonprivileged handler stand-ins. Every quoted/fenced expected CLI PASS across INSTALL, INSTALL-PROCEDURES, INSTALL-REFERENCE and EMERGENCY is compared with captured stdout, including repeated recovery references. Layout begin profiles have explicit matching results; path tests use captured proof/finish/reboot results. Mutations reject shortened PASS lines and an extra stale fingerprint in every owner page/current report, even alongside a correct copy. Regenerated payload, current fingerprint inventory and documented hashes agree; historical receipts remain intact.
+
+**Verified locally:** WSL `python3 -m unittest discover -s os/tests` with `-p test_owner_path.py -v`: **16 tests /36.466s, OK**; `-p test_owner_equality.py -v`: **8 /41.578s, OK**; `-p 'test_owner*.py' -v`: **95 /142.298s, OK**, no skips. Worktree TMPDIR and the existing privilege-denial shim remain. Focused equality rerun with the final current-report fingerprint assertions: **8 /38.021s, OK**.
+
+`pwsh -NoProfile -File os/tests/owner-pass.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/15c/windows-pass-verified`: **4 documented Windows PASS results equal captured stdout**, plus all **15 zero-write copy refusals** and **78 record checks** passed. Two initial wrapper failures (PSDrive scope and a fixture's module cleanup) were corrected at those fixture boundaries; no product guard/assertion changed. `git diff --check`, syntax, scope and retired-fingerprint checks pass. Pinned publisher-checksum-verified **gitleaks 8.21.2**, `git . --log-opts=--all --redact=100`: **544 commits, zero leaks**, exit0 before the merge commit; the committed merge head is rescanned afterwards, with receipts in ignored `.work/15c/gitleaks/`.
+
+**Not verified:** actual native partitioned-loop execution, VM qualification and physical gates remain open; installation is **NOT RELEASED**. No Minecraft client/Gradle, VM, dispatch, image build, hardware query, push, rebase or main merge. Screenshots unchanged. **JUDGMENT-CALL / PLAN-GAP / open questions:** none new.
+
 ## 15b — review fixes (2026-10-26)
 
 **Done — all five findings:**

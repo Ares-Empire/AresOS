@@ -23,7 +23,7 @@ class ExportTest(unittest.TestCase):
             class Host:
                 mounted=False
                 def json(self,*args):
-                    return dict(blockdevices=[dict(type='disk',tran='usb',rm=True,children=[dict(path='/dev/SYNTHETIC1',
+                    return dict(blockdevices=[dict(path='/dev/SYNTHETIC',type='disk',tran='usb',rm=True,mountpoints=[None],children=[dict(path='/dev/SYNTHETIC1',
                         type='part',label='ARESTOOLS',fstype='exfat',uuid='synthetic',mountpoints=[str(mount)] if self.mounted else [None])])])
                 def mutate(self,*args):
                     calls.append(args)
@@ -59,8 +59,8 @@ class ExportTest(unittest.TestCase):
         for bad in (dict(tran='nvme'),dict(rm=False),dict(fstype='ntfs'),dict(uuid='')):
             class Host:
                 def json(self,*args):
-                    disk=dict(type='disk',tran='usb',rm=True)
-                    volume=dict(path='/dev/SYNTHETIC',type='part',label='ARESTOOLS',fstype='exfat',uuid='known')
+                    disk=dict(path='/dev/SYNTHETIC',type='disk',tran='usb',rm=True,mountpoints=[None])
+                    volume=dict(path='/dev/SYNTHETIC1',type='part',label='ARESTOOLS',fstype='exfat',uuid='known',mountpoints=[None])
                     disk.update({k:v for k,v in bad.items() if k in ('tran','rm')})
                     volume.update({k:v for k,v in bad.items() if k not in ('tran','rm')})
                     return dict(blockdevices=[dict(disk,children=[volume])])

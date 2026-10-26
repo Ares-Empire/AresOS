@@ -11,12 +11,33 @@
     "owner-tools": 2
   },
   "dispatch_counts": {
-    "probe": 5,
+    "probe": 6,
     "owner-tools": 1
   },
-  "consumed_minutes": 230,
-  "reserved_minutes": 190,
+  "consumed_minutes": 249,
+  "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 40363137526,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "5156f5fac592e1e30077b22c196124a1feaafe89",
+      "conclusion": "failure",
+      "minutes": 13
+    },
+    {
+      "run": 40362028134,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "5156f5fac592e1e30077b22c196124a1feaafe89",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40362011848,
+      "title": "14l: record one-push October decision, cap420 and reserve60",
+      "sha": "5156f5fac592e1e30077b22c196124a1feaafe89",
+      "conclusion": "success",
+      "minutes": 3
+    },
     {
       "run": 40358600829,
       "title": "14: checked owner tools with idle-only console resync",
@@ -359,19 +380,22 @@
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 65,
-    "total_count": 65,
+    "ids_count": 68,
+    "total_count": 68,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 65,
-        "total_count": 65,
-        "ids_sha256": "b8b18e86baffac8cb4529ad39a35380754bba638286bb14226ea282756589121"
+        "returned": 68,
+        "total_count": 68,
+        "ids_sha256": "43626ec2ce0a4d2fd9d1190ecaddeda7c7b9dc88555b9de8ea751c85e0d1ffb3"
       }
     ],
     "run_ids": [
+      40363137526,
+      40362028134,
+      40362011848,
       40358600829,
       40358590302,
       40356240144,
@@ -439,22 +463,22 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-26T16:37:04.563289+00:00",
-  "snapshot_kind": "14l pre-push planning:6 one push +184 full bound; not dispatch authorization",
+  "checked_at": "2026-10-26T17:07:02.366418+00:00",
+  "snapshot_kind": "14l closed STOP ledger, committed locally by14m; historical billing, not dispatch authorization",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-26T16:37:03.830617+00:00",
-    "response_sha256": "c59f88530a1291d3ef1d78ea9f2fc767158f34cfaa8ac33385637f995a0df1a7",
+    "checked_at": "2026-10-26T17:07:01.675233+00:00",
+    "response_sha256": "eb9e0448d85b92f6ba553d3f7bc7394f6bd7ba2f70a47c4d839671f94cb50f2d",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 1741.0,
-        "discountQuantity": 1741.0,
+        "grossQuantity": 1753.0,
+        "discountQuantity": 1753.0,
         "netQuantity": 0.0,
-        "grossAmount": 10.446,
-        "discountAmount": 10.446,
+        "grossAmount": 10.518,
+        "discountAmount": 10.518,
         "netAmount": 0.0
       },
       {
@@ -468,11 +492,11 @@
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 1741,
+    "used_minutes": 1753,
     "included_minutes": 2000,
-    "remaining_minutes": 259,
-    "reserved_minutes": 190,
-    "after_reservation": 69,
+    "remaining_minutes": 247,
+    "reserved_minutes": 0,
+    "after_reservation": 247,
     "other_repos_reserve": 60,
     "credential": "existing local gh login; GET only"
   },
@@ -735,9 +759,100 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "5156f5fac592e1e30077b22c196124a1feaafe89",
+      "checked_at": "2026-10-26T16:44:28.171909+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "734c11bf9f4db810a8acaee0680faafdcb946e65",
+      "checked_at": "2026-10-26T17:17:12.060191+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "8eab7f6e40c8e88caf399ac7416b675e0cc1d4e8",
+      "checked_at": "2026-10-26T19:11:04.921299+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
+  "pre_dispatch_privacy": {
+    "checked_at": "2026-10-26T16:48:32.255654+00:00",
+    "head": "5156f5fac592e1e30077b22c196124a1feaafe89",
+    "private_repository": true,
+    "source_hashes_match": true,
+    "runs": [
+      {
+        "run": 40362028134,
+        "head": "5156f5fac592e1e30077b22c196124a1feaafe89",
+        "event": "pull_request",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true,
+        "log_zip_sha256": "bc17787204f96beb71ccd24c40921b118ac2038d42889e2c742a01e471e5c66e"
+      },
+      {
+        "run": 40362011848,
+        "head": "5156f5fac592e1e30077b22c196124a1feaafe89",
+        "event": "push",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true,
+        "log_zip_sha256": "6fc2125a47ef51e4aa09f78e5ce4d68681c9fee18cc329ef245812a2c8512cd2"
+      }
+    ]
+  },
   "owner_decision": "14l 2026-10-26",
-  "pre_dispatch_push_limit": 1,
-  "pre_dispatch_commit_limit": 1
+  "pre_dispatch_pushes": 1,
+  "pre_dispatch_commits": 1,
+  "probe6_run": 40363137526,
+  "probe6_result": "failure: runner-tool installation10-minute timeout",
+  "qualification2_dispatched": false,
+  "no_rerun": true,
+  "acceptance_met": false,
+  "reserve_restoration_condition_met": false,
+  "local_follow_up_14m": {
+    "decision": "f0d2e22",
+    "status": "STOP: no push or dispatch before1November; await owner resume",
+    "extra_actions_minutes": 0,
+    "cap_changed": false,
+    "org_reserve_changed": false,
+    "allowances_changed": false,
+    "runtime_bound_changed": false,
+    "future_owner_resume": {
+      "not_before": "2026-11-01",
+      "reserve": 150,
+      "cap": "owner sets to cover new bound",
+      "probe": 7,
+      "qualification": 2,
+      "requires": "owner resume, one push, fresh exact-head privacy, complete ledger and billing"
+    }
+  },
+  "local_follow_up_14n": {
+    "decision": "cc11494",
+    "code_commit": "8eab7f6e40c8e88caf399ac7416b675e0cc1d4e8",
+    "status": "local fixes only; no push/dispatch before November owner resume",
+    "extra_actions_minutes": 0,
+    "current_bundle": {
+      "sha256": "ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112",
+      "path": "os/owner-tools/payload/SHA256.json",
+      "qualification": "pending"
+    },
+    "native_loop_test": "mandatory November probe native suite; not run locally"
+  }
 }

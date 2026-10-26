@@ -9,6 +9,7 @@ import datetime
 import getpass
 import hashlib
 import io
+import importlib.util
 import json
 import os
 import pathlib
@@ -390,8 +391,29 @@ def validate_login(username, secret, reference):
         raise Stop('Private release read failed; check read:packages permission/expiry and network; no credential was written') from None
 
 
+def media_module(payload=None):
+    path = (pathlib.Path(payload) if payload is not None else pathlib.Path(__file__).resolve().parent) / 'media.py'
+    spec = importlib.util.spec_from_file_location('ares_owner_media', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def mount_record(host, selector, path):
+    value = host.json('findmnt', '--json', '--list', selector, str(path), '--output', 'SOURCE,TARGET,FSTYPE')
+    message = 'Unexpected findmnt list shape or mount identity: ' + str(path)
+    require(isinstance(value, dict) and isinstance(value.get('filesystems'), list), message)
+    rows = value['filesystems']
+    require(len(rows) == 1 and isinstance(rows[0], dict), message)
+    row, = rows
+    require('children' not in row and all(isinstance(row.get(k), str) and row[k] for k in ('source', 'target', 'fstype')),
+            message)
+    require(selector != '--mountpoint' or row['target'] == str(path), message)
+    return row
+
+
 def disk_record(host, expected):
-    tree = host.json('lsblk', '--json', '--bytes', '--output',
+    tree = media_module().block_tree(host, require, '--bytes', '--output',
         'PATH,TYPE,MODEL,SERIAL,SIZE,PTUUID,PARTUUID,PARTTYPE,START,LOG-SEC,MOUNTPOINTS')
     disks = tree['blockdevices']
     selected = []
@@ -404,13 +426,13 @@ def disk_record(host, expected):
         return [d] + [node for child in d.get('children', []) for node in flatten(child)]
     require(not any(any(p for p in d.get('mountpoints', []) if p) for d in flatten(selected[1])), 'Protected disk is mounted')
     target_nodes = flatten(selected[0])
-    esp = host.json('findmnt', '--json', '--mountpoint', '/boot/efi', '--output', 'SOURCE,TARGET,FSTYPE')['filesystems']
-    require(len(esp) == 1 and esp[0]['source'] in [d['path'] for d in target_nodes], 'Linux EFI is not on target')
-    guid = next(d['partuuid'] for d in target_nodes if d['path'] == esp[0]['source'])
+    esp = mount_record(host, '--mountpoint', '/boot/efi')
+    require(esp['source'] in [d['path'] for d in target_nodes], 'Linux EFI is not on target')
+    guid = next(d['partuuid'] for d in target_nodes if d['path'] == esp['source'])
     require(guid and re.fullmatch('[0-9a-fA-F-]{36}', guid), 'Missing target EFI GUID')
     for mount in ('/boot', '/sysroot'):
-        value = host.json('findmnt', '--json', '--mountpoint', mount, '--output', 'SOURCE,TARGET,FSTYPE')['filesystems']
-        require(len(value) == 1 and value[0]['source'].split('[', 1)[0] in [d['path'] for d in target_nodes], 'Linux mount is not on target: ' + mount)
+        value = mount_record(host, '--mountpoint', mount)
+        require(value['source'].split('[', 1)[0] in [d['path'] for d in target_nodes], 'Linux mount is not on target: ' + mount)
     firmware = host.read('efibootmgr', '-v')
     require(len(re.findall(r'^Boot[0-9A-Fa-f]{4}.*HD\([^\n]*GPT,' + re.escape(guid) + r',.*File\(\\EFI\\[^\n]+\)', firmware, re.M | re.I)) == 1,
             'Linux firmware entry does not uniquely map to target EFI')
@@ -602,10 +624,7 @@ class Tools:
         qualified_state(state, saved, self.release['reference'])
         title = self.load('title')
         require(title['state'] == state and title['bls'] == resolved_bls(), 'Title is stale; run title and save it before reboot')
-        import importlib.util
-        spec = importlib.util.spec_from_file_location('ares_reboot_media', self.payload / 'media.py')
-        media = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(media)
+        media = media_module(self.payload)
         require(media.find(self.host, require) is None, 'Tools stick is still attached; export, unplug, then retry reboot')
         disk_record(self.host, self.load('disks'))
         self.host.mutate('systemctl', 'reboot')
@@ -648,10 +667,7 @@ class Tools:
                 'This does not prove a physical power-button event; the laptop gate remains open']
 
     def export(self):
-        import importlib.util
-        spec = importlib.util.spec_from_file_location('ares_owner_media', self.payload / 'media.py')
-        media = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(media)
+        media = media_module(self.payload)
         return media.export(self.host, self.store, checked_bundle(self.payload), checked_bundle, require)
 
     def keyboard(self):
@@ -758,15 +774,12 @@ def install(payload):
     protected = input('Windows baseline Micron serial: ').strip()
     require(target and protected and target != protected, 'Missing or equal disk serials')
     host = Host()
-    import importlib.util
-    spec = importlib.util.spec_from_file_location('ares_install_media', payload / 'media.py')
-    media = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(media)
+    media = media_module(payload)
     device = media.find(host, require)
     require(device is not None, 'Tools USB label not found')
-    mounted = host.json('findmnt', '--json', '--target', str(payload), '--output', 'SOURCE,TARGET,FSTYPE')['filesystems']
-    require(len(mounted) == 1 and mounted[0]['source'] == device['volume']['path'] and
-        mounted[0]['fstype'] == 'exfat' and pathlib.Path(mounted[0]['target']) / 'ares-tools' == payload,
+    mounted = mount_record(host, '--target', payload)
+    require(mounted['source'] == device['volume']['path'] and
+        mounted['fstype'] == 'exfat' and pathlib.Path(mounted['target']) / 'ares-tools' == payload,
         'Bundle is not on the labelled removable tools USB')
     disk_record(host, dict(target=target, protected=protected))
     # No writes until every bundle/destination/disk preflight has passed.
@@ -818,7 +831,7 @@ def main():
         finally:
             stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
             tools.save(stamp + '-' + command, result)
-    print('PASS ' + command)
+    print('PASS ' + ' '.join(sys.argv[1:]))
     print('\n'.join(lines))
     print('Full diagnostics: /var/lib/ares/records (private)')
 

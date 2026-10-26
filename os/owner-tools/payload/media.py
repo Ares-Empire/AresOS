@@ -11,8 +11,39 @@ LABEL = 'ARESTOOLS'
 MOUNT = pathlib.Path('/run/ares-tools-media')
 
 
+def block_tree(host, require, *options):
+    tree = host.json('lsblk', '--json', '--tree', *options)
+    message = 'Unexpected lsblk tree shape; STOP rather than infer disk ancestry'
+    require(isinstance(tree, dict) and isinstance(tree.get('blockdevices'), list), message)
+    seen = set()
+
+    def visit(row, parent=None):
+        require(isinstance(row, dict), message)
+        path, kind = row.get('path'), row.get('type')
+        require(isinstance(path, str) and path.startswith('/dev/') and path not in seen, message)
+        seen.add(path)
+        require(isinstance(kind, str) and kind, message)
+        if parent is None:
+            # Live media can expose a read-only loop or optical root as well
+            # as disks. A partition is never an independent top-level device.
+            require(kind in ('disk', 'loop', 'rom'), message)
+        else:
+            require(kind not in ('disk', 'loop', 'rom'), message)
+            if kind == 'part':
+                require(parent['type'] in ('disk', 'loop'), message)
+        mounts, children = row.get('mountpoints'), row.get('children', [])
+        require(isinstance(mounts, list) and all(m is None or isinstance(m, str) for m in mounts), message)
+        require(isinstance(children, list), message)
+        for child in children:
+            visit(child, row)
+
+    for disk in tree['blockdevices']:
+        visit(disk)
+    return tree
+
+
 def find(host, require):
-    tree = host.json('lsblk', '--json', '--paths', '--output', 'PATH,TYPE,TRAN,RM,LABEL,FSTYPE,UUID,MOUNTPOINTS')
+    tree = block_tree(host, require, '--paths', '--output', 'PATH,TYPE,TRAN,RM,LABEL,FSTYPE,UUID,MOUNTPOINTS')
     found = []
     for disk in tree['blockdevices']:
         def visit(row):

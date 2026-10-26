@@ -63,7 +63,14 @@ if ($IsWindows) {
             function script:Get-Disk { param($Number) [pscustomobject]@{BusType='USB';IsBoot=$false;IsSystem=$false;SerialNumber='SYNTHETIC'} }
             function script:Set-Volume { param($DriveLetter,$NewFileSystemLabel) $script:fixtureLabel=$NewFileSystemLabel }
         }
-        Copy-AresOwnerTools -Source $Bundle -DriveLetter Y
+        $entryOutput = @(Copy-AresOwnerTools -Source $Bundle -DriveLetter Y)
+        $entryOutput
+        foreach ($page in 'INSTALL.md','INSTALL-PROCEDURES.md','INSTALL-REFERENCE.md','EMERGENCY.md') {
+            $guide = Get-Content -LiteralPath (Join-Path $repo "docs/$page") -Raw
+            foreach ($match in [regex]::Matches($guide, '`(PASS (?:tools manifest SHA256 |ARESTOOLS )[^`]+)`')) {
+                if ($entryOutput -cnotcontains $match.Groups[1].Value) { throw "Documented copy PASS differs from entry stdout in $page." }
+            }
+        }
         if ((Test-AresToolsBundle (Join-Path $root 'ares-tools')) -cne (Test-AresToolsBundle $Bundle)) { throw 'Public entry differs.' }
     } finally { Remove-PSDrive -Name Y }
 }

@@ -1,6 +1,217 @@
 # 14: checked owner tools
 
-**Current 14l status: owner's October margin decision recorded; one
+**Current14n: fixes committed locally; STOP awaiting the owner's November
+resume, native test, fresh probe and qualification.** No pull, push, dispatch
+or merge. PR #13 remains draft / NOT RELEASED. Package15's worktree was not
+accessed. The current tools manifest fingerprint is
+`ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112`. Every section14m and earlier, its fingerprints and retained
+run receipts are historical; they do not qualify this changed bundle.
+
+## 14n — Council delta: explicit disk trees and exact PASS actions
+
+**Done:** `media.block_tree` requests `lsblk --json --tree` for both real
+helpers. It rejects flat/orphan partitions, repeated paths/parents, nested
+disk roots, missing/non-list mountpoints and malformed children. It never
+guesses ancestry. `disk_record` and install use `findmnt --json --list` with
+one validated filesystem row and exact mountpoint identity. The full
+[payload JSON audit](14n-json-audit.md) covers findmnt, sfdisk, rpm-ostree,
+bootc, busctl and loginctl; no other tree/list mismatch was found. Shared
+release scripts and frozen runtime/release paths remain unchanged.
+
+The real entry point prints the whole action, including `PASS layout begin
+us-intl`, `PASS layout proof`, `PASS layout revert` and `PASS layout finish`.
+INSTALL documents all19 exact PASS lines. The regenerated payload, hash-first
+manifest, guide and Windows copy agree on the current fingerprint above.
+Archived pre14n fingerprints remain accurate historical receipts and are
+explicitly superseded, inventoried in `14n-replay/fingerprint-references.json`.
+Implementation/tests/guide/audit are committed locally as `8eab7f6`.
+
+**Verified locally:**
+
+- `PYTHONPATH=os/tests python3 -m unittest test_owner_devices test_owner_entry test_owner_export test_owner_devices_native -v` under existing WSL: **16 passed**. Real disk/media helpers and install pass realistic tree JSON; flat/malformed JSON STOP clearly. Mounted protected child and two labels refuse with identical fixture files, no installed directory, no subprocess mutations. Real bundled `owner.main` runs for every commands.json action; handler stand-ins keep it nonprivileged, and all19 actual PASS lines equal the guide. The full native host flow and failure/cleanup paths run through closed stand-ins.
+- `wsl.exe bash .work/14/local/whole-suite.sh`: **329 tests;321 passed**, exactly the same eight host limitations, no skips; unittest exit1, failures2/errors9 including cleanup duplicates. Pillow accounts for3, refused privileged Homebrew/sysusers operations4, and DrvFS0600 semantics1. This is not a native-suite pass.
+- `python3 reviews/14-owner-tools/walk-host.py` under WSL: **92 passed**; every composed guest command is strictly parsed. `python3 .work/14/14n-syntax.py`: **258 guest +258 serial scripts**,233 embedded Python,12 CI/release shells and45 CI/overlay/owner Python files passed; parse stderr, including warnings, refuses.
+- `python -X utf8 .work/14/14n-read-only-replay.py`: actual release git/file/read-only gh checks and53 offline sources/full listing passed. Four14f credential-only checks remain CI-only, unchanged and fail-closed; no credential/scope change or owner secret.
+- `python -X utf8 .work/14/14n-installer-windows.py`: all9,068,650,496 ISO bytes rehashed against the pin and fresh publisher checksum;4 localization and102 WebUI sources; actual inspector assertions unchanged.
+- `pwsh -NoProfile -File os/tests/owner-tools.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/14/14n-unit-copy`: **15 zero-write refusals passed** and copied payload equals source, with the new fingerprint.
+- Post-retention `test_owner_equality` manifest-order and reviewed/generated-payload checks: **2 passed**.
+- Frozen runtime/release/shared scripts, package pins,14m retry/timeouts, budget configuration, guard, release binding and privacy-rule comparisons against `cc11494` pass. `git diff --check` passes. Pinned gitleaks8.21.2 reports **0 full-history findings** through implementation commit `8eab7f6`; pending evidence is scanned before this local report commit, and the final history is scanned afterwards.
+
+The first direct-install fixtures wrote Python bytecode into the copied bundle
+because their interpreter lacked the shipped launcher's `-B` flag. Fixtures
+now use that flag's `dont_write_bytecode` setting; all content/zero-write
+assertions are retained and pass. Product guards were not bypassed to fix A.
+
+**Not verified / stop:** actual partitioned-loop execution is deferred to the
+mandatory native step in the November probe and qualification. It uses only
+fresh runner files/verified loops, EFI-type FAT plus exFAT ARESTOOLS, exact
+query options and the real helpers. Its documented adapters supply loop root
+hardware identities, sandbox mount paths and a synthetic firmware read;
+they preserve native tree/partition structure. Protected fixture hashes and
+confirmed unmount/detach are required. No actual local device, mount, package
+installation, firmware or laptop operation was run. Native/VM acceptance and
+all physical release gates remain open; a native failure is STOP/no rerun.
+
+Ledger unchanged: **249/420**,0 reserved,6/6 probes,1/2 qualifications,
+reserve60; **zero additional Actions minutes**. No image rebuild, release or
+publication. Await explicit owner resume on/after1November, restore reserve150
+and set the cap/allowance then, followed by one push, fresh exact-head privacy,
+complete ledger/billing, probe7 and qualification2 on the same head/bundle.
+
+**JUDGMENT-CALL / PLAN-GAP / open questions:** no new product decision or
+unresolved gap. Native loop adapters are test boundaries, not physical-device
+evidence. Historical fingerprints were preserved rather than falsifying old
+qualification receipts. November execution remains pending owner resume.
+
+## 14m — Bounded snapshot download retries; November hold
+
+### Done
+
+Only the rehearsal step **Install pinned rehearsal tools on disposable
+runner** changes from10 to20 minutes in `.github/workflows/os-image.yml`.
+Its apt install gets `-o Acquire::Retries=3`. The same option joins the shared
+APT options in `os/ci/install-tools.sh`, covering the update, exact-version
+install, reinstall, source prerequisites and edk2 source download. `set -euo
+pipefail`, candidate equality and all original failure checks remain.
+
+An exact comparison against `f0d2e22` proves these are the only implementation
+changes. Job timeouts remain40/130 minutes. The dated snapshot, suites, signed
+indexes, every package/version and order, frozen runtime, owner scripts,
+release payload, workflow permissions and privacy rules are unchanged.
+
+Fresh evidence and hash-first source bindings are retained under
+`os/manifest/ci/14/14m-replay/`; active host-walk evidence was regenerated.
+Historical14j/14k/14l evidence has not been rewritten.
+
+### Verified locally
+
+| Command | Actual result |
+| --- | --- |
+| `wsl.exe bash -c 'cd /mnt/c/Users/pab/AresOS-14-owner-tools && python3 .work/14/14m-apt-regression.py'` | Four tests passed. Real workflow/install Bash text runs only repo-local shims: all six apt invocations receive exactly3 retries; all six injected failures preserve exit73 and stop without a shell rerun; wrong candidate refuses before install. Exact change scope, pins and packages match. |
+| `wsl.exe bash .work/14/local/whole-suite.sh` | Discovery315;307 passed, eight unchanged local-host limitations; no skips. Unittest exit1, failures2/error records9 including cleanup duplicates. This is not a native-suite pass. |
+| `wsl.exe bash -c 'cd /mnt/c/Users/pab/AresOS-14-owner-tools && python3 reviews/14-owner-tools/walk-host.py'` | 78 tests passed; no stick across reboot; no VM started. |
+| `wsl.exe bash -c 'cd /mnt/c/Users/pab/AresOS-14-owner-tools && python3 .work/14/14m-syntax.py'` | Strict real Bash parsing:258 guest commands and258 serial wrappers, no stdout/stderr warnings accepted;233 embedded Python snippets,12 CI/release shells and44 CI/overlay/owner Python files passed. |
+| `python -X utf8 .work/14/14m-read-only-replay.py` | Actual14e release verifier passed all git/file/read-only gh checks;53 retained offline sources and full ISO listing passed14b. Four14f CI-only checks remain explicitly classified and fail-closed, without changing credentials/scopes or using owner secrets. |
+| `python -X utf8 .work/14/14m-installer-windows.py` | Actual inspector rehashed all9,068,650,496 retained ISO bytes and verified the pin plus fresh publisher checksum;4 localization and102 WebUI sources. Existing Windows tar / WSL unsquashfs adapters only; no inspector assertion changed. |
+| `pwsh -NoProfile -File os/tests/owner-tools.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/14/14m-unit-copy` | All15 destination refusals had zero writes; copied payload equals source; manifest fingerprint unchanged. |
+| `git diff --exit-code f0d2e22 -- os/ci/toolchain.json os/ci/rehearsal-packages.json os/owner-tools os/release .gitleaksignore .gitleaks.toml .github/workflows/privacy.yml` and the frozen eight-path/runtime comparison against `775be05` | Passed. `git diff --check` passed. |
+
+The eight local limitations are unchanged: three require Pillow, four require
+privileged Homebrew/sysusers operations that the local denial shim refuses,
+and one requires0600 semantics unavailable on DrvFS. Exact test names and
+results are retained in `14m-replay/replay.json`; no skip or assertion changed.
+The download fixture's first scope check used Linux Git against this Windows
+worktree and failed on its Windows gitdir spelling. Using the existing Windows
+Git fixed that fixture boundary; all four tests then passed without changing
+any assertion or product code. No system software was installed.
+
+Pinned local gitleaks8.21.2 (verified binary fingerprint) returned0 findings
+over the full history including STOP commit `734c11b`. Pending retained changes
+are scanned before the local implementation/report commit; the committed
+history is scanned again afterwards. Scanner receipts stay under
+`.work/14/gitleaks/14m-*`. No ignore entry, rule or workflow is changed.
+
+### Budget / stop / not verified
+
+The closed ledger remains **249/420 minutes**,0 reserved,6/6 probes and1/2
+qualifications, with reserve60 unchanged. This local follow-up incurs **zero
+Actions minutes**. Billing and exact-head CI privacy in the ledger are
+historical14l receipts, not authorization for this changed head. No fresh
+guard, native CI, probe7 or qualification2 was dispatched, and no acceptance
+or physical-laptop result is claimed. The 184-minute complete-run bound stays
+unchanged because the job timeouts did not change.
+
+Per14m, wait for the owner to resume on/after1November. Then restore reserve150,
+set a package cap covering the new bound, and require the fresh local replay,
+pinned full-history privacy scan, single push, exact-head CI privacy, complete
+ledger and billing before probe7 and qualification2 on the same head. Those
+allowance/configuration changes have not been made prematurely. No rerun of
+probe6 and no push before1November. No image, release, publication, firmware
+audit, owner-tool or physical-laptop change was made.
+
+**JUDGMENT-CALL / PLAN-GAP / open questions:** no new product decision or gap.
+VM acceptance and the existing physical release gates remain pending. The
+November execution requires the owner's explicit resume described in14m.
+
+## 14l — Actual probe6 STOP (local report after the single push)
+
+### Done / verified
+
+The single commit `5156f5fac592e1e30077b22c196124a1feaafe89` contains the brief,
+420/60 settings, unchanged6/2 allowances, refreshed162 source/65 host bindings,
+ledger and planning REPORT. Pinned gitleaks8.21.2 scanned its full history with
+**0 findings** before the one fast-forward push. Package13 and all frozen
+runtime/owner-tool/workflow/privacy paths are unchanged.
+
+Actual local replay passed: release run/git/file binding,53 offline sources
+and full listing, all9,068,650,496 ISO bytes against the pin and fresh checksum,
+4 localization/102 WebUI sources,258 guest scripts +258 serial wrappers under
+strict Bash parsing, and15 zero-write Windows copy refusals. Local host walk
+passed78 tests; local discovery passed307/315 with the same eight native-host
+limitations, no skips. Prospective qualification local replay also passed,
+but did not authorize a VM or substitute for the failed probe.
+
+Both exact-head privacy jobs completed all three checks, with personal terms
+actually executed, before probe creation:40362011848 and40362028134. Fresh
+guard authorization proved complete67/67 history and **236 +184 =420**, org
+**66 after reservation ≥60**. Probe6 was dispatched exactly once on this head:
+[40363137526](https://github.com/Ares-Empire/AresOS/actions/runs/40363137526).
+
+The step **Install pinned rehearsal tools on disposable runner** started at
+16:54:06Z and completed as failure at17:04:19Z (613 seconds). Its final error:
+
+```text
+The action 'Install pinned rehearsal tools on disposable runner' has timed out after 10 minutes.
+```
+
+APT was still downloading pinned Ubuntu snapshot packages at
+`snapshot.ubuntu.com/ubuntu/20261021T000000Z`; the last reported download was
+`ovmf`. Native capabilities, the full native regression preflight, all four
+CI-only registry checks, CI ISO inspection and VM/file-disk preparation were
+skipped. This was not a keyboard/firmware result. No guest existed in this
+attempt, so no protected-disk/NVRAM/BootNext/keyboard result is claimed.
+
+The four-member failure artifact was downloaded and its API digest verified
+before inspection: artifact12670770044,5936 bytes, SHA256
+`24e8a6c80b0146a5e0003dc6bc4b5ec0e108ba8c6e70d4f4dc3a045728eb6dbe`.
+It contains the two budget/native-pending receipts, partial toolchain package
+list and scoped-auth cleanup. Cleanup passed: outside workspace, removed,
+owner token not used. Pinned gitleaks on retained failure evidence:0 findings.
+The complete run/jobs/log/artifact receipts stay under
+`.work/14/run-40363137526/`; no credential or scope was changed.
+
+### Closed ledger / cap note
+
+Fresh complete **68/68** history: **249/420 consumed,0 reserved**; probe6 cost
+**13 rounded minutes**, the single push's privacy cost6, total14l cost19.
+Dispatch counters are **6/6 probes,1/2 qualifications**, publication attempts0.
+Fresh billing read shows **247 org minutes free**. See local
+`.work/14/final-14l-stop-ledger.json`; the committed230+190 ledger is explicitly
+the pre-push planning snapshot, not the closed result.
+
+### Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
+
+**Stop and report, no rerun.** Qualification2 was not dispatched because the
+required same-head probe failed. No remaining probe allowance is inferred;
+the unused qualification cannot bypass the probe. No timeout, mirror, package,
+audit, cap or reserve was changed after the stop. No image or real-device work
+occurred, and nothing was made public or merged.
+
+**PLAN-GAP:** the pinned runner package download did not finish inside its
+existing10-minute step limit. Any remedy or new attempt requires a new owner
+decision; none was implemented. Acceptance is unmet, so reserve60 and cap420
+remain as explicitly requested; the acceptance-conditioned reserve150/final
+cap-note commit and PR-ready action were not performed. Physical/novice gates
+stay OPEN / NOT RELEASED. No new product judgment was made.
+
+The actual report and closed BUDGET are local modifications, with authoritative
+run details also on PR #13. They are deliberately not committed/pushed: the
+owner prohibited another push before qualification finishes, and no
+qualification started. No Gradle process was started or left running.
+
+## 14l — Planning record in the single pushed commit
+
+**Pre-dispatch 14l status: owner's October margin decision recorded; one
 pre-dispatch commit/push, then fresh replay/privacy/budget gates.** Package14
 alone uses cap420 and org reserve60; allowances stay6 probes/2 qualifications.
 No new VM acceptance is claimed by this planning commit. PR #13 remains draft

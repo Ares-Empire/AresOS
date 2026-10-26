@@ -9,6 +9,8 @@ import json
 import pathlib
 import re
 import unittest
+
+from test_owner_entry import pass_line
 from urllib.parse import unquote, urlsplit
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -196,7 +198,8 @@ def check_context_returns(texts):
     if '#layout-recovery-proof' not in reverted or '#layout-completion' not in proof:
         raise AssertionError('Layout recovery must progress through proof/finish/completion')
     commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
-    order = (commands['layout-proof'], 'PASS layout proof', commands['layout-finish'], 'PASS layout finish')
+    order = (commands['layout-proof'], pass_line('layout-proof'),
+             commands['layout-finish'], pass_line('layout-finish'))
     positions = [proof.find(value) for value in order]
     if min(positions) < 0 or positions != sorted(positions):
         raise AssertionError('Layout recovery needs fresh proof then finish before completion')
@@ -246,7 +249,7 @@ class OwnerPathTest(unittest.TestCase):
         for page, text in documents().items():
             for match in re.finditer(re.escape(commands['reboot']), text):
                 following = text[match.end():match.end() + 650]
-                self.assertIn('PASS reboot', following, (page, match.start()))
+                self.assertIn(pass_line('reboot'), following, (page, match.start()))
                 self.assertIn('Reboot requested; Windows stays default; F12 then Linux for one Linux start',
                               following, (page, match.start()))
 

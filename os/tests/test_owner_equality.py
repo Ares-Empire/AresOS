@@ -6,10 +6,43 @@ import unittest
 
 import test_owner_tools as common
 import test_owner_walk as walk
+import test_owner_entry as entry
 
 ROOT = common.ROOT
 OWNER_PAGES = ('INSTALL.md', 'INSTALL-PROCEDURES.md', 'INSTALL-REFERENCE.md',
                'INSTALL-RECORD.md', 'EMERGENCY.md', 'INSTALL-STATUS.md')
+
+
+def fingerprint_documents():
+    documents={name:(ROOT/'docs'/name).read_text() for name in OWNER_PAGES}
+    # Reports explicitly retain historical receipts below their current delta.
+    # Check the live sections without rewriting those superseded fingerprints.
+    for package,boundary in (('14-owner-tools','## 14m '),('15-owner-path','## 15b ')):
+        documents[package+' current report']=(ROOT/'reviews'/package/'REPORT.md').read_text().split(boundary,1)[0]
+    return documents
+
+
+def check_fingerprints(documents, fingerprint):
+    """Every current owner-page hash must have an identified current source.
+
+    Image/media pins are distinct from the tools manifest. Checking all full
+    hashes catches an extra stale copy even when the correct copy remains.
+    Historical package-14 receipts stay superseded, not rewritten.
+    """
+    pins=set()
+    for name in ('installer-isos.json','media-tools.json','release.json','ci/11n/b-1/release.json'):
+        pins.update(re.findall(r'\b[0-9a-f]{64}\b',(ROOT/'os/manifest'/name).read_text()))
+    seen=False
+    for page,text in documents.items():
+        for value in re.findall(r'\b[0-9a-f]{64}\b',text):
+            if value not in pins | {fingerprint}:
+                raise AssertionError(f'Stale tools fingerprint or unbound hash in {page}: {value}')
+            seen |= value == fingerprint
+        for value in re.findall(r'PASS tools manifest SHA256 ([0-9a-f]{64})',text):
+            if value != fingerprint:
+                raise AssertionError('Stale tools fingerprint in '+page)
+    if not seen:
+        raise AssertionError('Missing current tools fingerprint')
 
 
 def check_inline_commands(guide, commands):
@@ -60,7 +93,29 @@ class EqualityTest(unittest.TestCase):
             self.assertEqual(common.bundle.build(other), fingerprint)
             self.assertEqual(common.owner.checked_bundle(other), fingerprint)
         self.assertIn(fingerprint, (ROOT/'docs/INSTALL.md').read_text())
+        check_fingerprints(fingerprint_documents(),fingerprint)
+        inventory=json.loads((ROOT/'os/manifest/ci/14/14n-replay/fingerprint-references.json').read_text())
+        self.assertEqual(inventory['current']['sha256'],fingerprint)
         self.assertIn('-I -B', (ROOT/'os/owner-tools/at').read_text())
+
+    def test_extra_stale_fingerprint_is_rejected_in_every_owner_page(self):
+        fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
+        documents=fingerprint_documents()
+        stale=json.loads((ROOT/'os/manifest/ci/14/14n-replay/fingerprint-references.json').read_text())['retired']['value']
+        self.assertNotEqual(stale,fingerprint)
+        for page in documents:
+            changed=dict(documents)
+            changed[page]+='\nTools manifest fingerprint: `'+stale+'`.\n'
+            with self.subTest(page=page), self.assertRaisesRegex(AssertionError,'Stale tools fingerprint'):
+                check_fingerprints(changed,fingerprint)
+        changed=dict(documents)
+        wrong=json.loads((ROOT/'os/manifest/media-tools.json').read_text())['writer']['sha256']
+        changed['INSTALL.md']=changed['INSTALL.md'].replace(fingerprint,wrong)
+        with self.assertRaisesRegex(AssertionError,'Stale tools fingerprint'):
+            check_fingerprints(changed,fingerprint)
+
+    def test_every_documented_owner_pass_equals_captured_entry_stdout(self):
+        entry.check_documented_pass_lines({name:(ROOT/'docs'/name).read_text() for name in entry.OWNER_PAGES})
 
     def test_every_owner_command_equals_the_command_physically_typed_by_ci(self):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())

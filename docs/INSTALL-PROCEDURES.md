@@ -30,13 +30,15 @@ Require `PASS layout finish` and refreshed title. For returning to German repeat
 sudo /var/lib/ares/at layout begin de
 ```
 
+Require `PASS layout begin de`, then complete that proof/finish sequence.
+
 The plain-US failure/revert trial uses the same session precautions, beginning with:
 
 ```bash
 sudo /var/lib/ares/at layout begin us
 ```
 
-Do this deliberate failure only in the supervised layout gate: an umlaut password may be untypeable. Reboot must refuse unfinished proof; never test refusal by forcing a restart.
+Require `PASS layout begin us` before the second-console trial. Do this deliberate failure only in the supervised layout gate: an umlaut password may be untypeable. Reboot must refuse unfinished proof; never test refusal by forcing a restart.
 
 ### Layout revert
 
@@ -46,11 +48,11 @@ Any second login/typing error → return to original **open tty3 root session**,
 sudo /var/lib/ares/at layout revert
 ```
 
-Require `PASS layout revert` and old console/X11 settings restored. If begin reports partial console/X11 failure with old settings restored, use this same revert/proof route; retain the first session. After PASS revert, continue to [fresh-login proof and finish](#layout-recovery-proof). Missing original session or failed restoration → **STOP → [Help](INSTALL-REFERENCE.md#help)**, no restart; password symptom is on the [card](EMERGENCY.md#password-not-accepted).
+Require `PASS layout revert` and old console/X11 settings restored. If begin reports partial console/X11 failure with old settings restored, use this same revert/proof route; retain the first session. After `PASS layout revert`, continue to [fresh-login proof and finish](#layout-recovery-proof). Missing original session or failed restoration → **STOP → [Help](INSTALL-REFERENCE.md#help)**, no restart; password symptom is on the [card](EMERGENCY.md#password-not-accepted).
 
 ### Layout recovery proof
 
-**On AresOS after PASS revert:** keep original tty3 root open. Log tty4 out completely; make a **fresh tty4 ares-recovery password login using the old layout**, then:
+**On AresOS after `PASS layout revert`:** keep original tty3 root open. Log tty4 out completely; make a **fresh tty4 ares-recovery password login using the old layout**, then:
 
 ```bash
 sudo -k; sudo /var/lib/ares/at layout proof

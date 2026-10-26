@@ -24,7 +24,7 @@ Every deployment reorder invalidates old titles, even before reboot. Both entrie
 
 **Action:** during a layout trial, return to the original open tty3 administrator session with **Ctrl+Alt+F3 (Ctrl = Strg)** or **Ctrl+Alt+Fn+F3 (Ctrl = Strg)** and [revert the trial](INSTALL-PROCEDURES.md#layout-revert).
 Otherwise use **F12** (or **Fn+F12**) → Windows → help. AresOS uses its current layout; backup stock always uses the installer’s German layout. Do not change the password to guess your way through.
-**After PASS revert on AresOS:** [complete fresh-login proof and finish](INSTALL-PROCEDURES.md#layout-recovery-proof), then [layout completion](INSTALL-PROCEDURES.md#layout-completion) and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery). **STOP → go to [Help](INSTALL-REFERENCE.md#help)** if the original session is unavailable or proof fails; keep the layout trial pending until help restores that recovery route. Do not resume the initial stock checks for this layout recovery.
+**After `PASS layout revert` on AresOS:** [complete fresh-login proof and finish](INSTALL-PROCEDURES.md#layout-recovery-proof), then [layout completion](INSTALL-PROCEDURES.md#layout-completion) and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery). **STOP → go to [Help](INSTALL-REFERENCE.md#help)** if the original session is unavailable or proof fails; keep the layout trial pending until help restores that recovery route. Do not resume the initial stock checks for this layout recovery.
 
 ## Text covers the prompt after stick hotplug or removal
 
