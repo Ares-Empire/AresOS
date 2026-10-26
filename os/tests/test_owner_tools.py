@@ -150,7 +150,8 @@ class RefusalTest(unittest.TestCase):
                 if command[0] != 'lsblk': raise AssertionError('Refusal should precede other reads')
                 return self.tree
         for serials, mount in ((('OTHER', 'KEEP'), False), (('TARGET', 'OTHER'), False), (('TARGET', 'KEEP'), True)):
-            tree = dict(blockdevices=[dict(type='disk', serial=s, mountpoints=['/windows'] if mount else []) for s in serials])
+            tree = dict(blockdevices=[dict(path='/dev/SYNTHETIC'+str(i),type='disk', serial=s,
+                mountpoints=['/windows'] if mount else [None]) for i,s in enumerate(serials)])
             self.refuse(owner.disk_record, Reader(tree), dict(target='TARGET', protected='KEEP'))
 
     def test_bundle_tamper_partial_extra_link_and_traversal_refuse(self):

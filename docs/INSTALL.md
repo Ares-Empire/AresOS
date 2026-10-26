@@ -131,7 +131,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba` and `PASS ARESTOOLS ready`.
+Require `PASS tools manifest SHA256 ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112` and `PASS ARESTOOLS ready`.
 The copy checks removable/USB/exFAT/boot/system identity before writing,
 verifies every copied file, and labels it **ARESTOOLS**. A STOP means preserve
 it and get help. Safely eject and **unplug** it before [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), shutdown or restart. Record B must pass with
@@ -152,6 +152,32 @@ checks the label, removable USB, complete manifest and both internal identities
 before installing root-only tools in shared `/var/lib/ares`; the frozen AresOS
 image does not shadow that path. The read-only bootstrap unmounts even on STOP.
 A failed bootstrap means stop and preserve the screen, not another mount path.
+
+For each tool command below, require this exact first result line. A different
+or missing action is a STOP; keep its full diagnostics. `layout` includes its
+subcommand and selected profile in that line.
+
+| Tool action | First result line |
+| --- | --- |
+| `install` | `PASS install` |
+| `prepare` | `PASS prepare` |
+| `records` | `PASS records` |
+| `title` | `PASS title` |
+| `login` | `PASS login` |
+| `verify` | `PASS verify` |
+| `switch` | `PASS switch` |
+| `rollback` | `PASS rollback` |
+| `keep-stock` | `PASS keep-stock` |
+| `export` | `PASS export` |
+| `check` | `PASS check` |
+| `reboot` | `PASS reboot` |
+| `logs` | `PASS logs` |
+| `layout begin us` | `PASS layout begin us` |
+| `layout begin us-intl` | `PASS layout begin us-intl` |
+| `layout begin de` | `PASS layout begin de` |
+| `layout proof` | `PASS layout proof` |
+| `layout revert` | `PASS layout revert` |
+| `layout finish` | `PASS layout finish` |
 
 ```bash
 sudo /var/lib/ares/at prepare
