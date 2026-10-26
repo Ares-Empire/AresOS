@@ -168,6 +168,8 @@ jobs:
           skopeo inspect --raw "docker://$image" > evidence/base-oci-manifest.json
           df -B1 / | tee evidence/runner-disk.txt
       - name: Resolve all privileged host tools before credentials
+        env:
+          REHEARSAL_MODE: release-13
         run: python3 os/ci/build_tools.py resolve evidence/build-tools.json
       - name: Authorize only the historical private image read for comparison
         if: github.event_name == 'workflow_dispatch' && inputs.release_13 && github.ref_name == 'pkg/13-keyboard-layout'
@@ -185,6 +187,8 @@ jobs:
           python3 os/ci/build_tools.py launch "$PWD/evidence/build-tools.json"
       - name: Remove historical image credentials
         if: always()
+        env:
+          REHEARSAL_MODE: release-13
         run: sudo -E python3 os/ci/rehearsal_auth.py cleanup
       - name: Build isolated test overlay and prove release excludes it
         run: |
@@ -361,6 +365,7 @@ jobs:
         timeout-minutes: 15
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: |
           set -euo pipefail
           python3 -m venv --system-site-packages .work/browser-env
@@ -455,9 +460,13 @@ jobs:
           fi
       - name: Remove owner registry credentials
         if: always() && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools'
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/rehearsal_auth.py cleanup
       - name: Remove package 13 job-token credentials
         if: always() && (github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/14-owner-tools')
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py cleanup
       - name: Bound retained evidence
         if: always()

@@ -1,11 +1,131 @@
 # 14: checked owner tools
 
-**Current14o: owner approved execution now. Local preparation passed; one
-fast-forward push, fresh privacy/ledger/billing and live guard are still
-required before probe7.** No hosted run or acceptance is claimed here.
-PR #13 remains draft / NOT RELEASED. Older sections are historical;14o
-supersedes their November hold. Current bundle fingerprint:
+**Current14p: local preparation passed; probe8 and qualification2 pending.**
+PR #13 remains draft / NOT RELEASED. The actual probe7 STOP report below is
+committed with the approved fix; its references to uncommitted files describe
+the state when that attempt stopped. No new hosted result is claimed here.
+
+## 14p — Step-local mode binding and October allowance (pre-dispatch)
+
+**Done:** the native qualification step now explicitly declares
+`REHEARSAL_MODE: ${{ inputs.rehearsal }}`. Its exact
+`sudo -E env -u GH_TOKEN python3 os/ci/owner_devices.py` remains unchanged.
+The static YAML/AST regression discovers all CI scripts that read the variable
+and requires a nonempty step-local env binding at every direct invocation.
+Four other missing bindings (tool resolve and credential cleanup calls) are
+explicit too; commands, permissions and cleanup behavior are unchanged.
+Negative cases remove each binding, including with inherited job/global env,
+refuse invalid values, and discover newly added Python and shell readers.
+
+Only package14's settings changed: **460 minutes,8 probes,2 qualifications,
+org reserve0**. Package13 text is unchanged. No owner payload, image, release,
+credential, privacy rule or frozen runtime change. Current bundle fingerprint:
 `ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112`.
+
+**Verified locally:**333 whole-suite tests:325 passed, the same eight documented
+native-host limitations, no skips (exit1).96 host-walk tests passed, including
+four new mode tests and the exact460/461 and eighth/ninth-probe guard checks.
+All258 guest commands and258 serial wrappers passed strict real bash parsing;
+233 embedded Python snippets,12 shell files and45 CI/overlay/owner Python
+files parsed. Windows copy passed15 zero-write refusals and source equality.
+Actual release git/file/read-only gh replay,53 retained offline sources and
+full listing passed. The actual ISO inspector rehashed all9,068,650,496 bytes,
+fresh publisher checksum,4 localization and102 WebUI sources. Four credential-
+only checks remain fail-closed in CI. Evidence and bindings:
+`os/manifest/ci/14/14p-preflight/`.
+
+Fresh pre-push planning: complete71/71 history; **265+190=455/460**
+(push6, probe42, qualification130, closing privacy12). Billing left
+**23 minutes after that bound**, against reserve0. This is planning;
+exact-head privacy (all three checks actually run), complete ledger and billing
+must pass freshly before the sole probe8 POST. Only a successful probe with
+the real14n loop-query test permits qualification2 on the same head, behind
+its own142-minute guard and fresh local replay. Exactly one fast-forward push
+is authorized before dispatch; no additional push before qualification finishes.
+
+**Not verified / stop:** hosted native suite, loop-query execution, probe8 and
+qualification2 pending. Any guard refusal, run failure or minute exhaustion
+means STOP/report, no rerun or lower limit; remaining work waits for a new
+owner decision. Acceptance alone permits reserve150 restoration and PR ready.
+The physical laptop/followability release gate remains open. No real laptop,
+other worktree, image build or publication was touched.
+
+**JUDGMENT-CALL / PLAN-GAP / open questions:** owner14p authorizes use of all
+remaining October minutes. The probe7 environment gap is fixed as directed;
+no further product decision. Physical release-gate checks remain required.
+
+## 14o — Actual probe7 STOP (local report after the one push)
+
+### Done / actual evidence
+
+Exactly one fast-forward push advanced `5156f5f` to
+`a80cacce5a29c4883e1f0b42e16f4cd860343969`, including all local14m/14n work
+and14o limits440/7/20. Package13 is unchanged. Pinned gitleaks8.21.2 found0
+over the complete pushed history. Exact-head privacy runs40394908641 and
+40394899036 passed all three checks; personal terms actually executed.
+
+The fresh guard proved complete70/70 history, **254+184=438/440** and **35
+org minutes after reservation ≥20**. Probe7 was dispatched once, first attempt:
+[40395477901](https://github.com/Ares-Empire/AresOS/actions/runs/40395477901).
+
+Pinned tool installation passed with the approved20-minute step and retry3.
+The early native capabilities passed real loop/FUSE exFAT rw/ro/fsck, fixture
+tools, QEMU/OVMF/QMP, hotplug, serial/network/screenshot/keyboard checks on the
+disposable runner. The native regression suite then passed **all329 tests in
+23.682 seconds, no skips**. The preflight step stopped immediately afterwards
+at `os/ci/owner_devices.py:128`:
+
+```text
+assert os.environ.get('REHEARSAL_MODE') in ('probe','owner-tools')
+AssertionError
+```
+
+The new14n loop-query test did not enter `prove` or create its loop images.
+Its entry point requires REHEARSAL_MODE, while **Qualify tools, regressions,
+rewritten release identity and private access** declares only GH_TOKEN. The
+adjacent capability/reservation steps' REHEARSAL_MODE values are step-scoped.
+`sudo -E` cannot preserve a value absent from this step. No guard was weakened,
+environment binding fixed or run repeated after this failure.
+
+The remaining commands in that native step (Windows-copy invocation, compile /
+shell checks and release verification), later registry/signature/pull checks,
+CI ISO inspection and the OS installer/owner-tools VM rehearsal were not
+reached. The native capability smoke VM is a separate result; no Linux
+installation, keyboard, disk/firmware qualification or owner-tool success is
+claimed from this attempt. Qualification2 was never dispatched.
+
+### Privacy / closed ledger / not verified
+
+Failure artifact12686612427 was verified against the API before extraction:
+47,843 bytes,17 members, SHA256
+`97a40a08ffcd5581e152e5e20322b38e4fbae54ef66b258ece876ee309e4e381`.
+Raw receipts/logs remain under `.work/14/run-40395477901/`; the private run
+retains the artifact. Scoped-auth cleanup passed: outside workspace, removed,
+no owner token used. Both retained-evidence/log directory scans found0.
+
+Fresh closed actuals: **265/440 consumed,0 reserved;71/71 complete history;
+7/7 probes,1/2 qualifications;0 publications**. This continuation cost16
+rounded minutes:5 for the only push's privacy and11 for probe7. Fresh billing
+reported **214 org minutes free**. Reserve20, cap440 and allowances7/2 stay
+as authorized; acceptance was not met, so reserve150/PR-ready closure is not
+authorized. No second push. The local STOP report and BUDGET are deliberately
+uncommitted/unpushed, preserving the no-more-push rule while qualification has
+not finished. No image/release/publication, real laptop or other worktree action.
+
+Pre-dispatch local evidence remains:329 discovery/321 passes with the same
+eight host limits,92 host-walk tests,4 exact-budget regressions,2 regenerated
+manifest/equality checks,258+258 strict guest/serial parses,15 zero-write
+Windows refusals and actual release/source/ISO replay. These prerequisites do
+not replace the unexecuted native loop query or VM qualification.
+
+**PLAN-GAP:**14n's native invocation omitted the required step environment.
+The local stand-in walk covered `prove` and the local-refusal guard, but did
+not positively execute the exact workflow invocation with its declared
+environment. An integrator decision is needed before a binding/regression fix
+and any new probe allowance; no corrective change or rerun was made here.
+
+**JUDGMENT-CALL / open questions:** no new product decision. Native loop-query,
+full VM acceptance and all physical/followability release gates remain open.
 
 ## 14o — Run now: cap440, probe7, org reserve20 (pre-dispatch planning)
 

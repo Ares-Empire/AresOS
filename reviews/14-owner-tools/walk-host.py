@@ -20,6 +20,7 @@ import test_owner_equality
 import test_owner_tools
 import test_release_squash_binding
 import test_ci_api_permissions
+import test_ci_step_environment
 import test_owner_media
 import test_owner_capabilities
 import test_guest_framing
@@ -32,7 +33,7 @@ import test_owner_devices_native
 def main():
     suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(m) for m in
         (test_owner_commands,test_owner_export,test_owner_transport,test_owner_walk,test_owner_guard,test_owner_equality,test_owner_tools,
-         test_release_squash_binding,test_ci_api_permissions,test_owner_media,test_owner_capabilities,test_guest_framing,
+         test_release_squash_binding,test_ci_api_permissions,test_ci_step_environment,test_owner_media,test_owner_capabilities,test_guest_framing,
          test_owner_console,test_owner_devices,test_owner_entry,test_owner_devices_native))
     result=unittest.TextTestRunner(verbosity=2).run(suite)
     assert result.wasSuccessful() and not result.skipped
@@ -46,7 +47,7 @@ def main():
         files.update(p for p in ROOT.glob(pattern) if p.is_file())
     files.update(ROOT/p for p in ('os/ci/installer_webui.py','os/ci/two_disk_vm.py','os/ci/registry_auth.py',
         'os/ci/rehearsal_guard.py','os/ci/rehearsal-packages.json','os/ci/verify_release.py',
-        'os/tests/test_release_squash_binding.py','os/tests/test_ci_api_permissions.py','os/tests/owner_fuse_shim.py',
+        'os/tests/test_release_squash_binding.py','os/tests/test_ci_api_permissions.py','os/tests/test_ci_step_environment.py','os/tests/owner_fuse_shim.py',
         'os/ci/switch_vm.py','os/ci/serial_console.py','os/tests/guest_shell.py','os/tests/test_guest_framing.py',
         'os/tests/test_keyboard_walk.py',
         '.github/workflows/os-image.yml'))

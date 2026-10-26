@@ -9,11 +9,11 @@
   "14": {
     "branch": "pkg/14-owner-tools",
     "start": "first-dispatch",
-    "minute_cap": 440,
+    "minute_cap": 460,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"probe": 7, "owner-tools": 2},
-    "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 20},
+    "dispatch_caps": {"probe": 8, "owner-tools": 2},
+    "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 0},
     "publish_cap": 0,
     "titles": {"probe": "Two-disk rehearsal (probe)", "owner-tools": "Two-disk rehearsal (owner-tools)"}
   },
