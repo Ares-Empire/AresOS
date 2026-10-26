@@ -1,0 +1,127 @@
+# Later owner procedures
+
+These are separate from initial installation. Use the [current gate/status table](INSTALL-STATUS.md#current-gates); no physical action is released by this page. Keep the private record and the step number you came from. Any missing check → **STOP → [Help](INSTALL-REFERENCE.md#help)**. Nothing here authorizes authentication/switching; that always returns through [step 5](INSTALL.md#5-prove-windows-and-corrected-stock).
+
+## Later layout
+
+Backup Bazzite keeps the installer’s **German** layout. AresOS's later settings affect only its own deployment, not stock. The distinct current/backup layouts belong in the private record. The prior VM restored German before rollback; direct US-to-stock rollback has no runtime evidence (see status table).
+
+Use the [console entry/exit reference](INSTALL-REFERENCE.md#console). **Return to this procedure** after entry. Keep the original **tty3 ares-recovery → sudo -i** session **OPEN** throughout; do not reboot or change the password to bypass failed typing. In AresOS, begin US International (keeps the unchanged umlaut password enterable):
+
+```bash
+sudo /var/lib/ares/at layout begin us-intl
+```
+
+Require `PASS layout begin us-intl`. Go to **Ctrl+Alt+F4 (Ctrl = Strg)** or **Ctrl+Alt+Fn+F4 (Ctrl = Strg)** → expect **login:** → fresh `ares-recovery` password login in US International. No inherited login/sudo cache:
+
+```bash
+sudo -k; sudo /var/lib/ares/at layout proof
+```
+
+Enter the unchanged password for sudo; physically type `yz-/!ü` when prompted (**AltGr+y** for ü in US International). Require `PASS layout proof`. Exit tty4 entirely to **login:**; return **Ctrl+Alt+F3 (Ctrl = Strg)** or **Ctrl+Alt+Fn+F3 (Ctrl = Strg)** to original root session:
+
+```bash
+sudo /var/lib/ares/at layout finish
+```
+
+Require `PASS layout finish` and refreshed title. For returning to German repeat that exact second-console proof/finish sequence starting with:
+
+```bash
+sudo /var/lib/ares/at layout begin de
+```
+
+The plain-US failure/revert trial uses the same session precautions, beginning with:
+
+```bash
+sudo /var/lib/ares/at layout begin us
+```
+
+Do this deliberate failure only in the supervised layout gate: an umlaut password may be untypeable. Reboot must refuse unfinished proof; never test refusal by forcing a restart.
+
+### Layout revert
+
+Any second login/typing error → return to original **open tty3 root session**, then:
+
+```bash
+sudo /var/lib/ares/at layout revert
+```
+
+Require `PASS layout revert` and old console/X11 settings restored. If `begin` reports partial console/X11 failure with old settings restored, use this same revert/proof route; retain the first session. Log tty4 out completely, then fresh tty4 `ares-recovery` password login in the **old** layout → exact `layout proof` command above, password sudo and prompted text → logout → original tty3 `layout finish`. Missing original session or failed restoration → **STOP → [Help](INSTALL-REFERENCE.md#help)**, no reboot; password symptom is on the [card](EMERGENCY.md#password-not-accepted).
+
+### Layout completion
+
+After successful finish only:
+
+```bash
+sudo /var/lib/ares/at title
+sudo /var/lib/ares/at reboot
+```
+
+Require both PASS; save title/state/time and invalidate earlier titles. Sticks absent → **F12** (or **Fn+F12**) → Linux → fresh recovery login using new layout → `check`/physical console/password sudo and foot typing as step 7. Restore German using the same fresh-second-login sequence and reboot **before the rollback trial**. Keep stock German; never edit the frozen backup to follow AresOS. Export/unplug before restarting.
+
+**Record:** old/new maps, both fresh password/text proofs, finish/revert result, title and post-boot check. **STOP → [Help](INSTALL-REFERENCE.md#help)**. **Return to step 8:** [everyday use](INSTALL.md#8-everyday-boot-and-recovery).
+
+## Recovery menu
+
+A failed **first** switch boot or stale/missing title always means **F12** (or **Fn+F12**) → **Windows → Help**. Do not use the provisional switch title for recovery.
+
+For a later failure only, with your own first successful AresOS boot/final-pair check and a fresh record after the latest reorder: **F12** (or **Fn+F12**) → recorded Linux entry → GRUB. If hidden, **Esc** once, then **↓**. Match the **entire current stock title**, resolved by saved checksum **and serial and stateroot**; both rows may say Bazzite. Never guess by position/example digits. Missing, duplicate, truncated or different title → **STOP → [Help](INSTALL-REFERENCE.md#help)** via Windows. Do not select another row to experiment.
+
+Select only the exact stock title. Expect rendered stock greeter → `ares-recovery`, **installer German** password → [tty3 administrator entry](INSTALL-REFERENCE.md#console). **Return to this recovery procedure**. Run keep-stock below, never rollback from booted stock. **Return to step 8** ([everyday use](INSTALL.md#8-everyday-boot-and-recovery)) after its second Linux default boot passes.
+
+## Rollback from running AresOS
+
+On booted AresOS, tty3 **ares-recovery with current AresOS layout → sudo -i**:
+
+```bash
+sudo /var/lib/ares/at rollback
+sudo /var/lib/ares/at title
+```
+
+Require `PASS rollback`, `PASS title`: idle before queueing, exact saved stock checksum/serial/stateroot, origin/digest/pin and rollback queued. Invalidate all old titles immediately, including before reboot; save the resolved new title/state/time. Wrong booted image, pending work or changed identity means STOP; the tool refuses from stock with zero deployment mutations.
+
+```bash
+sudo /var/lib/ares/at reboot
+```
+
+Require PASS; all sticks absent → **F12** (or **Fn+F12**) → Linux → let stock start, no GRUB selection. Rendered greeter → `ares-recovery` **installer German** → fresh tty3 password login/`sudo -i`:
+
+```bash
+sudo /var/lib/ares/at check
+sudo /var/lib/ares/at title
+```
+
+Require PASS, corrected pinned stock booted, AresOS retained, loaded German, full current record. Windows remains firmware default; do not enable stock automatic updates during the trial. **Record:** queued/booted identity/title and typing/login results. **STOP → [Help](INSTALL-REFERENCE.md#help)**. **Return to step 8:** [everyday use](INSTALL.md#8-everyday-boot-and-recovery).
+
+## Keep stock
+
+After GRUB recovery/normal rollback, on **booted corrected stock**, `ares-recovery` German → tty3 → `sudo -i`:
+
+```bash
+sudo /var/lib/ares/at keep-stock
+sudo /var/lib/ares/at title
+```
+
+Require `PASS keep-stock`, `PASS title`, exact saved corrected identity/pin, no pending work and stock first. Mark old title INVALID; save new resolved title/state/time before:
+
+```bash
+sudo /var/lib/ares/at reboot
+```
+
+All sticks absent → **F12** (or **Fn+F12**) → Linux; **no GRUB selection**. Require stock again (second Linux default boot), rendered greeter → `ares-recovery` installer German → fresh tty3 password login → `sudo -i` → `check` and `title`, both PASS. Prove physical typing/password sudo as step 5. Compare Windows record B afterward with all sticks absent. Leave stock updaters paused until the owner chooses stock permanently and that second default boot passes. Permanent abandonment of AresOS still requires step 9 token retirement.
+
+To exit root: `exit`, `sudo -k`, `exit`; wait for **login:** before desktop-return keys in the reference. Export only after sign-in, require SAFE TO REMOVE, unplug before restarting. **Record:** persistent selection/second default boot/title and Windows PASS. **STOP → [Help](INSTALL-REFERENCE.md#help)**. **Return to step 8:** [everyday use](INSTALL.md#8-everyday-boot-and-recovery).
+
+## Optional removal or erasure
+
+Default undo needs neither: leave Crucial installed. First complete [step 9 token retirement and independent Windows proof](INSTALL.md#9-retire-access-and-return-to-windows), even when Linux cannot boot. Export Linux data and verify independent copies. Immediately before removal/reuse repeat direct Windows and record B **before-undo**: original Micron EFI/Microsoft target mandatory; login alone is insufficient. Changed/unreadable boot target → **STOP → [Help](INSTALL-REFERENCE.md#help)**, remove/erase nothing. No C: expansion or Micron changes.
+
+**Removal:** repeat the [full fitting/safety checkpoint](INSTALL-REFERENCE.md#fitting), including external battery inspection and immediate inspection after lifting cover. **Return to this removal procedure** after reading it; do only Lenovo Figure 9's Crucial removal after safe battery disconnection. Any battery warning → stop before connector work, no handling/reconnection/power, Lenovo/qualified repairer. Retain Crucial's screw, reconnect only if safe, close and boot Windows; repeat B **after-undo**. Removal preserves recoverable data; store the SSD safely.
+
+**Erasure for reuse:** pinned [GParted Live 1.8.1-6 amd64 ISO](https://downloads.sourceforge.net/project/gparted/gparted-live-stable/1.8.1-6/gparted-live-1.8.1-6-amd64.iso), SHA-256 `d789c38779f0d6f7026c12f44c2c52a04f66e28a1aea7d51f3045ad1bbf28411`. Require full downloaded file and fresh [official checksum](https://gparted.org/gparted-live/stable/CHECKSUMS.TXT) to match the pin in [media-tools.json](../os/manifest/media-tools.json); missing/mutable version → STOP for maintainer qualification. Write only **ARESOS INSTALLER — ERASE OK** with [the pinned ISO-file writer route](INSTALL-REFERENCE.md#writer-labels), never recovery. This overwrites tools/exports: preserve their independent copies first. **Return to this erasure procedure** after writer success.
+
+**F12** (or **Fn+F12**) → GParted USB; choose German keyboard/English interface. Physically test `y z / - " $` in text editor before Terminal. Repeat [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux) and [record D](INSTALL-RECORD.md#d-before-erasing-crucial-from-live-media); **Return to this erasure procedure** only with PASS, same-session identity/GUID/bounds map, neither internal drive mounted, every Crucial partition disposable and original Windows target proved. In GParted match Crucial in selector → **Device → Create Partition Table → gpt**. Immediately before **Apply**, recheck whole-disk path and all checks. Apply **writes immediately**, not a queued action ([manual](https://gparted.org/display-doc.php?name=help-manual)). This clears layout; **it does not securely sanitise data**. Any Micron action/unknown partition/unclear identity → cancel, help.
+
+Shut down, remove USB, Windows → record B **after-undo**. Cancel Windows initialise/format prompts until separately choosing reuse. Leave stale Linux firmware entries for reviewed cleanup; never delete one to hide a difference.
+
+**Record:** retired token, backups, before/after Windows proof, optional procedure performed. **STOP → [Help](INSTALL-REFERENCE.md#help)**; **Return to step 9:** [final Windows confirmation](INSTALL.md#9-retire-access-and-return-to-windows). Starting over is [Return to step 1](INSTALL.md#1-backups-recovery-and-windows-preparation).
