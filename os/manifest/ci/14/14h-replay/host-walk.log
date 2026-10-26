@@ -60,7 +60,7 @@ test_qemu_socket_failure_kills_only_its_own_process (test_owner_capabilities.Cap
 test_real_exfat_capability_flow_with_no_host_commands (test_owner_capabilities.CapabilitiesTest.test_real_exfat_capability_flow_with_no_host_commands) ... ok
 
 ----------------------------------------------------------------------
-Ran 60 tests in 68.381s
+Ran 60 tests in 59.633s
 
 OK
 PASS local owner host walk; no stick across any reboot; no VM started

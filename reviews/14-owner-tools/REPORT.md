@@ -53,7 +53,7 @@ qualification. QEMU failure cleanup kills only its own process. The owner VM
 and qualification artifact guard require a complete proof for the exact head.
 No firmware audit or owner hotplug timing rule changed.
 
-**Verified locally:** **60 host-walk tests in68.381s**, no skips,56 source
+**Verified locally:** **60 host-walk tests in59.633s**, no skips,56 source
 bindings. Eleven new test methods cover FUSE identity/options and cleanup,
 fsck/corrupt-manifest refusal, hash ordering, the real capability control flow
 under closed stand-ins, QMP process failure, workflow ordering and incomplete/
@@ -61,7 +61,7 @@ wrong-head proof refusal. The existing full media/export walk now uses the same
 safe volume stand-in and retains its assertions. All typed guest paths remain
 covered; no tools stick crosses a reboot.
 
-Whole local discovery printed **`Ran 297 tests in 192.414s`** and
+Whole local discovery printed **`Ran 297 tests in 184.955s`** and
 **`FAILED (failures=2, errors=9)`**, exit1, no skips: **289 passed**, eight
 existing host-limited cases. Three need absent WSL Pillow, three inherited-
 Homebrew cases and one sysusers case are refused by the no-privilege shim,

@@ -65,8 +65,9 @@ class MediaFuseTest(unittest.TestCase):
             self.assertIsNone(media.expected)
 
     def test_unreadable_mount_state_refuses(self):
-        for code,text in ((2,''),(1,'unexpected'),(0,'{"filesystems":[]}')):
-            result=subprocess.CompletedProcess([],code,text,'')
+        for code,text,stderr in ((2,'',''),(1,'unexpected',''),(0,'{"filesystems":[]}',''),
+                                 (1,'','synthetic unreadable mount table')):
+            result=subprocess.CompletedProcess([],code,text,stderr)
             with self.subTest(code=code),patch.object(subprocess,'run',return_value=result),self.assertRaises(AssertionError):
                 owner_fuse.mounts('--source','/dev/SYNTHETIC')
 

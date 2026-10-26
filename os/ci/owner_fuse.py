@@ -8,6 +8,7 @@ def mounts(option, value):
     result = subprocess.run(['findmnt', '--json', option, str(value), '--output',
                              'SOURCE,TARGET,FSTYPE,VFS-OPTIONS'], capture_output=True, text=True, timeout=10)
     assert result.returncode in (0, 1), 'STOP: cannot determine mount state'
+    assert not result.stderr.strip(), 'STOP: mount query reported a diagnostic'
     if result.returncode == 1:
         assert not result.stdout.strip(), 'STOP: ambiguous absent mount'
         return []

@@ -72,7 +72,7 @@
       "path": "os/ci/owner_capabilities.py"
     },
     {
-      "sha256": "0984c373615ee8e8e566540ec0bf699f7c4cc30607e666b9a5294283d0acc2ea",
+      "sha256": "56143e7310331cef87aac1e143df5ed99eefac61c9f3e1d49cf0dc727865de1c",
       "path": "os/ci/owner_fuse.py"
     },
     {
@@ -252,7 +252,7 @@
       "path": "os/tests/test_owner_guard.py"
     },
     {
-      "sha256": "f966da00ad32132c7a373b4769b2c02d80db93c62991e64e86157c09e84eee4d",
+      "sha256": "786cb9e58040c7a5ee9a69083d2a19d7a3faab27c8eb41e85cc11b04dadafef6",
       "path": "os/tests/test_owner_media.py"
     },
     {
