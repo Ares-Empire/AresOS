@@ -1,0 +1,93 @@
+# 15: one owner checklist and a symptom-first emergency card
+
+**Documentation implemented; overall verification is NOT GREEN. Physical installation remains NOT RELEASED.** The new navigation/card tests and owner command/bundle checks pass. One client run timed out and the second sequential run passed; the native suite retains the eight package-14 host limitations. No VM, workflow dispatch, image build/publication, physical install or hardware query was performed.
+
+## Done
+
+- **INSTALL:** nine sequential steps with actions, expected screen/PASS, private evidence and STOP/return destinations. Step 5 combines unattended no-key/no-USB Windows, original Micron EFI comparison, corrected stock, physical typing and password-sudo proof. `STEP 5 COMPLETE` and its evidence are required at entry to step 6 and immediately before login/switch, including returns. Tools cannot enforce the human Windows proof.
+- **EMERGENCY:** nine symptom headings before references/preparation; immediate action is the first paragraph of each. Freeze, failed first switch, stale title, password rejection, covered prompt, forgotten stick and battery warning are explicit. First-switch failure always returns through Windows/help.
+- **INSTALL-REFERENCE / INSTALL-RECORD:** named returns without browser Back, private photo/help handling, console account/prompt/entry/exit, pinned media checks, full fitting/seating/battery stops and source-verified German writer controls. Record helper commands and all identity/EFI/geometry checks are preserved. A/B/C/D callers have explicit step destinations.
+- **INSTALL-PROCEDURES:** later layout proof/revert with original root session retained, rollback, GRUB recovery/keep-stock and optional removal/erasure are outside the installation path. All existing guarded commands/checks remain. Frozen stock keeps installer German; recovery account remains `ares-recovery`.
+- **INSTALL-STATUS / OS-BASE:** one current table with retained VM/source results, release/drive-order limits and open physical gates. Binding sequence reconciled: Linux-first offline setup, Windows-first during the tools round trip, repeated unattended Windows proof in step 5, then Windows-default/F12 thereafter. Qualification chronology/audit counts/screenshots are in the linked historical reports, not the owner checklist/card.
+- **Tests:** new `test_owner_path.py` walks every owner line and inline/reference link as a graph with the explicit conditional gate, validates local targets/anchors, checks card ordering/action proximity, STOP/returns, shortcut labels and retirement/open-gate coverage. It tests deliberately introduced inline and reference-style bypass links below the gate and missing gate/marker. `test_owner_equality.py` only extends its document input to INSTALL plus the new separate procedures; every existing assertion, canonical command, physical-driver comparison and bundle comparison is retained.
+- **Scope:** owner tools, payload/bundle, commands.json, release scripts/manifests, harness, workflows, image/release and mod source/build configuration are unchanged from `5156f5f`. The local brief `9836883` is preserved. No pull, dispatch, merge or push to main.
+
+### Council finding map
+
+| Finding | Change |
+| --- | --- |
+| **1 — return routes** | Explicit returns on checkpoints/detours; step 6 entry gate and repeated pre-invocation check; graph exploration with/without the step-5 marker, plus bypass mutation tests. |
+| **4 — retirement** | Every permanent abandonment path (leave/remove/erase, including broken Linux) revokes the dedicated token from Windows/phone. GitHub Settings → Developer settings → Personal access tokens → Tokens (classic) → Delete verified 2026-10-26. Private note/date only; no new local deletion command. Fresh-auth/private-pull failure and offline retained boots remain a supervised disposable-credential gate. |
+| **8 — emergency card** | Symptom-first actions; preparation/source history moved out; ordering/proximity test. Human 30-second phone discovery remains open. |
+| **9 — keyboard** | Ctrl = Strg on every owner shortcut, Fn alternatives, login:/Password:/root prompts, complete logout and F1/F2 desktop return. Lenovo model-family FnLock/F12/F2 sources checked 2026-10-26. Linux prompt expectations are from our session recipe; both physical FnLock states remain open. |
+| **10 — writer** | German 5.3.2 PO/QML labels, post-Write Löschbestätigung, target recheck, cancel/continue distinctions, verified-write result, restore → Weiter → Wiederherstellen and exact success sentence. Untranslated multiple-drive captions are disclosed. No main-branch translation used for new labels. |
+| **11 — status** | One current table; stale untested/OPEN claims reconciled against reports; Linux-first/Windows-first phase boundary fixed in binding OS-BASE §8/Appendix C. Both-order earlier timing, protected-second revised timing and 13f limits retained. |
+
+Both package-14 “For package 15” lists and stage walk are covered: record navigation; STOP/help/private photos; two-stick restore/copy/eject round trip; after-sign-in hotplug and no stick over restart; exact recovery-menu/account/session entry and exit; Enter for a covered prompt; frozen-backup layout; NVIDIA Flatpak-only deferral versus paused OS updates. The council's minimal owner checks are kept, not replaced by the word-count reduction.
+
+## Verified
+
+Commands ran locally from this worktree. Full raw logs/portable scanner remain in ignored `.work/15/`; only nonpersonal test screenshots are committed. No skipped/removed/weakened assertion and no elevated or system-install fallback was used.
+
+| Command / check | Actual output/result | What it proves / does not prove |
+| --- | --- | --- |
+| `python -m unittest discover -s os/tests -p test_owner_path.py -v` | **8 tests, OK**, repeated after final link changes | Owner graph/local anchors, conditional Windows guard, deliberate inline/reference bypass rejection, missing gate/marker rejection; symptom order/actions and safety wording. Does not prove a human completed Windows checks or follows conditions, 30-second discovery, hardware behavior or localized rendering. |
+| WSL `python3 -m unittest discover -s os/tests -p 'test_owner*.py' -v` | **67 tests /88.966s, OK**, no skips | Real owner handlers with explicit synthetic adapters, unchanged command/bundle equality, refusal/transport/export/media/console/guard/host walks, plus path tests. Not complete VM qualification. |
+| WSL `python3 -m unittest discover -s os/tests -p test_grub_bls.py -v` | **6 tests /0.347s, OK** after restoring standalone switch code fence | Existing unchanged switch-block/bundle assertion and GRUB identity/selector fixtures. No physical menu proof. |
+| WSL full `python3 -m unittest discover -s os/tests -v`, initial existing suite | **315 tests /328.955s**, `FAILED (failures=2, errors=9)`; **307 passed**, eight distinct host-limited tests, no skips | Same package-14 limitations: Pillow greeter (3), privileged Homebrew (3), sysusers (1), DrvFS mode (1). Nine error records include cleanup duplicates. |
+| WSL full discovery after rewrite, before switch-fence fix | **323 tests /275.829s**, `FAILED (failures=3, errors=9)` | Also caught the existing test requiring `switch` alone in its code fence. Fixed the document, not that assertion; focused six-test rerun passed. |
+| WSL final full discovery | **323 tests /321.395s**, `FAILED (failures=2, errors=9)`; **315 passed**, the same eight distinct host limitations, no skips | The switch-fence regression is resolved; only the unchanged host limitations remain. |
+| `pwsh -NoProfile -File os/tests/owner-tools.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/15/powershell-copy` | `PASS 15 destination refusals with zero writes; copied payload equals source`; manifest fingerprint unchanged | Synthetic Windows copy/bundle guards; no removable-media write or live disk query. |
+| `pwsh -NoProfile -File reviews/10b-own-ssd-fixes/test-install-record.ps1` and Windows `powershell -NoProfile -File` of same script | Each: **All 78 checks passed**; PS7 **7.6.9**, Windows PS **5.1.26100.9711** | Synthetic inventory/decoder/comparison and unelevated pre-check; no disk/firmware query or configuration change. |
+| `mod/gradlew.bat build runClientGameTest`, sequential run 1 | **BUILD FAILED in 10m 50s**, `Timeout has been exceeded` in client task; 38 required server game tests and 45 JUnit tests had passed | Client stopped progressing during world shutdown after fresh-world test 2/3. Does not qualify two consecutive client passes. |
+| Same full command, accidental overlapping invocation | **BUILD FAILED in 13s**, `deleteGameTestRunDir` locked logs | Operator scheduling error; excluded from independent client evidence. No test assertion was changed. |
+| Same full command, run 2 after run 1 ended | **BUILD SUCCESSFUL in 8m 5s** | Complete existing client tests passed once. Earlier timeout remains an unresolved instability, not green evidence. |
+| `mod/gradlew.bat build` | **BUILD SUCCESSFUL in 38s**; 17 tasks, 3 executed/14 up-to-date | Full build passes; retained JUnit XML has **9 suites /45 tests /0 failures/errors/skips**. |
+| `mod/gradlew.bat --stop` | `Stopping Daemon(s)` / `1 Daemon stopped` | No Gradle daemon remains from this run. No other Gradle version was invoked. |
+| Pinned scanner download/version | **8.21.2**; publisher archive SHA-256 **f238c85e5f47e18fac779ce71ee11091cf70a0a8fb4415f165efba2800eef133** matched the release checksums | Own Windows portable copy downloaded/verified under ignored `.work/15/gitleaks`; no other worktree/system installation used. |
+| `gitleaks.exe git . --log-opts=--all --redact=100 --no-banner --log-level info --report-format json --report-path .work/15/gitleaks/pre-report.json` | At implementation/test commit **eea9986**: **528 commits scanned /49.2s /no leaks found**, exit0 | All reachable refs/history, not only the diff. Final report commit is rescanned before the only push; final receipt goes in the draft PR without a receipt push. |
+| Local link/source/scope checks and `git diff --check` | **PASS**; all changed design/source-report links resolved; runtime paths unchanged | No browser or live hardware test. The existing os/README hardware-check link was retargeted to the renamed step 7. Seven full-file tag-source hashes and dated source links are in [SOURCES](SOURCES.md). |
+
+WSL uses the existing Ubuntu Python/Bash with TMPDIR under this worktree and a local `sudo` shim that exits126. This deliberately respects the no-admin rule; it does not skip the privileged tests. No Pillow/system packages were installed and no DrvFS mode assertions were relaxed.
+
+### Screenshots
+
+[27 generated client captures](screenshots/) are retained (6,491,891 bytes), including [create-screen check](screenshots/04-nether-home/screenshots/04c/0030_04c-create-default.png), [live hotbar](screenshots/09-mode-inventories/screenshots/0004_09-live-hotbar.png) and the existing app/logo/mode tests. Historical screenshot files overwritten by the task's fixed output paths were restored; new captures were moved under package 15. These are dev-client captures, not physical installation, Media Writer or owner-followability screenshots. No new visual product behavior was implemented or claimed.
+
+### Word counts
+
+Whitespace-separated words from UTF-8 Markdown, including tables/code/URLs, comparing `5156f5f` to final files:
+
+| File | Before | After |
+| --- | ---: | ---: |
+| INSTALL | 7,138 | 3,117 |
+| EMERGENCY | 2,049 | 637 |
+| INSTALL-RECORD | 2,568 | 2,715 |
+| OS-BASE | 11,611 | 11,498 |
+| INSTALL-REFERENCE (new) | 0 | 1,541 |
+| INSTALL-PROCEDURES (new) | 0 | 1,353 |
+| INSTALL-STATUS (new) | 0 | 1,110 |
+
+Initial checklist/card total: **9,187 → 3,754**. Including the three new supporting documents: **7,758** words. Checks have been retained and reorganized; length is not a physical usability result.
+
+## Not verified
+
+All physical/novice gates stay open in the [single current table](../../docs/INSTALL-STATUS.md#current-gates): unaided phone/30-second trial, both FnLock states, expendable-media cancellation/restore/copy/eject/boot, damaged-battery refusal/seating/parts/firmware, record helper on real Windows/UEFI, tools lifecycle/forgotten stick, live KDE typing, password/layout failure/revert, NVIDIA deferred completion with unchanged deployment state, token negative authentication/pull/offline boots, P1a hardware/logind/independent Windows. Package 14's complete VM route remains pending for the brief's 1 November rerun. Direct US→stock rollback has not been runtime-verified. No document check closes any of these.
+
+## JUDGMENT-CALL
+
+No new hard-to-undo product decision. Existing owner decisions are preserved. The safe reversible navigation choice is to treat step 6's gate as a visible conditional that the reader must honor, rather than implying that unchanged tools can prove a physical Windows boot. Alternatives requiring runtime tracking are out of scope and would need renewed qualification. Later procedure command locations changed, not command text or behavior; revising those locations later costs documentation/link/test updates only.
+
+## PLAN-GAP
+
+Overall local verification cannot be reported green: the unchanged client suite timed out once and passed once, and eight existing OS tests require capabilities disallowed/unavailable on this host. No assertion was weakened and no runtime/tool/harness/image/workflow change was made to hide either result. The report preserves them for review instead of claiming all tests pass. No new council finding required an owner-tool change.
+
+The retirement negative test cannot be demonstrated in every abandonment state by existing `login`, which requires prepared stock. As the brief permits, it remains an explicit supervised disposable-credential physical gate; GitHub list disappearance/local deletion is not reported as that proof.
+
+## Budget, branch and delivery
+
+No workflow was dispatched. Preliminary read-only billing `GET organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10` reported **1,766/2,000 used; 234 free; net quantity/amount0**. A fresh same-period read must still show at least150 free before the single final push. No push is allowed if that check or the final full-history scan fails. Draft PR is against main; branch is stacked on package 14's pushed head `5156f5f` plus the preserved local brief. Final head/scan/billing receipt and PR URL are recorded in the PR/final response, avoiding a second report push. Never merge.
+
+## Open questions
+
+None blocking the document implementation. Physical release, complete package-14 VM acceptance, the repeated-client instability and host-only verification limits remain for the owner/maintainer gates above; this draft does not authorize installation.

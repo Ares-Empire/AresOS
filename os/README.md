@@ -49,7 +49,7 @@ expected boots, wrong boots, and missing power-key/shutdown records all fail CI.
 Journals are verified before boot selection. Disk isolation, clean QMP/console
 shutdown and both fresh VM passes remain blocking.
 See the [package 06 report](../reviews/06-image-release/REPORT.md) for the current result
-and [INSTALL section 7](../docs/INSTALL.md#7-first-aresos-check-plain-terminal-no-minecraft-yet)
+and [INSTALL section 7](../docs/INSTALL.md#7-check-the-first-aresos-session)
 for the hardware procedure. Historical 03d runs did not read any journal.
 
 `Containerfile` pins the base digest. `keys/bazzite.pub` is Universal Blue's public
