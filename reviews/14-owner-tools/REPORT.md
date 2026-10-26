@@ -1,12 +1,14 @@
 # 14: checked owner tools
 
-**Current 14h status: local verification complete; fresh probe4/4 and
-qualification pending.** The integrator accepts explicit host FUSE exFAT and
-an early native capability gate for the historical14g mount stop. Planning
-snapshot: **80/350 consumed +184 reserved**, **3/4 probes**, **0/2
-qualifications**, org **415 free /231 after reservation**, above150. PR #13
-stays **draft** until automated acceptance. Physical installation stays
-**NOT RELEASED**. Earlier stops below retain their historical evidence.
+**Current 14h status: STOP / PLAN-GAP at guest JSON command framing.** The
+native capability smoke, all297 native tests,15 Windows refusals, four private
+checks, ISO inspection and real FUSE media copy/fsck/readback passed. The live
+guest printed carrier0/offline success, then the wrapper treated its closing
+`PY` delimiter as Python and exited1. No successful probe or qualification
+exists. Snapshot: **113/350 consumed +12 closing privacy reserved**, **4/4
+probes spent**, **0/2 qualifications**, org **382 free /370 after reservation**.
+PR #13 stays **draft**; physical installation stays **NOT RELEASED**.
+Earlier stops below retain their historical evidence.
 
 ## 14h — Explicit runner FUSE exFAT and early host capabilities
 
@@ -77,8 +79,8 @@ full listing. Windows copy passed15 zero-write refusals with the unchanged
 bundle fingerprint. CI/release shell syntax,257 guest commands,233 embedded
 Python programs and48 CI/overlay/owner Python sources passed compilation.
 Compact replay results, exact ISO adapter, host-walk log and153 canonical
-input hashes are retained in `os/manifest/ci/14/14h-replay/`; they will be
-checked against the pushed Git blobs before dispatch.
+input hashes are retained in `os/manifest/ci/14/14h-replay/`; all153 replay
+and56 host-walk hashes matched the pushed Git blobs before dispatch.
 Local proof used ordinary files, shims and fixtures only: no package install,
 mount, real device operation or QEMU process on the laptop or WSL. Owner tools,
 owner scripts, guest filesystem handling, frozen runtime and release are
@@ -94,7 +96,7 @@ protected-disk, NVRAM, BootNext, Windows-default and detached-device audit stays
 The additional host capability gate precedes this route and cannot authorize
 an audit exception or a stick present during firmware startup.
 
-**Budget:** complete40/40 planning history reports80 consumed,3/4 probes,
+**Planning snapshot:** complete40/40 history reported80 consumed,3/4 probes,
 0/2 qualifications. Reserve42 probe/native +130 one qualification +12 closing
 privacy =184, total264/350. Org415 free,231 after reservation, above150. The
 second qualification is optional behind its own fresh guard and every STOP
@@ -103,14 +105,136 @@ fresh pushed-head privacy (all three rules executed), local14e/14f replay,
 complete ledger and billing again. A missing native capability means STOP;
 no fallback, blind rerun or qualification follows a failed probe.
 
-**Not verified:** actual runner FUSE/capability smoke, fresh live probe and full
-owner-tools VM qualification are pending. The four14f private-access checks
-remain CI-only and fail-closed. All physical NVIDIA/media/forgotten-stick/
-laptop/followability gates remain open and installation NOT RELEASED.
+### Actual fresh gates, native success and framed-heredoc STOP
+
+The first FUSE implementation head `de322e9` was pushed after a clean pinned
+full-history scan; both normal privacy runs passed. Final review then found
+that a diagnostic from `findmnt` with no stdout could be mistaken for a clean
+no-match. Tightened that refusal **before any dispatch**, repeated the whole
+297-test discovery and60-test walk (results above), refreshed the bindings,
+recorded both scans and pushed final candidate
+`02eac4a226787a8879ee80d8d814221a22630323` fast-forward. Its pinned,
+checksum-verified gitleaks8.21.2 full-history scan reported **0 findings**.
+No ignore entry or privacy policy changed.
+
+Privacy runs [40249678234](https://github.com/Ares-Empire/AresOS/actions/runs/40249678234)
+and [40249682573](https://github.com/Ares-Empire/AresOS/actions/runs/40249682573)
+passed all three rules, with personal terms executed. Immediately before POST,
+the actual verifier passed again, source hashes matched and the fresh guard
+proved complete **44/44** history: **91 consumed +184 reserved /350**,
+**3/4 probes**, org **404 free /220 after reservation**, above150.
+
+Sent one fresh probe: [40249992092](https://github.com/Ares-Empire/AresOS/actions/runs/40249992092)
+on that exact head. The early native capability step passed in **11 seconds**
+(00:40:13–00:40:24 UTC), before browser/private/ISO work. Its same-head proof
+records every required capability, actual read-only EROFS refusal, synthetic
+marker boot and toy USB removal before firmware. Installed `exfat-fuse` was
+**1.4.0-2**, `exfatprogs` **1.2.2-1build1**, on kernel**6.17.0-1022-azure**.
+No kernel-driver fallback was used.
+
+Native output: **`Ran 297 tests in 19.693s` / `OK`**, no skips, including all
+eight local host-limited cases. PowerShell passed all15 zero-write refusals;
+the git-only verifier, private metadata/digest, exact signature and preserved-
+digest layer pull all passed. Cleanup removed the outside-workspace job
+credentials. Native ISO inspection passed the full pin/checksum, four
+localization and102 Web UI sources.
+
+The real128MiB tools image then passed the exact Windows copy implementation,
+FUSE safety checks, sync/unmount confirmation, clean `fsck.exfat -n` and a
+read-only every-file bundle check. The manifest fingerprint remains
+`118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba`.
+Its backing was hashed only after verification. The synthetic baseline marker
+boot and live root login ran; the [baseline screenshot](screenshots/14h-baseline-firmware.png)
+was visually checked for `BootCurrent=0000` / `MARKER_BOOT_COMPLETE`.
+
+The live command `live-offline-before-webui` printed:
+
+```text
+{"status": "passed", "interfaces": [{"name": "enp0s1", "carrier": "0",
+ "flags": 4099, "operstate": "down"}], "physical_link_down": true}
+NameError: name 'PY' is not defined
+ARESOS_CMD_DONE:1
+```
+
+The shell also warned that the here-document wanted `PY` at end-of-file.
+The traceback ends at `Guest.assert_offline` through `capture_json` and
+`switch_vm.framed`. The latter appends ` > "$result"` directly to the supplied
+command; the generated command ends at the closing `PY` without a newline.
+That changes the delimiter line into `PY > "$result"`. Python consequently
+evaluates `PY` as a name after printing the valid network payload. The command
+exits1 and never produces the required checksum-framed JSON export. Printed
+offline data cannot substitute for a successful protocol receipt.
+
+**PLAN-GAP:** the existing JSON wrapper does not safely compose this heredoc
+command. The local walk used stand-in guest responses and syntax checks; it
+did not execute this wrapper composition before dispatch. A zero-cost local
+reproduction now runs the **unchanged** `framed` implementation with a literal
+JSON heredoc, adapting only its `mktemp` directory from `/run` to this worktree:
+same delimiter warning, valid printed JSON, same `NameError`, exit1. Its
+single-line command control exits0 and decodes correctly. Exact scripts,
+stdout/stderr, helper and hashes are retained in the STOP evidence. This
+demonstrates a framing defect; it does not establish a network/carrier failure.
+The needed wrapper correction and an execution regression require review
+before any renewed probe allowance. No harness fix or rerun was attempted
+after this STOP; all4 current probe allowances are spent.
+
+The guest WebUI transport, browser preview, guest tools hotplug, final detached
+Windows check and target reset were **not reached**. Nothing was installed.
+The reached baseline/live protected-disk captures exactly match the baseline
+whole-file SHA-256, GPT and EFI inventories; both counter samples have
+**0 write bytes,0 writes,0 unmaps**. Both BootNext checks and the reached
+`11f-linux-position` NVRAM replay passed. The failure-path counter was retained
+while the VM was paused before cleanup. These partial audits do not qualify
+the later stages or a successful live probe.
+
+Artifact **12620338527**,214 members,3,116,273 bytes, was checked against its
+GitHub SHA-256 **before reading**:
+`636cfeccbcb527c13ba655f6bc6e0a322bac3d30bafc6cc6ba0fe6f0bd40cd93`.
+Native/capability/media/private-check proofs, sanitized guest failure output,
+actual step outcomes, original member hashes, reached audit data, fresh
+privacy/guard receipts and the local reproduction are retained under
+`os/manifest/ci/14/14h-probe-stop/`. Hashes precede paths; copied EFI file maps
+were normalized to that shape without changing their values. No credential
+value was printed or retained in repository/evidence; authorized temporary
+job credentials were removed by cleanup.
+
+While the probe ran, the qualification's local replay passed on the unchanged
+head: **60 tests in65.435s**,15 Windows refusals, the53-source offline gate,
+complete ISO replay,257 shell checks,233 embedded Python compilations and48
+Python sources compiled without caches. A passing probe is still mandatory,
+so no qualification was dispatched. No image/publication job ran. The real
+laptop was never touched; no package, mount or QEMU operation ran in WSL.
+
+### Stopped ledger
+
+Complete **45 unique IDs / total_count45**, all settled at this read:
+
+| Item | Actual at stopped read | Cap/reservation |
+|---|---:|---:|
+| Probe1 /2 /3 /4 | 5 +6 +13 +22 =46 min | 4/4 spent |
+| Privacy since first dispatch | 67 min | same ledger |
+| Package consumed | 113 min | 350 min |
+| Closing privacy reserved | 12 min | 125/350 including reservation |
+| Qualifications | 0 | 2; blocked by missing passing probe |
+| Image builds / publications | 0 /0 | 0 /0 |
+| Org free / after closing reservation | 382 /370 min | minimum150 |
+
+No VM reservation remains. The closing report push is covered by12 reserved
+minutes; its final scan, privacy receipts and actual closure cost are recorded
+in PR #13 after checks finish. Every push still requires the pinned local
+full-history scan to report zero findings. PR #13 remains draft because
+acceptance is unmet. No merge or publication occurred, and no Gradle work or
+daemon was started (the mod is unchanged).
+
+**Not verified:** successful live probe, guest tools hotplug/readback, offline
+installation/first-stock hardware boot, first-network invariance, physical
+owner commands, layout failure/revert/success, switch/rollback/keep-stock and
+their later audits. All physical NVIDIA/media/forgotten-stick/laptop/
+followability gates remain open and installation NOT RELEASED.
 **JUDGMENT-CALL:** no new owner-facing choice; explicit VFS flag application
 implements the requested flags despite helper option filtering.
-**PLAN-GAP / Open questions:** none newly observed locally; actual native
-capability and VM acceptance remain required.
+**Open questions:** reviewed framing correction/regression and authorization
+for a new passing-probe attempt before the unrun qualification.
 
 ## 14g — Git-only squash binding and permission inventory
 
@@ -244,7 +368,8 @@ cleanup proofs, original artifact provenance, fresh guard/privacy receipts and
 the prospective qualification's local replay are retained under
 `os/manifest/ci/14/14g-probe-stop/`. JSON key ordering is hash-first; original
 member provenance is retained where copies were reformatted. No credential
-value was printed or stored.
+value was printed or retained in repository/evidence; authorized temporary
+job credentials were removed by cleanup.
 
 While the probe ran, the qualification's local prerequisites were replayed on
 the unchanged head: **49 tests in56.841s**,15 Windows refusals, the53-source

@@ -7,9 +7,10 @@ This card applies once AresOS is installed. Physical installation is still **not
 ## Stock preparation stops before the switch
 
 Package14's new checked commands passed native tests and privacy CI in14d.
-14g's git-only squash binding and private-access checks passed in CI. The14h
-explicit FUSE host path and early capability gate require fresh probe4/4 and
-qualification; the route remains unaccepted pending those results.
+14g's binding/private-access checks and14h's FUSE/capability gate passed in CI.
+Probe4/4 stopped at guest JSON/heredoc framing before WebUI transport or guest
+tools hotplug. All probe allowances are spent; qualification is unrun and the
+route remains unaccepted.
 They are not released for physical installation; see the
 [14 report](../reviews/14-owner-tools/REPORT.md).
 

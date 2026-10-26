@@ -1,0 +1,15 @@
+ARESOS_ROOT> 
+
+> 
+
+> 
+
+> 
+
+bash: line 26: warning: here-document at line 4 delimited by end-of-file (wanted `PY')
+{"status": "passed", "interfaces": [{"name": "enp0s1", "carrier": "0", "flags": 4099, "operstate": "down"}], "physical_link_down": true}
+Traceback (most recent call last):
+  File "<stdin>", line 13, in <module>
+NameError: name 'PY' is not defined
+
+ARESOS_CMD_DONE:1

@@ -1,0 +1,184 @@
+{
+  "run": 40249992092,
+  "head": "02eac4a226787a8879ee80d8d814221a22630323",
+  "job": 121339595110,
+  "conclusion": "failure",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-26T00:34:16Z",
+      "completed_at": "2026-10-26T00:34:20Z"
+    },
+    {
+      "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-26T00:34:20Z",
+      "completed_at": "2026-10-26T00:34:31Z"
+    },
+    {
+      "name": "Reserve the separate 11c minute budget (including privacy checks)",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-26T00:34:31Z",
+      "completed_at": "2026-10-26T00:34:47Z"
+    },
+    {
+      "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-26T00:34:47Z",
+      "completed_at": "2026-10-26T00:37:06Z"
+    },
+    {
+      "name": "Install pinned rehearsal tools on disposable runner",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-10-26T00:37:06Z",
+      "completed_at": "2026-10-26T00:40:13Z"
+    },
+    {
+      "name": "Prove package 14 native host capabilities before expensive downloads",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-26T00:40:13Z",
+      "completed_at": "2026-10-26T00:40:24Z"
+    },
+    {
+      "name": "Qualify tools, regressions, rewritten release identity and private access",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7,
+      "started_at": "2026-10-26T00:40:24Z",
+      "completed_at": "2026-10-26T00:41:15Z"
+    },
+    {
+      "name": "Require completed native preflight before any package 13 VM",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8,
+      "started_at": "2026-10-26T00:41:15Z",
+      "completed_at": "2026-10-26T00:41:29Z"
+    },
+    {
+      "name": "Create runner-temporary pinned-image credentials",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 9,
+      "started_at": "2026-10-26T00:41:29Z",
+      "completed_at": "2026-10-26T00:41:29Z"
+    },
+    {
+      "name": "Prepare package 13 job-token credentials without owner-secret fallback",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 10,
+      "started_at": "2026-10-26T00:41:29Z",
+      "completed_at": "2026-10-26T00:41:29Z"
+    },
+    {
+      "name": "Verify exact private manifest with scoped credentials",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11,
+      "started_at": "2026-10-26T00:41:29Z",
+      "completed_at": "2026-10-26T00:41:31Z"
+    },
+    {
+      "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12,
+      "started_at": "2026-10-26T00:41:31Z",
+      "completed_at": "2026-10-26T00:41:41Z"
+    },
+    {
+      "name": "Verify the exact private signature natively for the offline guest",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 13,
+      "started_at": "2026-10-26T00:41:41Z",
+      "completed_at": "2026-10-26T00:41:42Z"
+    },
+    {
+      "name": "Qualify the exact pinned layer pull without installing",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14,
+      "started_at": "2026-10-26T00:41:42Z",
+      "completed_at": "2026-10-26T00:42:59Z"
+    },
+    {
+      "name": "Inspect the exact pinned live ISO before assuming an installer path",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 15,
+      "started_at": "2026-10-26T00:42:59Z",
+      "completed_at": "2026-10-26T00:50:16Z"
+    },
+    {
+      "name": "Prepare disposable file disks and qualify the real live environment",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 16,
+      "started_at": "2026-10-26T00:50:16Z",
+      "completed_at": "2026-10-26T00:55:17Z"
+    },
+    {
+      "name": "Remove owner registry credentials",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 17,
+      "started_at": "2026-10-26T00:55:17Z",
+      "completed_at": "2026-10-26T00:55:17Z"
+    },
+    {
+      "name": "Remove package 13 job-token credentials",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 18,
+      "started_at": "2026-10-26T00:55:17Z",
+      "completed_at": "2026-10-26T00:55:18Z"
+    },
+    {
+      "name": "Bound retained evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 19,
+      "started_at": "2026-10-26T00:55:18Z",
+      "completed_at": "2026-10-26T00:55:18Z"
+    },
+    {
+      "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 20,
+      "started_at": "2026-10-26T00:55:18Z",
+      "completed_at": "2026-10-26T00:55:20Z"
+    },
+    {
+      "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 40,
+      "started_at": "2026-10-26T00:55:20Z",
+      "completed_at": "2026-10-26T00:55:21Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 41,
+      "started_at": "2026-10-26T00:55:21Z",
+      "completed_at": "2026-10-26T00:55:21Z"
+    }
+  ]
+}
