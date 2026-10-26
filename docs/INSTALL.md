@@ -184,7 +184,7 @@ Before changing boot order, stop on these anomalies:
 - **Windows recovery prompt** instead of normal Windows startup → **STOP → [Help](INSTALL-REFERENCE.md#help)**; after resolution, [Return to step 8](#8-everyday-boot-and-recovery). Do not use repair/reset options.
 - **Missing internal boot entry while its SSD is attached** (Windows Boot Manager or the recorded Linux entry) → **STOP → [Help](INSTALL-REFERENCE.md#help)**; after resolution, [Return to step 8](#8-everyday-boot-and-recovery). An unplugged USB entry disappearing is different.
 
-If order changes: repeat step 1's encryption check, **F2** (or **Fn+F2**) → **More Settings → Boot → UEFI → Windows Boot Manager first → Save and Exit**; require unattended no-USB Windows and record B.
+If order changes: repeat step 1's encryption check, **F2** (or **Fn+F2**) → **More Settings → Boot → UEFI → Windows Boot Manager first → Save and Exit**; require unattended no-USB Windows and [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), with calling context **everyday boot-order restoration**.
 
 Tools stick: insert only after Linux is up and you are signed in; export → SAFE TO REMOVE → unplug before every shutdown/restart. If forgotten at power-on, do not select it; unplug and continue. Text over prompt → Enter. Backup stock keeps **German**, even after a later AresOS layout change.
 
