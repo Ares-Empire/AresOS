@@ -194,7 +194,11 @@ Native/capability/media/private-check proofs, sanitized guest failure output,
 actual step outcomes, original member hashes, reached audit data, fresh
 privacy/guard receipts and the local reproduction are retained under
 `os/manifest/ci/14/14h-probe-stop/`. Hashes precede paths; copied EFI file maps
-were normalized to that shape without changing their values. No credential
+were normalized to that shape without changing their values. The final
+branch-wide whitespace check caught four trailing prompt spaces in the
+sanitized console extract; those spaces were removed and its hash refreshed.
+This evidence-only correction and its normal privacy runs share the closing
+reservation. The executable paths remain unchanged after the STOP. No credential
 value was printed or retained in repository/evidence; authorized temporary
 job credentials were removed by cleanup.
 
