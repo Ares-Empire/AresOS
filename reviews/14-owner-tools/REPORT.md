@@ -1,9 +1,91 @@
 # 14: checked owner tools
 
-**Current14r: local preparation passed; one push and fresh hosted gates pending.**
-PR #13 remains draft / NOT RELEASED.14r supersedes14q's November hold by
-explicitly deferring only the closing-privacy reservation. Historical STOP
-sections below remain evidence of those attempts, not current acceptance.
+**Current14r: STOP — probe9 failed tools-stick creation before the OS VM;
+retained ISO-listing scan also has507 unresolved gitleaks findings.** No rerun,
+qualification2, second push, reserve restoration, ready transition or merge.
+PR #13 remains draft / NOT RELEASED. This actual STOP report and closed ledger
+are committed locally only; the pushed head retains the labelled pre-dispatch
+record. Historical sections below describe their own attempts.
+
+## 14r — Actual probe9 STOP after the one authorized push
+
+**Done / actual authorization:** exactly one fast-forward push advanced
+`47f795d072abcef9d9c1173557174b7abd9dd466` to
+`22e07b1b6abb6f60da9df9c8646aef414e8589d4`, including the committed14q fix,
+probe8 STOP and14q budget STOP, local briefs, and14r's explicit October closing
+reservation0. Probe42 and qualification130 bounds stayed fixed. The pinned
+full-history and pending-file gitleaks scans had0 findings before this push.
+Exact-head privacy40406753823 and40406746890 passed all three checks; personal
+terms actually ran. Fresh authorization proved **76/76 complete history,
+292+172=464/480,6 org minutes after reservation ≥0**, including the recorded
+closing0 decision. Probe9 was sent once, run_attempt1, on that immutable head:
+[40407466983](https://github.com/Ares-Empire/AresOS/actions/runs/40407466983).
+
+**Verified natively:** pinned tools and every early capability passed. The
+complete native suite passed **341 tests in27.946s, no skips**. The14q real
+loop-image regression passed:20 recorded checks, matching independent blkid /
+sgdisk / disk_record GUIDs,2 raw lsblk trees,4 findmnt rows,0 helper mutations,
+protected fixture unchanged, and all fixture mounts/loops cleaned up. The new
+failure-evidence mechanism produced `14-native-owner-devices.json`. Windows
+copy, compilation/shell checks and release verification completed. The four
+credential-only metadata/manifest, signature and layer-pull checks all passed;
+no owner secret or changed credential/scope. Pinned live ISO inspection passed.
+
+**Actual failure:** the next step created disposable50-GiB protected and
+49-GiB target file disks. While `owner_vm.main` was creating the separate
+virtual ARESTOOLS stick, `owner_media.py:69` stopped:
+
+```text
+open failed : /dev/loop0p1, No such file or directory
+subprocess.CalledProcessError: Command '['mkfs.exfat', '-L', 'ARESTOOLS',
+'/dev/loop0p1']' returned non-zero exit status 255.
+```
+
+This was after `sgdisk` and the backing-verified `losetup --partscan` path,
+before the FUSE mount/copy/readback/hash and before `Audit` or `live_probe`
+were entered. No OS VM started, no virtual tools stick was attached, and no
+OS disk/firmware stage audit or installation/keyboard qualification ran.
+The earlier native capability smoke VM is a separate passed result. Native
+loop/FUSE capabilities are proven; the reason this tools-media partition node
+was absent is **not proven** by the retained log. No host-readiness workaround,
+filesystem fallback, tool install, code change or rerun was attempted.
+
+**Privacy STOP / retained evidence:** artifact12692287401 was checked against
+its API digest before safe extraction:3,023,704 bytes,156 members, SHA256
+`f606525a019be5e396cdda73802efa0f753691dee4eeb36515a231fdaa51d7df`.
+Private raw receipts/logs remain in `.work/14/run-40407466983/` and the private
+run's artifact. Scoped-auth cleanup passed: removed, outside workspace, no
+owner token used. No raw artifact or listing is added to Git or made public.
+
+Pinned8.21.2 retained-evidence scanning found **507 generic-api-key findings**,
+all in `evidence/installer/squashfs-files.txt`; none in native/failure plaintext
+logs. Only redacted rule/file/count metadata was inspected for this report;
+no matched values are printed here. This is an unresolved **new-finding STOP**,
+not a clean artifact scan. No ignore entry, allowlist, rule or privacy workflow
+was changed, and no finding was suppressed or discarded. The clean pre-push
+Git-history scan and exact-head privacy are distinct from this artifact result.
+
+**Closed ledger:** **306/480 consumed,0 reserved;77/77 complete history;
+9/9 probes,1/2 qualifications;0 publications**. This continuation used21 rounded
+minutes (7 privacy +14 probe). Fresh billing showed155 org minutes free.
+Cap480, closing0 and org reserve0 remain as approved because acceptance is
+unmet; closing12/reserve150 restoration and PR-ready are not authorized. No
+qualification2 or second push. The actual STOP report and ledger are local
+commit bookkeeping only, with no new hosted action.
+
+**Not verified / PLAN-GAP:** tools-media creation, the full live probe and
+qualification2 remain unverified. The missing loop partition node and the
+507 listing findings need integrator review before a correction or any new
+allowance; none was made here. Every existing protected-disk, firmware,
+BootNext, Windows-first, detached-device and privacy rule remains intact.
+Owner tools/fingerprint, frozen image/release/runtime, INSTALL, EMERGENCY and
+release gate are unchanged. No real laptop, other worktree, image build,
+publication or merge. Physical/followability gates stay open.
+
+**JUDGMENT-CALL / open questions:** no new product decision.14r only deferred
+closing privacy reservation; it does not authorize ignoring findings or merging
+before privacy passes. Native evidence is retained for review; acceptance is
+not met and probe9 is exhausted.
 
 ## 14r — October closing reservation0; pre-dispatch preparation
 
