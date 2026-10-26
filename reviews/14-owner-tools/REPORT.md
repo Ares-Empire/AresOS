@@ -1,6 +1,142 @@
 # 14: checked owner tools
 
-**Current 14i status: STOP / PLAN-GAP at tty3 prompt readiness after tools
+**Current 14j status: local prompt-resync fix; NO DISPATCH, awaiting the
+owner's budget decision.** PR #13 remains **draft / NOT RELEASED**. The
+same-head qualification remains incomplete. This run changes no release,
+owner tool, workflow, privacy rule, allowance or reserve.
+
+## 14j — Idle-only console resync; stop after push
+
+### Done
+
+Ran `git fetch origin` and `git pull --ff-only` first: already at `2596489`.
+Read 14j, the 14i stop/evidence, AGENTS and existing console/typing/walk code.
+Only this worktree was used; neither retired worktree nor real laptop devices
+were accessed.
+
+`owner_vm.type_text` invalidates the console's completion proof before any
+physical typing, including hidden input and the shared keyboard observers.
+`Console.prompt` grants idle status only after observing the original strict
+cursor-line prompt, with the original three stable samples. A later wait may
+send an empty Enter through the same physical key path only if that completion
+proof remains valid and the cursor line has no prompt. Input during the wait
+revokes the grant before any Enter. Unknown/busy shells, login/input waits and
+hidden-password waits never receive resync input. A failed wait invalidates
+the completion proof.
+
+The new `owner_console` helper shares the original 90-second wait across at
+most three phases and permits at most two empty Enter resyncs. Each attempt
+records stage, tty, UTC time, whether Enter was sent, and cursor lines before
+and after. The existing prompt predicate and kernel logging are unchanged.
+Each expired phase, including the final timeout and hidden-prompt timeout,
+retains raw VCSA bytes plus a hash-first file/geometry/cursor record. The JSON
+checksum export protocol is unchanged.
+
+Nine local regressions execute the actual composed guest Python reader against
+VCSA bytes, with only the `/dev/vcsa3`/`4` read and clock replaced. They cover
+one-Enter recovery, busy/unknown shells, input during a wait, typing in another
+console, login/input waits, hidden timeout, two-resync exhaustion, an unstable
+but already visible prompt, strict three-sample readiness, and malformed VCSA
+refusal. Bash parses both each composed command and its real serial wrapper.
+
+The 14i fixture reconstructs the screenshot's exact ASCII root-prompt/kernel
+region and cursor at its original **160×50**, **(0,49)** coordinates, using all
+17 retained hotplug lines. Its source index binds the screenshot and fixture.
+**It is not a raw dump from 14i:** no such dump was retained. Upper MOTD rows
+are blank and attributes synthetic, explicitly recorded in the fixture index;
+neither affects the predicate. Future timeouts now preserve the actual bytes.
+
+Added the prescribed one-line Enter note to INSTALL's tools-stick step and
+both historical "For package 15" lists. Canonical commands, bundle payload,
+release paths, owner scripts, firmware/disk audits and stop rules are unchanged.
+
+### Verified
+
+- Console regressions: **9/9 passed**, existing WSL Python/Bash, no installs.
+- Final local host walk: **78/78 passed**, no skips; all owner stages remain
+  represented by explicit stand-ins, with no stick across reboot.
+- Strict composed-command replay: **258 guest scripts +258 serial wrappers**,
+  **233 embedded Python programs**, **12 CI/release shell files**, **44
+  CI/overlay/owner Python files**; no parse stdout/stderr, including warnings.
+- Complete local discovery: **315 tests**, **307 passed**, **8 existing
+  native-host limitations**, no skips (2 failure and9 error records, including
+  duplicate cleanup errors). The eight affected tests match the retained
+  baseline exactly: Pillow-dependent greeter checks (3), privilege-dependent
+  Homebrew fixtures (3), sysusers fixture (1), and DrvFS auth-file mode (1).
+  No assertion or environment restriction was waived. The full suite was
+  repeated after the final unstable-prompt guard was added.
+- Exact command/bundle equality and zero-mutation refusals pass in the host
+  suite. PowerShell copy tests: **15 destination refusals with zero writes**,
+  copied payload equal, fingerprint unchanged
+  `118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba`.
+- Actual read-only `verify_release.py 40154642447`: passed the fetched PR-head
+  source ancestry, pinned squash ancestry, release run/jobs and frozen payload
+  comparisons. Offline source replay passed all **53 retained files** and the
+  full listing. No credential or scope was changed.
+- Actual installer inspector replay rehashed all **9,068,650,496 ISO bytes**,
+  matched a fresh public checksum, and inspected **4 localization +102 WebUI
+  sources**. An initial replay refused its 25-GiB free-space precondition;
+  only resolved duplicate ISO/squash caches from the previous replay were
+  removed inside this worktree, preserving original ISO and evidence, then the
+  fresh replay passed. Windows bsdtar/WSL extraction/path/LF adapters only;
+  no CI assertion changed.
+- The four 14f CI-only checks remain explicitly classified with their reasons
+  and CI step names: org package metadata, registry digest inspect, pinned pull
+  and registry signature verification. They were **not run** here and remain
+  fail-closed in CI. No native/VM workflow was dispatched.
+- Frozen payload, owner bundle/scripts, workflows, privacy policy/ignore files
+  and package configuration compare unchanged; `git diff --check` passes.
+
+Hash-first evidence is in
+[`14j-replay`](../../os/manifest/ci/14/14j-replay/replay.json) and the updated
+[`host-walk`](../../os/manifest/ci/14/host-walk/result.json). These are local
+prerequisites, not VM acceptance. Pinned full-history gitleaks8.21.2 must pass
+with0 findings before the fast-forward push; the scan receipt is recorded in
+the ledger. Normal push/PR privacy is the only hosted CI allowed this run.
+
+### Ledger and both next-resume options
+
+The fresh pre-push snapshot is **212/350 consumed +12 closing privacy
+reserved**, complete **59/59** run history, **5/5 probes**, **1/2
+qualifications**, **0 publications**. Org billing reports **274 free**. Probe6
+must pass on the qualification's exact head; probe5 cannot qualify this fix.
+Neither the exhausted probe allowance nor the150 reserve was changed.
+
+| Cost/option | October now, smaller reserve only by owner decision | 1 November, fresh org month |
+|---|---:|---:|
+| Planned probe6 + qualification | 25 +130 =155 min | same155 min |
+| Org free after that plan, before this closing CI | 119 min | 1845 if all2000 unused |
+| Org free after plan and12 closing reservation | 107 min | 1833 if those12 fall in November |
+| Conservative42 probe/native +130 qualification +12 closing | 184 min;90 free | 1816 free if all2000 unused |
+| Package ledger after155, before closing | 367/350 | same367/350; package does not reset |
+| Package including12 closing reservation | 379/350 | same379/350 |
+| Package with conservative184 reservation | 396/350 | same396/350 |
+
+These are planning bounds, not a dispatch authorization or reservation. The
+monthly numbers assume no other org use; fresh complete history, billing and
+exact-head privacy checks are still required at the next resume. Closing
+actuals/receipts will be recorded on PR #13 after the reserved privacy jobs
+settle, without a self-triggering report-push loop.
+
+### Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
+
+**No dispatch in this run.** No fresh native CI, probe6, second qualification,
+new guest timeout dump or physical resync is claimed. The eight local host
+limitations remain for the next authorized native suite. Physical/novice
+installation and package15 gates remain OPEN / NOT RELEASED; PR #13 stays
+draft. The earlier VM failure and all its audit receipts remain below.
+
+**Additional budget PLAN-GAP:** waiting for November resets org minutes only.
+The package's350 cap is also too small: **212 +155 =367**, already17 over
+before closing privacy. The owner therefore needs to settle the package cap
+as well as the timing/reserve and fresh probe allowance before continuation.
+No cap, reserve, ledger start or accounting rule was relaxed. No new product
+judgment was made; the two-resync policy and owner note follow14j exactly.
+Stop after the fast-forward push and normal privacy checks; never merge.
+
+## Prior 14i status and retained qualification stop
+
+**14i status: STOP / PLAN-GAP at tty3 prompt readiness after tools
 hotplug.** The brace-group fix, all306 native tests and fifth probe passed.
 The same-head qualification installed offline, completed hardware setup and
 the Windows round trip, then timed out before typing the tools `install`
@@ -1252,6 +1388,8 @@ two-stick/offline route remains the required design until revised by the owner.
 
 ## For package 15
 
+If text appears over the prompt after you plug in or remove the stick, press Enter to get the prompt back.
+
 Do not build the new owner path on unimplemented package 14 commands. After the
 offline prerequisite and tools qualification are resolved, package 15 still
 needs to address council findings **1, 4 and 8–11**: checkpoint return routes and
@@ -1591,6 +1729,8 @@ are owner-review items; changing commands/bundle later requires regeneration,
 equality tests and a new qualification. No frozen image changes are needed.
 
 ### For package 15
+
+If text appears over the prompt after you plug in or remove the stick, press Enter to get the prompt back.
 
 Rewrite the whole novice route and emergency card around these commands without
 moving checks back into prose-only assumptions. Improve record navigation,

@@ -4,6 +4,7 @@ Retained 13f deployment/BLS states are observations, not evidence that package
 14 ran in a VM. Every guest command is captured, never executed here.
 """
 import contextlib
+import base64
 import copy
 import hashlib
 import json
@@ -59,6 +60,12 @@ def walk():
         def capture_json(self, name, source):
             syntax(name, source)
             commands.append((name, source))
+            if 'base64.b64encode(data)' in source or 'base64.b64encode(raw)' in source:
+                # Readiness observation only; the dedicated VCSA tests execute
+                # the real reader and exercise the Enter/timeout paths.
+                return dict(ready=True, raw=base64.b64encode(
+                        bytes([1, 80, 15, 0]) + b''.join(bytes([c, 7]) for c in
+                            b'root@bazzite:~#'.ljust(80))).decode())
             if name in ('offline-first-stock-link', 'stock-offline-login', 'live-offline-before-webui'):
                 return dict(status='passed', physical_link_down=True)
             if name == 'owner-record-list': return []

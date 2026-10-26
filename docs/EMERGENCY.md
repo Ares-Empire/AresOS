@@ -12,6 +12,8 @@ The14i brace-group fix passed the fifth probe and all306 native tests. Its
 same-head qualification installed offline and completed the Windows round
 trip, then stopped at tty3 prompt readiness after tools hotplug, before the
 first tools command. No rerun; the complete owner route remains unaccepted.
+14j's local prompt-resync fix has no new VM evidence; dispatch awaits the
+owner's budget decision.
 They are not released for physical installation; see the
 [14 report](../reviews/14-owner-tools/REPORT.md).
 

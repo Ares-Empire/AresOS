@@ -18,6 +18,7 @@ import switch_vm as sw
 import keyboard_vm as kb
 import keyboard_entries as ke
 import offline_webui
+import owner_console
 from owner_keys import physical_keys
 from owner_media import Media
 
@@ -28,6 +29,9 @@ PROBE_MEDIA = None
 
 
 def type_text(guest, text, layout=None):
+    if text:
+        # Shared by all physical consoles/observers, including hidden input.
+        guest.owner_input_epoch = getattr(guest, 'owner_input_epoch', 0) + 1
     for char in text:
         guest.keys(physical_keys(char, layout or guest.owner_layout))
         time.sleep(0.12)
@@ -141,44 +145,51 @@ PY'''))
             super().close(stage)
 
 
-def wait_tty(guest, tty, predicate, stage, timeout=90):
-    source = '''import os,pathlib,re,subprocess,time,termios
-tty=@TTY@
-def screen():
-    data=pathlib.Path('/dev/vcsa'+tty[3:]).read_bytes()
-    rows,cols,x,y=data[:4]
-    text=bytes(data[4::2]).decode('latin1')
-    lines=[text[i:i+cols].rstrip() for i in range(0,len(text),cols)]
-    return '\\n'.join(lines), text[y*cols:y*cols+x].rstrip()
-deadline=time.monotonic()+@TIMEOUT@
-stable=0
-while time.monotonic()<deadline:
-    full,line=screen()
-    ok=(@PREDICATE@)
-    if ok:
-        stable+=1
-        if stable>=3: break
-    else: stable=0
-    time.sleep(0.2)
-else: raise SystemExit('Physical console readiness deadline: '+tty)
-print('PHYSICAL_CONSOLE_READY '+tty)
-'''.replace('@TTY@', repr(tty)).replace('@TIMEOUT@', str(timeout)).replace('@PREDICATE@', predicate)
-    guest.command(stage, 'python3 -c ' + shlex.quote(source), timeout=timeout + 15)
+def retain_vcsa(tty, stage, phase, raw):
+    path = td.EVIDENCE / (stage + '-timeout-' + str(phase) + '.vcsa')
+    path.write_bytes(raw)
+    td.save(path.stem, dict(sha256=hashlib.sha256(raw).hexdigest(), path=path.name,
+        tty=tty, rows=raw[0], columns=raw[1], cursor_x=raw[2], cursor_y=raw[3]))
+
+
+def wait_tty(guest, tty, predicate, stage, timeout=90, resync=None):
+    def sample(seconds):
+        return guest.capture_json(stage, sw.framed('python3 -c ' + shlex.quote(
+            owner_console.source(tty, predicate, seconds))))
+    owner_console.wait(sample, timeout,
+        lambda phase, raw: retain_vcsa(tty, stage, phase, raw), resync=resync,
+        record=lambda event: td.save(stage + '-resync-' + str(event['attempt']),
+            dict(stage=stage, tty=tty, **event)))
 
 
 class Console:
     def __init__(self, guest, tty='tty3'):
         self.guest, self.tty = guest, tty
         self.root = False
+        self.completed_epoch = None
 
     def select(self):
         self.guest.keys(['ctrl', 'alt', 'f' + self.tty[3:]])
 
     def prompt(self, stage):
-        wait_tty(self.guest, self.tty, "bool(re.search(r'[$#]$',line))", stage)
+        epoch = getattr(self.guest, 'owner_input_epoch', 0)
+        idle = self.completed_epoch is not None and self.completed_epoch == epoch
+        def resync():
+            nonlocal epoch
+            assert getattr(self.guest, 'owner_input_epoch', 0) == epoch, 'Input revoked idle proof'
+            type_text(self.guest, '\n')
+            epoch = self.guest.owner_input_epoch
+        try:
+            wait_tty(self.guest, self.tty, "bool(re.search(r'[$#]$',line))", stage,
+                resync=resync if idle else None)
+        except BaseException:
+            self.completed_epoch = None
+            raise
+        self.completed_epoch = getattr(self.guest, 'owner_input_epoch', 0)
 
     def hidden(self, stage):
-        source = '''import os,termios,time
+        source = '''import base64,json,os,pathlib,termios,time
+hidden=False
 deadline=time.monotonic()+60
 while time.monotonic()<deadline:
     try:
@@ -188,10 +199,15 @@ while time.monotonic()<deadline:
         if hidden: break
     except (OSError,termios.error): pass
     time.sleep(0.1)
-else: raise SystemExit('No hidden prompt')
-print('PHYSICAL_HIDDEN_PROMPT_READY')
+raw=pathlib.Path('/dev/vcsa@NUMBER@').read_bytes() if not hidden else b''
+print(json.dumps(dict(ready=hidden,raw=base64.b64encode(raw).decode())))
 '''.replace('@TTY@', self.tty)
-        self.guest.command(stage, 'python3 -c ' + shlex.quote(source), timeout=75)
+        source = source.replace('@NUMBER@', self.tty[3:])
+        value = self.guest.capture_json(stage, sw.framed('python3 -c ' + shlex.quote(source)))
+        assert type(value['ready']) is bool
+        if not value['ready']:
+            retain_vcsa(self.tty, stage, 1, base64.b64decode(value['raw'], validate=True))
+            raise AssertionError('No hidden prompt')
 
     def login(self, password, stage, wrong=False):
         self.select()

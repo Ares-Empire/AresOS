@@ -1,0 +1,22 @@
+{
+  "kind": "Reconstructed VCSA fixture, not a raw dump from the failed VM",
+  "run": 40263990213,
+  "screen": {
+    "rows": 50,
+    "columns": 160,
+    "cursor_x": 0,
+    "cursor_y": 49,
+    "prompt_row": 32
+  },
+  "fidelity": "Exact visible ASCII root prompt and all17 kernel lines at their screenshot cell coordinates. Upper MOTD rows blanked and attributes synthetic (7); neither is used by the predicate. No raw VCSA was retained by14i.",
+  "source": {
+    "sha256": "addb2895fc259447cd9b5e53bda551a91a01dbc03ba290d048074a88fcc6dc5d",
+    "path": "reviews/14-owner-tools/screenshots/14i-tools-prompt-stop.png"
+  },
+  "files": [
+    {
+      "sha256": "79bd8177a207bc4050a25399cf89548d17f1982113368cda0b4948e2a9fac2dd",
+      "path": "14i-hotplug.vcsa"
+    }
+  ]
+}

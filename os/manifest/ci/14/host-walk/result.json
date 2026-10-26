@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 69,
+  "tests": 78,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -72,6 +72,10 @@
       "path": "os/ci/owner_capabilities.py"
     },
     {
+      "sha256": "c219ff1bbc2439b000370c3aec9cb80c2d10555e831664d43ac511e9365a845b",
+      "path": "os/ci/owner_console.py"
+    },
+    {
       "sha256": "56143e7310331cef87aac1e143df5ed99eefac61c9f3e1d49cf0dc727865de1c",
       "path": "os/ci/owner_fuse.py"
     },
@@ -84,7 +88,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "26c47a7a722ac749ec73652749e00cbc82c1107e7fa6b29477246f5ee3b1734c",
+      "sha256": "805e0a750500c7ebca6d6c3be1b1a28996be5ef60b7d6341f6be70e8c5e1420c",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -228,6 +232,14 @@
       "path": "os/release/verify.sh"
     },
     {
+      "sha256": "79bd8177a207bc4050a25399cf89548d17f1982113368cda0b4948e2a9fac2dd",
+      "path": "os/tests/fixtures/owner-console/14i-hotplug.vcsa"
+    },
+    {
+      "sha256": "4867d41dc7d7c4aee82e007a93be6e301f0d5a24530462bc0a8887045b9f87f4",
+      "path": "os/tests/fixtures/owner-console/sources.json"
+    },
+    {
       "sha256": "2cc6da1a77bed2f9c964f02a753fd6f4569fb9cf434898ff13751d30e8d65d7e",
       "path": "os/tests/guest_shell.py"
     },
@@ -260,6 +272,10 @@
       "path": "os/tests/test_owner_commands.py"
     },
     {
+      "sha256": "fe69390c4fde3daa2058487c453e3d59ed017287659d9dbfeacf04fc382e9ea5",
+      "path": "os/tests/test_owner_console.py"
+    },
+    {
       "sha256": "ec56f59f3f5eae50438740c499bf5c3766d10a49373d54c5db3d6c3c22c46fd5",
       "path": "os/tests/test_owner_equality.py"
     },
@@ -284,7 +300,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "2788f5597212255d48beb32b23089a4e61f81e45c0ad9d2680fffa8f2b50fee6",
+      "sha256": "6c6d2ba28ac7b837a6686ba75a36d2bbeff3d106a3c11d877c3a18c451b59b7a",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -292,7 +308,7 @@
       "path": "os/tests/test_release_squash_binding.py"
     },
     {
-      "sha256": "3072191c55d6c56d3fd30a8c0adb7f2cf09e837bf732f7886fc909c40b9fffe6",
+      "sha256": "e4a9a4e5c173d678a9d3a586a005e4f18e0dd493eef6a6b8acf4501b7c95b053",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

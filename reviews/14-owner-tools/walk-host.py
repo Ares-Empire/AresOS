@@ -23,12 +23,14 @@ import test_ci_api_permissions
 import test_owner_media
 import test_owner_capabilities
 import test_guest_framing
+import test_owner_console
 
 
 def main():
     suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(m) for m in
         (test_owner_commands,test_owner_export,test_owner_transport,test_owner_walk,test_owner_guard,test_owner_equality,test_owner_tools,
-         test_release_squash_binding,test_ci_api_permissions,test_owner_media,test_owner_capabilities,test_guest_framing))
+         test_release_squash_binding,test_ci_api_permissions,test_owner_media,test_owner_capabilities,test_guest_framing,
+         test_owner_console))
     result=unittest.TextTestRunner(verbosity=2).run(suite)
     assert result.wasSuccessful() and not result.skipped
     walk=test_owner_walk.walk()
@@ -36,7 +38,8 @@ def main():
     for pattern in ('os/ci/owner*.py','os/ci/offline_webui.py','os/owner-tools/*.py','os/owner-tools/at',
                     'os/owner-tools/commands.json','os/release/*.sh','os/tests/test_owner*.py','os/tests/owner_shim.py',
                     'docs/install-tools/OwnerTools.psm1','reviews/14-owner-tools/walk-host.py',
-                    'os/manifest/ci/14/hotplug-sources/*','os/manifest/ci/14/keyboard-sources/*'):
+                    'os/manifest/ci/14/hotplug-sources/*','os/manifest/ci/14/keyboard-sources/*',
+                    'os/tests/fixtures/owner-console/*'):
         files.update(p for p in ROOT.glob(pattern) if p.is_file())
     files.update(ROOT/p for p in ('os/ci/installer_webui.py','os/ci/two_disk_vm.py','os/ci/registry_auth.py',
         'os/ci/rehearsal_guard.py','os/ci/rehearsal-packages.json','os/ci/verify_release.py',

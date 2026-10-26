@@ -140,7 +140,7 @@ both USBs absent; Windows must boot from its original Micron EFI target.
 Use **F12 → the recorded Linux entry**, sign in as **ares-recovery** using the
 installer's German layout, then **Ctrl+Alt+F3**, sign in there with the same
 password and run `sudo -i`. Keep that administrator console open. **Only now**
-plug in ARESTOOLS. Type this first bootstrap command exactly:
+plug in ARESTOOLS. If text appears over the prompt after you plug in or remove the stick, press Enter to get the prompt back. Type this first bootstrap command exactly:
 
 ```bash
 sudo bash -c 'set -e; mount -o ro LABEL=ARESTOOLS /mnt; trap "umount /mnt" EXIT; bash /mnt/ares-tools/at install'
@@ -479,6 +479,8 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
   the fifth probe. Qualification installed offline and completed the Windows
   round trip, then stopped at tty3 prompt readiness after tools hotplug, before
   the first tools command. No rerun; the complete route remains unaccepted.
+  14j's local prompt-resync fix has no new VM evidence; dispatch awaits the
+  owner's budget decision.
   The new commands are not released for physical installation. Existing laptop
   and followability gates remain open; see the [14 report](../reviews/14-owner-tools/REPORT.md).
 

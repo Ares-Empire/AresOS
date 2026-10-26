@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "kind": "local prerequisite replay, not VM acceptance",
+  "files": [
+    {
+      "sha256": "bb4bf4e94a64e58278fce7dd8a6374abcaed4187c85bce68b7d81c9564a32e38",
+      "path": "console-evidence.zip"
+    },
+    {
+      "sha256": "ee126cc045add804f5401f6eab024f9dc63ec85c969056ae0e37270c6920acd0",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "523f974bb3315c66c902edef69c697c43e80e84e4eb256579ec31679d29293a5",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "f08a91bcda23871e94e65fc0d21bc90fff808843bc9915dd0e6d1be5316669fa",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": "release-replay.log"
+    },
+    {
+      "sha256": "999061bd78538324b6cab71870cfd51d5b783c2ee1a5c8034d597212485d1e6f",
+      "path": "replay.json"
+    },
+    {
+      "sha256": "da32227ff5798436f73aa6e819c8746373bd202c1035065af46e340d00f6ce17",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": "zero-cost-replay.log"
+    }
+  ]
+}
