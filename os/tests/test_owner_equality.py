@@ -39,7 +39,8 @@ class EqualityTest(unittest.TestCase):
     def test_every_owner_command_equals_the_command_physically_typed_by_ci(self):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         typed={text.rstrip('\n') for text,profile in walk.walk()['typed']}
-        guide=(ROOT/'docs/INSTALL.md').read_text()
+        guide='\n'.join((ROOT/name).read_text() for name in
+            ('docs/INSTALL.md', 'docs/INSTALL-PROCEDURES.md'))
         for command in commands.values():
             self.assertIn(command, typed)
             self.assertIn(command, guide)
