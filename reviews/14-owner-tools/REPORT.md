@@ -1,9 +1,55 @@
 # 14: checked owner tools
 
-**Current14s: CI loop-node race fix verified locally; no push or dispatch.**
-The integrator's14s classification below supersedes14r's unresolved-listing
-classification. Historical STOP sections remain unchanged. NOT RELEASED;
-no ready transition or merge, pending the owner's budget/timing decision.
+**Current14t: local preparation passed; one push and fresh hosted gates pending.**
+PR #13 remains draft / NOT RELEASED. Historical STOP sections remain evidence.
+
+## 14t — Read-only paid overflow guard; pre-dispatch preparation
+
+**Done:** package14 cap520, probe10, owner-tools2; package13 unchanged.
+October org reserve0 and closing0 remain explicit. The guard reads the complete
+organization budgets response and requires exactly one organization Actions
+ProductPricing budget, amount$1, prevent_further_usage true. Missing, duplicate,
+changed or paginated/inconsistent values STOP. Linux pricePerUnit comes from
+the current billing usage response; missing/zero/nonfinite prices STOP. The
+ledger records both API sources, response hashes, the approved budget and
+prevention, runner SKU/price, included minutes left and floored paid minutes.
+Reported net Actions spend is subtracted before flooring, so it is never
+reserved twice. Paid approval expires after October2026. No budget, credential
+or scope is changed. CI has no billing access; its fail-closed checks remain.
+
+The single push also carries14s's bounded loop-partition wait, local briefs and
+prior STOP reports. Owner payload/fingerprint, frozen release/runtime, guides,
+workflows/permissions and privacy rules are unchanged. No image/publication.
+
+**Verified locally:**355 whole-suite tests ran:347 distinct passes and exactly
+the same8 native-host limitations, no skips (unittest exit1).112 host-walk tests
+passed;23 focused guard/permission tests passed. Strict parsing passed258 guest
+commands and258 serial wrappers with no stderr,233 embedded Python snippets,
+12 shell files and45 CI/overlay/owner Python files. Windows copy passed15
+zero-write refusals with exact payload equality. Actual14e/14f release/git/file/
+read-only gh replay and53 retained offline sources plus complete listing passed.
+Actual installer inspection rehashed9,068,650,496 bytes, checked a fresh public
+publisher checksum and read4 localization/102 WebUI sources. Four credential-only
+checks remain mandatory and fail-closed in CI. Evidence with current source
+bindings: `os/manifest/ci/14/14t-preflight/`.
+
+Fresh planning:306+178=484/520; complete77/77 run history. Billing recorded
+129 included minutes left plus166 paid minutes, price$0.006/minute
+and approved budget$1 with prevention true;117 minutes remain after the
+complete178-minute pre-push bound. This is planning, not dispatch authorization.
+Pinned gitleaks must pass before the sole fast-forward push. Then fresh exact-head
+privacy and a complete ledger/billing/budget guard precede probe10 (172 bound).
+Only its success allows qualification2 on the same head, with fresh replay and
+130-minute guard. Any refusal/failure stops; no rerun or smaller bound, and no
+second push before qualification finishes.
+
+**Not verified / gates:** hosted probe10 and qualification2 pending. Physical
+laptop/followability gates stay open; no real hardware touched. The integrator's
+14s classification covers only507 public ISO filename findings in the private,
+never-committed listing; any finding elsewhere STOPs. Only acceptance permits
+restoring closing12/reserve150 and marking PR ready; closing privacy remains
+required before merge. Owner resets the Actions budget to$0 when the run ends.
+No new product JUDGMENT-CALL, PLAN-GAP or open question.
 
 ## 14s — Loop partition readiness; local only
 

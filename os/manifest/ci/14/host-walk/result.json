@@ -104,11 +104,11 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "c177aa051088e4e29c1336c4da9e62cffbb8bcb78f1032978942fcd06eac9912",
+      "sha256": "d3798ad9d154ac5876e9f47a5b239935fb05b823b7914d72325a3c590729a52b",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "4ef60418b2f499a502ec6a4e5fc69f973bfd356614c74aef61c5c744695878aa",
+      "sha256": "bb066e2ae2388dc55f24f8870889deca3e26a699cd9abf3adef15a72455d87cb",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
@@ -276,7 +276,7 @@
       "path": "os/tests/owner_shim.py"
     },
     {
-      "sha256": "7a5443a9afdd2037408e75902cb1c8550658c7ee409d15f8fe8768e65f4d3abe",
+      "sha256": "c52e08f26067a405f7bb5e60d2efb17cb3c008fa03c0b7e5e5b66bba89e10bd8",
       "path": "os/tests/test_ci_api_permissions.py"
     },
     {
@@ -328,7 +328,7 @@
       "path": "os/tests/test_owner_export.py"
     },
     {
-      "sha256": "85f7c3227d976bc75fbdbf3fb44ad341b84e4f467aef6d2311ad18978bebff05",
+      "sha256": "9ff44411d338e531e219ef0bc210e950d6761eb6fa7d8e0ac3279c235355c56d",
       "path": "os/tests/test_owner_guard.py"
     },
     {

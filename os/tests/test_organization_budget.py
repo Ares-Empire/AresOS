@@ -78,4 +78,72 @@ class OrganizationBudgetTest(unittest.TestCase):
             billing.assert_not_called()
 
 
+class PaidOverflowTest(unittest.TestCase):
+    def setUp(self):
+        guard.configure('14'); self.addCleanup(guard.configure,'11c')
+        self.now=datetime.datetime(2026,10,26,tzinfo=datetime.timezone.utc)
+        self.usage=dict(timePeriod=dict(year=2026,month=10),organization='Ares-Empire',usageItems=[
+            dict(product='Actions',sku='actions_linux',unitType='minutes',grossQuantity=1869,
+                 discountQuantity=1869,netQuantity=0,grossAmount=11.214,discountAmount=11.214,
+                 netAmount=0,pricePerUnit=0.006)])
+        self.budgets=dict(budgets=[dict(budget_type='ProductPricing',budget_product_sku='actions',
+            budget_scope='organization',budget_entity_name='Ares-Empire',budget_amount=1,
+            prevent_further_usage=True)],has_next_page=False,total_count=1)
+
+    def call(self,reserve=178):
+        with patch.object(guard,'read_only',side_effect=[json.dumps(self.usage).encode(),json.dumps(self.budgets).encode()]) as read:
+            result=guard.organization_budget(reserve,self.now)
+        self.assertEqual([c.args[0] for c in read.call_args_list],[
+            'organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10',
+            'organizations/Ares-Empire/settings/billing/budgets'])
+        return result
+
+    def test_reads_budget_and_price_and_floors_paid_minutes(self):
+        result=self.call();paid=result['paid_overflow']
+        self.assertEqual((result['included_minutes_left'],paid['paid_minutes'],result['remaining_minutes'],result['after_reservation']),(131,166,297,119))
+        self.assertEqual((paid['budget_amount'],paid['pricePerUnit'],paid['prevent_further_usage']),(1,0.006,True))
+        self.assertEqual(len(paid['response_sha256']),64)
+        self.assertEqual(self.call(297)['after_reservation'],0)
+        with self.assertRaisesRegex(AssertionError,'must leave 0'):self.call(298)
+        self.usage['usageItems'][0]['pricePerUnit']=0.03
+        self.assertEqual(self.call(0)['paid_overflow']['paid_minutes'],33)
+
+    def test_reported_paid_spend_is_not_available_twice(self):
+        self.usage['usageItems'][0].update(grossQuantity=2010,discountQuantity=2000,netQuantity=10,netAmount=0.06)
+        result=self.call(0)
+        self.assertEqual((result['included_minutes_left'],result['paid_overflow']['paid_minutes'],result['remaining_minutes']),(0,156,156))
+        self.usage['usageItems'][0]['netAmount']=1.01
+        with self.assertRaisesRegex(AssertionError,'exceeds approved'):self.call(0)
+
+    def test_wrong_budget_prevention_amount_scope_or_sku_refuses(self):
+        original=copy.deepcopy(self.budgets)
+        for key,value in [('budget_amount',0),('budget_amount',2),('budget_amount',True),('budget_amount','1'),
+                          ('prevent_further_usage',False),('prevent_further_usage',1),
+                          ('budget_product_sku','packages'),('budget_scope','repository'),
+                          ('budget_entity_name','other'),('budget_type','unknown')]:
+            self.budgets=copy.deepcopy(original);self.budgets['budgets'][0][key]=value
+            with self.subTest(key=key,value=value),self.assertRaises(AssertionError):self.call()
+
+    def test_incomplete_duplicate_missing_or_malformed_budget_refuses(self):
+        original=copy.deepcopy(self.budgets)
+        for change in [lambda r:r.update(has_next_page=True),lambda r:r.update(total_count=2),
+                       lambda r:r.update(total_count=True),lambda r:r.update(budgets=[]),
+                       lambda r:r.update(budgets=[None]),lambda r:r.update(extra=True),
+                       lambda r:(r['budgets'].append(copy.deepcopy(r['budgets'][0])),r.update(total_count=2))]:
+            self.budgets=copy.deepcopy(original);change(self.budgets)
+            with self.subTest(budget=self.budgets),self.assertRaises(AssertionError):self.call()
+
+    def test_missing_zero_negative_nonfinite_or_non_numeric_price_refuses(self):
+        for value in (None,0,-1,float('nan'),float('inf'),True,'0.006'):
+            self.usage['usageItems'][0]['pricePerUnit']=value
+            with self.subTest(value=value),self.assertRaisesRegex(AssertionError,'pricePerUnit'):self.call()
+        self.usage['usageItems'][0].pop('pricePerUnit')
+        with self.assertRaisesRegex(AssertionError,'pricePerUnit'):self.call()
+
+    def test_paid_overflow_is_not_approved_outside_october(self):
+        self.now=datetime.datetime(2026,11,1,tzinfo=datetime.timezone.utc)
+        self.usage['timePeriod']['month']=11
+        with self.assertRaisesRegex(AssertionError,'October2026 only'):self.call()
+
+
 if __name__=='__main__':unittest.main()

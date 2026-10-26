@@ -21,8 +21,8 @@ class GuardTest(unittest.TestCase):
         self.addCleanup(guard.configure,'11c')
 
     def test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun(self):
-        self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(480,0,0))
-        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':9,'owner-tools':2})
+        self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(520,0,0))
+        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':10,'owner-tools':2})
         self.assertEqual(guard.SETTINGS['organization_budget']['other_repos_reserve'],0)
         self.assertEqual(guard.PACKAGES['13']['organization_budget']['other_repos_reserve'],150)
         base=dict(head_sha='a'*40,status='completed',conclusion='success',run_attempt=1)
@@ -32,8 +32,8 @@ class GuardTest(unittest.TestCase):
         job=dict(conclusion='success',started_at='2026-10-25T01:00:00Z',completed_at='2026-10-25T01:01:01Z')
         def api(path):return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1,jobs=[job])
         with patch.object(guard,'api',side_effect=api):
-            self.assertEqual(guard.budget(476)['consumed_minutes'],4)
-            with self.assertRaisesRegex(AssertionError,'exceeds 480'):guard.budget(477)
+            self.assertEqual(guard.budget(516)['consumed_minutes'],4)
+            with self.assertRaisesRegex(AssertionError,'exceeds 520'):guard.budget(517)
             runs.append(dict(runs[1],id=4))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],2)
             runs.append(dict(runs[1],id=5))
@@ -51,6 +51,8 @@ class GuardTest(unittest.TestCase):
             runs.append(dict(runs[1],id=11))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],9)
             runs.append(dict(runs[1],id=12))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],10)
+            runs.append(dict(runs[1],id=13))
             with self.assertRaisesRegex(AssertionError,'probe dispatch allowance'):guard.budget(0)
 
     def test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media(self):

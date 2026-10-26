@@ -1,5 +1,6 @@
 """Fail closed on a package allowance and same-commit probe authorization."""
 import datetime
+from decimal import Decimal
 import hashlib
 import io
 import json
@@ -166,21 +167,56 @@ def organization_budget(reserve, now=None):
             value = row.get(field)
             assert type(value) in (int, float) and math.isfinite(value) and value >= 0, 'STOP: invalid billing quantity/amount'
             values[field] = value
-        assert values['netQuantity'] == values['netAmount'] == 0, 'STOP: Actions usage outside the free allowance'
+        if PACKAGE != '14':
+            assert values['netQuantity'] == values['netAmount'] == 0, 'STOP: Actions usage outside the free allowance'
         # The current org uses standard Linux runners only. Unknown SKUs fail
         # closed instead of guessing free-quota eligibility or multipliers.
         assert (sku, unit) in (('actions_linux', 'minutes'), ('actions_storage', 'gigabyte-hours')), 'STOP: unsupported Actions billing SKU/unit'
         if unit == 'minutes':
             # Credits/refresh timing can make discountQuantity slightly higher.
             used += math.ceil(max(values['grossQuantity'], values['discountQuantity']))
+            if PACKAGE == '14':
+                price = row.get('pricePerUnit')
+                assert type(price) in (int, float) and math.isfinite(price) and price > 0, 'STOP: missing or invalid runner pricePerUnit'
+                values['pricePerUnit'] = price
         actions.append(dict(sku=sku, unit=unit, **values))
     assert 'actions_linux' in seen, 'STOP: missing Actions minute usage'
-    remaining = settings['included_minutes'] - used
+    included_left = max(0, settings['included_minutes'] - used)
+    paid = None
+    if PACKAGE == '14':
+        assert now.strftime('%Y-%m') == '2026-10', 'STOP: paid overflow approval is October2026 only'
+        budget_path = 'organizations/' + settings['organization'] + '/settings/billing/budgets'
+        budget_raw = read_only(budget_path)
+        budgets = json.loads(budget_raw)
+        assert isinstance(budgets, dict) and set(budgets) == {'budgets', 'has_next_page', 'total_count'}, 'STOP: malformed budgets response'
+        entries = budgets['budgets']
+        assert isinstance(entries, list) and budgets['has_next_page'] is False and type(budgets['total_count']) is int and budgets['total_count'] == len(entries), 'STOP: incomplete budgets response'
+        assert all(isinstance(row, dict) and isinstance(row.get('budget_product_sku'), str) for row in entries), 'STOP: malformed budget entry'
+        matches = [row for row in entries if row['budget_product_sku'] == 'actions']
+        assert len(matches) == 1, 'STOP: missing or duplicate Actions budget'
+        entry = matches[0]
+        assert entry.get('budget_type') == 'ProductPricing' and entry.get('budget_scope') == 'organization' and entry.get('budget_entity_name') == settings['organization'], 'STOP: wrong Actions budget scope'
+        amount = entry.get('budget_amount')
+        assert type(amount) in (int, float) and amount == 1, 'STOP: Actions budget amount differs from approved $1'
+        assert entry.get('prevent_further_usage') is True, 'STOP: Actions budget must prevent further usage'
+        spent = sum((Decimal(str(row['netAmount'])) for row in actions), Decimal(0))
+        assert spent <= Decimal(str(amount)), 'STOP: reported Actions spend exceeds approved budget'
+        per_minute = Decimal(str(price))
+        # Decimal division avoids an upward rounding at a paid-minute boundary.
+        paid_minutes = int((Decimal(str(amount)) - spent) // per_minute)
+        paid = dict(source=budget_path, response_sha256=hashlib.sha256(budget_raw).hexdigest(),
+                    budget_product_sku='actions', budget_amount=amount, prevent_further_usage=True,
+                    budget_scope=entry['budget_scope'], budget_entity_name=entry['budget_entity_name'],
+                    price_source=path, runner_sku='actions_linux', pricePerUnit=price,
+                    reported_net_amount=float(spent), available_budget=float(Decimal(str(amount))-spent),
+                    paid_minutes=paid_minutes, decision='briefs/14t-paid-overflow.md', exception_month='2026-10')
+    remaining = (included_left + paid['paid_minutes']) if paid else settings['included_minutes'] - used
     spare = remaining - reserve
-    assert spare >= settings['other_repos_reserve'], f'STOP: organization has {remaining} free minutes; {reserve} reserved must leave {settings["other_repos_reserve"]}'
+    assert spare >= settings['other_repos_reserve'], f'STOP: organization has {remaining} available minutes; {reserve} reserved must leave {settings["other_repos_reserve"]}'
     return dict(status='passed', source=path, checked_at=now.isoformat(),
                 response_sha256=hashlib.sha256(raw).hexdigest(), usage=actions,
                 used_minutes=used, included_minutes=settings['included_minutes'],
+                included_minutes_left=included_left, paid_overflow=paid,
                 remaining_minutes=remaining, reserved_minutes=reserve, after_reservation=spare,
                 other_repos_reserve=settings['other_repos_reserve'], credential='existing local gh login; GET only')
 
