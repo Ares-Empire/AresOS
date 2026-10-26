@@ -1,0 +1,14 @@
+{
+  "sha256": "99cb6eb9cb458ac560c556689ba2087b7750a8e11603752d026b97f8067b8bf1",
+  "path": "evidence.zip",
+  "artifact_id": 12625233566,
+  "bytes": 4720307,
+  "run": 40261916660,
+  "head": "5e8c0c961506af997a522190e194fbe9ca745308",
+  "status": "success",
+  "members": 330,
+  "logs": {
+    "sha256": "4ce7f9ab092cfa3c60c8227dcef61ff1b4345058aa8695c8c1fc94d90c643d38",
+    "path": "logs.zip"
+  }
+}

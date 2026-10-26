@@ -1,0 +1,7 @@
+{
+  "status": "started",
+  "channel": "virtio-serial",
+  "destination": "guest loopback:8080",
+  "external_nic_carrier": 0,
+  "request_bodies_logged": false
+}

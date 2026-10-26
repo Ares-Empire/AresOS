@@ -8,10 +8,10 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 Package14's new checked commands passed native tests and privacy CI in14d.
 14g's binding/private-access checks and14h's FUSE/capability gate passed in CI.
-Probe4 stopped at guest JSON/heredoc framing before WebUI transport or guest
-tools hotplug. The14i brace-group fix and real-Bash regressions pass locally;
-the newly authorized fifth probe and qualification are pending, and the route
-remains unaccepted.
+The14i brace-group fix passed the fifth probe and all306 native tests. Its
+same-head qualification installed offline and completed the Windows round
+trip, then stopped at tty3 prompt readiness after tools hotplug, before the
+first tools command. No rerun; the complete owner route remains unaccepted.
 They are not released for physical installation; see the
 [14 report](../reviews/14-owner-tools/REPORT.md).
 

@@ -1,0 +1,317 @@
+{
+  "status": "retained partial qualification STOP evidence",
+  "files": [
+    {
+      "sha256": "8bd1c17aeec2bab6433ac1b1599143ad8ad472970438f39fede82d1e8db26efc",
+      "path": "14-dispatch-authorization.json"
+    },
+    {
+      "sha256": "c98c4155251b0abda85c6b5f8f5e1b4e5313c2be7254d944c63b8895311a04f4",
+      "path": "14-host-capabilities.json"
+    },
+    {
+      "sha256": "b75a6a36530a9d63d7520d180c84cd15a91bc4d39ea5986e3e95d3861558ac29",
+      "path": "artifact.json"
+    },
+    {
+      "sha256": "9d9cd27a5db69a983d8967c5ce010d2f31b49044100ca08483af34591cc3a6cf",
+      "path": "audit-summary.json"
+    },
+    {
+      "sha256": "ad4e5f4e91ab378b9e1d02aa6d57ce5bf3a382ff4ff60f234bab679212fe18bf",
+      "path": "ci-steps.json"
+    },
+    {
+      "sha256": "52350d5bc7ba1cb4771150ec4856b0cddc9ac49732db89cf7269a126aaf4bab0",
+      "path": "failure-close-events.json"
+    },
+    {
+      "sha256": "1b37dde676e71221e61805d8b33abb63b502f0c49e891001320ca8efd82a3689",
+      "path": "installer--iso-download.json"
+    },
+    {
+      "sha256": "ebda8165abeb1ba475e8ea1f28aaefdb13a57fe5a982a22a74521dacf1e7ae29",
+      "path": "native-summary.log"
+    },
+    {
+      "sha256": "56792c7f1381aa71a73fb074dc7459137dd3b88b1c39f3193de70e7ce8675cb1",
+      "path": "nvram-replay.json"
+    },
+    {
+      "sha256": "f95c3090b0be4634aecd86398eb83db99904a00b95184e2d73f7fb022aac590b",
+      "path": "owner-auth-cleanup.json"
+    },
+    {
+      "sha256": "cd83adbda962034f6f2e9dbf959c819667e61b28d387a8cd5129b5a38791b811",
+      "path": "owner-release-pull.json"
+    },
+    {
+      "sha256": "1025a2132723b2c17cb237a73f2f70fc3e266031bce3218a2f2405b72ddc8934",
+      "path": "private-registry-preflight.json"
+    },
+    {
+      "sha256": "2cd016d83ce7cefa319b026146ab5ef78f4d3f9cd2a80b30eb0d0b0fb9d65511",
+      "path": "private-release-signature-proof.json"
+    },
+    {
+      "sha256": "16d32d8583608002d2cdd1498bd3e2938179ade3b17714de5f8ae714f6364025",
+      "path": "result.json"
+    },
+    {
+      "sha256": "36c9bacf63b2ad823b80eb326fef7ddd9e5b99ebe3ddef14661b9151d0252e38",
+      "path": "stop-traceback.log"
+    },
+    {
+      "sha256": "b8f4173911fb5e077fd4ebf0785be549baa43eea4cf85a042bcfbc26fd019a08",
+      "path": "stopped-ledger.json"
+    },
+    {
+      "sha256": "728ad0fe51edfe9e0d3d15a2c8f7b3ec18e65bb4b5d081091d2b6d0deada4858",
+      "path": "tools-install-ready.txt"
+    },
+    {
+      "sha256": "7c2d20e4788b306c6a672e25ca1650faea689a543f29a89a303bd864503935db",
+      "path": "tools-stock-root-ready.txt"
+    },
+    {
+      "sha256": "7c2d20e4788b306c6a672e25ca1650faea689a543f29a89a303bd864503935db",
+      "path": "tools-stock-shell-ready.txt"
+    },
+    {
+      "sha256": "2831b6079ca4413d27ac9b1a1fda356eaf41f4e03c44082f7e953edb03c89fa5",
+      "path": "tools-stock-sudo-hidden.txt"
+    },
+    {
+      "sha256": "e74fccf1e4ed093105768a7b62dc69bba3d8a2a180d835814fae8aea539765ee",
+      "path": "two-disk--baseline-firmware-blockstats.json"
+    },
+    {
+      "sha256": "1d30935f79f12762aec568063d89e68c668412fcd744c041a82e033e483be9df",
+      "path": "two-disk--baseline-firmware-bootnext-audit.json"
+    },
+    {
+      "sha256": "d0dd0252de3b3abbf3459b6d87b58b60df23bf36ef10098ca298c9313789837b",
+      "path": "two-disk--baseline-firmware-protected.json"
+    },
+    {
+      "sha256": "24cf0d4c50bb8f723855429d224b0fffd03d3a5283d53a6992256e0ed1d7b362",
+      "path": "two-disk--baseline-firmware-tools-absent.json"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk--boot-1-owner-route.json"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk--boot-2-owner-route.json"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk--boot-3-owner-route.json"
+    },
+    {
+      "sha256": "f422f80c6031cb5b23291b8d72760a65ce0b488106fd700390e23760cdf26c68",
+      "path": "two-disk--boot-3-pre-login-reset-all-variables-diff.json"
+    },
+    {
+      "sha256": "5dd4cb4e6d4881953afd29bf88a20f50e55510e6b6ce4f2fe67f5cd2b06266a0",
+      "path": "two-disk--boot-3-pre-login-reset-bootnext-audit.json"
+    },
+    {
+      "sha256": "c5e9008f03ed35f64ac6f1fc4b4c62c71e62eba904d2a41958987daca1edc4d8",
+      "path": "two-disk--boot-3-pre-login-reset-nvram-diff.json"
+    },
+    {
+      "sha256": "d0dd0252de3b3abbf3459b6d87b58b60df23bf36ef10098ca298c9313789837b",
+      "path": "two-disk--boot-3-pre-login-reset-protected.json"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk--boot-4-owner-route.json"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk--boot-5-owner-route.json"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk--boot-6-owner-route.json"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk--boot-7-owner-route.json"
+    },
+    {
+      "sha256": "bcf3eaf05bc98c8f6debcd08c1e65e87ef44c0eb9aea5159be96da1be40cbe82",
+      "path": "two-disk--offline-first-stock-all-variables-diff.json"
+    },
+    {
+      "sha256": "08efdc59b259e0e379c55e9de3f7beb227c3bc0b05f676cacb647aa49da92a8b",
+      "path": "two-disk--offline-first-stock-blockstats.json"
+    },
+    {
+      "sha256": "dd8cd39b374fa4bbbaf52ab6e3475bdaf8e13d54106fa409723737f607b6fed3",
+      "path": "two-disk--offline-first-stock-bootnext-audit.json"
+    },
+    {
+      "sha256": "9d498a72ea3d72bc055e6de1d871a563e424184edfc4f5e7b8f524daa881ae1c",
+      "path": "two-disk--offline-first-stock-link.json"
+    },
+    {
+      "sha256": "d87223f4a9fb69113cfd351f76d3561cebb65698ae46b3619ac9eb5320eac60e",
+      "path": "two-disk--offline-first-stock-nvram-diff.json"
+    },
+    {
+      "sha256": "d0dd0252de3b3abbf3459b6d87b58b60df23bf36ef10098ca298c9313789837b",
+      "path": "two-disk--offline-first-stock-protected.json"
+    },
+    {
+      "sha256": "009a9bc9811c8c2c5b0e3f0e114d99ac14f5e7c7db2db4e0da1b69d7268220d9",
+      "path": "two-disk--offline-first-stock-result.json"
+    },
+    {
+      "sha256": "9a1a81afebb3fe36940a2daf9c26be64d6ba1389880774be93d47c1852470d85",
+      "path": "two-disk--offline-first-stock-tools-absent.json"
+    },
+    {
+      "sha256": "9caa43d708f63c0c73974e9ef8842996edb54a4384fee8b9bb5ad37160726c46",
+      "path": "two-disk--offline-roundtrip-detached-windows-all-variables-diff.json"
+    },
+    {
+      "sha256": "a5302656ac6a13a88ae46258a6e4c7946942352d2b30e881b23aa60b1fc8cb67",
+      "path": "two-disk--offline-roundtrip-detached-windows-blockstats.json"
+    },
+    {
+      "sha256": "e1e289f63a6d8d1a23268e9dc0842ff0e0e6291ff5661eecd9fa6909799c8ab4",
+      "path": "two-disk--offline-roundtrip-detached-windows-bootnext-audit.json"
+    },
+    {
+      "sha256": "77bc7ae522c9c639c061c9c35416c0b11ea2a78bec8ac7fa6f7931fd970ca837",
+      "path": "two-disk--offline-roundtrip-detached-windows-nvram-diff.json"
+    },
+    {
+      "sha256": "d0dd0252de3b3abbf3459b6d87b58b60df23bf36ef10098ca298c9313789837b",
+      "path": "two-disk--offline-roundtrip-detached-windows-protected.json"
+    },
+    {
+      "sha256": "6d563d4f80a22cd2e1cdd20e8990e989e8fbefd174c0ef3e72468cfdbccf791c",
+      "path": "two-disk--offline-roundtrip-detached-windows-tools-absent.json"
+    },
+    {
+      "sha256": "041362230f6470b0091d2d210de01de1ad10da35a00ba88f0ff5cc54bf8d94c4",
+      "path": "two-disk--offline-roundtrip-unattended-windows-all-variables-diff.json"
+    },
+    {
+      "sha256": "a2a1ed5aacf2690b2647e2024505aad99ceb5b3ecdcb619382c03a8d76de3538",
+      "path": "two-disk--offline-roundtrip-unattended-windows-blockstats.json"
+    },
+    {
+      "sha256": "87e7da182d0c15fa57cc478cccf352f70d9fe98011d6ad686044707affa9636f",
+      "path": "two-disk--offline-roundtrip-unattended-windows-bootnext-audit.json"
+    },
+    {
+      "sha256": "da03630c42dff0c37b5d25cda59cd2b246d95662f858009f1a609d025dc350ef",
+      "path": "two-disk--offline-roundtrip-unattended-windows-nvram-diff.json"
+    },
+    {
+      "sha256": "d0dd0252de3b3abbf3459b6d87b58b60df23bf36ef10098ca298c9313789837b",
+      "path": "two-disk--offline-roundtrip-unattended-windows-protected.json"
+    },
+    {
+      "sha256": "cef30d96f655959a6a4453013a7b65809115d4eb537d095e7d4966cfeb399a73",
+      "path": "two-disk--offline-roundtrip-unattended-windows-tools-absent.json"
+    },
+    {
+      "sha256": "65f146d61f800c9e5d3ae15e992cbb54d2b4a2b5203270932fd44e1b3d5e89c6",
+      "path": "two-disk--pre-login-reset-blockstats.json"
+    },
+    {
+      "sha256": "0f490f7f11c8baef456d6bfafd94fa5ac9e1f66747ce22042ee5dac1a290a454",
+      "path": "two-disk--pre-login-reset-tools-absent.json"
+    },
+    {
+      "sha256": "7fee0f73b2ea624b798414951063bdc27929ce1bb7636dfc928bb2122ae224b9",
+      "path": "two-disk--protected-second-install-all-variables-diff.json"
+    },
+    {
+      "sha256": "6a22dd8b299459ddd6155891665ada0e61a60bd4dfa5d52ba6c5949b1dda042c",
+      "path": "two-disk--protected-second-install-blockstats.json"
+    },
+    {
+      "sha256": "4205b767840e0b7418cb08727b455608e0434ffd25ca1e573c20ad7b3e25418a",
+      "path": "two-disk--protected-second-install-bootnext-audit.json"
+    },
+    {
+      "sha256": "309d71492bb18270849e507733fa0f2f4720aa3eff097d2834c64fbbd5072cb6",
+      "path": "two-disk--protected-second-install-nvram-diff.json"
+    },
+    {
+      "sha256": "5f89dbf10c7f5af545bb52f306d35be7c9dcaaae93146a685dae52f7ebdae273",
+      "path": "two-disk--protected-second-install-progress-blockstats.json"
+    },
+    {
+      "sha256": "d0dd0252de3b3abbf3459b6d87b58b60df23bf36ef10098ca298c9313789837b",
+      "path": "two-disk--protected-second-install-protected.json"
+    },
+    {
+      "sha256": "229e964acccedf454d7979d1d5c66a7ed33f228a61c9779e5ab641c754d00f68",
+      "path": "two-disk--protected-second-install-result.json"
+    },
+    {
+      "sha256": "38cf5f10e5295bf42f25972e4eb9defa161879b1dd012d60e2070bd20e7da826",
+      "path": "two-disk--protected-second-install-tools-absent.json"
+    },
+    {
+      "sha256": "b02623afc56d3553a5971a8fec18bcb20a907d0b41af8f5df1aae040d6a95cc9",
+      "path": "two-disk--stock-initialization-reboot.json"
+    },
+    {
+      "sha256": "b610ff9ea92c869f7fdf823c2658cb04c332877baa4d7774d0040292fa501bb0",
+      "path": "two-disk--tools-stick-created-media-backing.json"
+    },
+    {
+      "sha256": "54769d2de0bb46e0d692bf5ce4b5abec245827f9494437d771ca00dbced3eb7a",
+      "path": "two-disk--tools-stock-all-variables-diff.json"
+    },
+    {
+      "sha256": "2293cce0b0fb4e5191be07df8faea865955ea37e56b79ee8f8e33d585e49799d",
+      "path": "two-disk--tools-stock-before-prepare-bootc-status.json"
+    },
+    {
+      "sha256": "f36f70c773eef24dab57307c97580c6723a33b011601999c2a2c6caa0ef42fe4",
+      "path": "two-disk--tools-stock-before-prepare-deployments.json"
+    },
+    {
+      "sha256": "9eed786d514c3820ed6e9586a9e0066e67abb50f52b1f6893f18bb090478b4a0",
+      "path": "two-disk--tools-stock-before-prepare-resolved-bls.json"
+    },
+    {
+      "sha256": "41610a4dd7596116d820029e9d1c01734ddf3c514c7b32a1d91d2c65ec8a4523",
+      "path": "two-disk--tools-stock-before-prepare-rpm-ostree-status.json"
+    },
+    {
+      "sha256": "946a253a87bfad6352e051aaecabb445af5c070f664ea021ffdcdace3b872a54",
+      "path": "two-disk--tools-stock-blockstats.json"
+    },
+    {
+      "sha256": "c50cf80e0cff4a5cbedc83918a6f5b9295593e97d6397be6663b69b97798d1c9",
+      "path": "two-disk--tools-stock-bootnext-audit.json"
+    },
+    {
+      "sha256": "4d89be6064a55eb5c838e9489ca849fbf9a1594e76b260e8e76d66ae18ae79d5",
+      "path": "two-disk--tools-stock-failure-counter.json"
+    },
+    {
+      "sha256": "19e969da67fe65a74f7d71a56f2548ac2f2d139afa3cd7957b69aec8057c9db1",
+      "path": "two-disk--tools-stock-media-attach.json"
+    },
+    {
+      "sha256": "c786c25e3cb2a951fcbf0209e8cce2dc869427c2dfd3bb39cf516caffb6c2e11",
+      "path": "two-disk--tools-stock-nvram-diff.json"
+    },
+    {
+      "sha256": "d0dd0252de3b3abbf3459b6d87b58b60df23bf36ef10098ca298c9313789837b",
+      "path": "two-disk--tools-stock-protected.json"
+    }
+  ]
+}

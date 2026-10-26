@@ -1,0 +1,30 @@
+{
+  "status": "passed read-only replay of actual retained inputs with unchanged audit implementation",
+  "checked_at": "2026-10-26T04:19:39.884720+00:00",
+  "runs": [
+    {
+      "run": 40261916660,
+      "nvram_rule": "11f-linux-position",
+      "exact_replays": 2,
+      "all_variable_deltas_recomputed": 2,
+      "stages": [
+        "live-ui-probe",
+        "probe-detached-windows"
+      ]
+    },
+    {
+      "run": 40263990213,
+      "nvram_rule": "11f-linux-position",
+      "exact_replays": 6,
+      "all_variable_deltas_recomputed": 6,
+      "stages": [
+        "boot-3-pre-login-reset",
+        "offline-first-stock",
+        "offline-roundtrip-detached-windows",
+        "offline-roundtrip-unattended-windows",
+        "protected-second-install",
+        "tools-stock"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+2026-10-26T03:05:21.1034361Z test_failure_propagates_without_export (test_guest_framing.FramingTest.test_failure_propagates_without_export) ... ok
+2026-10-26T03:05:21.1942146Z test_heredoc_with_trailing_newline (test_guest_framing.FramingTest.test_heredoc_with_trailing_newline) ... ok
+2026-10-26T03:05:21.2807411Z test_heredoc_without_trailing_newline (test_guest_framing.FramingTest.test_heredoc_without_trailing_newline) ... ok
+2026-10-26T03:05:21.3684104Z test_multiple_lines_capture_all_stdout (test_guest_framing.FramingTest.test_multiple_lines_capture_all_stdout) ... ok
+2026-10-26T03:05:21.3744966Z test_parser_rejects_invalid_script_and_invalid_serial_wrapper (test_guest_framing.FramingTest.test_parser_rejects_invalid_script_and_invalid_serial_wrapper) ... ok
+2026-10-26T03:05:21.3766229Z test_parser_rejects_warnings_even_with_zero_exit (test_guest_framing.FramingTest.test_parser_rejects_warnings_even_with_zero_exit) ... ok
+2026-10-26T03:05:21.4665326Z test_single_line (test_guest_framing.FramingTest.test_single_line) ... ok
+2026-10-26T03:05:21.5595556Z test_stderr_is_separate_from_exact_json (test_guest_framing.FramingTest.test_stderr_is_separate_from_exact_json) ... ok
+2026-10-26T03:05:41.7101701Z Ran 306 tests in 24.121s
+2026-10-26T03:05:41.7102249Z OK
+2026-10-26T03:05:46.7743617Z PASS 15 destination refusals with zero writes; copied payload equals source
+2026-10-26T03:05:49.3381517Z Qualified private org release 2abc12e8aa6089f7576143d1fbccb6648a3291bd; runtime payload unchanged; testing ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb

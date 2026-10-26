@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+2026-10-26T04:12:37.5361290Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 593, in <module>
+2026-10-26T04:12:37.5371055Z     main()
+2026-10-26T04:12:37.5371771Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 587, in main
+2026-10-26T04:12:37.5372832Z     qualification(audit, media, password, hashed)
+2026-10-26T04:12:37.5373781Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 400, in qualification
+2026-10-26T04:12:37.5374775Z     console.run('install', 'tools-install', inputs=(('Photographed Crucial serial:', 'CRUCIAL-TARGET', False),
+2026-10-26T04:12:37.5375455Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 230, in run
+2026-10-26T04:12:37.5380871Z     self.prompt(stage + '-ready')
+2026-10-26T04:12:37.5381304Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 178, in prompt
+2026-10-26T04:12:37.5382171Z     wait_tty(self.guest, self.tty, "bool(re.search(r'[$#]$',line))", stage)
+2026-10-26T04:12:37.5383329Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 166, in wait_tty
+2026-10-26T04:12:37.5384412Z     guest.command(stage, 'python3 -c ' + shlex.quote(source), timeout=timeout + 15)
+2026-10-26T04:12:37.5385339Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 104, in command
+2026-10-26T04:12:37.5386218Z     return super().command(name, script, timeout, private=private or registry_read)
+2026-10-26T04:12:37.5386917Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-26T04:12:37.5387609Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 240, in command
+2026-10-26T04:12:37.5388343Z     assert code == 0, f'Guest command failed: {name}, exit {code}'
+2026-10-26T04:12:37.5399321Z            ^^^^^^^^^
+2026-10-26T04:12:37.5399720Z AssertionError: Guest command failed: tools-install-ready, exit 1
+2026-10-26T04:12:37.5818020Z ##[error]Process completed with exit code 1.

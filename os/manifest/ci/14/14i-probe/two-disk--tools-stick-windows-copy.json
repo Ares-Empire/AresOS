@@ -1,0 +1,12 @@
+{
+  "image_sha256": "fabb41a3cc2f071a767f13187704c208a286bf3e183173d4c10039c23388e522",
+  "manifest_sha256": "118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba",
+  "status": "passed",
+  "source": "Copy-AresToolsPayload in OwnerTools.psm1",
+  "filesystem": "FUSE exFAT",
+  "label": "ARESTOOLS",
+  "fsck_readonly": true,
+  "readonly_bundle_verified": true,
+  "file_backed": true,
+  "real_hardware": false
+}

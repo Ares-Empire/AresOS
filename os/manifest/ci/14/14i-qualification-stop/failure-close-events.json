@@ -1,0 +1,24 @@
+{
+  "events": [
+    {
+      "timestamp": {
+        "seconds": 1792987916,
+        "microseconds": 264012
+      },
+      "event": "STOP"
+    },
+    {
+      "timestamp": {
+        "seconds": 1792987916,
+        "microseconds": 310562
+      },
+      "event": "SHUTDOWN",
+      "data": {
+        "guest": false,
+        "reason": "host-signal"
+      }
+    }
+  ],
+  "normal_tools_detach_reached": false,
+  "guest_reboot_after_hotplug": false
+}

@@ -1,0 +1,214 @@
+{
+  "status": "passed probe, not installation qualification",
+  "run": 40261916660,
+  "head": "5e8c0c961506af997a522190e194fbe9ca745308",
+  "original_members": [
+    {
+      "sha256": "5a184117a11109a8ff4926c35bec9f6d2ebbb455d730aad1184916b1b8c5a3da",
+      "path": "14-host-capabilities.json",
+      "retained_as": "14-host-capabilities.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "aaba8dbaebeb01019379ccbe75882561feb735482d8502c5363106af242e92e0",
+      "path": "14-dispatch-authorization.json",
+      "retained_as": "14-dispatch-authorization.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "1025a2132723b2c17cb237a73f2f70fc3e266031bce3218a2f2405b72ddc8934",
+      "path": "private-registry-preflight.json",
+      "retained_as": "private-registry-preflight.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "3bc17169689c78689515fe2cd527cd88010f7efac9ff531c9488dbc65038f00d",
+      "path": "private-release-signature-proof.json",
+      "retained_as": "private-release-signature-proof.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "78a8e7eb8fdfe12f026ca3a2a5b155e9097ff1f2242f4ba88f470db82ba23317",
+      "path": "owner-release-pull.json",
+      "retained_as": "owner-release-pull.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "b719fa720ac55bcb0e2bbb12f2de979f7e85b5dc5098e4b0d0082d392fd55bfd",
+      "path": "owner-auth-cleanup.json",
+      "retained_as": "owner-auth-cleanup.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "cbf8a17a83ec29169ea3eff90c93b6190cf7d701e7a5684e79667f33c4a833f2",
+      "path": "installer/iso-download.json",
+      "retained_as": "installer--iso-download.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "787e0acf4fdf18f45683079f7cf69eee253d75b0ae05d42343fb30685981c3e9",
+      "path": "two-disk/probe-result.json",
+      "retained_as": "two-disk--probe-result.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "9d498a72ea3d72bc055e6de1d871a563e424184edfc4f5e7b8f524daa881ae1c",
+      "path": "two-disk/live-offline-before-webui.json",
+      "retained_as": "two-disk--live-offline-before-webui.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "b946e0779d865ffa682514030293f17a43f4f226265c1754782ffd74ddc41951",
+      "path": "two-disk/offline-webui-transport.json",
+      "retained_as": "two-disk--offline-webui-transport.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "42eb80ec7f383a5b495f72b8493f8d097de5f78687824fe19c667103ddf8e3dc",
+      "path": "two-disk/tools-stick-windows-copy.json",
+      "retained_as": "two-disk--tools-stick-windows-copy.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "4539a3275f10e13915caafad36e1df65a2dc5cd4a7ddf99a69dc6c29f1f63180",
+      "path": "two-disk/tools-stick-created-media-backing.json",
+      "retained_as": "two-disk--tools-stick-created-media-backing.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "946bae7168b2229480b445a9c77c86caac77754fad9a0794cac17414fdc2d870",
+      "path": "two-disk/probe-media-attach.json",
+      "retained_as": "two-disk--probe-media-attach.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "8e6f498dafb0b2bdc894c3819e38186925056361df461d8cc9e753c5101f38a1",
+      "path": "two-disk/probe-media-detach.json",
+      "retained_as": "two-disk--probe-media-detach.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "4539a3275f10e13915caafad36e1df65a2dc5cd4a7ddf99a69dc6c29f1f63180",
+      "path": "two-disk/probe-media-backing.json",
+      "retained_as": "two-disk--probe-media-backing.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "0d7ec2fb88f323aa45af5e9fff57a44f087395b0e90a89e038470669753bbe80",
+      "path": "two-disk/failure-counter-probe-failure-counter.json",
+      "retained_as": "two-disk--failure-counter-probe-failure-counter.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "61bcfb9c7d80597dbe739853337b6460d12be0339a224d92c715bb31a5bc1ae1",
+      "path": "two-disk/stock-recipe-probe.json",
+      "retained_as": "two-disk--stock-recipe-probe.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "e30eb4d01a576f233b87f48baeac5dd6d2274a532433a00a093bfeb2ff384441",
+      "path": "two-disk/keyboard-reader-probe-result.json",
+      "retained_as": "two-disk--keyboard-reader-probe-result.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "558395d751d9501b6266267fe614632ac975eff51ed63305581198ae55e72d41",
+      "path": "two-disk/baseline-firmware-protected.json",
+      "retained_as": "two-disk--baseline-firmware-protected.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "558395d751d9501b6266267fe614632ac975eff51ed63305581198ae55e72d41",
+      "path": "two-disk/live-ui-probe-protected.json",
+      "retained_as": "two-disk--live-ui-probe-protected.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "558395d751d9501b6266267fe614632ac975eff51ed63305581198ae55e72d41",
+      "path": "two-disk/probe-detached-windows-protected.json",
+      "retained_as": "two-disk--probe-detached-windows-protected.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "9c2824236cb1fa0691afc7bf1be0c2f8b0ea263515a40cd38d5808ca48563714",
+      "path": "two-disk/baseline-firmware-blockstats.json",
+      "retained_as": "two-disk--baseline-firmware-blockstats.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "edf519f1ef5da06da67fcf680764c7a414153498c86302f4c7c64307b89719b0",
+      "path": "two-disk/failure-counter-probe-blockstats.json",
+      "retained_as": "two-disk--failure-counter-probe-blockstats.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "a6cebdc3d8b985370945f3bbb51fd431292bf3024ae3c648cb9ce01622af814f",
+      "path": "two-disk/live-ui-probe-blockstats.json",
+      "retained_as": "two-disk--live-ui-probe-blockstats.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "795b59c3e910aae1e025a4564cb4849ecb5611c99b38a916a6bffd25d32fea23",
+      "path": "two-disk/probe-detached-windows-blockstats.json",
+      "retained_as": "two-disk--probe-detached-windows-blockstats.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "1d30935f79f12762aec568063d89e68c668412fcd744c041a82e033e483be9df",
+      "path": "two-disk/baseline-firmware-bootnext-audit.json",
+      "retained_as": "two-disk--baseline-firmware-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "4205b767840e0b7418cb08727b455608e0434ffd25ca1e573c20ad7b3e25418a",
+      "path": "two-disk/live-ui-probe-bootnext-audit.json",
+      "retained_as": "two-disk--live-ui-probe-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "7f483c40ec63da6f1a347cd0f9cb5649ec3f178dea6e22edec58e05a3237aec5",
+      "path": "two-disk/probe-detached-windows-bootnext-audit.json",
+      "retained_as": "two-disk--probe-detached-windows-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "d2953634d99546c53b1aa6c6ed18fd87b4341da49d82952cc22dd55342546a70",
+      "path": "two-disk/live-ui-probe-nvram-diff.json",
+      "retained_as": "two-disk--live-ui-probe-nvram-diff.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "81735f818c52334c53adf727b1fd27637817cc16e52e5ca295d728796d5a2bbb",
+      "path": "two-disk/probe-detached-windows-nvram-diff.json",
+      "retained_as": "two-disk--probe-detached-windows-nvram-diff.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "1b4cb2a6832b154b91adc5390b019e6c157a91184d86f23d11d8ebf7bcb051d6",
+      "path": "two-disk/live-ui-probe-all-variables-diff.json",
+      "retained_as": "two-disk--live-ui-probe-all-variables-diff.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    },
+    {
+      "sha256": "2b18914cb11f62e90864ccc9bf9072d8c4fece139683f36adcadc53574819712",
+      "path": "two-disk/probe-detached-windows-all-variables-diff.json",
+      "retained_as": "two-disk--probe-detached-windows-all-variables-diff.json",
+      "transformation": "hash-first JSON; EFI map normalized where present"
+    }
+  ],
+  "screenshots_inspected": [
+    "probe-final-page.png: target vda only, review before erase",
+    "probe-detached-windows-windows-marker.png: BootCurrent0000 and marker complete"
+  ],
+  "framing_receipt": "decoded checksum-framed raw transcript equals retained offline JSON",
+  "screen_evidence": [
+    {
+      "sha256": "82dc1b6fff002039d0da9a7917a945550eacaec5cffe2b6f47e834047bef4699",
+      "path": "reviews/14-owner-tools/screenshots/14i-probe-review.png"
+    },
+    {
+      "sha256": "8f6a4b9663455b00956ad990943084c69f3239e0a8c0069a7453dca6f7c14787",
+      "path": "reviews/14-owner-tools/screenshots/14i-probe-detached-windows.png"
+    }
+  ]
+}

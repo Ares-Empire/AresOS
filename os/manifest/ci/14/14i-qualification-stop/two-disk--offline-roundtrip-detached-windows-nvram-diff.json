@@ -1,0 +1,154 @@
+{
+  "from_stage": "offline-roundtrip-unattended-windows",
+  "rule": "11f-linux-position",
+  "changes": {
+    "Boot0002": {
+      "before": null,
+      "after": {
+        "attributes": 7,
+        "hex": "010000001600550045004600490020004d006900730063002000440065007600690063006500000002010c00d041030a000000000101060000037fff04004eac0881119f594d850ee21a522c59b2"
+      },
+      "firmware_owned": {
+        "device": "pci:00:03.0",
+        "before_device": null,
+        "after_device": "pci:00:03.0",
+        "reason": "11e per-boot attached device set; option identity is firmware-owned",
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      }
+    },
+    "Boot0003": {
+      "before": {
+        "attributes": 7,
+        "hex": "010000001600550045004600490020004d006900730063002000440065007600690063006500000002010c00d041030a000000000101060000027fff04004eac0881119f594d850ee21a522c59b2"
+      },
+      "after": null,
+      "firmware_owned": {
+        "device": "pci:00:02.0",
+        "before_device": "pci:00:02.0",
+        "after_device": null,
+        "reason": "11e per-boot attached device set; option identity is firmware-owned",
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      }
+    },
+    "Boot0004": {
+      "before": {
+        "attributes": 7,
+        "hex": "010000001600550045004600490020004d00690073006300200044006500760069006300650020003200000002010c00d041030a000000000101060000037fff04004eac0881119f594d850ee21a522c59b2"
+      },
+      "after": null,
+      "firmware_owned": {
+        "device": "pci:00:03.0",
+        "before_device": "pci:00:03.0",
+        "after_device": null,
+        "reason": "11e per-boot attached device set; option identity is firmware-owned",
+        "optional_data": "4eac0881119f594d850ee21a522c59b2"
+      }
+    },
+    "BootOrder": {
+      "before": {
+        "attributes": 7,
+        "hex": "00000a0001000300040005000600070008000900"
+      },
+      "after": {
+        "attributes": 7,
+        "hex": "00000a000100050006000700080009000200"
+      }
+    }
+  },
+  "firmware_changes": [
+    {
+      "device": "pci:00:02.0",
+      "before_option": "Boot0003",
+      "after_option": null,
+      "before_description": "UEFI Misc Device",
+      "after_description": null,
+      "action": "removed",
+      "relabeled": false,
+      "renumbered": false,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    },
+    {
+      "device": "pci:00:03.0",
+      "before_option": "Boot0004",
+      "after_option": "Boot0002",
+      "before_description": "UEFI Misc Device 2",
+      "after_description": "UEFI Misc Device",
+      "action": "changed",
+      "relabeled": true,
+      "renumbered": true,
+      "optional_data": "4eac0881119f594d850ee21a522c59b2"
+    }
+  ],
+  "linux_position_changes": [],
+  "firmware_before": {
+    "Boot0003": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:02.0"
+    },
+    "Boot0004": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:03.0"
+    },
+    "Boot0005": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0006": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0007": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0008": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    }
+  },
+  "firmware_after": {
+    "Boot0005": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0006": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0007": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0008": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:01.0"
+    },
+    "Boot0002": {
+      "optional_data": "4eac0881119f594d850ee21a522c59b2",
+      "device": "pci:00:03.0"
+    }
+  },
+  "order_before": [
+    "Boot0000",
+    "Boot000A",
+    "Boot0001",
+    "Boot0003",
+    "Boot0004",
+    "Boot0005",
+    "Boot0006",
+    "Boot0007",
+    "Boot0008",
+    "Boot0009"
+  ],
+  "order_after": [
+    "Boot0000",
+    "Boot000A",
+    "Boot0001",
+    "Boot0005",
+    "Boot0006",
+    "Boot0007",
+    "Boot0008",
+    "Boot0009",
+    "Boot0002"
+  ]
+}

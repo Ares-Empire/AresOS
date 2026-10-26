@@ -1,8 +1,13 @@
 # 14: checked owner tools
 
-**Current 14i status: local framing fix verified; fresh probe/qualification
-pending.** The integrator authorized a fifth probe. PR #13 stays draft until
-automated acceptance; physical installation stays **NOT RELEASED**.
+**Current 14i status: STOP / PLAN-GAP at tty3 prompt readiness after tools
+hotplug.** The brace-group fix, all306 native tests and fifth probe passed.
+The same-head qualification installed offline, completed hardware setup and
+the Windows round trip, then timed out before typing the tools `install`
+command. No rerun or second qualification. Snapshot: **203/350 consumed +12
+closing privacy reserved**, **5/5 probes**, **1/2 qualifications**, org
+**286 free /274 after reservation**. PR #13 stays **draft**; physical
+installation stays **NOT RELEASED**.
 
 ## 14i — Brace-group guest framing and real Bash execution
 
@@ -77,11 +82,164 @@ the full history with0 findings; before POST, refresh exact-head privacy,
 14e/14f replay, complete ledger and billing. A different blocker means STOP,
 with no rerun.
 
-**Not verified:** fifth probe and qualification are pending. Physical NVIDIA,
-media, forgotten-stick, laptop and followability gates remain open.
+**Not verified:** successful complete owner-tools qualification. Physical
+NVIDIA, media, forgotten-stick, laptop and followability gates remain open.
 **JUDGMENT-CALL:** none beyond the integrator's prescribed brace grouping.
-**PLAN-GAP / open questions:** none new before dispatch; the14h framing gap is
-locally fixed and must still pass in the actual guest.
+The14h framing gap is resolved by the actual passing probe below; the new
+terminal-readiness gap remains open.
+
+### Actual fresh gates and passing fifth probe
+
+Committed the framing fix and regression/replay evidence, then ran pinned,
+checksum-verified gitleaks8.21.2 over the full Git history with **0 findings**.
+Recorded that scan, scanned the final head again with **0 findings**, and
+pushed `5e8c0c961506af997a522190e194fbe9ca745308` fast-forward. No ignore entry,
+privacy rule, credential or permission changed. All157 replay and61 host-walk
+hashes matched actual committed Git blobs.
+
+Privacy runs [40261603041](https://github.com/Ares-Empire/AresOS/actions/runs/40261603041)
+and [40261599776](https://github.com/Ares-Empire/AresOS/actions/runs/40261599776)
+passed all three checks, with personal terms executed, before POST. The
+retained privacy proof was freshly re-read before qualification; the separate
+event-order receipt independently confirms both jobs completed before the
+probe was created. Immediately before dispatch the actual release verifier
+passed again and the fresh guard established **53/53** history: **133 consumed
++184 reserved /350**, org **172 after reservation**, above150.
+
+Sent fifth probe [40261916660](https://github.com/Ares-Empire/AresOS/actions/runs/40261916660)
+once on that head. It **passed**. Native output was **`Ran 306 tests in
+24.121s` / `OK`**, no skips; all eight new framing tests ran. The early native
+capability smoke,15 Windows refusal cases, four CI-only private checks and
+ISO inspection passed. The actual live offline command produced a valid
+checksum-framed export: independent decoding of the raw console receipt
+exactly equals the retained carrier0 / physical-link-down JSON.
+
+Live WebUI preview, guest tools hotplug after login, guest every-file bundle
+manifest check, removal before shutdown, detached Windows and target reset
+passed. The [review image](screenshots/14i-probe-review.png) was inspected:
+only target`vda` is selected and installation has not started. The
+[detached marker](screenshots/14i-probe-detached-windows.png) shows
+`BootCurrent=0000` / `MARKER_BOOT_COMPLETE`. Three protected captures exactly
+match that run's whole-disk/GPT/EFI baseline; four write/unmap samples are
+zero, all three BootNext checks passed, and both NVRAM rule records replay
+exactly with the unchanged implementation. The paused failure-counter probe
+also passed. Cleanup removed the outside-workspace job credentials.
+
+Artifact **12625233566**,330 members,4,720,307 bytes, was digest-checked before
+inspection: SHA-256
+`99cb6eb9cb458ac560c556689ba2087b7750a8e11603752d026b97f8067b8bf1`.
+Selected actual proofs, normalized audits, original member hashes and the raw
+framing receipt are retained in `os/manifest/ci/14/14i-probe/`.
+
+### Same-head qualification and new tty3 readiness STOP
+
+While the probe ran, the qualification's actual ISO replay freshly rehashed
+all9,068,650,496 bytes, fetched the current public checksum and passed all
+four localization/102 WebUI source checks again. Its53-source offline gate,
+15 Windows refusals,157 Git/file bindings and258 guest +258 serial syntax
+checks passed on the unchanged head. The full local suite receipt is the
+same-head execution above; no new test failure was waived.
+
+After inspecting the passing probe, re-read exact-head privacy, reran the
+actual release verifier and fetched a fresh ledger/billing/probe-artifact
+guard: **54/54** history, **155 consumed +142 reserved /350**, org **192 after
+reservation**, above150. That142 reserved130 for one qualification and12 for
+closing privacy. Sent [qualification40263990213](https://github.com/Ares-Empire/AresOS/actions/runs/40263990213)
+once, on the **same `5e8c0c9` head**, in protected-second order.
+
+Native output was **`Ran 306 tests in 22.893s` / `OK`**, no skips. Capability,
+private-access/signature/pull and ISO checks passed again. The actual offline
+installation completed; the [completion screenshot](screenshots/14i-installation-complete.png)
+was inspected. This is automated installer evidence, not a physical click-path
+or followability qualification (`click_path_qualified` remains false).
+First-stock hardware setup performed its single orderly pre-login reboot.
+The following offline checkpoint recorded no staged or rollback-queued work,
+no pins and no transaction. Attached and detached Windows-like round-trip
+boots passed, with tools absent. Stock was then started with one-shot BootNext.
+
+Actual physical tty3 `ares-recovery` login and password sudo reached a root
+prompt. Tools hotplug then passed its hash/identity/label checks after login.
+The next operation failed at **`tools-install-ready`**, exit1:
+
+```text
+Physical console readiness deadline: tty3
+ARESOS_CMD_DONE:1
+```
+
+The traceback stops in `Console.run` → `prompt` → `wait_tty`, **before** record
+listing or physical typing of `COMMANDS['install']`. This is not a bundle
+installer refusal: the install command was never sent. `prepare`/rerun, first
+network invariance, export, switch, layout failure/revert/success, rollback
+and keep-stock were not reached.
+
+**PLAN-GAP:** the [failure screenshot](screenshots/14i-tools-prompt-stop.png)
+shows the earlier `root@bazzite:~#` prompt followed by USB kernel messages and
+a blank active cursor line. The unchanged reader tests only the current
+cursor line for a trailing `$`/`#`. Together these indicate a prompt
+synchronisation failure after asynchronous hotplug output. No raw VCSA buffer
+was retained, so the exact cursor bytes are not independently claimed. The
+local walk's strict Bash parsing and stand-in responses did not exercise
+this terminal-output timing. No kernel output was suppressed, readiness
+assertion bypassed, owner code changed or harness fix attempted after STOP.
+
+All **seven** reached protected captures match that run's whole-disk/GPT/EFI
+baseline, all **eight** write/unmap samples are zero, all **seven** BootNext
+checks passed, and all **six** NVRAM rule transitions replay exactly using
+the unchanged audit code. Across the two runs, all eight full-variable
+deltas also recompute exactly. The failure-path counter was retained while
+the VM was paused. Failure cleanup then terminated QEMU with a recorded
+host-signal shutdown; no later guest reboot occurred. The normal tools
+detach/export/host readback path was **not reached** on this failed boot.
+Do not infer it from the successful probe's removal. Job credential cleanup
+passed, and no owner token was used.
+
+Artifact **12626672908**,421 members,5,418,019 bytes, was digest-checked before
+inspection: SHA-256
+`4bd3fb9cd5bbc364848cb5ef1a23c060412889e92b7f67d83316e156b06b7c8c`.
+Decisive native/guest/initial-state proofs, paused counter, source-member
+hashes and read-only replay results are retained in
+`os/manifest/ci/14/14i-qualification-stop/`. JSON hashes precede paths; EFI
+maps are normalized without changing values. Console extracts remove only
+terminal escapes and trailing prompt spaces. Screenshots were checked for
+the stated evidence; none contains a token or typed password.
+
+### Stopped ledger and remaining gates
+
+Complete **55 unique IDs / total_count55**, all settled at this read:
+
+| Item | Actual at stopped read | Cap/reservation |
+|---|---:|---:|
+| Five probes | 5 +6 +13 +22 +22 =68 min | 5/5 spent |
+| Qualification1 | 48 min, failed | 1/2; no rerun |
+| Privacy since first dispatch | 87 min | same ledger |
+| Package consumed | 203 min | 350 min |
+| Closing privacy reserved | 12 min | 215/350 including reservation |
+| Image builds / publications | 0 /0 | 0 /0 |
+| Org free / after closing reservation | 286 /274 min | minimum150 |
+
+No VM reservation or further dispatch remains in the plan. The second
+qualification allowance is unused; the new blocker invokes STOP regardless.
+The final report push remains subject to a clean pinned full-history scan.
+Its actual closing privacy receipts/cost are recorded in PR #13 after checks
+finish, avoiding a self-triggering report-push loop. PR #13 remains draft
+because automated owner-route acceptance is unmet. No merge or publication;
+no Gradle work or daemon was started. The real laptop was never touched and
+no package, mount or QEMU operation ran in local WSL.
+
+**Not verified:** guest bundle installation/prepare, first-network invariance,
+owner record export, signed switch, layout failure/revert/success, rollback,
+keep-stock and their later audits in this package. All physical NVIDIA,
+forgotten-stick, Media Writer, laptop and followability gates stay open and
+installation **NOT RELEASED**.
+**Open questions:** reviewed prompt synchronisation and an execution/timing
+regression for asynchronous console output. A changed harness head would
+need a fresh passing-probe allowance; all five current probes are spent.
+
+**Closing local checks:** command/bundle equality and hash-order tests passed
+**4 tests in4.858s**; frozen runtime/owner scripts/workflow/privacy diffs are
+empty. Both newly retained evidence directories passed the pinned scanner
+with0 findings before commit. The staged and branch-wide whitespace checks
+and full-history scans still gate the final push.
 
 ## Historical 14h status
 

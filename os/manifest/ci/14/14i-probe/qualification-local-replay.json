@@ -1,0 +1,127 @@
+{
+  "status": "prospective qualification local prerequisites passed; passing same-head probe and fresh guard still required",
+  "head": "5e8c0c961506af997a522190e194fbe9ca745308",
+  "checked_at": "2026-10-26T03:04:57.275555+00:00",
+  "canonical_git_and_file_inputs": 157,
+  "whole_suite": {
+    "command": "wsl.exe bash .work/14/local/whole-suite.sh",
+    "tests": 306,
+    "passed": 298,
+    "seconds": 184.337,
+    "skips": 0,
+    "exit": 1,
+    "failure_records": 2,
+    "error_records": 9,
+    "native_host_limits": [
+      {
+        "test": "test_greeter.test_active_service_without_drawing_hits_deadline",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_greeter.test_black_cursor_and_flat_background_are_not_rendered_greeters",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_greeter.test_capture_waits_for_drawing_and_keeps_ready_evidence",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_inherited_homebrew.test_absent_inherited_installation_is_not_created",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_inherited_homebrew.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_inherited_homebrew.test_preserves_existing_acl_entries_and_restrictive_mask",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_sysusers.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_rehearsal_auth.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload",
+        "reason": "DrvFS exposes mode0777 rather than required0600"
+      }
+    ]
+  },
+  "whole_suite_receipt": "unchanged same-head pre-probe execution; no new failure waived",
+  "host_walk": {
+    "tests": 69,
+    "seconds": 62.897,
+    "source_bindings": 61,
+    "status": "passed",
+    "stick_across_reboot": false
+  },
+  "windows_zero_write_refusals": 15,
+  "offline_source_files": 53,
+  "syntax": {
+    "status": "passed",
+    "guest_scripts": 258,
+    "serial_wrappers": 258,
+    "stderr_policy": "any parse stderr, including warnings, refuses",
+    "embedded_python": 233,
+    "ci_release_shells": 12,
+    "ci_overlay_owner_python": 43,
+    "execution": "syntax/compile only; no guest, service, privilege or hardware operation"
+  },
+  "installer": {
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "path": ".work/14/bazzite-nvidia-open-stable-live-amd64.iso",
+    "status": "passed",
+    "kind": "actual installer_inspect.main replay before qualification; no VM",
+    "bytes": 9068650496,
+    "official_checksum": "fresh public HTTPS GET; exact pin",
+    "iso_source": "all retained ISO bytes rehashed by actual inspection loop",
+    "adapters": "Windows system bsdtar, WSL unsquashfs, path spellings and Linux LF writes",
+    "localization_sources": 4,
+    "webui_sources": 102,
+    "ci_inspector_changed": false
+  },
+  "ci_only": [
+    {
+      "check": "org package metadata visibility",
+      "reason": "Requires the CI job GITHUB_TOKEN with packages: read; local gh scope is unchanged",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "implementation": "registry_auth.preflight: gh api orgs/Ares-Empire/packages/container/aresos",
+      "fail_closed": "visibility must be private"
+    },
+    {
+      "check": "registry manifest digest inspect",
+      "reason": "Requires the scoped CI job auth file for the private image",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "implementation": "registry_auth.preflight: skopeo inspect",
+      "fail_closed": "successful command and exact pinned digest required; no credential fallback"
+    },
+    {
+      "check": "private pinned layer pull",
+      "reason": "Requires the scoped CI job auth file and runner pull environment",
+      "ci_step": "Qualify the exact pinned layer pull without installing",
+      "implementation": "registry_auth.pull: skopeo copy --preserve-digests, then raw inspect",
+      "fail_closed": "copy success, exact raw manifest digest, temporary copy removed"
+    },
+    {
+      "check": "registry signature verification",
+      "reason": "Requires CI package access and the scoped CI job DOCKER_CONFIG",
+      "ci_step": "Verify the exact private signature natively for the offline guest",
+      "implementation": "registry_auth.signature: cosign verify",
+      "fail_closed": "verification must succeed with exact pinned identity, issuer and release; no credential fallback"
+    }
+  ],
+  "files": [
+    {
+      "sha256": "89b108f3d9faf56cbf1cbedb2ea46fa15775f038cb5612b18320c288d6cb6660",
+      "path": ".work/14/14i-qualification-local.log"
+    },
+    {
+      "sha256": "a706f99fa4e5418cc89d67548a2231d6488bc4eda0799c98afe8b18fe39d13b5",
+      "path": ".work/14/14i-qualification-installer-windows.py"
+    },
+    {
+      "sha256": "4b852ff9a04d75fe3742c8469e75415ec504956a60725d2f687075ac8c55fae0",
+      "path": ".work/14/14i-qualification-installer-replay/result.json"
+    }
+  ]
+}

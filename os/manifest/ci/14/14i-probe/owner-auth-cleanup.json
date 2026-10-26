@@ -1,0 +1,7 @@
+{
+  "status": "passed",
+  "secret": "GITHUB_TOKEN",
+  "removed": true,
+  "outside_workspace": true,
+  "owner_token_used": false
+}

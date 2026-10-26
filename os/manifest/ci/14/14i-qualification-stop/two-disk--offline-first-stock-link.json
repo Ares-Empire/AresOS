@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "interfaces": [
+    {
+      "name": "enp0s1",
+      "carrier": "0",
+      "flags": 4099,
+      "operstate": "down"
+    }
+  ],
+  "physical_link_down": true
+}

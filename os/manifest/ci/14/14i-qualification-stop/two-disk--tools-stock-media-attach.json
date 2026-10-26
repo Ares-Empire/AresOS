@@ -1,0 +1,203 @@
+{
+  "image_sha256": "f923af07b4864cf7c6c0fe1210f906908c4c6a7d78301a01656749bd9800a6ed",
+  "manifest_sha256": "118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba",
+  "status": "passed",
+  "after_login": true,
+  "qmp_blocks": [
+    {
+      "device": "pflash0",
+      "locked": false,
+      "removable": false,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 3653632,
+          "filename": "/usr/share/OVMF/OVMF_CODE_4M.fd",
+          "format": "raw",
+          "actual-size": 3653632,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": true,
+        "node-name": "#block145",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/usr/share/OVMF/OVMF_CODE_4M.fd"
+      },
+      "qdev": "/machine/system.flash0",
+      "type": "unknown"
+    },
+    {
+      "device": "pflash1",
+      "locked": false,
+      "removable": false,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 540672,
+          "filename": "/home/runner/work/AresOS/AresOS/.work/installer/vars.fd",
+          "format": "raw",
+          "actual-size": 540672,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": false,
+        "node-name": "#block360",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/home/runner/work/AresOS/AresOS/.work/installer/vars.fd"
+      },
+      "qdev": "/machine/system.flash1",
+      "type": "unknown"
+    },
+    {
+      "io-status": "ok",
+      "device": "target",
+      "locked": false,
+      "removable": false,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 52613349376,
+          "filename": "/home/runner/work/AresOS/AresOS/.work/installer/target.raw",
+          "format": "raw",
+          "actual-size": 14152712192,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": false,
+        "node-name": "#block567",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/home/runner/work/AresOS/AresOS/.work/installer/target.raw"
+      },
+      "qdev": "/machine/peripheral/target-device/virtio-backend",
+      "type": "unknown"
+    },
+    {
+      "io-status": "ok",
+      "device": "protected",
+      "locked": false,
+      "removable": false,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 53687091200,
+          "filename": "/home/runner/work/AresOS/AresOS/.work/installer/protected.raw",
+          "format": "raw",
+          "actual-size": 79470592,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": false,
+        "node-name": "#block798",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/home/runner/work/AresOS/AresOS/.work/installer/protected.raw"
+      },
+      "qdev": "/machine/peripheral/protected-device/virtio-backend",
+      "type": "unknown"
+    },
+    {
+      "io-status": "ok",
+      "device": "ide2-cd0",
+      "locked": false,
+      "removable": true,
+      "qdev": "/machine/unattached/device[19]",
+      "tray_open": false,
+      "type": "unknown"
+    },
+    {
+      "device": "sd0",
+      "locked": false,
+      "removable": true,
+      "type": "unknown"
+    },
+    {
+      "io-status": "ok",
+      "device": "",
+      "locked": false,
+      "removable": true,
+      "inserted": {
+        "iops_rd": 0,
+        "detect_zeroes": "off",
+        "image": {
+          "virtual-size": 134217728,
+          "filename": "/home/runner/work/AresOS/AresOS/.work/installer/owner-tools.raw",
+          "format": "raw",
+          "actual-size": 2297856,
+          "dirty-flag": false
+        },
+        "iops_wr": 0,
+        "ro": false,
+        "node-name": "owner-tools",
+        "backing_file_depth": 0,
+        "drv": "raw",
+        "iops": 0,
+        "bps_wr": 0,
+        "write_threshold": 0,
+        "encrypted": false,
+        "bps": 0,
+        "bps_rd": 0,
+        "cache": {
+          "no-flush": false,
+          "direct": false,
+          "writeback": true
+        },
+        "file": "/home/runner/work/AresOS/AresOS/.work/installer/owner-tools.raw"
+      },
+      "qdev": "/machine/peripheral/owner-tools-usb/owner-tools-usb.0/legacy[0]",
+      "tray_open": false,
+      "type": "unknown"
+    }
+  ],
+  "boot": 7
+}

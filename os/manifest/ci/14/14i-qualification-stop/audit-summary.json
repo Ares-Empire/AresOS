@@ -1,0 +1,20 @@
+{
+  "sha256": "bb1b833c2bbb42e5f4e093961e16d5e032a24be5c58b5a3d43dc3584c46abff5",
+  "path": "protected.raw",
+  "bytes": 53687091200,
+  "equal_protected_captures": 7,
+  "zero_write_unmap_samples": 8,
+  "bootnext_passed": 7,
+  "nvram_rule_records": 6,
+  "nvram_rule": "11f-linux-position",
+  "failure_counter_while_paused": true,
+  "stages": [
+    "baseline-firmware",
+    "boot-3-pre-login-reset",
+    "offline-first-stock",
+    "offline-roundtrip-detached-windows",
+    "offline-roundtrip-unattended-windows",
+    "protected-second-install",
+    "tools-stock"
+  ]
+}
