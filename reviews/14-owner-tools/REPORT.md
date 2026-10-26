@@ -1,6 +1,77 @@
 # 14: checked owner tools
 
-**Current 14k status: STOP — package and organization budget guards refused
+**Current 14l status: owner's October margin decision recorded; one
+pre-dispatch commit/push, then fresh replay/privacy/budget gates.** Package14
+alone uses cap420 and org reserve60; allowances stay6 probes/2 qualifications.
+No new VM acceptance is claimed by this planning commit. PR #13 remains draft
+and physical installation NOT RELEASED until the appropriate gates close.
+
+## 14l — One October push, then guarded probe6 and qualification2
+
+### Done / owner decision
+
+The owner decided on2026-10-26 to proceed in October: package14 only changes
+cap400→420 and org reserve80→60. Probe allowance6 and owner-tools2 stay
+unchanged; package13 and every other setting stay unchanged. Recorded the
+decision in [`14l-october-margin.md`](../../briefs/14l-october-margin.md).
+Updated the guard regression's exact cap/refusal boundary to420/421 and its
+package14 reserve expectation to60; seven probes remain refused. No runtime,
+owner tool, frozen release path, workflow permission or privacy rule changed.
+
+The decision, settings, tests, active source bindings, ledger and this REPORT
+are one commit and exactly one fast-forward push before dispatch. The final
+commit's pinned full-history gitleaks8.21.2 receipt will be retained locally
+and on PR #13, without a second receipt commit/push. No further push is allowed
+before qualification finishes. A STOP is reported without rerunning a job or
+lowering a limit; before qualification finishes, live receipts stay local and
+in the existing PR rather than causing another push.
+
+### Verified locally before the one push
+
+Local owner host walk: **78/78 tests passed**, no skips. Full local discovery:
+**315 tests;307 passed; the same eight native-host limitations**, no skips
+(2 failure/9 error records including duplicate cleanup errors): three Pillow
+greeter tests, three privileged Homebrew fixtures, sysusers and DrvFS auth-file
+mode. No test or local safety restriction was weakened. Fresh source bindings
+cover the changed config and guard test; historical receipts stay immutable.
+
+The14e/14f actual read-only release/source/ISO replay and14i strict composed
+guest/serial checks run after this push, before dispatch. All four private
+registry checks remain explicitly CI-only with their reason and CI step name;
+credentials/scopes and fail-closed implementations are unchanged. A fresh
+passing exact-head privacy result (all three checks actually executed),
+complete history and current billing are required before each dispatch.
+
+### Planning ledger / cap note
+
+The baseline read proves complete **65/65** history, **230 consumed**, **5/6
+probes**, **1/2 qualifications**, **0 publications**; fresh org billing shows
+**259 free**. The owner's earlier16:30Z observation was251, not reused as a live
+authorization. Planning only: **230 +6 one push +184 remaining bound =420**;
+org **259−6−184=69**, above60. The184 bound retains42 probe/native +130
+qualification +12 closing privacy. Actual costs, not these estimates, decide
+the post-push guard; any excess or other org usage can still stop dispatch.
+
+The package ledger never resets. Cap420 is the owner's expanded cumulative
+cap for this continuation, not permission for another attempt. Only probe6
+may precede qualification2, and both must use the exact same pushed head.
+After acceptance restore the org reserve to150 and update this cap/accounting
+note with closed actuals in the final commit, then mark PR #13 ready. Never
+merge, force-push, publish, widen an audit or touch the real laptop.
+
+### Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
+
+This commit is a planning/local-validation record, not a probe/qualification
+result. Fresh native CI and all VM acceptance remain pending. The final gate
+will check actual counters, protected captures, NVRAM/BootNext, tools removal,
+physical typing/layout/refusal/rollback/export and private-auth cleanup, not
+just workflow success. Physical/novice package15 gates remain separately open.
+No new product judgment or exception was inferred. If a guard or run stops,
+report and stop with no rerun; do not spend the other run on a changed head.
+
+## Prior 14k status
+
+**14k status: STOP — package and organization budget guards refused
 the complete required reservation.** Package14's requested400-minute cap,
 six-probe allowance and80-minute org reserve are applied; package13 is
 unchanged. No probe or qualification was dispatched. PR #13 remains

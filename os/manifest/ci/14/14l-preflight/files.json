@@ -1,0 +1,17 @@
+{
+  "kind": "local preparation, not dispatch authorization",
+  "files": [
+    {
+      "sha256": "ff8f680ee975d18fa33fe8d3efa36b9163a53075604766077ae9654985073915",
+      "path": "baseline.json"
+    },
+    {
+      "sha256": "da754ce8047004c359e1be2cdc343220c64884879639c7e0749a3737dc701c05",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "e1985b5dfb18eec35f219f7e8d9fa7658c97bd3994e573f7ae0a88b6a3d16b2b",
+      "path": "preparation.json"
+    }
+  ]
+}
