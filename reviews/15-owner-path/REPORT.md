@@ -20,6 +20,8 @@ Removed exactly the **27 package-15 screenshots**. All other tracked screenshots
 | `-p test_owner_equality.py -v` | **6 tests /13.258s, OK** |
 | `-p 'test_owner*.py' -v` | **76 tests /125.450s, OK**, no skips |
 
+REVIEW-2 follow-up (local only): added the everyday boot-order restoration caller returning to step 8 and its successful-route test; WSL owner-path **16/9.405s**, equality **6/19.800s**, full owner suite **77/128.769s**, all **OK**; pinned gitleaks 8.21.2 pre-commit full-history/all-ref scan: **533 commits, zero leaks**; no push or merge.
+
 `git diff --check` and report/source/owner link checks pass. Pinned portable **gitleaks 8.21.2** was freshly extracted here from the retained publisher-checksum-verified archive (`f238c85e5f47e18fac779ce71ee11091cf70a0a8fb4415f165efba2800eef133`). Full-history/all-ref command `gitleaks.exe git . --log-opts=--all --redact=100 --no-banner --log-level info --report-format json --report-path .work/15b/gitleaks/implementation.json` at **7bdb74d**: **531 commits /27.4s /no leaks found**, exit0. Final report head is rescanned before the single push; exact final head/scan and fresh read-only org billing (must be ≥150 free minutes) go in the PR receipt without another push.
 
 **Not verified:** physical gates and package 14 VM qualification remain open. Initial broader-suite host limits/client instability below remain unresolved; these owner-test passes do not close them. **JUDGMENT-CALL / PLAN-GAP / open questions:** none new; no runtime/tool change needed.

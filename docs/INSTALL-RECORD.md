@@ -211,6 +211,7 @@ Use your **calling procedure first**, then its stage. Do not use an installation
 | Recorded calling context | Return after successful record | Next checkpoint |
 | --- | --- | --- |
 | keep-stock | [Return to keep-stock completion](INSTALL-PROCEDURES.md#keep-stock-records-complete) | Confirm stock-default and Windows records, then Return to step 8. |
+| everyday boot-order restoration | [Return to step 8](INSTALL.md#8-everyday-boot-and-recovery) | Confirm unattended Windows and record B, then continue everyday boot/recovery. |
 | initial after-fit | [Return to step 3](INSTALL.md#3-fit-and-identify-both-drives) | Continue only the fitting comparison. |
 | initial first after-bazzite | [Return to step 4](INSTALL.md#4-install-and-prepare-corrected-stock) | Complete the tools round trip. |
 | initial prepared after-bazzite | [Return to step 5](INSTALL.md#5-prove-windows-and-corrected-stock) | Mandatory Windows/corrected-stock proof. |

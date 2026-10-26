@@ -174,6 +174,7 @@ def check_context_returns(texts):
         # The same after-aresos stage has different meanings for these callers.
         for caller, expected in (
                 ('keep-stock', ('INSTALL-PROCEDURES.md', 'keep-stock-records-complete')),
+                ('everyday boot-order restoration', ('INSTALL.md', '8-everyday-boot-and-recovery')),
                 ('initial after-aresos', ('INSTALL.md', '7-check-the-first-aresos-session'))):
             destinations = LINK.findall(rows[caller])
             if len(destinations) != 1 or target('INSTALL-RECORD.md', destinations[0], texts) != (
@@ -207,6 +208,11 @@ def check_context_returns(texts):
 
 
 class OwnerPathTest(unittest.TestCase):
+    def test_everyday_boot_order_record_b_returns_to_step_8(self):
+        texts = documents()
+        self.assertIn('record B', section(texts['INSTALL.md'], '8-everyday-boot-and-recovery'))
+        check_context_returns(texts)
+
     def test_record_callers_and_aresos_layout_recovery_keep_their_state(self):
         check_context_returns(documents())
 
