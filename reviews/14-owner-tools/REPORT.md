@@ -1,6 +1,91 @@
 # 14: checked owner tools
 
-**Current 14l status: owner's October margin decision recorded; one
+**Current 14l status: STOP — probe6 timed out installing runner tools.**
+Exactly one commit/push preceded dispatch, head `5156f5f`. No native preflight,
+VM or second qualification ran. No rerun or additional push. PR #13 remains
+draft / NOT RELEASED. The actual STOP section below is a local, uncommitted
+report update; qualification never finished, so the owner's no-more-push rule
+remains in force. The same receipts are summarized on the existing PR.
+
+## 14l — Actual probe6 STOP (local report after the single push)
+
+### Done / verified
+
+The single commit `5156f5fac592e1e30077b22c196124a1feaafe89` contains the brief,
+420/60 settings, unchanged6/2 allowances, refreshed162 source/65 host bindings,
+ledger and planning REPORT. Pinned gitleaks8.21.2 scanned its full history with
+**0 findings** before the one fast-forward push. Package13 and all frozen
+runtime/owner-tool/workflow/privacy paths are unchanged.
+
+Actual local replay passed: release run/git/file binding,53 offline sources
+and full listing, all9,068,650,496 ISO bytes against the pin and fresh checksum,
+4 localization/102 WebUI sources,258 guest scripts +258 serial wrappers under
+strict Bash parsing, and15 zero-write Windows copy refusals. Local host walk
+passed78 tests; local discovery passed307/315 with the same eight native-host
+limitations, no skips. Prospective qualification local replay also passed,
+but did not authorize a VM or substitute for the failed probe.
+
+Both exact-head privacy jobs completed all three checks, with personal terms
+actually executed, before probe creation:40362011848 and40362028134. Fresh
+guard authorization proved complete67/67 history and **236 +184 =420**, org
+**66 after reservation ≥60**. Probe6 was dispatched exactly once on this head:
+[40363137526](https://github.com/Ares-Empire/AresOS/actions/runs/40363137526).
+
+The step **Install pinned rehearsal tools on disposable runner** started at
+16:54:06Z and completed as failure at17:04:19Z (613 seconds). Its final error:
+
+```text
+The action 'Install pinned rehearsal tools on disposable runner' has timed out after 10 minutes.
+```
+
+APT was still downloading pinned Ubuntu snapshot packages at
+`snapshot.ubuntu.com/ubuntu/20261021T000000Z`; the last reported download was
+`ovmf`. Native capabilities, the full native regression preflight, all four
+CI-only registry checks, CI ISO inspection and VM/file-disk preparation were
+skipped. This was not a keyboard/firmware result. No guest existed in this
+attempt, so no protected-disk/NVRAM/BootNext/keyboard result is claimed.
+
+The four-member failure artifact was downloaded and its API digest verified
+before inspection: artifact12670770044,5936 bytes, SHA256
+`24e8a6c80b0146a5e0003dc6bc4b5ec0e108ba8c6e70d4f4dc3a045728eb6dbe`.
+It contains the two budget/native-pending receipts, partial toolchain package
+list and scoped-auth cleanup. Cleanup passed: outside workspace, removed,
+owner token not used. Pinned gitleaks on retained failure evidence:0 findings.
+The complete run/jobs/log/artifact receipts stay under
+`.work/14/run-40363137526/`; no credential or scope was changed.
+
+### Closed ledger / cap note
+
+Fresh complete **68/68** history: **249/420 consumed,0 reserved**; probe6 cost
+**13 rounded minutes**, the single push's privacy cost6, total14l cost19.
+Dispatch counters are **6/6 probes,1/2 qualifications**, publication attempts0.
+Fresh billing read shows **247 org minutes free**. See local
+`.work/14/final-14l-stop-ledger.json`; the committed230+190 ledger is explicitly
+the pre-push planning snapshot, not the closed result.
+
+### Not verified / PLAN-GAP / JUDGMENT-CALL / open questions
+
+**Stop and report, no rerun.** Qualification2 was not dispatched because the
+required same-head probe failed. No remaining probe allowance is inferred;
+the unused qualification cannot bypass the probe. No timeout, mirror, package,
+audit, cap or reserve was changed after the stop. No image or real-device work
+occurred, and nothing was made public or merged.
+
+**PLAN-GAP:** the pinned runner package download did not finish inside its
+existing10-minute step limit. Any remedy or new attempt requires a new owner
+decision; none was implemented. Acceptance is unmet, so reserve60 and cap420
+remain as explicitly requested; the acceptance-conditioned reserve150/final
+cap-note commit and PR-ready action were not performed. Physical/novice gates
+stay OPEN / NOT RELEASED. No new product judgment was made.
+
+The actual report and closed BUDGET are local modifications, with authoritative
+run details also on PR #13. They are deliberately not committed/pushed: the
+owner prohibited another push before qualification finishes, and no
+qualification started. No Gradle process was started or left running.
+
+## 14l — Planning record in the single pushed commit
+
+**Pre-dispatch 14l status: owner's October margin decision recorded; one
 pre-dispatch commit/push, then fresh replay/privacy/budget gates.** Package14
 alone uses cap420 and org reserve60; allowances stay6 probes/2 qualifications.
 No new VM acceptance is claimed by this planning commit. PR #13 remains draft
