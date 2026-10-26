@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "kind": "local prerequisite replay, not VM acceptance",
+  "files": [
+    {
+      "sha256": "b526afc19a89f38506cff89482658b3d757b890ec9bb7859ebbf05b9736b4f7f",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "551ec253c2bf06d1bf14b151ec525be6a7528a2de9e721546acf4fb7fdf74aa4",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "ce97bfe4c76f483a471adae6ed2bd7377f69e568125bb056df0f7e21b3f99917",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "4044d6826df7766b073fccd89e94a97537e92da76f634e1e31c3124fc0e80a5b",
+      "path": "replay.json"
+    }
+  ]
+}

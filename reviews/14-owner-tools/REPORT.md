@@ -1,13 +1,116 @@
 # 14: checked owner tools
 
-**Current 14g status: STOP / PLAN-GAP at the runner's exFAT mount.** Probe3/3
-passed all286 native tests,15 Windows refusals, the git-only release binding,
-all four private CI-only checks and ISO inspection. Tools-media construction
-then failed with `unknown filesystem type 'exfat'`, before any VM boot. No
-rerun or qualification was sent. Snapshot: **69/350 consumed +12 closing
-privacy reserved**, **3/3 probes**, **0/2 qualifications**, org **429 free**.
-PR #13 stays **draft**; automated acceptance is unmet. Physical installation
-stays **NOT RELEASED**. Earlier stops below retain their historical evidence.
+**Current 14h status: local verification complete; fresh probe4/4 and
+qualification pending.** The integrator accepts explicit host FUSE exFAT and
+an early native capability gate for the historical14g mount stop. Planning
+snapshot: **80/350 consumed +184 reserved**, **3/4 probes**, **0/2
+qualifications**, org **415 free /231 after reservation**, above150. PR #13
+stays **draft** until automated acceptance. Physical installation stays
+**NOT RELEASED**. Earlier stops below retain their historical evidence.
+
+## 14h — Explicit runner FUSE exFAT and early host capabilities
+
+**Done:** ran `git pull --ff-only` first (already at`afd608b`). Rehearsal
+bootstrap adds `exfat-fuse`, records installed packages, then runs a mandatory
+three-minute native capability step on package14 before browser downloads,
+private pull/signature work, ISO inspection or owner-tools VM startup. Both
+probe and qualification use that same step and the same implementation.
+
+`owner_fuse.py` supplies the shared host path: explicit `mount.exfat-fuse`,
+exact loop source/target, block FUSE type and `blkid` exFAT identity; checked
+VFS `nodev,nosuid,noexec` and exact rw/ro mode; unmount confirmation at both
+mountpoint and source before loop detach. `owner_media.py` keeps `mkfs.exfat`,
+the exact Windows copy implementation and sync. After writing/unmounting it
+allocates a read-only loop, requires `fsck.exfat -n`, remounts with FUSE read-only,
+checks **every bundle file** against the manifest, confirms unmount/detach and
+only then hashes the backing for QMP attachment. Record export uses the same
+fsck/read-only path. Unknown mount state, wrong driver/format/source/flags,
+dirty fsck, corrupt readback or incomplete unmount fail closed. No kernel
+exFAT or other-filesystem fallback exists.
+
+The helper's Linux [v1.3 source](https://raw.githubusercontent.com/relan/exfat/v1.3.0/fuse/main.c)
+and [v1.4 source](https://raw.githubusercontent.com/relan/exfat/v1.4.0/fuse/main.c)
+use block FUSE and a device fsname, with limited option forwarding. Therefore
+the code explicitly applies the VFS safety flags to the **already identified
+FUSE mount** using an internal bind-remount, then checks the dedicated
+[findmnt VFS-OPTIONS column](https://raw.githubusercontent.com/util-linux/util-linux/v2.39.3/misc-utils/findmnt.c)
+before copying. This sets per-mount flags; it does not select another driver
+or mount another filesystem. Source hashes/URLs are retained in the replay.
+Native execution must still establish support; no successful host result is
+inferred from source or shims.
+
+`owner_capabilities.py` uses a separate fresh64MiB scratch exFAT image for
+verified loop backing, FUSE rw write/sync, confirmed unmount, no-repair fsck,
+read-only readback and an actual EROFS write refusal. It then exercises the
+unchanged file-fixture builder (EFI compilation, GPT/FAT/NTFS), Q35/OVMF with
+the existing acceleration selection and6GiB RAM, QMP sockets, PCI/block stats,
+user-network link control, virtio-serial/serial sockets, USB add/remove,
+keyboard and screenshot. Its toy USB is removed while the CPU is paused,
+**before firmware starts**; firmware then boots only the synthetic marker.
+These scratch fixtures are separate from the owner/protected/target rehearsal
+files. This is host capability proof, not an OS installation or owner-route
+qualification. QEMU failure cleanup kills only its own process. The owner VM
+and qualification artifact guard require a complete proof for the exact head.
+No firmware audit or owner hotplug timing rule changed.
+
+**Verified locally:** **60 host-walk tests in68.381s**, no skips,56 source
+bindings. Eleven new test methods cover FUSE identity/options and cleanup,
+fsck/corrupt-manifest refusal, hash ordering, the real capability control flow
+under closed stand-ins, QMP process failure, workflow ordering and incomplete/
+wrong-head proof refusal. The existing full media/export walk now uses the same
+safe volume stand-in and retains its assertions. All typed guest paths remain
+covered; no tools stick crosses a reboot.
+
+Whole local discovery printed **`Ran 297 tests in 192.414s`** and
+**`FAILED (failures=2, errors=9)`**, exit1, no skips: **289 passed**, eight
+existing host-limited cases. Three need absent WSL Pillow, three inherited-
+Homebrew cases and one sysusers case are refused by the no-privilege shim,
+and the credential-mode case sees DrvFS0777 instead of0600. Cleanup errors
+produce extra records. All297 remain mandatory native checks; no assertion
+was skipped, weakened or waived.
+
+The actual git-only release verifier passed again with real run/jobs GETs and
+all Git fetch/ancestry/payload checks. The actual full9,068,650,496-byte ISO
+inspection passed its pin, fresh official checksum, four localization and102
+Web UI sources. The offline14b source gate passed all53 retained files and the
+full listing. Windows copy passed15 zero-write refusals with the unchanged
+bundle fingerprint. CI/release shell syntax,257 guest commands,233 embedded
+Python programs and48 CI/overlay/owner Python sources passed compilation.
+Compact replay results, exact ISO adapter, host-walk log and153 canonical
+input hashes are retained in `os/manifest/ci/14/14h-replay/`; they will be
+checked against the pushed Git blobs before dispatch.
+Local proof used ordinary files, shims and fixtures only: no package install,
+mount, real device operation or QEMU process on the laptop or WSL. Owner tools,
+owner scripts, guest filesystem handling, frozen runtime and release are
+unchanged. No image rebuild/publication is authorized.
+
+**Stage walk:** offline install and first-stock hardware reboot; Windows-first
+round trip with tools absent; Linux sign-in then tools hotplug/install/prepare/
+rerun; first network with entire deployment/pin/pending/BLS state unchanged;
+export/unmount/detach; Windows checkpoint; corrected stock and signed switch;
+AresOS German, plain-US failed fresh login and revert, US International success,
+back to German; rollback/keep-stock and Windows checkpoints. Every existing
+protected-disk, NVRAM, BootNext, Windows-default and detached-device audit stays.
+The additional host capability gate precedes this route and cannot authorize
+an audit exception or a stick present during firmware startup.
+
+**Budget:** complete40/40 planning history reports80 consumed,3/4 probes,
+0/2 qualifications. Reserve42 probe/native +130 one qualification +12 closing
+privacy =184, total264/350. Org415 free,231 after reservation, above150. The
+second qualification is optional behind its own fresh guard and every STOP
+rule. Before dispatch: pinned local gitleaks8.21.2 full-history zero findings,
+fresh pushed-head privacy (all three rules executed), local14e/14f replay,
+complete ledger and billing again. A missing native capability means STOP;
+no fallback, blind rerun or qualification follows a failed probe.
+
+**Not verified:** actual runner FUSE/capability smoke, fresh live probe and full
+owner-tools VM qualification are pending. The four14f private-access checks
+remain CI-only and fail-closed. All physical NVIDIA/media/forgotten-stick/
+laptop/followability gates remain open and installation NOT RELEASED.
+**JUDGMENT-CALL:** no new owner-facing choice; explicit VFS flag application
+implements the requested flags despite helper option filtering.
+**PLAN-GAP / Open questions:** none newly observed locally; actual native
+capability and VM acceptance remain required.
 
 ## 14g — Git-only squash binding and permission inventory
 
