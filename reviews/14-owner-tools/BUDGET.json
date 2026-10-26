@@ -427,6 +427,22 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "de322e9059fc359d75feb8be048f42533123e26e",
+      "checked_at": "2026-10-26T00:21:00.105234+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "f50caac0ac8f88c1629d08f4c3f1373a628b2346",
+      "checked_at": "2026-10-26T00:28:58.929379+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
   "phase": "14h planning; owner afd608b accepts explicit FUSE and native host capability gate; fresh pushed-head privacy, replay and scheduling guard required",
