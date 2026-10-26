@@ -1,55 +1,94 @@
 # 14: checked owner tools
 
-**Current14t: local preparation passed; one push and fresh hosted gates pending.**
-PR #13 remains draft / NOT RELEASED. Historical STOP sections remain evidence.
+**Current14t: STOP after a passing probe10;2 new artifact privacy findings.**
+PR #13 remains draft / NOT RELEASED. No qualification2, rerun or second push.
+The actual STOP report and ledger are committed locally only. The run is over;
+the owner can restore the Actions budget to$0. Historical STOPs remain below.
 
-## 14t — Read-only paid overflow guard; pre-dispatch preparation
+## 14t — Approved paid overflow; probe10 passed; privacy STOP
 
 **Done:** package14 cap520, probe10, owner-tools2; package13 unchanged.
 October org reserve0 and closing0 remain explicit. The guard reads the complete
 organization budgets response and requires exactly one organization Actions
-ProductPricing budget, amount$1, prevent_further_usage true. Missing, duplicate,
-changed or paginated/inconsistent values STOP. Linux pricePerUnit comes from
-the current billing usage response; missing/zero/nonfinite prices STOP. The
-ledger records both API sources, response hashes, the approved budget and
-prevention, runner SKU/price, included minutes left and floored paid minutes.
-Reported net Actions spend is subtracted before flooring, so it is never
-reserved twice. Paid approval expires after October2026. No budget, credential
-or scope is changed. CI has no billing access; its fail-closed checks remain.
+ProductPricing budget, amount$1, prevent_further_usage true. Wrong amounts,
+prevention/scope, duplicate/missing or incomplete responses STOP. The runner's
+positive finite pricePerUnit comes from current billing usage. Both API sources
+and response hashes, amount/prevention, SKU/price, included minutes and floored
+paid minutes are recorded in the ledger. Reported net Actions spend is deducted
+before flooring so it cannot be reserved twice; paid approval is October2026
+only. Package13 retains its free-only policy. Billing stays outside CI; no
+credential, scope or owner secret changed. No billing write was performed.
 
-The single push also carries14s's bounded loop-partition wait, local briefs and
-prior STOP reports. Owner payload/fingerprint, frozen release/runtime, guides,
-workflows/permissions and privacy rules are unchanged. No image/publication.
+Exactly one fast-forward push advanced22e07b1 to
+`bbf228c1dcb7800af5b9793f56acf77d11d5aff2`, carrying14s's loop-node fix, local
+briefs and prior STOP reports. Pinned gitleaks8.21.2 full-history and pending /
+preflight-file scans reported0 findings before this push. Exact-head privacy
+40416793839 and40416787226 passed all3 checks, including actual personal-term
+execution. Fresh authorization proved **79/79 complete history;312+172=484/520;
+114 org minutes after reservation**. Budget$1/prevention true and the live
+Linux price$0.006/minute were verified immediately before dispatch.
 
-**Verified locally:**355 whole-suite tests ran:347 distinct passes and exactly
-the same8 native-host limitations, no skips (unittest exit1).112 host-walk tests
-passed;23 focused guard/permission tests passed. Strict parsing passed258 guest
-commands and258 serial wrappers with no stderr,233 embedded Python snippets,
-12 shell files and45 CI/overlay/owner Python files. Windows copy passed15
-zero-write refusals with exact payload equality. Actual14e/14f release/git/file/
-read-only gh replay and53 retained offline sources plus complete listing passed.
-Actual installer inspection rehashed9,068,650,496 bytes, checked a fresh public
-publisher checksum and read4 localization/102 WebUI sources. Four credential-only
-checks remain mandatory and fail-closed in CI. Evidence with current source
-bindings: `os/manifest/ci/14/14t-preflight/`.
+**Verified locally:**355 whole-suite tests ran in369.346s:347 distinct passes,
+exactly8 known native-host limitations, no skips (unittest exit1, failures2 /
+errors9 including cleanup duplicates).112 host-walk tests passed in157.203s,
+23 focused guard/permission tests and2 manifest/bundle equality tests passed.
+Strict parsing passed258 guest/258 serial commands with no stderr,233 embedded
+Python snippets,12 shell files and45 CI/overlay/owner Python files. Windows copy
+passed15 zero-write refusals and exact payload equality. Actual14e/14f release /
+git/file/read-only gh replay and53 retained offline sources plus complete listing
+passed. Fresh actual inspector replays for probe and qualification rehashed all
+9,068,650,496 ISO bytes, checked fresh publisher checksums, and read4 localization /
+102 WebUI sources. Current bindings: `os/manifest/ci/14/14t-preflight/`.
 
-Fresh planning:306+178=484/520; complete77/77 run history. Billing recorded
-129 included minutes left plus166 paid minutes, price$0.006/minute
-and approved budget$1 with prevention true;117 minutes remain after the
-complete178-minute pre-push bound. This is planning, not dispatch authorization.
-Pinned gitleaks must pass before the sole fast-forward push. Then fresh exact-head
-privacy and a complete ledger/billing/budget guard precede probe10 (172 bound).
-Only its success allows qualification2 on the same head, with fresh replay and
-130-minute guard. Any refusal/failure stops; no rerun or smaller bound, and no
-second push before qualification finishes.
+**Actual probe10:** [40417291358](https://github.com/Ares-Empire/AresOS/actions/runs/40417291358),
+run_attempt1, succeeded on the exact pushed head. Early loop/FUSE exFAT/fsck /
+QEMU/OVMF/QMP capabilities passed. The native suite passed **355 tests in28.102s,
+no skips**. Real loop regression:20 checks passed,0 helper mutations, protected
+fixture unchanged, all fixture mounts and loops cleaned up. Native private
+metadata/manifest, signature and exact layer-pull checks passed. Live ISO and
+live-environment probes passed, including tools hot-plug/removal, offline link,
+bundle equality, detached Windows boot and target reset. The loop-node fix
+therefore ran successfully natively. Auth cleanup confirmed job token removed
+outside the workspace; no owner token used. Independent raw evidence replay
+passed3 protected-disk captures,4 zero-write/unmap samples,3 decoded varstores /
+BootNext audits and2 NVRAM/all-variable delta recomputations.
 
-**Not verified / gates:** hosted probe10 and qualification2 pending. Physical
-laptop/followability gates stay open; no real hardware touched. The integrator's
-14s classification covers only507 public ISO filename findings in the private,
-never-committed listing; any finding elsewhere STOPs. Only acceptance permits
-restoring closing12/reserve150 and marking PR ready; closing privacy remains
-required before merge. Owner resets the Actions budget to$0 when the run ends.
-No new product JUDGMENT-CALL, PLAN-GAP or open question.
+**STOP / privacy:** the pinned redacted artifact/native-log scan found509
+`generic-api-key` findings.507 remain exclusively in the integrator14s-classified
+public Bazzite ISO filename listing, private and never committed. The other2
+are in `evidence/two-disk/live-ui-probe-boot-console.txt`, lines497 and530.
+These are **unclassified findings**, not a claim that a credential leaked or
+that they are harmless. No matching value or console content is reproduced.
+The mandatory rule says a finding anywhere else is a STOP, so qualification2
+was **not dispatched**. No ignore/allowlist/rule/privacy-workflow change, rerun,
+additional push, PR-ready transition or merge occurred. Owner/integrator review
+of those two private-artifact locations is required before any continuation.
+Redacted metadata/receipts: `os/manifest/ci/14/14t-probe-stop.json`; raw artifact
+and logs remain private under `.work/14/run-40417291358/`.
+
+| Actual closed package14 ledger | Value |
+| --- | --- |
+| Complete history |80/80|
+| Consumed / cap |335/520 minutes|
+| Reserved |0 (closed bookkeeping only)|
+| Probe dispatches |10/10|
+| Owner-tools qualifications |1/2; second not dispatched|
+| Publications / image attempts |0|
+| Closing / org reserve |0/0; acceptance restoration condition not met|
+| Included minutes left (billing snapshot) |109|
+| Approved budget / prevention |$1 / true|
+| Linux price / available paid minutes |$0.006 /166|
+| Total available / reported paid net spend |275 minutes /$0|
+
+**Not verified / gates / open questions:** the full owner-tools qualification,
+layout failure/revert, complete switch/rollback and all remaining VM acceptance
+stay pending. Physical laptop/followability gates and the package15 handoff
+below remain open; no real laptop was touched. No image, frozen runtime, owner
+payload/fingerprint, guide, workflow/permission or privacy-rule change in14t.
+Budget reservation restoration (closing12/org150) and PR-ready remain conditional
+on acceptance; it is not met. No new product JUDGMENT-CALL or product PLAN-GAP.
+The privacy finding classification is unresolved. The run has ended; the owner
+can now reset the org Actions budget to$0. No further run is authorized here.
 
 ## 14s — Loop partition readiness; local only
 
