@@ -1,0 +1,183 @@
+{
+  "current": {
+    "sha256": "ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112",
+    "path": "os/owner-tools/payload/SHA256.json",
+    "status": "current, awaiting November qualification"
+  },
+  "retired": {
+    "value": "118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba",
+    "classification": "historical only; no current product/guide/CI assertion uses it"
+  },
+  "historical_references": [
+    {
+      "path": "os/manifest/ci/14/14d-probe-stop/native-tests-and-stop.log",
+      "line": 298,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14e-local-replay/powershell.log",
+      "line": 1,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14e-local-replay/powershell.log",
+      "line": 2,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14f-probe-stop/native-tests-and-stop.log",
+      "line": 307,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14f-replay/replay.json",
+      "line": 217,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14g-replay/replay.json",
+      "line": 133,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14g-replay/replay.json",
+      "line": 380,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14h-probe-stop/tools-copy.json",
+      "line": 3,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14h-probe-stop/tools-readback.json",
+      "line": 3,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14h-replay/replay.json",
+      "line": 134,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14h-replay/replay.json",
+      "line": 415,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14i-probe/two-disk--probe-media-attach.json",
+      "line": 3,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14i-probe/two-disk--probe-media-backing.json",
+      "line": 3,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14i-probe/two-disk--tools-stick-created-media-backing.json",
+      "line": 3,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14i-probe/two-disk--tools-stick-windows-copy.json",
+      "line": 3,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14i-qualification-stop/two-disk--tools-stick-created-media-backing.json",
+      "line": 3,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14i-qualification-stop/two-disk--tools-stock-media-attach.json",
+      "line": 3,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14i-replay/replay.json",
+      "line": 156,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14i-replay/replay.json",
+      "line": 445,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14j-replay/replay.json",
+      "line": 156,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14j-replay/replay.json",
+      "line": 449,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14k-replay/replay.json",
+      "line": 154,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14k-replay/replay.json",
+      "line": 457,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14l-preflight/preparation.json",
+      "line": 284,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14m-replay/replay.json",
+      "line": 148,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/14m-replay/replay.json",
+      "line": 471,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/local-verification/14d/powershell.log",
+      "line": 1,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "os/manifest/ci/14/local-verification/14d/powershell.log",
+      "line": 2,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "reviews/14-owner-tools/REPORT.md",
+      "line": 326,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "reviews/14-owner-tools/REPORT.md",
+      "line": 451,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "reviews/14-owner-tools/REPORT.md",
+      "line": 904,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "reviews/14-owner-tools/REPORT.md",
+      "line": 1212,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "reviews/14-owner-tools/REPORT.md",
+      "line": 1405,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    },
+    {
+      "path": "reviews/14-owner-tools/REPORT.md",
+      "line": 1455,
+      "classification": "historical pre14n receipt or its source binding; not current bundle acceptance"
+    }
+  ]
+}

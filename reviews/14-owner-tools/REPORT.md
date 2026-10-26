@@ -1,10 +1,67 @@
 # 14: checked owner tools
 
-**Current 14m status: LOCAL ONLY STOP until the owner resumes on or after
-1 November.** No push, dispatch or merge in14m. PR #13 remains draft / NOT
-RELEASED; qualification2 has not run. Brief14m `f0d2e22` was already local;
-no pull was performed. The pending14l STOP report and closed ledger were
-committed locally first as `734c11b`.
+**Current14n: fixes committed locally; STOP awaiting the owner's November
+resume, native test, fresh probe and qualification.** No pull, push, dispatch
+or merge. PR #13 remains draft / NOT RELEASED. Package15's worktree was not
+accessed. The current tools manifest fingerprint is
+`ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112`. Every section14m and earlier, its fingerprints and retained
+run receipts are historical; they do not qualify this changed bundle.
+
+## 14n — Council delta: explicit disk trees and exact PASS actions
+
+**Done:** `media.block_tree` requests `lsblk --json --tree` for both real
+helpers. It rejects flat/orphan partitions, repeated paths/parents, nested
+disk roots, missing/non-list mountpoints and malformed children. It never
+guesses ancestry. `disk_record` and install use `findmnt --json --list` with
+one validated filesystem row and exact mountpoint identity. The full
+[payload JSON audit](14n-json-audit.md) covers findmnt, sfdisk, rpm-ostree,
+bootc, busctl and loginctl; no other tree/list mismatch was found. Shared
+release scripts and frozen runtime/release paths remain unchanged.
+
+The real entry point prints the whole action, including `PASS layout begin
+us-intl`, `PASS layout proof`, `PASS layout revert` and `PASS layout finish`.
+INSTALL documents all19 exact PASS lines. The regenerated payload, hash-first
+manifest, guide and Windows copy agree on the current fingerprint above.
+Archived pre14n fingerprints remain accurate historical receipts and are
+explicitly superseded, inventoried in `14n-replay/fingerprint-references.json`.
+Implementation/tests/guide/audit are committed locally as `8eab7f6`.
+
+**Verified locally:**
+
+- `PYTHONPATH=os/tests python3 -m unittest test_owner_devices test_owner_entry test_owner_export test_owner_devices_native -v` under existing WSL: **16 passed**. Real disk/media helpers and install pass realistic tree JSON; flat/malformed JSON STOP clearly. Mounted protected child and two labels refuse with identical fixture files, no installed directory, no subprocess mutations. Real bundled `owner.main` runs for every commands.json action; handler stand-ins keep it nonprivileged, and all19 actual PASS lines equal the guide. The full native host flow and failure/cleanup paths run through closed stand-ins.
+- `wsl.exe bash .work/14/local/whole-suite.sh`: **329 tests;321 passed**, exactly the same eight host limitations, no skips; unittest exit1, failures2/errors9 including cleanup duplicates. Pillow accounts for3, refused privileged Homebrew/sysusers operations4, and DrvFS0600 semantics1. This is not a native-suite pass.
+- `python3 reviews/14-owner-tools/walk-host.py` under WSL: **92 passed**; every composed guest command is strictly parsed. `python3 .work/14/14n-syntax.py`: **258 guest +258 serial scripts**,233 embedded Python,12 CI/release shells and45 CI/overlay/owner Python files passed; parse stderr, including warnings, refuses.
+- `python -X utf8 .work/14/14n-read-only-replay.py`: actual release git/file/read-only gh checks and53 offline sources/full listing passed. Four14f credential-only checks remain CI-only, unchanged and fail-closed; no credential/scope change or owner secret.
+- `python -X utf8 .work/14/14n-installer-windows.py`: all9,068,650,496 ISO bytes rehashed against the pin and fresh publisher checksum;4 localization and102 WebUI sources; actual inspector assertions unchanged.
+- `pwsh -NoProfile -File os/tests/owner-tools.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/14/14n-unit-copy`: **15 zero-write refusals passed** and copied payload equals source, with the new fingerprint.
+- Post-retention `test_owner_equality` manifest-order and reviewed/generated-payload checks: **2 passed**.
+- Frozen runtime/release/shared scripts, package pins,14m retry/timeouts, budget configuration, guard, release binding and privacy-rule comparisons against `cc11494` pass. `git diff --check` passes. Pinned gitleaks8.21.2 reports **0 full-history findings** through implementation commit `8eab7f6`; pending evidence is scanned before this local report commit, and the final history is scanned afterwards.
+
+The first direct-install fixtures wrote Python bytecode into the copied bundle
+because their interpreter lacked the shipped launcher's `-B` flag. Fixtures
+now use that flag's `dont_write_bytecode` setting; all content/zero-write
+assertions are retained and pass. Product guards were not bypassed to fix A.
+
+**Not verified / stop:** actual partitioned-loop execution is deferred to the
+mandatory native step in the November probe and qualification. It uses only
+fresh runner files/verified loops, EFI-type FAT plus exFAT ARESTOOLS, exact
+query options and the real helpers. Its documented adapters supply loop root
+hardware identities, sandbox mount paths and a synthetic firmware read;
+they preserve native tree/partition structure. Protected fixture hashes and
+confirmed unmount/detach are required. No actual local device, mount, package
+installation, firmware or laptop operation was run. Native/VM acceptance and
+all physical release gates remain open; a native failure is STOP/no rerun.
+
+Ledger unchanged: **249/420**,0 reserved,6/6 probes,1/2 qualifications,
+reserve60; **zero additional Actions minutes**. No image rebuild, release or
+publication. Await explicit owner resume on/after1November, restore reserve150
+and set the cap/allowance then, followed by one push, fresh exact-head privacy,
+complete ledger/billing, probe7 and qualification2 on the same head/bundle.
+
+**JUDGMENT-CALL / PLAN-GAP / open questions:** no new product decision or
+unresolved gap. Native loop adapters are test boundaries, not physical-device
+evidence. Historical fingerprints were preserved rather than falsifying old
+qualification receipts. November execution remains pending owner resume.
 
 ## 14m — Bounded snapshot download retries; November hold
 

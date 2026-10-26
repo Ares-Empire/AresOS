@@ -775,6 +775,14 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "8eab7f6e40c8e88caf399ac7416b675e0cc1d4e8",
+      "checked_at": "2026-10-26T19:11:04.921299+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
   "pre_dispatch_privacy": {
@@ -834,5 +842,17 @@
       "qualification": 2,
       "requires": "owner resume, one push, fresh exact-head privacy, complete ledger and billing"
     }
+  },
+  "local_follow_up_14n": {
+    "decision": "cc11494",
+    "code_commit": "8eab7f6e40c8e88caf399ac7416b675e0cc1d4e8",
+    "status": "local fixes only; no push/dispatch before November owner resume",
+    "extra_actions_minutes": 0,
+    "current_bundle": {
+      "sha256": "ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112",
+      "path": "os/owner-tools/payload/SHA256.json",
+      "qualification": "pending"
+    },
+    "native_loop_test": "mandatory November probe native suite; not run locally"
   }
 }
