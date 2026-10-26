@@ -419,6 +419,14 @@
       "scope": "full Git history, CI flags with redaction",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "79a4364517039a2229b58cdebb76514cd36a615c",
+      "checked_at": "2026-10-26T00:20:06.014060+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
   "phase": "14h planning; owner afd608b accepts explicit FUSE and native host capability gate; fresh pushed-head privacy, replay and scheduling guard required",
