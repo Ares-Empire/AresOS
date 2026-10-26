@@ -38,6 +38,21 @@ def configure(package):
     RUN_HISTORY_PATH = f'actions/runs?branch={BRANCH}&per_page=100'
 
 
+def owner_reservations(now=None):
+    """The October exception defers closing privacy, never a VM bound."""
+    assert PACKAGE=='14', 'STOP: owner reservation plan is package14 only'
+    setting=SETTINGS.get('closing_privacy_reservation')
+    assert isinstance(setting,dict) and set(setting)=={'minutes','normal_minutes','exception_month','decision'}, 'STOP: missing closing reservation decision'
+    closing=setting['minutes']
+    assert type(closing) is int and closing in (0,12) and setting['normal_minutes']==12, 'STOP: invalid closing reservation'
+    assert setting['exception_month']=='2026-10' and setting['decision']=='briefs/14r-no-closing-reservation.md', 'STOP: unreviewed closing reservation exception'
+    now=now or datetime.datetime.now(datetime.timezone.utc)
+    assert closing==12 or now.strftime('%Y-%m')==setting['exception_month'], 'STOP: zero closing reservation is October2026 only'
+    return dict(push=6,probe=42,qualification=130,closing_privacy=closing,
+        pre_push=6+42+130+closing,before_probe=42+130+closing,before_qualification=130+closing,
+        decision=setting['decision'],exception_month=setting['exception_month'],merge_requires_privacy=True)
+
+
 def failure_status(stderr):
     # gh api appends (HTTP NNN) to JSON errors, or prints "gh: HTTP NNN"
     # for other HTTP bodies. Unknown/parse/auth errors must not become retries.
@@ -281,9 +296,16 @@ def main():
     reserve = int(sys.argv[2])
     ci = mode in ('ci', 'publish-ci', 'probe-budget-ci')
     current = os.environ.get('GITHUB_RUN_ID') if ci else None
+    plan=None
+    if PACKAGE=='14' and not ci:
+        plan=owner_reservations()
+        assert mode in ('probe','owner-tools'), 'STOP: invalid owner dispatch mode'
+        assert reserve==plan['before_probe' if mode=='probe' else 'before_qualification'], 'STOP: incomplete owner dispatch reservation'
     if PACKAGE in ('13', '14'):
         assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
     result = budget(reserve, current)
+    if plan is not None:
+        result['reservation_plan']=plan
     if mode=='probe-budget-ci':
         assert PACKAGE in ('13', '14') and os.environ.get('REHEARSAL_MODE')=='probe', 'STOP: native deferral is only for probe budget reservation'
     history = result.get('history')

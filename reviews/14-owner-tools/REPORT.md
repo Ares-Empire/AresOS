@@ -1,10 +1,63 @@
 # 14: checked owner tools
 
-**Current14q: STOP before push —187 free org minutes cannot cover the190-minute
-complete plan.** No push, probe9 or qualification2 in this continuation. The
-fixture-only fix, probe8 STOP report and this budget STOP are committed locally.
-PR #13 remains draft / NOT RELEASED. Earlier references to uncommitted reports
-describe the state at those historical stops. No acceptance is claimed.
+**Current14r: local preparation passed; one push and fresh hosted gates pending.**
+PR #13 remains draft / NOT RELEASED.14r supersedes14q's November hold by
+explicitly deferring only the closing-privacy reservation. Historical STOP
+sections below remain evidence of those attempts, not current acceptance.
+
+## 14r — October closing reservation0; pre-dispatch preparation
+
+**Done:** package14 now records closing_privacy_reservation with minutes0,
+normal12, exception month2026-10 and the exact14r decision path. The local
+reservation helper derives **178 before push,172 before probe,130 before
+qualification**; push6, probe42 and qualification130 are unchanged. A host
+dispatch guard requires the complete derived bound and records its plan in
+authorization evidence. Zero closing outside October, an altered decision or
+an incomplete reservation refuses. Tests also prove restoration to12 yields
+the normal190/184/142 plan. Package13 text is unchanged; cap480,9 probes,
+2 qualifications and org reserve0 remain as approved in14q.
+
+The14q fixture fix and probe8 STOP are already committed locally and will
+accompany the sole fast-forward push. Owner tools, bundle fingerprint,
+workflows/permissions, frozen release/runtime and privacy rules are unchanged.
+No image build, publication, token/scope change, pull or other-worktree action.
+
+**Verified locally:**341 whole-suite tests ran:333 distinct passes, exactly the
+same eight native-host limitations, no skips (unittest exit1).104 host-walk
+tests passed, including the real low-level PART_ENTRY_UUID fixture, independent
+GUID cross-check and failure-evidence cases, and all reservation/refusal tests.
+The focused guard/API-permission suite passed12 tests. Strict parsing passed
+258 guest commands and258 serial wrappers with no stderr,233 embedded Python
+snippets,12 shell files and45 CI/overlay/owner Python files. Windows copy passed
+15 zero-write refusals and exact bundle equality; current fingerprint:
+`ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112`.
+
+Actual14e/14f git/file/read-only release replay,53 retained offline sources
+and the complete listing passed. Actual ISO inspection rehashed9,068,650,496
+bytes, checked the fresh publisher checksum, and read4 localization/102 WebUI
+sources. The four credential-only checks remain mandatory, fail-closed in CI.
+Evidence and refreshed source bindings: `os/manifest/ci/14/14r-preflight/`.
+
+Fresh pre-push planning: **74/74 complete history;285+178=463/480**;
+**9 org minutes after reservation ≥0**. This is planning, not dispatch
+authorization. Pinned full-history gitleaks must be0 before the sole push.
+Then exact-head privacy must actually execute all three checks, followed by
+fresh complete ledger/billing and the172-minute guard for probe9. Only its
+success, including the real native loop fixture, permits qualification2 on
+the same immutable head, behind its own local replay and130-minute guard.
+No second push before qualification finishes. Any refusal/failure stops work,
+with no rerun or smaller bound.
+
+**Closing privacy / merge gate:** closing checks run after qualification;
+if October minutes are exhausted, they wait/run again on1 November. They
+remain required before any merge. Only VM acceptance permits a final commit
+restoring closing reservation12 and org reserve150, plus PR-ready. No merge
+is authorized. Physical/followability release gates remain open and the
+product remains NOT RELEASED.
+
+**Not verified / PLAN-GAP / JUDGMENT-CALL / open questions:** hosted native
+GUID check, probe9 and qualification2 remain pending. No new product choice;
+the explicit integrator14r decision changes only the closing reservation.
 
 ## 14q — Fixture PART_ENTRY_UUID fix; organization budget STOP
 

@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 96,
+  "tests": 104,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -76,7 +76,7 @@
       "path": "os/ci/owner_console.py"
     },
     {
-      "sha256": "0118f336d358e2463deb23b65d49ef6fd3fca070f691f1acb76128c5538d086b",
+      "sha256": "1c92e186914553c04ea643e1131c89574d4dd09c0fc716f89f6e25ae7f09c3f1",
       "path": "os/ci/owner_devices.py"
     },
     {
@@ -100,11 +100,11 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "0dfacfcaddfd93593b9502938b8251505cebd642047d925fc6457f789cabd933",
+      "sha256": "c177aa051088e4e29c1336c4da9e62cffbb8bcb78f1032978942fcd06eac9912",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "0444c0c1736a77e551042b38f99a79d8c7e1eabedc4cb67cc37d2cb7a7b98cf5",
+      "sha256": "4ef60418b2f499a502ec6a4e5fc69f973bfd356614c74aef61c5c744695878aa",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
@@ -244,6 +244,14 @@
       "path": "os/tests/fixtures/owner-console/sources.json"
     },
     {
+      "sha256": "61e60a134c0d19c5f1cf21851630cb7415f2cfd6886a1a1deeb2564e7756d1f8",
+      "path": "os/tests/fixtures/owner-tools/blkid-p-gpt-source.json"
+    },
+    {
+      "sha256": "a4db20027ecc75ace51c1805a362fa38a3a03a37a2b94ffd22d723585d8c8740",
+      "path": "os/tests/fixtures/owner-tools/blkid-p-gpt.txt"
+    },
+    {
       "sha256": "b156cc601b2d091f739410defcf2fcb6c13bb158adbf141550083eb5a5752118",
       "path": "os/tests/fixtures/owner-tools/storage-flat.json"
     },
@@ -296,7 +304,7 @@
       "path": "os/tests/test_owner_devices.py"
     },
     {
-      "sha256": "3d014bea4b5e82eca00b2b8dd0b3da41375350e152af67a4dc3584190c9034ac",
+      "sha256": "419a10f25c13f21f02a87047eb8c5f4ccf96167b6b1616da4123daf84f101a59",
       "path": "os/tests/test_owner_devices_native.py"
     },
     {
@@ -312,7 +320,7 @@
       "path": "os/tests/test_owner_export.py"
     },
     {
-      "sha256": "8eff9092d5cb6d61fa369cb28e3c9c49f16ce6459df0e5528b846794357d0fd4",
+      "sha256": "85f7c3227d976bc75fbdbf3fb44ad341b84e4f467aef6d2311ad18978bebff05",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -336,7 +344,7 @@
       "path": "os/tests/test_release_squash_binding.py"
     },
     {
-      "sha256": "e60ac6a90abbcf475f124d4504d09fa999c03831da1828d09026711f62f93191",
+      "sha256": "a8b8886080a39719a68600d67d9b25285a24632415429c815b1ac4a97a927dff",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

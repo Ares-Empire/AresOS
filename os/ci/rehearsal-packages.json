@@ -14,6 +14,12 @@
     "part_b_cap": 0,
     "dispatch_caps": {"probe": 9, "owner-tools": 2},
     "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 0},
+    "closing_privacy_reservation": {
+      "minutes": 0,
+      "normal_minutes": 12,
+      "exception_month": "2026-10",
+      "decision": "briefs/14r-no-closing-reservation.md"
+    },
     "publish_cap": 0,
     "titles": {"probe": "Two-disk rehearsal (probe)", "owner-tools": "Two-disk rehearsal (owner-tools)"}
   },

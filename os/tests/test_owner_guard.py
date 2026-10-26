@@ -1,4 +1,6 @@
 import hashlib
+import copy
+import datetime
 import json
 import os
 import pathlib
@@ -58,6 +60,40 @@ class GuardTest(unittest.TestCase):
                  patch('pathlib.Path.read_text',return_value=json.dumps(proof)),patch.object(vm,'Media') as media, \
                  self.assertRaises(AssertionError):vm.main()
             media.assert_not_called()
+
+    def test_october_reservation_drops_only_closing_privacy(self):
+        plan=guard.owner_reservations(datetime.datetime(2026,10,26,tzinfo=datetime.timezone.utc))
+        self.assertEqual({k:plan[k] for k in ('push','probe','qualification','closing_privacy')},
+                         dict(push=6,probe=42,qualification=130,closing_privacy=0))
+        self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(178,172,130))
+        self.assertTrue(plan['merge_requires_privacy'])
+        self.assertNotIn('closing_privacy_reservation',guard.PACKAGES['13'])
+
+    def test_zero_closing_reservation_expires_and_restored_twelve_works(self):
+        november=datetime.datetime(2026,11,1,tzinfo=datetime.timezone.utc)
+        with self.assertRaisesRegex(AssertionError,'October2026 only'): guard.owner_reservations(november)
+        changed=copy.deepcopy(guard.SETTINGS);changed['closing_privacy_reservation']['minutes']=12
+        with patch.object(guard,'SETTINGS',changed):
+            plan=guard.owner_reservations(november)
+            self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(190,184,142))
+
+    def test_missing_or_altered_closing_decision_refuses(self):
+        for field,value in (('minutes',False),('minutes',-1),('minutes',6),('normal_minutes',0),
+                             ('exception_month','2026-11'),('decision','unreviewed')):
+            changed=copy.deepcopy(guard.SETTINGS);changed['closing_privacy_reservation'][field]=value
+            with self.subTest(field=field,value=value),patch.object(guard,'SETTINGS',changed),self.assertRaises(AssertionError):
+                guard.owner_reservations()
+        changed=copy.deepcopy(guard.SETTINGS);changed.pop('closing_privacy_reservation')
+        with patch.object(guard,'SETTINGS',changed),self.assertRaisesRegex(AssertionError,'missing closing'):
+            guard.owner_reservations()
+
+    def test_host_reservation_cannot_drop_probe_or_qualification_bound(self):
+        for mode,reserve in (('probe',171),('owner-tools',129)):
+            with self.subTest(mode=mode),patch.dict(os.environ,REHEARSAL_PACKAGE='14',clear=True), \
+                 patch.object(sys,'argv',['rehearsal_guard.py',mode,str(reserve)]),patch.object(guard,'budget') as budget, \
+                 self.assertRaisesRegex(AssertionError,'incomplete owner dispatch reservation'):
+                guard.main()
+            budget.assert_not_called()
 
     def test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback(self):
         run=dict(event='workflow_dispatch',path='.github/workflows/os-image.yml',head_branch=guard.BRANCH,
