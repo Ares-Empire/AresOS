@@ -536,6 +536,10 @@ def main():
     authorization = json.loads(pathlib.Path('evidence/14-dispatch-authorization.json').read_text())
     assert authorization['allowance'] == '14' and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
+    from owner_capabilities import CHECKS
+    capabilities = json.loads(pathlib.Path('evidence/14-host-capabilities.json').read_text())
+    assert capabilities['status'] == 'passed' and capabilities['sha'] == os.environ['GITHUB_SHA']
+    assert all(capabilities['checks'].get(name) is True for name in CHECKS), 'STOP: host capabilities incomplete'
     if mode != 'probe':
         assert authorization['probe']['status'] == 'passed' and authorization['probe']['commit'] == os.environ['GITHUB_SHA']
     walk = json.loads(pathlib.Path('os/manifest/ci/14/host-walk/result.json').read_text())

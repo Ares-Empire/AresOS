@@ -343,16 +343,26 @@ jobs:
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
+      - name: Install pinned rehearsal tools on disposable runner
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          mkdir -p evidence .work/installer
+          bash os/ci/install-tools.sh
+          sudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools gnu-efi ntfs-3g dosfstools exfatprogs exfat-fuse gdisk mtools psmisc tesseract-ocr python3-venv
+          dpkg-query -W > evidence/rehearsal-host-packages.txt
+      - name: Prove package 14 native host capabilities before expensive downloads
+        if: github.ref_name == 'pkg/14-owner-tools'
+        timeout-minutes: 3
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
+        run: sudo -E python3 os/ci/owner_capabilities.py
       - name: Qualify tools, regressions, rewritten release identity and private access
         timeout-minutes: 15
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p evidence .work/installer
-          bash os/ci/install-tools.sh
-          sudo apt-get install -y --no-install-recommends libarchive-tools squashfs-tools gnu-efi ntfs-3g dosfstools exfatprogs gdisk mtools psmisc tesseract-ocr
-          sudo apt-get install -y --no-install-recommends python3-venv
           python3 -m venv --system-site-packages .work/browser-env
           .work/browser-env/bin/pip install playwright==1.58.0
           export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"

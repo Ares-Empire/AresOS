@@ -13,6 +13,7 @@ import subprocess
 import time
 
 import two_disk_vm as td
+import owner_fuse
 from prepare_two_disks import verify_loop
 
 
@@ -64,11 +65,9 @@ class Media:
             output.truncate(128 * 1024 ** 2)
         subprocess.run(['sgdisk', '--clear', '--new=1:2048:0', '--typecode=1:0700', str(self.path)], check=True)
         loop = self.mounted()
-        mounted = False
         try:
             subprocess.run(['mkfs.exfat', '-L', 'ARESTOOLS', loop + 'p1'], check=True)
-            subprocess.run(['mount', '-t', 'exfat', '-o', 'nodev,nosuid,noexec', loop + 'p1', str(self.mount)], check=True)
-            mounted = True
+            owner_fuse.mount(loop + 'p1', self.mount)
             script = '''param($Source,$Destination,$Root)
 Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 $drive=@{Letter='T';DriveType='Removable';BusType='USB';IsBoot=$false;IsSystem=$false;
@@ -81,21 +80,21 @@ Copy-AresToolsPayload -Source $Source -Destination $Destination -Drive $drive
             assert bundle_module('owner').checked_bundle(self.mount / 'ares-tools') == self.fingerprint
             subprocess.run(['sync', '-f', str(self.mount)], check=True)
         finally:
-            if mounted:
-                subprocess.run(['umount', str(self.mount)], check=True)
-            subprocess.run(['losetup', '--detach', loop], check=True)
-        self.expected = digest(self.path)
+            owner_fuse.detach(loop, self.mount)
+        # A clean fsck and every-file readback on a read-only loop/FUSE mount
+        # must pass before any backing hash can authorize QMP attachment.
+        self.verify('tools-stick-created')
         td.save('tools-stick-windows-copy', dict(status='passed', image_sha256=self.expected,
             manifest_sha256=self.fingerprint, source='Copy-AresToolsPayload in OwnerTools.psm1',
-            filesystem='exFAT', label='ARESTOOLS', file_backed=True, real_hardware=False))
+            filesystem='FUSE exFAT', label='ARESTOOLS', fsck_readonly=True, readonly_bundle_verified=True,
+            file_backed=True, real_hardware=False))
 
     def verify(self, stage):
         assert not self.attached
         loop = self.mounted(readonly=True)
-        mounted = False
         try:
-            subprocess.run(['mount', '-t', 'exfat', '-o', 'ro,nodev,nosuid,noexec', loop + 'p1', str(self.mount)], check=True)
-            mounted = True
+            owner_fuse.check(loop + 'p1')
+            owner_fuse.mount(loop + 'p1', self.mount, readonly=True)
             assert bundle_module('owner').checked_bundle(self.mount / 'ares-tools') == self.fingerprint
             records = self.mount / 'ares-records'
             if records.exists():
@@ -109,12 +108,11 @@ Copy-AresToolsPayload -Source $Source -Destination $Destination -Drive $drive
                     assert not secret or secret not in data, 'STOP: credential in record export; do not upload'
                     shutil.copyfile(source, destination / source.name)
         finally:
-            if mounted:
-                subprocess.run(['umount', str(self.mount)], check=True)
-            subprocess.run(['losetup', '--detach', loop], check=True)
+            owner_fuse.detach(loop, self.mount)
         self.expected = digest(self.path)
         td.save(stage + '-media-backing', dict(status='passed', image_sha256=self.expected,
-            bundle_unchanged=True, manifest_sha256=self.fingerprint, device_attached=False))
+            bundle_unchanged=True, fsck_readonly=True, fuse_readonly=True,
+            manifest_sha256=self.fingerprint, device_attached=False))
 
     def attach(self, guest, stage):
         assert not self.attached and digest(self.path) == self.expected

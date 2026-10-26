@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT / 'os/ci'))
 import owner_vm as vm
 import owner_media
 import test_owner_tools as common
+from owner_fuse_shim import Volume
 
 FIXTURES = ROOT / 'os/tests/fixtures/owner-tools'
 
@@ -154,40 +155,25 @@ class OwnerWalkTest(unittest.TestCase):
     def test_file_image_creation_windows_copy_and_export_inspection_host_paths(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as directory, contextlib.ExitStack() as stack:
             root=pathlib.Path(directory).resolve()
-            volume=root/'volume';volume.mkdir()
             evidence=root/'evidence';evidence.mkdir()
             stack.enter_context(patch.object(owner_media.td,'WORK',root))
             stack.enter_context(patch.object(owner_media.td,'EVIDENCE',evidence))
             stack.enter_context(patch.dict(os.environ,GITHUB_ACTIONS='true',GITHUB_REPOSITORY='Ares-Empire/AresOS',
                 GITHUB_REF_NAME='pkg/14-owner-tools',REHEARSAL_PACKAGE='14'))
             media=owner_media.Media()
-            calls=[]
-            def run(argv,**kw):
-                calls.append(argv)
-                if argv[0]=='mount':
-                    for p in volume.iterdir():p.rename(media.mount/p.name)
-                elif argv[0]=='umount':
-                    for p in media.mount.iterdir():p.rename(volume/p.name)
-                elif argv[0]=='pwsh':
-                    self.assertEqual(argv[1:3],['-NoProfile','-File'])
-                    self.assertIn('Copy-AresToolsPayload',pathlib.Path(argv[3]).read_text())
-                    shutil.copytree(argv[4],argv[5])
-                else:self.assertIn(argv[0],('sgdisk','mkfs.exfat','losetup','sync'))
-            def loop(argv,**kw):
-                self.assertEqual(argv[0],'losetup')
-                self.assertEqual(argv[-1],str(media.path))
-                return '/dev/loopSYNTHETIC\n'
-            stack.enter_context(patch.object(owner_media.subprocess,'run',side_effect=run))
-            stack.enter_context(patch.object(owner_media.subprocess,'check_output',side_effect=loop))
-            verify=stack.enter_context(patch.object(owner_media,'verify_loop'))
+            fake=Volume(root,media.mount)
+            volume=fake.volume;calls=fake.calls
+            stack.enter_context(patch.object(owner_media.subprocess,'run',side_effect=fake.run))
+            stack.enter_context(patch.object(owner_media.subprocess,'check_output',side_effect=fake.output))
+            verify=stack.enter_context(patch.object(owner_media,'verify_loop',wraps=owner_media.verify_loop))
             media.create()
             self.assertEqual(media.path.stat().st_size,128*1024**2)
             self.assertEqual(media.fingerprint,common.bundle.check(volume/'ares-tools'))
             records=volume/'ares-records';records.mkdir();(records/'diagnostic.json').write_text('{"synthetic":true}')
             media.verify('standin')
             self.assertEqual((evidence/'owner-records/diagnostic.json').read_bytes(),(records/'diagnostic.json').read_bytes())
-            self.assertEqual(verify.call_count,2)
-            self.assertTrue(any(c[0]=='mount' and 'ro,nodev,nosuid,noexec' in c for c in calls))
+            self.assertEqual(verify.call_count,3)
+            self.assertTrue(any(c[0]=='mount.exfat-fuse' and 'ro,nodev,nosuid,noexec' in c for c in calls))
             self.assertFalse(media.attached)
 
     def test_all_remaining_host_paths_and_all_typed_characters(self):

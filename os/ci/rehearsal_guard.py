@@ -325,6 +325,11 @@ def main():
         assert proof['status'] == 'passed' and proof['installed'] is False
         assert proof['commit'] == expected_sha
         if PACKAGE == '14':
+            with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+                capabilities = json.loads(archive.read('14-host-capabilities.json'))
+            from owner_capabilities import CHECKS
+            assert capabilities['status'] == 'passed' and capabilities['sha'] == expected_sha
+            assert all(capabilities['checks'].get(name) is True for name in CHECKS), 'STOP: probe host capabilities incomplete'
             assert proof['order'] == 'protected-second' and proof['both_orders'] is False
             assert proof['offline_link'] and proof['tools_hotplug'] and proof['tools_absent_before_reboot']
             assert proof['bundle_equality'] and proof['host_walk'] and proof['review_validated']
