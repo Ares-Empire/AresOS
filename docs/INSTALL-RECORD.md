@@ -4,6 +4,8 @@ Mandatory companion to [INSTALL](INSTALL.md), checked **2026-10-22**. Keep all o
 
 These commands query layout/firmware; they do not partition, mount, repair, format or change boot entries. Saving JSON writes ordinary files; Windows PowerShell's native-code compilation may create temporary files. The helper temporarily enables a process privilege to read firmware and restores it. **Agents never run its hardware queries on this laptop.** Errors mean stop.
 
+**Before B/C/D, write the calling procedure and checklist step beside the record stage.** A stage such as after-aresos does not identify which Linux deployment is now default. The [return-by-calling-context table](#return-by-calling-context) takes precedence over a stage-only return.
+
 ## A. Save the Windows baseline
 
 During INSTALL step 1, boot **F12 → Windows Boot Manager**, USBs absent. Open **Terminal (Administrator) → Windows PowerShell**. Use only the reviewed repository copy; if importing is blocked, stop rather than change execution policy.
@@ -65,7 +67,7 @@ A comparison failure stops installation/undo: keep the output for review, never 
 
 The comparison allows disk/partition numbers, labels, firmware entry number and C: free space to change. It rejects any disk identity/size/sector-size change, partition addition/deletion/type/GUID/boundary change, C: identity change or different Windows boot target. **It does not hash filesystem contents or prove no files changed.** The offline two-disk write audit remains a release requirement.
 
-**Return by recorded stage:** after-fit → **Return to step 3** ([fit comparison](INSTALL.md#3-fit-and-identify-both-drives)); first after-bazzite comparison → **Return to step 4** ([tools round trip](INSTALL.md#4-install-and-prepare-corrected-stock)); prepared/unattended after-bazzite → **Return to step 5** ([mandatory proof](INSTALL.md#5-prove-windows-and-corrected-stock)); after-aresos → **Return to step 7** ([final checks](INSTALL.md#7-check-the-first-aresos-session)); before/after-undo → **Return to step 9** ([retirement/Windows](INSTALL.md#9-retire-access-and-return-to-windows)). Any error → **STOP → [Help](INSTALL-REFERENCE.md#help)**; never replace the original baseline.
+**Return by caller:** [choose your recorded calling procedure](#return-by-calling-context), including keep-stock; any error → **STOP → [Help](INSTALL-REFERENCE.md#help)**. Never replace the original baseline.
 
 ## C. Identify both drives in live Linux
 
@@ -192,15 +194,30 @@ Record the **installer layout separately from the current AresOS layout**.
 Backup Bazzite keeps the former; type its recovery password with that layout.
 The VM restored German before rollback; US-then-rollback was not performed.
 
-**Return to step 4:** [live mapping/installer plan](INSTALL.md#4-install-and-prepare-corrected-stock). After installed title/EFI recording, **Return to step 5** ([proof](INSTALL.md#5-prove-windows-and-corrected-stock)) or **Return to step 7** ([final check](INSTALL.md#7-check-the-first-aresos-session)), using your calling step. Undo callers [return to the erasure procedure](INSTALL-PROCEDURES.md#optional-removal-or-erasure), then Return to step 9. Any blank/FAIL → **STOP → [Help](INSTALL-REFERENCE.md#help)**.
+**Return by caller:** [choose your recorded calling procedure](#return-by-calling-context), including keep-stock. Any blank/FAIL → **STOP → [Help](INSTALL-REFERENCE.md#help)**.
 
 ## D. Before erasing Crucial from live media
 
 First complete INSTALL step 9's token retirement and successful direct Windows boot and record B (**before-undo**); keep that exact timestamped JSON independently. In live GParted repeat C, requiring **both internal disks unmounted** and every recorded Crucial partition/boundary still accounted for. Unknown additional partitions/data mean stop.
 
-Find the **Boot.Entry saved by that Windows session** in current `efibootmgr -v`. Its GPT partition GUID and `File(...)` must still identify the original Micron EFI and `\EFI\Microsoft\Boot\bootmgfw.efi`. Locate that GUID's device with `lsblk`, then compare its `sfdisk` Start/End with the saved Boot.StartSector/EndSector. Do not mistake `HD(...)`'s hexadecimal start/size for decimal start/end; no conversion is required using the partition listing. The live USB's BootCurrent is not evidence about Windows. A missing/changed target, ambiguous path, Windows booting from Crucial, missing baseline or changed layout means **erase nothing**. Return to the [separate erasure procedure](INSTALL-PROCEDURES.md#optional-removal-or-erasure) only when all checks pass, then Return to step 9.
+Find the **Boot.Entry saved by that Windows session** in current `efibootmgr -v`. Its GPT partition GUID and `File(...)` must still identify the original Micron EFI and `\EFI\Microsoft\Boot\bootmgfw.efi`. Locate that GUID's device with `lsblk`, then compare its `sfdisk` Start/End with the saved Boot.StartSector/EndSector. Do not mistake `HD(...)`'s hexadecimal start/size for decimal start/end; no conversion is required using the partition listing. The live USB's BootCurrent is not evidence about Windows. A missing/changed target, ambiguous path, Windows booting from Crucial, missing baseline or changed layout means **erase nothing**. Only a separately authorized erasure caller performs D; after PASS, use the calling-context return below.
 
-**STOP → [Help](INSTALL-REFERENCE.md#help)** on any failure; **Return to step 9:** [Windows confirmation](INSTALL.md#9-retire-access-and-return-to-windows) after the separate procedure.
+**Return by caller:** [choose your recorded calling procedure](#return-by-calling-context), including keep-stock if that caller was retained. **STOP → [Help](INSTALL-REFERENCE.md#help)** on any failure.
+
+## Return by calling context
+
+Use your **calling procedure first**, then its stage. Do not use an installation-stage return while completing keep-stock. Unknown/missing caller → **STOP → [Help](INSTALL-REFERENCE.md#help)**; recover that context before continuing. For B, C and D, use the same table:
+
+| Recorded calling context | Return after successful record | Next checkpoint |
+| --- | --- | --- |
+| keep-stock | [Return to keep-stock completion](INSTALL-PROCEDURES.md#keep-stock-records-complete) | Confirm stock-default and Windows records, then Return to step 8. |
+| initial after-fit | [Return to step 3](INSTALL.md#3-fit-and-identify-both-drives) | Continue only the fitting comparison. |
+| initial first after-bazzite | [Return to step 4](INSTALL.md#4-install-and-prepare-corrected-stock) | Complete the tools round trip. |
+| initial prepared after-bazzite | [Return to step 5](INSTALL.md#5-prove-windows-and-corrected-stock) | Mandatory Windows/corrected-stock proof. |
+| initial live mapping | [Return to step 4](INSTALL.md#4-install-and-prepare-corrected-stock) | Same-session installer plan. |
+| initial after-aresos | [Return to step 7](INSTALL.md#7-check-the-first-aresos-session) | Initial AresOS check only. |
+| undo erasure | [Return to the erasure procedure](INSTALL-PROCEDURES.md#optional-removal-or-erasure) | Complete only separately authorized erasure, then Return to step 9. |
+| undo Windows confirmation | [Return to step 9](INSTALL.md#9-retire-access-and-return-to-windows) | Final independent Windows proof. |
 
 ## Sources and limits
 

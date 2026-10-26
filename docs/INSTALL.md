@@ -50,7 +50,7 @@ First command normally prints nothing; second must show **Ruhezustand / Schnells
 
 ## 4. Install and prepare corrected stock
 
-- [ ] AC connected, lid open. **Offline from this live boot until `prepare` passes:** no Wi-Fi profile or Ethernet. The installer copies network profiles. Disconnect backup/recovery devices. **F12** (or **Fn+F12**) → UEFI installer USB.
+- [ ] AC connected, lid open. **Offline from this live boot until prepare passes:** no Wi-Fi profile or Ethernet. The installer copies network profiles. Disconnect backup/recovery devices. **F12** (or **Fn+F12**) → UEFI installer USB.
 - [ ] Before Konsole: **System Settings → Keyboard → Layouts → Enable** (accessible name **Configure Layouts**) → **Add → German → OK**, German first/active, Global switching if offered → **Apply**. In a text editor physically type `y z / - " $ ä ö ü`; correct every character. Repeat after every live boot. Then open Konsole → [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux). Match Micron to A and Crucial to its label by full identity, never disk number/size alone. Require Micron unchanged/unmounted and Crucial empty (no partitions, signatures, mounts or prior data). **Return to step 4** here with a same-session mapping.
 - [ ] Installer **English (United States) → Welcome → Change system keyboard layout**: add German, remove US, **Save**; summary contains only **de**. **Date and time**: automatic timezone off → **Europe → Berlin**.
 - [ ] **Installation method → Change destination**: match current whole-disk path in record C, only Crucial selected → **Use entire disk**. Do not use alongside/reclaim/manual. **Storage configuration**: **Encrypt my data** unchecked for this disposable trial. Personal use/encryption is a later decision.
@@ -147,7 +147,7 @@ Require `PASS switch`, `PASS title`, exact signed staged release and saved corre
 sudo /var/lib/ares/at reboot
 ```
 
-**F12** (or **Fn+F12**) → recorded Linux. A failed first boot means **F12 → Windows → help**, never a guessed GRUB title. Successful boot → [step 7](#7-check-the-first-aresos-session).
+Expect `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear). **F12** (or **Fn+F12**) → recorded Linux. A failed first boot means **F12 → Windows → help**, never a guessed GRUB title. Successful boot → [step 7](#7-check-the-first-aresos-session).
 
 **Record:** token note/expiry only, signature/digest PASS, staged identity/title/time. **STOP → go to [Help](INSTALL-REFERENCE.md#help)**. Return to step 6 only with step 5 proof rechecked; permanently abandoning → [step 9](#9-retire-access-and-return-to-windows).
 
@@ -162,7 +162,7 @@ sudo /var/lib/ares/at records
 ```
 
 Require all PASS: exact AresOS + corrected pinned stock final pair, no surviving old serial or retained keymap overrides, daily `ares` UID1001/no wheel and running labwc/foot. Save refreshed stock title before trusting recovery; staged title is now INVALID. Prove console `yz-/!ü` and fresh password sudo as step 5; return to desktop using the console-exit instructions. Test the same public text in foot without executing it.
-- [ ] Stay on AC, lid open. Check RTX4060 with `nvidia-smi`, display/brightness, audible sound, network after reboot and touchpad. Test **Super+Ctrl+Escape (Ctrl = Strg)**, fresh recovery login/logout/desktop return. For restarts: recovery account → guarded `reboot`, all sticks absent → **F12** (or **Fn+F12**) → Linux. Require a second Linux boot.
+- [ ] Stay on AC, lid open. Check RTX4060 with `nvidia-smi`, display/brightness, audible sound, network after reboot and touchpad. Test **Super+Ctrl+Escape (Ctrl = Strg)**, fresh recovery login/logout/desktop return. For restarts: recovery account → `sudo /var/lib/ares/at reboot`; expect `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear), all sticks absent → **F12** (or **Fn+F12**) → Linux. Require a second Linux boot.
 - [ ] Log out the recovery console to its login prompt. From the desktop briefly press physical power; require clean shutdown. Boot Linux again, recovery tty3 → `sudo -i`:
 
 ```bash
@@ -176,7 +176,15 @@ Require `PASS logs` (collection only); inspect saved previous logind/full journa
 
 ## 8. Everyday boot and recovery
 
-Windows stays default after step 5 (first set during step 4's round trip). **F12** (or **Fn+F12**) picks the recorded Linux entry for one start; its label may remain Fedora/Bazzite. Never make Linux first to avoid this. If order changes: repeat step 1's encryption check, **F2** (or **Fn+F2**) → **More Settings → Boot → UEFI → Windows Boot Manager first → Save and Exit**; require unattended no-USB Windows and record B.
+Windows stays default after step 5 (first set during step 4's round trip). **F12** (or **Fn+F12**) picks the recorded Linux entry for one start; its label may remain Fedora/Bazzite. Never make Linux first to avoid this.
+
+Before changing boot order, stop on these anomalies:
+
+- **Secure Boot changed** from the recorded off state → **STOP → [Help](INSTALL-REFERENCE.md#help)**; after resolution, [Return to step 8](#8-everyday-boot-and-recovery).
+- **Windows recovery prompt** instead of normal Windows startup → **STOP → [Help](INSTALL-REFERENCE.md#help)**; after resolution, [Return to step 8](#8-everyday-boot-and-recovery). Do not use repair/reset options.
+- **Missing internal boot entry while its SSD is attached** (Windows Boot Manager or the recorded Linux entry) → **STOP → [Help](INSTALL-REFERENCE.md#help)**; after resolution, [Return to step 8](#8-everyday-boot-and-recovery). An unplugged USB entry disappearing is different.
+
+If order changes: repeat step 1's encryption check, **F2** (or **Fn+F2**) → **More Settings → Boot → UEFI → Windows Boot Manager first → Save and Exit**; require unattended no-USB Windows and record B.
 
 Tools stick: insert only after Linux is up and you are signed in; export → SAFE TO REMOVE → unplug before every shutdown/restart. If forgotten at power-on, do not select it; unplug and continue. Text over prompt → Enter. Backup stock keeps **German**, even after a later AresOS layout change.
 
@@ -190,7 +198,7 @@ Later work is outside this installation path: [layout trial](INSTALL-PROCEDURES.
 
 - [ ] In Windows or on your phone, sign in to GitHub → profile picture → **Settings → Developer settings → Personal access tokens → Tokens (classic)** → **Delete** to the right of the dedicated installation token (identify by the private note/expiry). Complete GitHub's confirmation if shown. Require that token to disappear from the list. Labels checked **2026-10-26** in [GitHub's current documentation](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#deleting-a-personal-access-token). Revoke the installation token even if the SSD is inaccessible. If no token was ever issued/used, record that instead; uncertainty → help.
 - [ ] Record **revoked**, date/time and token note, never the secret. Local deletion is optional; this route uses no deletion command. Partition clearing/removal does not retire credentials.
-- [ ] **Owner revocation check:** the [physical retirement gate](INSTALL-STATUS.md#current-gates) requires fresh authentication/private pull with the retired disposable token to fail, while retained deployments still boot offline. Existing `login` requires prepared stock; it cannot cover broken Linux or an already-switched machine. Have the maintainer supervise that gate on disposable credentials; do not return to authentication/switching here or claim list disappearance proves the negative test.
+- [ ] **Owner revocation check:** the [physical retirement gate](INSTALL-STATUS.md#current-gates) requires fresh authentication/private pull with the retired disposable token to fail, while retained deployments still boot offline. The existing login helper requires prepared stock; it cannot cover broken Linux or an already-switched machine. Have the maintainer supervise that gate on disposable credentials; do not return to authentication/switching here or claim list disappearance proves the negative test.
 - [ ] Default undo leaves Crucial installed. Direct **F12** (or **Fn+F12**) → Windows, both USBs absent → [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage) **before-undo**. Require original Micron EFI/Microsoft target. **Return to step 9** here. Windows first via step 8's setup path, restart without keys/USB → require Windows → repeat B **after-undo**. Copy records off-device; leave Linux updaters paused. No case opening/erase needed.
 
 **Record:** revocation/no-token result, outstanding supervised test if not performed, before/after-undo PASS and unattended boot. **STOP → go to [Help](INSTALL-REFERENCE.md#help)** if GitHub retirement or Windows proof fails; return to step 9 after resolution, remove/erase nothing. If explicitly choosing physical removal/reuse later, complete the [separate procedure](INSTALL-PROCEDURES.md#optional-removal-or-erasure), then **Return to step 9** to confirm Windows again. New installation trial: [Return to step 1](#1-backups-recovery-and-windows-preparation).

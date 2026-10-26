@@ -46,7 +46,23 @@ Any second login/typing error → return to original **open tty3 root session**,
 sudo /var/lib/ares/at layout revert
 ```
 
-Require `PASS layout revert` and old console/X11 settings restored. If `begin` reports partial console/X11 failure with old settings restored, use this same revert/proof route; retain the first session. Log tty4 out completely, then fresh tty4 `ares-recovery` password login in the **old** layout → exact `layout proof` command above, password sudo and prompted text → logout → original tty3 `layout finish`. Missing original session or failed restoration → **STOP → [Help](INSTALL-REFERENCE.md#help)**, no reboot; password symptom is on the [card](EMERGENCY.md#password-not-accepted).
+Require `PASS layout revert` and old console/X11 settings restored. If begin reports partial console/X11 failure with old settings restored, use this same revert/proof route; retain the first session. After PASS revert, continue to [fresh-login proof and finish](#layout-recovery-proof). Missing original session or failed restoration → **STOP → [Help](INSTALL-REFERENCE.md#help)**, no restart; password symptom is on the [card](EMERGENCY.md#password-not-accepted).
+
+### Layout recovery proof
+
+**On AresOS after PASS revert:** keep original tty3 root open. Log tty4 out completely; make a **fresh tty4 ares-recovery password login using the old layout**, then:
+
+```bash
+sudo -k; sudo /var/lib/ares/at layout proof
+```
+
+Enter the unchanged password for sudo and physically type `yz-/!ü` when prompted; require `PASS layout proof`. Log tty4 out to **login:**. Return to original tty3 root with **Ctrl+Alt+F3 (Ctrl = Strg)** or **Ctrl+Alt+Fn+F3 (Ctrl = Strg)**:
+
+```bash
+sudo /var/lib/ares/at layout finish
+```
+
+Require `PASS layout finish` and refreshed title. Only after both PASS results, [continue to layout completion](#layout-completion), then Return to step 8. Any failure → **STOP → [Help](INSTALL-REFERENCE.md#help)** with the original session retained; no restart, stock-proof detour or password change.
 
 ### Layout completion
 
@@ -57,7 +73,7 @@ sudo /var/lib/ares/at title
 sudo /var/lib/ares/at reboot
 ```
 
-Require both PASS; save title/state/time and invalidate earlier titles. Sticks absent → **F12** (or **Fn+F12**) → Linux → fresh recovery login using new layout → `check`/physical console/password sudo and foot typing as step 7. Restore German using the same fresh-second-login sequence and reboot **before the rollback trial**. Keep stock German; never edit the frozen backup to follow AresOS. Export/unplug before restarting.
+Require `PASS title` and `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear); save title/state/time and invalidate earlier titles before the restart. Sticks absent → **F12** (or **Fn+F12**) → Linux → fresh recovery login using the completed layout → `sudo /var/lib/ares/at check` (expect `PASS check`), physical console/password sudo and foot typing. For the rollback trial restore German using the same fresh-second-login proof/finish sequence; then use `sudo /var/lib/ares/at title` (expect `PASS title`) and `sudo /var/lib/ares/at reboot` (expect `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`) **before the rollback trial**. Keep stock German; never edit the frozen backup to follow AresOS. Export/unplug before restarting.
 
 **Record:** old/new maps, both fresh password/text proofs, finish/revert result, title and post-boot check. **STOP → [Help](INSTALL-REFERENCE.md#help)**. **Return to step 8:** [everyday use](INSTALL.md#8-everyday-boot-and-recovery).
 
@@ -84,7 +100,7 @@ Require `PASS rollback`, `PASS title`: idle before queueing, exact saved stock c
 sudo /var/lib/ares/at reboot
 ```
 
-Require PASS; all sticks absent → **F12** (or **Fn+F12**) → Linux → let stock start, no GRUB selection. Rendered greeter → `ares-recovery` **installer German** → fresh tty3 password login/`sudo -i`:
+Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear); all sticks absent → **F12** (or **Fn+F12**) → Linux → let stock start, no GRUB selection. Rendered greeter → `ares-recovery` **installer German** → fresh tty3 password login/`sudo -i`:
 
 ```bash
 sudo /var/lib/ares/at check
@@ -108,9 +124,13 @@ Require `PASS keep-stock`, `PASS title`, exact saved corrected identity/pin, no 
 sudo /var/lib/ares/at reboot
 ```
 
-All sticks absent → **F12** (or **Fn+F12**) → Linux; **no GRUB selection**. Require stock again (second Linux default boot), rendered greeter → `ares-recovery` installer German → fresh tty3 password login → `sudo -i` → `check` and `title`, both PASS. Prove physical typing/password sudo as step 5. Compare Windows record B afterward with all sticks absent. Leave stock updaters paused until the owner chooses stock permanently and that second default boot passes. Permanent abandonment of AresOS still requires step 9 token retirement.
+Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear). All sticks absent → **F12** (or **Fn+F12**) → Linux; **no GRUB selection**. Require stock again (second Linux default boot), rendered greeter → `ares-recovery` installer German → fresh tty3 password login → `sudo -i` → `sudo /var/lib/ares/at check` and `sudo /var/lib/ares/at title`, expecting `PASS check` and `PASS title`. Prove physical typing/password sudo as step 5. Leave stock updaters paused until the owner chooses stock permanently and that second default boot passes.
 
-To exit root: `exit`, `sudo -k`, `exit`; wait for **login:** before desktop-return keys in the reference. Export only after sign-in, require SAFE TO REMOVE, unplug before restarting. **Record:** persistent selection/second default boot/title and Windows PASS. **STOP → [Help](INSTALL-REFERENCE.md#help)**. **Return to step 8:** [everyday use](INSTALL.md#8-everyday-boot-and-recovery).
+For diagnostics, insert ARESTOOLS only after Linux sign-in; `sudo /var/lib/ares/at export` must print `PASS export` and **SAFE TO REMOVE ARESTOOLS**. Unplug. To compare Windows afterward, use `sudo /var/lib/ares/at reboot`, expecting `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear); press nothing for Windows. Run [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), stage **after-aresos**, but write **calling procedure: keep-stock** beside it. The stage is a filename label; the selected Linux default is stock. If C/D is separately required while this caller is retained, keep that same caller for its return too. After records, [return to keep-stock completion](#keep-stock-records-complete).
+
+### Keep-stock records complete
+
+Require the Windows-unchanged PASS and the recorded keep-stock second Linux default boot. Keep diagnostics private. **Record:** persistent stock selection/second default boot/title and Windows PASS. **STOP → [Help](INSTALL-REFERENCE.md#help)**; resume at this completion checkpoint after resolution. **Return to step 8:** [everyday use](INSTALL.md#8-everyday-boot-and-recovery). Permanent abandonment still requires [step 9 token retirement](INSTALL.md#9-retire-access-and-return-to-windows).
 
 ## Optional removal or erasure
 

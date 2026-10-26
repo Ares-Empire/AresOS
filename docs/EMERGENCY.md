@@ -24,7 +24,7 @@ Every deployment reorder invalidates old titles, even before reboot. Both entrie
 
 **Action:** during a layout trial, return to the original open tty3 administrator session with **Ctrl+Alt+F3 (Ctrl = Strg)** or **Ctrl+Alt+Fn+F3 (Ctrl = Strg)** and [revert the trial](INSTALL-PROCEDURES.md#layout-revert).
 Otherwise use **F12** (or **Fn+F12**) → Windows → help. AresOS uses its current layout; backup stock always uses the installer’s German layout. Do not change the password to guess your way through.
-**STOP → go to [Help](INSTALL-REFERENCE.md#help)** if the original session is unavailable. After resolution, return to [step 5](INSTALL.md#5-prove-windows-and-corrected-stock).
+**After PASS revert on AresOS:** [complete fresh-login proof and finish](INSTALL-PROCEDURES.md#layout-recovery-proof), then [layout completion](INSTALL-PROCEDURES.md#layout-completion) and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery). **STOP → go to [Help](INSTALL-REFERENCE.md#help)** if the original session is unavailable or proof fails; keep the layout trial pending until help restores that recovery route. Do not resume the initial stock checks for this layout recovery.
 
 ## Text covers the prompt after stick hotplug or removal
 
@@ -40,8 +40,8 @@ Plug ARESTOOLS in again only after Linux is up and you are signed in. Export/unm
 
 ## Battery warning sign
 
-**Action:** stop before touching connectors or the SSD. Keep AC disconnected; do not press, handle or remove a damaged battery, reconnect it, charge or power on.
-External bulging, swelling, cracks, dents, leakage, unusual heat/smell or doubt requires Lenovo or a qualified repairer. Inspect externally before opening and immediately after lifting the cover.
+**Action:** stop using the laptop. If running or charging, disconnect the **external charger only if safe without touching a hot or swollen case**. Move it away from anything flammable only if safe; otherwise keep clear and move nearby flammable items away if safe.
+**Already open, battery disconnected:** leave battery and internal connectors untouched; keep charger/battery disconnected. Do not press, handle, remove, reconnect or charge a damaged battery, or power on. Bulging, swelling, cracks, dents, leakage, unusual heat/smell or doubt requires Lenovo or a qualified repairer; no further use or fitting until service clearance. [Lenovo safety source used](INSTALL-REFERENCE.md#battery-safety-sources).
 **STOP → go to Lenovo/qualified repairer, then [Help](INSTALL-REFERENCE.md#help)**. Return to [step 3](INSTALL.md#3-fit-and-identify-both-drives) only after repair clearance.
 
 ## Windows missing or not starting

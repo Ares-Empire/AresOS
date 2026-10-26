@@ -8,6 +8,32 @@ import test_owner_tools as common
 import test_owner_walk as walk
 
 ROOT = common.ROOT
+OWNER_PAGES = ('INSTALL.md', 'INSTALL-PROCEDURES.md', 'INSTALL-REFERENCE.md',
+               'INSTALL-RECORD.md', 'EMERGENCY.md', 'INSTALL-STATUS.md')
+
+
+def check_inline_commands(guide, commands):
+    """Inline code naming an owner invocation must be the complete command.
+
+    Descriptive tool names stay in ordinary prose; PASS/output snippets and
+    unrelated shell commands are not invocations. This conservative convention
+    lets the check catch shorthand without guessing the author's intent.
+    """
+    allowed = set(commands.values())
+    verbs = set(commands) | {'layout'}
+    fenced = False
+    for number, line in enumerate(guide.splitlines(), 1):
+        if line.lstrip().startswith('```'):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        for code in re.findall(r'(?<!`)`([^`]+)`(?!`)', line):
+            words = code.split()
+            first = words[1] if len(words) > 1 and words[0] == 'sudo' else words[0]
+            if '/var/lib/ares/at' in code or '/mnt/ares-tools/at' in code or first in verbs:
+                if code not in allowed:
+                    raise AssertionError(f'Noncanonical inline owner command at line {number}: {code}')
 
 
 class EqualityTest(unittest.TestCase):
@@ -47,8 +73,30 @@ class EqualityTest(unittest.TestCase):
         allowed=set(commands.values())
         for block in re.findall(r'```bash\n(.*?)\n```',guide,re.S):
             for line in block.splitlines(): self.assertIn(line, allowed)
+        for name in OWNER_PAGES:
+            check_inline_commands((ROOT/'docs'/name).read_text(), commands)
         for name,source in common.bundle.PAYLOAD.items():
             self.assertEqual((ROOT/'os/owner-tools/payload'/name).read_bytes(), (ROOT/source).read_bytes())
+
+    def test_bare_inline_reboot_mutation_is_rejected(self):
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        guide = (ROOT/'docs/INSTALL.md').read_text()
+        correct = '`' + commands['reboot'] + '`'
+        self.assertIn(correct, guide)
+        mutated = guide.replace(correct, '`reboot`', 1)
+        with self.assertRaisesRegex(AssertionError, 'Noncanonical inline owner command.*reboot'):
+            check_inline_commands(mutated, commands)
+
+    def test_inline_equality_covers_all_owner_verbs_and_rejects_extra_arguments(self):
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        for name, command in commands.items():
+            with self.subTest(command=name):
+                check_inline_commands('Run `' + command + '`.', commands)
+                with self.assertRaisesRegex(AssertionError, 'Noncanonical inline owner command'):
+                    check_inline_commands('Run `' + command + ' extra`.', commands)
+                shorthand = 'layout proof' if name == 'layout-proof' else name
+                with self.assertRaisesRegex(AssertionError, 'Noncanonical inline owner command'):
+                    check_inline_commands('Then `' + shorthand + '`.', commands)
 
     def test_privileged_tool_refusals_never_offer_an_alternate_target(self):
         script=(ROOT/'os/owner-tools/owner.py').read_text()

@@ -61,3 +61,14 @@ Checked **2026-10-22**; archived fallback retains its earlier dates. Hardware su
 [B4]: https://docs.bazzite.gg/img/live-installer-partitions.png
 [F1]: https://github.com/FedoraQt/MediaWriter
 [G1]: https://gparted.org/display-doc.php?name=help-manual
+
+## 15b battery source review
+
+Checked **2026-10-26** using the actual LOQ 15/16 [Read this first](https://download.lenovo.com/pccbbs/pubs/loq_15_16/html_en/EN/read_first.html) → [Generic Safety and Compliance Notices](https://download.lenovo.com/pccbbs/pubs/safety_compliance_notices/generic_notices_class_b_en.pdf) chain, rather than the T490 page. Downloaded generic notices: sixteenth edition, August 2026. Read printed pp.3–4 (PDF pp.7–8), immediate action/service; pp.8–9 (PDF pp.12–13), battery/built-in battery; p.11 (PDF p.15), heat/flammables. Also read the [LOQ HMM](https://download.lenovo.com/consumer/mobiles_pub/lenovo_loq_hmm.pdf#page=9) printed p.3/PDF p.9 powered-off/unplugged inspection and cracked/bulging-battery check. The guide supplies safe-access/movement conditions and retains the no-handling/service-clearance rule as conservative project instructions. The archived T490 citation above is superseded for the revised battery action.
+
+Full-file download receipts (hash first); PDFs stay in ignored local scratch:
+
+| SHA-256 | Source |
+| --- | --- |
+| `5d802f895529f1283e1668f1f804023dc11f591b9a7b2f976f337f5b6f13e61e` | lenovo_loq_hmm.pdf |
+| `51c5c8b33733c9b00e7e2d19188151b6f5023c871c763c867da78f2105e67a05` | generic_notices_class_b_en.pdf |
