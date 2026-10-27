@@ -1,0 +1,60 @@
+{
+  "files": [
+    {
+      "sha256": "23af8aea3083039ef4570c380d7f9ee21f7bd6d4b08d6458b3dd32d65cb94ed4",
+      "path": "os/manifest/ci/14/14zc-local-stop/cache-reclaim.json"
+    },
+    {
+      "sha256": "0e3014d5a6c7b6c653c88271db86fcc34ddbe0ff57b7aad1efb5981ccae5ce32",
+      "path": "os/manifest/ci/14/14zc-local-stop/diagnosis.json"
+    },
+    {
+      "sha256": "98a431409b6ba90c3874c2fc15ef05c388d447d5734f221fbfa56bc3932b787b",
+      "path": "os/manifest/ci/14/14zc-local-stop/host-walk-tests.txt"
+    },
+    {
+      "sha256": "fd43c89b169319b647520ed6ff6a11626f32cf8bb7063a4be134accd006e9d0e",
+      "path": "os/manifest/ci/14/14zc-local-stop/installer-adapter.py"
+    },
+    {
+      "sha256": "d95e806be59e7101dd8900346fa09b5d145f495b6b136163fa8f0ce49bd35e56",
+      "path": "os/manifest/ci/14/14zc-local-stop/iso-download.json"
+    },
+    {
+      "sha256": "1bbdbd4f199783defe8dc091e739c934dc36e94ab0c185b0702b650018494527",
+      "path": "os/manifest/ci/14/14zc-local-stop/ledger.json"
+    },
+    {
+      "sha256": "09606d8cf566eba928bbcc52f4ebb3eabe392af3638eceb905e6593d7e1ee823",
+      "path": "os/manifest/ci/14/14zc-local-stop/official-CHECKSUM.txt"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": "os/manifest/ci/14/14zc-local-stop/offline-source-replay.txt"
+    },
+    {
+      "sha256": "45fc8545e6a0826925abee2659d94b11c05de9c1b879b93cb787bc92b1ca76e2",
+      "path": "os/manifest/ci/14/14zc-local-stop/read-only-replay.py"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": "os/manifest/ci/14/14zc-local-stop/release-replay.txt"
+    },
+    {
+      "sha256": "52711bce559f71a89cfffa8862e7102b362ff28565eb96f3248702125b386d64",
+      "path": "os/manifest/ci/14/14zc-local-stop/strict-checks.json"
+    },
+    {
+      "sha256": "f69bd80e2a17bbfb88ded089fe69a79e5bd27248161952c758415eb77ac73d27",
+      "path": "os/manifest/ci/14/14zc-local-stop/strict-checks.py"
+    },
+    {
+      "sha256": "e5337a3890b21931f04e460c3276b7e5f47b50dfdbd1ad6de3805d43b95e29e6",
+      "path": "os/manifest/ci/14/14zc-local-stop/verification.json"
+    },
+    {
+      "sha256": "448f65fbcfd076d50d81a122a86f95d69fb8a6625a14dcd2d15cde41440912ce",
+      "path": "os/manifest/ci/14/14zc-local-stop/whole-suite.txt"
+    }
+  ]
+}

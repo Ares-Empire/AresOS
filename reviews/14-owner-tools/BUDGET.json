@@ -1,14 +1,14 @@
 {
   "allowance": "14",
   "start": "2026-10-25T22:01:22Z",
-  "cap": 800,
+  "cap": 1100,
   "full_cap": 0,
   "full_dispatched": 0,
   "part_b_cap": 0,
   "part_b_dispatched": 0,
   "dispatch_caps": {
-    "probe": 14,
-    "owner-tools": 4
+    "probe": 16,
+    "owner-tools": 6
   },
   "dispatch_counts": {
     "probe": 14,
@@ -679,65 +679,61 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-27T20:25:39.733431+00:00",
-  "snapshot_kind": "14za closed STOP after qualification4 failed; no push/rerun",
+  "checked_at": "2026-10-27T21:47:37.272504+00:00",
+  "snapshot_kind": "14zc local ISO checkpoint STOP before any push/dispatch",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-27T20:25:38.264972+00:00",
-    "response_sha256": "3cfb640255e708a848a6218215dd3d7caded878e333c508e757f28fde9662b93",
+    "checked_at": "2026-10-27T21:47:35.743171+00:00",
+    "response_sha256": "1de1cf265e2bfa9133ada120f986300e27b7b3f07b8edf9566679330c8f70e74",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 2267.0,
+        "grossQuantity": 2273.0,
         "discountQuantity": 2000.0,
-        "netQuantity": 267.0,
-        "grossAmount": 13.602,
+        "netQuantity": 273.0,
+        "grossAmount": 13.638,
         "discountAmount": 12.0,
-        "netAmount": 1.602,
+        "netAmount": 1.638,
         "pricePerUnit": 0.006
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
         "grossQuantity": 13.688368049,
-        "discountQuantity": 13.919053885,
+        "discountQuantity": 14.213174922,
         "netQuantity": 0.0,
         "grossAmount": 0.004599512,
-        "discountAmount": 0.004677026,
+        "discountAmount": 0.004775855,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 2267,
+    "used_minutes": 2273,
     "included_minutes": 2000,
     "included_minutes_left": 0,
     "paid_overflow": {
       "source": "organizations/Ares-Empire/settings/billing/budgets",
-      "response_sha256": "f898385e447fa52772d6759b30583ee5527b3e8044dd49b2061d959a996d5b37",
+      "response_sha256": "6a2d43501b82615f494b16bfa80da556ff19b43730a2885fcbe0c0a15ccf104b",
       "budget_product_sku": "actions",
-      "budget_amount": 3,
+      "budget_amount": 6,
       "prevent_further_usage": true,
       "budget_scope": "organization",
       "budget_entity_name": "Ares-Empire",
       "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
       "runner_sku": "actions_linux",
       "pricePerUnit": 0.006,
-      "reported_net_amount": 1.602,
-      "available_budget": 1.398,
-      "paid_minutes": 233,
-      "decision": "briefs/14w-retest-3usd.md",
+      "reported_net_amount": 1.638,
+      "available_budget": 4.362,
+      "paid_minutes": 727,
+      "decision": "briefs/14zc-six-dollar-round.md",
       "exception_month": "2026-10"
     },
-    "remaining_minutes": 233,
+    "remaining_minutes": 727,
     "reserved_minutes": 0,
-    "after_reservation": 233,
+    "after_reservation": 727,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
-  },
-  "current_bundle": {
-    "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
-    "path": "os/owner-tools/payload/SHA256.json"
   },
   "local_privacy_scans": [
     {
@@ -1164,12 +1160,14 @@
       }
     }
   ],
-  "acceptance_met": false,
-  "closing_reservation": 0,
-  "reserve": 0,
-  "restore_condition_met": false,
+  "current_bundle": {
+    "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
+    "path": "os/owner-tools/payload/SHA256.json"
+  },
+  "owner_decision": "14zc approved $6 prevent true; cap1100/probe16/owner-tools6; deduct net spend",
   "pushes_this_followup": 0,
-  "post_attempts": 1,
-  "watcher_confirmation_reads": 2,
-  "stop_reason": "private-owner-login result export never produced serial completion; outcome unknown"
+  "dispatches_this_followup": 0,
+  "reruns_this_followup": 0,
+  "acceptance_met": false,
+  "pr13_ready": false
 }

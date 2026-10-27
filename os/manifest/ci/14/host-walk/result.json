@@ -130,11 +130,11 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "5a6d990e160deaa9010072c947bf260e265bbe8249d6e09ec25b19d9a6c3ae83",
+      "sha256": "196818ba6bacfe7517f6014547161f95df5216dd1522bf93dd900e9da61adcd6",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "aa8bff0f37f29ea8c7fbcc2eee2f9ed65dc8aabbb9b4cb0d2f7e1995c5cc90c8",
+      "sha256": "387996b29eff83517480eef76603f35a7b371fc34044369dfca3b69346c1bebb",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
@@ -386,7 +386,7 @@
       "path": "os/tests/test_loop_nodes.py"
     },
     {
-      "sha256": "85bb623a2e93b79f9df4089a21f705222e085fcdf96bb7e34ebfc61ee8013587",
+      "sha256": "4725a97f0c938ab0914916184a6b6868424a5049f32aba32e03add7ea6005613",
       "path": "os/tests/test_organization_budget.py"
     },
     {
@@ -438,7 +438,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "23f1f741459307957673772b47ffb6dc58b1820b4fb74bbb58c4f5dbf29fdd4b",
+      "sha256": "08be2b47c010ac2acc400f0ff0bda25c48e2daf377680fcb79760437146478af",
       "path": "os/tests/test_owner_guard.py"
     },
     {

@@ -1,10 +1,104 @@
 # 14: checked owner tools
 
-**Current 14zb: transport fixed and checked locally; VM acceptance remains STOP.**
-No pull, push, dispatch, rerun or merge in this follow-up. Remote qualification
-head remains `2fb695cdb419d67b51a76d91727668b33df82ecd`. PR #13 stays draft /
-NOT RELEASED; the owner decides the next budget and allowance. The earlier
-qualification's registry-login outcome remains unknown.
+**Current 14zc: STOP before push — local ISO replay checkpoint rename denied.**
+No pull, push, Actions dispatch, replay retry or merge. Probe15 and qualification5
+remain unspent. Remote stays at `2fb695cdb419d67b51a76d91727668b33df82ecd`;
+14zb and this follow-up remain local. PR #13 stays draft / NOT RELEASED.
+
+## 14zc — $6 guard updated; Windows replay STOP
+
+**Done:** package14 alone now has cap1100, probe16 and owner-tools6. October
+reserve0 and closing0 are unchanged. The guard requires an exact $6 organization
+Actions budget with prevention true, subtracts all reported net Actions spend
+and floors the remainder at the API's runner price. Regression boundaries now
+accept the six-dollar decision, reject other amounts/prevention changes, refuse
+probe17 / qualification7, and preserve the package13/11 settings exactly.
+No owner tool, image, frozen release, credential, scope or workflow change.
+
+The unchanged fixed watcher passed7 local tests. The prepared local controller
+passed4 tests with every external boundary stubbed, including delayed direct
+identity confirmation, one POST per mode, existing-attempt refusal, stale/wrong
+budget refusal and forbidden-mode refusal. No real POST was sent.
+
+**STOP / exported diagnostics:** the actual unchanged `installer_inspect.main`
+replay failed at `installer_inspect.py:137 -> checkpoint():86 -> Path.replace`:
+`PermissionError [WinError 5] Zugriff verweigert`, replacing
+`iso-download.json.tmp` with `iso-download.json` in the local evidence directory.
+It had read **3,422,552,064 of9,068,650,496 bytes** from the retained original ISO
+through the existing file-response adapter, in one simulated HTTP200 response.
+The fresh official HTTPS checksum equals the exact pin. The partial digest is
+not a complete-image verification or an unexplained image difference. Full
+verification and source extraction were not reached in this replay.
+
+The inspector's own final checkpoint saved `status=stopped`,
+`error_type=PermissionError`, the partial digest/count and attempt details. No
+second replay attempt, resume, Windows ACL/antivirus/setting change, native
+installer change or substitute success flag was made. The underlying cause of
+Windows denying this particular replace is unproved; this does not establish
+that Linux CI's atomic rename fails. The14e rule requires all non-CI-only replay
+steps to pass, and14zc says any stop is reported with no rerun. Therefore the
+single pre-dispatch push authorization was not used, and no probe was sent.
+
+Evidence: [diagnosis and traceback locations](../../os/manifest/ci/14/14zc-local-stop/diagnosis.json),
+[inspector's STOP record](../../os/manifest/ci/14/14zc-local-stop/iso-download.json),
+[verification/source bindings](../../os/manifest/ci/14/14zc-local-stop/verification.json),
+[fresh complete ledger and billing](../../os/manifest/ci/14/14zc-local-stop/ledger.json).
+The partial ISO remains ignored/private. Only metadata, public checksum and
+source/log provenance are committed; no credential or raw boot console.
+
+To make room, four old ordinary duplicate ISO caches were individually
+validated for exact size and pinned SHA256, then unlinked only inside this
+worktree. I started replay while reclamation was finishing, so these briefly
+overlapped; the inspector's own25GiB free-space check passed. No deleted cache
+was the original ISO or a current replay path. The original and all extracted
+evidence are preserved. Reclamation recorded54,753,402,880 free bytes at its
+completion, not before replay. Whether the overlap contributed to the rename
+denial is unproved. The hash-before-path reclaim manifest is retained.
+No other worktree or real laptop disk/boot state touched.
+
+**Verified / already-running checks collected after STOP:**
+
+- `python3 -m unittest discover -s os/tests -v`:422 tests in431.353s,
+  **414 distinct passes**,2 failures/9 errors from exactly the same eight
+  native-only host limits,0 skips. Three need unavailable Pillow, four encounter
+  the explicit no-privilege sudo refusal shim, one cannot prove0600 on DrvFS.
+  Exact IDs and all output are retained; no test weakened and no package or
+  privileged operation installed/executed locally. No green native-suite claim.
+- `python3 -B reviews/14-owner-tools/walk-host.py`:203 passed in210.310s,
+  no stick across reboot, no VM started. Updated source bindings are committed.
+- Strict first replay:283 composed guest/old-serial wrappers, all large-script
+  staging controls,258 embedded Python,12 shell files,46 Python files and the
+  native workflow shell pass; parse stderr/warnings remain refusals.
+- Actual read-only `verify_release.py 40154642447` and all53 retained offline
+  source checks passed. The14f package/registry/digest/pull/signature checks stay
+  CI-only and fail-closed. They were not run or represented as local successes.
+- Pinned gitleaks8.21.2 full history and pending files:0 before local commit;
+  `git diff --check` passes. No ignore/rule/privacy-workflow change. Log viewers
+  use LF and replace absolute workspace paths with `<WORKTREE>`; original log
+  hashes are recorded. Gradle/client tests were not run for this OS guard-only
+  follow-up; no Gradle daemon started.
+
+**Closed budget:** fresh read-only95/95 history,647/1100 minutes consumed,
+reservation0; probes14/16, qualifications4/6. Actual Actions budget is$6 with
+prevention true; net spend$1.638, API price$0.006/minute, included minutes left0,
+**727 paid minutes available** at the recorded billing time (billing can lag).
+No budget mutation. This round had0 pushes,0 dispatches,0 reruns,0 image or
+publication attempts. No exact-new-head hosted privacy or VM result is claimed.
+
+**Not verified:** the failed ISO replay and native/VM qualification of14zb;
+registry login outcome and later package14 verify/switch/AresOS/layout/rollback/
+keep-stock acceptance remain unproved. INSTALL, EMERGENCY and the release gate
+stay NOT RELEASED. Firmware/BootNext/protected-disk audits, all frozen runtime
+and release paths, owner payload/fingerprint and package13 remain unchanged.
+Acceptance is unmet, so closing12/reserve150 restoration and PR-ready transition
+were not performed. No further Actions work is running or planned in this round;
+the owner can set the budget back to$0.
+
+**JUDGMENT-CALL:** no new product/owner choice. **PLAN-GAP:** the actual Linux
+inspector's checkpoint replay on Windows encountered an OS-level rename denial;
+no assertion was bypassed to proceed. **Open questions:** what held/denied that
+local checkpoint replacement and what replay adaptation the integrator permits.
+
 
 ## 14zb — Bounded command staging and hidden-input resynchronization
 

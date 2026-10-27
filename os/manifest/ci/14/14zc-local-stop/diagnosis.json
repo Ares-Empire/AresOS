@@ -1,0 +1,53 @@
+{
+  "status": "STOP before push/dispatch; no replay retry",
+  "brief": "briefs/14zc-six-dollar-round.md",
+  "exception": "PermissionError",
+  "winerror": 5,
+  "message": "Zugriff verweigert; atomic Path.replace of ISO checkpoint denied by Windows",
+  "source": "iso-download.json.tmp",
+  "destination": "iso-download.json",
+  "traceback_frames": [
+    {
+      "path": ".work/14/14zc-installer-replay.py",
+      "line": 66,
+      "function": "module.main"
+    },
+    {
+      "path": "os/ci/installer_inspect.py",
+      "line": 177,
+      "function": "download_iso"
+    },
+    {
+      "path": "os/ci/installer_inspect.py",
+      "line": 137,
+      "function": "checkpoint"
+    },
+    {
+      "path": "os/ci/installer_inspect.py",
+      "line": 86,
+      "function": "temporary.replace"
+    },
+    {
+      "path": "<python>/pathlib/_local.py",
+      "line": 780,
+      "function": "os.replace"
+    }
+  ],
+  "observed_attempt": 1,
+  "bytes": 3422552064,
+  "pinned_bytes": 9068650496,
+  "official_checksum_matches_pin": true,
+  "partial_digest_is_not_a_complete_iso_check": true,
+  "iso_source": "retained original ISO; all source bytes read by actual inspector, no HTTP ISO download",
+  "final_checkpoint_saved_stop": true,
+  "underlying_windows_denial_cause": "not established; no antivirus/ACL/setting change or retry",
+  "native_linux_checkpoint_failure_proved": false,
+  "pushes": 0,
+  "dispatches": 0,
+  "reruns": 0,
+  "original_iso_preserved": true,
+  "extracted_evidence_preserved": true,
+  "cleanup_and_replay_briefly_overlapped": true,
+  "deleted_cache_paths_distinct_from_original_and_current_replay": true,
+  "overlap_caused_rename_denial": "not established"
+}
