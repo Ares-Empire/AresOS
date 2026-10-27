@@ -1,0 +1,22 @@
+{
+  "status": "STOP: private-login result export timed out; login outcome unknown",
+  "head": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+  "qualification4": 40566496658,
+  "qualification_conclusion": "failure",
+  "probe": 40560134727,
+  "probe_conclusion": "success",
+  "post_attempts": 1,
+  "confirmation_reads": 2,
+  "pushes": 0,
+  "reruns": 0,
+  "acceptance_met": false,
+  "pr13_ready": false,
+  "runtime_unchanged": true,
+  "bundle": {
+    "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
+    "path": "os/owner-tools/payload/SHA256.json"
+  },
+  "artifact_unknown_findings": 0,
+  "raw_artifacts_committed": false,
+  "owner_secret_used": false
+}

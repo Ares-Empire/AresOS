@@ -1,0 +1,11 @@
+{
+  "status": "read-only reconstruction; no execution and no runtime fix",
+  "records_before": 14,
+  "framed_bytes": 2652,
+  "wire_bytes": 3633,
+  "max_wire_line_bytes": 1024,
+  "wire_lines": 6,
+  "incomplete_transcript_bytes": 116,
+  "transcript_only_continuation_prompts": false,
+  "cause_established": false
+}

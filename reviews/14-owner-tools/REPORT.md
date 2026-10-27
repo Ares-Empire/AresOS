@@ -1,10 +1,134 @@
 # 14: checked owner tools
 
-**Current 14z: STOP — local post-dispatch confirmation failed; probe 14 passed.**
-One fast-forward push reached `2fb695cdb419d67b51a76d91727668b33df82ecd`. One probe POST; no rerun, extra
-push or qualification 4 dispatch. This STOP report is local only. PR #13 remains
-draft / NOT RELEASED; acceptance is unmet. No merge, image build/publication,
-audit widening, credential change or real laptop operation. This run is over.
+**Current 14za: STOP — qualification 4 failed while exporting the login result.**
+No push in this follow-up. The remote branch stays at `2fb695cdb419d67b51a76d91727668b33df82ecd`.
+The local watcher fix and this STOP report are committed locally only. PR #13
+remains draft / NOT RELEASED. No rerun, runtime/owner-script fix, audit widening,
+image build/publication, credential/scope change, real laptop operation or merge.
+
+## 14za — Watcher fixed; qualification 4 login-result timeout
+
+**Done / watcher diagnosis:** stable filtering and paging were ruled out: the
+old predicate matches the retained/current probe, complete history 94/94 included
+it, and direct metadata verified the integrator's exact identity. The defect was
+requiring the input-specific display title from a newly created list row within
+four reads/sleeps (8s plus request time), while ignoring the canonical run URL
+already returned by the successful POST. Original per-read fields were not
+saved, so their exact transient values cannot be recovered. Qualification 4
+then reproduced the startup behavior directly: first GET had `OS image`, next
+GET had `Two-disk rehearsal (owner-tools)` on the same ID/head/branch/attempt.
+This confirms the asynchronous display-title assumption; no claim is made about
+an unretained individual probe response.
+
+The local watcher now parses exactly one canonical returned URL and performs at
+most 6 direct identity GETs, with 1/2/4/8/16s metadata backoff and every observation
+saved. Exact ID/head/branch/event/title/path/attempt must match. No list fallback,
+ambiguous URL acceptance, auth-error multiplication or repeat POST. The complete
+ledger pagination/total_count guard is unchanged. Seven watcher tests and two
+fully stubbed controller tests passed before dispatch. A later test-isolation
+fix made the controller tests repeatable after the real nonce exists and added
+an explicit second-POST refusal: 3 controller tests passed. The exact original
+2-test source/hash/log and the repeatable 3-test version are archived separately.
+No executable watcher/controller change occurred after dispatch.
+
+Actual 14e/14f release/git/file/read-only gh replay, 53 retained offline-source/
+full-listing checks, 258 guest/258 serial strict Bash parses, 233 embedded Python,
+12 shells/45 Python/native workflow body all passed. The unchanged real inspector
+rehashed all9,068,650,496 cached ISO bytes against pin and fresh official checksum,
+with 4 localization/102 WebUI sources. Two hash-verified old duplicate ISO caches
+were removed only inside this worktree to retain the existing 25GiB scratch
+prerequisite; original ISO and all extracted evidence preserved. Four CI-only
+credential checks remained fail-closed; no owner secret or extra scope used.
+Pinned local gitleaks 8.21.2 full history 0 before dispatch. Exact pushed-head
+push/PR privacy both freshly passed all 3 steps, including executed personal terms.
+
+The fresh pre-dispatch guard showed 573+160/800, complete94/94 history, budget $3,
+prevent true, net Actions$1.584 and 76 org minutes after reservation. One POST
+created [qualification 4](https://github.com/Ares-Empire/AresOS/actions/runs/40566496658),
+probe 40560134727, head `2fb695c`, attempt 1. Qualification charged 74 ledger minutes. Fixed watcher confirmed it in 2 direct
+GETs; no push, duplicate POST, new probe or rerun. Source gate proved local HEAD's
+extra commits changed only the reviewed STOP evidence/report and 14za brief;
+all runtime/workflow/test/guide files matched the pushed qualified source.
+
+**Verified hosted:** all 400 native tests in 32.354s, 0 skips, including all 8 local
+host limits. Native loop 20 checks, 0 helper mutations, protected unchanged and
+full cleanup. Host capabilities/private manifest/signature/exact layer pull and
+credential cleanup passed. Hosted ISO pin/fresh official checksum/exact size
+passed in one HTTP200 attempt. No publication/image attempt.
+
+Actual owner `install` passed, validating the binary firmware fix on a fresh
+installed VM. `prepare` passed; its rerun had 0 operational trace mutations.
+Network came up after pause/pin: independent raw rpm-ostree, bootc and BLS JSON
+before/after are equal. Records/title/export passed, tools were removed, and the
+prepared unattended Windows roundtrip passed. Corrected stock booted; its title
+and records passed. Recovery login/password sudo and the permitted Enter resyncs
+were retained. The failure-path counter was recorded with the VM paused.
+
+**STOP:** `console.run('login','private-owner-login',...)` reached the username
+and hidden-input readiness checks. Its subsequent `capture_json` never received
+`ARESOS_CMD_DONE` and raised TimeoutError at owner_vm.py:301 / switch_vm.py:230 /
+two_disk_vm.py:193. No private-owner-login PASS or STOP diagnostic JSON was
+exported. The saved 116-byte serial incomplete transcript has continuation prompts
+and no completion. Read-only reconstruction is 2,652 framed bytes / 3,633 wire
+bytes, maximum 1,024 per line; this does not establish a cause. The diagnostic
+reader permits 1,800s while the outer command permits 900s. That mismatch is
+recorded, not fixed; it does not establish the registry-login outcome. No token
+or guest authentication file was read/recovered. Login outcome and credential
+state remain unknown. No later verify/switch/AresOS/layout/rollback/keep-stock
+claim is made. No runtime, harness or deadline was changed after the STOP.
+
+**Audits / privacy:** all available independent raw checks passed: 9 protected
+captures, 10 zero write/unmap samples, 9 raw varstores/exact BootNext replays,
+8 NVRAM rule replays and 8 complete-variable delta recomputations. Windows-default,
+protected-second, detached-device and firmware rules remain unchanged. Artifact
+12767753092 SHA256 `fa66f7e99a2dd4961f9fb4e47bea3de5bf752c01ff35a709bd3c894e62188586` matched GitHub. Findings 517
+= 507 reviewed ISO listing + 10 exact whole kernel X.509 lines; 0 unclassified.
+Native and failure logs scanned 0 before reading. No ignore/rule/privacy-workflow
+change. Each public certificate line is recorded below and with its line hash in
+privacy.json; raw logs/consoles/diagnostics remain private and ignored.
+
+| Captured boot console | Line | Public certificate name |
+|---|---:|---|
+|corrected-stock-boot-console.txt|506|Build time autogenerated kernel key|
+|corrected-stock-boot-console.txt|520|Build time autogenerated kernel key|
+|offline-first-stock-boot-console.txt|499|Build time autogenerated kernel key|
+|offline-first-stock-boot-console.txt|518|Build time autogenerated kernel key|
+|protected-second-install-boot-console.txt|491|Fedora kernel signing key|
+|protected-second-install-boot-console.txt|524|Fedora kernel signing key|
+|stock-initialization-0-boot-console.txt|500|Build time autogenerated kernel key|
+|stock-initialization-0-boot-console.txt|522|Build time autogenerated kernel key|
+|tools-stock-boot-console.txt|498|Build time autogenerated kernel key|
+|tools-stock-boot-console.txt|509|Build time autogenerated kernel key|
+
+Evidence: `os/manifest/ci/14/14za-qualification-stop/`. Local tools there are
+archived provenance, not workflow inputs. Bundle stays `a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3`. All frozen
+runtime, owner payload, guides, harness, audits, workflow and privacy paths are
+unchanged from `2fb695c`; package 13 unchanged. The watcher was local tooling only.
+
+| Closed package ledger | Value |
+|---|---:|
+|Consumed / cap|647 /800|
+|Active reservation|0|
+|Probes / cap|14 /14|
+|Qualifications / cap|4 /4|
+|Complete history|95 /95|
+|This follow-up pushes / dispatches / reruns|0 /1 /0|
+|Image / publication attempts|0 /0|
+
+Read-only billing at2026-10-27T20:25:39.733431+00:00: net Actions
+$1.602, price$0.006/minute,
+approved $3 budget with prevent_further_usage true, paid minutes
+233 (billing can lag). No budget mutation.
+Closing 0 / reserve 0 were not restored because acceptance was not met. This run is
+over; the owner can set the budget back to $0. No further dispatch is planned.
+
+**Not verified:** registry-login outcome, owner verify/switch, AresOS boot, layout
+failure/revert/success/back, rollback guard/rollback/keep-stock/final pair, and
+physical laptop/followability. Acceptance remains unmet. Guide/card/release gate
+remain NOT RELEASED. **JUDGMENT-CALL:** none beyond the explicit owner decisions.
+**PLAN-GAP:** no new product decision inferred; the observed blocker is the
+login-result timeout. **Open questions:** its underlying cause and login outcome
+are unproved; no fix or additional allowance is inferred.
 
 ## 14z — Passing probe; dispatch-confirmation STOP
 

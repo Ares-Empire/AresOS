@@ -12,11 +12,18 @@
   },
   "dispatch_counts": {
     "probe": 14,
-    "owner-tools": 3
+    "owner-tools": 4
   },
-  "consumed_minutes": 573,
+  "consumed_minutes": 647,
   "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 40566496658,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+      "conclusion": "failure",
+      "minutes": 74
+    },
     {
       "run": 40560134727,
       "title": "Two-disk rehearsal (probe)",
@@ -562,19 +569,20 @@
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 94,
-    "total_count": 94,
+    "ids_count": 95,
+    "total_count": 95,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 94,
-        "total_count": 94,
-        "ids_sha256": "75904234c52611d704d29494dd0db41c98a037cdff2cd9e2f4f2924b3838207d"
+        "returned": 95,
+        "total_count": 95,
+        "ids_sha256": "568f9d0675625138f7a100ddb8ed7334e5caec0874a9b5d7d355bea1b04c41c9"
       }
     ],
     "run_ids": [
+      40566496658,
       40560134727,
       40559090525,
       40559083001,
@@ -671,37 +679,37 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-27T18:52:18.935353+00:00",
-  "snapshot_kind": "14z closed STOP after passing probe14; qualification4 not dispatched",
+  "checked_at": "2026-10-27T20:25:39.733431+00:00",
+  "snapshot_kind": "14za closed STOP after qualification4 failed; no push/rerun",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-27T18:52:17.768091+00:00",
-    "response_sha256": "8be61720b7856fbf34d1e239164177c760ef66571504ef6a3fb2d575e5067ac8",
+    "checked_at": "2026-10-27T20:25:38.264972+00:00",
+    "response_sha256": "3cfb640255e708a848a6218215dd3d7caded878e333c508e757f28fde9662b93",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 2140.0,
+        "grossQuantity": 2267.0,
         "discountQuantity": 2000.0,
-        "netQuantity": 140.0,
-        "grossAmount": 12.84,
+        "netQuantity": 267.0,
+        "grossAmount": 13.602,
         "discountAmount": 12.0,
-        "netAmount": 0.84,
+        "netAmount": 1.602,
         "pricePerUnit": 0.006
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 13.366497404,
-        "discountQuantity": 13.366497404,
+        "grossQuantity": 13.688368049,
+        "discountQuantity": 13.919053885,
         "netQuantity": 0.0,
-        "grossAmount": 0.004491358,
-        "discountAmount": 0.004491358,
+        "grossAmount": 0.004599512,
+        "discountAmount": 0.004677026,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 2140,
+    "used_minutes": 2267,
     "included_minutes": 2000,
     "included_minutes_left": 0,
     "paid_overflow": {
@@ -715,15 +723,15 @@
       "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
       "runner_sku": "actions_linux",
       "pricePerUnit": 0.006,
-      "reported_net_amount": 0.84,
-      "available_budget": 2.16,
-      "paid_minutes": 360,
+      "reported_net_amount": 1.602,
+      "available_budget": 1.398,
+      "paid_minutes": 233,
       "decision": "briefs/14w-retest-3usd.md",
       "exception_month": "2026-10"
     },
-    "remaining_minutes": 360,
+    "remaining_minutes": 233,
     "reserved_minutes": 0,
-    "after_reservation": 360,
+    "after_reservation": 233,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
   },
@@ -1156,17 +1164,12 @@
       }
     }
   ],
-  "pre_push_privacy": {
-    "version": "8.21.2",
-    "parent_history_findings": 0,
-    "pending_findings": 0,
-    "exact_committed_history": "required before push"
-  },
   "acceptance_met": false,
-  "qualification4_dispatched": false,
-  "remaining_qualification_allowance": 1,
   "closing_reservation": 0,
   "reserve": 0,
   "restore_condition_met": false,
-  "stop_reason": "STOP: bounded listing confirmation did not match the submitted run; no qualification dispatch"
+  "pushes_this_followup": 0,
+  "post_attempts": 1,
+  "watcher_confirmation_reads": 2,
+  "stop_reason": "private-owner-login result export never produced serial completion; outcome unknown"
 }
