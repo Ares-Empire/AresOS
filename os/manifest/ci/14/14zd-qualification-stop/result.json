@@ -1,0 +1,18 @@
+{
+  "status": "STOP: post-sudo physical idle observer rejected; transport completed successfully",
+  "head": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+  "probe15": 40592552658,
+  "probe_conclusion": "success",
+  "qualification5": 40596167369,
+  "qualification_conclusion": "failure",
+  "pushes": 1,
+  "dispatches": 2,
+  "reruns": 0,
+  "acceptance_met": false,
+  "pr13_ready": false,
+  "closing_restoration_performed": false,
+  "private_login_typed": false,
+  "image_or_publication_attempts": 0,
+  "product_or_harness_fix_after_stop": false,
+  "unknown_artifact_findings": 0
+}

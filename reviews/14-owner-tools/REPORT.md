@@ -1,66 +1,151 @@
 # 14: checked owner tools
 
-**Current 14zd: isolated local replay passed; one push and fresh CI gates next.**
-No pull or Linux inspector/credential/workflow change. The owner clarified that
-no-rerun applies to paid Actions dispatches, while zero-cost local checks may
-retry. This supersedes the prior local-only STOP interpretation.
+**Current 14zd: STOP — qualification5 rejected the post-sudo physical idle check.**
+The isolated local replay and probe15 passed. One fast-forward push reached
+`e3751adc2e4938b0dc938ac84f43c32f6f07c993`; exactly one probe15 and one qualification5 were dispatched
+on that head, attempt1. No CI rerun, implementation fix, extra push or merge.
+This STOP report is local only. PR #13 stays draft / NOT RELEASED.
 
-## 14zd — Windows replay isolated and passed; six-dollar round prepared
+## 14zd — Local retry clarification completed; probe15 passed; qualification5 STOP
 
-**Done / diagnosis:** checked for matching prior Python/WSL/tar/unsquashfs replay
-or reader processes; none were running. A local exclusive replay lock and a
-fresh `.work/14/14zd-replay-1` checkpoint directory were used. No cleanup or
-other replay ran, and no observer read the checkpoint while the child ran.
-The unchanged actual inspector passed on the first attempt, reading all
-9,068,650,496 retained ISO bytes, matching the exact SHA256 pin and a fresh
-official HTTPS checksum, then extracting4 localization and102 WebUI sources.
-The local retry wrapper permits at most3 retries after10/20/30-second waits;
-**no retry or wait was used**. The old Windows denial did not recur, so its
-holder remains unidentified; no Defender/ACL/settings change or cause is
-inferred. `installer_inspect.py` and Linux CI behavior are byte-for-byte unchanged.
+**Done locally:** the owner clarified that no-rerun covers paid Actions, not
+zero-cost local checks. With no matching old replay process, a fresh checkpoint
+directory and exclusive local replay lock, the actual unchanged inspector
+passed on its first attempt. A separate fresh replay before qualification also
+passed on its first attempt. Each read all9,068,650,496 retained ISO bytes,
+matched the pin and a fresh official HTTPS checksum, and extracted4 localization
+and102 WebUI sources. The wrapper allowed3 retries with10/20/30-second waits;
+none were used. There was no checkpoint reader or overlapping cleanup/replay.
+The old Windows denial did not recur; its holder remains unidentified. No
+Defender/ACL/settings or Linux `installer_inspect.py` change was made.
 
-**Verified locally:** actual read-only release ancestry/payload/identity verifier
-and53 offline source checks passed; strict283 guest/serial scripts, all large
-staging controls,258 embedded Python,12 shells,46 Python files/native workflow
-body passed. Real PowerShell tools-copy tests passed15 zero-write destination
-refusals and exact bundle equality. Four stubbed controller tests and7 fixed
-watcher tests passed. All os/ci,os/tests,owner/release/workflow/guide source bytes
-equal `bad28a4`; its422-test whole-suite result (414 distinct passes, exactly
-8 documented native host limitations,0 skips) and203-test passing host walk
-therefore remain bound to this exact code. No new full-suite/native/VM success
-is claimed. Registry/package/signature/layer checks requiring the CI token
-remain CI-only and fail-closed, as14f requires. No owner secret or added scope.
-
-Evidence: [preparation and source bindings](../../os/manifest/ci/14/14zd-preflight/preparation.json),
-[isolated replay attempts](../../os/manifest/ci/14/14zd-preflight/replay-attempts.json),
-[actual inspector result](../../os/manifest/ci/14/14zd-preflight/installer-result.json).
-Local tooling archived there is provenance, not a workflow input. Every hash
-manifest keeps SHA256 before its path. Pinned gitleaks8.21.2 and diff checks
-must pass before the single fast-forward push; exact-head hosted privacy and
-the complete ledger/billing/budget are checked again immediately before dispatch.
-
-**Pre-push planning:** complete95/95 history,647 minutes consumed; cap1100,
-probe14/16 and qualification4/6. Reserve238 = push6 + probe72 + qualification160
-+ closing0. The actual API budget is$6 with prevention true;
-reported net Actions$2.088, price$0.006/minute,
-0 included minutes left + 652 paid minutes,
-leaving414 after that plan, above the October reserve0.
-Billing can lag. No account budget mutation. Settings remain package14 only;
-package13, the owner payload/fingerprint and every frozen runtime/release path
-are unchanged. This plan authorizes no automatic second round after a CI stop.
-
-**Not yet verified:** exact pushed-head privacy, probe15 and qualification5 on
-one head. One pre-dispatch push is allowed. Probe15 must pass and its artifacts
-must satisfy14v before qualification5; any CI stop is exported and reported with
-no rerun. Existing protected-second/firmware/BootNext/detached-device audits stay
-unchanged. Acceptance remains unmet and PR #13 draft / NOT RELEASED. Closing12
-and reserve150 restoration, final push and ready transition are conditional on
-acceptance. No image rebuild/publication or real laptop operation is authorized.
+Actual read-only release/git/file verification,53 offline-source checks, strict
+283 guest/serial scripts and all staging controls,258 embedded Python,12 shells,
+46 Python files/native workflow body passed before each dispatch. Windows copy
+tests passed15 zero-write refusals and exact bundle equality before each.
+Four stubbed controller and7 fixed-watcher tests passed. The unchanged-code
+422-test local whole-suite result retained its8 documented host limitations;
+the203-test host walk passed. Both hosted runs resolved those limits: all422
+tests passed,0 skips, in46.799s (probe) and43.872s (qualification). The native
+loop proof passed20 checks,0 helper mutations, protected fixture unchanged and
+complete unmount/detach. No local privileged operation or software installation.
 Gradle/client tests were not run; no Gradle daemon started.
 
-**JUDGMENT-CALL:** local retry isolation follows14zd; no product choice.
-**PLAN-GAP:** none newly inferred. **Open questions:** the original transient
-Windows file holder and the actual qualification result; both remain unproved.
+**Push / authorization:** pinned gitleaks8.21.2 full history and pending files
+were0 before the single normal push from `2fb695c` to `e3751ad`. Both exact-head
+push/PR privacy runs passed all3 steps, with personal terms actually executed.
+The complete ledger and read-only billing/budget were refreshed immediately
+before each dispatch. Both required the exact$6 Actions budget, prevention true,
+API price and subtraction of reported net spend. The fixed watcher confirmed
+the canonical returned run URLs in2 direct GETs for probe and
+2 for qualification; no list fallback or repeat POST.
+The4 CI-only private package/manifest/signature/layer checks passed in both
+hosted runs, without owner secrets or scope changes.
+
+**Probe15:** [40592552658](https://github.com/Ares-Empire/AresOS/actions/runs/40592552658)
+completed success on `e3751ad`, protected-second only, with no install. All
+retained probe flags passed. Independent replay found3 identical protected-disk
+captures,4 zero write/unmap samples,3 raw varstores/exact BootNext replays,
+2 NVRAM rule replays and2 full-variable delta recomputations. All23 retained
+large-command transfer receipts showed guest SHA256 and warning-free syntax
+verification before execution. The new transport therefore ran in the real VM.
+
+**Qualification5 STOP:** [40596167369](https://github.com/Ares-Empire/AresOS/actions/runs/40596167369)
+completed failure in the VM step. Offline installation passed, stock completed
+its permitted hardware-setup reboot, and offline first boot reported no staged
+or queued deployment, network down and no tools attached. The unattended and
+detached Windows round trips passed. On the next Linux boot, recovery account
+login returned to a shell. The harness then typed the sudo sequence and password.
+At `Console.become_root -> after_hidden('tools-stock')`, the physical observer
+waited840 seconds and returned `ready=false`, `echo_enabled=false`,
+`foreground_shell=false`. The saved cursor line has a root-style prompt.
+
+This was **not** a missing serial completion: the public script was staged,
+SHA256/syntax verified, returned valid checksum-framed JSON, and completed with
+`ARESOS_CMD_DONE:0`. The subsequent assertion was
+`Hidden owner command did not return to an idle shell`. The840/900-second
+deadlines behaved as designed. A displayed prompt does not establish root UID
+or the actual foreground process; its PID/cmdline was deliberately not exported,
+so a sudo/PTY/proxy explanation remains unproved here. No prompt predicate,
+console log level, idle authority or Enter limit was loosened after the STOP.
+
+The earlier `tools-stock-hidden-completed.json` belongs to the **account login**,
+not the failed sudo completion. Account/sudo observations share a stage prefix
+and can overwrite the same readiness filenames. The exported summary labels
+that limitation; no separate root-completion receipt is inferred from it.
+
+The tools stick had not been attached, and no owner `install`/`prepare` or later
+tool command ran in qualification5. No guest registry token was typed. Network
+invariance after prepare, owner login/verify/switch, AresOS/layout failure-revert/
+success/back, rollback/keep-stock/final pair remain unverified for this head.
+The guest failure counter was recorded with the VM paused. Independent raw
+replay passed7 protected captures,8 zero write/unmap samples,7 raw varstores/
+exact BootNext checks,6 NVRAM rule replays and6 complete-variable deltas.
+No firmware, BootNext, protected-disk or detached-device audit was widened.
+
+**Privacy / exported diagnostics:** probe artifact12775123822 matched SHA256,
+4,743,226 bytes/354 members; qualification artifact12779038742 matched SHA256,
+5,470,322 bytes/458 members. Native and failure logs scanned0 before reading.
+Probe findings509 =507 ISO-listing +2 whole-line kernel X.509 messages;
+qualification515 =507 +8. **Zero unclassified findings**, no ignore/rule/privacy
+workflow change. Each kernel match is recorded by path/line/hash in privacy.json
+and below. Raw consoles, raw VCSA and private diagnostics remain in the ignored
+private artifacts, not committed. The committed diagnostic summary binds their
+exact bytes and records booleans/geometry without credential or screen text.
+
+| Run | Captured boot console | Line | Public certificate label |
+|---|---|---:|---|
+|probe15|live-ui-probe-boot-console.txt|495|Fedora kernel signing key|
+|probe15|live-ui-probe-boot-console.txt|527|Fedora kernel signing key|
+|qualification5|offline-first-stock-boot-console.txt|503|Build time autogenerated kernel key|
+|qualification5|offline-first-stock-boot-console.txt|514|Build time autogenerated kernel key|
+|qualification5|protected-second-install-boot-console.txt|496|Fedora kernel signing key|
+|qualification5|protected-second-install-boot-console.txt|529|Fedora kernel signing key|
+|qualification5|stock-initialization-0-boot-console.txt|504|Build time autogenerated kernel key|
+|qualification5|stock-initialization-0-boot-console.txt|524|Build time autogenerated kernel key|
+|qualification5|tools-stock-boot-console.txt|503|Build time autogenerated kernel key|
+|qualification5|tools-stock-boot-console.txt|513|Build time autogenerated kernel key|
+
+Evidence: [probe review](../../os/manifest/ci/14/14zd-probe/),
+[qualification STOP and diagnostic bindings](../../os/manifest/ci/14/14zd-qualification-stop/),
+[owner-stop observations](../../os/manifest/ci/14/14zd-qualification-stop/owner-stop-observations.json),
+[closed ledger](../../os/manifest/ci/14/14zd-qualification-stop/ledger.json).
+Two completed ordinary duplicate ISO caches were hash/size verified and removed
+after all local replays finished; original ISO, extracted sources, partial14zc
+cache, logs and receipts preserved. The reclaim manifest is retained.
+
+| Closed package ledger | Value |
+|---|---:|
+| Consumed / cap | 727 /1100 |
+| Active reservation | 0 |
+| Probes / cap | 15 /16 |
+| Qualifications / cap | 5 /6 |
+| Complete history | 99 /99 |
+| This round pushes / dispatches / CI reruns | 1 /2 /0 |
+| Image / publication attempts | 0 /0 |
+
+Read-only billing at2026-10-27T23:34:32.970313+00:00: exact$6 budget, prevention true,
+reported net Actions$2.652,
+price$0.006/minute,0 included minutes left and
+558 paid minutes available (billing can lag). No budget
+mutation. Closing0/reserve0 were not restored because acceptance is unmet.
+No further push or dispatch is planned in this round; the owner can set the
+budget back to$0. Pinned local history/pending scans are0 before the local STOP
+commit; `git diff --check` passes. The remote remains at the tested head.
+
+**Not verified:** complete package14 acceptance, the stopped sudo-idle gate,
+every later owner/VM stage on this head and physical laptop followability.
+INSTALL, EMERGENCY and the release gate remain NOT RELEASED. Package13, owner
+payload/fingerprint, all frozen runtime/release paths, workflow, harness and
+audit source are unchanged after dispatch. Existing **For package15** lists
+below remain applicable. No real laptop disk, boot state or settings were touched.
+
+**JUDGMENT-CALL:** none after the explicit14zd local retry clarification.
+**PLAN-GAP:** the new physical-idle observer rejected a root-style display after
+sudo; raw foreground identity was not exported and some readiness names share
+the account/sudo prefix. **Open questions:** the actual foreground process/PTY
+at that moment and the correct verified completion proof. No implementation
+change or further allowance is inferred; no CI rerun was attempted.
 
 ## 14zc — $6 guard updated; Windows replay STOP
 

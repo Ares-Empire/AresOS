@@ -1,0 +1,161 @@
+{
+  "sha256": "173e9374a5e097107196f8e69b772a0fe6f691d89e55a9c853db372862c197a8",
+  "bytes": 2489,
+  "chunks": 26,
+  "staged": true,
+  "verified": true,
+  "transfer_timeout": 120,
+  "execution_timeout": 900,
+  "steps": [
+    {
+      "index": 0,
+      "phase": "root",
+      "status": "passed"
+    },
+    {
+      "index": 1,
+      "phase": "create",
+      "status": "passed"
+    },
+    {
+      "index": 2,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 3,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 4,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 5,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 6,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 7,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 8,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 9,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 10,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 11,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 12,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 13,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 14,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 15,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 16,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 17,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 18,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 19,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 20,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 21,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 22,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 23,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 24,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 25,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 26,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 27,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 28,
+      "phase": "integrity",
+      "status": "passed"
+    },
+    {
+      "index": 29,
+      "phase": "syntax",
+      "status": "passed"
+    }
+  ]
+}

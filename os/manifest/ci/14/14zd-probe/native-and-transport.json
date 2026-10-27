@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "tests": 422,
+  "seconds": 46.799,
+  "skips": 0,
+  "loop_checks": 20,
+  "helper_mutations": 0,
+  "protected_unchanged": true,
+  "fixture_cleanup": true,
+  "retained_guest_staged_receipts": 23,
+  "staged_sha_and_syntax_verified": true,
+  "unknown_artifact_findings": 0
+}

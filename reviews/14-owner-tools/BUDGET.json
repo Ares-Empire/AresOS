@@ -11,12 +11,40 @@
     "owner-tools": 6
   },
   "dispatch_counts": {
-    "probe": 14,
-    "owner-tools": 4
+    "probe": 15,
+    "owner-tools": 5
   },
-  "consumed_minutes": 647,
-  "reserved_minutes": 238,
+  "consumed_minutes": 727,
+  "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 40596167369,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+      "conclusion": "failure",
+      "minutes": 54
+    },
+    {
+      "run": 40592552658,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+      "conclusion": "success",
+      "minutes": 21
+    },
+    {
+      "run": 40591924586,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40591916713,
+      "title": "14zd: prove isolated local replay for the six-dollar round",
+      "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+      "conclusion": "success",
+      "minutes": 2
+    },
     {
       "run": 40566496658,
       "title": "Two-disk rehearsal (owner-tools)",
@@ -250,7 +278,7 @@
     },
     {
       "run": 40356233423,
-      "title": "Brief 14k: owner chose to run probe 6 and qualification 2 now (cap 40\u2026",
+      "title": "Brief 14k: owner chose to run probe 6 and qualification 2 now (cap 40…",
       "sha": "bcf2070b874f07d6b9c9300544837db33e41dcc8",
       "conclusion": "success",
       "minutes": 3
@@ -278,7 +306,7 @@
     },
     {
       "run": 40269672103,
-      "title": "Brief 14j: owner-style prompt resync after kernel messages; stop befo\u2026",
+      "title": "Brief 14j: owner-style prompt resync after kernel messages; stop befo…",
       "sha": "259648962f6cd052c16648904ab7399308088e90",
       "conclusion": "success",
       "minutes": 2
@@ -334,7 +362,7 @@
     },
     {
       "run": 40260372656,
-      "title": "Brief 14i: brace-group guest command framing, composed-command checks\u2026",
+      "title": "Brief 14i: brace-group guest command framing, composed-command checks…",
       "sha": "b71de4af3df67c9f7cbbbb530bf4731fa2383296",
       "conclusion": "success",
       "minutes": 2
@@ -411,7 +439,7 @@
     },
     {
       "run": 40247170525,
-      "title": "Brief 14h: exfat-fuse for the virtual tools stick, early runner capab\u2026",
+      "title": "Brief 14h: exfat-fuse for the virtual tools stick, early runner capab…",
       "sha": "afd608b70f22a84c41ea848d4ae11a6f70e57d79",
       "conclusion": "success",
       "minutes": 3
@@ -460,7 +488,7 @@
     },
     {
       "run": 40244215458,
-      "title": "Brief 14g: git-only PR 12 binding (no API read in CI), shallow-clone \u2026",
+      "title": "Brief 14g: git-only PR 12 binding (no API read in CI), shallow-clone …",
       "sha": "2d934d7487170bb9b04e9043ca0536c95d2eeec1",
       "conclusion": "success",
       "minutes": 2
@@ -509,7 +537,7 @@
     },
     {
       "run": 40240887069,
-      "title": "Brief 14f: CI-only classification for steps needing the job's package\u2026",
+      "title": "Brief 14f: CI-only classification for steps needing the job's package…",
       "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
       "conclusion": "success",
       "minutes": 2
@@ -537,7 +565,7 @@
     },
     {
       "run": 40239499609,
-      "title": "Brief 14e: bind the package 13 release to its squash merge; one fresh\u2026",
+      "title": "Brief 14e: bind the package 13 release to its squash merge; one fresh…",
       "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
       "conclusion": "success",
       "minutes": 3
@@ -569,19 +597,23 @@
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 95,
-    "total_count": 95,
+    "ids_count": 99,
+    "total_count": 99,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 95,
-        "total_count": 95,
-        "ids_sha256": "568f9d0675625138f7a100ddb8ed7334e5caec0874a9b5d7d355bea1b04c41c9"
+        "returned": 99,
+        "total_count": 99,
+        "ids_sha256": "a42faec1496d37cc03db1cdddd8ce209b29c8a595db0144e45d7bdb0df943e87"
       }
     ],
     "run_ids": [
+      40596167369,
+      40592552658,
+      40591924586,
+      40591916713,
       40566496658,
       40560134727,
       40559090525,
@@ -679,37 +711,37 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-27T21:59:32.899296+00:00",
-  "snapshot_kind": "14zd pre-push plan; fresh per-dispatch guards required",
+  "checked_at": "2026-10-27T23:34:32.970313+00:00",
+  "snapshot_kind": "14zd closed STOP after qualification5 post-sudo physical idle refusal",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-27T21:59:31.898582+00:00",
-    "response_sha256": "cdda18260010c1e8f274aa17c144e79ad334a7f60b3ff6926ac87f6da9def6cf",
+    "checked_at": "2026-10-27T23:34:30.978487+00:00",
+    "response_sha256": "a9a24f59ef8fc87c066d35e19282f7fb7618838fe208446b271848485941eafd",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 2348.0,
+        "grossQuantity": 2442.0,
         "discountQuantity": 2000.0,
-        "netQuantity": 348.0,
-        "grossAmount": 14.088,
+        "netQuantity": 442.0,
+        "grossAmount": 14.652,
         "discountAmount": 12.0,
-        "netAmount": 2.088,
+        "netAmount": 2.652,
         "pricePerUnit": 0.006
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 14.213174922,
-        "discountQuantity": 14.213174922,
+        "grossQuantity": 14.374313675,
+        "discountQuantity": 14.612308663,
         "netQuantity": 0.0,
-        "grossAmount": 0.004775855,
-        "discountAmount": 0.004775855,
+        "grossAmount": 0.00483,
+        "discountAmount": 0.004909971,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 2348,
+    "used_minutes": 2442,
     "included_minutes": 2000,
     "included_minutes_left": 0,
     "paid_overflow": {
@@ -723,17 +755,21 @@
       "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
       "runner_sku": "actions_linux",
       "pricePerUnit": 0.006,
-      "reported_net_amount": 2.088,
-      "available_budget": 3.912,
-      "paid_minutes": 652,
+      "reported_net_amount": 2.652,
+      "available_budget": 3.348,
+      "paid_minutes": 558,
       "decision": "briefs/14zc-six-dollar-round.md",
       "exception_month": "2026-10"
     },
-    "remaining_minutes": 652,
-    "reserved_minutes": 238,
-    "after_reservation": 414,
+    "remaining_minutes": 558,
+    "reserved_minutes": 0,
+    "after_reservation": 558,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
+  },
+  "current_bundle": {
+    "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
+    "path": "os/owner-tools/payload/SHA256.json"
   },
   "local_privacy_scans": [
     {
@@ -1160,24 +1196,12 @@
       }
     }
   ],
-  "current_bundle": {
-    "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
-    "path": "os/owner-tools/payload/SHA256.json"
-  },
-  "reservation_plan": {
-    "push": 6,
-    "probe": 72,
-    "qualification": 160,
-    "closing_privacy": 0,
-    "pre_push": 238,
-    "before_probe": 232,
-    "before_qualification": 160,
-    "decision": "briefs/14r-no-closing-reservation.md",
-    "exception_month": "2026-10",
-    "merge_requires_privacy": true
-  },
-  "owner_decision": "14zc/14zd approved$6 prevent true;1100 minutes,probe16,owner-tools6; deduct net Actions spend",
   "acceptance_met": false,
-  "probe15": "not dispatched",
-  "qualification5": "not dispatched"
+  "closing_reservation": 0,
+  "reserve": 0,
+  "restore_condition_met": false,
+  "pushes_this_followup": 1,
+  "dispatches_this_followup": 2,
+  "reruns_this_followup": 0,
+  "stop_reason": "post-sudo foreground idle observer returned ready=false despite displayed root-style prompt; framed serial result completed"
 }
