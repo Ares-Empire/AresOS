@@ -1,10 +1,72 @@
 # 14: checked owner tools
 
-**Current 14w: local preparation passed; one push and hosted gates pending.**
-PR #13 remains draft / NOT RELEASED. No real laptop operation, image build,
-publication, credential/scope change or merge. Earlier STOP sections remain historical evidence.
+**Current 14w: STOP — probe11 failed its15-minute native-preflight limit.**
+Qualification3 was not dispatched. Exactly one fast-forward push was made to
+`f8ae9cb80fa7e51ee9bf5f3c21ee6b4d3c02036d`; no rerun or later push.
+This STOP report is committed locally only. PR #13 stays draft / NOT RELEASED.
+No merge, image/publication, real laptop operation, credential/scope change or
+privacy exception was made. This attempt is over; a new owner/integrator decision
+is required before any further dispatch or push.
 
-## 14w — $3 October retest; probe 11 and qualification 3
+## 14w — Probe11 native-preflight timeout; qualification3 blocked
+
+**Verified outcome:** [probe11](https://github.com/Ares-Empire/AresOS/actions/runs/40519384061)
+(attempt1, exact pushed head above) failed on2026-10-27. GitHub reports:
+`The action 'Qualify tools, regressions, rewritten release identity and private access' has timed out after 15 minutes.`
+The disposable runner job ran14:15:32Z–14:43:35Z and cost29 ledger minutes.
+The early capability proof passed. Playwright's `install --with-deps chromium`
+started dependency installation14:28:34Z; browser downloading began14:42:53Z,
+about14m20s later. Its public Ubuntu mirror requests repeatedly printed `Ign:`
+for four font packages. No mirror, timeout, package pin or dependency was changed
+in response. The downloaded browser then completed;379 native tests printed
+`OK` (21.696s, no skips), the exact real partitioned-loop test passed all20
+checks with0 helper mutations/protected fixture unchanged/complete cleanup,
+and Windows copy passed15 zero-write refusals with the exact14v bundle.
+The release verifier printed its qualified private release/runtime PASS. GitHub
+still marked the complete step failed at its15-minute limit. Individual PASS
+lines do not satisfy the passing-probe gate.
+
+The later credential, private manifest/signature/pull, live ISO inspection and
+two-disk VM steps were skipped. Qualification3, layout/rollback trials and full
+protected-disk/NVRAM/BootNext qualification remain **not verified** on this head.
+The capability mini-VM and native loop fixture are prerequisite evidence only.
+No check was loosened and no rerun, repair or extra dispatch was attempted.
+
+**Privacy:** the private artifact ZIP digest matched GitHub exactly
+(artifact12743785147,19 files). Pinned gitleaks8.21.2 found0 findings in all
+retained artifact files and0 in the native log, before the log was read.
+No ISO listing or boot console was produced, so neither14s nor14v exception
+was needed. Both exact-head push/PR privacy runs had passed every required
+step, including personal terms, before the probe POST. No ignore/rule/workflow
+change. Detailed receipts and source hashes:
+`os/manifest/ci/14/14w-probe-stop/`; raw private files remain ignored.
+
+| Closed ledger | Value |
+|---|---:|
+| Package minutes consumed / cap |437 /700|
+| Active reservation |0|
+| Probes consumed / cap |11 /11|
+| Qualifications consumed / cap |2 /3|
+| Complete branch run history |84 /84|
+| This attempt: pushes / reruns |1 /0|
+| Images / publications |0 /0|
+
+Fresh closing billing at2026-10-27T14:44:54.024703+00:00 reports included minutes0,
+Actions net spend$0.264, price$0.006/minute,
+approved budget$3 with prevent_further_usage true, and available paid budget
+$2.736 =456 whole minutes. These are the read-only
+API values, not a promise that delayed billing is final. Reserve0/closing0 are
+unchanged: acceptance was not met, so their conditional restoration and PR-ready
+step were not taken. The owner Actions budget was not changed. No further run
+is authorized by this failed probe; the owner controls when to reset that budget.
+
+**PLAN-GAP / open decision:** the15-minute native preflight was exhausted by
+its dependency-installation delay. Stop here; don't change its timeout or mirror,
+retry the probe, spend the remaining qualification, or push this report without
+new authorization. No product JUDGMENT-CALL. All physical gates and the existing
+For package15 list remain open and unchanged.
+
+### Preparation completed before the probe
 
 **Done:** package14 alone now has cap700, probe11 and owner-tools3. Package13
 is unchanged. October's explicit reserve0/closing0 are unchanged. The guard
@@ -47,7 +109,7 @@ a successful probe, cleared14s/14v artifact classification, fresh replay and
 a fresh130-minute guard. Any refusal or run/artifact stop means no rerun.
 No further push until qualification has finished.
 
-**Not verified / gates:** probe11 and qualification3 are pending. Physical
+**Not verified / gates:** At that planning point probe11 and qualification3 were pending; the STOP below supersedes that plan. Physical
 laptop/followability checks stay open. Artifact exceptions are only the507
 public ISO listing findings and whole captured boot-console kernel X.509 lines
 with a nonempty certificate name and exactly40 hex digits; each is recorded.
@@ -55,6 +117,7 @@ Anything else STOPs before qualification. Acceptance alone permits a final
 commit restoring closing12/reserve150, one closing push and marking PR ready.
 Closing privacy must pass before merge. The owner resets the Actions budget
 to$0 after this run ends. No new product JUDGMENT-CALL, PLAN-GAP or question.
+
 
 ## 14v — Pinned firmware grammar, private STOP records and parser audit
 
