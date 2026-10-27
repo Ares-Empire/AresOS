@@ -6,6 +6,7 @@ import os
 import pathlib
 import sys
 import unittest
+import yaml
 from unittest.mock import Mock, patch
 
 ROOT=pathlib.Path(__file__).resolve().parents[2]
@@ -22,7 +23,7 @@ class GuardTest(unittest.TestCase):
 
     def test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun(self):
         self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(700,0,0))
-        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':11,'owner-tools':3})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':12,'owner-tools':3})
         self.assertEqual(guard.SETTINGS['organization_budget']['other_repos_reserve'],0)
         self.assertEqual(guard.PACKAGES['13']['organization_budget']['other_repos_reserve'],150)
         base=dict(head_sha='a'*40,status='completed',conclusion='success',run_attempt=1)
@@ -55,6 +56,8 @@ class GuardTest(unittest.TestCase):
             runs.append(dict(runs[1],id=13))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],11)
             runs.append(dict(runs[1],id=14))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],12)
+            runs.append(dict(runs[1],id=15))
             with self.assertRaisesRegex(AssertionError,'probe dispatch allowance'):guard.budget(0)
 
     def test_third_owner_qualification_allowed_but_fourth_refuses(self):
@@ -80,8 +83,8 @@ class GuardTest(unittest.TestCase):
     def test_october_reservation_drops_only_closing_privacy(self):
         plan=guard.owner_reservations(datetime.datetime(2026,10,26,tzinfo=datetime.timezone.utc))
         self.assertEqual({k:plan[k] for k in ('push','probe','qualification','closing_privacy')},
-                         dict(push=6,probe=42,qualification=130,closing_privacy=0))
-        self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(178,172,130))
+                         dict(push=6,probe=72,qualification=160,closing_privacy=0))
+        self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(238,232,160))
         self.assertTrue(plan['merge_requires_privacy'])
         self.assertNotIn('closing_privacy_reservation',guard.PACKAGES['13'])
 
@@ -91,7 +94,7 @@ class GuardTest(unittest.TestCase):
         changed=copy.deepcopy(guard.SETTINGS);changed['closing_privacy_reservation']['minutes']=12
         with patch.object(guard,'SETTINGS',changed):
             plan=guard.owner_reservations(november)
-            self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(190,184,142))
+            self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(250,244,172))
 
     def test_missing_or_altered_closing_decision_refuses(self):
         for field,value in (('minutes',False),('minutes',-1),('minutes',6),('normal_minutes',0),
@@ -104,12 +107,31 @@ class GuardTest(unittest.TestCase):
             guard.owner_reservations()
 
     def test_host_reservation_cannot_drop_probe_or_qualification_bound(self):
-        for mode,reserve in (('probe',171),('owner-tools',129)):
+        for mode,reserve in (('probe',231),('owner-tools',159)):
             with self.subTest(mode=mode),patch.dict(os.environ,REHEARSAL_PACKAGE='14',clear=True), \
                  patch.object(sys,'argv',['rehearsal_guard.py',mode,str(reserve)]),patch.object(guard,'budget') as budget, \
                  self.assertRaisesRegex(AssertionError,'incomplete owner dispatch reservation'):
                 guard.main()
             budget.assert_not_called()
+
+    def test_workflow_limits_and_both_ci_reservations_cover_the_owner_plan(self):
+        job=yaml.load((ROOT/'.github/workflows/os-image.yml').read_text(),Loader=yaml.BaseLoader)['jobs']['rehearsal']
+        limits="${{ inputs.rehearsal == 'owner-tools' && 160 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}"
+        self.assertEqual(job['timeout-minutes'],limits)
+        steps={s['name']:s for s in job['steps'] if 'name' in s}
+        native=steps[guard.NATIVE_STEP]
+        self.assertEqual(native['timeout-minutes'],'35')
+        retry="printf 'Acquire::Retries \"3\";\\n' | sudo tee /etc/apt/apt.conf.d/80ares-playwright-retries >/dev/null"
+        browser='.work/browser-env/bin/playwright install --with-deps chromium'
+        self.assertEqual(native['run'].count(retry),1)
+        self.assertLess(native['run'].index(retry),native['run'].index(browser))
+        self.assertEqual(steps['Install pinned rehearsal tools on disposable runner']['timeout-minutes'],'20')
+        self.assertEqual(steps['Prepare disposable file disks and qualify the real live environment']['timeout-minutes'],
+            "${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 106 || 80 }}")
+        reservation=limits.replace('&& 70','&& 72').replace('|| 40','|| 42')
+        self.assertIn(reservation,steps['Reserve the separate 11c minute budget (including privacy checks)']['run'])
+        self.assertEqual(steps['Require completed native preflight before any package 13 VM']['run'],
+            "python3 os/ci/rehearsal_guard.py ci '${{ github.ref_name == 'pkg/14-owner-tools' && 72 || 42 }}'")
 
     def test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback(self):
         run=dict(event='workflow_dispatch',path='.github/workflows/os-image.yml',head_branch=guard.BRANCH,

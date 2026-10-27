@@ -1,12 +1,72 @@
 # 14: checked owner tools
 
-**Current 14w: STOP — probe11 failed its15-minute native-preflight limit.**
-Qualification3 was not dispatched. Exactly one fast-forward push was made to
-`f8ae9cb80fa7e51ee9bf5f3c21ee6b4d3c02036d`; no rerun or later push.
-This STOP report is committed locally only. PR #13 stays draft / NOT RELEASED.
-No merge, image/publication, real laptop operation, credential/scope change or
-privacy exception was made. This attempt is over; a new owner/integrator decision
-is required before any further dispatch or push.
+**Current 14x: local preparation passed; one push and hosted gates pending.**
+PR #13 remains draft / NOT RELEASED. Probe11's failure remains historical evidence.
+No real laptop operation, image build, publication, credential/scope change or merge.
+
+## 14x — Slow-mirror limits; probe12 and qualification3
+
+**Done:** native preflight limit15→35 minutes; package14 probe job40→70;
+owner-tools qualification job130→160. The pinned-tools step remains20 and
+the qualification VM step remains106. Other package job limits are unchanged.
+Before Playwright's install, the disposable runner writes exactly
+`Acquire::Retries "3";` to apt configuration, so its own apt calls retry too.
+No mirror, package list/pin, image, payload, owner command or audit was changed.
+Guard bounds are72/160, including both probe CI guard calls; full reservations
+are238 before push,232 before probe and160 before qualification. Package14
+keeps cap700 and owner-tools3, with probe cap12. Package13 settings are unchanged.
+October reserve0/closing0 and the read-only $3/prevention/net-spend guard remain.
+The14v bundle remains `effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7`.
+
+**Verified locally:**380 whole-suite tests ran:372 distinct passes and exactly
+the same8 documented native-host limitations, no skips (unittest exit1).
+152 host-walk tests passed and bind92 current sources. Ten focused guard tests and four legacy-budget tests
+passed, pinning every approved timeout, both CI reservations, retries before
+Playwright, the unchanged20/106 limits and dispatch refusal boundaries.
+The first whole run exposed one still-old timeout assertion (380 tests;
+3 failures/9 errors); its expectations were updated to14x, then the whole
+suite was repeated. That assertion now also runs in the host walk.
+Strict checks parsed258 guest scripts and258 serial wrappers with no stderr,
+233 embedded Python snippets,12 shell files,45 CI/overlay/owner Python files,
+and the changed native workflow shell body. Windows copy passed15 zero-write
+refusals with exact bundle equality. Actual14e/14f release/git/file/read-only gh
+and53 retained offline-source/full-listing replays passed. Actual ISO inspection
+rehashed9,068,650,496 bytes, checked a fresh publisher checksum and read4
+localization/102 WebUI sources. Four credential-only checks and the8 host-limit
+tests remain mandatory in CI. Current source-bound proof:
+`os/manifest/ci/14/14x-preflight/`.
+
+Pre-push planning at2026-10-27T14:54:22.274232+00:00:
+| Reservation | Minutes |
+|---|---:|
+| Closed package ledger |437 /700|
+| One push |6|
+| Probe12 bound |72|
+| Qualification3 bound |160|
+| Closing privacy (October exception) |0|
+| Maximum planned package total |675 /700|
+
+Complete history:84/84;
+probes11/12, qualifications2/3. Billing records included0, Actions net spend
+$0.27, approved$3 with prevention true,
+price$0.006/minute and
+455 floored paid minutes;
+217 remain after238. These read-only planning values
+may lag charges and do not authorize a dispatch. The pinned local full-history
+scan must pass before the exactly one fast-forward push. Then fresh exact-head
+privacy, complete ledger/billing/budget precede probe12. Qualification3 requires
+its passing probe, cleared14v artifact rules, fresh replay and a fresh160-minute
+guard, all on the same head. Any stop means report, no rerun or further push.
+
+**Not verified / gates:** probe12 and qualification3 pending. Physical release
+and laptop/followability gates remain open. Artifact exceptions remain only the
+507 public ISO listing findings and exact whole captured kernel X.509 lines
+with a nonempty name and40 hex digits, each recorded; anything else STOPs.
+Only acceptance allows restoring closing12/reserve150, one final commit/push
+and marking PR #13 ready. Closing privacy must pass before merge. This run ends
+without merging; the owner then sets the Actions budget back to$0. No new
+product JUDGMENT-CALL, PLAN-GAP or question. The existing For package15 list
+remains unchanged.
 
 ## 14w — Probe11 native-preflight timeout; qualification3 blocked
 

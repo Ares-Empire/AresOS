@@ -49,8 +49,8 @@ def owner_reservations(now=None):
     assert setting['exception_month']=='2026-10' and setting['decision']=='briefs/14r-no-closing-reservation.md', 'STOP: unreviewed closing reservation exception'
     now=now or datetime.datetime.now(datetime.timezone.utc)
     assert closing==12 or now.strftime('%Y-%m')==setting['exception_month'], 'STOP: zero closing reservation is October2026 only'
-    return dict(push=6,probe=42,qualification=130,closing_privacy=closing,
-        pre_push=6+42+130+closing,before_probe=42+130+closing,before_qualification=130+closing,
+    return dict(push=6,probe=72,qualification=160,closing_privacy=closing,
+        pre_push=6+72+160+closing,before_probe=72+160+closing,before_qualification=160+closing,
         decision=setting['decision'],exception_month=setting['exception_month'],merge_requires_privacy=True)
 
 

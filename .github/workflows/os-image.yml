@@ -329,7 +329,7 @@ jobs:
     name: Pinned live ISO inspection and two-disk rehearsal
     if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != ''
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 130 || 40 }}
+    timeout-minutes: ${{ inputs.rehearsal == 'owner-tools' && 160 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}
     permissions:
       contents: read
       packages: read
@@ -343,7 +343,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
           PROBE_RUN: ${{ inputs.probe_run }}
-        run: python3 os/ci/rehearsal_guard.py '${{ (github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/14-owner-tools') && inputs.rehearsal == 'probe' && 'probe-budget-ci' || 'ci' }}' '${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 130 || 42 }}'
+        run: python3 os/ci/rehearsal_guard.py '${{ (github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/14-owner-tools') && inputs.rehearsal == 'probe' && 'probe-budget-ci' || 'ci' }}' '${{ inputs.rehearsal == 'owner-tools' && 160 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 72 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -362,7 +362,7 @@ jobs:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/owner_capabilities.py
       - name: Qualify tools, regressions, rewritten release identity and private access
-        timeout-minutes: 15
+        timeout-minutes: 35
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -371,6 +371,7 @@ jobs:
           python3 -m venv --system-site-packages .work/browser-env
           .work/browser-env/bin/pip install playwright==1.58.0
           export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
+          printf 'Acquire::Retries "3";\n' | sudo tee /etc/apt/apt.conf.d/80ares-playwright-retries >/dev/null
           .work/browser-env/bin/playwright install --with-deps chromium
           .work/browser-env/bin/python -c 'import crypt, PIL, playwright.sync_api'
           dpkg-query -W > evidence/rehearsal-host-packages.txt
@@ -389,7 +390,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: probe
-        run: python3 os/ci/rehearsal_guard.py ci 42
+        run: python3 os/ci/rehearsal_guard.py ci '${{ github.ref_name == 'pkg/14-owner-tools' && 72 || 42 }}'
       - name: Create runner-temporary pinned-image credentials
         if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
         env:

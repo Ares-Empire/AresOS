@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 147,
+  "tests": 152,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -52,7 +52,7 @@
   ],
   "sources": [
     {
-      "sha256": "bf85a2186ce5f8a837de78689e9b4e97746b1a0a43546912b7f1c6e7e2c1baef",
+      "sha256": "d8ed9bb8869b4b28cce8d20fd3486a8763452476cef9d28bfc0a5bd4c927c565",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -104,11 +104,11 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "e067c2ba461a4ab53ad2a9880b018c48b396423d3a2962744030a1fdcf7a08b6",
+      "sha256": "04c2590fe2caf53db7146889ccb04b00ebcaf39803dd9db3bbbe916f69463fe0",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "b5fb4d4d51878564cf232239f940bbc109925c93dff00318ca08e8a90b87913d",
+      "sha256": "aa8bff0f37f29ea8c7fbcc2eee2f9ed65dc8aabbb9b4cb0d2f7e1995c5cc90c8",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
@@ -380,7 +380,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "2644bb97c5322cc492380f965436ee9fc9e1026463d904372cd250c4b275203e",
+      "sha256": "faad34cdf9dbc6a34e418b3115453da32599488162778f20a288b21f28fbe4f7",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -400,6 +400,10 @@
       "path": "os/tests/test_owner_walk.py"
     },
     {
+      "sha256": "8c22740ffdf08bfc97346d309de6824c6b13b2c2c7058619325d9c07309257f8",
+      "path": "os/tests/test_rehearsal_budget.py"
+    },
+    {
       "sha256": "2dbe49b016751482b109667389575f242cc516ff7a8bb33faa92ced267b89d9d",
       "path": "os/tests/test_release_squash_binding.py"
     },
@@ -412,7 +416,7 @@
       "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
     },
     {
-      "sha256": "044b56449ff09fb565fcce8cd484782f45ea5f1f7d8d163cf03c887469f93a13",
+      "sha256": "a7214ac66a7b9e369230787467653b91f27e9bba2bf8b63aa8cc39b9a346f26e",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

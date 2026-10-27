@@ -9,20 +9,20 @@ import rehearsal_guard as guard
 
 
 class BudgetTest(unittest.TestCase):
-    def test_part_b_reservation_covers_the_single_job_without_changing_probe_limits(self):
+    def test_part_b_reservation_keeps_legacy_limits_and_covers_owner_limits(self):
         workflow = yaml.load((pathlib.Path(__file__).resolve().parents[2] /
                               '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
         job = workflow['jobs']['rehearsal']
-        self.assertEqual(job['timeout-minutes'], "${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 130 || 40 }}")
+        self.assertEqual(job['timeout-minutes'], "${{ inputs.rehearsal == 'owner-tools' && 160 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}")
         vm, = [s for s in job['steps'] if 'two_disk_vm.py' in s.get('run', '')]
         self.assertEqual(vm['timeout-minutes'], "${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 106 || 80 }}")
         guards = [s for s in job['steps'] if 'rehearsal_guard.py' in s.get('run', '')]
         self.assertEqual(len(guards), 2)
         reserve, = [s for s in guards if s['name'].startswith('Reserve the separate 11c')]
-        self.assertIn("'${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 130 || 42 }}'", reserve['run'])
+        self.assertIn("'${{ inputs.rehearsal == 'owner-tools' && 160 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 72 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'", reserve['run'])
         native, = [s for s in guards if s['name']=='Require completed native preflight before any package 13 VM']
         self.assertEqual(native['if'], "(github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/14-owner-tools') && inputs.rehearsal == 'probe'")
-        self.assertEqual(native['run'], 'python3 os/ci/rehearsal_guard.py ci 42')
+        self.assertEqual(native['run'], "python3 os/ci/rehearsal_guard.py ci '${{ github.ref_name == 'pkg/14-owner-tools' && 72 || 42 }}'")
         self.assertNotIn('full', workflow['on']['workflow_dispatch']['inputs']['rehearsal']['options'])
         self.assertEqual(vm['run'].count('two_disk_vm.py'), 1)
 
