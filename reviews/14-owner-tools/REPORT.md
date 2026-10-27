@@ -1,11 +1,81 @@
 # 14: checked owner tools
 
-**Current 14z: local preparation passed; one push and hosted gates pending.**
-PR #13 stays draft / NOT RELEASED. Acceptance needs probe 14/qualification 4 on the
-same head, every audit and privacy. Earlier STOP sections below are historical.
-No image/release/publication, real laptop operation, scope change or merge.
+**Current 14z: STOP — local post-dispatch confirmation failed; probe 14 passed.**
+One fast-forward push reached `2fb695cdb419d67b51a76d91727668b33df82ecd`. One probe POST; no rerun, extra
+push or qualification 4 dispatch. This STOP report is local only. PR #13 remains
+draft / NOT RELEASED; acceptance is unmet. No merge, image build/publication,
+audit widening, credential change or real laptop operation. This run is over.
 
-## 14z — Binary EFI device paths; probe 14 and qualification 4
+## 14z — Passing probe; dispatch-confirmation STOP
+
+**STOP / agent bookkeeping failure:** the local dispatch wrapper received a
+successful POST response with the canonical URL for [probe 14](https://github.com/Ares-Empire/AresOS/actions/runs/40560134727).
+Its four bounded history-list reads did not find a matching candidate and raised
+`STOP: missing/duplicate dispatch identity; no repeat POST`. I did not send
+another POST. A direct GET then confirmed the exact pushed head, workflow path,
+probe title, workflow_dispatch event and attempt 1. A fresh complete 94/94 history
+also showed exactly that one matching run. The original nonmatching row values
+were not retained, so the cause is not established. This was the local watcher,
+not a CI firmware-parser failure. Under the explicit any-STOP rule I withheld
+qualification 4 and only collected the already-submitted probe. No confirmation
+predicate, guard, payload or workflow was changed after push.
+
+**Verified hosted:** probe passed; all 400 native tests in 23.023s, 0 skips, including
+the 8 local host limitations. Native loop fixture 20 checks, 0 helper mutations,
+protected unchanged, all mounts/loops cleaned. Host capabilities, private manifest,
+signature and exact pinned-layer pull passed; CI registry credentials were removed
+outside the workspace, CI registry checks used only the job token. ISO exact 9,068,650,496 bytes and
+SHA256 pin/fresh official checksum passed in one HTTP200 attempt. Live review,
+offline link, post-boot tools hotplug/removal, Windows-first, detached Windows,
+BootNext and protected-second proof passed; no installation was performed.
+
+Artifact 12761677554 SHA256 `ebfb8baa4645e2dd17393f9451bde877b81627fb5e275b7a94610f27f60bc952` matched GitHub.
+Independent replay: 3 protected captures, 4 zero write/unmap samples, 3 raw
+varstores/exact BootNext checks, 2 NVRAM rule replays and 2 complete-variable delta
+recomputations. Artifact scan 509 = 507 reviewed ISO filenames + 2 exact whole kernel
+certificate messages; 0 unclassified. Native log scan 0. No ignore/rule/workflow
+change. Each approved kernel finding is recorded in privacy.json with source-line
+hash; raw artifact/logs/consoles stay private and ignored.
+
+| Console | Line | Public certificate name |
+|---|---:|---|
+|live-ui-probe-boot-console.txt|496|Fedora kernel signing key|
+|live-ui-probe-boot-console.txt|529|Fedora kernel signing key|
+
+Receipts: `os/manifest/ci/14/14z-probe-stop/`. Exact-head push/PR privacy both
+passed all 3 checks, personal terms executed. Pinned local gitleaks 8.21.2 full
+history 0 before the single push; pending STOP files/history scans are required
+before the local report commit and checked again afterward. One audit/helper and
+one classifier invocation initially received a filesystem path instead of their
+required numeric run ID and refused; corrected read-only invocations passed on
+the same retained bytes. No scanner/audit assertion was changed.
+
+| Closed package ledger | Value |
+|---|---:|
+|Consumed / cap|573 /800|
+|Active reservation|0|
+|Probe dispatches / cap|14 /14|
+|Qualification dispatches / cap|3 /4; fourth unused|
+|Complete history|94 /94|
+|This attempt: pushes / POSTs / reruns|1 /1 /0|
+|Image / publication attempts|0 /0|
+
+Read-only billing at2026-10-27T18:52:18.935353+00:00: Actions net
+$0.84, approved budget $3 with prevention
+true, price$0.006/minute, paid minutes remaining
+360. Billing can lag. No budget mutation was made.
+Closing 0 / reserve 0 were not restored because acceptance was not met. The owner can
+set the paid budget back to $0; no further dispatch is planned in this run.
+
+**Not verified / gates:** qualification 4 was not dispatched, so the fresh installed
+owner install/prepare/rerun/network invariance, records/export, login/verify/switch,
+layout failure/revert/success/back, rollback/keep-stock are unproved. Real retained
+fixtures/native/probe passes do not replace that qualification. Guide/card/release
+and physical laptop/followability gates remain open. No owner judgment beyond 14z;
+no brief design PLAN-GAP was established. The open blocker is the recorded local
+confirmation STOP; no new allowance or next action is inferred.
+
+### 14z preparation and local verification
 
 **Done:** Boot#### records and their verbose dp rows feed one binary decoder.
 Bounded UEFI lengths, HD 04/01 partition/start/size/GPT mixed-endian GUID,

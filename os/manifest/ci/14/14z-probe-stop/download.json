@@ -1,0 +1,30 @@
+{
+  "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "downloaded_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "official_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "filename": "bazzite-nvidia-open-stable-live-amd64.iso",
+  "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+  "pinned_bytes": 9068650496,
+  "bytes": 9068650496,
+  "max_attempts": 6,
+  "attempts": [
+    {
+      "attempt": 1,
+      "offset": 0,
+      "range_requested": false,
+      "status": 200,
+      "bytes": 9068650496,
+      "stored_bytes": 9068650496,
+      "received_total": 9068650496,
+      "restarted": false,
+      "outcome": "complete-response",
+      "content-length": [
+        "9068650496"
+      ],
+      "content-range": [],
+      "content-encoding": [],
+      "applied_offset": 0
+    }
+  ],
+  "status": "passed"
+}
