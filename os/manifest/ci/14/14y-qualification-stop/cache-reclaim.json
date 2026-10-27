@@ -1,0 +1,10 @@
+{
+  "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "path": ".work/14/14i-qualification-installer-replay/work/bazzite-nvidia-open-stable-live-amd64.iso",
+  "bytes": 9068650496,
+  "reason": "remove one verified duplicate ordinary ISO cache after local replay free-space check; original and all evidence/logs retained",
+  "checked_at": "2026-10-27T16:38:44.182981+00:00",
+  "recursive": false,
+  "source_or_guard_changed": false,
+  "free_gib_after": 31.188919067382812
+}

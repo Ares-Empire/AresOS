@@ -1,0 +1,32 @@
+{
+  "files": [
+    {
+      "sha256": "f34127fdd02470e5bffcb0d8a530461a28fb142066bf57803baf866996747754",
+      "path": "artifact.json"
+    },
+    {
+      "sha256": "0ed6be6813bdcbf87c1e9ca09cacbf20c940be3352db88beed44658fd3464eca",
+      "path": "authorization.json"
+    },
+    {
+      "sha256": "5d6a92f2d6f12effc5f0a03100ba152b8f1ce830b41e0e1b128f6972edba83f0",
+      "path": "download.json"
+    },
+    {
+      "sha256": "0689081adf7d10e8a3bc20e56d50d3baf68795884eaadc92e46c79ef5dbad1ab",
+      "path": "independent-audits.json"
+    },
+    {
+      "sha256": "b3d6e1d9ee742c30629919d1d22fee26e61c387c21e9ca5382058c1f8033a245",
+      "path": "native.json"
+    },
+    {
+      "sha256": "bc6785418bcd8a86a8ff7584171656f63a519d266b03223e1d6e01647f838433",
+      "path": "privacy.json"
+    },
+    {
+      "sha256": "035268f903fa25ba33f661aee81492faacbc8a8f97122ae1e3ce5b67cbc9f45f",
+      "path": "result.json"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "files": [
+    {
+      "sha256": "765c9aefea6a430e4f58ab4295e2e184e783ac6595e694a3560ff03ec37878c9",
+      "path": "artifact.json"
+    },
+    {
+      "sha256": "c22291e6dcc0deb1c86e5336818a41211963eb57d18eb975d45acf6a1a62a15d",
+      "path": "cache-reclaim.json"
+    },
+    {
+      "sha256": "21ab7c9b1007cf062066eb50f26b8e2ed2192a39ecb06b963436434eb1271806",
+      "path": "dispatch-proof.json"
+    },
+    {
+      "sha256": "5d6a92f2d6f12effc5f0a03100ba152b8f1ce830b41e0e1b128f6972edba83f0",
+      "path": "download.json"
+    },
+    {
+      "sha256": "aeac6b615f33058d3ba7c163f2f72d8dafa0d0eb09227a0d64b26d693c306fc9",
+      "path": "firmware-stop-reproduction.json"
+    },
+    {
+      "sha256": "1c0c8d6283a6d0fdf05b8705d8d0eb739445f877efe34343bbca0ee5046b6420",
+      "path": "independent-audits.json"
+    },
+    {
+      "sha256": "bfafd8fb63d77f16e32ded1d740393d94df80d586cf2632578a789223a800bb9",
+      "path": "ledger.json"
+    },
+    {
+      "sha256": "cdaba04a54e7f6ac65765e1e89d8c50b9c26e433c1a1f30a3299a5172b720a37",
+      "path": "native.json"
+    },
+    {
+      "sha256": "9501845c9c3b36dffb3b02d33c67222514a53787a253d7e330a9b2bfb180c2f6",
+      "path": "privacy.json"
+    },
+    {
+      "sha256": "381e109a2041d4c212dc1ed7ff3f3117509b8a649131bafff043305f8dddc909",
+      "path": "result.json"
+    }
+  ]
+}

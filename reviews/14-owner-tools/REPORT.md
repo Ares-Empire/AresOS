@@ -1,10 +1,120 @@
 # 14: checked owner tools
 
-**Current 14y: local preparation passed; one push and hosted gates pending.**
-PR #13 remains draft / NOT RELEASED. Earlier STOP sections remain historical.
-No laptop operation, image build/publication, credential/scope change or merge.
+**Current 14y: STOP — probe13 passed; qualification3 refused tools-install.**
+Exactly one fast-forward push reached `9284b04cc8a37b51a29c86e011ce2a22ac009d22`.
+Both dispatches used that exact head and attempt1. No rerun, extra dispatch or
+later push. This STOP report is committed locally only; PR #13 stays draft /
+NOT RELEASED. No owner-script/payload fix, firmware-audit widening, image build,
+publication, scope change, real laptop operation or merge. This attempt is over;
+further work/dispatch/push requires a new integrator/owner decision.
 
-## 14y — Bounded ISO resume; probe13 and qualification3
+## 14y — Download gates passed; qualification3 firmware-parser refusal
+
+**Verified outcome:** [probe13](https://github.com/Ares-Empire/AresOS/actions/runs/40538251599)
+passed and cost23 ledger minutes. [Qualification3](https://github.com/Ares-Empire/AresOS/actions/runs/40543952228)
+ran16:45:01Z–17:38:02Z on2026-10-27, failed, and cost54 minutes. Native preflight
+passed all392 tests in both runs (32.490s /29.842s, no skips), including the8
+local host limits. Both native-loop fixtures passed20 checks with0 helper
+mutations/protected fixture unchanged/complete cleanup. Private manifest,
+signature, exact-layer pull and credential removal outside the workspace passed.
+No owner secret was used. Both ISO inspections passed all9,068,650,496 bytes,
+SHA256 pin and fresh official checksum; each completed in one HTTP200 attempt.
+No real resume was needed on these two transfers; the12 real fake-server tests
+exercise resume/restart/exhaustion and refusal branches. No retry limit or pin
+was changed after push. Receipts: `os/manifest/ci/14/14y-probe/` and
+`os/manifest/ci/14/14y-qualification-stop/`.
+
+Qualification reached offline protected-second installation, orderly stock
+hardware-setup reboot, offline first-stock boot, unattended/detached Windows-like
+roundtrip and tools-stock. Tty3 recovery login/password sudo and tools hotplug
+reached the physically typed install command. It returned a preserved private
+STOP record: `Unexpected efibootmgr grammar; preserve private diagnostics`.
+The harness exported that record before asserting status, so the exact reason
+is retained rather than replaced by a later framed-result timeout.
+
+**Read-only diagnosis:** actual `efibootmgr -v` has six unrelated options ending
+in `{auto_created_boot_option}`. At the first, Boot0002 UEFI Misc Device, the
+owner parser treats16-byte OptionalData as a literal GUID, computes
+`{8108ac4e-9f11-4d59-850e-e21a522c59b2}`, then refuses at
+`os/owner-tools/owner.py:470`, `require(path.endswith(rendered), message)`.
+The actual suffix is the named alias. Replaying the current pure parser against
+the retained stdout and actual target ESP GUID reproduces that exact line,
+without host queries or mutations. The exported command trace records0
+operational mutations. No parser, bundle fingerprint, fixture or owner script
+was changed. Raw firmware/diagnostics stay in the private artifact; source hash,
+line, alias and read-only reproduction are in `firmware-stop-reproduction.json`.
+
+**Audits:** independent replay passed the probe's3 protected captures/4 zero
+write-unmap samples/3 raw varstores and BootNext checks/2 NVRAM transitions.
+It also passed every available qualification audit:7 protected captures,
+8 zero-write/unmap samples,7 raw varstores and exact BootNext replays,6 NVRAM
+rule replays and6 complete-variable delta recomputations. Windows-default and
+detached-device rules are unchanged. The failure-path counter was recorded
+while the VM was paused. Private STOP diagnostics are permitted record writes;
+no claim is made that the failed install step completed.
+
+**Not verified:** prepare, its idempotent rerun, network-up deployment/pin/pending
+invariance, record export, installed registry login/verify/switch, AresOS boot,
+layout failure/revert/success/back, rollback guard/rollback and keep-stock were
+not reached. The full package acceptance remains unmet despite green unit tests.
+Physical release/followability gates and the existing For package15 list stay open.
+
+**Privacy:** artifact digests matched GitHub (probe12751122453; qualification
+12756345422). Probe findings509 =507 reviewed ISO filenames +2 exact whole kernel
+X.509 messages; qualification515 =507 +8 exact whole kernel messages. There are
+0 unclassified findings. Native logs and the qualification failure log scanned0
+before reading. No ignore/rule/privacy-workflow changes. Both exact-head privacy
+jobs passed all3 checks, including personal terms, before both POSTs. Each public
+kernel line is recorded below and with its complete source-line hash in the
+privacy receipts; no raw console, ISO listing or credential is committed.
+
+| Run | Captured boot console | Line | Public certificate name |
+|---|---|---:|---|
+|probe|live-ui-probe-boot-console.txt|491|Fedora kernel signing key|
+|probe|live-ui-probe-boot-console.txt|524|Fedora kernel signing key|
+|qualification|offline-first-stock-boot-console.txt|501|Build time autogenerated kernel key|
+|qualification|offline-first-stock-boot-console.txt|527|Build time autogenerated kernel key|
+|qualification|protected-second-install-boot-console.txt|492|Fedora kernel signing key|
+|qualification|protected-second-install-boot-console.txt|524|Fedora kernel signing key|
+|qualification|stock-initialization-0-boot-console.txt|498|Build time autogenerated kernel key|
+|qualification|stock-initialization-0-boot-console.txt|519|Build time autogenerated kernel key|
+|qualification|tools-stock-boot-console.txt|512|Build time autogenerated kernel key|
+|qualification|tools-stock-boot-console.txt|529|Build time autogenerated kernel key|
+
+**Local replay resource note:** before qualification, the unchanged replay's
+25GiB scratch-space prerequisite found only22.8GiB and stopped before copying.
+One old duplicate ISO cache in this worktree was checked against the exact pin
+and removed, restoring31.2GiB. The original ISO and all reports, logs and extracted
+evidence remain. The same unmodified replay then passed all bytes/checks/sources;
+no source or guard was relaxed. Its hash-first cache-reclaim receipt is retained.
+All local release/source/strict/privacy gates and the fresh ledger/billing/budget
+guard passed before qualification3; this was not a workflow rerun.
+
+| Closed ledger | Value |
+|---|---:|
+| Consumed / package cap |543 /750|
+| Active reservation |0|
+| Probes consumed / cap |13 /13|
+| Qualifications consumed / cap |3 /3|
+| Complete run history |91 /91|
+| This attempt: pushes / dispatches / reruns |1 /2 /0|
+| Image / publication attempts |0 /0|
+
+Closing read-only billing at2026-10-27T17:41:41.024619+00:00 reports included0, Actions
+net spend$0.84, price$0.006/minute,
+approved budget$3 with prevent_further_usage true, and remaining budget
+$2.16 =360 whole paid minutes. Billing may
+lag charges. Reserve0 and closing0 remain: acceptance failed, so conditional
+restoration, final push and PR-ready steps were not taken. The owner budget was
+not changed. All authorized dispatch allowances are exhausted; no more runs.
+
+**PLAN-GAP / open decision:** the source-audited parser does not handle the
+actual formatter's named OptionalData alias. Any source-backed parser/payload
+change and renewed probe/qualification allowances need integrator/owner approval.
+Stop here; no fix, relaxed firmware rule or rerun was attempted. No new product
+JUDGMENT-CALL. The current bundle remains the14v fingerprint.
+
+### Preparation completed before the dispatches
 
 **Done:** the CI inspector permits at most6 ISO connection attempts with1–5s
 backoff. After a short read or connection failure it requests exactly the stored
@@ -79,13 +189,14 @@ ledger/billing/budget then precede probe13. Only its success, cleared14v artifac
 rules, fresh replay and fresh160-minute guard permit qualification3 on the same
 head. Any stop means report and no rerun or further push.
 
-**Not verified / gates:** probe13 and qualification3 pending. Physical gates and
+**Not verified / gates:** At that planning point both runs were pending; the actual STOP above supersedes that plan. Physical gates and
 the For package15 list remain open. Artifact exceptions remain only507 public
 ISO listing findings and whole captured kernel X.509 lines with nonempty name
 and40 hex digits, each recorded; anything else STOPs. Only acceptance permits
 restoring closing12/reserve150, one final commit/push and marking PR #13 ready.
 Closing privacy must pass before merge. At the end the owner sets the Actions
 budget back to$0. No new product JUDGMENT-CALL, PLAN-GAP or open question.
+
 
 ## 14x — Limits passed; incomplete ISO transfer blocks qualification3
 
