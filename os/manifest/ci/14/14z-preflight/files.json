@@ -1,0 +1,61 @@
+{
+  "status": "local preparation, not dispatch authorization",
+  "files": [
+    {
+      "sha256": "1903c89d8d086fd330e5e11175af776bc363c1ad304fa9ef9d9ee4433e4da6d9",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "1112c881c64fc027fe5cd99464fc50d6b17f171d254e65acf725f494c070d28a",
+      "path": "baseline.json"
+    },
+    {
+      "sha256": "858c052a6843acdeee332f9fd2cdf7eca67e17b3d6edbe2055b5d1ff2caaa0aa",
+      "path": "cache-reclaim.json"
+    },
+    {
+      "sha256": "eadfe855a4703cf058b280dc69a7a27d3d1e9b9d4e6f4672aade9bee334fd19c",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "ad6cca47ee7ed0d0d212ed556b656d8529bcb58b03820c2cff8bec90ec79ce9a",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "59a033ac27794b28cac3acb2e3d2f2cedd65c3030e3d5dac0cffa6db2190b1dd",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "0eff62b20383a7ae633060d0ffb13fff1cb1d10c66811aded79cdec0cfe5dfd5",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "09d2fe577da7a792d1249888f5f3b8ac434ac765a8e2e92b8739d8af32eb2433",
+      "path": "privacy.json"
+    },
+    {
+      "sha256": "67e438671cdfa6bd6b35e679154fc4215b97667a89172bcb19af17a5468d8f2e",
+      "path": "push-once.py"
+    },
+    {
+      "sha256": "3c3434412cd88bde3aff0c382eed96fad2c88a904578e0a49dd915b288740f57",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "5b5c1070bf14adba5088b5022722f7327e76afba5e904001c5363d260d7a5b0e",
+      "path": "replay.json"
+    },
+    {
+      "sha256": "72df2141b3f0232fc6fdf69974de6a255a5fcc6b65cba4d51a0d8154da36a76e",
+      "path": "scope.json"
+    },
+    {
+      "sha256": "3ee3eedc828483052c7d864d6e32362c6c9f1a028897bf031f4b8315163f78e3",
+      "path": "strict-checks.py"
+    },
+    {
+      "sha256": "b57164e80629aeb3e33e3bba1a584c603c63e53895b3c68624e0a7911711b1b3",
+      "path": "syntax.json"
+    }
+  ]
+}

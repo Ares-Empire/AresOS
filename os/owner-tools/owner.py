@@ -417,121 +417,98 @@ def mount_record(host, selector, path):
     return row
 
 
-def firmware_entry(text, esp_guid):
-    """Parse efibootmgr 18/efivar 39, not a search through optional data.
+def device_path(raw, esp_guid):
+    """Classify binary UEFI nodes; formatted names/OptionalData are not input.
 
-    show_vars separates description/path with TAB. show_var_path appends
-    OptionalData with no separator, then -v prints dp:/data: byte rows. Those
-    bytes disambiguate the bare file node from appended text. Source audit and
-    fixture provenance: os/manifest/ci/14/parser-sources/README.md.
+    UEFI 2.10, 10.3.1 and 10.3.5: little-endian node lengths, HD's GUID
+    uses EFI mixed endian, and FilePath is NUL-terminated UTF-16LE. Unknown
+    hardware/vendor nodes are skipped by length, never by their rendered name.
     """
-    message = 'Unexpected efibootmgr grammar; preserve private diagnostics'
-    guid_pattern = r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}'
-    require(re.fullmatch(guid_pattern, esp_guid), 'Missing target EFI GUID')
-    entries, headers = [], set()
+    message = 'Malformed EFI device path; preserve private diagnostics'
+    nodes, disks, offset = [], [], 0
+    while offset < len(raw):
+        require(len(raw) - offset >= 4, message)
+        kind, subtype, length = struct.unpack_from('<BBH', raw, offset)
+        require(4 <= length <= len(raw) - offset, message)
+        node = raw[offset:offset + length]
+        nodes.append((kind, subtype, node))
+        offset += length
+        if (kind, subtype) == (4, 1):
+            # Without the complete HD signature this entry cannot be excluded.
+            require(length == 42, message)
+            part, start, size = struct.unpack_from('<IQQ', node, 4)
+            disks.append(dict(partition=part, start=start, size=size,
+                guid=str(uuid.UUID(bytes_le=node[24:40])), format=node[40], signature_type=node[41]))
+        if kind == 0x7f:
+            require(subtype in (1, 0xff) and length == 4, message)
+            if subtype == 0xff:
+                require(offset == len(raw), message)
+    require(nodes and nodes[-1][:2] == (0x7f, 0xff), message)
+    targets = [d for d in disks if d['format'] == d['signature_type'] == 2 and d['guid'] == esp_guid.lower()]
+    if not targets:
+        # File encoding and optional data on another disk/firmware/network
+        # option cannot authorize, or prevent, the target's classification.
+        return None
+    require(len(disks) == len(targets) == 1 and targets[0]['partition'] > 0 and targets[0]['size'] > 0, message)
+    require(not any(k == 0x7f and s == 1 for k, s, _ in nodes), message)
+    files = [node for k, s, node in nodes if (k, s) == (4, 4)]
+    require(len(files) == 1, message)
+    node, = files
+    require(len(node) >= 6 and len(node) % 2 == 0 and node[-2:] == b'\0\0', message)
+    try:
+        path = node[4:-2].decode('utf-16-le')
+    except UnicodeDecodeError:
+        raise Stop(message) from None
+    require('\0' not in path, message)
+    if not path.lower().startswith('\\efi\\'):
+        return None
+    require(len(path) > 5 and not any(c in path for c in '\r\n\t/')
+        and all(p not in ('', '.', '..') for p in path.split('\\')[1:]), message)
+    hd_index = next(i for i, (k, s, _) in enumerate(nodes) if (k, s) == (4, 1))
+    file_index = next(i for i, (k, s, _) in enumerate(nodes) if (k, s) == (4, 4))
+    require(hd_index < file_index < len(nodes) - 1, message)
+    return dict(path=path, esp_guid=targets[0]['guid'])
+
+
+def firmware_entry(text, esp_guid):
+    """Read efibootmgr18 verbose bytes. Text is display/diagnostics only."""
+    message = 'Unexpected efibootmgr entry framing; preserve private diagnostics'
+    require(isinstance(esp_guid, str) and re.fullmatch(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}', esp_guid),
+            'Missing target EFI GUID')
+    entries, headers, mode = [], set(), None
     for line in text.splitlines():
-        if line.startswith('Boot') and re.match(r'Boot[0-9a-fA-F]{4}', line):
-            match = re.fullmatch(r'Boot([0-9a-fA-F]{4})([* ]) ([^\t\r\n]+)\t([^\r\n]+)', line)
-            require(match is not None, message)
-            number, active, label, path = match.groups()
+        match = re.fullmatch(r'Boot([0-9a-fA-F]{4})([* ]) ([^\r\n]*)', line)
+        if match:
+            number, active, display = match.groups()
             require(number.upper() not in {e['number'] for e in entries}, 'Duplicate Boot number; ' + message)
-            entries.append(dict(number=number.upper(), active=active == '*', label=label, path=path))
-        elif line.startswith(('      dp: ', '    data: ')):
+            entries.append(dict(number=number.upper(), label=display.split('\t', 1)[0], dp=[]))
+            mode = None
+            continue
+        match = re.fullmatch(r'\s+(dp|data):\s*(.*)', line)
+        if match:
             require(entries, message)
-            name, raw = ('dp', line[10:]) if line.startswith('      dp: ') else ('data', line[10:])
-            require(name not in entries[-1] and (name == 'dp' or 'dp' in entries[-1]), message)
-            require(re.fullmatch(r'[0-9a-fA-F]{2}(?: [0-9a-fA-F]{2})*(?: / [0-9a-fA-F]{2}(?: [0-9a-fA-F]{2})*)*', raw), message)
-            require(name == 'dp' or ' / ' not in raw, message)
-            entries[-1][name] = [bytes.fromhex(node) for node in raw.split(' / ')]
-        else:
-            match = re.fullmatch(r'(BootCurrent|BootNext): [0-9A-Fa-f]{4}|(BootOrder): [0-9A-Fa-f]{4}(?:,[0-9A-Fa-f]{4})*|(Timeout): [0-9]+ seconds', line)
-            require(match is not None, message)
-            name = line.split(':', 1)[0]
-            require(name not in headers, message)
-            headers.add(name)
+            mode, value = match.groups()
+            if mode == 'dp':
+                entries[-1]['dp'].append(value)
+            continue
+        if line[:1].isspace() and mode in ('dp', 'data'):
+            if mode == 'dp': entries[-1]['dp'].append(line.strip())
+            continue
+        match = re.fullmatch(r'(BootCurrent|BootNext): [0-9A-Fa-f]{4}|(BootOrder): [0-9A-Fa-f]{4}(?:,[0-9A-Fa-f]{4})*|(Timeout): [0-9]+ seconds', line)
+        require(match is not None, message)
+        name = line.split(':', 1)[0]
+        require(name not in headers, message)
+        headers.add(name)
+        mode = None
+    require(any(e['dp'] for e in entries), 'No verbose dp bytes; preserve private diagnostics; no text fallback')
     matches = []
     for entry in entries:
-        path, nodes = entry['path'], []
-        if 'dp' in entry:
-            require(entry['dp'][-1] == b'\x7f\xff\x04\0', message)
-            for raw in entry['dp']:
-                require(len(raw) >= 4 and struct.unpack('<H', raw[2:4])[0] == len(raw), message)
-            require(all(raw[0] != 0x7f for raw in entry['dp'][:-1]), message)
-        optional = b''.join(entry.get('data', []))
-        if optional:
-            if '/File(\\EFI\\' in path and re.search(r'\\shim[^()]*\.efi\) File\(\.', path):
-                rendered = ' File(.' + optional.decode('utf-16-le').split('\0', 1)[0] + ')'
-            elif len(optional) == 16:
-                # No known GUID aliases are needed by this pinned firmware.
-                # An unreviewed alias, like any other unknown grammar, STOPs.
-                rendered = '{' + str(uuid.UUID(bytes_le=optional)) + '}'
-            else:
-                rendered = optional.hex() if any(b < 32 or b > 127 for b in optional) else optional.decode('ascii')
-            require(path.endswith(rendered), message)
-            path = path[:-len(rendered)]
-        # Device nodes are slash-separated; parentheses belong to a node,
-        # never to its following File node or OptionalData.
-        while path and not path.startswith('\\'):
-            node = re.match(r'([A-Za-z][A-Za-z0-9]*)\(([^()]*)\)', path)
-            require(node is not None, message)
-            kind, args = node.groups()
-            require(kind in ('HD', 'File', 'PciRoot', 'Pci', 'Sata', 'NVMe', 'MAC', 'IPv4', 'IPv6',
-                'Uri', 'VenHw', 'VenMedia', 'FvFile', 'FvVol', 'CDROM', 'BBS', 'Acpi'), message)
-            nodes.append((kind, args))
-            path = path[node.end():]
-            if kind == 'File':
-                break
-            if not path:
-                break
-            require(path.startswith('/'), message)
-            path = path[1:]
-        disks = [args for kind, args in nodes if kind == 'HD']
-        require(len(disks) <= 1, message)
-        if not disks:
-            # Firmware's other hardware/network/FvFile options are not Linux
-            # candidates. Never search their labels or OptionalData for a GUID.
-            require(not path and not any(kind == 'File' for kind, args in nodes), message)
-            require(not any(raw[:2] in (b'\x04\x01', b'\x04\x04') for raw in entry.get('dp', [])), message)
-            continue
-        fields = disks[0].split(',')
-        require(len(fields) == 5 and fields[0].isdigit() and int(fields[0]) > 0
-            and fields[1] == 'GPT' and re.fullmatch(guid_pattern, fields[2])
-            and all(re.fullmatch(r'0x[0-9a-fA-F]+', value) for value in fields[3:]), message)
-        require(nodes[-1][0] in ('HD', 'File'), message)
-        file = nodes[-1][1] if nodes[-1][0] == 'File' else None
-        tail = path
-        if 'dp' in entry:
-            raw_hd, raw_file = [], []
-            for raw in entry['dp']:
-                if raw[:2] == b'\x04\x01':
-                    require(len(raw) == 42 and raw[40:] == b'\x02\x02', message)
-                    part, start, size = struct.unpack('<IQQ', raw[4:24])
-                    raw_hd.append([str(part), 'GPT', str(uuid.UUID(bytes_le=raw[24:40])), hex(start), hex(size)])
-                elif raw[:2] == b'\x04\x04':
-                    require(len(raw) >= 8 and len(raw) % 2 == 0 and raw[-2:] == b'\0\0', message)
-                    decoded = raw[4:-2].decode('utf-16-le')
-                    require('\0' not in decoded, message)
-                    raw_file.append(decoded)
-            require(len(raw_hd) == len(raw_file) == 1 and entry['dp'][-1] == b'\x7f\xff\x04\0', message)
-            require([s.lower() for s in raw_hd[0]] == [s.lower() for s in fields], message)
-            if file is None:
-                file = raw_file[0]
-                require(tail.startswith(file), message)
-                tail = tail[len(file):]
-            require(file == raw_file[0], message)
-            require(not tail, message)
-        elif file is None:
-            # Compatibility with a formatter without verbose byte rows: no
-            # ambiguous OptionalData is accepted after the .efi file name.
-            require(re.fullmatch(r'\\[^\r\n\t()]*\.efi', tail, re.I), message)
-            file, tail = tail, ''
-        else:
-            require(not tail, message)
-        require(file is not None and file.lower().startswith('\\efi\\') and len(file) > 5
-            and not any(c in file for c in '\r\n\t\0') and '/' not in file
-            and all(p not in ('', '.', '..') for p in file.split('\\')[1:]), message)
-        if fields[2].lower() == esp_guid.lower():
-            matches.append(dict(number=entry['number'], label=entry['label'], path=file, esp_guid=fields[2]))
+        require(entry['dp'], 'Missing verbose dp bytes for Boot' + entry['number'] + '; preserve private diagnostics')
+        hex_text = ' '.join(entry['dp']).replace('/', ' ')
+        require(re.fullmatch(r'\s*[0-9a-fA-F]{2}(?:\s+[0-9a-fA-F]{2})*\s*', hex_text), message)
+        decoded = device_path(bytes.fromhex(hex_text), esp_guid)
+        if decoded is not None:
+            matches.append(dict(number=entry['number'], label=entry['label'], **decoded))
     require(len(matches) == 1, 'Linux firmware entry does not uniquely map to target EFI')
     return matches[0]
 

@@ -63,32 +63,44 @@ Read together:
   ` File(.<decoded optional data>)` suffix. The owner invocation uses `-v`,
   never `--unicode`. OptionalData has **no general delimiter** before it.
 
-The parser reads Boot records, unique numbers and known metadata; it does not
-search descriptions or OptionalData for an HD node. It accepts both the
-current `/\EFI\...` and the explicitly required legacy
-`/File(\EFI\...)` node. When verbose bytes exist, their node lengths, GPT
-identity, file string and EndEntire terminator must agree with the text;
-OptionalData must render exactly under the rules above. An unreviewed GUID
-alias is a STOP. Without byte rows, only an unambiguous terminal `.efi` bare
-path or closed legacy File node without OptionalData is accepted. Multiple
-instances, missing/duplicate IDs or byte rows, unknown node grammar, a wrong
-GUID, non-`\EFI\` file, disagreement, or zero/multiple target matches STOP.
-An inactive target option still counts, so it cannot hide a duplicate.
+## 14z supersedes rendered-path decisions
 
-Other hardware/network/FvFile options remain non-candidates; their labels or
-OptionalData cannot manufacture a Linux match. The conservative recognized
-node names come from the retained efivar media/hardware/ACPI/message formatters.
-No NVRAM, BootNext, Windows-first, protected-disk or detached-device rule changed.
+The payload now parses Boot#### records and their indented dp/data rows. Only
+raw dp bytes classify an entry. UEFI 2.10 [Device Path Protocol section10](https://uefi.org/specs/UEFI/2.10/10_Protocols_Device_Path_Protocol.html)
+defines the little-endian node length, 42-byte HD node, mixed-endian EFI GUID,
+NUL-terminated UTF-16LE File node and four-byte EndEntire. Unknown vendor and
+hardware nodes are skipped by their bounded length. No label, rendered device
+path, alias or optional data participates in a decision. Non-target HD entries
+and non-HD hardware/network options are ignored. Target File semantic errors
+STOP; a non-\EFI\ path is not counted. An undecodable/truncated chain that
+cannot safely exclude a target STOPs. Exactly one target-GPT-GUID entry under
+\EFI\ is required, active or inactive; no byte rows means STOP, with no text
+fallback. Duplicate Boot IDs and unexplained unframed output also STOP.
 
-`os/tests/fixtures/owner-tools/efibootmgr18-efivar39.txt` is a **source-rendered
-reconstruction**, not captured guest stdout. Its HD/File/End bytes and Bazzite
-description come from qualification 2's retained Boot000A load option. There
-is no OptionalData. `tool-output-sources.json` binds the private varstore hash,
-run and variable and the generated fixture. The failed qualification did not
-retain the actual `efibootmgr -v` stdout; the new private refusal record does.
-The native loop stand-in uses these same pinned printf formats and independently
-queried GPT GUID, including correct verbose bytes, rather than the former
-made-up space-separated `Linux HD(...)/File(...)` line.
+`os/tests/fixtures/owner-tools/efibootmgr18-qualification3.txt` is verbatim real
+stdout exported by qualification3/run40543952228, including Windows and OVMF's
+six {auto_created_boot_option} aliases. `tool-output-sources.json` binds the
+private source record and public VM GUIDs. The older source-rendered 14v fixture
+remains explicitly historical; it no longer establishes acceptance. The native
+loop fixture still emits the source-defined verbose HD/File/End bytes. The
+shared disk_record calls the decoder for install/prepare/records/login/verify/
+switch/layout/recovery/reboot/check. Title consumes the saved disk identity and
+retained deployment/BLS state. No second firmware text matcher remains. The
+harness firmware audit is unchanged.
+
+`retained-parsers.json` adds33 hash-bound captures/projections from real package13
+qualification3 and package14 qualification3: complete rpm/bootc identities and
+flags (only opaque RPM base-commit-meta omitted), actual resolved BLS text/link
+targets, localed JSON, verbatim dumpkeys21/44 lines, cmdline, exact lsblk trees,
+findmnt rows and firmware reads. Real owner observations/agree/prepare preflight,
+whole-list BLS resolution, title handler and switch/rollback/keep-stock guards
+are executed on those states without privileged commands. Existing retained
+11f staged-update and package11/13 shell tests still execute unchanged shared
+programs. Login/verify do not parse registry/cosign prose; exact manifest digest,
+exit/policy checks and hidden-token refusal tests remain. No actual loginctl
+second-session capture or NVIDIA Flatpak state exists in those stopped package14
+runs; source-shaped tests and the complete stand-in command walk cover them,
+with native/VM acceptance still required. No fixture is claimed as a new run.
 
 ## Every other external-output parser in the 12-file payload
 

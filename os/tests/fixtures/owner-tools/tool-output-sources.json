@@ -32,5 +32,21 @@
       "sha256": "11f07b93b60980240e2b899bacbaec4a778b27066ea72bd13b80262175671aa9",
       "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-us-keyboard.json"
     }
+  },
+  {
+    "sha256": "d7d069cff7c7cbb8ee86958369ddfec7990b6873d7264c3b7c021a017acbf73f",
+    "path": "os/tests/fixtures/owner-tools/efibootmgr18-qualification3.txt",
+    "kind": "verbatim real qualification3 efibootmgr -v stdout, not reconstructed",
+    "source": {
+      "sha256": "97de0ec81532fcca612d254bb9bcf4d67efb18ebc79c2590bcc9e2fc5b447ebf",
+      "path": ".work/14/run-40543952228/evidence/two-disk/tools-install-owner-diagnostics.json",
+      "run": 40543952228
+    },
+    "target_esp_guid": "88420aef-f1fd-4814-8381-339d03f60a65"
+  },
+  {
+    "sha256": "fe27c5cdbe4cadf8528effe599fdb58b1194284d23224c93ba6f04913f6d9308",
+    "path": "os/tests/fixtures/owner-tools/retained-parsers.json",
+    "kind": "33 real captured/projection values; per-source hashes and projection notes inside"
   }
 ]

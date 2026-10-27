@@ -37,6 +37,7 @@ import test_owner_firmware
 import test_owner_diagnostics
 import test_owner_artifact_class
 import test_owner_format_audit
+import test_owner_retained
 
 
 def main():
@@ -44,7 +45,7 @@ def main():
         (test_owner_commands,test_owner_export,test_owner_transport,test_owner_walk,test_owner_guard,test_organization_budget,test_rehearsal_budget,test_installer_download,test_installer_webui,test_owner_equality,test_owner_tools,
          test_release_squash_binding,test_ci_api_permissions,test_ci_step_environment,test_owner_media,test_owner_capabilities,test_guest_framing,
          test_owner_console,test_owner_devices,test_owner_entry,test_owner_devices_native,test_loop_nodes,
-         test_owner_firmware,test_owner_diagnostics,test_owner_artifact_class,test_owner_format_audit))
+         test_owner_firmware,test_owner_diagnostics,test_owner_artifact_class,test_owner_format_audit,test_owner_retained))
     result=unittest.TextTestRunner(verbosity=2).run(suite)
     assert result.wasSuccessful() and not result.skipped
     walk=test_owner_walk.walk()
@@ -55,7 +56,7 @@ def main():
                     'os/manifest/ci/14/hotplug-sources/*','os/manifest/ci/14/keyboard-sources/*',
                     'os/tests/fixtures/owner-console/*','os/tests/fixtures/owner-tools/storage-*.json',
                     'os/tests/fixtures/owner-tools/blkid-p-gpt*', 'os/tests/fixtures/owner-tools/efibootmgr*',
-                    'os/tests/fixtures/owner-tools/dumpkeys-*','os/tests/fixtures/owner-tools/tool-output-sources.json',
+                    'os/tests/fixtures/owner-tools/dumpkeys-*','os/tests/fixtures/owner-tools/tool-output-sources.json','os/tests/fixtures/owner-tools/retained-parsers.json',
                     'os/manifest/ci/14/parser-sources/*','reviews/14-owner-tools/classify-artifacts.py',
                     'reviews/14-owner-tools/verify-parser-rpmdb.py'):
         files.update(p for p in ROOT.glob(pattern) if p.is_file())

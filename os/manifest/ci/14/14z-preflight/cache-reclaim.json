@@ -1,0 +1,18 @@
+{
+  "files": [
+    {
+      "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+      "path": ".work/14/14h-probe-installer-replay/work/bazzite-nvidia-open-stable-live-amd64.iso",
+      "bytes": 9068650496,
+      "action": "unlink one verified ordinary duplicate cache; all extracted evidence preserved"
+    },
+    {
+      "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+      "path": ".work/14/14h-qualification-installer-replay/work/bazzite-nvidia-open-stable-live-amd64.iso",
+      "bytes": 9068650496,
+      "action": "unlink one verified ordinary duplicate cache; all extracted evidence preserved"
+    }
+  ],
+  "original_preserved": true,
+  "free_bytes": 29959401472
+}

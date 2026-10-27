@@ -1,12 +1,77 @@
 # 14: checked owner tools
 
-**Current 14y: STOP — probe13 passed; qualification3 refused tools-install.**
-Exactly one fast-forward push reached `9284b04cc8a37b51a29c86e011ce2a22ac009d22`.
-Both dispatches used that exact head and attempt1. No rerun, extra dispatch or
-later push. This STOP report is committed locally only; PR #13 stays draft /
-NOT RELEASED. No owner-script/payload fix, firmware-audit widening, image build,
-publication, scope change, real laptop operation or merge. This attempt is over;
-further work/dispatch/push requires a new integrator/owner decision.
+**Current 14z: local preparation passed; one push and hosted gates pending.**
+PR #13 stays draft / NOT RELEASED. Acceptance needs probe 14/qualification 4 on the
+same head, every audit and privacy. Earlier STOP sections below are historical.
+No image/release/publication, real laptop operation, scope change or merge.
+
+## 14z — Binary EFI device paths; probe 14 and qualification 4
+
+**Done:** Boot#### records and their verbose dp rows feed one binary decoder.
+Bounded UEFI lengths, HD 04/01 partition/start/size/GPT mixed-endian GUID,
+File 04/04 UTF-16LE and End 7fff decide. Unknown vendor/hardware nodes are skipped
+by bounded length. Only the target GPT GUID plus a File under case-insensitive
+\EFI\ counts; exactly one active/inactive entry is required. Display text,
+OVMF aliases and OptionalData never decide. Non-target file semantics are ignored;
+malformed/unclassifiable chains cannot safely exclude a target and STOP.
+Malformed target nodes, duplicate IDs/matches or missing byte rows STOP. There
+is no text fallback. The private raw firmware recorder remains. Every firmware-
+consuming payload command uses disk_record and this decoder. The independent
+harness firmware audit is unchanged. Reference: [UEFI Device Path Protocol](https://uefi.org/specs/UEFI/2.10/10_Protocols_Device_Path_Protocol.html).
+
+The real qualification 3 stdout with Windows/six OVMF aliases is a hash-bound
+fixture. Ten firmware tests cover real output, duplicate/inactive targets,
+non-EFI/Windows, truncation, node lengths/end, UTF-16, mixed-endian GUID and
+signature type, wrapped dp rows, unknown nodes, opaque optional data and missing
+bytes. A diagnostics refusal fixture now changes the authoritative binary GUID;
+no assertion relaxed.33 real package13/14 captures/projections exercise identities,
+prepare preflight, actual BLS text/link resolution, title, staged switch, AresOS,
+layout, rollback/keep-stock, localed/dumpkeys, lsblk/findmnt and disk_record.
+Retained 11f staged-update and all shared-script tests remain. Login/verify use
+exact manifest/exit/policy checks without a prose parser. No real fresh-second-
+session loginctl or NVIDIA Flatpak state exists in the stopped qualifications;
+pinned-source tests and the complete stand-in walk cover those formats, with
+native/VM proof mandatory. Full per-command audit/source provenance:
+`os/manifest/ci/14/parser-sources/README.md`.
+
+The regenerated 12-file bundle is `a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3`. INSTALL's active fingerprint and
+bindings are refreshed; historical receipts keep their original hashes. AST
+comparison proves every other owner definition unchanged. Frozen release/runtime,
+shared scripts, harness/audits, workflow and privacy unchanged; guide changes only
+the fingerprint. Package13 unchanged. Package14 cap800/probe 14/owner-tools4;
+October reserve0/closing0 and probe72/qualification160 bounds remain.
+
+**Verified locally:** final whole suite 400 tests in338.03s:
+392 distinct passes, exactly the same 8 native-host limits, no skips (exit1;
+2 failures/9 error records include cleanup errors). Limits: Pillow 3, no-privilege
+Homebrew 3/sysusers 1, DrvFS credential mode 1, individually in preparation.json.
+Probe must pass all 400 natively. Initial suite exposed the obsolete diagnostics
+fixture; after fixing binary GUID, the whole suite was rerun. Host walk 181 tests
+passed in164.749s, binding 99 sources. Strict 258 guest
+commands/258 serial wrappers,233 embedded Python,12 shells,45 Python files and
+the native workflow shell passed without stderr. Windows copy 15 zero-write
+refusals/exact payload passed. Actual release/git/file/read-only gh replay and
+53 retained offline-source/full-listing checks passed. The unchanged real ISO
+inspector rehashed 9,068,650,496 cached bytes against pin/fresh official checksum,
+with 4 localization / 102 WebUI sources. Platform/cached-transport adapters only,
+no CI assertion patched. Four CI-only credential steps remain fail-closed per 14f.
+Evidence: `os/manifest/ci/14/14z-preflight/`. Two verified old duplicate ISO caches
+were removed only in this worktree for scratch space; original ISO and all
+extracted evidence preserved (`cache-reclaim.json`).
+
+Planning at2026-10-27T18:05:33.488955+00:00: consumed543/800;
+13/14 probes,3/4 qualifications; history91/
+91. Push6 + probe72 + qualification160 =238.
+Billing net$0.84, approved$3 Actions budget,
+prevent true, paid minutes360; after bound: 122 minutes. This is planning, not authorization: exact-head
+privacy and complete ledger/billing/budget refreshed before each dispatch.
+One pre-dispatch FF push; no further push until qualification finishes; no rerun
+on any STOP. Owner budget is read-only.
+
+**Not verified / gates:** probe 14/qualification 4, later VM commands and acceptance
+pending. Physical laptop/followability gates stay open; guide/card/release gate
+NOT RELEASED. No judgment beyond14z; no new PLAN-GAP or open question locally.
+Restore closing 12 / reserve 150 and mark ready only after acceptance.
 
 ## 14y — Download gates passed; qualification3 firmware-parser refusal
 

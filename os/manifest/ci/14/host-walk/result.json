@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 173,
+  "tests": 181,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -108,7 +108,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "a4e1f450fd5d6f9f5561b9eeaaf6689ed4324507e0767f97d37f1013294aea3c",
+      "sha256": "5a6d990e160deaa9010072c947bf260e265bbe8249d6e09ec25b19d9a6c3ae83",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -192,7 +192,7 @@
       "path": "os/manifest/ci/14/keyboard-sources/us.map"
     },
     {
-      "sha256": "7c2449923d7c6d27efab1794d771f8a9136cf241e97c71d3a223c07a8b25d407",
+      "sha256": "e5af3edc3f5ae73286aeca85caf43979d59129243edc368a1edc68ee7deac5be",
       "path": "os/manifest/ci/14/parser-sources/README.md"
     },
     {
@@ -228,7 +228,7 @@
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "c8cf42ccc4bc50adf37861d6fb238784c3185e912d4558848f019373963b85a9",
+      "sha256": "3ada4c076501020a8a043ae58aed30fcf7ed406ca9d8502ba46d5058361e4787",
       "path": "os/owner-tools/owner.py"
     },
     {
@@ -292,6 +292,14 @@
       "path": "os/tests/fixtures/owner-tools/efibootmgr18-efivar39.txt"
     },
     {
+      "sha256": "d7d069cff7c7cbb8ee86958369ddfec7990b6873d7264c3b7c021a017acbf73f",
+      "path": "os/tests/fixtures/owner-tools/efibootmgr18-qualification3.txt"
+    },
+    {
+      "sha256": "fe27c5cdbe4cadf8528effe599fdb58b1194284d23224c93ba6f04913f6d9308",
+      "path": "os/tests/fixtures/owner-tools/retained-parsers.json"
+    },
+    {
       "sha256": "b156cc601b2d091f739410defcf2fcb6c13bb158adbf141550083eb5a5752118",
       "path": "os/tests/fixtures/owner-tools/storage-flat.json"
     },
@@ -300,7 +308,7 @@
       "path": "os/tests/fixtures/owner-tools/storage-tree.json"
     },
     {
-      "sha256": "c8aac116f1773c05725547b1dff4347dbb05f68a2eafc8e5af21b4d6ef47ce49",
+      "sha256": "5ef6da72bde9700a16e4eb2c5a5f66e9e7ab8f5e2aeaf131c619dbb612b7d521",
       "path": "os/tests/fixtures/owner-tools/tool-output-sources.json"
     },
     {
@@ -372,7 +380,7 @@
       "path": "os/tests/test_owner_devices_native.py"
     },
     {
-      "sha256": "ab12b21a8b489a549443faad48a0c6e4b496eb9051b2207e020d96faedd95e47",
+      "sha256": "c1052e9f359998c44f9d4f5b1c313ac58166aab139a4bd921f05fc47c66d603e",
       "path": "os/tests/test_owner_diagnostics.py"
     },
     {
@@ -388,7 +396,7 @@
       "path": "os/tests/test_owner_export.py"
     },
     {
-      "sha256": "cc53b7354f74df63127a79743e98f1240664efb68da670675ec2fa04d3c34060",
+      "sha256": "3c0c1e723b8613761a461075995dffe644e89e94ae6099a6d5c3eed3f4fcf477",
       "path": "os/tests/test_owner_firmware.py"
     },
     {
@@ -396,12 +404,16 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "d6836b10ac9cbc442c009cd2b0f6365906027e23b74623cba51b1637c70e6754",
+      "sha256": "23f1f741459307957673772b47ffb6dc58b1820b4fb74bbb58c4f5dbf29fdd4b",
       "path": "os/tests/test_owner_guard.py"
     },
     {
       "sha256": "35162391f9b36183b063ac604d833168000e1ff715146ca50a241a85f55f6de6",
       "path": "os/tests/test_owner_media.py"
+    },
+    {
+      "sha256": "27ca2fba8ba7882d5a346b25b0fad1668e4bdbbe96d9027b5ad331c9d362e662",
+      "path": "os/tests/test_owner_retained.py"
     },
     {
       "sha256": "46db65de2d43512ff1cd5566060c8ca29a099c01fcdff1100ed5155c323b9d7e",
@@ -432,7 +444,7 @@
       "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
     },
     {
-      "sha256": "b546a26a870780964af8ca988be0cc196f4889aee73a404cc0d54d57c5040316",
+      "sha256": "f7828a230c6eb5af17eed7b220019898342bfc02fc355bdec616e9224d5bad4d",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

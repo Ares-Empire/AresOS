@@ -73,7 +73,10 @@ class DiagnosticsTest(unittest.TestCase):
 
     def test_install_mapping_stop_saves_exact_raw_text_before_any_installation(self):
         read = self.host.read
-        raw = read('efibootmgr', '-v').replace('10000001-1111-2222-3333-444444444444', '20000002-1111-2222-3333-444444444444')
+        from owner_devices import fixture_firmware
+        # A refusal fixture must change the authoritative dp GUID as well;
+        # changing display text alone is intentionally irrelevant in 14z.
+        raw = fixture_firmware('20000002-1111-2222-3333-444444444444',0x12c000)
         def response(*command, **kw):
             if command == ('efibootmgr', '-v'): return raw
             return read(*command, **kw)
