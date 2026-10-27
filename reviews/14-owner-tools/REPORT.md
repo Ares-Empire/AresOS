@@ -29,7 +29,7 @@ fully stubbed controller tests passed before dispatch. A later test-isolation
 fix made the controller tests repeatable after the real nonce exists and added
 an explicit second-POST refusal: 3 controller tests passed. The exact original
 2-test source/hash/log and the repeatable 3-test version are archived separately.
-No executable watcher/controller change occurred after dispatch.
+No executable watcher/controller change occurred after dispatch. Exact source/log bytes are in executed-sources.zip; Python/txt viewers use LF. The final file manifest was checked against committed Git bytes, including the tracked txt test logs.
 
 Actual 14e/14f release/git/file/read-only gh replay, 53 retained offline-source/
 full-listing checks, 258 guest/258 serial strict Bash parses, 233 embedded Python,

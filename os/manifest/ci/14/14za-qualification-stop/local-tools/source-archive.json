@@ -1,0 +1,64 @@
+{
+  "archive": {
+    "sha256": "b6884a3bed181bc089a8ee993f586ed4dceb0e3114a318ba2817830e2a09dcb9",
+    "path": "executed-sources.zip"
+  },
+  "members": [
+    {
+      "sha256": "76a58b65858a1d787c1c1f4d3a96ee19a3a6bff99e2c8da9646d73ddf4c1c407",
+      "member": "14za-control.py",
+      "source_path": ".work/14/14za-control.py"
+    },
+    {
+      "sha256": "f0d38b2ad8b6dcc14fc30ee27e6fe669d2bc6b4c63b0547aba7fa4a281e65493",
+      "member": "14za_watcher.py",
+      "source_path": ".work/14/14za_watcher.py"
+    },
+    {
+      "sha256": "74a73789857991422d7928889e5049fb219e7d31fd3468029bb8d64f73bb9d94",
+      "member": "test_14za_watcher.py",
+      "source_path": ".work/14/test_14za_watcher.py"
+    },
+    {
+      "sha256": "22b75f82eb7c724900e38594fa85373e2339c643458c4879a276ee59df5425b1",
+      "member": "test_14za_control.py",
+      "source_path": ".work/14/test_14za_control.py"
+    },
+    {
+      "sha256": "feb3b3ae4d83e8ef77fe8103d1a83374a9508b1417ffc2644984ac542ab6f4ea",
+      "member": "pre-dispatch/test_14za_control.py",
+      "source_path": ".work/14/14za-dispatched-test_14za_control.py"
+    },
+    {
+      "sha256": "95093cd6de86fbc2e71a9849ad134f2b99b888b52609416326d4ccc9b2851e62",
+      "member": "14za-read-only-replay.py",
+      "source_path": ".work/14/14za-read-only-replay.py"
+    },
+    {
+      "sha256": "20eb74348014d512152cf16ea1acd124d2395a4ab4afafa70a1687ffe90daa93",
+      "member": "14za-syntax.py",
+      "source_path": ".work/14/14za-syntax.py"
+    },
+    {
+      "sha256": "612612fdc3d5dd90d409ba0d6aa3f4e198fd0cd793be43174d5f2a65741a8e20",
+      "member": "14za-installer-replay.py",
+      "source_path": ".work/14/14za-installer-replay.py"
+    },
+    {
+      "sha256": "152c9822fc0eeda6508aea0c9f19a8f0a897d20c6668afaff9728cde7d2a6f81",
+      "member": "watcher-tests.log",
+      "source_path": ".work/14/14za-watcher-tests.log"
+    },
+    {
+      "sha256": "fbb1daeb3f96fff6646ee4e15e061b94fee2a31b2a7db8a0acff2de993c88955",
+      "member": "controller-pre-dispatch.log",
+      "source_path": ".work/14/14za-control-tests.log"
+    },
+    {
+      "sha256": "7d7c69ef6527dffc7af113c7e85181662ec73c9934df3fb96496e4e51d75aa5b",
+      "member": "controller-repeatable.log",
+      "source_path": ".work/14/14za-control-tests-repeatable.log"
+    }
+  ],
+  "viewers": "Python and txt viewers normalized LF; exact original bytes including line endings are in the archive"
+}
