@@ -197,7 +197,7 @@ def organization_budget(reserve, now=None):
         entry = matches[0]
         assert entry.get('budget_type') == 'ProductPricing' and entry.get('budget_scope') == 'organization' and entry.get('budget_entity_name') == settings['organization'], 'STOP: wrong Actions budget scope'
         amount = entry.get('budget_amount')
-        assert type(amount) in (int, float) and amount == 1, 'STOP: Actions budget amount differs from approved $1'
+        assert type(amount) in (int, float) and amount == 3, 'STOP: Actions budget amount differs from approved $3'
         assert entry.get('prevent_further_usage') is True, 'STOP: Actions budget must prevent further usage'
         spent = sum((Decimal(str(row['netAmount'])) for row in actions), Decimal(0))
         assert spent <= Decimal(str(amount)), 'STOP: reported Actions spend exceeds approved budget'
@@ -209,7 +209,7 @@ def organization_budget(reserve, now=None):
                     budget_scope=entry['budget_scope'], budget_entity_name=entry['budget_entity_name'],
                     price_source=path, runner_sku='actions_linux', pricePerUnit=price,
                     reported_net_amount=float(spent), available_budget=float(Decimal(str(amount))-spent),
-                    paid_minutes=paid_minutes, decision='briefs/14t-paid-overflow.md', exception_month='2026-10')
+                    paid_minutes=paid_minutes, decision='briefs/14w-retest-3usd.md', exception_month='2026-10')
     remaining = (included_left + paid['paid_minutes']) if paid else settings['included_minutes'] - used
     spare = remaining - reserve
     assert spare >= settings['other_repos_reserve'], f'STOP: organization has {remaining} available minutes; {reserve} reserved must leave {settings["other_repos_reserve"]}'

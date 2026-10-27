@@ -87,7 +87,7 @@ class PaidOverflowTest(unittest.TestCase):
                  discountQuantity=1869,netQuantity=0,grossAmount=11.214,discountAmount=11.214,
                  netAmount=0,pricePerUnit=0.006)])
         self.budgets=dict(budgets=[dict(budget_type='ProductPricing',budget_product_sku='actions',
-            budget_scope='organization',budget_entity_name='Ares-Empire',budget_amount=1,
+            budget_scope='organization',budget_entity_name='Ares-Empire',budget_amount=3,
             prevent_further_usage=True)],has_next_page=False,total_count=1)
 
     def call(self,reserve=178):
@@ -100,24 +100,30 @@ class PaidOverflowTest(unittest.TestCase):
 
     def test_reads_budget_and_price_and_floors_paid_minutes(self):
         result=self.call();paid=result['paid_overflow']
-        self.assertEqual((result['included_minutes_left'],paid['paid_minutes'],result['remaining_minutes'],result['after_reservation']),(131,166,297,119))
-        self.assertEqual((paid['budget_amount'],paid['pricePerUnit'],paid['prevent_further_usage']),(1,0.006,True))
+        self.assertEqual((result['included_minutes_left'],paid['paid_minutes'],result['remaining_minutes'],result['after_reservation']),(131,500,631,453))
+        self.assertEqual((paid['budget_amount'],paid['pricePerUnit'],paid['prevent_further_usage']),(3,0.006,True))
+        self.assertEqual(paid['decision'],'briefs/14w-retest-3usd.md')
         self.assertEqual(len(paid['response_sha256']),64)
-        self.assertEqual(self.call(297)['after_reservation'],0)
-        with self.assertRaisesRegex(AssertionError,'must leave 0'):self.call(298)
+        self.assertEqual(self.call(631)['after_reservation'],0)
+        with self.assertRaisesRegex(AssertionError,'must leave 0'):self.call(632)
         self.usage['usageItems'][0]['pricePerUnit']=0.03
-        self.assertEqual(self.call(0)['paid_overflow']['paid_minutes'],33)
+        self.assertEqual(self.call(0)['paid_overflow']['paid_minutes'],100)
 
     def test_reported_paid_spend_is_not_available_twice(self):
-        self.usage['usageItems'][0].update(grossQuantity=2010,discountQuantity=2000,netQuantity=10,netAmount=0.06)
+        self.usage['usageItems'][0].update(grossQuantity=2014,discountQuantity=2000,netQuantity=14,netAmount=0.08)
         result=self.call(0)
-        self.assertEqual((result['included_minutes_left'],result['paid_overflow']['paid_minutes'],result['remaining_minutes']),(0,156,156))
-        self.usage['usageItems'][0]['netAmount']=1.01
+        self.assertEqual((result['included_minutes_left'],result['paid_overflow']['paid_minutes'],result['remaining_minutes']),(0,486,486))
+        self.assertEqual(result['paid_overflow']['available_budget'],2.92)
+        storage=dict(self.usage['usageItems'][0],sku='actions_storage',unitType='gigabyte-hours',netAmount=0.01)
+        self.usage['usageItems'].append(storage)
+        self.assertEqual(self.call(0)['paid_overflow']['paid_minutes'],485)
+        self.usage['usageItems'][0]['netAmount']=3.01
         with self.assertRaisesRegex(AssertionError,'exceeds approved'):self.call(0)
 
     def test_wrong_budget_prevention_amount_scope_or_sku_refuses(self):
         original=copy.deepcopy(self.budgets)
-        for key,value in [('budget_amount',0),('budget_amount',2),('budget_amount',True),('budget_amount','1'),
+        for key,value in [('budget_amount',0),('budget_amount',1),('budget_amount',2),('budget_amount',4),
+                          ('budget_amount',True),('budget_amount','3'),
                           ('prevent_further_usage',False),('prevent_further_usage',1),
                           ('budget_product_sku','packages'),('budget_scope','repository'),
                           ('budget_entity_name','other'),('budget_type','unknown')]:

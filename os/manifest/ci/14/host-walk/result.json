@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 135,
+  "tests": 147,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -104,11 +104,11 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "d3798ad9d154ac5876e9f47a5b239935fb05b823b7914d72325a3c590729a52b",
+      "sha256": "e067c2ba461a4ab53ad2a9880b018c48b396423d3a2962744030a1fdcf7a08b6",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "bb066e2ae2388dc55f24f8870889deca3e26a699cd9abf3adef15a72455d87cb",
+      "sha256": "b5fb4d4d51878564cf232239f940bbc109925c93dff00318ca08e8a90b87913d",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
@@ -328,6 +328,10 @@
       "path": "os/tests/test_loop_nodes.py"
     },
     {
+      "sha256": "85bb623a2e93b79f9df4089a21f705222e085fcdf96bb7e34ebfc61ee8013587",
+      "path": "os/tests/test_organization_budget.py"
+    },
+    {
       "sha256": "e48a5c6f1ddece5d6f2e89ded5f6a001f5f5d62011fef699157aaedb42918bf3",
       "path": "os/tests/test_owner_artifact_class.py"
     },
@@ -376,7 +380,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "9ff44411d338e531e219ef0bc210e950d6761eb6fa7d8e0ac3279c235355c56d",
+      "sha256": "2644bb97c5322cc492380f965436ee9fc9e1026463d904372cd250c4b275203e",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -408,7 +412,7 @@
       "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
     },
     {
-      "sha256": "cc1583a8c3bce980b1c303e65fea723f48151afc8a0232cf81ea779154378e5d",
+      "sha256": "044b56449ff09fb565fcce8cd484782f45ea5f1f7d8d163cf03c887469f93a13",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

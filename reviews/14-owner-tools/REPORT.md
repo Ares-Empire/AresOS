@@ -1,9 +1,60 @@
 # 14: checked owner tools
 
-**Current 14v: local fixes verified; qualification 2 remains failed. No push or
-dispatch.** PR #13 stays draft / NOT RELEASED. No laptop operation, image build,
-publication, permission/scope change, rerun or merge. This local-only run is over;
-the owner decides the next budget/allowance and date before any new Actions run.
+**Current 14w: local preparation passed; one push and hosted gates pending.**
+PR #13 remains draft / NOT RELEASED. No real laptop operation, image build,
+publication, credential/scope change or merge. Earlier STOP sections remain historical evidence.
+
+## 14w — $3 October retest; probe 11 and qualification 3
+
+**Done:** package14 alone now has cap700, probe11 and owner-tools3. Package13
+is unchanged. October's explicit reserve0/closing0 are unchanged. The guard
+requires the read-only budgets API to show exactly the approved organization
+Actions budget$3 and prevention true. It subtracts all reported net Actions
+spend before dividing by the billing API's positive runner price and flooring.
+Missing, malformed, stale, inconsistent or changed billing/budget data STOPs.
+The single push carries the14s bounded loop-node fix,14t bookkeeping and14v
+source-verified firmware parser/diagnostics fix. The14v owner bundle remains
+`effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7`. No payload, frozen release/runtime,
+workflow, permission, privacy ignore/rule or image change in14w.
+
+**Verified locally:** 379 whole-suite tests ran: 371 distinct passes,
+exactly the same8 native-host limitations and no skips (unittest exit1).
+147 host-walk tests passed and bind91 current sources,
+including billing regressions. Strict parsing passed258 guest commands and258
+serial wrappers with no parse stderr,233 embedded Python snippets,12 shell
+files and45 CI/overlay/owner Python files. Windows copy passed15 zero-write
+refusals and exact bundle equality. Actual14e/14f git/file/read-only gh release
+replay,53 retained offline sources and complete listing passed. Actual installer
+inspection rehashed9,068,650,496 bytes, checked the fresh public publisher
+checksum, and read4 localization/102 WebUI sources. Four credential-only
+checks and the8 native-host limitations remain mandatory in CI. A supplemental Windows-Python equality invocation passed3/4 but failed the
+Linux heredoc test because Windows text pipes add CRLF; no product fix or
+assertion change was made. The authoritative suite and host walk use WSL Bash;
+the final WSL equality check is retained separately. Current proof:
+`os/manifest/ci/14/14w-preflight/`.
+
+Pre-push planning at2026-10-27T14:00:52.769433+00:00: 403+178/700,
+complete81/81 history.
+Billing reports included0, net Actions spend
+$0.174, price$0.006/minute,
+available budget$2.826 and
+471 floored paid minutes; 293
+remain after the178-minute pre-push reservation. These are planning values,
+not dispatch authorization. Pinned full-history gitleaks must clear before the
+exactly one fast-forward push. Fresh exact-head privacy, complete ledger,
+billing and budget precede probe11. Qualification3 requires the same head,
+a successful probe, cleared14s/14v artifact classification, fresh replay and
+a fresh130-minute guard. Any refusal or run/artifact stop means no rerun.
+No further push until qualification has finished.
+
+**Not verified / gates:** probe11 and qualification3 are pending. Physical
+laptop/followability checks stay open. Artifact exceptions are only the507
+public ISO listing findings and whole captured boot-console kernel X.509 lines
+with a nonempty certificate name and exactly40 hex digits; each is recorded.
+Anything else STOPs before qualification. Acceptance alone permits a final
+commit restoring closing12/reserve150, one closing push and marking PR ready.
+Closing privacy must pass before merge. The owner resets the Actions budget
+to$0 after this run ends. No new product JUDGMENT-CALL, PLAN-GAP or question.
 
 ## 14v — Pinned firmware grammar, private STOP records and parser audit
 

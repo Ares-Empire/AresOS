@@ -1,21 +1,21 @@
 {
   "allowance": "14",
   "start": "2026-10-25T22:01:22Z",
-  "cap": 520,
+  "cap": 700,
   "full_cap": 0,
   "full_dispatched": 0,
   "part_b_cap": 0,
   "part_b_dispatched": 0,
   "dispatch_caps": {
-    "probe": 10,
-    "owner-tools": 2
+    "probe": 11,
+    "owner-tools": 3
   },
   "dispatch_counts": {
     "probe": 10,
     "owner-tools": 2
   },
   "consumed_minutes": 403,
-  "reserved_minutes": 0,
+  "reserved_minutes": 178,
   "runs": [
     {
       "run": 40421596174,
@@ -567,67 +567,61 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-27T00:56:52.594506+00:00",
-  "snapshot_kind": "14u actual closed STOP;0 reservation is bookkeeping only; no dispatch authorization",
+  "checked_at": "2026-10-27T14:00:52.769433+00:00",
+  "snapshot_kind": "14w pre-push planning; fresh dispatch guard still required",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-27T00:56:51.570014+00:00",
-    "response_sha256": "50754ac11bae6686d33c1c436d7af9c111f4382fcc202d3e59540364c9050cc6",
+    "checked_at": "2026-10-27T14:00:51.655205+00:00",
+    "response_sha256": "f15041e6c12351766050ee4343fd02ad63a97c12d5245d4d91882604507b9167",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 2010.0,
+        "grossQuantity": 2029.0,
         "discountQuantity": 2000.0,
-        "netQuantity": 10.0,
-        "grossAmount": 12.06,
+        "netQuantity": 29.0,
+        "grossAmount": 12.174,
         "discountAmount": 12.0,
-        "netAmount": 0.06,
+        "netAmount": 0.174,
         "pricePerUnit": 0.006
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 10.232738032,
-        "discountQuantity": 10.232738032,
+        "grossQuantity": 12.620939137,
+        "discountQuantity": 12.620939137,
         "netQuantity": 0.0,
-        "grossAmount": 0.003438364,
-        "discountAmount": 0.003438364,
+        "grossAmount": 0.00424084,
+        "discountAmount": 0.00424084,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 2010,
+    "used_minutes": 2029,
     "included_minutes": 2000,
     "included_minutes_left": 0,
     "paid_overflow": {
       "source": "organizations/Ares-Empire/settings/billing/budgets",
-      "response_sha256": "037b305a621e6be420582a4de031115ee071e980ab496370f1d758b59c4bd64f",
+      "response_sha256": "f898385e447fa52772d6759b30583ee5527b3e8044dd49b2061d959a996d5b37",
       "budget_product_sku": "actions",
-      "budget_amount": 1,
+      "budget_amount": 3,
       "prevent_further_usage": true,
       "budget_scope": "organization",
       "budget_entity_name": "Ares-Empire",
       "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
       "runner_sku": "actions_linux",
       "pricePerUnit": 0.006,
-      "reported_net_amount": 0.06,
-      "available_budget": 0.94,
-      "paid_minutes": 156,
-      "decision": "briefs/14t-paid-overflow.md",
+      "reported_net_amount": 0.174,
+      "available_budget": 2.826,
+      "paid_minutes": 471,
+      "decision": "briefs/14w-retest-3usd.md",
       "exception_month": "2026-10"
     },
-    "remaining_minutes": 156,
-    "reserved_minutes": 0,
-    "after_reservation": 156,
+    "remaining_minutes": 471,
+    "reserved_minutes": 178,
+    "after_reservation": 293,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
-  },
-  "current_bundle": {
-    "sha256": "effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7",
-    "path": "os/owner-tools/payload/SHA256.json",
-    "qualification": "pending",
-    "note": "14v local-only parser and refusal-diagnostic fixes; no probe/qualification of this payload"
   },
   "local_privacy_scans": [
     {
@@ -992,8 +986,22 @@
       "scope": "complete committed Git history",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "735238a",
+      "checked_at": "2026-10-27T14:03:09.929320+00:00",
+      "scope": "full Git history, redacted",
+      "exit_code": 0,
+      "findings": 0
     }
   ],
+  "current_bundle": {
+    "sha256": "effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7",
+    "path": "os/owner-tools/payload/SHA256.json",
+    "qualification": "pending",
+    "note": "14v local-only parser and refusal-diagnostic fixes; no probe/qualification of this payload"
+  },
   "reservation_plan": {
     "push": 6,
     "probe": 42,
@@ -1006,26 +1014,7 @@
     "exception_month": "2026-10",
     "merge_requires_privacy": true
   },
-  "owner_decision": "14v local parser/diagnostic fixes only; no push or dispatch; budget/allowances unchanged",
-  "qualification2": {
-    "run": 40421596174,
-    "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
-    "conclusion": "failure",
-    "owner_stop": "Linux firmware entry does not uniquely map to target EFI",
-    "privacy": "14v classified:507 public ISO listing +8 exact kernel certificate boot lines;0 unclassified",
-    "privacy_at_14u_stop": "STOP:6 unclassified artifact findings"
-  },
-  "acceptance_met": false,
-  "pushes_in_14u": 0,
-  "reruns_in_14u": 0,
-  "pr13_ready": false,
-  "reservation_restoration_condition_met": false,
-  "local_update_14v": {
-    "at": "2026-10-27T01:43:12.932520+00:00",
-    "pushes": 0,
-    "dispatches": 0,
-    "billing_requeried": false,
-    "ledger_requeried": false,
-    "statement": "403/520 is the last closed14u ledger, not new dispatch authorization; all10 probes and2 qualifications remain spent"
-  }
+  "owner_decision": "14w approved Actions budget$3 with prevention true, cap700/probe11/owner-tools3; subtract net spend",
+  "pre_dispatch_push_limit": 1,
+  "acceptance_met": false
 }
