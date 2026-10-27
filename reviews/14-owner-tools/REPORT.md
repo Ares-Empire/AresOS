@@ -1,9 +1,66 @@
 # 14: checked owner tools
 
-**Current 14zc: STOP before push — local ISO replay checkpoint rename denied.**
-No pull, push, Actions dispatch, replay retry or merge. Probe15 and qualification5
-remain unspent. Remote stays at `2fb695cdb419d67b51a76d91727668b33df82ecd`;
-14zb and this follow-up remain local. PR #13 stays draft / NOT RELEASED.
+**Current 14zd: isolated local replay passed; one push and fresh CI gates next.**
+No pull or Linux inspector/credential/workflow change. The owner clarified that
+no-rerun applies to paid Actions dispatches, while zero-cost local checks may
+retry. This supersedes the prior local-only STOP interpretation.
+
+## 14zd — Windows replay isolated and passed; six-dollar round prepared
+
+**Done / diagnosis:** checked for matching prior Python/WSL/tar/unsquashfs replay
+or reader processes; none were running. A local exclusive replay lock and a
+fresh `.work/14/14zd-replay-1` checkpoint directory were used. No cleanup or
+other replay ran, and no observer read the checkpoint while the child ran.
+The unchanged actual inspector passed on the first attempt, reading all
+9,068,650,496 retained ISO bytes, matching the exact SHA256 pin and a fresh
+official HTTPS checksum, then extracting4 localization and102 WebUI sources.
+The local retry wrapper permits at most3 retries after10/20/30-second waits;
+**no retry or wait was used**. The old Windows denial did not recur, so its
+holder remains unidentified; no Defender/ACL/settings change or cause is
+inferred. `installer_inspect.py` and Linux CI behavior are byte-for-byte unchanged.
+
+**Verified locally:** actual read-only release ancestry/payload/identity verifier
+and53 offline source checks passed; strict283 guest/serial scripts, all large
+staging controls,258 embedded Python,12 shells,46 Python files/native workflow
+body passed. Real PowerShell tools-copy tests passed15 zero-write destination
+refusals and exact bundle equality. Four stubbed controller tests and7 fixed
+watcher tests passed. All os/ci,os/tests,owner/release/workflow/guide source bytes
+equal `bad28a4`; its422-test whole-suite result (414 distinct passes, exactly
+8 documented native host limitations,0 skips) and203-test passing host walk
+therefore remain bound to this exact code. No new full-suite/native/VM success
+is claimed. Registry/package/signature/layer checks requiring the CI token
+remain CI-only and fail-closed, as14f requires. No owner secret or added scope.
+
+Evidence: [preparation and source bindings](../../os/manifest/ci/14/14zd-preflight/preparation.json),
+[isolated replay attempts](../../os/manifest/ci/14/14zd-preflight/replay-attempts.json),
+[actual inspector result](../../os/manifest/ci/14/14zd-preflight/installer-result.json).
+Local tooling archived there is provenance, not a workflow input. Every hash
+manifest keeps SHA256 before its path. Pinned gitleaks8.21.2 and diff checks
+must pass before the single fast-forward push; exact-head hosted privacy and
+the complete ledger/billing/budget are checked again immediately before dispatch.
+
+**Pre-push planning:** complete95/95 history,647 minutes consumed; cap1100,
+probe14/16 and qualification4/6. Reserve238 = push6 + probe72 + qualification160
++ closing0. The actual API budget is$6 with prevention true;
+reported net Actions$2.088, price$0.006/minute,
+0 included minutes left + 652 paid minutes,
+leaving414 after that plan, above the October reserve0.
+Billing can lag. No account budget mutation. Settings remain package14 only;
+package13, the owner payload/fingerprint and every frozen runtime/release path
+are unchanged. This plan authorizes no automatic second round after a CI stop.
+
+**Not yet verified:** exact pushed-head privacy, probe15 and qualification5 on
+one head. One pre-dispatch push is allowed. Probe15 must pass and its artifacts
+must satisfy14v before qualification5; any CI stop is exported and reported with
+no rerun. Existing protected-second/firmware/BootNext/detached-device audits stay
+unchanged. Acceptance remains unmet and PR #13 draft / NOT RELEASED. Closing12
+and reserve150 restoration, final push and ready transition are conditional on
+acceptance. No image rebuild/publication or real laptop operation is authorized.
+Gradle/client tests were not run; no Gradle daemon started.
+
+**JUDGMENT-CALL:** local retry isolation follows14zd; no product choice.
+**PLAN-GAP:** none newly inferred. **Open questions:** the original transient
+Windows file holder and the actual qualification result; both remain unproved.
 
 ## 14zc — $6 guard updated; Windows replay STOP
 

@@ -15,7 +15,7 @@
     "owner-tools": 4
   },
   "consumed_minutes": 647,
-  "reserved_minutes": 0,
+  "reserved_minutes": 238,
   "runs": [
     {
       "run": 40566496658,
@@ -679,37 +679,37 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-27T21:47:37.272504+00:00",
-  "snapshot_kind": "14zc local ISO checkpoint STOP before any push/dispatch",
+  "checked_at": "2026-10-27T21:59:32.899296+00:00",
+  "snapshot_kind": "14zd pre-push plan; fresh per-dispatch guards required",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-27T21:47:35.743171+00:00",
-    "response_sha256": "1de1cf265e2bfa9133ada120f986300e27b7b3f07b8edf9566679330c8f70e74",
+    "checked_at": "2026-10-27T21:59:31.898582+00:00",
+    "response_sha256": "cdda18260010c1e8f274aa17c144e79ad334a7f60b3ff6926ac87f6da9def6cf",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 2273.0,
+        "grossQuantity": 2348.0,
         "discountQuantity": 2000.0,
-        "netQuantity": 273.0,
-        "grossAmount": 13.638,
+        "netQuantity": 348.0,
+        "grossAmount": 14.088,
         "discountAmount": 12.0,
-        "netAmount": 1.638,
+        "netAmount": 2.088,
         "pricePerUnit": 0.006
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 13.688368049,
+        "grossQuantity": 14.213174922,
         "discountQuantity": 14.213174922,
         "netQuantity": 0.0,
-        "grossAmount": 0.004599512,
+        "grossAmount": 0.004775855,
         "discountAmount": 0.004775855,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 2273,
+    "used_minutes": 2348,
     "included_minutes": 2000,
     "included_minutes_left": 0,
     "paid_overflow": {
@@ -723,15 +723,15 @@
       "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
       "runner_sku": "actions_linux",
       "pricePerUnit": 0.006,
-      "reported_net_amount": 1.638,
-      "available_budget": 4.362,
-      "paid_minutes": 727,
+      "reported_net_amount": 2.088,
+      "available_budget": 3.912,
+      "paid_minutes": 652,
       "decision": "briefs/14zc-six-dollar-round.md",
       "exception_month": "2026-10"
     },
-    "remaining_minutes": 727,
-    "reserved_minutes": 0,
-    "after_reservation": 727,
+    "remaining_minutes": 652,
+    "reserved_minutes": 238,
+    "after_reservation": 414,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
   },
@@ -1164,10 +1164,20 @@
     "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
     "path": "os/owner-tools/payload/SHA256.json"
   },
-  "owner_decision": "14zc approved $6 prevent true; cap1100/probe16/owner-tools6; deduct net spend",
-  "pushes_this_followup": 0,
-  "dispatches_this_followup": 0,
-  "reruns_this_followup": 0,
+  "reservation_plan": {
+    "push": 6,
+    "probe": 72,
+    "qualification": 160,
+    "closing_privacy": 0,
+    "pre_push": 238,
+    "before_probe": 232,
+    "before_qualification": 160,
+    "decision": "briefs/14r-no-closing-reservation.md",
+    "exception_month": "2026-10",
+    "merge_requires_privacy": true
+  },
+  "owner_decision": "14zc/14zd approved$6 prevent true;1100 minutes,probe16,owner-tools6; deduct net Actions spend",
   "acceptance_met": false,
-  "pr13_ready": false
+  "probe15": "not dispatched",
+  "qualification5": "not dispatched"
 }
