@@ -1,0 +1,120 @@
+{
+  "status": "STOP: incomplete ISO transfer; no qualification3",
+  "run": 40528739880,
+  "head": "c6fc99555de35d3bde4096c347601d18ea270321",
+  "run_attempt": 1,
+  "conclusion": "failure",
+  "failed_step": {
+    "name": "Inspect the exact pinned live ISO before assuming an installer path",
+    "started_at": "2026-10-27T15:28:15Z",
+    "completed_at": "2026-10-27T15:29:02Z",
+    "conclusion": "failure"
+  },
+  "diagnostic": "OSError: Incomplete ISO transfer: received 2128609280 of advertised 9068650496 bytes; this probe must stop",
+  "successful_steps": [
+    {
+      "name": "Install pinned rehearsal tools on disposable runner",
+      "started_at": "2026-10-27T15:18:55Z",
+      "completed_at": "2026-10-27T15:24:51Z",
+      "conclusion": "success"
+    },
+    {
+      "name": "Prove package 14 native host capabilities before expensive downloads",
+      "started_at": "2026-10-27T15:24:51Z",
+      "completed_at": "2026-10-27T15:25:05Z",
+      "conclusion": "success"
+    },
+    {
+      "name": "Qualify tools, regressions, rewritten release identity and private access",
+      "started_at": "2026-10-27T15:25:05Z",
+      "completed_at": "2026-10-27T15:26:24Z",
+      "conclusion": "success"
+    },
+    {
+      "name": "Require completed native preflight before any package 13 VM",
+      "started_at": "2026-10-27T15:26:24Z",
+      "completed_at": "2026-10-27T15:27:28Z",
+      "conclusion": "success"
+    },
+    {
+      "name": "Prepare package 13 job-token credentials without owner-secret fallback",
+      "started_at": "2026-10-27T15:27:28Z",
+      "completed_at": "2026-10-27T15:27:28Z",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify exact private manifest with scoped credentials",
+      "started_at": "2026-10-27T15:27:28Z",
+      "completed_at": "2026-10-27T15:27:29Z",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify the exact private signature natively for the offline guest",
+      "started_at": "2026-10-27T15:27:35Z",
+      "completed_at": "2026-10-27T15:27:36Z",
+      "conclusion": "success"
+    },
+    {
+      "name": "Qualify the exact pinned layer pull without installing",
+      "started_at": "2026-10-27T15:27:36Z",
+      "completed_at": "2026-10-27T15:28:15Z",
+      "conclusion": "success"
+    },
+    {
+      "name": "Remove package 13 job-token credentials",
+      "started_at": "2026-10-27T15:29:02Z",
+      "completed_at": "2026-10-27T15:29:02Z",
+      "conclusion": "success"
+    }
+  ],
+  "native_suite": {
+    "tests": 380,
+    "seconds": 26.75,
+    "conclusion": "OK",
+    "skips": 0
+  },
+  "native_loop": {
+    "status": "passed",
+    "checks": 20,
+    "helper_mutations": 0,
+    "protected_fixture_unchanged": true,
+    "all_fixture_mounts_unmounted_and_loops_detached": true
+  },
+  "windows_copy": {
+    "status": "passed",
+    "zero_write_refusals": 15,
+    "bundle_manifest": "effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7"
+  },
+  "private_registry_manifest_signature_pull": "all passed using CI GITHUB_TOKEN only; no owner-token API calls; credentials removed outside workspace",
+  "no_live_installer_or_installed_system_rehearsal": true,
+  "qualification3_dispatched": false,
+  "reruns": 0,
+  "pushes": 1,
+  "further_pushes": 0,
+  "acceptance_met": false,
+  "pr13_ready": false,
+  "native_log": {
+    "sha256": "24c941907a91743b48bf5b5ae33ba9d6359d39ebe42633b23d46dd1b5d7d2968",
+    "path": ".work/14/run-40528739880/native.log"
+  },
+  "failure_log": {
+    "sha256": "2e8d8f06da14a1724c5b01d4b4ef06e547e39fecfc6a317413dfd283671c5cd6",
+    "path": ".work/14/run-40528739880/iso-failure.log"
+  },
+  "artifact": {
+    "sha256": "2bd966007696cf53f3f943da018228628bf2547c25c36eaf68c314f75c5477ae",
+    "path": "evidence.zip",
+    "artifact_id": 12745083909,
+    "bytes": 62739,
+    "run": 40528739880,
+    "head": "c6fc99555de35d3bde4096c347601d18ea270321",
+    "status": "failure",
+    "members": 25,
+    "logs": {
+      "sha256": "92de9d87e8a300642c75973f449d9c0628d8e00b163b3b21e9fa781637dd2fa8",
+      "path": "logs.zip"
+    },
+    "downloaded_at": "2026-10-27T15:30:23.216866+00:00"
+  },
+  "policy": "14x any stop: report, no rerun; existing download length/checksum rules preserved"
+}

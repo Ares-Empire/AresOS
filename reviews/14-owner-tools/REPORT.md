@@ -1,10 +1,74 @@
 # 14: checked owner tools
 
-**Current 14x: local preparation passed; one push and hosted gates pending.**
-PR #13 remains draft / NOT RELEASED. Probe11's failure remains historical evidence.
-No real laptop operation, image build, publication, credential/scope change or merge.
+**Current 14x: STOP — probe12 received an incomplete ISO transfer.**
+Qualification3 was not dispatched. Exactly one fast-forward push was made to
+`c6fc99555de35d3bde4096c347601d18ea270321`; no rerun or later push. This STOP report
+is committed locally only. PR #13 stays draft / NOT RELEASED. No merge, image
+build/publication, real laptop operation, credential/scope change or privacy
+exception. This attempt is over; further dispatch or push needs a new decision.
 
-## 14x — Slow-mirror limits; probe12 and qualification3
+## 14x — Limits passed; incomplete ISO transfer blocks qualification3
+
+**Verified outcome:** [probe12](https://github.com/Ares-Empire/AresOS/actions/runs/40528739880)
+(attempt1, exact pushed head above) failed on2026-10-27. The existing inspector
+refused the transfer with:
+`Incomplete ISO transfer: received 2128609280 of advertised 9068650496 bytes; this probe must stop`.
+Only2,128,609,280 of9,068,650,496 advertised bytes arrived. It failed the length
+guard before checksum acceptance; no substituted ISO, retry, resumed download
+or downloader change was attempted. Raw headers and the partial digest remain
+in the private artifact, with hash-first provenance in
+`os/manifest/ci/14/14x-probe-stop/download.json`. The reason for the early EOF
+is not established. The full pinned local inspector replay had passed before
+push; it does not override the CI transfer refusal.
+
+The disposable runner job ran15:12:59Z–15:29:06Z and cost17 ledger minutes.
+The approved20-minute pinned-tool limit, early capability proof and35-minute
+native preflight passed. All380 native tests printed `OK` in26.750s, no skips,
+including the8 local host limitations. The real partitioned-loop test passed
+20 checks,0 helper mutations, protected fixture unchanged and complete cleanup.
+Windows copy passed15 zero-write refusals with the unchanged14v fingerprint.
+The release/git binding, completed-native gate, CI-only private manifest,
+signature and exact pinned-layer pull all passed. Only the CI GITHUB_TOKEN was
+used; owner-token API calls0. Cleanup removed credentials outside the workspace.
+No claim is made that retries caused the faster setup; its recorded step passed.
+
+The live/installed two-disk VM step was skipped. Qualification3, installed owner
+commands, layout failure/revert/success, rollback and full protected-disk/NVRAM/
+BootNext qualification on this head remain **not verified**. The early mini-VM
+and native loop fixture are prerequisite evidence only. No audit was weakened.
+
+**Privacy:** the25-member private artifact ZIP digest matched GitHub
+(artifact12745083909). Pinned gitleaks8.21.2 found0 findings in all artifacts,
+0 in the native log and0 in the ISO-failure log before either log was read.
+No ISO listing or captured boot console was produced; neither14s nor14v exception
+was needed. Both exact-head privacy jobs had passed all3 required checks,
+including personal terms, before dispatch. No ignore, rule or privacy-workflow
+change. Detailed receipts: `os/manifest/ci/14/14x-probe-stop/`; raw logs remain
+ignored and private.
+
+| Closed ledger | Value |
+|---|---:|
+| Package minutes consumed / cap |460 /700|
+| Active reservation |0|
+| Probes consumed / cap |12 /12|
+| Qualifications consumed / cap |2 /3|
+| Complete branch run history |87 /87|
+| This attempt: pushes / reruns |1 /0|
+| Images / publications |0 /0|
+
+Fresh closing read-only billing at2026-10-27T15:31:54.678463+00:00 records included0,
+Actions net spend$0.318, price$0.006/minute,
+approved$3 with prevent_further_usage true, and remaining budget
+$2.682 =447 whole paid minutes. Billing
+may lag charges. Reserve0/closing0 remain: acceptance was not met, so conditional
+restoration and PR-ready steps were not taken. The owner budget was not changed.
+
+**PLAN-GAP / open decision:** the pinned download was incomplete; stop here.
+No further probe or qualification, timeout/URL/image/transport change, retry or
+push is authorized by this failed run. No new product JUDGMENT-CALL. Physical
+release gates and the existing For package15 list remain open and unchanged.
+
+### Preparation completed before the probe
 
 **Done:** native preflight limit15→35 minutes; package14 probe job40→70;
 owner-tools qualification job130→160. The pinned-tools step remains20 and
@@ -58,7 +122,7 @@ privacy, complete ledger/billing/budget precede probe12. Qualification3 requires
 its passing probe, cleared14v artifact rules, fresh replay and a fresh160-minute
 guard, all on the same head. Any stop means report, no rerun or further push.
 
-**Not verified / gates:** probe12 and qualification3 pending. Physical release
+**Not verified / gates:** At that planning point probe12 and qualification3 were pending; the STOP above supersedes that plan. Physical release
 and laptop/followability gates remain open. Artifact exceptions remain only the
 507 public ISO listing findings and exact whole captured kernel X.509 lines
 with a nonempty name and40 hex digits, each recorded; anything else STOPs.
@@ -67,6 +131,7 @@ and marking PR #13 ready. Closing privacy must pass before merge. This run ends
 without merging; the owner then sets the Actions budget back to$0. No new
 product JUDGMENT-CALL, PLAN-GAP or question. The existing For package15 list
 remains unchanged.
+
 
 ## 14w — Probe11 native-preflight timeout; qualification3 blocked
 

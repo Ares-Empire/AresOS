@@ -1,0 +1,58 @@
+{
+  "status": "passed;0 artifact/native-log/ISO-failure-log findings",
+  "scanner_version": "8.21.2",
+  "scans": [
+    {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "path": ".work/14/gitleaks/14x-probe-evidence.json",
+      "findings": 0
+    },
+    {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "path": ".work/14/gitleaks/14x-probe-native-log.json",
+      "findings": 0
+    },
+    {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "path": ".work/14/gitleaks/14x-probe-iso-log.json",
+      "findings": 0
+    }
+  ],
+  "artifact_classes_used": [],
+  "iso_listing_present": false,
+  "boot_consoles_present": false,
+  "ignore_changes": false,
+  "privacy_workflow_changes": false,
+  "exact_head_privacy": {
+    "checked_at": "2026-10-27T15:11:09.747271+00:00",
+    "head": "c6fc99555de35d3bde4096c347601d18ea270321",
+    "private_repository": true,
+    "source_hashes_match": true,
+    "runs": [
+      {
+        "run": 40527965543,
+        "head": "c6fc99555de35d3bde4096c347601d18ea270321",
+        "event": "pull_request",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true,
+        "log_zip_sha256": "398be533b3d68d57382e19fab675da3361b2aa31ee57acffeb80411e34afd265"
+      },
+      {
+        "run": 40527954626,
+        "head": "c6fc99555de35d3bde4096c347601d18ea270321",
+        "event": "push",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true,
+        "log_zip_sha256": "dfb53044e7c68d1509b5775694c801357e44a4abf0a87976990cc0425d56041e"
+      }
+    ]
+  }
+}

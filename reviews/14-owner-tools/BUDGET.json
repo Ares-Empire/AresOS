@@ -11,12 +11,33 @@
     "owner-tools": 3
   },
   "dispatch_counts": {
-    "probe": 11,
+    "probe": 12,
     "owner-tools": 2
   },
-  "consumed_minutes": 437,
-  "reserved_minutes": 238,
+  "consumed_minutes": 460,
+  "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 40528739880,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "c6fc99555de35d3bde4096c347601d18ea270321",
+      "conclusion": "failure",
+      "minutes": 17
+    },
+    {
+      "run": 40527965543,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "c6fc99555de35d3bde4096c347601d18ea270321",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40527954626,
+      "title": "14x: allow slow mirrors within reviewed rehearsal limits",
+      "sha": "c6fc99555de35d3bde4096c347601d18ea270321",
+      "conclusion": "success",
+      "minutes": 3
+    },
     {
       "run": 40519384061,
       "title": "Two-disk rehearsal (probe)",
@@ -492,19 +513,22 @@
   "history": {
     "complete": true,
     "pages_read": 1,
-    "ids_count": 84,
-    "total_count": 84,
+    "ids_count": 87,
+    "total_count": 87,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 84,
-        "total_count": 84,
-        "ids_sha256": "a7ac9e1f7ce843d9f4efcd67faeaecfb94baebac09b945866173c5bf2764de34"
+        "returned": 87,
+        "total_count": 87,
+        "ids_sha256": "5dd8aff2c2c03359cb700fe5a7bc781dfb19374aa4f5bcd40490657b40986079"
       }
     ],
     "run_ids": [
+      40528739880,
+      40527965543,
+      40527954626,
       40519384061,
       40518683163,
       40518675760,
@@ -591,37 +615,37 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-27T14:54:22.274232+00:00",
-  "snapshot_kind": "14x pre-push planning; fresh dispatch guard still required",
+  "checked_at": "2026-10-27T15:31:54.678463+00:00",
+  "snapshot_kind": "14x STOP closed after incomplete probe12 ISO transfer; no qualification3; no rerun",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-27T14:54:21.187728+00:00",
-    "response_sha256": "8134ff960a7739d230a0c898f156bdbf2a0137d7fa0af4a497c7b34e7a9e9dbd",
+    "checked_at": "2026-10-27T15:31:53.369097+00:00",
+    "response_sha256": "f0d0c85a6155e805da3468dd578c02c32136593f93c489ffedd10b6066d515e5",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 2045.0,
+        "grossQuantity": 2053.0,
         "discountQuantity": 2000.0,
-        "netQuantity": 45.0,
-        "grossAmount": 12.27,
+        "netQuantity": 53.0,
+        "grossAmount": 12.318,
         "discountAmount": 12.0,
-        "netAmount": 0.27,
+        "netAmount": 0.318,
         "pricePerUnit": 0.006
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
         "grossQuantity": 12.620939137,
-        "discountQuantity": 12.620939137,
+        "discountQuantity": 12.815335728,
         "netQuantity": 0.0,
         "grossAmount": 0.00424084,
-        "discountAmount": 0.00424084,
+        "discountAmount": 0.00430616,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 2045,
+    "used_minutes": 2053,
     "included_minutes": 2000,
     "included_minutes_left": 0,
     "paid_overflow": {
@@ -635,15 +659,15 @@
       "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
       "runner_sku": "actions_linux",
       "pricePerUnit": 0.006,
-      "reported_net_amount": 0.27,
-      "available_budget": 2.73,
-      "paid_minutes": 455,
+      "reported_net_amount": 0.318,
+      "available_budget": 2.682,
+      "paid_minutes": 447,
       "decision": "briefs/14w-retest-3usd.md",
       "exception_month": "2026-10"
     },
-    "remaining_minutes": 455,
-    "reserved_minutes": 238,
-    "after_reservation": 217,
+    "remaining_minutes": 447,
+    "reserved_minutes": 0,
+    "after_reservation": 447,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
   },
@@ -1038,6 +1062,18 @@
       "scope": "full Git history, redacted",
       "exit_code": 0,
       "findings": 0
+    },
+    {
+      "checked_commit": "c6fc99555de35d3bde4096c347601d18ea270321",
+      "checked_at": "2026-10-27T15:06:51.478784+00:00",
+      "version": "8.21.2",
+      "scope": "full Git history, redacted",
+      "exit_code": 0,
+      "findings": 0,
+      "scan": {
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "path": ".work/14/gitleaks/14x-one-push-history.json"
+      }
     }
   ],
   "current_bundle": {
@@ -1058,7 +1094,11 @@
     "exception_month": "2026-10",
     "merge_requires_privacy": true
   },
-  "owner_decision": "14x approved Actions budget$3 with prevention true, cap700/probe12/owner-tools3; subtract net spend",
-  "pre_dispatch_push_limit": 1,
-  "acceptance_met": false
+  "stop_report": "os/manifest/ci/14/14x-probe-stop/result.json",
+  "acceptance_met": false,
+  "pr13_ready": false,
+  "reserve_restoration_condition_met": false,
+  "pushes": 1,
+  "reruns": 0,
+  "qualification3_dispatched": false
 }
