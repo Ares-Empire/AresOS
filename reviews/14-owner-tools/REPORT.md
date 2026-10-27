@@ -1,9 +1,131 @@
 # 14: checked owner tools
 
-**Current14t: STOP after a passing probe10;2 new artifact privacy findings.**
-PR #13 remains draft / NOT RELEASED. No qualification2, rerun or second push.
-The actual STOP report and ledger are committed locally only. The run is over;
-the owner can restore the Actions budget to$0. Historical STOPs remain below.
+**Current14u: STOP in qualification2 at owner install; no rerun or push.**
+PR #13 remains draft / NOT RELEASED. Report, redacted metadata and the closed
+ledger are committed locally only. The run is over; the owner can reset the
+Actions budget to$0. Historical STOP reports remain below.
+
+## 14u — Public certificate classification; qualification2 STOP
+
+**Done / verified classification:** the two probe10 findings at lines497/530
+match the complete kernel `[timestamp] Loaded X.509 cert 'Fedora kernel signing
+key: <hex>'` message, with40 hexadecimal digits. The local full-line matcher
+passed1 valid and7 negative fixtures (extra prefix/suffix, another message/key,
+nonhex, an extra line and an arbitrary prefix). The same exact rule classified
+two live-installer console messages in qualification2. Each classified line is
+recorded below by run, captured file, line and SHA-256 (excluding line ending);
+all four labels are `Fedora kernel signing key`. No fingerprint value or raw
+console was copied into Git. The other507 findings in each artifact remain the
+14s public ISO file-name listing. No ignore, allowlist, rule or workflow change.
+
+| Run | Captured artifact file | Line | Full-line SHA-256 |
+| --- | --- | --- | --- |
+|40417291358| `evidence/two-disk/live-ui-probe-boot-console.txt` |497| `a86d89d3e5c82545ab1a88aaa8a05144f2969a08d956157d1129858ab04d3bbe` |
+|40417291358| `evidence/two-disk/live-ui-probe-boot-console.txt` |530| `c7fe0c4da26f1e3566ce0fe564457f5e54c64242e2f282a4e83e944f6e9686f9` |
+|40421596174| `evidence/two-disk/protected-second-install-boot-console.txt` |491| `994b7a4d2def60914af1cf799024c402dccc29edfd89ab3f8fe143c131bdfd02` |
+|40421596174| `evidence/two-disk/protected-second-install-boot-console.txt` |524| `6f56aaa6390f73d73e479429351ba85c0bf3cf243c7009a13ce8805298cc92be` |
+
+**Pre-dispatch verification:** no pull or push. Remote/probed head remained
+`bbf228c1dcb7800af5b9793f56acf77d11d5aff2`; local cece95a differed only by14u's
+brief and prior STOP documentation. All182 preflight and76 host-walk source
+bindings matched the target. Actual14e/14f release/git/file/read-only gh replay,
+53 retained sources and the complete listing passed again. Strict parsing
+passed258 guest/258 serial commands without stderr,233 embedded Python snippets,
+12 shell files and45 CI/overlay/owner Python files. Fresh actual ISO inspection
+rehashed9,068,650,496 bytes, checked a fresh publisher checksum and read4
+localization/102 WebUI sources. Four credential-only checks stayed mandatory in
+CI. Exact-head privacy40416793839 and40416787226 were rechecked: all3 checks
+passed, including actual personal-term execution.
+
+**Actual authorization:** complete80/80 pre-dispatch history; **335+130=465/520**.
+Fresh billing/budget verified109 included minutes plus166 floored paid minutes,
+price$0.006/minute, Actions budget$1 and prevent_further_usage true, leaving145
+after reservation. Exactly one qualification POST used the remote branch on
+the exact probe10 head, protected-second order and probe40417291358:
+[40421596174](https://github.com/Ares-Empire/AresOS/actions/runs/40421596174),
+run_attempt1. No push occurred in14u.
+
+**Verified natively / partial VM evidence:** early loop/FUSE exFAT/fsck/QEMU /
+OVMF/QMP capabilities passed. The whole native suite passed **355 tests in29.196s,
+no skips**. Real native loop fixture:20 checks passed,0 helper mutations,
+protected fixture unchanged and all fixture mounts/loops cleaned up. Private
+metadata/manifest, signature and exact layer pull passed. The offline live
+install completed; hardware setup and its orderly pre-login reboot completed;
+first stock stayed offline with no staged deployment, pin or queued rollback.
+Unattended Windows and the detached Windows round trip passed. Tty3 password
+login and password sudo worked. Tools hot-plug succeeded after sign-in, and
+14j's one physical Enter resync recovered the covered root prompt. The tool
+received both independent serials. Native job-token cleanup passed: removed,
+outside workspace, no owner token. Independent raw audit replay passed **7
+protected captures,8 zero-write/unmap samples,7 decoded varstores/BootNext audits
+and6 NVRAM/all-variable delta recomputations**, including the paused failure
+counter. These are partial-stage results, not full qualification acceptance.
+
+**Actual owner STOP:** `failure-tools-stock.png` shows the exact owner command,
+Crucial/Micron inputs and **STOP: Linux firmware entry does not uniquely map to
+target EFI**. The tool preserves the administrator session and tells the owner
+not to reboot or retry a different target. The harness later timed out awaiting
+the framed owner install result (`owner_vm.py`416→278; `switch_vm.py`230);
+`tools-install-owner-result-incomplete.txt` is retained. `prepare` was not reached.
+`disk_record` refuses before the install's first `HOME.mkdir`, so the tool's
+installation writes did not begin. No guard was removed, retried or widened.
+
+Raw retained firmware independently decodes **one** permitted Linux load option:
+Boot000A/Bazzite, target ESP partition1, `\EFI\fedora\shimx64.efi`.
+The exact guest `efibootmgr -v` stdout consumed by the refused helper was not
+exported, so the text-matching cause is unresolved. This observation does not
+relax the firmware audit or prove a parser fix. It needs an integrator decision;
+no harness, owner-script, image or VM change was made.
+
+**Artifact privacy STOP as well:** the pinned redacted artifact/native-log scan
+reported515 generic-api-key findings:507 ISO-listing findings,2 exact14u kernel
+messages above, and6 findings below that **did not match the permitted whole-line
+class**. Both universal-newline and raw LF-counted reads were checked; no message
+content/value is reproduced. They remain unclassified, not asserted credentials
+and not declared harmless. No broader exception was accepted. The separately
+extracted failure log scanned0 findings before its diagnostic tail was read.
+
+| Unclassified artifact file | Line | Rule |
+| --- | --- | --- |
+| `evidence/two-disk/offline-first-stock-boot-console.txt` |498|generic-api-key|
+| `evidence/two-disk/offline-first-stock-boot-console.txt` |509|generic-api-key|
+| `evidence/two-disk/tools-stock-boot-console.txt` |503|generic-api-key|
+| `evidence/two-disk/tools-stock-boot-console.txt` |521|generic-api-key|
+| `evidence/two-disk/stock-initialization-0-boot-console.txt` |509|generic-api-key|
+| `evidence/two-disk/stock-initialization-0-boot-console.txt` |527|generic-api-key|
+
+API-digest-bound private artifact:12697122720 was probe10; qualification artifact
+12701280757 is5,451,470 bytes/437 members, SHA-256
+`c9a5ded1a436ef30b8314518f3a5aee3cee3c7d4c6c47e2f01ff2b4d1e7f4758`.
+Raw artifact/logs/screenshot remain private under `.work/14/run-40421596174/`;
+committed redacted receipt: `os/manifest/ci/14/14u-qualification-stop.json`.
+
+| Closed package14 ledger | Value |
+| --- | --- |
+| Complete history |81/81|
+| Consumed / cap |403/520 minutes|
+| Reserved |0, closed bookkeeping only|
+| Probes / qualifications |10/10;2/2|
+|14u pushes / reruns |0/0|
+| Image attempts / publications |0/0|
+| Included minutes left |0 at the billing snapshot|
+| Actions budget / prevention |$1 / true|
+| Price / available paid minutes |$0.006 /156|
+| Reported paid net spend |$0.06 at2026-10-27T00:56:51Z|
+| Closing / org reserve |0/0; restoration condition not met|
+
+**Not verified / PLAN-GAP / open questions:** owner installation/prepare and
+rerun, first-network deployment invariance, record export, private owner login /
+switch, AresOS/foot typing, guarded US failure/revert and US International change /
+back, rollback and keep-stock remain unqualified. The exact real firmware text
+and the6 artifact finding locations need integrator review. Acceptance is not
+met: no closing12/org150 restoration, closing push or PR-ready transition.
+No new product JUDGMENT-CALL; the observed firmware refusal/result wait is the
+unresolved execution gap. Physical laptop/followability/release gates and the
+package15 handoff remain open. No real laptop touched; frozen runtime, owner
+payload/fingerprint, guides, CI source/tests/workflows and privacy rules stayed
+unchanged. Pinned local gitleaks must be0 for the local STOP commit; no further
+push, dispatch, rerun or merge. The run is over; owner can set the budget to$0.
 
 ## 14t — Approved paid overflow; probe10 passed; privacy STOP
 
