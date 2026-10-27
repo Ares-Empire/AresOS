@@ -22,8 +22,8 @@ class GuardTest(unittest.TestCase):
         self.addCleanup(guard.configure,'11c')
 
     def test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun(self):
-        self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(700,0,0))
-        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':12,'owner-tools':3})
+        self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(750,0,0))
+        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':13,'owner-tools':3})
         self.assertEqual(guard.SETTINGS['organization_budget']['other_repos_reserve'],0)
         self.assertEqual(guard.PACKAGES['13']['organization_budget']['other_repos_reserve'],150)
         base=dict(head_sha='a'*40,status='completed',conclusion='success',run_attempt=1)
@@ -33,8 +33,8 @@ class GuardTest(unittest.TestCase):
         job=dict(conclusion='success',started_at='2026-10-25T01:00:00Z',completed_at='2026-10-25T01:01:01Z')
         def api(path):return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1,jobs=[job])
         with patch.object(guard,'api',side_effect=api):
-            self.assertEqual(guard.budget(696)['consumed_minutes'],4)
-            with self.assertRaisesRegex(AssertionError,'exceeds 700'):guard.budget(697)
+            self.assertEqual(guard.budget(746)['consumed_minutes'],4)
+            with self.assertRaisesRegex(AssertionError,'exceeds 750'):guard.budget(747)
             runs.append(dict(runs[1],id=4))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],2)
             runs.append(dict(runs[1],id=5))
@@ -58,6 +58,8 @@ class GuardTest(unittest.TestCase):
             runs.append(dict(runs[1],id=14))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],12)
             runs.append(dict(runs[1],id=15))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],13)
+            runs.append(dict(runs[1],id=16))
             with self.assertRaisesRegex(AssertionError,'probe dispatch allowance'):guard.budget(0)
 
     def test_third_owner_qualification_allowed_but_fourth_refuses(self):
@@ -125,6 +127,7 @@ class GuardTest(unittest.TestCase):
         browser='.work/browser-env/bin/playwright install --with-deps chromium'
         self.assertEqual(native['run'].count(retry),1)
         self.assertLess(native['run'].index(retry),native['run'].index(browser))
+        self.assertIn('.work/browser-env/bin/pip --retries 5 --timeout 60 install playwright==1.58.0',native['run'])
         self.assertEqual(steps['Install pinned rehearsal tools on disposable runner']['timeout-minutes'],'20')
         self.assertEqual(steps['Prepare disposable file disks and qualify the real live environment']['timeout-minutes'],
             "${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 106 || 80 }}")

@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 152,
+  "tests": 173,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -52,12 +52,16 @@
   ],
   "sources": [
     {
-      "sha256": "d8ed9bb8869b4b28cce8d20fd3486a8763452476cef9d28bfc0a5bd4c927c565",
+      "sha256": "28ac7d346a3aea8c6cd8ce34dd510c04104d94814caf6456043afefdc6697871",
       "path": ".github/workflows/os-image.yml"
     },
     {
       "sha256": "1d8aeb2035c7ccb05e02590f55feb84c8bf4ad1592f0b575882283a5ed193ffe",
       "path": "docs/install-tools/OwnerTools.psm1"
+    },
+    {
+      "sha256": "13ab9ba9879a7cf628daaa326643df109da61cbd297663e5b711f0c9e6331057",
+      "path": "os/ci/installer_inspect.py"
     },
     {
       "sha256": "7d721e469f834db910312225029e9ccc93d0c77e4d55c7518a40566c7ad7f8c1",
@@ -104,7 +108,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "04c2590fe2caf53db7146889ccb04b00ebcaf39803dd9db3bbbe916f69463fe0",
+      "sha256": "a4e1f450fd5d6f9f5561b9eeaaf6689ed4324507e0767f97d37f1013294aea3c",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -202,6 +206,10 @@
     {
       "sha256": "554849aa8e9328e71e0890bc54e035380ad0d770dff4e20848f0ef103fca40fa",
       "path": "os/manifest/ci/14/parser-sources/source-files.zip"
+    },
+    {
+      "sha256": "e5124ee8f6a525d67afd03dd735afc6753562656c183e7ca804c04775c0e6720",
+      "path": "os/manifest/installer-isos.json"
     },
     {
       "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
@@ -320,6 +328,14 @@
       "path": "os/tests/test_guest_framing.py"
     },
     {
+      "sha256": "af3344f5ebdf006ca051d9b868f1859528ca4b7153b042984ca6ca4a2fb56a6c",
+      "path": "os/tests/test_installer_download.py"
+    },
+    {
+      "sha256": "0abfb5c29c4b511e667e45b9f556612ffa7603cf13ad5e11fe8ab485a490af35",
+      "path": "os/tests/test_installer_webui.py"
+    },
+    {
       "sha256": "f4a354342eb255ae8a762bf02130120317082b9a701495b46f845374e35c1876",
       "path": "os/tests/test_keyboard_walk.py"
     },
@@ -380,7 +396,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "faad34cdf9dbc6a34e418b3115453da32599488162778f20a288b21f28fbe4f7",
+      "sha256": "d6836b10ac9cbc442c009cd2b0f6365906027e23b74623cba51b1637c70e6754",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -416,7 +432,7 @@
       "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
     },
     {
-      "sha256": "a7214ac66a7b9e369230787467653b91f27e9bba2bf8b63aa8cc39b9a346f26e",
+      "sha256": "b546a26a870780964af8ca988be0cc196f4889aee73a404cc0d54d57c5040316",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

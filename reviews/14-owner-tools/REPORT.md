@@ -1,11 +1,91 @@
 # 14: checked owner tools
 
-**Current 14x: STOP — probe12 received an incomplete ISO transfer.**
-Qualification3 was not dispatched. Exactly one fast-forward push was made to
-`c6fc99555de35d3bde4096c347601d18ea270321`; no rerun or later push. This STOP report
-is committed locally only. PR #13 stays draft / NOT RELEASED. No merge, image
-build/publication, real laptop operation, credential/scope change or privacy
-exception. This attempt is over; further dispatch or push needs a new decision.
+**Current 14y: local preparation passed; one push and hosted gates pending.**
+PR #13 remains draft / NOT RELEASED. Earlier STOP sections remain historical.
+No laptop operation, image build/publication, credential/scope change or merge.
+
+## 14y — Bounded ISO resume; probe13 and qualification3
+
+**Done:** the CI inspector permits at most6 ISO connection attempts with1–5s
+backoff. After a short read or connection failure it requests exactly the stored
+byte offset, including offset0. Only206 with a valid Content-Range starting at
+that offset and total9,068,650,496 may append. End/length/framing inconsistencies
+STOP before append. A200 response to Range truncates to zero and resets hashing;
+that response still consumes one of the6 attempts. Exhaustion, HTTP refusal,
+oversize, malformed ranges or any final hash mismatch STOP. Local file/evidence
+write errors are not treated as network retries. Every attempt records requested
+and applied offsets, HTTP status, received/stored bytes, restart/error/outcome;
+atomic checkpoints retain progress after headers, chunks and refusals.
+
+The live manifest now explicitly pins its already verified9,068,650,496-byte
+size. Both ISO SHA256 values, filenames, URLs and checksum sources are unchanged.
+The completed file must have that exact size and its SHA256 must equal both the
+existing pin and the fresh official checksum. The checksum GET and exact
+filename check remain. No cache may bypass validation. Inspector hash manifests
+now put hashes before paths; the active readers and cached-transport replay
+adapter were updated to the new receipt, without patching CI assertions.
+HTTP range rules were checked against [RFC9110](https://www.rfc-editor.org/rfc/rfc9110.html#section-14.4).
+
+The rehearsal pip invocation now explicitly uses retries5/timeout60, retaining
+Playwright1.58.0. [That pinned Playwright source](https://github.com/microsoft/playwright/blob/v1.58.0/packages/playwright-core/src/server/registry/browserFetcher.ts)
+already bounds each browser download to5 attempts, so no multiplying outer loop
+was added. Source hash/URL and [pip option reference](https://pip.pypa.io/en/stable/cli/pip/#general-options)
+are retained in `14y-preflight/retry-sources.json`. Apt retries3 and every14x
+timeout/bound are unchanged (native35, probe70/72, qualification160, VM106,
+pinned-tools20). Package14 alone changes to cap750/probe13/owner-tools3;
+package13 is unchanged. October reserve0/closing0 and the $3/prevention/net-spend
+read-only guard remain. The owner bundle stays `effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7`;
+no product/owner-script, frozen release/runtime, guide/card or audit change.
+
+**Verified locally:**392 whole-suite tests ran in315.860s:384 distinct passes
+and exactly the same8 documented host limitations, no skips (unittest exit1).
+All173 host-walk tests passed and bind96 current sources.
+Twelve real loopback-server tests pass: dropped transfer and exact resume;
+connection failure before headers; ignored Range restarts (including empty
+restart); repeated drops STOP at6 with bounded backoff; wrong offset/total/end/
+wildcard/missing Content-Range STOP before append; duplicate/wrong length,
+oversize, changed bytes, fresh checksum mismatch, HTTP403 and invalid size pins
+all refuse. Nine existing installer/UI tests and ten guard tests passed.
+Strict checks parsed258 guest scripts and258 serial wrappers with no stderr,
+233 embedded Python snippets,12 shell files,45 CI/overlay/owner Python files
+and the native workflow shell. Windows copy passed15 zero-write refusals and
+exact bundle equality. Actual14e/14f release/git/file/read-only gh and53 retained
+offline-source/full-listing replays passed. The changed actual inspector replay
+rehashed all9,068,650,496 cached ISO bytes, checked a fresh official checksum,
+recorded one complete200 attempt and extracted4 localization/102 WebUI sources.
+This replay verifies bytes and assertions; the real fake servers verify resume
+transport. Four CI-only credential checks and the8 native-host limits remain
+mandatory in probe13. Proof: `os/manifest/ci/14/14y-preflight/`.
+
+Planning at2026-10-27T15:55:45.155765+00:00:
+| Reservation | Minutes |
+|---|---:|
+| Closed package ledger |460 /750|
+| One push |6|
+| Probe13 bound |72|
+| Qualification3 bound |160|
+| Closing privacy (October exception) |0|
+| Maximum planned package total |698 /750|
+
+Complete history:87/87;
+probes12/13, qualifications2/3. Billing records included0, Actions net spend
+$0.318, approved$3 with prevention true,
+price$0.006/minute,
+447 floored paid minutes and
+209 remaining after238. Billing may lag; this planning
+receipt is not dispatch authorization. Pinned local full-history gitleaks must
+clear before exactly one fast-forward push. Fresh exact-head privacy, complete
+ledger/billing/budget then precede probe13. Only its success, cleared14v artifact
+rules, fresh replay and fresh160-minute guard permit qualification3 on the same
+head. Any stop means report and no rerun or further push.
+
+**Not verified / gates:** probe13 and qualification3 pending. Physical gates and
+the For package15 list remain open. Artifact exceptions remain only507 public
+ISO listing findings and whole captured kernel X.509 lines with nonempty name
+and40 hex digits, each recorded; anything else STOPs. Only acceptance permits
+restoring closing12/reserve150, one final commit/push and marking PR #13 ready.
+Closing privacy must pass before merge. At the end the owner sets the Actions
+budget back to$0. No new product JUDGMENT-CALL, PLAN-GAP or open question.
 
 ## 14x — Limits passed; incomplete ISO transfer blocks qualification3
 

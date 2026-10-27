@@ -1,18 +1,19 @@
 [
   {
+    "sha256": "85e701c0f53189b0fa32797ffe8144202dcaa8db6c7692fd4677f615537b24b8",
     "kind": "legacy",
     "filename": "bazzite-nvidia-open-stable-amd64.iso",
     "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso",
-    "sha256": "85e701c0f53189b0fa32797ffe8144202dcaa8db6c7692fd4677f615537b24b8",
     "checksum_source": "https://download.bazzite.gg/bazzite-nvidia-open-stable-amd64.iso-CHECKSUM",
     "picker_source": "https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js"
   },
   {
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
     "kind": "live",
     "filename": "bazzite-nvidia-open-stable-live-amd64.iso",
     "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
-    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
     "checksum_source": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso-CHECKSUM",
-    "picker_source": "https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js"
+    "picker_source": "https://raw.githubusercontent.com/ublue-os/bazzite.gg/main/content/themes/betheme-child/script135.js",
+    "bytes": 9068650496
   }
 ]
