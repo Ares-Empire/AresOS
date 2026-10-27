@@ -1,10 +1,155 @@
 # 14: checked owner tools
 
-**Current 14za: STOP — qualification 4 failed while exporting the login result.**
-No push in this follow-up. The remote branch stays at `2fb695cdb419d67b51a76d91727668b33df82ecd`.
-The local watcher fix and this STOP report are committed locally only. PR #13
-remains draft / NOT RELEASED. No rerun, runtime/owner-script fix, audit widening,
-image build/publication, credential/scope change, real laptop operation or merge.
+**Current 14zb: transport fixed and checked locally; VM acceptance remains STOP.**
+No pull, push, dispatch, rerun or merge in this follow-up. Remote qualification
+head remains `2fb695cdb419d67b51a76d91727668b33df82ecd`. PR #13 stays draft /
+NOT RELEASED; the owner decides the next budget and allowance. The earlier
+qualification's registry-login outcome remains unknown.
+
+## 14zb — Bounded command staging and hidden-input resynchronization
+
+**Done / diagnosis:** the exact historical login reader is retained as a public,
+hash-bound fixture: 2,652 source bytes, 3,633 transmitted bytes, maximum 1,024
+per line. The 116 captured output bytes contain five continuation prompts, no
+completion and no echoed received command body. Received UART input and the
+login diagnostic record were not retained, so the exact failed guest state
+cannot be reconstructed from this artifact.
+
+Real local Bash/PTY execution establishes the following:
+
+- The exact old script passes strict `bash -n` and returns its checksum-framed
+  record when the record exists. No intrinsic quote/brace/heredoc defect was
+  reproduced in these exact bytes.
+- A fully received, unchanged old command reaches its diagnostic reader and
+  emits **five** continuation prompts while waiting for an absent new record.
+  Removing the heredoc terminator also reproduces continuation prompts. Thus
+  the retained prompts alone do not prove that the guest was still parsing.
+- A sender limited to 512 bytes per burst breaks the old unacknowledged send;
+  the new acknowledged transfer completes. This proves a possible loss mode,
+  without claiming that such loss occurred in qualification 4. The exact
+  1,024-byte lines also work in the PTY. Linux documents a 4,096-character
+  canonical line buffer, but the failed guest's termios/input state was not
+  retained; no specific guest buffer-limit explanation is established.
+  [Primary N_TTY documentation](https://www.kernel.org/doc/html/v6.1/driver-api/tty/n_tty.html).
+- A real `getpass` blocked on the independent physical PTY cannot consume the
+  serial command: the serial framed export completes before hidden input is
+  supplied. This matches the harness's tty3/ttyS0 separation. A wrong guest
+  routing configuration was not observed or proved.
+- Idle interactive Bash/readline can itself have ECHO disabled. The old
+  ECHO-only check could therefore declare hidden readiness at an idle prompt.
+  This readiness defect is reproduced locally; its occurrence in the failed
+  VM is unproved. The old 1,800-second reader exceeding its 900-second caller
+  is a separate confirmed deadline defect.
+
+**Transport:** `serial_transport.py` stages public scripts over 256 bytes under
+`/run/ares-serial-<nonce>`. It requires uid0 and tmpfs before allocation, creates
+a 0700 directory / 0600 file, sends 96-byte source chunks using control lines
+of at most 512 bytes, and waits for a nonce/index/status ACK after every line.
+Guest SHA-256, ownership/mode checks and warning-free `bash -n` must pass before
+execution. The checksum-framed JSON protocol and tiny-command behavior remain.
+Every missing ACK stops within 10 seconds, with no retransmission, execution or
+speculative cleanup into a potentially busy shell. An acknowledged refusal
+cleans only its owned temporary files/directory; normal execution cleans them
+and reports the real exit code. Transfer is bounded separately at 120 seconds.
+Evidence stores sizes, digest, step/status and deadlines, without script bytes.
+
+Known secret-bearing scripts and NUL input refuse before hashing, evidence,
+allocation or sending. The legacy inline registry-auth writer now refuses;
+package14 continues to use the existing physically typed hidden prompt only.
+Synthetic hidden input is absent from all staged UART packets and all saved
+test evidence. No real credential was read, typed, recovered or copied locally.
+Owner scripts, bundle/fingerprint, frozen release, image and publication paths
+are unchanged.
+
+**Hidden input / deadlines:** after account, sudo and owner-command hidden input,
+the UART's completed-command epoch permits a bounded output drain and short
+acknowledged input flush. No raw drained output is saved. The independent
+physical observer reads only termios and foreground-process identity; command
+line bytes remain guest memory and are never returned. Hidden readiness
+requires ECHO off and a foreground program other than an idle interactive Bash.
+After hidden input, return of that interactive shell plus an unchanged physical
+input epoch grants the original strict cursor wait: three stable samples,
+at most two recorded physical Enters, no Enter to an unknown/busy shell and raw
+VCSA retained on readiness timeout. Wrong-password rejection drains serial but
+never grants shell/Enter authority. No console logging suppression or predicate
+relaxation. UART drain/ACK, physical completion and permitted Enter events are
+recorded separately.
+
+Both owner-result polling and post-hidden completion use **840 seconds within
+900 seconds of execution**, leaving 60 seconds for framing/return. The separate
+120-second transfer bound precedes execution; this is not a claim that the
+whole multi-step login finishes in 900 seconds. No job/VM/Actions limits changed.
+
+**Verified locally:**
+
+- `python3 -B -m unittest discover -s os/tests -p test_serial_staging.py -v`:
+  19 passed in 51.805s. Exact full login sequence on a limited line completes;
+  lost result chunk stops without retry; original script, missing delimiter,
+  no-record deadline, separate hidden PTY, foreground readiness, root/tmpfs/
+  private-mode refusal, NUL/secret rejection, chunk loss, SHA mismatch,
+  syntax-warning refusal, nonzero exit and unchanged framed checksum covered.
+- `python3 -B -m unittest discover -s os/tests -p test_owner_console.py -v`:
+  12 passed in 1.568s, including the retained14i clutter, busy/no Enter,
+  two-resync cap, raw timeout retention and revoked completion authority.
+- `python3 -B reviews/14-owner-tools/walk-host.py`: 203 passed in 212.202s;
+  full host control flow passes, no stick across reboot, no VM started.
+  Updated source bindings and 283 composed commands are committed.
+- Strict composed-command replay: 283 guest bodies and old serial wrappers,
+  every large body's staging controls, 258 embedded Python programs, 12 shell
+  files, 46 Python files and the native workflow shell pass; any parse stderr,
+  including warnings, refuses. All staged bodies are also checked guest-side.
+- Whole OS suite: **422 tests, 414 distinct passes; 2 failures / 9 errors from
+  exactly the same eight native host limits**, no skips. Full output and exact
+  IDs/reasons are retained: Pillow unavailable (3), the local no-privilege sudo
+  shim refuses Homebrew/sysusers operations (4), DrvFS cannot prove auth0600 (1).
+  No packages installed, sudo operation performed or test weakened. This is
+  explicitly not a green native-suite or VM claim. Gradle/client tests were not
+  run for this OS harness-only change; no Gradle daemon started.
+  The initial422-test run had one extra error: a keyword timeout in the new
+  wrapper broke an existing positional wait stand-in. The wrapper now preserves
+  the positional call contract; the original partial-output/redaction regression
+  passes unchanged, and the final whole-suite run has only the eight host limits.
+- Actual read-only `verify_release.py 40154642447` and the 53 offline/source
+  checks passed. The14f registry/package credential steps remain CI-only and
+  fail-closed, without new credentials/scopes. No new ISO inspection or hosted
+  credential check is claimed. `git diff --check` passes. Pinned gitleaks8.21.2
+  full history and pending files: 0 findings before the local commit.
+
+**Later stages:** the refreshed full walk covers verify, switch, AresOS boot,
+layout proof/revert/change-back, rollback and keep-stock through the same staged
+transport; every composed command is parsed strictly. Real package11n signature
+proof and package13 rpm-ostree/bootc/BLS/keyboard/map JSON traverse the actual
+PTY/checksum transport unchanged. Existing owner parsers/preflights are executed
+against those retained observations and real package14 install/prepare/network/
+title outputs. Keep-stock uses retained rollback input; no nonexistent package14
+keep-stock or other later-stage PASS record is invented. These tests prove
+local parser/control/transport behavior, not a completed package14 VM route.
+
+Evidence: [analysis and source bindings](../../os/manifest/ci/14/14zb-login-transport/analysis.json),
+[verification and full logs](../../os/manifest/ci/14/14zb-login-transport/verification.json),
+[normal-reader observation](../../os/manifest/ci/14/14zb-login-transport/observations.json).
+Local root/tmpfs/private-mode stand-ins are explicit: the tests execute real
+Bash, PTYs, termios, SHA-256 and framing on ordinary files inside this worktree;
+they do not prove guest ownership or filesystem behavior on a fresh VM.
+Tracked log viewers use LF and replace absolute workspace paths with
+`<WORKTREE>`; original private log-byte hashes are retained separately.
+
+**Not verified / budget / stop:** no new Actions use, push or dispatch. The last
+closed ledger remains **647/800 minutes, probes14/14, qualifications4/4,
+reservation0**, with reserve0/closing0 unchanged because acceptance is unmet.
+No fresh billing snapshot or budget mutation was needed for this local-only
+work. PR #13 remains draft; INSTALL, EMERGENCY and the release gate stay NOT
+RELEASED. Firmware/protected-disk/BootNext audits, owner payload, all release
+and frozen runtime paths, workflow permissions/privacy rules and package13
+settings are unchanged. No real-laptop operation.
+
+**JUDGMENT-CALL:** bounded transfer thresholds and independent transfer/execution
+deadlines are harness implementation choices; no owner/product decision changed.
+**PLAN-GAP:** received UART input and the login result are absent from the old
+artifact, so definitive attribution is unavailable. **Open questions:** the
+original login outcome and actual guest loss/readiness state; native/root-tmpfs
+behavior and a complete VM qualification remain for a separately authorized run.
+
 
 ## 14za — Watcher fixed; qualification 4 login-result timeout
 

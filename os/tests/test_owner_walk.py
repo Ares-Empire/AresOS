@@ -60,6 +60,8 @@ def walk():
         def capture_json(self, name, source):
             syntax(name, source)
             commands.append((name, source))
+            if name.endswith('-physical-idle'):
+                return dict(ready=True,echo_enabled=False,foreground_shell=True,raw='')
             if 'base64.b64encode(data)' in source or 'base64.b64encode(raw)' in source:
                 # Readiness observation only; the dedicated VCSA tests execute
                 # the real reader and exercise the Enter/timeout paths.
@@ -83,6 +85,10 @@ def walk():
             raise AssertionError('Unwalked response: ' + name)
 
         def keys(self, keys): pass
+        def resync_after_hidden(self, stage):
+            checks.append(stage + '-serial-idle-resync')
+            return dict(status='passed', prior_completion_observed=True,
+                raw_output_retained=False, serial_input_flushed=True, physical_enter_sent=False)
         def screenshot(self, stage): assert self.screenshot_safe
         def assert_offline(self, stage):
             vm.Guest.assert_offline(self, stage)

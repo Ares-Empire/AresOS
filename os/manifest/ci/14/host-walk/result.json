@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 181,
+  "tests": 203,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -23,25 +23,47 @@
   "checks": [
     "offline-first-stock-link",
     "offline-first-stock-tools-absent",
+    "tools-stock-serial-idle-resync",
+    "tools-stock-serial-idle-resync",
     "tools-stock-hotplug",
     "tools-stock-detach",
     "tools-stock-reboot-tools-absent",
     "tools-stock-reboot-tools-absent",
+    "corrected-stock-serial-idle-resync",
+    "corrected-stock-serial-idle-resync",
     "corrected-stock-physical-observer",
+    "private-owner-login-serial-idle-resync",
     "owner-switch-reboot-tools-absent",
     "owner-switch-reboot-tools-absent",
+    "aresos-serial-idle-resync",
+    "aresos-serial-idle-resync",
     "aresos-physical-observer",
+    "layout-plain-us-serial-idle-resync",
+    "layout-reverted-login-serial-idle-resync",
+    "layout-reverted-proof-serial-idle-resync",
+    "layout-intl-login-serial-idle-resync",
+    "layout-intl-proof-serial-idle-resync",
     "aresos-owner-reboot-tools-absent",
     "aresos-owner-reboot-tools-absent",
+    "aresos-intl-serial-idle-resync",
+    "aresos-intl-serial-idle-resync",
     "aresos-intl-physical-observer",
+    "layout-back-de-login-serial-idle-resync",
+    "layout-back-de-proof-serial-idle-resync",
     "aresos-intl-owner-reboot-tools-absent",
     "aresos-intl-owner-reboot-tools-absent",
+    "aresos-back-de-serial-idle-resync",
+    "aresos-back-de-serial-idle-resync",
     "aresos-back-de-physical-observer",
     "aresos-back-de-owner-reboot-tools-absent",
     "aresos-back-de-owner-reboot-tools-absent",
+    "rollback-stock-serial-idle-resync",
+    "rollback-stock-serial-idle-resync",
     "rollback-stock-physical-observer",
     "owner-keep-stock-reboot-tools-absent",
     "owner-keep-stock-reboot-tools-absent",
+    "default-stock-serial-idle-resync",
+    "default-stock-serial-idle-resync",
     "default-stock-physical-observer",
     "default-stock-tools-absent"
   ],
@@ -76,7 +98,7 @@
       "path": "os/ci/owner_capabilities.py"
     },
     {
-      "sha256": "c219ff1bbc2439b000370c3aec9cb80c2d10555e831664d43ac511e9365a845b",
+      "sha256": "7a4793603d7553b5c00078d36c482060232be2400125775b6bf60539872fa052",
       "path": "os/ci/owner_console.py"
     },
     {
@@ -96,7 +118,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "fd2ccfe363cd52922f068f5d68641ee3160b8e91ba0a82bb83294ba36733caa0",
+      "sha256": "01b328c757dad90e6d537fbc6fc42fc5a0f6460940d1c0d17e258b563b0f03c5",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -120,7 +142,11 @@
       "path": "os/ci/serial_console.py"
     },
     {
-      "sha256": "aa2955d84469aad03bc015a3dd69bdd64abd6dc596e29c21885610b1717a6af8",
+      "sha256": "ebf02a6c80f2346bd908e5c3be3b73fb6a8ad3ec56afccb9ffe5b11bab6011a8",
+      "path": "os/ci/serial_transport.py"
+    },
+    {
+      "sha256": "366d743b11f1788532cf6125dccc0d0c534bef0b8cb90e695600b57a375591f8",
       "path": "os/ci/switch_vm.py"
     },
     {
@@ -268,6 +294,10 @@
       "path": "os/tests/fixtures/owner-console/14i-hotplug.vcsa"
     },
     {
+      "sha256": "a518be16c9f05419de35f2ab1485afe9920246efa5266ec89d2e2875cda5a914",
+      "path": "os/tests/fixtures/owner-console/14za-login-command.json"
+    },
+    {
       "sha256": "4867d41dc7d7c4aee82e007a93be6e301f0d5a24530462bc0a8887045b9f87f4",
       "path": "os/tests/fixtures/owner-console/sources.json"
     },
@@ -312,7 +342,7 @@
       "path": "os/tests/fixtures/owner-tools/tool-output-sources.json"
     },
     {
-      "sha256": "2cc6da1a77bed2f9c964f02a753fd6f4569fb9cf434898ff13751d30e8d65d7e",
+      "sha256": "9cd15ec4e24cb44eb0917a70f80000659df6e10191bdd2ca917a5c6c15e28f99",
       "path": "os/tests/guest_shell.py"
     },
     {
@@ -322,6 +352,10 @@
     {
       "sha256": "53229c4b45ce17b5240ffd18999716bec708b32989ade08a18ba93854e92a272",
       "path": "os/tests/owner_shim.py"
+    },
+    {
+      "sha256": "8789d958828598ca60c91a7bc0752df5279fcae2a5caba4ab5b363e54ad108a8",
+      "path": "os/tests/serial_pty.py"
     },
     {
       "sha256": "c52e08f26067a405f7bb5e60d2efb17cb3c008fa03c0b7e5e5b66bba89e10bd8",
@@ -368,7 +402,7 @@
       "path": "os/tests/test_owner_commands.py"
     },
     {
-      "sha256": "fe69390c4fde3daa2058487c453e3d59ed017287659d9dbfeacf04fc382e9ea5",
+      "sha256": "9e30e1b9b007dd5d27d1c497f88eb3ce03547c1e0dafb00b858d5162699febaa",
       "path": "os/tests/test_owner_console.py"
     },
     {
@@ -424,7 +458,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "75c5ffa4721f65dd206603c0b89dca349ea6629d91dbc2182aa23cc6ec22825d",
+      "sha256": "61b2f1e93b1d186efbf0d3c89e667b003681e25c8af3e2c4574570c5006e9fe0",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -436,6 +470,10 @@
       "path": "os/tests/test_release_squash_binding.py"
     },
     {
+      "sha256": "e9c353e8032b8aaa934479aaa0ba4574cbba97df7ff492c58901449f7ec2b23a",
+      "path": "os/tests/test_serial_staging.py"
+    },
+    {
       "sha256": "c0fdfdb09b769659421d2ba5c0205d8164bc9073ce9138880f73ab2e8cf3e4a9",
       "path": "reviews/14-owner-tools/classify-artifacts.py"
     },
@@ -444,7 +482,7 @@
       "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
     },
     {
-      "sha256": "f7828a230c6eb5af17eed7b220019898342bfc02fc355bdec616e9224d5bad4d",
+      "sha256": "c8c4424a803dc2aea853e225eb375503a7a056d8db1de8023ab2eb7511d88fe0",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

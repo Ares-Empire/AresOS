@@ -5,10 +5,15 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'ci'))
 from serial_console import encode_command
+import serial_transport
 
 
 def syntax(name, source):
-    for layer, text in (('guest', source), ('serial', encode_command(source))):
+    layers = [('guest', source), ('serial', encode_command(source))]
+    if len(source.encode()) > serial_transport.INLINE_BYTES:
+        steps, run = serial_transport.plan(source, '0123456789abcdef')
+        layers.append(('staged-control', ''.join(line for _, line in steps) + run))
+    for layer, text in layers:
         # Walks stub subprocess.run for host operations; parsing must still use
         # real Bash rather than accidentally passing through that stand-in.
         process = subprocess.Popen(['bash', '--noprofile', '--norc', '-n'],

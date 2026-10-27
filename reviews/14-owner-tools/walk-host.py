@@ -38,6 +38,7 @@ import test_owner_diagnostics
 import test_owner_artifact_class
 import test_owner_format_audit
 import test_owner_retained
+import test_serial_staging
 
 
 def main():
@@ -45,7 +46,7 @@ def main():
         (test_owner_commands,test_owner_export,test_owner_transport,test_owner_walk,test_owner_guard,test_organization_budget,test_rehearsal_budget,test_installer_download,test_installer_webui,test_owner_equality,test_owner_tools,
          test_release_squash_binding,test_ci_api_permissions,test_ci_step_environment,test_owner_media,test_owner_capabilities,test_guest_framing,
          test_owner_console,test_owner_devices,test_owner_entry,test_owner_devices_native,test_loop_nodes,
-         test_owner_firmware,test_owner_diagnostics,test_owner_artifact_class,test_owner_format_audit,test_owner_retained))
+         test_owner_firmware,test_owner_diagnostics,test_owner_artifact_class,test_owner_format_audit,test_owner_retained,test_serial_staging))
     result=unittest.TextTestRunner(verbosity=2).run(suite)
     assert result.wasSuccessful() and not result.skipped
     walk=test_owner_walk.walk()
@@ -63,7 +64,7 @@ def main():
     files.update(ROOT/p for p in ('os/ci/installer_webui.py','os/ci/two_disk_vm.py','os/ci/registry_auth.py',
         'os/ci/rehearsal_guard.py','os/ci/rehearsal-packages.json','os/ci/verify_release.py',
         'os/tests/test_release_squash_binding.py','os/tests/test_ci_api_permissions.py','os/tests/test_ci_step_environment.py','os/tests/test_organization_budget.py','os/tests/test_rehearsal_budget.py','os/tests/owner_fuse_shim.py',
-        'os/ci/switch_vm.py','os/ci/serial_console.py','os/tests/guest_shell.py','os/tests/test_guest_framing.py',
+        'os/ci/switch_vm.py','os/ci/serial_console.py','os/ci/serial_transport.py','os/tests/serial_pty.py','os/tests/test_serial_staging.py','os/tests/guest_shell.py','os/tests/test_guest_framing.py',
         'os/tests/test_keyboard_walk.py','os/ci/prepare_two_disks.py','os/tests/test_loop_nodes.py',
         '.github/workflows/os-image.yml','os/ci/installer_inspect.py','os/manifest/installer-isos.json',
         'os/tests/test_installer_download.py','os/tests/test_installer_webui.py'))

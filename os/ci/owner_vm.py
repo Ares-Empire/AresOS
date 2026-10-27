@@ -1,6 +1,7 @@
 """Package14: the owner route, physical commands, unchanged disk/firmware audits."""
 import base64
 import hashlib
+import inspect
 import json
 import os
 import pathlib
@@ -26,6 +27,8 @@ COMMANDS = json.loads(pathlib.Path('os/owner-tools/commands.json').read_text())
 PROFILE = 'de'
 TEXT = 'yz-/!ü'
 PROBE_MEDIA = None
+OWNER_COMMAND_TIMEOUT = 900
+OWNER_RESULT_WAIT = 840
 
 
 def type_text(guest, text, layout=None):
@@ -162,7 +165,7 @@ def wait_tty(guest, tty, predicate, stage, timeout=90, resync=None):
             dict(stage=stage, tty=tty, **event)))
 
 
-def diagnostic_reader(before=None, command=None, folders=('/var/lib/ares/records', '/run/ares-owner-diagnostics')):
+def diagnostic_reader(before=None, command=None, folders=('/var/lib/ares/records', '/run/ares-owner-diagnostics'), timeout=OWNER_RESULT_WAIT):
     """Read only private owner JSON, including pre-install STOP records."""
     source = '''import json,pathlib,stat,time
 folders=@FOLDERS@
@@ -183,8 +186,9 @@ def records():
 '''.replace('@FOLDERS@', repr(folders))
     if before is None:
         return source + 'print(json.dumps([str(p) for p in records()]))\n'
+    assert 0 < timeout <= OWNER_RESULT_WAIT < OWNER_COMMAND_TIMEOUT
     return source + '''before=set(@BEFORE@)
-deadline=time.monotonic()+1800
+deadline=time.monotonic()+@TIMEOUT@
 while time.monotonic()<deadline:
     paths=[p for p in records() if str(p) not in before and p.name.endswith('-@COMMAND@.json')]
     if paths:
@@ -194,7 +198,7 @@ while time.monotonic()<deadline:
         print(json.dumps(result));break
     time.sleep(.5)
 else: raise SystemExit('Owner command did not finish')
-'''.replace('@BEFORE@', repr(before)).replace('@COMMAND@', command)
+'''.replace('@BEFORE@', repr(before)).replace('@COMMAND@', command).replace('@TIMEOUT@', repr(timeout))
 
 
 class Console:
@@ -223,14 +227,18 @@ class Console:
         self.completed_epoch = getattr(self.guest, 'owner_input_epoch', 0)
 
     def hidden(self, stage):
-        source = '''import base64,json,os,pathlib,termios,time
+        source = ('import base64,json,os,pathlib,termios,time\n' + inspect.getsource(owner_console.interactive_shell)
+            + inspect.getsource(owner_console.foreground_is_shell)) + '''
 hidden=False
 deadline=time.monotonic()+60
 while time.monotonic()<deadline:
     try:
         fd=os.open('/dev/@TTY@',os.O_RDONLY|os.O_NOCTTY|os.O_NONBLOCK)
-        try: hidden=not termios.tcgetattr(fd)[3]&termios.ECHO
+        try:
+            echo=bool(termios.tcgetattr(fd)[3]&termios.ECHO)
+            shell=foreground_is_shell(fd)
         finally: os.close(fd)
+        hidden=not echo and not shell
         if hidden: break
     except (OSError,termios.error): pass
     time.sleep(0.1)
@@ -254,12 +262,13 @@ print(json.dumps(dict(ready=hidden,raw=base64.b64encode(raw).decode())))
         # the loaded map is plain US. This does not claim the password was typed.
         type_text(self.guest, password + '\n', 'de' if wrong else None)
         if wrong:
+            self.resync_serial_after_hidden(stage)
             wait_tty(self.guest, self.tty, "'Login incorrect' in full and line.endswith('login:')", stage + '-rejected')
             self.guest.command(stage + '-no-session', 'set -e; if pgrep -t ' + self.tty + ' -u 1000 -x bash; then exit 1; fi')
             td.save(stage + '-failure', dict(status='expected-login-rejected', loaded_profile='us',
                 physical_positions='de', original_administrator_retained=True, reboot_permitted=False))
             return
-        self.prompt(stage + '-shell-ready')
+        self.after_hidden(stage)
         self.guest.owner_physical_signed_in = True
         self.guest.screenshot_safe = True
 
@@ -269,29 +278,59 @@ print(json.dumps(dict(ready=hidden,raw=base64.b64encode(raw).decode())))
         self.hidden(stage + '-sudo-hidden')
         self.guest.screenshot_safe = False
         type_text(self.guest, password + '\n')
-        self.prompt(stage + '-root-ready')
+        self.after_hidden(stage)
         self.root = True
         self.guest.screenshot_safe = True
 
     def records(self):
         return self.guest.capture_json('owner-record-list', sw.framed('python3 -c ' + shlex.quote(diagnostic_reader())))
 
+    def resync_serial_after_hidden(self, stage):
+        # The UART's previous hidden-read observation completed. Drain/resync
+        # that separate channel before another framed transfer, without sending
+        # Enter to the still-running physical owner command.
+        serial = self.guest.resync_after_hidden(stage)
+        td.save(stage + '-serial-resync', serial)
+
+    def after_hidden(self, stage):
+        epoch = self.guest.owner_input_epoch
+        self.completed_epoch = None
+        self.resync_serial_after_hidden(stage)
+        value = self.guest.capture_json(stage + '-physical-idle', sw.framed('python3 -c ' + shlex.quote(
+            owner_console.hidden_idle_source(self.tty, OWNER_RESULT_WAIT))))
+        assert type(value['ready']) is bool, 'Invalid hidden idle observation'
+        assert self.guest.owner_input_epoch == epoch, 'Input revoked hidden completion observation'
+        if not value['ready']:
+            retain_vcsa(self.tty, stage + '-physical-idle', 1, base64.b64decode(value['raw'], validate=True))
+            raise AssertionError('Hidden owner command did not return to an idle shell')
+        assert type(value['echo_enabled']) is bool and value['foreground_shell'], 'Hidden completion authority absent'
+        self.completed_epoch = epoch
+        # The original strict cursor predicate, three samples and at most two
+        # recorded physical Enters apply only after the foreground shell returns.
+        self.prompt(stage + '-after-hidden-ready')
+        td.save(stage + '-hidden-completed', dict(status='passed', echo_enabled=value['echo_enabled'],
+            foreground_shell=True, input_epoch=epoch, token_recorded=False))
+
     def run(self, name, stage, inputs=(), password=None, expect_stop=False):
         self.select()
         self.prompt(stage + '-ready')
         before = self.records()
         type_text(self.guest, COMMANDS[name] + '\n')
+        hidden_input = password is not None
         if password is not None:
             self.hidden(stage + '-sudo-hidden')
             self.guest.screenshot_safe = False
             type_text(self.guest, password + '\n')
         for prompt, value, hidden in inputs:
             if hidden:
+                hidden_input = True
                 self.hidden(stage + '-hidden-input')
                 self.guest.screenshot_safe = False
             else:
                 wait_tty(self.guest, self.tty, repr(prompt) + ' in full', stage + '-input-ready')
             type_text(self.guest, value + '\n')
+        if hidden_input:
+            self.after_hidden(stage)
         if name == 'reboot' and not expect_stop:
             self.guest.media_absent(stage)
             self.guest.finish_shutdown(stage, 'guest-reset')

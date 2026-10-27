@@ -1,0 +1,9 @@
+{
+  "kind": "real local Bash/PTY; no VM; old reader left waiting with no new record",
+  "original_script_unchanged": true,
+  "reader_started": true,
+  "normal_received_command_ps2_count": 5,
+  "retained_ps2_count": 5,
+  "completion_observed": false,
+  "conclusion": "Continuation prompts occur even when the complete old command executes; retained PS2 alone cannot prove an open heredoc"
+}

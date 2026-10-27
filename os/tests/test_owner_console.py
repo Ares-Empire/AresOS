@@ -44,6 +44,10 @@ class Guest:
         if keys == ['ret'] and self.redraw_on_enter:
             self.raw = redrawn()
 
+    def resync_after_hidden(self, stage):
+        return dict(status='passed', prior_completion_observed=True,
+            serial_input_flushed=True, raw_output_retained=False, physical_enter_sent=False)
+
     def capture_json(self, name, command):
         syntax(name, command)
         words = shlex.split(command)
@@ -189,6 +193,39 @@ class ConsoleTest(unittest.TestCase):
                 self.console.hidden('hidden')
         self.assertEqual(self.guest.pressed, [])
         self.assertEqual((self.evidence / 'hidden-timeout-1.vcsa').read_bytes(), self.clutter)
+
+    def test_hidden_busy_shell_never_grants_enter_or_prompt_authority(self):
+        self.guest.owner_input_epoch=7
+        value=dict(ready=False,echo_enabled=False,foreground_shell=False,raw=base64.b64encode(self.clutter).decode())
+        with patch.object(self.guest,'capture_json',return_value=value),patch.object(self.console,'prompt') as prompt, \
+             self.assertRaisesRegex(AssertionError,'idle shell'):
+            self.console.after_hidden('secret-busy')
+        prompt.assert_not_called();self.assertEqual(self.guest.pressed,[])
+        self.assertIsNone(self.console.completed_epoch)
+        self.assertEqual((self.evidence/'secret-busy-physical-idle-timeout-1.vcsa').read_bytes(),self.clutter)
+
+    def test_hidden_completion_grants_only_existing_two_enter_prompt_rule(self):
+        self.guest.owner_input_epoch=7;self.guest.raw=self.clutter;self.guest.redraw_on_enter=True
+        capture=self.guest.capture_json
+        def observe(name,source):
+            if name.endswith('-physical-idle'):
+                syntax(name,source)
+                return dict(ready=True,echo_enabled=False,foreground_shell=True,raw='')
+            return capture(name,source)
+        with patch.object(self.guest,'capture_json',side_effect=observe):self.console.after_hidden('secret-done')
+        self.assertEqual(self.guest.pressed,[['ret']])
+        self.assertTrue(json.loads((self.evidence/'secret-done-after-hidden-ready-resync-1.json').read_text())['enter_sent'])
+        self.assertTrue(json.loads((self.evidence/'secret-done-hidden-completed.json').read_text())['foreground_shell'])
+
+    def test_typing_during_hidden_completion_revokes_enter_authority(self):
+        self.guest.owner_input_epoch=7
+        def observe(*args):
+            self.guest.owner_input_epoch+=1
+            return dict(ready=True,echo_enabled=False,foreground_shell=True,raw='')
+        with patch.object(self.guest,'capture_json',side_effect=observe),patch.object(self.console,'prompt') as prompt, \
+             self.assertRaisesRegex(AssertionError,'revoked hidden'):
+            self.console.after_hidden('secret-revoked')
+        prompt.assert_not_called();self.assertIsNone(self.console.completed_epoch);self.assertEqual(self.guest.pressed,[])
 
 
 if __name__ == '__main__': unittest.main()

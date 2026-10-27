@@ -2,8 +2,37 @@
 import base64
 import datetime
 import inspect
+import os
+import pathlib
 import re
 import time
+
+
+def interactive_shell(args):
+    return (bool(args) and args[0] in (b'-bash', b'bash', b'/bin/bash', b'/usr/bin/bash')
+        and all(arg in (b'-i', b'-l', b'--login', b'--noprofile', b'--norc') for arg in args[1:]))
+
+
+def foreground_is_shell(fd):
+    # tcgetpgrp rejects a tty belonging to another session, including our
+    # serial observer reading tty3. /proc stat exposes the same foreground
+    # group without changing or acquiring that controlling terminal.
+    dev = os.fstat(fd).st_rdev
+    minor = os.minor(dev)
+    device = (minor & 255) | (os.major(dev) << 8) | ((minor & ~255) << 12)
+    groups = set()
+    for path in pathlib.Path('/proc').glob('[0-9]*/stat'):
+        try:
+            fields = path.read_text().rsplit(')', 1)[1].split()
+            if len(fields) >= 6 and int(fields[4]) & 0xffffffff == device & 0xffffffff and int(fields[5]) > 0:
+                groups.add(int(fields[5]))
+        except (OSError, ValueError, IndexError):
+            continue
+    if len(groups) != 1:
+        raise OSError('No unique physical foreground process group')
+    group, = groups
+    args = [part for part in pathlib.Path('/proc/' + str(group) + '/cmdline').read_bytes().split(b'\0') if part]
+    return interactive_shell(args)
 
 
 def screen(data):
@@ -30,6 +59,34 @@ def source(tty, predicate, timeout):
         '    else: stable=0\n    time.sleep(0.2)\n' +
         'assert data is not None, "No VCSA sample"\n' +
         'print(json.dumps(dict(ready=ready,raw=base64.b64encode(data).decode())))\n')
+
+
+def hidden_idle_source(tty, timeout):
+    """No command-line text is returned or logged; only an idle-shell fact.
+
+    Readline may turn ECHO off at an idle prompt. A foreground owner/Python
+    command never grants Enter authority, even if output ends with '#'.
+    """
+    assert tty in ('tty3', 'tty4')
+    return ('import base64,json,os,pathlib,termios,time\n' + inspect.getsource(interactive_shell)
+        + inspect.getsource(foreground_is_shell)) + '''
+ready=False
+echo=False
+deadline=time.monotonic()+@TIMEOUT@
+while time.monotonic()<deadline:
+    try:
+        fd=os.open('/dev/@TTY@',os.O_RDONLY|os.O_NOCTTY|os.O_NONBLOCK)
+        try:
+            echo=bool(termios.tcgetattr(fd)[3]&termios.ECHO)
+            shell=foreground_is_shell(fd)
+        finally: os.close(fd)
+        ready=shell
+        if ready: break
+    except (OSError,termios.error): pass
+    time.sleep(.2)
+raw=pathlib.Path('/dev/vcsa@NUMBER@').read_bytes() if not ready else b''
+print(json.dumps(dict(ready=ready,echo_enabled=echo,foreground_shell=ready,raw=base64.b64encode(raw).decode())))
+'''.replace('@TTY@', tty).replace('@NUMBER@', tty[3:]).replace('@TIMEOUT@', repr(timeout))
 
 
 def wait(sample, timeout, retain, resync=None, record=None):
