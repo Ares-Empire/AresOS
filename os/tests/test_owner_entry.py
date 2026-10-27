@@ -68,7 +68,7 @@ class EntryTest(unittest.TestCase):
                 self.assertEqual(passes,[documented[' '.join(argv)]])
                 self.assertIn('Full diagnostics: /var/lib/ares/records (private)',out.getvalue())
                 method={'rollback':'recover','keep-stock':'recover'}.get(argv[0],argv[0])
-                expected=([payload] if method=='install' else [True] if argv[0]=='keep-stock' else argv[1:])
+                expected=([payload,host] if method=='install' else [True] if argv[0]=='keep-stock' else argv[1:])
                 handlers[method].assert_called_once_with(*expected)
                 for key,handler in handlers.items():
                     if key!=method: handler.assert_not_called()

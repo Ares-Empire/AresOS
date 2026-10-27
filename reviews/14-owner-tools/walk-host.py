@@ -29,13 +29,18 @@ import test_owner_devices
 import test_owner_entry
 import test_owner_devices_native
 import test_loop_nodes
+import test_owner_firmware
+import test_owner_diagnostics
+import test_owner_artifact_class
+import test_owner_format_audit
 
 
 def main():
     suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(m) for m in
         (test_owner_commands,test_owner_export,test_owner_transport,test_owner_walk,test_owner_guard,test_owner_equality,test_owner_tools,
          test_release_squash_binding,test_ci_api_permissions,test_ci_step_environment,test_owner_media,test_owner_capabilities,test_guest_framing,
-         test_owner_console,test_owner_devices,test_owner_entry,test_owner_devices_native,test_loop_nodes))
+         test_owner_console,test_owner_devices,test_owner_entry,test_owner_devices_native,test_loop_nodes,
+         test_owner_firmware,test_owner_diagnostics,test_owner_artifact_class,test_owner_format_audit))
     result=unittest.TextTestRunner(verbosity=2).run(suite)
     assert result.wasSuccessful() and not result.skipped
     walk=test_owner_walk.walk()
@@ -45,7 +50,10 @@ def main():
                     'docs/install-tools/OwnerTools.psm1','reviews/14-owner-tools/walk-host.py',
                     'os/manifest/ci/14/hotplug-sources/*','os/manifest/ci/14/keyboard-sources/*',
                     'os/tests/fixtures/owner-console/*','os/tests/fixtures/owner-tools/storage-*.json',
-                    'os/tests/fixtures/owner-tools/blkid-p-gpt*'):
+                    'os/tests/fixtures/owner-tools/blkid-p-gpt*', 'os/tests/fixtures/owner-tools/efibootmgr*',
+                    'os/tests/fixtures/owner-tools/dumpkeys-*','os/tests/fixtures/owner-tools/tool-output-sources.json',
+                    'os/manifest/ci/14/parser-sources/*','reviews/14-owner-tools/classify-artifacts.py',
+                    'reviews/14-owner-tools/verify-parser-rpmdb.py'):
         files.update(p for p in ROOT.glob(pattern) if p.is_file())
     files.update(ROOT/p for p in ('os/ci/installer_webui.py','os/ci/two_disk_vm.py','os/ci/registry_auth.py',
         'os/ci/rehearsal_guard.py','os/ci/rehearsal-packages.json','os/ci/verify_release.py',

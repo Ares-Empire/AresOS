@@ -11,6 +11,7 @@ import test_owner_tools as common
 
 owner, media, ROOT = common.owner, common.module('media'), common.ROOT
 FIXTURES = ROOT/'os/tests/fixtures/owner-tools'
+sys.path.insert(0,str(ROOT/'os/ci'))
 
 
 class FixtureHost(owner.Host):
@@ -35,7 +36,8 @@ class FixtureHost(owner.Host):
         if command[0] == 'sfdisk':
             return json.dumps(dict(partitiontable=dict(label='gpt',device=command[-1],partitions=[])))
         if command == ('efibootmgr','-v'):
-            return 'Boot0001* Linux HD(1,GPT,10000001-1111-2222-3333-444444444444,0x800,0x12c000)/File(\\EFI\\fedora\\shimx64.efi)'
+            from owner_devices import fixture_firmware
+            return fixture_firmware('10000001-1111-2222-3333-444444444444',0x12c000)
         raise AssertionError('Unknown fixture query: '+repr(command))
 
     def mutate(self, *command, **unused):

@@ -78,7 +78,7 @@ def walk():
                 profile = self.owner_layout
                 props = dict(VConsoleKeymap=profile, X11Layout='de' if profile == 'de' else 'us', X11Variant='intl' if profile == 'us-intl' else '')
                 return dict(localed=dict(data=[{k:dict(data=v) for k,v in props.items()}]),
-                    loaded_map='keycode 21 = +' + ('z' if profile == 'de' else 'y') + '\nkeycode 44 = +' + ('y' if profile == 'de' else 'z') + '\n',
+                    loaded_map=json.loads((FIXTURES/('dumpkeys-'+('de' if profile == 'de' else 'us')+'.json')).read_text()),
                     cmdline='quiet ostree=/ostree/fixture', bls={e['file']:e['content'] for e in (pinned if self.stage=='corrected-stock' else pair)['bls']})
             raise AssertionError('Unwalked response: ' + name)
 

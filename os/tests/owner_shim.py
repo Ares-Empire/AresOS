@@ -39,7 +39,9 @@ elif tool == 'ostree' and args[:2] == ['admin', 'pin']:
     mutation = True
 elif tool == 'systemctl':
     if 'list-unit-files' in args:
-        result = 'uupd.service ' + ('masked' if state.get('paused') else 'enabled') + '\nuupd.timer ' + ('disabled' if state.get('paused') else 'enabled')
+        # systemd259 output_unit_file_list has UNIT FILE / STATE / PRESET.
+        result = ('uupd.service ' + ('masked -' if state.get('paused') else 'enabled enabled')
+            + '\nuupd.timer ' + ('disabled enabled' if state.get('paused') else 'enabled enabled'))
     elif 'show' in args:
         result = 'LoadState=loaded\nActiveState=inactive\nSubState=dead\n'
     elif 'mask' in args or 'disable' in args:
@@ -66,7 +68,8 @@ elif tool == 'localectl':
     else:
         raise SystemExit('Unknown localectl operation')
 elif tool == 'dumpkeys':
-    result = 'keycode 21 = +z\nkeycode 44 = +y' if state['keyboard']['VConsoleKeymap'] == 'de' else 'keycode 21 = +y\nkeycode 44 = +z'
+    profile = 'de' if state['keyboard']['VConsoleKeymap'] == 'de' else 'us'
+    result = json.loads((pathlib.Path(__file__).parent/'fixtures/owner-tools'/('dumpkeys-'+profile+'.json')).read_text())
 else:
     raise SystemExit('Unknown command in owner shim: ' + tool)
 with (root / 'calls.jsonl').open('a') as log:

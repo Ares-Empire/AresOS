@@ -162,6 +162,41 @@ def wait_tty(guest, tty, predicate, stage, timeout=90, resync=None):
             dict(stage=stage, tty=tty, **event)))
 
 
+def diagnostic_reader(before=None, command=None, folders=('/var/lib/ares/records', '/run/ares-owner-diagnostics')):
+    """Read only private owner JSON, including pre-install STOP records."""
+    source = '''import json,pathlib,stat,time
+folders=@FOLDERS@
+def records():
+    found=[]
+    for folder in folders:
+        root=pathlib.Path(folder)
+        if not root.exists():
+            assert not root.is_symlink(), 'Diagnostic directory is a broken link'
+            continue
+        info=root.lstat()
+        assert stat.S_ISDIR(info.st_mode) and not root.is_symlink() and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o700, 'Diagnostics are not private'
+        for p in root.glob('*.json'):
+            info=p.lstat()
+            assert stat.S_ISREG(info.st_mode) and not p.is_symlink() and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o600, 'Diagnostic record is not private'
+            found.append(p)
+    return found
+'''.replace('@FOLDERS@', repr(folders))
+    if before is None:
+        return source + 'print(json.dumps([str(p) for p in records()]))\n'
+    return source + '''before=set(@BEFORE@)
+deadline=time.monotonic()+1800
+while time.monotonic()<deadline:
+    paths=[p for p in records() if str(p) not in before and p.name.endswith('-@COMMAND@.json')]
+    if paths:
+        assert len(paths)==1, 'Ambiguous owner command records'
+        result=json.loads(paths[0].read_text())
+        assert result['status'] in ('passed','stopped')
+        print(json.dumps(result));break
+    time.sleep(.5)
+else: raise SystemExit('Owner command did not finish')
+'''.replace('@BEFORE@', repr(before)).replace('@COMMAND@', command)
+
+
 class Console:
     def __init__(self, guest, tty='tty3'):
         self.guest, self.tty = guest, tty
@@ -239,7 +274,7 @@ print(json.dumps(dict(ready=hidden,raw=base64.b64encode(raw).decode())))
         self.guest.screenshot_safe = True
 
     def records(self):
-        return self.guest.capture_json('owner-record-list', sw.framed("python3 -c \"import json,pathlib;print(json.dumps([p.name for p in pathlib.Path('/var/lib/ares/records').glob('*.json')]))\""))
+        return self.guest.capture_json('owner-record-list', sw.framed('python3 -c ' + shlex.quote(diagnostic_reader())))
 
     def run(self, name, stage, inputs=(), password=None, expect_stop=False):
         self.select()
@@ -262,20 +297,11 @@ print(json.dumps(dict(ready=hidden,raw=base64.b64encode(raw).decode())))
             self.guest.finish_shutdown(stage, 'guest-reset')
             return
         command = COMMANDS[name].split('/at ', 1)[-1].split()[0] if name != 'install' else 'install'
-        source = '''import json,pathlib,time
-before=set(@BEFORE@)
-deadline=time.monotonic()+1800
-while time.monotonic()<deadline:
-    paths=[p for p in pathlib.Path('/var/lib/ares/records').glob('*-@COMMAND@.json') if p.name not in before]
-    if paths:
-        assert len(paths)==1
-        try: result=json.loads(paths[0].read_text())
-        except (ValueError,OSError): time.sleep(.1);continue
-        print(json.dumps(result));break
-    time.sleep(.5)
-else: raise SystemExit('Owner command did not finish')
-'''.replace('@BEFORE@', repr(before)).replace('@COMMAND@', command)
+        source = diagnostic_reader(before, command)
         result = self.guest.capture_json(stage + '-owner-result', sw.framed('python3 -c ' + shlex.quote(source)))
+        # Save before checking acceptance: an unexpected STOP is the evidence
+        # needed to diagnose the failure, not an excuse to lose its record.
+        td.save(stage + '-owner-diagnostics', result)
         assert result['status'] == ('stopped' if expect_stop else 'passed'), 'Owner command failed: ' + stage
         self.prompt(stage + '-completed')
         self.guest.screenshot_safe = True

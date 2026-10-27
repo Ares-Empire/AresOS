@@ -624,9 +624,10 @@
     "credential": "existing local gh login; GET only"
   },
   "current_bundle": {
-    "sha256": "ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112",
+    "sha256": "effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7",
     "path": "os/owner-tools/payload/SHA256.json",
-    "qualification": "pending"
+    "qualification": "pending",
+    "note": "14v local-only parser and refusal-diagnostic fixes; no probe/qualification of this payload"
   },
   "local_privacy_scans": [
     {
@@ -1005,17 +1006,26 @@
     "exception_month": "2026-10",
     "merge_requires_privacy": true
   },
-  "owner_decision": "14u exact kernel boot-console fingerprint classification; qualification2 on probe10 head without push",
+  "owner_decision": "14v local parser/diagnostic fixes only; no push or dispatch; budget/allowances unchanged",
   "qualification2": {
     "run": 40421596174,
     "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
     "conclusion": "failure",
     "owner_stop": "Linux firmware entry does not uniquely map to target EFI",
-    "privacy": "STOP:6 unclassified artifact findings"
+    "privacy": "14v classified:507 public ISO listing +8 exact kernel certificate boot lines;0 unclassified",
+    "privacy_at_14u_stop": "STOP:6 unclassified artifact findings"
   },
   "acceptance_met": false,
   "pushes_in_14u": 0,
   "reruns_in_14u": 0,
   "pr13_ready": false,
-  "reservation_restoration_condition_met": false
+  "reservation_restoration_condition_met": false,
+  "local_update_14v": {
+    "at": "2026-10-27T01:43:12.932520+00:00",
+    "pushes": 0,
+    "dispatches": 0,
+    "billing_requeried": false,
+    "ledger_requeried": false,
+    "statement": "403/520 is the last closed14u ledger, not new dispatch authorization; all10 probes and2 qualifications remain spent"
+  }
 }

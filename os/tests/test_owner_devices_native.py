@@ -216,7 +216,9 @@ class NativeWalkTest(unittest.TestCase):
         original=native.LoopHost.__init__
         def wrong_firmware(instance,*args,**kwargs):
             original(instance,*args,**kwargs)
-            instance.firmware=instance.firmware.replace(GUID,'20000001-1111-2222-3333-444444444444')
+            # Change both independently rendered text and its verbose raw node;
+            # this tests a foreign EFI identity, not a corrupt formatter dump.
+            instance.firmware=native.fixture_firmware('20000001-1111-2222-3333-444444444444')
             instance.observations.note('injected firmware failure',synthetic_firmware_line=instance.firmware)
         with patch.object(native.LoopHost,'__init__',wrong_firmware):
             with self.assertRaisesRegex(native.owner.Stop,'Linux firmware entry does not uniquely map'):

@@ -13,6 +13,8 @@ import os
 import pathlib
 import re
 import subprocess
+import struct
+import uuid
 
 import owner_fuse
 import owner_media
@@ -21,6 +23,20 @@ from prepare_two_disks import verify_loop, wait_loop_partitions
 owner = owner_media.bundle_module('owner')
 WORK = pathlib.Path('.work').resolve()
 EVIDENCE = pathlib.Path('evidence/14-native-owner-devices.json')
+
+
+def fixture_firmware(guid, sectors=0x20000):
+    """Source-derived efibootmgr18/efivar39 rendering, never a host EFI read.
+
+    HD/file/end nodes and printf formats are bound in parser-sources/README.md.
+    The GUID comes from both independent native fixture queries, not a guess.
+    """
+    file = '\\EFI\\fedora\\shimx64.efi'
+    hd = struct.pack('<BBHIQQ16sBB',4,1,42,1,0x800,sectors,uuid.UUID(guid).bytes_le,2,2)
+    name = (file+'\0').encode('utf-16-le')
+    nodes = [hd,struct.pack('<BBH',4,4,len(name)+4)+name,b'\x7f\xff\x04\0']
+    return ('Boot0001* Fixture Linux\tHD(1,GPT,'+guid.lower()+',0x800,'+hex(sectors)+')/'+file+'\n'
+        +'      dp: '+' / '.join(n.hex(' ') for n in nodes)+'\n')
 
 
 class Observations:
@@ -72,7 +88,7 @@ class LoopHost:
         self.raw_trees = []
         self.adapted_tree = []
         self.efi_source = None
-        self.firmware = 'Boot0001* Fixture Linux HD(1,GPT,'+guid+',0x800,0x20000)/File(\\EFI\\fedora\\shimx64.efi)'
+        self.firmware = fixture_firmware(guid)
         self.observations.note('synthetic firmware ready',synthetic_firmware_line=self.firmware)
 
     def resolved_guid(self):

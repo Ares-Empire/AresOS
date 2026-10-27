@@ -1,0 +1,28 @@
+{
+  "current": {
+    "sha256": "effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7",
+    "path": "os/owner-tools/payload/SHA256.json"
+  },
+  "updated_current_locations": [
+    "docs/INSTALL.md",
+    "reviews/14-owner-tools/BUDGET.json current_bundle",
+    "reviews/14-owner-tools/REPORT.md Current14v",
+    "os/manifest/ci/14/14v-preflight"
+  ],
+  "historical_fingerprint": "ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112",
+  "preserved_historical_plaintext_reference_paths": [
+    "os/manifest/ci/14/14n-replay/fingerprint-references.json",
+    "os/manifest/ci/14/14n-replay/replay.json",
+    "os/manifest/ci/14/14n-replay/windows-copy.log",
+    "os/manifest/ci/14/14o-preflight/preparation.json",
+    "os/manifest/ci/14/14o-preflight/windows-copy.log",
+    "os/manifest/ci/14/14p-preflight/preparation.json",
+    "os/manifest/ci/14/14p-preflight/windows-copy.log",
+    "os/manifest/ci/14/14r-preflight/preparation.json",
+    "os/manifest/ci/14/14r-preflight/windows-copy.log",
+    "os/manifest/ci/14/14t-preflight/preparation.json",
+    "os/manifest/ci/14/14t-preflight/windows-copy.log",
+    "reviews/14-owner-tools/REPORT.md"
+  ],
+  "reason": "Historical artifacts, reports and preflights keep the exact payload fingerprint they actually observed; archived evidence is not rewritten"
+}

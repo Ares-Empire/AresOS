@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 112,
+  "tests": 135,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -76,7 +76,7 @@
       "path": "os/ci/owner_console.py"
     },
     {
-      "sha256": "2ff0b9bd5697e953d157325aa076eac7150867cfea58b383c71a31def1b8b76a",
+      "sha256": "05c4ee1f34b9f19fb348a90a4326773ae4062e91342b751679c4b805e16920d5",
       "path": "os/ci/owner_devices.py"
     },
     {
@@ -92,7 +92,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "805e0a750500c7ebca6d6c3be1b1a28996be5ef60b7d6341f6be70e8c5e1420c",
+      "sha256": "fd2ccfe363cd52922f068f5d68641ee3160b8e91ba0a82bb83294ba36733caa0",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -188,6 +188,22 @@
       "path": "os/manifest/ci/14/keyboard-sources/us.map"
     },
     {
+      "sha256": "7c2449923d7c6d27efab1794d771f8a9136cf241e97c71d3a223c07a8b25d407",
+      "path": "os/manifest/ci/14/parser-sources/README.md"
+    },
+    {
+      "sha256": "05d311d4bd78efb08446d713faee09fb37ed4468097041ad5927cc7639937dc3",
+      "path": "os/manifest/ci/14/parser-sources/index.json"
+    },
+    {
+      "sha256": "8c26de99d74aa06c030d1b0a270340ac435de8ac7cfd6f13f33b1866e9af8467",
+      "path": "os/manifest/ci/14/parser-sources/packages.json"
+    },
+    {
+      "sha256": "554849aa8e9328e71e0890bc54e035380ad0d770dff4e20848f0ef103fca40fa",
+      "path": "os/manifest/ci/14/parser-sources/source-files.zip"
+    },
+    {
       "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
       "path": "os/owner-tools/at"
     },
@@ -204,7 +220,7 @@
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "4c876fc58ad9bf1a144676019d2cf8b7ededea96eb868d92695d5020756b0ce2",
+      "sha256": "c8cf42ccc4bc50adf37861d6fb238784c3185e912d4558848f019373963b85a9",
       "path": "os/owner-tools/owner.py"
     },
     {
@@ -256,12 +272,28 @@
       "path": "os/tests/fixtures/owner-tools/blkid-p-gpt.txt"
     },
     {
+      "sha256": "ff1950fc39761d227d55cf7beb2c725278725476aab829f4dff7cd6ad29544af",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-de.json"
+    },
+    {
+      "sha256": "b35d1bc9f91a3bf08b036110bc259e1b3e9380588405233be17109d122b60a12",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-us.json"
+    },
+    {
+      "sha256": "c039cafb54189eae97cc7c950aee97326faf4645acf11af1f4a347268d3c3919",
+      "path": "os/tests/fixtures/owner-tools/efibootmgr18-efivar39.txt"
+    },
+    {
       "sha256": "b156cc601b2d091f739410defcf2fcb6c13bb158adbf141550083eb5a5752118",
       "path": "os/tests/fixtures/owner-tools/storage-flat.json"
     },
     {
       "sha256": "dad3213300c7d6d922dd084355a74a8ae6deb9cc4859ee2b2e47a8f79549e3d4",
       "path": "os/tests/fixtures/owner-tools/storage-tree.json"
+    },
+    {
+      "sha256": "c8aac116f1773c05725547b1dff4347dbb05f68a2eafc8e5af21b4d6ef47ce49",
+      "path": "os/tests/fixtures/owner-tools/tool-output-sources.json"
     },
     {
       "sha256": "2cc6da1a77bed2f9c964f02a753fd6f4569fb9cf434898ff13751d30e8d65d7e",
@@ -272,7 +304,7 @@
       "path": "os/tests/owner_fuse_shim.py"
     },
     {
-      "sha256": "14c1196fbe0be4b7f03d6934636cbcfd615f1838b446c2c6ded5e832567f6651",
+      "sha256": "53229c4b45ce17b5240ffd18999716bec708b32989ade08a18ba93854e92a272",
       "path": "os/tests/owner_shim.py"
     },
     {
@@ -296,6 +328,10 @@
       "path": "os/tests/test_loop_nodes.py"
     },
     {
+      "sha256": "e48a5c6f1ddece5d6f2e89ded5f6a001f5f5d62011fef699157aaedb42918bf3",
+      "path": "os/tests/test_owner_artifact_class.py"
+    },
+    {
       "sha256": "65b52e711eb46da157d8a11ba408ec40f184570ccf8b0c307ad958fa6251c167",
       "path": "os/tests/test_owner_capabilities.py"
     },
@@ -308,15 +344,19 @@
       "path": "os/tests/test_owner_console.py"
     },
     {
-      "sha256": "cd8e5bcfc727b82fa54645b9d4b6b9b89b75a5ed0bccb053661940b014306a28",
+      "sha256": "7b19f021a629ac194a634f77aef19a8c74b73be4f58a392323ff8cac35a7d0c4",
       "path": "os/tests/test_owner_devices.py"
     },
     {
-      "sha256": "7eb17be9d4acf3dc5100335969112fb8e27cb40d7e82941be928f17034bc08a5",
+      "sha256": "19c61c44cae25477eff410624f655681ae9961ab7468f80f0ca963080eb7bbfe",
       "path": "os/tests/test_owner_devices_native.py"
     },
     {
-      "sha256": "5c67e64539022c808d7dda8d87e0b552578ac3c20910b6c1d7a0931adaa703d4",
+      "sha256": "ab12b21a8b489a549443faad48a0c6e4b496eb9051b2207e020d96faedd95e47",
+      "path": "os/tests/test_owner_diagnostics.py"
+    },
+    {
+      "sha256": "2ef0047e59f2a3ea8141dc102bdad6e3da36d45ee9ed5f16bd7ba8e52b0b6aaf",
       "path": "os/tests/test_owner_entry.py"
     },
     {
@@ -326,6 +366,14 @@
     {
       "sha256": "d327234415cd4a1515752d392a3100e812feece9e26af0a81214d324712bbefd",
       "path": "os/tests/test_owner_export.py"
+    },
+    {
+      "sha256": "cc53b7354f74df63127a79743e98f1240664efb68da670675ec2fa04d3c34060",
+      "path": "os/tests/test_owner_firmware.py"
+    },
+    {
+      "sha256": "55ceab24b75a7258563f17d3ebb315bd023aa06b1cbb914a3f7ef7cb26e18178",
+      "path": "os/tests/test_owner_format_audit.py"
     },
     {
       "sha256": "9ff44411d338e531e219ef0bc210e950d6761eb6fa7d8e0ac3279c235355c56d",
@@ -344,7 +392,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "c952dbcad08d4f936431fd661e21d7588a83c11d2ce52ed4fb8e826425d091f9",
+      "sha256": "75c5ffa4721f65dd206603c0b89dca349ea6629d91dbc2182aa23cc6ec22825d",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -352,7 +400,15 @@
       "path": "os/tests/test_release_squash_binding.py"
     },
     {
-      "sha256": "e7e9af3568556e1f1d65b5fae3eba8d0a9e191185debcc6c96132b726aa77452",
+      "sha256": "c0fdfdb09b769659421d2ba5c0205d8164bc9073ce9138880f73ab2e8cf3e4a9",
+      "path": "reviews/14-owner-tools/classify-artifacts.py"
+    },
+    {
+      "sha256": "46542d2905abc0c05142e445b6dd5bb8fd0a794b7cbfd1d91c4e4079d5ffa42f",
+      "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
+    },
+    {
+      "sha256": "cc1583a8c3bce980b1c303e65fea723f48151afc8a0232cf81ea779154378e5d",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

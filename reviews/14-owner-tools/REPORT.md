@@ -1,9 +1,170 @@
 # 14: checked owner tools
 
-**Current14u: STOP in qualification2 at owner install; no rerun or push.**
-PR #13 remains draft / NOT RELEASED. Report, redacted metadata and the closed
-ledger are committed locally only. The run is over; the owner can reset the
-Actions budget to$0. Historical STOP reports remain below.
+**Current 14v: local fixes verified; qualification 2 remains failed. No push or
+dispatch.** PR #13 stays draft / NOT RELEASED. No laptop operation, image build,
+publication, permission/scope change, rerun or merge. This local-only run is over;
+the owner decides the next budget/allowance and date before any new Actions run.
+
+## 14v — Pinned firmware grammar, private STOP records and parser audit
+
+**Done:** verified the exact pinned Bazzite44 RPM database: efibootmgr
+**18-11.fc44**, efivar-libs **39-12.fc44**. The read-only header verifier passed
+all15 recorded packages. A full hash/manifest check of the frozen stock OCI
+layer confirms its RPM database is byte-identical to the ISO's; the same15
+headers passed on that independent extraction too. Fedora f44 specs match
+those releases: efibootmgr has
+no patches; efivar's ABI/storage patches do not affect formatting. The40
+original primary-source files, immutable URLs/commits, hashes and complete
+payload parser inventory are retained in
+[the format audit](../../os/manifest/ci/14/parser-sources/README.md) and its
+deterministic source archive. Plaintext upstream sources scanned clean before
+archiving; original patch whitespace and bytes are preserved.
+
+The relevant upstream implementations are
+[efivar39 media formatting](https://github.com/rhboot/efivar/blob/c47820c37ac26286559ec004de07d48d05f3308c/src/dp-media.c),
+[the file-string macro](https://github.com/rhboot/efivar/blob/c47820c37ac26286559ec004de07d48d05f3308c/src/dp.h),
+[node joining](https://github.com/rhboot/efivar/blob/c47820c37ac26286559ec004de07d48d05f3308c/src/dp.c),
+and [efibootmgr18](https://github.com/rhboot/efibootmgr/blob/c3f9f0534e32158f62c43564036878b93b9e0fd6/src/efibootmgr.c).
+The line is `Boot####` + active/inactive marker + space + description + TAB +
+device path + directly appended OptionalData + LF. The HD node is
+`HD(decimal,GPT,guid,0xhex,0xhex)`; efivar39 emits the file string itself and
+joins it with `/`. `-v` additionally emits `dp:` node bytes and optional `data:`
+bytes. OptionalData has no general delimiter; its raw-text, binary-hex, GUID
+and legacy shim renderers are recorded in the audit.
+
+`firmware_entry` parses those records instead of searching a loose regex. It
+accepts current `/\EFI\...` and legacy `/File(\EFI\...)`, compares ESP GPT
+GUIDs case-insensitively, and requires exactly one Boot number with that GUID
+and an EFI path. Verbose node lengths, GUID, file and terminator must agree;
+appended OptionalData cannot supply a fake match. Duplicate/ambiguous entries,
+unknown grammar, non-EFI paths, malformed bytes or firmware stderr STOP. Every
+existing disk, mount, serial, deployment, pin and pending-state check remains.
+No firmware audit was widened. The native-loop fixture now emits the pinned
+TAB/path/verbose-byte grammar, using its independently cross-checked native GUID.
+
+The retained Boot000A varstore has one Bazzite HD/File option, consistent with
+the integrator's diagnosis. Its fixture is explicitly a **source-rendered
+reconstruction**, not guest stdout: qualification2 never retained that stdout.
+The other payload tool-output parsers were checked against their pinned
+emitters (systemd259.9, util-linux2.41.5, kbd2.9.0, coreutils9.10, glibc2.43,
+rpm-ostree2026.3, ostree2026.4, bootc1.16.13). The executable systemctl shim now
+has the real three columns. Dumpkeys fixtures are lossless verbatim y/z-row
+projections of retained package13 output. Real session/keyboard/pause parsers
+also run on source-shaped responses. The eight shared release scripts remain
+byte-identical; the audit identifies every JSON/text/opaque-output consumer.
+
+The real CLI now shares install's Host trace. Every root command refusal
+collects raw `efibootmgr -v` (or the failed read's raw stdout/stderr and reason)
+in a root-owned0700 `/run/ares-owner-diagnostics` directory, using exclusive
+mode0600 atomic JSON records. An install preflight refusal does not create
+`/var/lib/ares` or copy/install anything. Refusal handling writes only private
+diagnostics and introduces no deployment, pin, BLS, disk, keymap or credential
+mutation. An I/O failure after an authorized operation can leave partial state;
+it preserves that state, records STOP and never emits a premature success.
+Arbitrary argv and hidden credentials are never recorded. Non-root callers
+still refuse before any host access. The administrator must keep the session
+open: these pre-install records are volatile across a reboot.
+
+The harness reads private command JSON from both stores through the existing
+checksum-framed protocol, saves the complete STOP record **before** asserting
+acceptance, and fails closed on unsafe metadata or ambiguous records. Tests
+execute the real reader in real Bash with ordinary repo-file/metadata adapters;
+no host privilege is used. Framing and owner commands themselves are unchanged.
+An error saving a normal success record becomes a STOP record, never `passed`;
+install writes its success record only after its final short-entry step. Both
+failure paths have execution regressions that prove no premature success leaks.
+
+Current local bundle manifest SHA256:
+`effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7`.
+INSTALL's Windows-copy check, BUDGET's current_bundle and all current bindings
+use this value. Historical run artifacts, reports and old preflights retain
+their actual fingerprints; the new reference inventory labels them historical.
+Package15's worktree was not touched. This payload has **no VM qualification**.
+
+**Verified locally:**
+
+- Whole OS suite: `wsl.exe bash .work/14/local/whole-suite.sh` ran **378 tests in
+  311.181s**:370 distinct passes; the same8 known host-limit tests;
+  `FAILED (failures=2, errors=9)`, with cleanup errors accounting for duplicates.
+  No skip, weakened assertion or new failure. Exact IDs/reasons and the log
+  hash are in [preparation.json](../../os/manifest/ci/14/14v-preflight/preparation.json).
+- Final zero-cost host walk: **135 tests in 138.760s, OK**; **90 source
+  bindings**,258 composed guest commands, all retained order/hotplug/keyboard/
+  refusal checks. Includes the new parser, diagnostics, classifier and source
+  regressions; no stick crosses a reboot.
+- Strict14i checks: **258 guest +258 serial wrappers**,233 embedded Python
+  programs,12 CI/release shell files and45 CI/overlay/owner Python files passed;
+  any Bash parse stderr, including warnings, remains a failure.
+- Real read-only release/source replay passed (`verify_release.py 40154642447`,
+  the14g git-only squash binding, and `verify-zero-cost.py --14b` with53 sources
+  and the full1,439,437-line ISO listing). Actual installer_inspect.main passed
+  with all9,068,650,496 ISO bytes rehashed against the exact pin and fresh public
+  publisher checksum;4 localization and102 WebUI sources. Only existing Windows
+  tar/WSL unsquashfs/path/LF adapters; no CI assertion changed.
+- Windows `owner-tools.Tests.ps1`: **15 destination refusals, zero writes**;
+  successful copy/readback equals the regenerated reviewed bundle.
+- Source/command/bundle equality, manifest hash-before-path checks,
+  `git diff --check`, frozen eight-path runtime diff and unchanged shared
+  release/permission/privacy/budget-configuration checks passed. Pinned
+  gitleaks8.21.2 scans are recorded in the local privacy receipt; no ignores,
+  allowlists, rules, privacy workflows or scopes changed.
+
+**Artifact classification:**14v allows only a complete captured-boot-console
+line `[timestamp] Loaded X.509 cert '<nonempty name>: <exactly40 hex>'`. It is
+not a substring match, does not strip arbitrary control characters, and does
+not allow findings from unrelated files. Local tests accept the Fedora and
+Build-time names and refuse prefix/suffix, bad lengths, nonhex, other messages,
+multiline/control-prefixed or empty-name forms. Probe10's509 findings classify
+as507 reviewed public ISO-listing +2 exact kernel lines; qualification2's515
+classify as the same507 listing +8 exact kernel lines, **zero unclassified**.
+Each whole source line is bound below (hash excludes the CR/LF terminator);
+raw fingerprints/consoles are not committed. Any other finding still STOPs.
+
+| Run | Whole-line SHA256 | Captured console | Line | Certificate name |
+| --- | --- | --- | --- | --- |
+| 40417291358 | `a86d89d3e5c82545ab1a88aaa8a05144f2969a08d956157d1129858ab04d3bbe` | `evidence/two-disk/live-ui-probe-boot-console.txt` | 497 | Fedora kernel signing key |
+| 40417291358 | `c7fe0c4da26f1e3566ce0fe564457f5e54c64242e2f282a4e83e944f6e9686f9` | `evidence/two-disk/live-ui-probe-boot-console.txt` | 530 | Fedora kernel signing key |
+| 40421596174 | `07c6d1c068f2758ab440484336f4ca34da7676d410ed415e2f3943d1c7b4bde2` | `evidence/two-disk/offline-first-stock-boot-console.txt` | 498 | Build time autogenerated kernel key |
+| 40421596174 | `0a5279c21180c68282ef1e7f221cf166dcdfa44d784761002522ce57b6b6eeb6` | `evidence/two-disk/offline-first-stock-boot-console.txt` | 509 | Build time autogenerated kernel key |
+| 40421596174 | `994b7a4d2def60914af1cf799024c402dccc29edfd89ab3f8fe143c131bdfd02` | `evidence/two-disk/protected-second-install-boot-console.txt` | 491 | Fedora kernel signing key |
+| 40421596174 | `6f56aaa6390f73d73e479429351ba85c0bf3cf243c7009a13ce8805298cc92be` | `evidence/two-disk/protected-second-install-boot-console.txt` | 524 | Fedora kernel signing key |
+| 40421596174 | `cc70dc42e82de798c4ca2e58938cc98e24813fc29d8fa7814ea1357b3f158192` | `evidence/two-disk/tools-stock-boot-console.txt` | 503 | Build time autogenerated kernel key |
+| 40421596174 | `ec6bcd1c592c5785825e4fc7a62efb58ab9ef7c3542e1f27b6d5420b8edba2ba` | `evidence/two-disk/tools-stock-boot-console.txt` | 521 | Build time autogenerated kernel key |
+| 40421596174 | `ed802d6e5af9d58522d56d1047dd98ab21ea1edb33d5e5b966502d1bbd7f5910` | `evidence/two-disk/stock-initialization-0-boot-console.txt` | 509 | Build time autogenerated kernel key |
+| 40421596174 | `710c9170ab9a35e2cc8b29dc8d1909865756e5a7a4f134b63ed06b283f4b34e4` | `evidence/two-disk/stock-initialization-0-boot-console.txt` | 527 | Build time autogenerated kernel key |
+
+**Not verified:** no new native hosted-runner or VM run is authorized. The
+whole suite's8 local limits are3 missing-Pillow greeter tests,3 privileged
+Homebrew/ACL tests,1 privileged sysusers test and1 DrvFS0600 metadata test;
+no package install or sudo bypass was used. Native mounted-loop behavior,
+actual private STOP-record ownership and the new parser on a fresh guest await
+an owner-authorized fresh probe/qualification. The earlier355-test native
+passes belong to `bbf228c`, not this payload. All physical/followability,
+NVIDIA Flatpak, forgotten-stick and laptop release gates remain open.
+
+**Budget / stop state:** the last closed ledger remains **403/520**,0 reserved,
+all **10/10 probes** and **2/2 qualifications** spent.14v used0 Actions minutes,
+0 pushes and0 dispatches; it did not reread billing/budgets or change caps,
+price, paid budget, closing0 or reserve0. The brief's roughly$0.92 overflow
+balance is the integrator's estimate, not a fresh billing claim. No future
+dispatch is authorized. Acceptance is unmet; closing12/reserve150 restoration
+and marking PR#13 ready remain conditional on acceptance and closing privacy.
+
+**JUDGMENT-CALL:** only the explicitly requested private diagnostic write is
+permitted on refusal; pre-install diagnostics use `/run` so a refusal cannot
+start an installation or write a protected disk. Unknown formatter variants
+and GUID aliases STOP rather than being guessed.
+
+**PLAN-GAP:** no contradiction to the integrator diagnosis was found. The
+missing original guest stdout cannot be reconstructed as observed evidence;
+the new recorder fixes that evidence gap. Local proofs do not close VM or
+physical acceptance.
+
+**Open questions:** the owner's next budget/date and fresh run allowances.
+No decision was inferred, no rerun attempted, and no PR readiness changed.
+
+The following sections preserve their historical observations and superseded
+decisions, including the narrower14u artifact classification.
 
 ## 14u — Public certificate classification; qualification2 STOP
 
