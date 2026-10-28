@@ -117,7 +117,7 @@ class SudoIdleTest(unittest.TestCase):
         from unittest.mock import Mock
         guest = Mock(owner_input_epoch=0)
         console = vm.Console(guest)
-        with patch.object(console, 'after_hidden') as after, patch.object(console, 'hidden'), \
+        with patch.object(console, 'after_hidden') as after, patch.object(console, 'hidden'), patch.object(console, 'send_hidden'), \
                 patch.object(console, 'prompt'), patch.object(console, 'select'), \
                 patch.object(vm, 'wait_tty'), patch.object(vm, 'type_text'):
             console.login('synthetic-password', 'same-stage')

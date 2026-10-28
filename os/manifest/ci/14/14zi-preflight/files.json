@@ -1,0 +1,144 @@
+{
+  "files": [
+    {
+      "sha256": "4a3a28be31f963f1d983a4c73d41f1772edb59e4a05cdf40bd3652f27afa7da4",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "3fc321830ae15d30e6ea911fe478260f42789a1dad5fb69ed51bb277cb679e81",
+      "path": "baseline.json"
+    },
+    {
+      "sha256": "b1b2590544eea76a8a59ef3fafdd32f2082b20b0df36795753603d34c66ccf31",
+      "path": "console-tests.txt"
+    },
+    {
+      "sha256": "af55efa5c3ceb122f8184c380aa405d3f3b4e7e0c1e892773d0eff31d0645c8a",
+      "path": "controller-tests.txt"
+    },
+    {
+      "sha256": "7562f70b36fb6e256ad8c52d6221b52b629c132270d0cf5988d12d911a0303ad",
+      "path": "diagnose.py"
+    },
+    {
+      "sha256": "206b23c3631a64309efeedda21177cc6ef6497623e06b320c54cb6fdae84874e",
+      "path": "diagnosis.json"
+    },
+    {
+      "sha256": "3629ca582ba0c8628f989854346a9e83fa9751be448edf143208f1446316ffc1",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
+      "path": "dispatch-watcher.py"
+    },
+    {
+      "sha256": "4c838f4ea01a61b6d4abe3deacf9bbc14d356715859608f2702cf28b1cb62cb8",
+      "path": "final-validation.txt"
+    },
+    {
+      "sha256": "da8b99134ac02752a5ff61d88facc86b8446b20894df05c172b5f6a1aec23157",
+      "path": "getpass-source.json"
+    },
+    {
+      "sha256": "07b3ec3081652421fe3c494ff06480f068707ca6b74f6ae5e00d648b28d1d937",
+      "path": "hidden-pty-tests.txt"
+    },
+    {
+      "sha256": "7080b75d077a7de58e69bc4e812ef521b23eac63bb98adb85085e2e91754aefb",
+      "path": "host-walk.txt"
+    },
+    {
+      "sha256": "b5beea28b4cb9f0e76863493d8bd2ad93fcc160876467ebac862976973e23242",
+      "path": "initial-walk-fixture-failure.txt"
+    },
+    {
+      "sha256": "4296cfde0c1298fa9c0c86556bd61f6cd15736cc851f982c09dfa2558da7e63b",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "f3e9241f2ff02ec63f189bcb8fb41f7222686fa0970ad1895835b1838f705309",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "5d6a92f2d6f12effc5f0a03100ba152b8f1ce830b41e0e1b128f6972edba83f0",
+      "path": "iso-download.json"
+    },
+    {
+      "sha256": "df59c598b801a2717990ec3dfd07acfde87d4319683b3cebe6f3c88dfead5d70",
+      "path": "local-privacy.json"
+    },
+    {
+      "sha256": "31131fa512597aba0fc18f99e7fa73079f3bb87096ca6efc45a36d88502bc8c7",
+      "path": "local-receipt.py"
+    },
+    {
+      "sha256": "36c8a5204f77736bb1d7312cf5492951b30145e596a771912b87ade2de7f9e2f",
+      "path": "local-replay-attempts.json"
+    },
+    {
+      "sha256": "4934e0adbaf18f273fd953fc00fef64834f29bcef4c78d1a75c6f8bfdf6a2a79",
+      "path": "local-retry.py"
+    },
+    {
+      "sha256": "09606d8cf566eba928bbcc52f4ebb3eabe392af3638eceb905e6593d7e1ee823",
+      "path": "official-CHECKSUM.txt"
+    },
+    {
+      "sha256": "78c66a1d2b256c8fc69f44182177155a97939d5cad2f1e8f6c4f066b6885ac9f",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "43a80ca1e94b0a30adf897a70c44209c6f543deec7caa3efab8505388f1fac48",
+      "path": "probe-review.py"
+    },
+    {
+      "sha256": "13fcee1ed776c0868867c7fd09dfb631186d2e2e7213e073dced9d141426301f",
+      "path": "push-once.py"
+    },
+    {
+      "sha256": "3e8814dcf6cea6f1e60242b550244d0c06ad282656d1a31230fd02cb87152274",
+      "path": "qualification-review.py"
+    },
+    {
+      "sha256": "23a2baf6f066507554f25ee4cec24a5253a82ae12958b10f57fc5982b7b0b7e5",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": "release-replay.txt"
+    },
+    {
+      "sha256": "8be76b8d265ea3e049b8a03e28bc44b46f4431b915183e37cc0e4af54815d814",
+      "path": "serial-tests.txt"
+    },
+    {
+      "sha256": "dacef1b0463be36b82b73f90338542d44ba3977999299d03bab385bc96cf2ac9",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "b5c76f735c493a5283461977b01dd30c6d07bd67c3fe1f90f7a8bf4a4ff779c1",
+      "path": "test_dispatch_control.py"
+    },
+    {
+      "sha256": "5d10c1b57320d10691e4a29be1c1b14a0040f0f71760cc9cbca2b5c9aa68bba0",
+      "path": "walk-targets.txt"
+    },
+    {
+      "sha256": "670a39115e7523a8984e4842e16547cb2094b03fad392b037b4b9dc8b2656e62",
+      "path": "watcher-tests.txt"
+    },
+    {
+      "sha256": "0607d49e22c6483428e925fbab3e0c108c8df2e6ae8dd57a88fc6c503ea28d12",
+      "path": "whole-suite.txt"
+    },
+    {
+      "sha256": "a83885b4a05586df4c2c48649d7f20af9cc8e75df9f917f2514dbfd70e3fb137",
+      "path": "windows-copy.txt"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": "zero-cost-replay.json"
+    }
+  ]
+}

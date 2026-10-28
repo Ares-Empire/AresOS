@@ -226,10 +226,11 @@ class ConsoleTest(unittest.TestCase):
         import os
         self.guest.raw = self.clutter
         with patch.object(os, 'open', side_effect=OSError('Synthetic busy tty')):
-            with self.assertRaisesRegex(AssertionError, 'No hidden prompt'):
-                self.console.hidden('hidden')
+            with self.assertRaisesRegex(AssertionError, 'No verified hidden prompt'):
+                self.console.hidden('hidden', dict(kind='login'), 'Password:')
         self.assertEqual(self.guest.pressed, [])
-        self.assertEqual((self.evidence / 'hidden-timeout-1.vcsa').read_bytes(), self.clutter)
+        retained, = self.evidence.glob('hidden-read-wait-*-timeout-1.vcsa')
+        self.assertEqual(retained.read_bytes(), self.clutter)
 
     def test_hidden_busy_shell_never_grants_enter_or_prompt_authority(self):
         self.guest.owner_input_epoch=7

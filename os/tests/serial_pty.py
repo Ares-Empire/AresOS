@@ -33,7 +33,7 @@ PYTHON_ADAPTER = '''import os,pathlib,stat,sys
 from types import SimpleNamespace
 RealPath=pathlib.Path
 root=RealPath(os.environ['SERIAL_FIXTURE_ROOT'])
-source=sys.argv[2]
+source=sys.argv[2].replace("/var/lib/ares/tools/owner.py", str(root/"mock-login.py"))
 class VirtualPath:
  def __init__(self,p):self.value=str(p)
  def real(self):
@@ -41,6 +41,7 @@ class VirtualPath:
    if self.value==prefix or self.value.startswith(prefix+'/'):return root/name/self.value[len(prefix):].lstrip('/')
   if self.value.startswith('/dev/vcsa'):return root/('vcsa'+self.value.removeprefix('/dev/vcsa'))
   return RealPath(self.value)
+ def __truediv__(self,name):return VirtualPath(self.value+"/"+str(name))
  def exists(self):return self.real().exists()
  def is_symlink(self):return self.real().is_symlink()
  def lstat(self):return SimpleNamespace(st_mode=(stat.S_IFDIR|0o700) if self.real().is_dir() else (stat.S_IFREG|0o600),st_uid=0)

@@ -25,7 +25,7 @@ import owner_media
 import test_owner_tools as common
 from owner_fuse_shim import Volume
 from guest_shell import syntax
-from owner_console_shim import execute_idle
+from owner_console_shim import execute_idle, execute_hidden
 
 FIXTURES = ROOT / 'os/tests/fixtures/owner-tools'
 
@@ -36,7 +36,7 @@ def retained(name):
 
 def walk():
     visits, commands, typed, checks, markers = [], [], [], [], []
-    prompt_waits, idle_answers = {}, []
+    prompt_waits, idle_answers, hidden_reads = {}, [], []
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
     first = common.stock()
@@ -63,6 +63,13 @@ def walk():
         def capture_json(self, name, source):
             syntax(name, source)
             commands.append((name, source))
+            if '# hidden-phase:' in source:
+                words = shlex.split(source)
+                script = words[words.index('python3') + 2]
+                result = execute_hidden(script)
+                assert result['ready']
+                hidden_reads.append((name, 'left' if '# hidden-phase: left' in script else 'ready'))
+                return result
             if 'ready=shell' in source:
                 words = shlex.split(source)
                 script = words[words.index('python3') + 2]
@@ -173,11 +180,15 @@ def walk():
         assert all(e['enter_sent'] and e['ready'] and e['observer']['ready'] and
                    e['observer']['observation']['foreground_chain'] for e in events)
         assert all(wait + '-idle-1' in idle_answers for wait in prompt_waits)
+        ready_names = [name for name, phase in hidden_reads if phase == 'ready']
+        left_names = [name.removesuffix('-left') for name, phase in hidden_reads if phase == 'left']
+        assert ready_names and len(set(ready_names)) == len(ready_names) and set(ready_names) == set(left_names)
     assert visits == ['stock','tools-stock','corrected-stock','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
     assert {'prepared-unattended-windows','offline-roundtrip-unattended-windows','offline-roundtrip-detached-windows','final-unattended-windows','final-detached-windows'} <= set(markers)
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, checks=checks, markers=markers,
-        prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events)
+        prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
+        hidden_reads=hidden_reads)
 
 
 class OwnerWalkTest(unittest.TestCase):

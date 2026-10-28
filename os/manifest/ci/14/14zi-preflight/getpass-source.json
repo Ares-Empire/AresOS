@@ -1,0 +1,7 @@
+{
+  "sha256": "f1e8b3ea2cc5f2ca15e5568b3e53d355c313da3b2891447a36edad2537b6b077",
+  "url": "https://raw.githubusercontent.com/python/cpython/v3.14.8/Lib/getpass.py",
+  "guest_rpm": "python3.14-3.14.8-1.fc44.src.rpm",
+  "ordering": "TCSAFLUSH before _raw_input writes the prompt; restore termios before newline/return",
+  "third_party_module_committed": false
+}

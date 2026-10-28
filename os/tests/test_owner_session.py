@@ -225,6 +225,7 @@ class SessionTest(unittest.TestCase):
         typed = []
         with patch.object(vm, 'type_text', side_effect=lambda g, text, *a: typed.append(text)), \
                 patch.object(console, 'prompt'), patch.object(console, 'hidden'), \
+                patch.object(console, 'send_hidden', side_effect=lambda value, layout=None: vm.type_text(guest, value+'\n', layout)), \
                 patch.object(console, 'after_hidden'):
             console.become_root('synthetic-password', 'guide')
         self.assertEqual(typed, ['sudo -k\nsudo -i\n', 'synthetic-password\n'])

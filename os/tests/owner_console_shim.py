@@ -1,5 +1,6 @@
 """Read-only guest /proc and VCSA stand-ins; never acquire a host terminal."""
 import contextlib
+import ast
 import io
 import json
 import os
@@ -47,4 +48,49 @@ def execute_idle(source, raw, rows=None):
             stack.enter_context(patch.object(termios, 'tcgetattr', return_value=[0, 0, 0, 0]))
             with contextlib.redirect_stdout(output):
                 exec(compile(source, 'modelled-physical-idle', 'exec'), {})
+        return json.loads(output.getvalue())
+
+
+def execute_hidden(source, leaves=True):
+    """Execute a composed hidden-read command on synthetic proc/termios facts."""
+    import termios
+    from test_owner_hidden import Proc, nested, vcsa, PROMPT
+    calls = [n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name) and n.func.id in ('hidden_observation', 'hidden_left')]
+    call, = calls
+    tty, expected, third = [ast.literal_eval(n) for n in call.args]
+    physical = 4 * 256 + int(tty[3:])
+    leaving = call.func.id == 'hidden_left'
+    if expected['kind'] == 'owner':
+        rows = nested(physical, 136 * 256 + 2, 40, expected['argv'])
+    elif expected['kind'] == 'login':
+        rows = [dict(pid=10, ppid=1, pgrp=10, session=10, tty=physical,
+            tpgid=10, comm='login', args=['login', '--', 'ares-recovery'])]
+    else:
+        rows = [dict(pid=20, ppid=1, pgrp=20, session=20, tty=physical,
+            tpgid=20, comm='sudo', args=expected['argv'])]
+    raw = vcsa(('root@bazzite:~# ' if leaves else PROMPT) if leaving else third)
+    with tempfile.TemporaryDirectory(dir=pathlib.Path(__file__).parent) as folder:
+        proc = Proc(folder, rows).root
+        read_text, read_bytes, glob, readlink = pathlib.Path.read_text, pathlib.Path.read_bytes, pathlib.Path.glob, os.readlink
+        def mapped(path):
+            p = pathlib.Path(path)
+            return proc / p.relative_to('/proc') if str(p).startswith('/proc/') else p
+        def open_tty(path, *args, **kw):
+            if str(path) == '/dev/' + tty: return 123
+            assert str(path) == '/dev/pts/2', path
+            return 124
+        output = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(pathlib.Path, 'read_text', lambda p: read_text(mapped(p))))
+            stack.enter_context(patch.object(pathlib.Path, 'read_bytes', lambda p: raw if str(p) == '/dev/vcsa' + tty[3:] else read_bytes(mapped(p))))
+            stack.enter_context(patch.object(pathlib.Path, 'glob', lambda p, pattern: glob(proc if str(p) == '/proc' else p, pattern)))
+            stack.enter_context(patch.object(os, 'readlink', lambda p: readlink(mapped(p))))
+            stack.enter_context(patch.object(os, 'open', side_effect=open_tty))
+            stack.enter_context(patch.object(os, 'close'))
+            stack.enter_context(patch.object(os, 'fstat', side_effect=lambda fd: SimpleNamespace(
+                st_rdev=os.makedev(4, int(tty[3:])) if fd == 123 else os.makedev(136, 2))))
+            stack.enter_context(patch.object(termios, 'tcgetattr', return_value=[0, 0, 0, termios.ECHO if leaving and leaves else 0]))
+            with contextlib.redirect_stdout(output):
+                exec(compile(source, 'modelled-hidden-reader', 'exec'), {})
         return json.loads(output.getvalue())

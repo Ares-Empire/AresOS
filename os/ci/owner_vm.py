@@ -21,6 +21,7 @@ import keyboard_vm as kb
 import keyboard_entries as ke
 import offline_webui
 import owner_console
+import owner_hidden
 from owner_keys import physical_keys
 from owner_media import Media
 
@@ -31,6 +32,8 @@ PROBE_MEDIA = None
 OWNER_COMMAND_TIMEOUT = 900
 OWNER_RESULT_WAIT = 840
 PROMPT_WAIT_IDS = itertools.count(1)
+SUDO_PROMPT = "[sudo] password for ares-recovery:"
+TOKEN_PROMPT = "Read-only token (hidden):"
 
 
 def type_text(guest, text, layout=None):
@@ -215,6 +218,7 @@ class Console:
         self.guest, self.tty = guest, tty
         self.root = False
         self.completed_epoch = None
+        self.pending_hidden = None
 
     def select(self):
         self.guest.keys(['ctrl', 'alt', 'f' + self.tty[3:]])
@@ -244,41 +248,49 @@ class Console:
             raise
         self.completed_epoch = getattr(self.guest, 'owner_input_epoch', 0)
 
-    def hidden(self, stage):
-        source = ('import base64,json,os,pathlib,termios,time\n' + owner_console.foreground_source()) + '''
-hidden=False
-observation={}
-deadline=time.monotonic()+60
-while time.monotonic()<deadline:
-    try:
-        fd=os.open('/dev/@TTY@',os.O_RDONLY|os.O_NOCTTY|os.O_NONBLOCK)
-        try:
-            echo=bool(termios.tcgetattr(fd)[3]&termios.ECHO)
-            shell=foreground_is_shell(fd,observation)
-        finally: os.close(fd)
-        hidden=not echo and not shell
-        if hidden: break
-    except (OSError,termios.error): pass
-    time.sleep(0.1)
-raw=pathlib.Path('/dev/vcsa@NUMBER@').read_bytes() if not hidden else b''
-print(json.dumps(dict(ready=hidden,observation=observation if not hidden else {},raw=base64.b64encode(raw).decode())))
-'''.replace('@TTY@', self.tty)
-        source = source.replace('@NUMBER@', self.tty[3:])
-        value = self.guest.capture_json(stage, sw.framed('python3 -c ' + shlex.quote(source)))
+    def hidden(self, stage, expected, prompt):
+        assert self.pending_hidden is None, 'Previous hidden read has no completion receipt'
+        stage += '-read-wait-' + str(next(PROMPT_WAIT_IDS))
+        epoch = getattr(self.guest, 'owner_input_epoch', 0)
+        value = self.guest.capture_json(stage, sw.framed('python3 -c ' + shlex.quote(
+            owner_hidden.source(self.tty, expected, prompt=prompt.rstrip()))))
+        assert getattr(self.guest, 'owner_input_epoch', 0) == epoch, 'Input revoked hidden readiness proof'
         assert type(value['ready']) is bool
         if not value['ready']:
             retain_vcsa(self.tty, stage, 1, base64.b64decode(value['raw'], validate=True))
-            raise AssertionError('No hidden prompt')
+            raise AssertionError('No verified hidden prompt')
+        assert value['reader'] and value['prompt_at_cursor'] and value['reader_echo_enabled'] is False
+        self.pending_hidden = dict(stage=stage, expected=expected, reader=value['reader'], epoch=epoch)
+
+    def send_hidden(self, value, layout=None):
+        pending = self.pending_hidden
+        assert pending is not None, 'No hidden reader authority'
+        assert not pending.get('sent'), 'Hidden value already sent; no retry'
+        assert getattr(self.guest, 'owner_input_epoch', 0) == pending['epoch'], 'Input revoked hidden reader authority'
+        pending['sent'] = True
+        self.guest.screenshot_safe = False
+        type_text(self.guest, value + '\n', layout)
+        epoch = self.guest.owner_input_epoch
+        # No secret goes into this script/receipt. Never resend after a timeout.
+        self.resync_serial_after_hidden(pending['stage'] + '-read-left')
+        result = self.guest.capture_json(pending['stage'] + '-left', sw.framed('python3 -c ' + shlex.quote(
+            owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader']))))
+        assert self.guest.owner_input_epoch == epoch, 'Input revoked hidden read completion'
+        assert type(result['ready']) is bool
+        if not result['ready']:
+            retain_vcsa(self.tty, pending['stage'] + '-left', 1, base64.b64decode(result['raw'], validate=True))
+            raise AssertionError('Hidden reader did not leave its read; secret will not be retyped')
+        self.pending_hidden = None
 
     def login(self, password, stage, wrong=False):
         self.select()
         wait_tty(self.guest, self.tty, "line.endswith('login:')", stage + '-login-prompt')
         self.guest.screenshot_safe = False
         type_text(self.guest, 'ares-recovery\n')
-        self.hidden(stage + '-password-prompt')
+        self.hidden(stage + '-password-prompt', dict(kind='login'), 'Password:')
         # The failure fixture deliberately uses German physical positions while
         # the loaded map is plain US. This does not claim the password was typed.
-        type_text(self.guest, password + '\n', 'de' if wrong else None)
+        self.send_hidden(password, 'de' if wrong else None)
         if wrong:
             self.resync_serial_after_hidden(stage)
             wait_tty(self.guest, self.tty, "'Login incorrect' in full and line.endswith('login:')", stage + '-rejected')
@@ -293,9 +305,9 @@ print(json.dumps(dict(ready=hidden,observation=observation if not hidden else {}
     def become_root(self, password, stage):
         self.prompt(stage + '-ready')
         type_text(self.guest, 'sudo -k\nsudo -i\n')
-        self.hidden(stage + '-sudo-hidden')
+        self.hidden(stage + '-sudo-hidden', owner_hidden.sudo_reader(['-i'], dict(kind='shell')), SUDO_PROMPT)
         self.guest.screenshot_safe = False
-        type_text(self.guest, password + '\n')
+        self.send_hidden(password)
         self.after_hidden(stage + '-sudo')
         self.root = True
         self.guest.screenshot_safe = True
@@ -334,19 +346,23 @@ print(json.dumps(dict(ready=hidden,observation=observation if not hidden else {}
         self.prompt(stage + '-ready')
         before = self.records()
         type_text(self.guest, COMMANDS[name] + '\n')
+        args = COMMANDS[name].split('/at ', 1)[-1].split()
         hidden_input = password is not None
         if password is not None:
-            self.hidden(stage + '-sudo-hidden')
+            self.hidden(stage + '-sudo-hidden', owner_hidden.sudo_reader(['/var/lib/ares/at', *args], owner_hidden.owner_reader(args)), SUDO_PROMPT)
             self.guest.screenshot_safe = False
-            type_text(self.guest, password + '\n')
+            self.send_hidden(password)
         for prompt, value, hidden in inputs:
             if hidden:
                 hidden_input = True
-                self.hidden(stage + '-hidden-input')
+                self.hidden(stage + '-hidden-input', owner_hidden.owner_reader(args), prompt.rstrip())
                 self.guest.screenshot_safe = False
             else:
                 wait_tty(self.guest, self.tty, repr(prompt) + ' in full', stage + '-input-ready')
-            type_text(self.guest, value + '\n')
+            if hidden:
+                self.send_hidden(value)
+            else:
+                type_text(self.guest, value + '\n')
         if hidden_input:
             self.after_hidden(stage)
         if name == 'reboot' and not expect_stop:
@@ -542,7 +558,7 @@ exit 1''', timeout=360)
         output = guest.command('corrected-stock-homebrew', pathlib.Path('os/tests/inherited-homebrew.sh').read_text().replace('@STAGE@', 'stock'))
         brew, = re.findall(r'^([0-9a-f]{64})  /', output, re.M)
         console.run('login', 'private-owner-login', inputs=(('GitHub username:', os.environ['GITHUB_ACTOR'], False),
-            ('', os.environ['GH_TOKEN'], True)))
+            (TOKEN_PROMPT, os.environ['GH_TOKEN'], True)))
         console.run('verify', 'owner-signature')
         console.run('switch', 'owner-switch')
         sw.inspect_transaction(guest.capture_json('owner-switch-pending', sw.framed('bootc status --json')), release, stock['checksum'])

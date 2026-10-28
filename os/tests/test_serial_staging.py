@@ -264,10 +264,10 @@ print('PASS login')
             def snapshot(name,source):
                 # Wait receipts now have unique sequence/sample suffixes. The
                 # physical PTY still waits for the same public owner prompt.
-                phase=name.split('-wait-',1)[0]
+                phase=name.split('-read-wait-',1)[0].split('-wait-',1)[0]
                 if phase.endswith('-input-ready'):
                     f.physical.until(b'GitHub username:',3)
-                if name.endswith('-hidden-input'):
+                if phase.endswith('-hidden-input') and not name.endswith('-left'):
                     f.physical.until(b'Read-only token (hidden):',3)
                 f.physical.settimeout(.02)
                 while True:
@@ -291,18 +291,18 @@ print('PASS login')
             f.guest.capture_json=snapshot
             def physical(guest,text,layout=None):
                 guest.owner_input_epoch+=1
-                if text==vm.COMMANDS['login']+'\n':text='python3 '+shlex.quote(str(helper))+'\n'
+                if text==vm.COMMANDS['login']+'\n':text='python3 -I -B '+shlex.quote(str(helper))+' login\n'
                 f.physical.sendall(text.encode())
             with patch.object(vm,'type_text',side_effect=physical),patch.object(vm.td,'EVIDENCE',f.evidence):
                 console=vm.Console(f.guest)
                 if lose_result:
                     start=time.monotonic()
-                    with self.assertRaises(TimeoutError):console.run('login','exact-login',inputs=(('GitHub username:','fixture-user',False),('',sentinel,True)))
+                    with self.assertRaises(TimeoutError):console.run('login','exact-login',inputs=(('GitHub username:','fixture-user',False),(vm.TOKEN_PROMPT,sentinel,True)))
                     self.assertLess(time.monotonic()-start,30)
                     self.assertEqual(len(dropped),1)
                     self.assertFalse((f.evidence/'exact-login-owner-diagnostics.json').exists())
                 else:
-                    result=console.run('login','exact-login',inputs=(('GitHub username:','fixture-user',False),('',sentinel,True)))
+                    result=console.run('login','exact-login',inputs=(('GitHub username:','fixture-user',False),(vm.TOKEN_PROMPT,sentinel,True)))
                     self.assertEqual(result['status'],'passed')
                     self.assertEqual(list(f.stage.iterdir()),[])
             self.assertTrue(json.loads((f.evidence/'exact-login-serial-resync.json').read_text())['serial_input_flushed'])

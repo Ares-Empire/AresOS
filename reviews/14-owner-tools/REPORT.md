@@ -1,10 +1,106 @@
 # 14: checked owner tools
 
-**Current14zh: STOP — probe17 passed; qualification7 timed out at private-login hidden completion.**
-One fast-forward push reached `d15678dc491905f592c2b7b1af852fca1d35e08b`.
-Probe17 and qualification7 both ran once on that head, attempt1. No rerun,
-implementation fix, extra push or merge followed the STOP. This report/evidence
-update is local only. PR #13 stays draft / NOT RELEASED; acceptance is unmet.
+**Current14zi: inner-reader hidden-input proof implemented; local checks complete.**
+Probe18 and qualification8 are pending; acceptance is not established. PR #13
+remains draft / NOT RELEASED. This round authorizes one push and one probe, then
+only if accepted one qualification on the same head. Any CI stop ends the round.
+
+## 14zi — Hidden prompts on the actual reader tty
+
+**Done:** shared harness code follows the physical foreground through verified
+sudo frontend/direct-monitor transitions, at most3 new pts, and exact expected
+reader identity/executable/argv. Unknown processes, malformed/changed chains,
+reused pts, extra foreground candidates and a fourth hop refuse. Owner reads
+require the reviewed Python -I -B owner.py command, sudo passwords the exact
+sudo command, and getty passwords login. Before a hidden value is sent, the
+reader's own tty must have ECHO off and the expected public prompt must end the
+physical cursor line. The physical tty is still used for direct getty/outer-sudo
+reads; tty3 raw mode alone never authorizes an inner-pts value.
+
+After its single physical send, a separate bounded60-second observation requires
+reader echo restored, reader exit/exec, or the verified sudo relay starting.
+Only identity/termios/phase facts are retained, never the value; all argv in
+these chains are redacted. A consumed grant cannot send again, including after
+a timeout or partial-key failure. Failure retains raw VCSA privately plus the
+redacted chain and STOPs. The existing840-second command-to-idle observation,
+three-sample shell predicate and max2 independently proved Enter resyncs remain.
+Read completion itself grants no Enter and does not claim authentication passed.
+Account login, outer sudo, second-console layout-proof sudo and private token
+input all use this same path. Every read/left wait has a unique receipt name.
+
+**Diagnosis, confirmed mechanism / historical limit:** pinned guest RPM metadata
+is python3.14-3.14.8-1.fc44. The official
+[CPython3.14.8 getpass source](https://raw.githubusercontent.com/python/cpython/v3.14.8/Lib/getpass.py)
+sets TCSAFLUSH before writing the prompt and restores termios before returning.
+The local real two-PTY child/getpass/relay test proves the old outer-echo check
+fires early, queued input disappears at the flush, and the child remains waiting.
+The new check waits for inner echo-off plus the prompt, delivers the synthetic
+value exactly once, observes echo restoration and never echoes it. No actual
+credential is used in this reproduction; the sudo ancestry is explicitly modelled,
+while PTYs, termios, forwarding, queued-byte counts and getpass are real.
+The external module is not committed; its source hash/version/URL are recorded.
+
+Qualification7 supports this diagnosis: its old hidden check returned ready,
+then physical tty3 stayed echo-off, the owner Python process remained foreground
+on the innermost pts, and the retained screen ended at the hidden-token prompt.
+Serial transport completed; no owner PASS/STOP was produced. The exact captured
+redacted process shape is a fixture, not an invented sudo topology. Qualification4
+also used the unsound physical-tty check, but its retained116-byte transcript has
+continuation prompts and no CMD_DONE: an independent serial-framing failure is
+present. Neither run retained inner termios/prompt at the instant of send, so
+historical flush timing and sole causation cannot be proved from those artifacts.
+The mechanism is confirmed by code and real reproduction; the records are
+consistent with it, and no unseen token delivery is claimed.
+
+**Verified locally:**10 hidden-input tests cover the real flush/delivery contrast,
+the actual qualification7 process shape, busy/no-prompt, wrong argv/executable,
+broken/reused pts links,3/4-hop boundary, both physical consoles and every reader
+kind, bounded completion refusal and a second-send rejection.19 real Bash/PTY
+transport tests and13 VCSA/idle tests pass. The full462-test suite ran in584.803s:
+454 distinct passes plus the same8 native host limitations (2 failures/9 errors),
+listed by name in whole-suite.txt; no skips or assertions were weakened. The
+243-test host walk passes, executing real observer source over /proc fixtures at
+119 cluttered shell waits and22 matched hidden-read readiness/completion pairs
+through every remaining qualification stage. A real entry-point regression executes
+the installer's ordinary-file placement statements and resolves the unchanged at
+wrapper, requiring /var/lib/ares/tools/owner.py (the install audit caught and
+corrected the initial harness expectation before push). An initial stand-in routing error
+was corrected at its capture_json boundary; its failing result is retained.
+Windows copy tests pass15 zero-write refusals with exact bundle equality; all
+commands still equal the guide.4 single-dispatch controller and7 watcher tests pass.
+
+Strict checks pass549 guest/serial/staging compositions (any Bash parse stderr
+refuses),524 embedded Python,12 shells,47 Python files and the native workflow
+body. Actual release/git/file/read-only replay and53 offline source checks pass.
+Four CI-token-only registry steps remain deferred with their14f reasons and exact
+fail-closed CI steps; no local credential/scope change or owner-secret use.
+The real ISO inspector replay rehashed9,068,650,496 bytes against the pin and
+fresh official checksum, with4 localization/102 WebUI sources. It passed on local
+attempt2 after the authorized checkpoint WinError5/fresh-path10-second retry.
+No Linux CI inspector behavior, package pin or package list changed.
+
+**Scope / safety:** only harness/tests and package14 cap1200/probe18/owner-tools8
+changed. Package13 settings, owner scripts/payload fingerprint
+683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974,
+INSTALL/EMERGENCY/release gate, frozen image/runtime, workflows, disk/firmware/
+BootNext audits, privacy policy and credentials are unchanged. No image build,
+release/publication, system installation, local privilege, real disk/boot change
+or laptop/Minecraft access. No Gradle started.
+
+**Privacy / final local checks:** pinned gitleaks8.21.2 full history and pending files return0 findings. Manifest/session/console equality checks and git diff --check pass; no policy or ignore change.
+
+**Budget / plan:** the complete pre-push snapshot is913 consumed +238 bound /1200,
+probes17/18 and owner-tools7/8, complete107/107 history; org after bound128. The
+read-only guard requires exact$6/prevent=true and deducts net Actions spend using
+API pricePerUnit. Exactly one clean-gitleaks fast-forward push, then fresh exact-head
+privacy, complete ledger/billing/budget, probe18, and only after full acceptance
+qualification8 on that same head in protected-second order. Any CI stop exports
+diagnostics/reports with no rerun or extra push. Closing12/reserve150 restoration,
+final clean push/privacy and PR-ready require actual acceptance; never merge.
+
+**Not verified / JUDGMENT-CALL / open questions:** fresh native/probe/qualification
+and physical/followability gates remain pending. The stronger hidden-reader proof
+is the explicit14zi integrator decision; no new product or owner-script policy.
 
 ## 14zh REPORT — Fresh prompt authority verified; private-login STOP
 
