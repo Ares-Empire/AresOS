@@ -17,7 +17,7 @@
       "path": "dispatch-control.py"
     },
     {
-      "sha256": "f0d38b2ad8b6dcc14fc30ee27e6fe669d2bc6b4c63b0547aba7fa4a281e65493",
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
       "path": "dispatch-watcher.py"
     },
     {
@@ -37,7 +37,7 @@
       "path": "local-receipt.py"
     },
     {
-      "sha256": "581d0e5ad8138f01ba11c614bbb4f45254bcedb735f5967adf1e056191a8d17e",
+      "sha256": "f2ff2627eac55f5f29b11eb8d5238893602e9fdbfcdbc05f088e34a5ad5fd072",
       "path": "preparation.json"
     },
     {

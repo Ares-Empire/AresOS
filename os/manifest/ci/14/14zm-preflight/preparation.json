@@ -628,7 +628,7 @@
       "archive": "dispatch-control.py"
     },
     {
-      "sha256": "f0d38b2ad8b6dcc14fc30ee27e6fe669d2bc6b4c63b0547aba7fa4a281e65493",
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
       "local": "14za_watcher.py",
       "archive": "dispatch-watcher.py"
     },
@@ -693,5 +693,6 @@
   "pushes": 0,
   "probe20": "pending",
   "qualification9": "pending",
-  "acceptance_met": false
+  "acceptance_met": false,
+  "archived_source_newlines": "LF; byte bindings match committed Git blobs"
 }
