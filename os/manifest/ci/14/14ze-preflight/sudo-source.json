@@ -1,0 +1,75 @@
+{
+  "status": "verified read-only; no executable from image run",
+  "version": {
+    "1000": "sudo",
+    "1001": "1.9.17",
+    "1002": "10.p2.fc44",
+    "1022": "x86_64",
+    "1044": "sudo-1.9.17-10.p2.fc44.src.rpm"
+  },
+  "rpm_database": {
+    "sha256": "5e5d7aa4d67d30e72c59d0e173d91d117cc1f00bd4f3a606804b4a944d05d424",
+    "path": ".work/14/14v/rpmdb.sqlite"
+  },
+  "iso_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "image_files": [
+    {
+      "sha256": "f0fff10982abb6a18950a4aca23596520bfd9441c9efb0cd8502c2f3d15cc6f0",
+      "path": "etc_sudoers"
+    },
+    {
+      "sha256": "9af0d568d19a8c778d17202647b5eb75e36b074f42b2df65aa1ea23e567e3be3",
+      "path": "etc_sudo.conf"
+    },
+    {
+      "sha256": "689685a46290a246f1434325817d5956999028ebdde8352ff1e53d5b5468f3df",
+      "path": "usr_bin_sudo"
+    },
+    {
+      "sha256": "0fe9bc1fae0b6c1414ce8973dc376ab64ddb60fa0bca4bf5a8349d14d538467f",
+      "path": "usr_libexec_sudo_sudoers.so"
+    },
+    {
+      "sha256": "af4577b4bf153e0f434b87a7901811c105f2fd05e0df1ce87bdc5e880e20b0e4",
+      "path": "usr_share_man_man5_sudoers.5.gz"
+    }
+  ],
+  "sudoers_d_files": [],
+  "sudoers_use_pty_override": false,
+  "sudo_conf_active_overrides": false,
+  "compiled_default": {
+    "source_sha256": "d4c38ba2630cef9937c5c248f67b937c594ce63f017e95b2722887046b030f17",
+    "value": true,
+    "basis": "Pinned sudoers manual says on since1.9.14; matching version init_defaults sets def_use_pty=true; no image config override",
+    "source_revision": "d1b48c651cec19fe37d1f0d3299d2283fb0f88e4",
+    "url": "https://github.com/sudo-project/sudo/blob/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/plugins/sudoers/defaults.c"
+  },
+  "process_model": {
+    "physical_foreground": "sudo -i",
+    "monitor": "one child sudo; setsid; owns pts",
+    "command": "one child interactive bash; owns pts foreground group",
+    "sources": [
+      {
+        "sha256": "8d8bcbafeb9a1eec2ade91cfca7670735af42a94ff152903c2c034d870c81503",
+        "path": "src_exec_pty.c",
+        "url": "https://github.com/sudo-project/sudo/blob/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/src/exec_pty.c"
+      },
+      {
+        "sha256": "bf6627ea6b684345ee413bf3070f1cfd86ef3ac1d10fca7b11055b680507ae56",
+        "path": "src_exec_monitor.c",
+        "url": "https://github.com/sudo-project/sudo/blob/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/src/exec_monitor.c"
+      },
+      {
+        "sha256": "9170712e11e3ad4a762020b7c4d221453f3538f917e134bdabb6a5cac6959643",
+        "path": "src_sudo.c",
+        "url": "https://github.com/sudo-project/sudo/blob/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/src/sudo.c"
+      },
+      {
+        "sha256": "c31e16d3dfa42360015c33eeda301a21aae6990cc893487bbb2fc5bf7c553b24",
+        "path": "src_exec.c",
+        "url": "https://github.com/sudo-project/sudo/blob/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/src/exec.c"
+      }
+    ]
+  },
+  "qualification5_limit": "No PIDs/argv retained; exact VCSA and successful framed result retained, process tree model is not a captured observation"
+}

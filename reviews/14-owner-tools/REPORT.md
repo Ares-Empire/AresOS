@@ -1,10 +1,86 @@
 # 14: checked owner tools
 
-**Current 14zd: STOP — qualification5 rejected the post-sudo physical idle check.**
-The isolated local replay and probe15 passed. One fast-forward push reached
-`e3751adc2e4938b0dc938ac84f43c32f6f07c993`; exactly one probe15 and one qualification5 were dispatched
-on that head, attempt1. No CI rerun, implementation fix, extra push or merge.
-This STOP report is local only. PR #13 stays draft / NOT RELEASED.
+**Current 14ze: PLAN-GAP / STOP before push or dispatch — owner layout guard rejects sudo pts.**
+Acceptance is not established. PR #13 remains draft / NOT RELEASED. This report and fix are committed locally only; remote stays `e3751ad`.
+
+## 14ze — Verify sudo PTY relay and preserve idle authority
+
+**PLAN-GAP / stop:** the pinned image's verified `use_pty` behavior also affects
+the unchanged owner payload. `Console.become_root()` enters `sudo -i`, putting
+the root shell and its command stdin on a pts. Every layout action calls
+`Tools.session()`, which requires `os.ttyname(0)` to be `/dev/tty3` or `/dev/tty4`.
+Thus the first `layout begin us` on that root shell must refuse; the fresh
+second-console `sudo ... layout proof` has the same default-PTY conflict.
+The existing handler fixtures substitute a physical tty name and missed it.
+
+**Zero-cost proof:** invoked the actual unmodified `Tools.session()` on a real
+unprivileged local PTY. `stdin.isatty()` was true and its real name was a pts;
+it returned exactly `Use a physical tty3/tty4 recovery login`. There were
+**0 host calls and0 mutations**. No sudo was run for the proof, no UID/terminal
+setting was changed, and no fake tty name or replacement guard was used.
+[Proof and exact source](../../os/manifest/ci/14/14ze-preflight/pts-session-refusal.json).
+The requested observer fix is implemented and locally tested. The later owner
+session conflict is a separate guard that this brief does not authorize bypassing.
+The inherited brief14 rule says “stop on anything the rules don't cover.”
+No owner script, bundle, guide, frozen runtime or image was changed to bypass it.
+An integrator decision must resolve physical-session identity through sudo's
+PTY while retaining the real recovery-login and second-console checks before
+spending minutes on the planned qualification. Probe16 and qualification6 remain
+unused; **0 pushes,0 Actions dispatches,0 reruns** this turn.
+
+
+**Done:** read-only unsquashfs/RPM-header inspection found sudo1.9.17-10.p2.fc44.
+The pinned sudoers manual and matching1.9.17p2 `init_defaults` source enable
+`use_pty`; `/etc/sudoers` and `sudo.conf` have no override; `sudoers.d` is empty.
+No image executable or privileged host sudo operation was run.
+The observer accepts only exact `sudo -i`, one sudo monitor and one interactive
+Bash on its pts, with matching session/pgrp/tpgid and no child work. Unknown,
+multiple, broken, changing and busy trees refuse. The plain Bash case is kept.
+Refusals export PID/comm/group links; argv is limited to exact public Bash/sudo
+forms and otherwise fully redacted. Ten physical type call sites and every
+commands.json command were reviewed: passwords/token are hidden stdin, never
+shell argv. Account-login and sudo readiness/serial records now have separate
+names. Prompt predicate, three samples, maximum two idle-only Enters, raw VCSA
+retention, checksum framing and840/900-second deadlines are unchanged.
+
+**Verified locally:**13 observer tests;216-test complete host walk;435 whole-suite
+tests attempted,427 distinct passes and8 previously documented native host
+limitations (privileged host utilities unavailable, DrvFS0600 and WSL runtime).
+The exact failed names and all output are retained in `14ze-preflight/whole-suite.txt`.
+A preliminary suite overlapped edits and is not acceptance evidence; the final
+suite ran with frozen sources. A direct Windows console run hit the existing
+Bash newline/platform limitation; the same12 console tests passed in WSL.
+The19 real Bash/PTY staging tests passed, including exact hidden-login sequencing.
+The actual ISO replay passed first attempt:9,068,650,496 bytes, exact pin/fresh
+official checksum,4 localization and102 WebUI sources. No Windows retry used.
+Actual release verifier and53 offline/file-source steps passed; strict guest,
+serial, staging, embedded Python and native workflow syntax checks passed.
+Four local dispatch-controller and7 fixed-watcher regressions passed.
+Final manifest-order and observer validation passed14 tests after the STOP packet was written. Real
+Windows-copy tests passed15 zero-write refusals and exact bundle equality.
+Pinned gitleaks8.21.2 full history and39 pending files both returned0 findings. No ignore, rule or privacy workflow change.
+Full native suite and four private registry checks remain fail-closed in CI.
+
+**Evidence limits / JUDGMENT-CALL:** qualification5 captured a root-style prompt,
+`ready=false`, echo off and successful framed completion; its PIDs were not
+retained. The new regression combines those exact observations with an explicitly
+modelled tree derived from the verified sudo source; it does not invent a captured
+process tree. All non-public argv are redacted rather than relying on a secret
+pattern. No owner script, bundle fingerprint, frozen image/runtime, release,
+audit, privacy rule or workflow was changed. No Gradle daemon started.
+
+**Closed ledger:**727/1100 minutes, probes15/16 and owner-tools5/6; complete99/99 run history. The read-only$6 Actions budget still has prevention true; reported net spend$2.652 at$0.006/minute leaves558 paid minutes (billing may lag). No Actions cost was incurred this turn. October reserve0/closing0 remain because acceptance is false.
+
+**Budget / unexecuted dispatch plan:** existing1100-minute cap, probes16, owner-tools6,
+$6 Actions budget with prevention true and net spend deducted. October reserve0
+and closing0 stay pending actual acceptance. The authorized paid sequence is held behind the PLAN-GAP: one push, fresh
+exact-head privacy and a guard, probe16, then a fresh guard and qualification6
+on the same head only after probe acceptance. No automatic continuation.
+Any future CI STOP requires diagnostics/report and no rerun.
+
+**Not verified / open questions:** no fresh exact-head privacy or VM run was started. The owner-session PLAN-GAP above blocks the planned dispatch. The
+physical laptop/followability gates and all prior release gates still apply.
+No acceptance or ready-for-review claim before qualification and closing checks.
 
 ## 14zd — Local retry clarification completed; probe15 passed; qualification5 STOP
 

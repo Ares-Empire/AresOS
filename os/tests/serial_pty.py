@@ -48,6 +48,9 @@ class VirtualPath:
  def read_text(self):return self.real().read_text()
  def read_bytes(self):return self.real().read_bytes()
  @property
+ def parent(self):return VirtualPath(str(self.real().parent))
+ def with_name(self,name):return VirtualPath(str(self.real().with_name(name)))
+ @property
  def name(self):return self.real().name
  def __str__(self):return self.value
 pathlib.Path=VirtualPath

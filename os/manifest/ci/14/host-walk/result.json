@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 203,
+  "tests": 216,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -23,47 +23,47 @@
   "checks": [
     "offline-first-stock-link",
     "offline-first-stock-tools-absent",
-    "tools-stock-serial-idle-resync",
-    "tools-stock-serial-idle-resync",
+    "tools-stock-account-login-serial-idle-resync",
+    "tools-stock-sudo-serial-idle-resync",
     "tools-stock-hotplug",
     "tools-stock-detach",
     "tools-stock-reboot-tools-absent",
     "tools-stock-reboot-tools-absent",
-    "corrected-stock-serial-idle-resync",
-    "corrected-stock-serial-idle-resync",
+    "corrected-stock-account-login-serial-idle-resync",
+    "corrected-stock-sudo-serial-idle-resync",
     "corrected-stock-physical-observer",
     "private-owner-login-serial-idle-resync",
     "owner-switch-reboot-tools-absent",
     "owner-switch-reboot-tools-absent",
-    "aresos-serial-idle-resync",
-    "aresos-serial-idle-resync",
+    "aresos-account-login-serial-idle-resync",
+    "aresos-sudo-serial-idle-resync",
     "aresos-physical-observer",
     "layout-plain-us-serial-idle-resync",
-    "layout-reverted-login-serial-idle-resync",
+    "layout-reverted-login-account-login-serial-idle-resync",
     "layout-reverted-proof-serial-idle-resync",
-    "layout-intl-login-serial-idle-resync",
+    "layout-intl-login-account-login-serial-idle-resync",
     "layout-intl-proof-serial-idle-resync",
     "aresos-owner-reboot-tools-absent",
     "aresos-owner-reboot-tools-absent",
-    "aresos-intl-serial-idle-resync",
-    "aresos-intl-serial-idle-resync",
+    "aresos-intl-account-login-serial-idle-resync",
+    "aresos-intl-sudo-serial-idle-resync",
     "aresos-intl-physical-observer",
-    "layout-back-de-login-serial-idle-resync",
+    "layout-back-de-login-account-login-serial-idle-resync",
     "layout-back-de-proof-serial-idle-resync",
     "aresos-intl-owner-reboot-tools-absent",
     "aresos-intl-owner-reboot-tools-absent",
-    "aresos-back-de-serial-idle-resync",
-    "aresos-back-de-serial-idle-resync",
+    "aresos-back-de-account-login-serial-idle-resync",
+    "aresos-back-de-sudo-serial-idle-resync",
     "aresos-back-de-physical-observer",
     "aresos-back-de-owner-reboot-tools-absent",
     "aresos-back-de-owner-reboot-tools-absent",
-    "rollback-stock-serial-idle-resync",
-    "rollback-stock-serial-idle-resync",
+    "rollback-stock-account-login-serial-idle-resync",
+    "rollback-stock-sudo-serial-idle-resync",
     "rollback-stock-physical-observer",
     "owner-keep-stock-reboot-tools-absent",
     "owner-keep-stock-reboot-tools-absent",
-    "default-stock-serial-idle-resync",
-    "default-stock-serial-idle-resync",
+    "default-stock-account-login-serial-idle-resync",
+    "default-stock-sudo-serial-idle-resync",
     "default-stock-physical-observer",
     "default-stock-tools-absent"
   ],
@@ -98,7 +98,7 @@
       "path": "os/ci/owner_capabilities.py"
     },
     {
-      "sha256": "7a4793603d7553b5c00078d36c482060232be2400125775b6bf60539872fa052",
+      "sha256": "455368807800f39a75e7417315d0721a14841b2dc0d0c0304b132227dca1cfdc",
       "path": "os/ci/owner_console.py"
     },
     {
@@ -118,7 +118,7 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "01b328c757dad90e6d537fbc6fc42fc5a0f6460940d1c0d17e258b563b0f03c5",
+      "sha256": "15ac0a3eab8c7f06bdafde2d58282bbff8e48fd7dd4c183af399c89268115360",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -298,6 +298,10 @@
       "path": "os/tests/fixtures/owner-console/14za-login-command.json"
     },
     {
+      "sha256": "455eff33528a582a83bd633aba27178c75d6ebb111f228f1d232abf55ac707c9",
+      "path": "os/tests/fixtures/owner-console/14ze-qualification5.json"
+    },
+    {
       "sha256": "4867d41dc7d7c4aee82e007a93be6e301f0d5a24530462bc0a8887045b9f87f4",
       "path": "os/tests/fixtures/owner-console/sources.json"
     },
@@ -354,7 +358,7 @@
       "path": "os/tests/owner_shim.py"
     },
     {
-      "sha256": "8789d958828598ca60c91a7bc0752df5279fcae2a5caba4ab5b363e54ad108a8",
+      "sha256": "4f6ede265b99b83d2d69fbc13b67a370afdb539d6752cf31dcf714ec2da9037b",
       "path": "os/tests/serial_pty.py"
     },
     {
@@ -450,6 +454,10 @@
       "path": "os/tests/test_owner_retained.py"
     },
     {
+      "sha256": "7770a22cbe4d5a0babf15d7a23d690da7762d4947e32823afb6ff1780699b292",
+      "path": "os/tests/test_owner_sudo_idle.py"
+    },
+    {
       "sha256": "46db65de2d43512ff1cd5566060c8ca29a099c01fcdff1100ed5155c323b9d7e",
       "path": "os/tests/test_owner_tools.py"
     },
@@ -482,7 +490,7 @@
       "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
     },
     {
-      "sha256": "c8c4424a803dc2aea853e225eb375503a7a056d8db1de8023ab2eb7511d88fe0",
+      "sha256": "882ddafd20a5b5aead7c34945fd012e29d46f9dde9b8ee7e9f3ecfe094d3d5aa",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ]

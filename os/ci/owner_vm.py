@@ -227,23 +227,23 @@ class Console:
         self.completed_epoch = getattr(self.guest, 'owner_input_epoch', 0)
 
     def hidden(self, stage):
-        source = ('import base64,json,os,pathlib,termios,time\n' + inspect.getsource(owner_console.interactive_shell)
-            + inspect.getsource(owner_console.foreground_is_shell)) + '''
+        source = ('import base64,json,os,pathlib,termios,time\n' + owner_console.foreground_source()) + '''
 hidden=False
+observation={}
 deadline=time.monotonic()+60
 while time.monotonic()<deadline:
     try:
         fd=os.open('/dev/@TTY@',os.O_RDONLY|os.O_NOCTTY|os.O_NONBLOCK)
         try:
             echo=bool(termios.tcgetattr(fd)[3]&termios.ECHO)
-            shell=foreground_is_shell(fd)
+            shell=foreground_is_shell(fd,observation)
         finally: os.close(fd)
         hidden=not echo and not shell
         if hidden: break
     except (OSError,termios.error): pass
     time.sleep(0.1)
 raw=pathlib.Path('/dev/vcsa@NUMBER@').read_bytes() if not hidden else b''
-print(json.dumps(dict(ready=hidden,raw=base64.b64encode(raw).decode())))
+print(json.dumps(dict(ready=hidden,observation=observation if not hidden else {},raw=base64.b64encode(raw).decode())))
 '''.replace('@TTY@', self.tty)
         source = source.replace('@NUMBER@', self.tty[3:])
         value = self.guest.capture_json(stage, sw.framed('python3 -c ' + shlex.quote(source)))
@@ -268,7 +268,7 @@ print(json.dumps(dict(ready=hidden,raw=base64.b64encode(raw).decode())))
             td.save(stage + '-failure', dict(status='expected-login-rejected', loaded_profile='us',
                 physical_positions='de', original_administrator_retained=True, reboot_permitted=False))
             return
-        self.after_hidden(stage)
+        self.after_hidden(stage + '-account-login')
         self.guest.owner_physical_signed_in = True
         self.guest.screenshot_safe = True
 
@@ -278,7 +278,7 @@ print(json.dumps(dict(ready=hidden,raw=base64.b64encode(raw).decode())))
         self.hidden(stage + '-sudo-hidden')
         self.guest.screenshot_safe = False
         type_text(self.guest, password + '\n')
-        self.after_hidden(stage)
+        self.after_hidden(stage + '-sudo')
         self.root = True
         self.guest.screenshot_safe = True
 

@@ -278,7 +278,7 @@
     },
     {
       "run": 40356233423,
-      "title": "Brief 14k: owner chose to run probe 6 and qualification 2 now (cap 40…",
+      "title": "Brief 14k: owner chose to run probe 6 and qualification 2 now (cap 40\u2026",
       "sha": "bcf2070b874f07d6b9c9300544837db33e41dcc8",
       "conclusion": "success",
       "minutes": 3
@@ -306,7 +306,7 @@
     },
     {
       "run": 40269672103,
-      "title": "Brief 14j: owner-style prompt resync after kernel messages; stop befo…",
+      "title": "Brief 14j: owner-style prompt resync after kernel messages; stop befo\u2026",
       "sha": "259648962f6cd052c16648904ab7399308088e90",
       "conclusion": "success",
       "minutes": 2
@@ -362,7 +362,7 @@
     },
     {
       "run": 40260372656,
-      "title": "Brief 14i: brace-group guest command framing, composed-command checks…",
+      "title": "Brief 14i: brace-group guest command framing, composed-command checks\u2026",
       "sha": "b71de4af3df67c9f7cbbbb530bf4731fa2383296",
       "conclusion": "success",
       "minutes": 2
@@ -439,7 +439,7 @@
     },
     {
       "run": 40247170525,
-      "title": "Brief 14h: exfat-fuse for the virtual tools stick, early runner capab…",
+      "title": "Brief 14h: exfat-fuse for the virtual tools stick, early runner capab\u2026",
       "sha": "afd608b70f22a84c41ea848d4ae11a6f70e57d79",
       "conclusion": "success",
       "minutes": 3
@@ -488,7 +488,7 @@
     },
     {
       "run": 40244215458,
-      "title": "Brief 14g: git-only PR 12 binding (no API read in CI), shallow-clone …",
+      "title": "Brief 14g: git-only PR 12 binding (no API read in CI), shallow-clone \u2026",
       "sha": "2d934d7487170bb9b04e9043ca0536c95d2eeec1",
       "conclusion": "success",
       "minutes": 2
@@ -537,7 +537,7 @@
     },
     {
       "run": 40240887069,
-      "title": "Brief 14f: CI-only classification for steps needing the job's package…",
+      "title": "Brief 14f: CI-only classification for steps needing the job's package\u2026",
       "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
       "conclusion": "success",
       "minutes": 2
@@ -565,7 +565,7 @@
     },
     {
       "run": 40239499609,
-      "title": "Brief 14e: bind the package 13 release to its squash merge; one fresh…",
+      "title": "Brief 14e: bind the package 13 release to its squash merge; one fresh\u2026",
       "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
       "conclusion": "success",
       "minutes": 3
@@ -711,13 +711,13 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-27T23:34:32.970313+00:00",
-  "snapshot_kind": "14zd closed STOP after qualification5 post-sudo physical idle refusal",
+  "checked_at": "2026-10-28T00:11:39.028051+00:00",
+  "snapshot_kind": "14ze closed local PLAN-GAP; no push or dispatch",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-27T23:34:30.978487+00:00",
-    "response_sha256": "a9a24f59ef8fc87c066d35e19282f7fb7618838fe208446b271848485941eafd",
+    "checked_at": "2026-10-28T00:11:37.944629+00:00",
+    "response_sha256": "736b0848d1ce4b5c330215eaef931d69b812ac1f76dd4cc9a65f64c268d0ae86",
     "usage": [
       {
         "sku": "actions_linux",
@@ -733,11 +733,11 @@
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 14.374313675,
-        "discountQuantity": 14.612308663,
+        "grossQuantity": 14.849511957,
+        "discountQuantity": 14.849511957,
         "netQuantity": 0.0,
-        "grossAmount": 0.00483,
-        "discountAmount": 0.004909971,
+        "grossAmount": 0.004989675,
+        "discountAmount": 0.004989675,
         "netAmount": 0.0
       }
     ],
@@ -767,441 +767,32 @@
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
   },
+  "acceptance_met": false,
+  "probe16": "not dispatched",
+  "qualification6": "not dispatched",
   "current_bundle": {
     "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
     "path": "os/owner-tools/payload/SHA256.json"
   },
-  "local_privacy_scans": [
-    {
-      "version": "8.21.2",
-      "checked_commit": "1272b3e57ce79378212019c2efbb52cc1dbdd5a9",
-      "scope": "git full history",
-      "flags": [
-        "git",
-        ".",
-        "--redact=100",
-        "--no-banner",
-        "--log-level",
-        "warn"
-      ],
-      "exit_code": 0,
-      "findings": 0,
-      "privacy_configuration_unchanged": true,
-      "files": [
-        {
-          "sha256": "375b95b3b6b2a74779b7257321238262b1d240b8d57be465bb692b3407c2eaac",
-          "path": ".gitleaksignore"
-        },
-        {
-          "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742",
-          "path": ".gitleaks.toml"
-        },
-        {
-          "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2",
-          "path": ".github/workflows/privacy-check.yml"
-        }
-      ]
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "afaa9e65dc20404097bc1c37c3afb38484f04c67",
-      "checked_at": "2026-10-25T21:56:32.400263+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "checked_commit": "5dfe2b00955955eecaca6a9edb62da34b7bb5865",
-      "version": "8.21.2",
-      "scope": "full history",
-      "findings": 0,
-      "exit_code": 0,
-      "checked_at": "2026-10-25T21:57:09.454170+00:00"
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "6c2118773b68aaf4bf0fb034d4e626f690626a28",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "839d9623ea15e2c79eebeffcedbd4963a69c3d0a",
-      "checked_at": "2026-10-25T22:29:14.873404+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "b0c0b327947943c5f173098c7d3f9e32ac2fcbc8",
-      "checked_at": "2026-10-25T22:52:43.950945+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
-      "checked_at": "2026-10-25T22:53:27.669431+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "73dc414997260d18c120735148640b91edea3249",
-      "checked_at": "2026-10-25T23:11:21.217281+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "500e597a9d87e8aba5ef286da0324ed448752d30",
-      "checked_at": "2026-10-25T23:12:15.248968+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "92ca81aa1edec75eee0d5d4d8e433ab245616e54",
-      "checked_at": "2026-10-25T23:31:37.181632+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "4268a94d612a0d6890b14afbd332516dbae11c31",
-      "checked_at": "2026-10-25T23:32:17.233363+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "0c3169d7df84a277fb0a7e9d51b408d81ca69779",
-      "checked_at": "2026-10-25T23:53:54.993570+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "754eafe273254f6856ec992b58e9ecf8f31700e3",
-      "checked_at": "2026-10-25T23:54:24.375732+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "79a4364517039a2229b58cdebb76514cd36a615c",
-      "checked_at": "2026-10-26T00:20:06.014060+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "de322e9059fc359d75feb8be048f42533123e26e",
-      "checked_at": "2026-10-26T00:21:00.105234+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "f50caac0ac8f88c1629d08f4c3f1373a628b2346",
-      "checked_at": "2026-10-26T00:28:58.929379+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "02eac4a226787a8879ee80d8d814221a22630323",
-      "checked_at": "2026-10-26T00:30:11.079656+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "05322d478b836a75a1c99303922269b7540f5d2e",
-      "checked_at": "2026-10-26T01:22:11.127000+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "f1df3dae8b444532e8f0944e6213f3c471dcd509",
-      "checked_at": "2026-10-26T01:22:59.034424+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "2675f28d927b64834e5f7e2f4bfe153d91ab7fc8",
-      "checked_at": "2026-10-26T01:28:21.867356+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "443f9e6174c741c724be397a20ccb6570eb36223",
-      "checked_at": "2026-10-26T02:55:49.683710+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "5e8c0c961506af997a522190e194fbe9ca745308",
-      "checked_at": "2026-10-26T02:56:12.207097+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "2721645f25882b1d03cd8054d370abc04a8bdf17",
-      "checked_at": "2026-10-26T04:25:54.944812+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "e95352af33e3f23593415c898105158cc5664fe1",
-      "checked_at": "2026-10-26T04:26:16.725908+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "cdbb6fc315f227dee91d8fa3f9830d6ec5b7bb9e",
-      "checked_at": "2026-10-26T04:53:07.725323+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "ec829b6abebe098632167dbb811e0ede9ea05ca1",
-      "checked_at": "2026-10-26T04:54:30.005653+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "ceaa6e178ac60254802cd1dfbab6eb5ffb1b0323",
-      "checked_at": "2026-10-26T16:21:29.219166+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "5efa22b0d87269aeb9f449637b61d7ff17e1dc4a",
-      "checked_at": "2026-10-26T16:23:01.047760+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "5156f5fac592e1e30077b22c196124a1feaafe89",
-      "checked_at": "2026-10-26T16:44:28.171909+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "734c11bf9f4db810a8acaee0680faafdcb946e65",
-      "checked_at": "2026-10-26T17:17:12.060191+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "8eab7f6e40c8e88caf399ac7416b675e0cc1d4e8",
-      "checked_at": "2026-10-26T19:11:04.921299+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "2df39cdd3e7caa0b44d0ce848cc0f167ea98cf1d",
-      "checked_at": "2026-10-26T20:08:06.940516+00:00",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "a80cacce5a29c4883e1f0b42e16f4cd860343969",
-      "checked_at": "2026-10-26T20:19:24.4560208Z",
-      "scope": "full Git history, CI flags with redaction",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "a6bd1bfe98e71ab370ad0488bf7792ec3e37953e",
-      "checked_at": "2026-10-26T20:48:55.701541+00:00",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "a6bd1bfe98e71ab370ad0488bf7792ec3e37953e",
-      "checked_at": "2026-10-26T20:48:55.701541+00:00",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "47f795d072abcef9d9c1173557174b7abd9dd466",
-      "checked_at": "2026-10-26T20:55:44.338052+00:00",
-      "scope": "full Git history; pinned binary; redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "01611e226aa7ba9a7095fff160816f7bd7357125",
-      "checked_at": "2026-10-26T21:28:17.078407+00:00",
-      "scope": "full Git history before local14q commit; pinned binary, redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "e31a211c0d772201f7254e7fd6a32c781c45b191",
-      "checked_at": "2026-10-26T21:34:04.715889+00:00",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "22e07b1b6abb6f60da9df9c8646aef414e8589d4",
-      "checked_at": "2026-10-26T21:42:31.759232+00:00",
-      "scope": "full Git history; pinned binary; redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "e8231c6c4193962a8b422ea28e7cdd8637778311",
-      "checked_at": "2026-10-26T22:55:07.125297+00:00",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
-      "checked_at": "2026-10-26T23:00:59.836304+00:00",
-      "scope": "complete committed Git history",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "735238a",
-      "checked_at": "2026-10-27T14:03:09.929320+00:00",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "checked_commit": "f8ae9cb80fa7e51ee9bf5f3c21ee6b4d3c02036d",
-      "checked_at": "2026-10-27T14:10:07.624659+00:00",
-      "version": "8.21.2",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0,
-      "scan": {
-        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "path": ".work/14/gitleaks/14w-one-push-history.json"
-      }
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "a6c2e41",
-      "checked_at": "2026-10-27T14:54:08.541810+00:00",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "checked_commit": "c6fc99555de35d3bde4096c347601d18ea270321",
-      "checked_at": "2026-10-27T15:06:51.478784+00:00",
-      "version": "8.21.2",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0,
-      "scan": {
-        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "path": ".work/14/gitleaks/14x-one-push-history.json"
-      }
-    },
-    {
-      "version": "8.21.2",
-      "checked_commit": "bb55ce1",
-      "checked_at": "2026-10-27T15:55:19.682189+00:00",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0
-    },
-    {
-      "checked_commit": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
-      "checked_at": "2026-10-27T16:05:10.611134+00:00",
-      "version": "8.21.2",
-      "scope": "full Git history, redacted",
-      "exit_code": 0,
-      "findings": 0,
-      "scan": {
-        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
-        "path": ".work/14/gitleaks/14y-one-push-history.json"
-      }
-    }
-  ],
-  "acceptance_met": false,
+  "local_stop": {
+    "reason": "Use a physical tty3/tty4 recovery login",
+    "pushes": 0,
+    "dispatches": 0,
+    "reruns": 0,
+    "owner_payload_unchanged": true
+  },
   "closing_reservation": 0,
   "reserve": 0,
   "restore_condition_met": false,
-  "pushes_this_followup": 1,
-  "dispatches_this_followup": 2,
+  "pushes_this_followup": 0,
+  "dispatches_this_followup": 0,
   "reruns_this_followup": 0,
-  "stop_reason": "post-sudo foreground idle observer returned ready=false despite displayed root-style prompt; framed serial result completed"
+  "stop_reason": "14ze zero-cost PLAN-GAP: real owner Tools.session rejects sudo use_pty pts; no push or dispatch",
+  "local_privacy_scans": {
+    "version": "8.21.2",
+    "receipt": "os/manifest/ci/14/14ze-preflight/local-privacy.json",
+    "required": "clean pinned all-history and pending-file scans before local commit",
+    "full_history_findings": 0,
+    "pending_findings": 0
+  }
 }

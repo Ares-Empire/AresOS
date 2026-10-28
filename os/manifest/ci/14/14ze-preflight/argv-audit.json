@@ -1,0 +1,98 @@
+{
+  "status": "reviewed: no typed shell command has a password/token argument",
+  "typed_call_sites": [
+    {
+      "line": 259,
+      "expression": "type_text(self.guest, 'ares-recovery\\n')"
+    },
+    {
+      "line": 263,
+      "expression": "type_text(self.guest, password + '\\n', 'de' if wrong else None)"
+    },
+    {
+      "line": 277,
+      "expression": "type_text(self.guest, 'sudo -k\\nsudo -i\\n')"
+    },
+    {
+      "line": 280,
+      "expression": "type_text(self.guest, password + '\\n')"
+    },
+    {
+      "line": 318,
+      "expression": "type_text(self.guest, COMMANDS[name] + '\\n')"
+    },
+    {
+      "line": 358,
+      "expression": "type_text(self.guest, 'sudo -k\\nexit\\n')"
+    },
+    {
+      "line": 219,
+      "expression": "type_text(self.guest, '\\n')"
+    },
+    {
+      "line": 323,
+      "expression": "type_text(self.guest, password + '\\n')"
+    },
+    {
+      "line": 331,
+      "expression": "type_text(self.guest, value + '\\n')"
+    },
+    {
+      "line": 356,
+      "expression": "type_text(self.guest, 'exit\\n')"
+    }
+  ],
+  "commands": {
+    "install": "sudo bash -c 'set -e; mount -o ro LABEL=ARESTOOLS /mnt; trap \"umount /mnt\" EXIT; bash /mnt/ares-tools/at install'",
+    "prepare": "sudo /var/lib/ares/at prepare",
+    "records": "sudo /var/lib/ares/at records",
+    "title": "sudo /var/lib/ares/at title",
+    "login": "sudo /var/lib/ares/at login",
+    "verify": "sudo /var/lib/ares/at verify",
+    "switch": "sudo /var/lib/ares/at switch",
+    "rollback": "sudo /var/lib/ares/at rollback",
+    "keep-stock": "sudo /var/lib/ares/at keep-stock",
+    "export": "sudo /var/lib/ares/at export",
+    "check": "sudo /var/lib/ares/at check",
+    "reboot": "sudo /var/lib/ares/at reboot",
+    "logs": "sudo /var/lib/ares/at logs",
+    "layout-us": "sudo /var/lib/ares/at layout begin us",
+    "layout-intl": "sudo /var/lib/ares/at layout begin us-intl",
+    "layout-de": "sudo /var/lib/ares/at layout begin de",
+    "layout-proof": "sudo -k; sudo /var/lib/ares/at layout proof",
+    "layout-revert": "sudo /var/lib/ares/at layout revert",
+    "layout-finish": "sudo /var/lib/ares/at layout finish"
+  },
+  "hidden_inputs": "Recovery/sudo password only sent after hidden prompt; owner login token only getpass; podman login uses stdin, never argv",
+  "diagnostics": "Only exact interactive bash flags and exact sudo -i argv exported; all other argv fully redacted, including post-hidden input",
+  "sources": [
+    {
+      "sha256": "15ac0a3eab8c7f06bdafde2d58282bbff8e48fd7dd4c183af399c89268115360",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "3ada4c076501020a8a043ae58aed30fcf7ed406ca9d8502ba46d5058361e4787",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "455368807800f39a75e7417315d0721a14841b2dc0d0c0304b132227dca1cfdc",
+      "path": "os/ci/owner_console.py"
+    },
+    {
+      "sha256": "635729f8eec21f35b32c973e8bf0b263e4b27bea4c920aa3664b59fe1b4ae98f",
+      "path": "os/ci/keyboard_vm.py"
+    }
+  ],
+  "inherited_physical_typing": {
+    "called": [
+      "keyboard_vm.physical_input",
+      "keyboard_vm.foot"
+    ],
+    "shell_argv": [
+      "python3",
+      "/run/aresos-physical.py"
+    ],
+    "typed_data": "public yz-/!\u00fc proof line only; Python input(), not shell argv",
+    "unused_in_package14": "keyboard_vm.tty; package14 uses Console.login and Console.become_root"
+  }
+}
