@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "head": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+  "native_tests": 452,
+  "native_skips": 0,
+  "loop_checks": 20,
+  "loop_mutations": 0,
+  "protected_fixture_unchanged": true,
+  "fixture_cleanup": true,
+  "iso": {
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "path": "evidence/installer/iso-download.json",
+    "bytes": 9068650496,
+    "status": "passed pin plus fresh official checksum"
+  }
+}

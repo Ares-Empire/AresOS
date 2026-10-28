@@ -1,0 +1,91 @@
+{
+  "ready": false,
+  "echo_enabled": false,
+  "foreground_shell": false,
+  "observation": {
+    "ready": false,
+    "reason": "Sudo pts is not foreground interactive bash",
+    "foreground_chain": [
+      {
+        "pid": 3354,
+        "comm": "sudo",
+        "argv": [
+          "sudo",
+          "-i"
+        ],
+        "argv_redacted": false,
+        "ppid": 2887,
+        "pgrp": 3354,
+        "session": 2887,
+        "tty": 1027,
+        "tpgid": 3354
+      },
+      {
+        "pid": 3887,
+        "comm": "sudo",
+        "argv": [
+          "sudo",
+          "-i"
+        ],
+        "argv_redacted": false,
+        "ppid": 3354,
+        "pgrp": 3887,
+        "session": 3887,
+        "tty": 34817,
+        "tpgid": 5396
+      },
+      {
+        "pid": 3888,
+        "comm": "bash",
+        "argv": [
+          "-bash"
+        ],
+        "argv_redacted": false,
+        "ppid": 3887,
+        "pgrp": 3888,
+        "session": 3887,
+        "tty": 34817,
+        "tpgid": 5396
+      },
+      {
+        "pid": 5396,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 3888,
+        "pgrp": 5396,
+        "session": 3887,
+        "tty": 34817,
+        "tpgid": 5396
+      },
+      {
+        "pid": 5399,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 5396,
+        "pgrp": 5399,
+        "session": 5399,
+        "tty": 34818,
+        "tpgid": 5400
+      },
+      {
+        "pid": 5400,
+        "comm": "python3",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 5399,
+        "pgrp": 5400,
+        "session": 5399,
+        "tty": 34818,
+        "tpgid": 5400
+      }
+    ]
+  }
+}

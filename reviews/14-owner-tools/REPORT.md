@@ -1,10 +1,149 @@
 # 14: checked owner tools
 
-**Current14zh: every shell-prompt wait requests fresh physical idle proof before resync.**
-Local verification is complete; probe17 and qualification7 are pending. PR #13
-remains draft / NOT RELEASED; no acceptance claim is made before the VM gates.
+**Current14zh: STOP — probe17 passed; qualification7 timed out at private-login hidden completion.**
+One fast-forward push reached `d15678dc491905f592c2b7b1af852fca1d35e08b`.
+Probe17 and qualification7 both ran once on that head, attempt1. No rerun,
+implementation fix, extra push or merge followed the STOP. This report/evidence
+update is local only. PR #13 stays draft / NOT RELEASED; acceptance is unmet.
 
-## 14zh — Fresh idle observer in every prompt-readiness wait
+## 14zh REPORT — Fresh prompt authority verified; private-login STOP
+
+**Done:** every shell-prompt wait now requests a fresh14ze sudo-relay idle
+observation before each bounded Enter when the cursor has no prompt. It exports
+the observer answer/chain and cursor lines, rejects input-epoch changes, and gives
+each wait/sample/observer a globally unique receipt name across guest instances.
+The strict cursor predicate,3 stable samples,90-second prompt deadline,2-Enter
+limit and console log level are unchanged. Busy/unknown foregrounds never grant
+Enter. Login/getty/command-input waits still cannot inject resync Enter. The owner
+payload/fingerprint, commands, guides, frozen runtime, workflows and audits were
+unchanged; only package14 allowances became probe17/owner-tools7, cap1100.
+
+**Local verification:** the exact retained qualification6 cursor region plus
+modelled /proc sudo relay recovers with1 Enter; busy refuses with0; persistent
+clutter stops after2. All5 shell-wait kinds and repeated stage names/new guests
+are tested. The complete stand-in route covers119 cluttered shell waits through
+export/Windows/corrected stock/login/verify/switch/AresOS/layout/rollback/keep-stock,
+each with a real observer executed on /proc relay fixtures (tty3 and tty4).
+The233-test walk passes; the452-test full local suite retains only8 known native
+limitations (2 failures/9 errors; no skips), all resolved in both hosted runs.
+The19 transport tests,13 console targets,15 zero-write Windows refusals, bundle/
+command equality,4 controller and7 watcher tests pass. Strict checks cover527
+guest/serial/staging scripts,502 embedded Python,12 shells,46 Python and the
+native workflow body. Actual release/git/file replay and53 offline source checks
+pass; CI-only registry checks remain fail-closed and passed in both runs.
+The local probe ISO replay used the authorized fresh-path Windows retry after
+one checkpoint WinError5 (10-second wait); qualification replay passed first try.
+Both rehashed9,068,650,496 bytes against the pin/fresh official checksum; no CI
+inspector behavior changed. Initial local adapter failures and final results
+are retained in14zh-preflight; no assertion, skip, ignore or rule was weakened.
+
+**Push/privacy/guards:** pinned gitleaks8.21.2 full history and43 pending files
+returned0 before the single fast-forward push from `ea803fd` to `d15678d`.
+Exact-head privacy40627657801 (push) and40627663601 (PR) passed all3 steps with
+personal terms actually executed, rechecked before qualification. Pre-push:
+810+238/1100; pre-probe816+232/1100, complete105/105 history, org after237;
+pre-qualification836+160/1100, complete106/106, org after283. Both dispatches
+verified exact$6/prevent=true, API pricePerUnit and net-spend subtraction. The
+fixed returned-URL watcher confirmed each run directly; no repeat POST or list
+fallback. There was no additional push while the qualification ran.
+
+**Probe17:** [40628158654](https://github.com/Ares-Empire/AresOS/actions/runs/40628158654)
+completed success, protected-second, no install. All452 native tests passed in
+69.268s with0 skips; native loop integration passed20 checks/0 helper mutations,
+unchanged protected fixture and complete cleanup. All23 staged transfers verified
+guest SHA/syntax. Independent replay passed3 protected captures,4 zero write/unmap
+samples,3 raw-varstore/exact-BootNext,2 NVRAM rules and2 whole-variable deltas.
+Artifact12790199665:4,745,358 bytes /354 members; SHA256
+`32998b67525a8efdaaca2bbaa8356f3d07794a83c4074f551372c900ead8842c`.
+Privacy509 =507 reviewed ISO paths +2 whole kernel X.509 lines,0 unclassified.
+
+**Qualification7 verified before STOP:**
+[40630352782](https://github.com/Ares-Empire/AresOS/actions/runs/40630352782)
+passed all452 native tests in74.134s,0 skips, all20 native loop checks/0 helper
+mutations and cleanup, all4 private release/access checks and pinned ISO inspection.
+Offline install/first stock boot, the allowed hardware-initialization reboot and
+unattended/detached Windows round trips passed. Physical account login/password
+sudo passed, tools were hot-plugged after login, install/prepare passed, and
+prepare rerun recorded0 Host mutations. The former after-network-title completion
+wait passed. Records and record export passed; exact before/after-network snapshots
+are equal (deployments/pin/pending/BLS unchanged). The tools stick was detached
+before reboot; prepared unattended Windows and corrected-stock boot, keyboard,
+physical public typing, title/records and inherited Homebrew checks passed.
+Two actual cluttered waits (`tools-install-ready-wait-5` and
+`tools-before-reboot-title-ready-wait-19`) each recovered with1 physical Enter,
+a fresh ready observer/foreground chain and a strict ready cursor afterwards.
+There were no unproved resync Enters. All101 retained staged transfers verified
+SHA/syntax; the serial hidden-input resync passed with prior completion observed,
+input flushed and no physical Enter.14zh's known prompt-wiring gap is resolved.
+
+**STOP / evidence:** the failure is
+`qualification -> console.run(login, private-owner-login) -> after_hidden`:
+`Hidden owner command did not return to an idle shell`. After840 seconds the
+observer correctly refused: physical tty3's outer `sudo -i` relay led to root
+Bash on pts/1 whose foreground group was the nested sudo5396, then monitor5399
+and Python5400 on pts/2 (foreground5400). It was not foreground idle Bash.
+The exported non-secret chain redacts every nested/post-hidden argv. No resync
+Enter was sent into that busy command. Raw VCSA is50x160, cursor(x26,y49), ending
+at `Read-only token (hidden):`; no `PASS login`, owner STOP or private-login result
+record exists. Its SHA256 is
+`63df235554d03b43788e97bfdfb7ba5c45dfa6eefaad8c074aa468c06ba84484`.
+No decoded console text was saved or committed. An additional in-memory decoded
+VCSA gitleaks scan returned0; no standard token prefix is present. Raw VCSA and
+consoles stay in the private artifact. The failure counter records boot9, paused.
+
+**Cause limit / PLAN-GAP:** the evidence proves the private owner command did
+not return, while serial framing and transport completed. It supports an
+uncompleted hidden input, but does not prove whether physical bytes arrived too
+early, were flushed or were dropped. At the send instant there is no retained
+inner-pts termios or visible-hidden-prompt observation: the existing hidden
+readiness query observes physical tty3 echo/foreground, not the nested reader's
+actual hidden-read state. No token delivery, credential-file write or successful
+registry login is claimed. A next integrator decision must address that boundary;
+this STOP includes no observer weakening, owner-script change or implementation
+fix. Verify/switch, AresOS boot/layout/session-helper VM proof, rollback, keep-stock
+and the final Windows checks were not reached. All physical/followability gates
+remain NOT RELEASED. No laptop or Minecraft folder was touched; no Gradle started.
+
+**Safety/privacy/export:** independent failure replay passed9 protected captures,
+10 zero write/unmap samples,9 raw-varstore/exact-BootNext replays,8 NVRAM rules and
+8 whole-variable deltas.9 passed owner records, refusal chain, raw VCSA, transports,
+failure counters, block statistics and varstores were exported and retained.
+Qualification artifact12794106604:9,592,320 bytes /762 members; SHA256
+`a60611cdc103d29ed9ad1f42c64e1e095c7a465a63443657dd63c464268f8ba3`.
+Native/failure logs scan0. Artifact517 =507 ISO paths +10 exact whole kernel X.509
+messages,0 unclassified. Every accepted kernel source line is recorded by path,
+line, certificate label and whole-line SHA below and in the manifest. No ignore,
+allowlist, rule or workflow changed. Raw ISO listing paths were not committed.
+
+**Local STOP commit checks:** pinned gitleaks8.21.2 full history and all pending files return0 findings; manifest-format verification and git diff --check pass. The implementation/runtime/workflow/guide/privacy diff from the dispatched head is empty. No extra push.
+
+**Closed ledger:**913/1100 charged minutes, reservation0, probes17/17 and
+owner-tools7/7, complete107/107 history. This round used1 push,2 single dispatches,
+0 reruns,0 images/publications. Read-only billing: exact$6/prevent=true; reported
+net Actions$3.804, API price$0.006/minute,
+366 paid minutes available (billing may lag). Acceptance=false;
+closing0/reserve0 were not restored because restoration requires acceptance.
+PR #13 remains draft; all dispatch allowances are used. This round is over;
+the owner can set the paid budget back to$0. No additional push or dispatch.
+
+| Run | Captured boot console | Line | Certificate label | SHA256 of whole line |
+| --- | --- | --- | --- | --- |
+| probe17 | `evidence/two-disk/live-ui-probe-boot-console.txt` | 491 | Fedora kernel signing key | `f67606bae9b34bb8e3658435c51897f721bba72a9cc1423c228187dc948a6141` |
+| probe17 | `evidence/two-disk/live-ui-probe-boot-console.txt` | 525 | Fedora kernel signing key | `9c0711fd1890904accd252fe50e3b6f47a5bf6193d5cc8d70496b7d92acbd96b` |
+| qualification7 | `evidence/two-disk/corrected-stock-boot-console.txt` | 498 | Build time autogenerated kernel key | `3e2f80f2f2ea0d727caefdffa4c67a500968c60b795b0b9f5e2ffbd781b0a0f3` |
+| qualification7 | `evidence/two-disk/corrected-stock-boot-console.txt` | 509 | Build time autogenerated kernel key | `3f660b367d624734980e88f03b1447c9f87e5d78a3f214c78178e699eb788865` |
+| qualification7 | `evidence/two-disk/offline-first-stock-boot-console.txt` | 518 | Build time autogenerated kernel key | `08c4558e18d70f7e0325fd29f16d437d43cf43be6985fa31f2f717fe950a8795` |
+| qualification7 | `evidence/two-disk/offline-first-stock-boot-console.txt` | 529 | Build time autogenerated kernel key | `dcae64be12127ace403380990e02e97fd136d728ee745d318b2efcd6e79f9560` |
+| qualification7 | `evidence/two-disk/protected-second-install-boot-console.txt` | 491 | Fedora kernel signing key | `a39e487a8a0dc3ccad99344a32b3a0fcede4645e35bd5a3304c0a30bcc842384` |
+| qualification7 | `evidence/two-disk/protected-second-install-boot-console.txt` | 524 | Fedora kernel signing key | `0c19882909b78bf37d5b6ac16c8d11e0644f317568733766c43acdebdd788895` |
+| qualification7 | `evidence/two-disk/stock-initialization-0-boot-console.txt` | 499 | Build time autogenerated kernel key | `c1bd68c4e5be8487f8ed7c1abd0eca56b28fd41da1a404a10c871102ba55ec1d` |
+| qualification7 | `evidence/two-disk/stock-initialization-0-boot-console.txt` | 520 | Build time autogenerated kernel key | `f0f92f4bd3e4e01d959caf68fd2f21972ca7322a8e09b98a7efaceb49e6ef3f9` |
+| qualification7 | `evidence/two-disk/tools-stock-boot-console.txt` | 498 | Build time autogenerated kernel key | `399fdbae5afd6d1ee6a8f3375b7b1c68493ea2acb88b3faa7460c743821f9bbc` |
+| qualification7 | `evidence/two-disk/tools-stock-boot-console.txt` | 515 | Build time autogenerated kernel key | `ca3527e291700ac4001ef62b62117fc7cc73b9e16427b2db3b04f2f82c3311c8` |
+
+## 14zh preflight — Fresh idle observer in every prompt-readiness wait
+
+Historical pre-dispatch checks; the outcomes above supersede pending statements.
 
 **Done:** the shared Console.prompt path now offers the14ze sudo-relay observer
 whenever a shell cursor line has no prompt, including completed, after-hidden,
