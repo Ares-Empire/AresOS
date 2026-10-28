@@ -1,0 +1,939 @@
+{
+  "status": "passed",
+  "sha": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+  "raw_lsblk_trees": [
+    {
+      "command": [
+        "lsblk",
+        "--json",
+        "--tree",
+        "--bytes",
+        "--output",
+        "PATH,TYPE,MODEL,SERIAL,SIZE,PTUUID,PARTUUID,PARTTYPE,START,LOG-SEC,MOUNTPOINTS"
+      ],
+      "stdout": "{\n   \"blockdevices\": [\n      {\n         \"path\": \"/dev/loop0\",\n         \"type\": \"loop\",\n         \"model\": null,\n         \"serial\": null,\n         \"size\": 167772160,\n         \"ptuuid\": \"e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6\",\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/loop0p1\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 67108864,\n               \"ptuuid\": \"e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6\",\n               \"partuuid\": \"549e105a-176e-4995-8abe-1143f727a9b3\",\n               \"parttype\": \"c12a7328-f81f-11d2-ba4b-00a0c93ec93b\",\n               \"start\": 2048,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\"\n               ]\n            },{\n               \"path\": \"/dev/loop0p2\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 99597824,\n               \"ptuuid\": \"e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6\",\n               \"partuuid\": \"3c936d20-703c-4e9c-b999-4fc93d0c60a1\",\n               \"parttype\": \"ebd0a0a2-b9e5-4433-87c0-68b6b72699c7\",\n               \"start\": 133120,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools\"\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/loop1\",\n         \"type\": \"loop\",\n         \"model\": null,\n         \"serial\": null,\n         \"size\": 33554432,\n         \"ptuuid\": \"9c362266-de01-4d0d-b45f-7c89b0c66495\",\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/loop1p1\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 32488960,\n               \"ptuuid\": \"9c362266-de01-4d0d-b45f-7c89b0c66495\",\n               \"partuuid\": \"8138c84b-f18c-4d56-9509-4dfa5a8b6703\",\n               \"parttype\": \"ebd0a0a2-b9e5-4433-87c0-68b6b72699c7\",\n               \"start\": 2048,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   null\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/sda\",\n         \"type\": \"disk\",\n         \"model\": \"Virtual Disk\",\n         \"serial\": \"60022480e7541397f74fca481b8d82fb\",\n         \"size\": 80530636800,\n         \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/sda1\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 79455829504,\n               \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n               \"partuuid\": \"d8f74b2e-a58d-4539-8b59-53da6417ef90\",\n               \"parttype\": \"0fc63daf-8483-4772-8e79-3d69d8477de4\",\n               \"start\": 2099200,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/\"\n               ]\n            },{\n               \"path\": \"/dev/sda14\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 4194304,\n               \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n               \"partuuid\": \"fe707ac7-7ee3-4ada-ad38-fedabf4d5a21\",\n               \"parttype\": \"21686148-6449-6e6f-744e-656564454649\",\n               \"start\": 2048,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   null\n               ]\n            },{\n               \"path\": \"/dev/sda15\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 111149056,\n               \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n               \"partuuid\": \"5aa0eb96-e441-4211-adff-d97c79e3083d\",\n               \"parttype\": \"c12a7328-f81f-11d2-ba4b-00a0c93ec93b\",\n               \"start\": 10240,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/boot/efi\"\n               ]\n            },{\n               \"path\": \"/dev/sda16\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 957350400,\n               \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n               \"partuuid\": \"1c065cab-a68f-4111-98ce-ef16b63bf61f\",\n               \"parttype\": \"bc13c2ff-59e6-4262-a352-b275fd6f7172\",\n               \"start\": 227328,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/boot\"\n               ]\n            }\n         ]\n      }\n   ]\n}\n",
+      "parsed": {
+        "blockdevices": [
+          {
+            "path": "/dev/loop0",
+            "type": "loop",
+            "model": null,
+            "serial": null,
+            "size": 167772160,
+            "ptuuid": "e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6",
+            "partuuid": null,
+            "parttype": null,
+            "start": null,
+            "log-sec": 512,
+            "mountpoints": [
+              null
+            ],
+            "children": [
+              {
+                "path": "/dev/loop0p1",
+                "type": "part",
+                "model": null,
+                "serial": null,
+                "size": 67108864,
+                "ptuuid": "e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6",
+                "partuuid": "549e105a-176e-4995-8abe-1143f727a9b3",
+                "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+                "start": 2048,
+                "log-sec": 512,
+                "mountpoints": [
+                  "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi"
+                ]
+              },
+              {
+                "path": "/dev/loop0p2",
+                "type": "part",
+                "model": null,
+                "serial": null,
+                "size": 99597824,
+                "ptuuid": "e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6",
+                "partuuid": "3c936d20-703c-4e9c-b999-4fc93d0c60a1",
+                "parttype": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7",
+                "start": 133120,
+                "log-sec": 512,
+                "mountpoints": [
+                  "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools"
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/dev/loop1",
+            "type": "loop",
+            "model": null,
+            "serial": null,
+            "size": 33554432,
+            "ptuuid": "9c362266-de01-4d0d-b45f-7c89b0c66495",
+            "partuuid": null,
+            "parttype": null,
+            "start": null,
+            "log-sec": 512,
+            "mountpoints": [
+              null
+            ],
+            "children": [
+              {
+                "path": "/dev/loop1p1",
+                "type": "part",
+                "model": null,
+                "serial": null,
+                "size": 32488960,
+                "ptuuid": "9c362266-de01-4d0d-b45f-7c89b0c66495",
+                "partuuid": "8138c84b-f18c-4d56-9509-4dfa5a8b6703",
+                "parttype": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7",
+                "start": 2048,
+                "log-sec": 512,
+                "mountpoints": [
+                  null
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/dev/sda",
+            "type": "disk",
+            "model": "Virtual Disk",
+            "serial": "60022480e7541397f74fca481b8d82fb",
+            "size": 80530636800,
+            "ptuuid": "39971a9e-5755-4efe-89bc-e1685bcf7502",
+            "partuuid": null,
+            "parttype": null,
+            "start": null,
+            "log-sec": 512,
+            "mountpoints": [
+              null
+            ],
+            "children": [
+              {
+                "path": "/dev/sda1",
+                "type": "part",
+                "model": null,
+                "serial": null,
+                "size": 79455829504,
+                "ptuuid": "39971a9e-5755-4efe-89bc-e1685bcf7502",
+                "partuuid": "d8f74b2e-a58d-4539-8b59-53da6417ef90",
+                "parttype": "0fc63daf-8483-4772-8e79-3d69d8477de4",
+                "start": 2099200,
+                "log-sec": 512,
+                "mountpoints": [
+                  "/"
+                ]
+              },
+              {
+                "path": "/dev/sda14",
+                "type": "part",
+                "model": null,
+                "serial": null,
+                "size": 4194304,
+                "ptuuid": "39971a9e-5755-4efe-89bc-e1685bcf7502",
+                "partuuid": "fe707ac7-7ee3-4ada-ad38-fedabf4d5a21",
+                "parttype": "21686148-6449-6e6f-744e-656564454649",
+                "start": 2048,
+                "log-sec": 512,
+                "mountpoints": [
+                  null
+                ]
+              },
+              {
+                "path": "/dev/sda15",
+                "type": "part",
+                "model": null,
+                "serial": null,
+                "size": 111149056,
+                "ptuuid": "39971a9e-5755-4efe-89bc-e1685bcf7502",
+                "partuuid": "5aa0eb96-e441-4211-adff-d97c79e3083d",
+                "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+                "start": 10240,
+                "log-sec": 512,
+                "mountpoints": [
+                  "/boot/efi"
+                ]
+              },
+              {
+                "path": "/dev/sda16",
+                "type": "part",
+                "model": null,
+                "serial": null,
+                "size": 957350400,
+                "ptuuid": "39971a9e-5755-4efe-89bc-e1685bcf7502",
+                "partuuid": "1c065cab-a68f-4111-98ce-ef16b63bf61f",
+                "parttype": "bc13c2ff-59e6-4262-a352-b275fd6f7172",
+                "start": 227328,
+                "log-sec": 512,
+                "mountpoints": [
+                  "/boot"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "command": [
+        "lsblk",
+        "--json",
+        "--tree",
+        "--paths",
+        "--output",
+        "PATH,TYPE,TRAN,RM,LABEL,FSTYPE,UUID,MOUNTPOINTS"
+      ],
+      "stdout": "{\n   \"blockdevices\": [\n      {\n         \"path\": \"/dev/loop0\",\n         \"type\": \"loop\",\n         \"tran\": null,\n         \"rm\": false,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/loop0p1\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"ARES_ESP\",\n               \"fstype\": \"vfat\",\n               \"uuid\": \"6DD6-1B6E\",\n               \"mountpoints\": [\n                   \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\"\n               ]\n            },{\n               \"path\": \"/dev/loop0p2\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"ARESTOOLS\",\n               \"fstype\": \"exfat\",\n               \"uuid\": \"FFFD-B6DD\",\n               \"mountpoints\": [\n                   \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools\"\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/loop1\",\n         \"type\": \"loop\",\n         \"tran\": null,\n         \"rm\": false,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/loop1p1\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": null,\n               \"fstype\": null,\n               \"uuid\": null,\n               \"mountpoints\": [\n                   null\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/sda\",\n         \"type\": \"disk\",\n         \"tran\": null,\n         \"rm\": false,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/sda1\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"cloudimg-rootfs\",\n               \"fstype\": \"ext4\",\n               \"uuid\": \"4255d757-c0f2-4577-ba35-8c54d5fe7830\",\n               \"mountpoints\": [\n                   \"/\"\n               ]\n            },{\n               \"path\": \"/dev/sda14\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": null,\n               \"fstype\": null,\n               \"uuid\": null,\n               \"mountpoints\": [\n                   null\n               ]\n            },{\n               \"path\": \"/dev/sda15\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"UEFI\",\n               \"fstype\": \"vfat\",\n               \"uuid\": \"F086-A453\",\n               \"mountpoints\": [\n                   \"/boot/efi\"\n               ]\n            },{\n               \"path\": \"/dev/sda16\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"BOOT\",\n               \"fstype\": \"ext4\",\n               \"uuid\": \"11c37f36-eda2-46ed-86c9-17c521906ced\",\n               \"mountpoints\": [\n                   \"/boot\"\n               ]\n            }\n         ]\n      }\n   ]\n}\n",
+      "parsed": {
+        "blockdevices": [
+          {
+            "path": "/dev/loop0",
+            "type": "loop",
+            "tran": null,
+            "rm": false,
+            "label": null,
+            "fstype": null,
+            "uuid": null,
+            "mountpoints": [
+              null
+            ],
+            "children": [
+              {
+                "path": "/dev/loop0p1",
+                "type": "part",
+                "tran": null,
+                "rm": false,
+                "label": "ARES_ESP",
+                "fstype": "vfat",
+                "uuid": "6DD6-1B6E",
+                "mountpoints": [
+                  "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi"
+                ]
+              },
+              {
+                "path": "/dev/loop0p2",
+                "type": "part",
+                "tran": null,
+                "rm": false,
+                "label": "ARESTOOLS",
+                "fstype": "exfat",
+                "uuid": "FFFD-B6DD",
+                "mountpoints": [
+                  "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools"
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/dev/loop1",
+            "type": "loop",
+            "tran": null,
+            "rm": false,
+            "label": null,
+            "fstype": null,
+            "uuid": null,
+            "mountpoints": [
+              null
+            ],
+            "children": [
+              {
+                "path": "/dev/loop1p1",
+                "type": "part",
+                "tran": null,
+                "rm": false,
+                "label": null,
+                "fstype": null,
+                "uuid": null,
+                "mountpoints": [
+                  null
+                ]
+              }
+            ]
+          },
+          {
+            "path": "/dev/sda",
+            "type": "disk",
+            "tran": null,
+            "rm": false,
+            "label": null,
+            "fstype": null,
+            "uuid": null,
+            "mountpoints": [
+              null
+            ],
+            "children": [
+              {
+                "path": "/dev/sda1",
+                "type": "part",
+                "tran": null,
+                "rm": false,
+                "label": "cloudimg-rootfs",
+                "fstype": "ext4",
+                "uuid": "4255d757-c0f2-4577-ba35-8c54d5fe7830",
+                "mountpoints": [
+                  "/"
+                ]
+              },
+              {
+                "path": "/dev/sda14",
+                "type": "part",
+                "tran": null,
+                "rm": false,
+                "label": null,
+                "fstype": null,
+                "uuid": null,
+                "mountpoints": [
+                  null
+                ]
+              },
+              {
+                "path": "/dev/sda15",
+                "type": "part",
+                "tran": null,
+                "rm": false,
+                "label": "UEFI",
+                "fstype": "vfat",
+                "uuid": "F086-A453",
+                "mountpoints": [
+                  "/boot/efi"
+                ]
+              },
+              {
+                "path": "/dev/sda16",
+                "type": "part",
+                "tran": null,
+                "rm": false,
+                "label": "BOOT",
+                "fstype": "ext4",
+                "uuid": "11c37f36-eda2-46ed-86c9-17c521906ced",
+                "mountpoints": [
+                  "/boot"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "findmnt_rows": [
+    {
+      "command": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--mountpoint",
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "requested": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--mountpoint",
+        "/boot/efi",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0p1\",\n         \"target\": \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\",\n         \"fstype\": \"vfat\"\n      }\n   ]\n}\n",
+      "parsed": {
+        "filesystems": [
+          {
+            "source": "/dev/loop0p1",
+            "target": "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi",
+            "fstype": "vfat"
+          }
+        ]
+      }
+    },
+    {
+      "command": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--mountpoint",
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "requested": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--mountpoint",
+        "/boot",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0p1\",\n         \"target\": \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\",\n         \"fstype\": \"vfat\"\n      }\n   ]\n}\n",
+      "parsed": {
+        "filesystems": [
+          {
+            "source": "/dev/loop0p1",
+            "target": "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi",
+            "fstype": "vfat"
+          }
+        ]
+      }
+    },
+    {
+      "command": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--mountpoint",
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "requested": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--mountpoint",
+        "/sysroot",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0p1\",\n         \"target\": \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\",\n         \"fstype\": \"vfat\"\n      }\n   ]\n}\n",
+      "parsed": {
+        "filesystems": [
+          {
+            "source": "/dev/loop0p1",
+            "target": "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi",
+            "fstype": "vfat"
+          }
+        ]
+      }
+    },
+    {
+      "command": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--target",
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "requested": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--target",
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0p2\",\n         \"target\": \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools\",\n         \"fstype\": \"fuseblk\"\n      }\n   ]\n}\n",
+      "parsed": {
+        "filesystems": [
+          {
+            "source": "/dev/loop0p2",
+            "target": "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools",
+            "fstype": "fuseblk"
+          }
+        ]
+      }
+    }
+  ],
+  "expected_guid": "549e105a-176e-4995-8abe-1143f727a9b3",
+  "expected_guid_source": {
+    "blkid": [
+      "blkid",
+      "-p",
+      "-s",
+      "PART_ENTRY_UUID",
+      "-o",
+      "value",
+      "/dev/loop0p1"
+    ],
+    "sgdisk": [
+      "sgdisk",
+      "-i",
+      "1",
+      "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/target.raw"
+    ]
+  },
+  "synthetic_firmware_line": "Boot0001* Fixture Linux\tHD(1,GPT,549e105a-176e-4995-8abe-1143f727a9b3,0x800,0x20000)/\\EFI\\fedora\\shimx64.efi\n      dp: 04 01 2a 00 01 00 00 00 00 08 00 00 00 00 00 00 00 00 02 00 00 00 00 00 5a 10 9e 54 6e 17 95 49 8a be 11 43 f7 27 a9 b3 02 02 / 04 04 34 00 5c 00 45 00 46 00 49 00 5c 00 66 00 65 00 64 00 6f 00 72 00 61 00 5c 00 73 00 68 00 69 00 6d 00 78 00 36 00 34 00 2e 00 65 00 66 00 69 00 00 00 / 7f ff 04 00\n",
+  "disk_record_resolved_guid": "549e105a-176e-4995-8abe-1143f727a9b3",
+  "checks": [
+    {
+      "message": "STOP: privileged dispatch fixture only",
+      "passed": true
+    },
+    {
+      "message": "STOP: unauthorized fixture mode",
+      "passed": true
+    },
+    {
+      "message": "STOP: fresh workspace fixture required",
+      "passed": true
+    },
+    {
+      "message": "STOP: invalid or mismatched fixture EFI GUID: blkid PART_ENTRY_UUID='549e105a-176e-4995-8abe-1143f727a9b3'; sgdisk Partition unique GUID='549E105A-176E-4995-8ABE-1143F727A9B3'",
+      "passed": true
+    },
+    {
+      "message": "STOP: native fixture did not receive a loop root",
+      "passed": true
+    },
+    {
+      "message": "STOP: native fixture did not receive a loop root",
+      "passed": true
+    },
+    {
+      "message": "STOP: wrong sandbox mount",
+      "passed": true
+    },
+    {
+      "message": "STOP: wrong sandbox mount",
+      "passed": true
+    },
+    {
+      "message": "STOP: wrong sandbox mount",
+      "passed": true
+    },
+    {
+      "message": "STOP: native fixture did not receive a loop root",
+      "passed": true
+    },
+    {
+      "message": "STOP: native fixture did not receive a loop root",
+      "passed": true
+    },
+    {
+      "message": "STOP: helper EFI/tools identity mismatch",
+      "passed": true
+    },
+    {
+      "message": "STOP: helper tools disk/UUID mismatch",
+      "passed": true
+    },
+    {
+      "message": "STOP: helper EFI type mismatch",
+      "passed": true
+    },
+    {
+      "message": "STOP: tools FUSE mount mismatch",
+      "passed": true
+    },
+    {
+      "message": "STOP: raw loop tree mismatch",
+      "passed": true
+    },
+    {
+      "message": "STOP: protected fixture changed",
+      "passed": true
+    },
+    {
+      "message": "STOP: fixture partition remains mounted",
+      "passed": true
+    },
+    {
+      "message": "STOP: fixture partition remains mounted",
+      "passed": true
+    },
+    {
+      "message": "STOP: fixture partition remains mounted",
+      "passed": true
+    }
+  ],
+  "stage": "complete",
+  "directory": "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices",
+  "loop": "/dev/loop1",
+  "image": "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/protected.raw",
+  "loop_partition_readiness": {
+    "status": "passed",
+    "loop": "/dev/loop1",
+    "expected": [
+      {
+        "number": 1,
+        "start": 2048,
+        "size": 63455
+      }
+    ],
+    "sysfs": [
+      {
+        "node": "/dev/loop1p1",
+        "sysfs": "/sys/block/loop1/loop1p1",
+        "block": true,
+        "rdev": "259:3",
+        "start": 2048,
+        "size": 63455,
+        "dev": "259:3"
+      }
+    ],
+    "commands": [
+      {
+        "command": [
+          "udevadm",
+          "settle",
+          "--timeout=5"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "partx_retry": false
+  },
+  "blkid_output": "549e105a-176e-4995-8abe-1143f727a9b3\n",
+  "blkid_guid": "549e105a-176e-4995-8abe-1143f727a9b3",
+  "sgdisk_guid": "549E105A-176E-4995-8ABE-1143F727A9B3",
+  "sgdisk_output": "Partition GUID code: C12A7328-F81F-11D2-BA4B-00A0C93EC93B (EFI system partition)\nPartition unique GUID: 549E105A-176E-4995-8ABE-1143F727A9B3\nFirst sector: 2048 (at 1024.0 KiB)\nLast sector: 133119 (at 65.0 MiB)\nPartition size: 131072 sectors (64.0 MiB)\nAttribute flags: 0000000000000000\nPartition name: ''\n",
+  "command": [
+    "findmnt",
+    "--json",
+    "--list",
+    "--target",
+    "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools",
+    "--output",
+    "SOURCE,TARGET,FSTYPE"
+  ],
+  "native_command": [
+    "findmnt",
+    "--json",
+    "--list",
+    "--target",
+    "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools",
+    "--output",
+    "SOURCE,TARGET,FSTYPE"
+  ],
+  "raw_loop_trees": [
+    [
+      {
+        "path": "/dev/loop0",
+        "type": "loop",
+        "model": null,
+        "serial": null,
+        "size": 167772160,
+        "ptuuid": "e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6",
+        "partuuid": null,
+        "parttype": null,
+        "start": null,
+        "log-sec": 512,
+        "mountpoints": [
+          null
+        ],
+        "children": [
+          {
+            "path": "/dev/loop0p1",
+            "type": "part",
+            "model": null,
+            "serial": null,
+            "size": 67108864,
+            "ptuuid": "e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6",
+            "partuuid": "549e105a-176e-4995-8abe-1143f727a9b3",
+            "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b",
+            "start": 2048,
+            "log-sec": 512,
+            "mountpoints": [
+              "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi"
+            ]
+          },
+          {
+            "path": "/dev/loop0p2",
+            "type": "part",
+            "model": null,
+            "serial": null,
+            "size": 99597824,
+            "ptuuid": "e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6",
+            "partuuid": "3c936d20-703c-4e9c-b999-4fc93d0c60a1",
+            "parttype": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7",
+            "start": 133120,
+            "log-sec": 512,
+            "mountpoints": [
+              "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "/dev/loop1",
+        "type": "loop",
+        "model": null,
+        "serial": null,
+        "size": 33554432,
+        "ptuuid": "9c362266-de01-4d0d-b45f-7c89b0c66495",
+        "partuuid": null,
+        "parttype": null,
+        "start": null,
+        "log-sec": 512,
+        "mountpoints": [
+          null
+        ],
+        "children": [
+          {
+            "path": "/dev/loop1p1",
+            "type": "part",
+            "model": null,
+            "serial": null,
+            "size": 32488960,
+            "ptuuid": "9c362266-de01-4d0d-b45f-7c89b0c66495",
+            "partuuid": "8138c84b-f18c-4d56-9509-4dfa5a8b6703",
+            "parttype": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7",
+            "start": 2048,
+            "log-sec": 512,
+            "mountpoints": [
+              null
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "path": "/dev/loop0",
+        "type": "loop",
+        "tran": null,
+        "rm": false,
+        "label": null,
+        "fstype": null,
+        "uuid": null,
+        "mountpoints": [
+          null
+        ],
+        "children": [
+          {
+            "path": "/dev/loop0p1",
+            "type": "part",
+            "tran": null,
+            "rm": false,
+            "label": "ARES_ESP",
+            "fstype": "vfat",
+            "uuid": "6DD6-1B6E",
+            "mountpoints": [
+              "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi"
+            ]
+          },
+          {
+            "path": "/dev/loop0p2",
+            "type": "part",
+            "tran": null,
+            "rm": false,
+            "label": "ARESTOOLS",
+            "fstype": "exfat",
+            "uuid": "FFFD-B6DD",
+            "mountpoints": [
+              "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "/dev/loop1",
+        "type": "loop",
+        "tran": null,
+        "rm": false,
+        "label": null,
+        "fstype": null,
+        "uuid": null,
+        "mountpoints": [
+          null
+        ],
+        "children": [
+          {
+            "path": "/dev/loop1p1",
+            "type": "part",
+            "tran": null,
+            "rm": false,
+            "label": null,
+            "fstype": null,
+            "uuid": null,
+            "mountpoints": [
+              null
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "disk_record_efi_source": "/dev/loop0p1",
+  "native_queries": [
+    {
+      "command": [
+        "lsblk",
+        "--json",
+        "--tree",
+        "--bytes",
+        "--output",
+        "PATH,TYPE,MODEL,SERIAL,SIZE,PTUUID,PARTUUID,PARTTYPE,START,LOG-SEC,MOUNTPOINTS"
+      ],
+      "returncode": 0,
+      "stdout": "{\n   \"blockdevices\": [\n      {\n         \"path\": \"/dev/loop0\",\n         \"type\": \"loop\",\n         \"model\": null,\n         \"serial\": null,\n         \"size\": 167772160,\n         \"ptuuid\": \"e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6\",\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/loop0p1\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 67108864,\n               \"ptuuid\": \"e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6\",\n               \"partuuid\": \"549e105a-176e-4995-8abe-1143f727a9b3\",\n               \"parttype\": \"c12a7328-f81f-11d2-ba4b-00a0c93ec93b\",\n               \"start\": 2048,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\"\n               ]\n            },{\n               \"path\": \"/dev/loop0p2\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 99597824,\n               \"ptuuid\": \"e34ba61b-dcde-4e6c-9cbb-d7040c0b1af6\",\n               \"partuuid\": \"3c936d20-703c-4e9c-b999-4fc93d0c60a1\",\n               \"parttype\": \"ebd0a0a2-b9e5-4433-87c0-68b6b72699c7\",\n               \"start\": 133120,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools\"\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/loop1\",\n         \"type\": \"loop\",\n         \"model\": null,\n         \"serial\": null,\n         \"size\": 33554432,\n         \"ptuuid\": \"9c362266-de01-4d0d-b45f-7c89b0c66495\",\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/loop1p1\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 32488960,\n               \"ptuuid\": \"9c362266-de01-4d0d-b45f-7c89b0c66495\",\n               \"partuuid\": \"8138c84b-f18c-4d56-9509-4dfa5a8b6703\",\n               \"parttype\": \"ebd0a0a2-b9e5-4433-87c0-68b6b72699c7\",\n               \"start\": 2048,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   null\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/sda\",\n         \"type\": \"disk\",\n         \"model\": \"Virtual Disk\",\n         \"serial\": \"60022480e7541397f74fca481b8d82fb\",\n         \"size\": 80530636800,\n         \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/sda1\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 79455829504,\n               \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n               \"partuuid\": \"d8f74b2e-a58d-4539-8b59-53da6417ef90\",\n               \"parttype\": \"0fc63daf-8483-4772-8e79-3d69d8477de4\",\n               \"start\": 2099200,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/\"\n               ]\n            },{\n               \"path\": \"/dev/sda14\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 4194304,\n               \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n               \"partuuid\": \"fe707ac7-7ee3-4ada-ad38-fedabf4d5a21\",\n               \"parttype\": \"21686148-6449-6e6f-744e-656564454649\",\n               \"start\": 2048,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   null\n               ]\n            },{\n               \"path\": \"/dev/sda15\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 111149056,\n               \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n               \"partuuid\": \"5aa0eb96-e441-4211-adff-d97c79e3083d\",\n               \"parttype\": \"c12a7328-f81f-11d2-ba4b-00a0c93ec93b\",\n               \"start\": 10240,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/boot/efi\"\n               ]\n            },{\n               \"path\": \"/dev/sda16\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 957350400,\n               \"ptuuid\": \"39971a9e-5755-4efe-89bc-e1685bcf7502\",\n               \"partuuid\": \"1c065cab-a68f-4111-98ce-ef16b63bf61f\",\n               \"parttype\": \"bc13c2ff-59e6-4262-a352-b275fd6f7172\",\n               \"start\": 227328,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/boot\"\n               ]\n            }\n         ]\n      }\n   ]\n}\n",
+      "stderr": "",
+      "mutation": false
+    },
+    {
+      "command": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--mountpoint",
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "returncode": 0,
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0p1\",\n         \"target\": \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\",\n         \"fstype\": \"vfat\"\n      }\n   ]\n}\n",
+      "stderr": "",
+      "mutation": false
+    },
+    {
+      "command": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--mountpoint",
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "returncode": 0,
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0p1\",\n         \"target\": \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\",\n         \"fstype\": \"vfat\"\n      }\n   ]\n}\n",
+      "stderr": "",
+      "mutation": false
+    },
+    {
+      "command": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--mountpoint",
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "returncode": 0,
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0p1\",\n         \"target\": \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\",\n         \"fstype\": \"vfat\"\n      }\n   ]\n}\n",
+      "stderr": "",
+      "mutation": false
+    },
+    {
+      "command": [
+        "sfdisk",
+        "--json",
+        "/dev/loop0"
+      ],
+      "returncode": 0,
+      "stdout": "{\n   \"partitiontable\": {\n      \"label\": \"gpt\",\n      \"id\": \"E34BA61B-DCDE-4E6C-9CBB-D7040C0B1AF6\",\n      \"device\": \"/dev/loop0\",\n      \"unit\": \"sectors\",\n      \"firstlba\": 34,\n      \"lastlba\": 327646,\n      \"sectorsize\": 512,\n      \"partitions\": [\n         {\n            \"node\": \"/dev/loop0p1\",\n            \"start\": 2048,\n            \"size\": 131072,\n            \"type\": \"C12A7328-F81F-11D2-BA4B-00A0C93EC93B\",\n            \"uuid\": \"549E105A-176E-4995-8ABE-1143F727A9B3\"\n         },{\n            \"node\": \"/dev/loop0p2\",\n            \"start\": 133120,\n            \"size\": 194527,\n            \"type\": \"EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\",\n            \"uuid\": \"3C936D20-703C-4E9C-B999-4FC93D0C60A1\"\n         }\n      ]\n   }\n}\n",
+      "stderr": "",
+      "mutation": false
+    },
+    {
+      "command": [
+        "sfdisk",
+        "--json",
+        "/dev/loop1"
+      ],
+      "returncode": 0,
+      "stdout": "{\n   \"partitiontable\": {\n      \"label\": \"gpt\",\n      \"id\": \"9C362266-DE01-4D0D-B45F-7C89B0C66495\",\n      \"device\": \"/dev/loop1\",\n      \"unit\": \"sectors\",\n      \"firstlba\": 34,\n      \"lastlba\": 65502,\n      \"sectorsize\": 512,\n      \"partitions\": [\n         {\n            \"node\": \"/dev/loop1p1\",\n            \"start\": 2048,\n            \"size\": 63455,\n            \"type\": \"EBD0A0A2-B9E5-4433-87C0-68B6B72699C7\",\n            \"uuid\": \"8138C84B-F18C-4D56-9509-4DFA5A8B6703\"\n         }\n      ]\n   }\n}\n",
+      "stderr": "",
+      "mutation": false
+    },
+    {
+      "command": [
+        "lsblk",
+        "--json",
+        "--tree",
+        "--paths",
+        "--output",
+        "PATH,TYPE,TRAN,RM,LABEL,FSTYPE,UUID,MOUNTPOINTS"
+      ],
+      "returncode": 0,
+      "stdout": "{\n   \"blockdevices\": [\n      {\n         \"path\": \"/dev/loop0\",\n         \"type\": \"loop\",\n         \"tran\": null,\n         \"rm\": false,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/loop0p1\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"ARES_ESP\",\n               \"fstype\": \"vfat\",\n               \"uuid\": \"6DD6-1B6E\",\n               \"mountpoints\": [\n                   \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi\"\n               ]\n            },{\n               \"path\": \"/dev/loop0p2\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"ARESTOOLS\",\n               \"fstype\": \"exfat\",\n               \"uuid\": \"FFFD-B6DD\",\n               \"mountpoints\": [\n                   \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools\"\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/loop1\",\n         \"type\": \"loop\",\n         \"tran\": null,\n         \"rm\": false,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/loop1p1\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": null,\n               \"fstype\": null,\n               \"uuid\": null,\n               \"mountpoints\": [\n                   null\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/sda\",\n         \"type\": \"disk\",\n         \"tran\": null,\n         \"rm\": false,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": [\n             null\n         ],\n         \"children\": [\n            {\n               \"path\": \"/dev/sda1\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"cloudimg-rootfs\",\n               \"fstype\": \"ext4\",\n               \"uuid\": \"4255d757-c0f2-4577-ba35-8c54d5fe7830\",\n               \"mountpoints\": [\n                   \"/\"\n               ]\n            },{\n               \"path\": \"/dev/sda14\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": null,\n               \"fstype\": null,\n               \"uuid\": null,\n               \"mountpoints\": [\n                   null\n               ]\n            },{\n               \"path\": \"/dev/sda15\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"UEFI\",\n               \"fstype\": \"vfat\",\n               \"uuid\": \"F086-A453\",\n               \"mountpoints\": [\n                   \"/boot/efi\"\n               ]\n            },{\n               \"path\": \"/dev/sda16\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": false,\n               \"label\": \"BOOT\",\n               \"fstype\": \"ext4\",\n               \"uuid\": \"11c37f36-eda2-46ed-86c9-17c521906ced\",\n               \"mountpoints\": [\n                   \"/boot\"\n               ]\n            }\n         ]\n      }\n   ]\n}\n",
+      "stderr": "",
+      "mutation": false
+    },
+    {
+      "command": [
+        "findmnt",
+        "--json",
+        "--list",
+        "--target",
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools",
+        "--output",
+        "SOURCE,TARGET,FSTYPE"
+      ],
+      "returncode": 0,
+      "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/loop0p2\",\n         \"target\": \"/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools\",\n         \"fstype\": \"fuseblk\"\n      }\n   ]\n}\n",
+      "stderr": "",
+      "mutation": false
+    }
+  ],
+  "disk_record_returned_guid": "549e105a-176e-4995-8abe-1143f727a9b3",
+  "found": {
+    "disk": {
+      "path": "/dev/loop0",
+      "type": "disk",
+      "tran": "usb",
+      "rm": true,
+      "label": null,
+      "fstype": null,
+      "uuid": null,
+      "mountpoints": [
+        null
+      ],
+      "children": [
+        {
+          "path": "/dev/loop0p1",
+          "type": "part",
+          "tran": null,
+          "rm": false,
+          "label": "ARES_ESP",
+          "fstype": "vfat",
+          "uuid": "6DD6-1B6E",
+          "mountpoints": [
+            "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/efi"
+          ]
+        },
+        {
+          "path": "/dev/loop0p2",
+          "type": "part",
+          "tran": null,
+          "rm": false,
+          "label": "ARESTOOLS",
+          "fstype": "exfat",
+          "uuid": "FFFD-B6DD",
+          "mountpoints": [
+            "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools"
+          ]
+        }
+      ],
+      "serial": "TARGET"
+    },
+    "volume": {
+      "path": "/dev/loop0p2",
+      "type": "part",
+      "tran": null,
+      "rm": false,
+      "label": "ARESTOOLS",
+      "fstype": "exfat",
+      "uuid": "FFFD-B6DD",
+      "mountpoints": [
+        "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools"
+      ]
+    }
+  },
+  "tools_mount": {
+    "source": "/dev/loop0p2",
+    "target": "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/tools",
+    "fstype": "fuseblk"
+  },
+  "protected_before": "3b83cc8ff3ddb3565c29242b83556439f512d00c3382c51e7fad3ed024c1646d",
+  "protected_after": "3b83cc8ff3ddb3565c29242b83556439f512d00c3382c51e7fad3ed024c1646d",
+  "cleanup_loop": "/dev/loop0",
+  "cleanup_image": "/home/runner/work/AresOS/AresOS/.work/14-native-owner-devices/target.raw",
+  "cleanup_partition": "/dev/loop0p2",
+  "cleanup_mount_rows": [],
+  "helper_mutations": 0,
+  "loop_backing_verified": true,
+  "protected_fixture_unchanged": true,
+  "adapters": [
+    "loop root TYPE/serial/USB/removability only; no tree/partition reshaping",
+    "guest mountpoint arguments map to one scratch FAT mount; returned TARGET maps back",
+    "synthetic firmware read naming the native EFI PARTUUID; no firmware access"
+  ],
+  "all_fixture_mounts_unmounted_and_loops_detached": true
+}

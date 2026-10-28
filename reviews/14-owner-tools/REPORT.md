@@ -1,11 +1,138 @@
 # 14: checked owner tools
 
-**Current14zj: serial-marker framing fix implemented; local checks complete.**
-Probe19 and qualification8 are pending. Acceptance is not established; PR #13
-remains draft / NOT RELEASED. One push, then one probe, then only after probe
-acceptance one qualification on the same head. Any CI stop ends this round.
+**14zj STOP: probe19 passed; qualification8 stopped at the first installed-system
+physical login's read-completion proof.** No rerun or extra push. PR #13 remains
+draft / NOT RELEASED. The pushed implementation is `85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7`; the STOP packet is
+committed locally only. Acceptance is unmet, so closing0/reserve0 are unchanged.
 
-## 14zj — Self-delimiting ACKs and shared kernel-line filtering
+## 14zj REPORT — ACK fix verified; direct-login completion false negative
+
+**Done:** self-delimiting per-transfer nonce/phase/index/status ACKs, exact field
+and canonical status validation, duplicate/out-of-order/mismatch refusal, shared
+complete-kernel-line stripping for every UART marker and the checksum-framed
+export decoder. Truncated records cannot grant completion. Existing bounded
+waits, verified guest SHA,512-byte controls,96-byte chunks and root-only tmpfs/modes
+are kept. No automatic re-send was added without a receiver not-stored receipt.
+All login/readiness/CMD_DONE/hidden-resync paths and the passive UART journal
+readiness poll use the shared filter. Raw diagnostics retain kernel output; no
+physical VCSA predicate, idle/Enter authority or log-level/emission change.
+A buffered stale ACK refuses another send and is retained redacted on refusal.
+
+Only harness/tests and package14 probe cap19 changed (1200 minutes/owner-tools8).
+Package13, owner scripts and payload hash
+683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974,
+guides, runtime/image, workflows, privacy rules and disk/firmware audit rules are
+unchanged. No image build/release/publication, local installation/privilege, real
+laptop/disk/boot/Minecraft access or Gradle invocation occurred.
+
+**Verified:** final local470 tests/588.251s had the same8 documented native host
+limitations (2 failures/9 errors),0 skips; both CI jobs later passed all470 natively.
+Host walk261/463.350s passes, with119 cluttered waits and22 hidden-read ready/left
+pairs. All8 ACK tests, existing export/PTY regressions, exact private14zi transcript
+replay, kernel insertion at every ACK byte/socket split, malformed/duplicate/order
+and truncated-record refusals, real Bash/PTY staging/resync and buffered-ACK
+zero-send diagnostic pass. Strict549 compositions/524 embedded Python/12 shells/
+47 Python/native workflow body pass. Windows copy15 zero-write refusals and exact
+bundle equality pass; dispatch controller4 and watcher7 tests pass. Full replay,
+read-only release/git/53-source steps pass;4 CI-token-only checks stay fail-closed
+in CI and passed there. No credential/scope change or owner-secret use locally.
+
+Pre-push ISO replay passed fresh-path attempt4 after two authorized checkpoint
+WinError5 failures and a no-reader free-space preflight. Failed partial duplicates
+were prefix-hash-verified before removal; read-only holder snapshot found none.
+The separate qualification ISO replay passed attempt1. Both inspect all9,068,650,496
+bytes against the pin and fresh official checksum, extracting4 localization/102
+WebUI sources. Linux CI inspector behavior is unchanged.
+
+Exactly one fast-forward push, followed by both exact-head privacy runs40654614484
+and40654606957 passing all3 steps with personal terms actually executed. Both VM
+runs are workflow_dispatch, attempt1, protected-second order on `85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7`.
+
+[Probe19](https://github.com/Ares-Empire/AresOS/actions/runs/40655273119) passed and
+was accepted after independent artifact review. Native470/80.203s,0 skips;20 real
+loop-image checks, helper mutations0, protected fixture unchanged and all fixture
+mounts/loops cleaned. All23 staged transfers verify. The same598-byte server
+script which formerly stopped at syntax ACK10 now passes every ACK phase and
+SHA verification (protocol-before-after.json); no transfer retry was introduced.
+Independent audits pass:3 protected captures,4 zero-write/unmap samples,3 BootNext,
+2 NVRAM and2 complete-variable replays. Artifact12802991391:4,744,424 bytes/354
+members, SHA256 `2ef4a0c2f06b1f7388b2ec18ee9d7da74a6b43bac1997589a06962c7447f1e8c`.
+
+Before qualification, fresh exact-head privacy, strict/read-only replay and the
+fresh complete113/113 guard passed:970 consumed +160 bound /1200, org after bound146,
+exact$6/prevent=true budget with net Actions spend deducted at API pricePerUnit.
+
+**STOP / PLAN-GAP:** [qualification8](https://github.com/Ares-Empire/AresOS/actions/runs/40658792992)
+passed native470/79.477s with0 skips,20 native checks/0 helper mutations, pinned
+ISO inspection, offline installation, offline hardware first boot (including its
+orderly pre-login reboot), unattended Windows and detached-device Windows checks.
+All28 staged transfers verify, including the failing observer command's byte/SHA
+transport. It stopped at `Console.login -> send_hidden` on tools-stock, before
+physical sudo, tools-stick attachment/install or any owner command/registry token.
+No stopped owner-command record exists because no owner command was reached;
+the harness readiness/completion/foreground record and private VCSA are exported.
+
+The pre-send receipt proves login PID1962 on physical tty3, ECHO off and Password
+at the cursor. The password and Enter were typed once. The bounded completion
+receipt then reports ready=false but `Foreground interactive bash`: Bash PID2926,
+PPID1962, own foreground group/session2926, same physical tty. The retained VCSA
+ends at a shell prompt, not Password, with no Login incorrect. Its decoded-text
+stdin privacy scan reports0 findings; no decoded text is saved. The original
+login PID remains with the same executable/start identity, and the physical tty
+is still ECHO-off for Bash readline: this follows from the observer's recorded
+Bash chain and the existing hidden_left condition branches, not a retained raw
+post-read termios dump. Login succeeded; this is a read-completion false negative,
+not a failed credential or serial ACK. The14zi completion alternatives omit this
+login-parent/child-Bash shape. No secret was retyped. No completion predicate,
+timeout, harness, product or owner script was changed after the CI stop.
+
+Failure paused the VM at boot7. Independent replay passes:7 protected captures,
+8 zero-write/unmap samples,7 BootNext,6 NVRAM rule checks and6 whole-variable delta
+checks. Private registry login, prepare/rerun, network-after-prepare proof, AresOS
+switch, layout/revert, rollback and keep-stock were not reached this round.
+Artifact12805406854:5,403,502 bytes/448 members, SHA256
+`92198cf3943f814eebe4cab1e149cf279c80943896412704702187e8476ae20b`.
+
+**Privacy:** pinned8.21.2 artifact scans: probe509=507 reviewed public ISO-listing
+names +2 exact whole-line kernel X.509 messages; qualification515=507+8. Unknown
+findings0. Both native logs, the failure-step log and in-memory decoded VCSA scan
+return0 findings. Raw ISO listing, boot consoles, VCSA, decoded console text and
+credentials are not committed. Exact accepted certificate-line records follow;
+no ignore/allowlist/rule/privacy workflow change.
+
+| Run | Private artifact path | Line | Certificate name | Whole-line SHA256 |
+|---|---|---:|---|---|
+| probe19 | `evidence/two-disk/live-ui-probe-boot-console.txt` | 491 | Fedora kernel signing key | `114a2d10cbf1b875d243ad0b86832cfd9309fd1404a25b49d555f86cbb505321` |
+| probe19 | `evidence/two-disk/live-ui-probe-boot-console.txt` | 524 | Fedora kernel signing key | `cb9a947c057d77f5a0932e8c21597dafbd93cd88b19194164d98b00248844ae3` |
+| qualification8 | `evidence/two-disk/offline-first-stock-boot-console.txt` | 502 | Build time autogenerated kernel key | `2bc883c6fb32d9d097940ede459608a542072f11b642507460d28045efca6925` |
+| qualification8 | `evidence/two-disk/offline-first-stock-boot-console.txt` | 519 | Build time autogenerated kernel key | `820f18a92ddfeb8fd78ef61c1f5ab41c364a0bab4d776cc50d89b99b001a8d8e` |
+| qualification8 | `evidence/two-disk/protected-second-install-boot-console.txt` | 493 | Fedora kernel signing key | `859d0e408118b78b2106f88db6f1353ca1db713336c3bd6c027065b5024959b1` |
+| qualification8 | `evidence/two-disk/protected-second-install-boot-console.txt` | 524 | Fedora kernel signing key | `e6abf9705b109be5277949a3338528f6d5643b18ef423f54984fddfa0240aff9` |
+| qualification8 | `evidence/two-disk/stock-initialization-0-boot-console.txt` | 498 | Build time autogenerated kernel key | `35e50b230b78276203c19a489a0d4faec766a77d381db4f36db459bdf369ba95` |
+| qualification8 | `evidence/two-disk/stock-initialization-0-boot-console.txt` | 519 | Build time autogenerated kernel key | `78c256d1071eeef4172d5b9c709badae423bbd52437322a839a0a6354797d920` |
+| qualification8 | `evidence/two-disk/tools-stock-boot-console.txt` | 498 | Build time autogenerated kernel key | `7f55ef5ed8e5375da27a83ccfb4b065f87357829f905a8ff109ba476f758fd08` |
+| qualification8 | `evidence/two-disk/tools-stock-boot-console.txt` | 509 | Build time autogenerated kernel key | `d97c569b852cf578dccfc655c5d1a2206311773076028ba82817a475aa0e0f12` |
+
+**Local STOP commit checks:** pinned gitleaks8.21.2 full history and all pending files return0 findings; manifest-format verification and git diff --check pass. The implementation/runtime/workflow/guide/privacy diff from the dispatched head is empty. No extra push.
+
+**Closed ledger:**1019/1200 consumed, probes19/19 and owner-tools8/8, complete114/114
+history, reserved0. One push, two dispatches, zero reruns. Read-only billing/budget
+snapshot `2026-10-28T09:36:33.304275+00:00` requires exact$6/prevent=true and deducts already
+charged net Actions spend using API pricePerUnit; exact values and response hashes
+are in closed-ledger.json. The API snapshot may lag completed-job accounting.
+Closing0/reserve0 are not restored because acceptance is unmet. No extra push;
+the STOP packet is local only. PR #13 remains draft; never merge.
+
+**Not verified / JUDGMENT-CALL / open questions:** the new ACK transport passed the
+real probe and both jobs' executed commands; full owner-tools acceptance did not.
+The installed tools and remaining owner stages need another authorized round.
+A verified login-parent/foreground-child completion rule needs an integrator
+decision before any source change or dispatch. Physical/followability gates stay
+open; INSTALL/EMERGENCY/release gate retain that truth. No new product decision.
+
+## 14zj preflight — Self-delimiting ACKs and shared kernel-line filtering
+
+Historical pre-dispatch snapshot; outcomes above supersede its pending statements.
 
 **Done:** staged transfers and cleanup/resync use a fresh per-transfer nonce and
 `ARESOS_ACK:<nonce>:<phase>:<index>:<status>:END`. No newline is required to delimit
