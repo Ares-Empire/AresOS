@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import inspect
+import itertools
 import json
 import os
 import pathlib
@@ -29,6 +30,7 @@ TEXT = 'yz-/!ü'
 PROBE_MEDIA = None
 OWNER_COMMAND_TIMEOUT = 900
 OWNER_RESULT_WAIT = 840
+PROMPT_WAIT_IDS = itertools.count(1)
 
 
 def type_text(guest, text, layout=None):
@@ -155,12 +157,19 @@ def retain_vcsa(tty, stage, phase, raw):
         tty=tty, rows=raw[0], columns=raw[1], cursor_x=raw[2], cursor_y=raw[3]))
 
 
-def wait_tty(guest, tty, predicate, stage, timeout=90, resync=None):
+def wait_tty(guest, tty, predicate, stage, timeout=90, resync=None, observe=None):
+    # Stage labels can be reused by a caller or another Console instance. Keep
+    # every sample, observer answer and resync in a unique wait namespace.
+    stage += '-wait-' + str(next(PROMPT_WAIT_IDS))
+    samples = 0
     def sample(seconds):
-        return guest.capture_json(stage, sw.framed('python3 -c ' + shlex.quote(
+        nonlocal samples
+        samples += 1
+        return guest.capture_json(stage + '-sample-' + str(samples), sw.framed('python3 -c ' + shlex.quote(
             owner_console.source(tty, predicate, seconds))))
     owner_console.wait(sample, timeout,
         lambda phase, raw: retain_vcsa(tty, stage, phase, raw), resync=resync,
+        observe=(lambda seconds, attempt: observe(stage + '-idle-' + str(attempt), seconds)) if observe else None,
         record=lambda event: td.save(stage + '-resync-' + str(event['attempt']),
             dict(stage=stage, tty=tty, **event)))
 
@@ -212,7 +221,16 @@ class Console:
 
     def prompt(self, stage):
         epoch = getattr(self.guest, 'owner_input_epoch', 0)
-        idle = self.completed_epoch is not None and self.completed_epoch == epoch
+        def observe(name, seconds):
+            assert getattr(self.guest, 'owner_input_epoch', 0) == epoch, 'Input revoked idle proof'
+            value = self.guest.capture_json(name, sw.framed('python3 -c ' + shlex.quote(
+                owner_console.hidden_idle_source(self.tty, seconds))))
+            td.save(name, value)
+            assert getattr(self.guest, 'owner_input_epoch', 0) == epoch, 'Input revoked idle proof'
+            assert type(value['ready']) is bool, 'Invalid physical idle observation'
+            if not value['ready'] and value.get('raw'):
+                retain_vcsa(self.tty, name, 1, base64.b64decode(value['raw'], validate=True))
+            return value
         def resync():
             nonlocal epoch
             assert getattr(self.guest, 'owner_input_epoch', 0) == epoch, 'Input revoked idle proof'
@@ -220,7 +238,7 @@ class Console:
             epoch = self.guest.owner_input_epoch
         try:
             wait_tty(self.guest, self.tty, "bool(re.search(r'[$#]$',line))", stage,
-                resync=resync if idle else None)
+                resync=resync, observe=observe)
         except BaseException:
             self.completed_epoch = None
             raise

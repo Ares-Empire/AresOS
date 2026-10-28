@@ -262,7 +262,10 @@ print('PASS login')
                 return command(name,script,min(timeout,5),private)
             f.guest.command=bounded
             def snapshot(name,source):
-                if name.endswith('-input-ready'):
+                # Wait receipts now have unique sequence/sample suffixes. The
+                # physical PTY still waits for the same public owner prompt.
+                phase=name.split('-wait-',1)[0]
+                if phase.endswith('-input-ready'):
                     f.physical.until(b'GitHub username:',3)
                 if name.endswith('-hidden-input'):
                     f.physical.until(b'Read-only token (hidden):',3)
@@ -275,10 +278,10 @@ print('PASS login')
                 lines=text.replace('\r','').split('\n')[-24:]
                 # The foreground-shell observer can finish just before bash
                 # prints PS1. Wait for that public prompt before snapshotting.
-                if name.endswith('-after-hidden-ready') and not lines[-1].rstrip().endswith('#'):
+                if phase.endswith('-after-hidden-ready') and not lines[-1].rstrip().endswith('#'):
                     f.physical.until(b'root@bazzite:~# ',3)
                     text=bytes(f.physical.output).decode(errors='replace');lines=text.replace('\r','').split('\n')[-24:]
-                if not lines[-1] and name.endswith('-ready') and len(f.physical.sent)==0:
+                if not lines[-1] and phase.endswith('-ready') and len(f.physical.sent)==0:
                     f.physical.until(b'root@bazzite:~# ',3)
                     text=bytes(f.physical.output).decode(errors='replace');lines=text.replace('\r','').split('\n')[-24:]
                 cols=160;rows=24;lines=(['']*(rows-len(lines))+lines)[-rows:]

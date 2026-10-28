@@ -11,6 +11,7 @@ import json
 import os
 import pathlib
 import shutil
+import shlex
 import string
 import sys
 import tempfile
@@ -24,6 +25,7 @@ import owner_media
 import test_owner_tools as common
 from owner_fuse_shim import Volume
 from guest_shell import syntax
+from owner_console_shim import execute_idle
 
 FIXTURES = ROOT / 'os/tests/fixtures/owner-tools'
 
@@ -34,6 +36,7 @@ def retained(name):
 
 def walk():
     visits, commands, typed, checks, markers = [], [], [], [], []
+    prompt_waits, idle_answers = {}, []
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
     first = common.stock()
@@ -60,11 +63,25 @@ def walk():
         def capture_json(self, name, source):
             syntax(name, source)
             commands.append((name, source))
+            if 'ready=shell' in source:
+                words = shlex.split(source)
+                script = words[words.index('python3') + 2]
+                # Execute the real read-only observer on the pinned sudo relay
+                # model at every wait, not a pre-granted Boolean authority.
+                value = execute_idle(script, (ROOT / 'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes())
+                idle_answers.append(name)
+                return value
             if name.endswith('-physical-idle'):
                 return dict(ready=True,echo_enabled=False,foreground_shell=True,raw='')
             if 'base64.b64encode(data)' in source or 'base64.b64encode(raw)' in source:
+                if "bool(re.search(r'" in source:
+                    wait = name.rsplit('-sample-', 1)[0]
+                    prompt_waits[wait] = prompt_waits.get(wait, 0) + 1
+                    if prompt_waits[wait] == 1:
+                        return dict(ready=False, raw=base64.b64encode((ROOT /
+                            'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes()).decode())
                 # Readiness observation only; the dedicated VCSA tests execute
-                # the real reader and exercise the Enter/timeout paths.
+                # the real reader. Every shell wait here is cluttered first.
                 return dict(ready=True, raw=base64.b64encode(
                         bytes([1, 80, 15, 0]) + b''.join(bytes([c, 7]) for c in
                             b'root@bazzite:~#'.ljust(80))).decode())
@@ -122,6 +139,11 @@ def walk():
         if guest.stage in ('rollback-stock', 'default-stock'): return rolled
         return pair
 
+    def public_typing(guest, stage, profile, console, foot=False):
+        console.select()
+        console.prompt(stage + '-public-ready')
+        checks.append(stage + '-physical-observer')
+
     original = vm.type_text
     def collect(guest, text, layout=None):
         typed.append((text, layout or guest.owner_layout))
@@ -137,7 +159,7 @@ def walk():
         stack.enter_context(patch.object(vm.td, 'start_installed', side_effect=lambda p,h,s,**kw: Guest(s)))
         stack.enter_context(patch.object(vm.kb, 'deployment_snapshot', side_effect=snapshot))
         stack.enter_context(patch.object(vm.kb, 'capture_stock_greeter'))
-        stack.enter_context(patch.object(vm, 'public_typing', side_effect=lambda *a,**kw: checks.append(a[1] + '-physical-observer')))
+        stack.enter_context(patch.object(vm, 'public_typing', side_effect=public_typing))
         stack.enter_context(patch.object(vm, 'type_text', side_effect=collect))
         stack.enter_context(patch.object(vm.time, 'sleep'))
         stack.enter_context(patch.dict(os.environ, GITHUB_ACTOR='synthetic-user', GH_TOKEN='synthetic_only_0123', GITHUB_SHA='a'*40))
@@ -146,10 +168,16 @@ def walk():
         result = json.loads((pathlib.Path(temporary) / 'owner-tools-result.json').read_text())
         assert result['status'] == 'passed'
         assert audit.check.call_count == 8
+        events = [json.loads(p.read_text()) for p in pathlib.Path(temporary).glob('*-resync-1.json')]
+        assert len(events) == len(prompt_waits) and all(n == 2 for n in prompt_waits.values())
+        assert all(e['enter_sent'] and e['ready'] and e['observer']['ready'] and
+                   e['observer']['observation']['foreground_chain'] for e in events)
+        assert all(wait + '-idle-1' in idle_answers for wait in prompt_waits)
     assert visits == ['stock','tools-stock','corrected-stock','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
     assert {'prepared-unattended-windows','offline-roundtrip-unattended-windows','offline-roundtrip-detached-windows','final-unattended-windows','final-detached-windows'} <= set(markers)
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
-    return dict(stages=visits, commands=commands, typed=typed, checks=checks, markers=markers)
+    return dict(stages=visits, commands=commands, typed=typed, checks=checks, markers=markers,
+        prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events)
 
 
 class OwnerWalkTest(unittest.TestCase):
@@ -214,6 +242,11 @@ class OwnerWalkTest(unittest.TestCase):
             result = walk()
         self.assertEqual(checked.call_count, len(result['commands']))
         names = {name for name, source in result['commands']}
+        self.assertTrue(result['prompt_waits'])
+        for fragment in ('export', 'corrected-stock', 'login', 'signature', 'switch', 'aresos',
+                         'layout-us-begin', 'layout-intl-proof', 'layout-us-revert',
+                         'layout-intl-finish', 'rollback', 'keep-stock'):
+            self.assertTrue(any(fragment in n for n in result['prompt_waits']), fragment)
         for fragment in ('layout-us-begin','layout-plain-us-rejected','layout-us-revert','layout-intl-proof',
                          'layout-back-de-proof','rollback-from-stock-refused','owner-keep-stock'):
             self.assertTrue(any(fragment in n for n in names), fragment)

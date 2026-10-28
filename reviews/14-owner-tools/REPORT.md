@@ -1,10 +1,77 @@
 # 14: checked owner tools
 
-**Current14zg: STOP — probe16 passed; qualification6 passed owner title but timed out on the physical prompt.**
-One fast-forward push reached `ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac`. Exactly one probe16 and one
-qualification6 ran on that head, attempt1. No rerun, implementation fix, extra
-push or merge followed the STOP. This report/evidence update is local only.
-PR #13 stays draft / NOT RELEASED; acceptance was not met.
+**Current14zh: every shell-prompt wait requests fresh physical idle proof before resync.**
+Local verification is complete; probe17 and qualification7 are pending. PR #13
+remains draft / NOT RELEASED; no acceptance claim is made before the VM gates.
+
+## 14zh — Fresh idle observer in every prompt-readiness wait
+
+**Done:** the shared Console.prompt path now offers the14ze sudo-relay observer
+whenever a shell cursor line has no prompt, including completed, after-hidden,
+after-hotplug/network and after-boot waits. Every Enter requires a fresh observer
+answer and unchanged input epoch. An observer refusal records its redacted
+foreground chain and raw VCSA, then STOPs without Enter. Each attempt retains
+before/after cursor lines, stage and observer answer; sequence/sample/observer
+names are unique across repeated stage labels, Console instances and guest boots.
+The cursor predicate, three stable samples,90-second prompt deadline and maximum
+2 Enters are unchanged. Login/getty, hidden-input and command-input predicates
+still cannot send resync Enter. No console log-level change.
+
+**Verified:** the exact retained qualification6 cursor region (geometry and last
+2 rows; unrelated upper rows blanked) plus the real read-only observer on a
+modelled /proc sudo relay recovers with1 Enter. The busy foreground refuses with
+0 Enters and exports its chain;3 cluttered screens STOP after2 separately proved
+Enters. All5 wait kinds use the same path, repeated labels retain unique receipts,
+and typing during observation still revokes authority. The complete stand-in
+qualification walks every later stage, with clutter at all119 shell waits:
+export and Windows round trip, corrected stock/login/verify/switch, AresOS boots,
+layout begin/proof/revert/finish, rollback and keep-stock. It executes the observer
+on /proc relay fixtures for both tty3 and tty4 at every resync; all command/serial/
+staging scripts pass strict bash -n (any stderr refuses). These are local stand-ins,
+not evidence that the later stages passed in a VM.
+
+The final whole suite ran452 tests in444.005s:444 distinct passes and the same8
+known native host limitations (2 failures/9 errors), listed in whole-suite.txt.
+No skips or assertions were weakened; the native probe must resolve every one.
+The host walk passes233 tests;19 serial transport tests pass, including the exact
+hidden-login sequence and a lost chunk STOP. New unique receipt suffixes required
+updating that PTY fixture's public-prompt adapter; the initial failing results are
+retained. Windows pwsh -NoProfile copy tests pass15 zero-write refusals and bundle
+equality; two initial in-process setup invocations refused the mock root. The
+established separate-process invocation passed without implementation changes.
+4 controller and7 fixed-watcher tests pass.
+
+Actual git/file/read-only release and53 zero-cost source checks pass. The ISO
+inspector rehashes9,068,650,496 retained bytes against the pin and fresh official
+HTTPS checksum, extracts4 localization/102 WebUI sources, and passes on local
+attempt2. Attempt1 hit the authorized Windows checkpoint Path.replace WinError5;
+there was only one replay/reader and the fresh-path retry followed a10-second
+wait. Linux CI behavior was unchanged. Strict checks pass527
+guest/serial/staging scripts, 502 embedded Python,12 shells,
+46 Python sources and the native workflow body. The4 CI-token-only registry
+steps remain deferred with their14f reasons and exact fail-closed CI step names.
+
+**Scope/safety:** harness and regression changes only, plus package14 probe17/
+owner-tools7 allowances; minute cap1100. Package13 settings, owner commands,
+payload and fingerprint683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974,
+INSTALL/EMERGENCY/release gate, frozen image/runtime, audits, privacy policy and
+credentials are unchanged. No local privilege, hardware, image, release or
+publication operation; no Gradle started.
+
+**Privacy / final local checks:** pinned gitleaks8.21.2 full history and pending files return0 findings. Manifest/session/console equality checks and git diff --check pass; no policy or ignore change.
+
+**Budget / dispatch plan:** the complete pre-push snapshot counts
+810 +238 bound /1100, probes16/17 and owner-tools6/7;
+org after reservation231. The read-only budget
+requires exact$6/prevent=true and deducts reported net Actions spend using API
+pricePerUnit. Exactly1 fast-forward push, then fresh exact-head privacy, complete
+ledger/billing/budget, probe17, and only if accepted qualification7 on that same
+head. A CI stop exports diagnostics and ends the round with no rerun/extra push.
+Closing12/reserve150 restoration and PR-ready require actual acceptance.
+
+**Not verified / open questions / JUDGMENT-CALL:** fresh native/probe/qualification
+and the physical/followability gates are pending. The fresh-authority wiring is
+the explicit integrator decision14zh. No new product or owner-script policy.
 
 ## 14zg REPORT — Probe16 accepted; qualification6 console-readiness STOP
 

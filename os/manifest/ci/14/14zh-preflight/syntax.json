@@ -1,0 +1,11 @@
+{
+  "native_workflow_shells": 1,
+  "status": "passed",
+  "guest_scripts": 527,
+  "serial_wrappers": 527,
+  "stderr_policy": "any parse stderr, including warnings, refuses",
+  "embedded_python": 502,
+  "ci_release_shells": 12,
+  "ci_overlay_owner_python": 46,
+  "execution": "syntax/compile only; no guest, service, privilege or hardware operation"
+}

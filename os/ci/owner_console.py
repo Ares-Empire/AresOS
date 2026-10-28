@@ -179,17 +179,17 @@ while time.monotonic()<deadline:
     except (OSError,termios.error): pass
     time.sleep(.2)
 raw=pathlib.Path('/dev/vcsa@NUMBER@').read_bytes() if not ready else b''
-print(json.dumps(dict(ready=ready,echo_enabled=echo,foreground_shell=ready,observation=observation if not ready else {},raw=base64.b64encode(raw).decode())))
+print(json.dumps(dict(ready=ready,echo_enabled=echo,foreground_shell=ready,observation=observation,raw=base64.b64encode(raw).decode())))
 '''.replace('@TTY@', tty).replace('@NUMBER@', tty[3:]).replace('@TIMEOUT@', repr(timeout))
 
 
-def wait(sample, timeout, retain, resync=None, record=None):
-    """Only the caller can grant idle authority; samples never grant it.
+def wait(sample, timeout, retain, resync=None, record=None, observe=None):
+    """Every Enter needs a fresh idle observation, within the original deadline.
 
-    Empty Enter resyncs share that one grant within this wait. Ordinary typing
-    invalidates it in the caller. Each phase keeps the original three stable
-    samples and shares the original overall timeout, rather than tripling it.
+    VCSA samples never grant authority. Each phase keeps the original three
+    stable samples; no more than two physical Enters may redraw a shell prompt.
     """
+    assert resync is None or (observe is not None and record is not None)
     deadline = time.monotonic() + timeout
     phases = 3 if resync is not None else 1
     pending = None
@@ -213,8 +213,19 @@ def wait(sample, timeout, retain, resync=None, record=None):
             attempts += 1
             pending = dict(attempt=attempts, time=datetime.datetime.now(
                 datetime.timezone.utc).isoformat(), before_cursor_line=line,
-                after_cursor_line=None, enter_sent=False)
+                after_cursor_line=None, enter_sent=False, observer=None)
             record(dict(pending))
+            remaining = deadline - time.monotonic()
+            assert remaining > 0, 'Physical console readiness deadline'
+            answer = observe(remaining / (phases - phase - 1), attempts)
+            pending['observer'] = {key: value for key, value in answer.items() if key != 'raw'}
+            if not answer['ready'] and answer.get('raw'):
+                _, after = screen(base64.b64decode(answer['raw'], validate=True))
+                pending.update(after_cursor_line=after, ready=False,
+                    after_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
+            record(dict(pending))
+            assert type(answer['ready']) is bool, 'Invalid physical idle observation'
+            assert answer['ready'], 'Physical console idle observer refused'
             resync()
             pending['enter_sent'] = True
             record(dict(pending))

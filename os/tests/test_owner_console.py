@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import pathlib
+import re
 import shlex
 import sys
 import tempfile
@@ -16,6 +17,8 @@ sys.path.insert(0, str(ROOT / 'os/ci'))
 import owner_console as vc
 import owner_vm as vm
 from guest_shell import syntax
+from owner_console_shim import execute_idle
+from test_owner_sudo_idle import relay, row, PTS
 
 FIXTURE = ROOT / 'os/tests/fixtures/owner-console'
 PROMPT = b'root@bazzite:~# '
@@ -38,6 +41,7 @@ class Guest:
         self.raw = redrawn()
         self.pressed, self.reads = [], []
         self.redraw_on_enter = False
+        self.proc_rows = relay()
 
     def keys(self, keys):
         self.pressed.append(keys)
@@ -54,6 +58,8 @@ class Guest:
         index = words.index('python3')
         assert words[index + 1] == '-c'
         source = words[index + 2]
+        if "ready=shell" in source:
+            return execute_idle(source, self.raw, self.proc_rows)
         def read(path):
             assert str(path) in ('/dev/vcsa3', '/dev/vcsa4')
             self.reads.append(str(path))
@@ -78,6 +84,12 @@ class ConsoleTest(unittest.TestCase):
         self.console = vm.Console(self.guest)
         self.clutter = (FIXTURE / '14i-hotplug.vcsa').read_bytes()
 
+    def receipt(self, pattern):
+        expression = re.escape(pattern).replace('\\-resync\\-', r'\-wait-\d+\-resync\-').replace('\\-timeout\\-', r'\-wait-\d+\-timeout\-')
+        paths = [p for p in self.evidence.iterdir() if re.fullmatch(expression, p.name)]
+        self.assertEqual(len(paths), 1, pattern)
+        return paths[0]
+
     def complete_then_clutter(self):
         self.console.prompt('completion-observed')
         self.guest.raw = self.clutter
@@ -95,25 +107,33 @@ class ConsoleTest(unittest.TestCase):
         self.guest.redraw_on_enter = True
         self.console.prompt('tools-install-ready')
         self.assertEqual(self.guest.pressed, [['ret']])
-        event = json.loads((self.evidence / 'tools-install-ready-resync-1.json').read_text())
-        self.assertEqual(event['stage'], 'tools-install-ready')
+        event = json.loads(self.receipt('tools-install-ready-resync-1.json').read_text())
+        self.assertTrue(event['stage'].startswith('tools-install-ready-wait-'))
+        self.assertTrue(event['observer']['observation']['ready'])
         self.assertEqual(event['before_cursor_line'], '')
         self.assertEqual(event['after_cursor_line'], PROMPT.decode().rstrip())
         self.assertTrue(event['ready'])
         self.assertTrue(event['enter_sent'])
         self.assertTrue(event['time'] and event['after_time'])
-        self.assertEqual((self.evidence / 'tools-install-ready-timeout-1.vcsa').read_bytes(), self.clutter)
+        self.assertEqual(self.receipt('tools-install-ready-timeout-1.vcsa').read_bytes(), self.clutter)
 
     def test_busy_shell_never_gets_enter_and_retains_raw_timeout(self):
+        self.clutter = (FIXTURE / '14zg-title-completed.vcsa').read_bytes()
         self.console.prompt('completion-observed')
         vm.type_text(self.guest, 'sleep 300\n')
+        self.guest.proc_rows[2]['tpgid'] = self.guest.proc_rows[3]['tpgid'] = 23
+        self.guest.proc_rows.append(row(23, 22, 23, 21, PTS, 23, 'sleep', ['sleep', '300']))
         self.guest.raw = self.clutter
         before = list(self.guest.pressed)
-        with self.assertRaisesRegex(AssertionError, 'readiness deadline'):
+        with self.assertRaisesRegex(AssertionError, 'idle observer refused'):
             self.console.prompt('busy')
         self.assertEqual(self.guest.pressed, before)
-        self.assertEqual((self.evidence / 'busy-timeout-1.vcsa').read_bytes(), self.clutter)
-        self.assertFalse(list(self.evidence.glob('busy-resync*')))
+        self.assertEqual(self.receipt('busy-timeout-1.vcsa').read_bytes(), self.clutter)
+        event = json.loads(self.receipt('busy-resync-1.json').read_text())
+        self.assertFalse(event['enter_sent'])
+        self.assertFalse(event['observer']['ready'])
+        self.assertEqual(event['before_cursor_line'], event['after_cursor_line'])
+        self.assertTrue(event['observer']['observation']['foreground_chain'])
         self.assertIsNone(self.console.completed_epoch)
 
     def test_three_cluttered_screens_fail_after_two_enters(self):
@@ -121,34 +141,50 @@ class ConsoleTest(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'readiness deadline'):
             self.console.prompt('clutter')
         self.assertEqual(self.guest.pressed, [['ret'], ['ret']])
-        self.assertEqual(len(list(self.evidence.glob('clutter-timeout-*.vcsa'))), 3)
+        self.assertEqual(len(list(self.evidence.glob('clutter-wait-*-timeout-*.vcsa'))), 3)
         for attempt in (1, 2):
-            event = json.loads((self.evidence / f'clutter-resync-{attempt}.json').read_text())
+            event = json.loads(self.receipt(f'clutter-resync-{attempt}.json').read_text())
             self.assertEqual(event['before_cursor_line'], event['after_cursor_line'])
             self.assertFalse(event['ready'])
+            self.assertTrue(event['observer']['ready'])
         self.assertIsNone(self.console.completed_epoch)
 
-    def test_unknown_shell_and_other_console_typing_revoke_idle_authority(self):
-        self.guest.raw = self.clutter
-        with self.assertRaises(AssertionError): self.console.prompt('unknown')
-        self.assertEqual(self.guest.pressed, [])
-        self.guest.raw = redrawn()
-        self.console.prompt('completion-observed')
-        other = vm.Console(self.guest, 'tty4')
-        other.prompt('other-completed')
-        vm.type_text(self.guest, 'x')
-        self.guest.raw = self.clutter
-        before = list(self.guest.pressed)
-        for console in (self.console, other):
-            with self.assertRaises(AssertionError): console.prompt('revoked-' + console.tty)
-        self.assertEqual(self.guest.pressed, before)
+    def test_fresh_idle_proof_replaces_stale_completion_for_every_wait_kind(self):
+        self.guest.raw = (FIXTURE / '14zg-title-completed.vcsa').read_bytes()
+        self.guest.redraw_on_enter = True
+        for kind in ('completed', 'after-hidden', 'after-hotplug', 'after-network', 'after-boot'):
+            for console in (self.console, vm.Console(Guest())):
+                console.guest.raw = (FIXTURE / '14zg-title-completed.vcsa').read_bytes()
+                console.guest.redraw_on_enter = True
+                vm.type_text(console.guest, 'x')  # Previous epoch cannot be authority.
+                console.completed_epoch = None
+                console.prompt(kind)
+        events = [json.loads(p.read_text()) for p in self.evidence.glob('*-resync-1.json')]
+        self.assertEqual(len(events), 10)
+        self.assertEqual(len({e['stage'] for e in events}), 10)
+        self.assertTrue(all(e['enter_sent'] and e['ready'] and e['observer']['ready'] for e in events))
+
+    def test_exact_qualification6_cursor_region_and_idle_relay_recovers(self):
+        index = json.loads((FIXTURE / '14zg-source.json').read_text())
+        self.guest.raw = raw = (FIXTURE / index['path']).read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), index['sha256'])
+        self.assertEqual(list(raw[:4]), [50, 160, 0, 49])
+        full, line = vc.screen(raw)
+        self.assertIn('root@bazzite:~# [  273.927657] sched: DL replenish lagged too much', full)
+        self.assertEqual(line, '')
+        self.guest.redraw_on_enter = True
+        self.console.prompt('after-first-network-title-completed')
+        self.assertEqual(self.guest.pressed, [['ret']])
+        event = json.loads(self.receipt('after-first-network-title-completed-resync-1.json').read_text())
+        self.assertEqual(event['observer']['observation']['reason'], 'sudo -i monitor to foreground pts interactive bash')
+        self.assertEqual(event['after_cursor_line'], PROMPT.decode().rstrip())
 
     def test_login_and_input_waits_never_resync_even_after_completion(self):
         self.complete_then_clutter()
         with self.assertRaises(AssertionError):
             vm.wait_tty(self.guest, 'tty3', "line.endswith('login:')", 'login', timeout=1)
         self.assertEqual(self.guest.pressed, [])
-        self.assertEqual((self.evidence / 'login-timeout-1.vcsa').read_bytes(), self.clutter)
+        self.assertEqual(self.receipt('login-timeout-1.vcsa').read_bytes(), self.clutter)
 
     def test_input_during_wait_revokes_the_grant_before_any_enter(self):
         self.complete_then_clutter()
@@ -161,7 +197,7 @@ class ConsoleTest(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'Input revoked idle proof'):
             self.console.prompt('intervening-input')
         self.assertEqual(self.guest.pressed, [['x']])
-        event = json.loads((self.evidence / 'intervening-input-resync-1.json').read_text())
+        event = json.loads(self.receipt('intervening-input-resync-1.json').read_text())
         self.assertFalse(event['enter_sent'])
         self.assertIsNone(self.console.completed_epoch)
 
@@ -181,7 +217,8 @@ class ConsoleTest(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'readiness deadline'):
             vc.wait(lambda seconds: value, 90,
                 lambda phase, raw: retained.append(raw),
-                resync=lambda: pressed.append('ret'), record=lambda event: None)
+                resync=lambda: pressed.append('ret'), record=lambda event: None,
+                observe=lambda seconds, attempt: self.fail('Prompt already on cursor line'))
         self.assertEqual(pressed, [])
         self.assertEqual(retained, [redrawn()] * 3)
 
@@ -214,7 +251,7 @@ class ConsoleTest(unittest.TestCase):
             return capture(name,source)
         with patch.object(self.guest,'capture_json',side_effect=observe):self.console.after_hidden('secret-done')
         self.assertEqual(self.guest.pressed,[['ret']])
-        self.assertTrue(json.loads((self.evidence/'secret-done-after-hidden-ready-resync-1.json').read_text())['enter_sent'])
+        self.assertTrue(json.loads(self.receipt('secret-done-after-hidden-ready-resync-1.json').read_text())['enter_sent'])
         self.assertTrue(json.loads((self.evidence/'secret-done-hidden-completed.json').read_text())['foreground_shell'])
 
     def test_typing_during_hidden_completion_revokes_enter_authority(self):

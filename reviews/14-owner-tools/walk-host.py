@@ -57,7 +57,7 @@ def main():
                     'os/owner-tools/commands.json','os/release/*.sh','os/tests/test_owner*.py','os/tests/owner_shim.py',
                     'docs/install-tools/OwnerTools.psm1','reviews/14-owner-tools/walk-host.py',
                     'os/manifest/ci/14/hotplug-sources/*','os/manifest/ci/14/keyboard-sources/*',
-                    'os/tests/fixtures/owner-console/*','os/tests/fixtures/owner-tools/storage-*.json',
+                    'os/tests/owner_console_shim.py','os/tests/fixtures/owner-console/*','os/tests/fixtures/owner-tools/storage-*.json',
                     'os/tests/fixtures/owner-tools/blkid-p-gpt*', 'os/tests/fixtures/owner-tools/efibootmgr*',
                     'os/tests/fixtures/owner-tools/dumpkeys-*','os/tests/fixtures/owner-tools/tool-output-sources.json','os/tests/fixtures/owner-tools/retained-parsers.json',
                     'os/manifest/ci/14/parser-sources/*','reviews/14-owner-tools/classify-artifacts.py',
@@ -72,6 +72,8 @@ def main():
         'os/tests/test_installer_download.py','os/tests/test_installer_webui.py'))
     proof=dict(status='passed',kind='local stand-ins, not VM qualification',tests=result.testsRun,
         stick_across_reboot=False, stages=walk['stages'],markers=walk['markers'],checks=walk['checks'],
+        cluttered_prompt_waits=walk['prompt_waits'], fresh_idle_answers=walk['fresh_idle_answers'],
+        prompt_resyncs=walk['resyncs'],
         typed_profiles=sorted({profile for text,profile in walk['typed']}),
         sources=[dict(sha256=hashlib.sha256(p.read_bytes()).hexdigest(), path=p.relative_to(ROOT).as_posix())
                  for p in sorted(files)])

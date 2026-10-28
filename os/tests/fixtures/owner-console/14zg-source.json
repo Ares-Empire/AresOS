@@ -1,0 +1,8 @@
+{
+  "sha256": "852db3dfcf94dc53e9106bd24c1e6cc8d961b47a21fba98826adc4b546ec4dd7",
+  "path": "14zg-title-completed.vcsa",
+  "run": 40617562735,
+  "source_sha256": "49fe0fb31a704316aaf873a5e3105009fc47384b014040bd99029d24f678dc23",
+  "source_path": "evidence/two-disk/after-first-network-title-completed-timeout-1.vcsa",
+  "fidelity": "Exact retained VCSA geometry, cursor and last two rows including cell attributes; unrelated upper rows blanked."
+}
