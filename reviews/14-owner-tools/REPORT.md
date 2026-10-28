@@ -1,5 +1,40 @@
 # 14: checked owner tools
 
+**14zm continuation:** the integrator classified the local timing overrun as a
+ninth host limitation. Local preparation is complete; exactly one push, probe20
+and qualification9 remain pending. Native timing failure is a real STOP.
+
+## 14zm REPORT — unchanged timing test mandatory natively
+
+**Done:** the local30-second timing overrun is documented alongside the existing
+eight host limitations. Measured times remain **30.010278s and31.896785s**; the
+isolated fixture including setup took32.385s. Neither the test, its30-second
+bound, the suite, nor the native workflow changed. No skip, marker or environment
+switch was added. The local control-flow walk is accepted under the explicit
+[14zm decision](../../briefs/14zm-host-timing-limit.md); this is not VM acceptance.
+
+**Verified:** current full local suite479/776.538s, 471 distinct passes,
+8 observed approved host-limited cases, zero skips. The270-test host suite's
+269 passes/one timing limitation and standalone stage flow are retained honestly.
+All549 composed commands/wrappers,524 embedded Python,12 shells,47 Python files
+and the native workflow body pass strict checks. Fresh complete ISO replay passed
+attempt1 against all9,068,650,496 pinned bytes and a fresh official checksum;
+read-only release/git/53-source replay and four controller tests pass. Four
+registry operations stay CI-only and fail closed. No credential/scope change.
+[Bound preparation](../../os/manifest/ci/14/14zm-preflight/preparation.json).
+
+The scheduling guard still requires$10/prevent=true, deducting billed net spend
+at the API price; package14 alone is1500 minutes/probe22/owner-tools11. The fresh
+114/114 snapshot is1019 consumed +238 planned /1500. Reserve0/closing0 stay
+unchanged. No owner-tool, image/runtime, guide, workflow, privacy-rule or audit
+change. Pinned8.21.2 history/pending scans and diff check must be clean before
+the single fast-forward push. Fresh exact-head privacy and budget gates precede
+probe20; qualification9 requires its passing native479/zero-skip suite, artifact
+privacy review and the same head. Any CI stop ends this round without rerun.
+
+**Not verified:** exact-head privacy CI and native/VM qualification on this head.
+Acceptance remains unmet; PR #13 stays draft / NOT RELEASED until evidence passes.
+
 **14zl STOP before push:** the mandatory local host suite fails an unchanged
 wall-clock assertion. No push, probe20 or qualification9; PR state unchanged.
 

@@ -1,6 +1,6 @@
 {
-  "status": "stopped",
-  "kind": "local stand-ins; mandatory host suite has one failing unchanged wall-clock assertion; NOT VM acceptance",
+  "status": "passed",
+  "kind": "local stand-in control flow passed with nine explicitly documented host limitations; all unchanged tests mandatory in native CI",
   "tests": 270,
   "stick_across_reboot": false,
   "stages": [
@@ -10242,10 +10242,26 @@
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ],
-  "stop": {
-    "brief": "briefs/14zl-ten-dollar-round.md",
+  "local_suite": {
+    "tests": 270,
+    "passed": 269,
     "failures": 1,
     "skips": 0,
-    "record": "os/manifest/ci/14/14zl-local-stop/summary.json"
-  }
+    "decision": "briefs/14zm-host-timing-limit.md",
+    "timing_seconds": [
+      30.010278140999958,
+      31.896784646
+    ]
+  },
+  "local_limitations": [
+    "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+    "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+    "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+    "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+    "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+    "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+    "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+    "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+    "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+  ]
 }
