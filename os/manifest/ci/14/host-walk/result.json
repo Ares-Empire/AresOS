@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "kind": "local stand-ins, not VM qualification",
-  "tests": 228,
+  "tests": 232,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -254,7 +254,7 @@
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "54c77a8a3221be2f7f9b5bc7534186fb6d5612709a3d6aed3a04178c99a12b5a",
+      "sha256": "986fd0944c712f6f5371473d6b91d520bff18f1742fd80be6442c388b00acce3",
       "path": "os/owner-tools/owner.py"
     },
     {
@@ -438,7 +438,7 @@
       "path": "os/tests/test_owner_firmware.py"
     },
     {
-      "sha256": "e24b1d39caa8318a77bc999ae4df307f149ab08618cc55101e7f90099b815164",
+      "sha256": "8b271783e09d2d6777ffeed3adcfb88407375c4bdaf06ab6a4f4868ce1027a2e",
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
@@ -454,7 +454,7 @@
       "path": "os/tests/test_owner_retained.py"
     },
     {
-      "sha256": "acaed3037212fd9ec62e4e2b58d0017b72ad8e73e97dfe997e12003f16932a69",
+      "sha256": "8b0dc5c7d6376fba4e5c8b6176dc63ed56d46d826f7fddfed35406165d410acb",
       "path": "os/tests/test_owner_session.py"
     },
     {

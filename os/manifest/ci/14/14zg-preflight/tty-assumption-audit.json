@@ -1,0 +1,292 @@
+{
+  "status": "audited; bounded nested relay chain approved by14zg",
+  "files": [
+    {
+      "sha256": "f903d01ec9d88727baa53cb0dc1681acac6d0c4b4d0f9347405cbf65cff003b0",
+      "path": "os/ci/greeter_probe.py",
+      "matches": [
+        {
+          "line": 45,
+          "text": "if pathlib.Path('/sys/class/tty/tty0/active').read_text().strip() == 'tty' + str(identity['vt']):"
+        }
+      ]
+    },
+    {
+      "sha256": "635729f8eec21f35b32c973e8bf0b263e4b27bea4c920aa3664b59fe1b4ae98f",
+      "path": "os/ci/keyboard_vm.py",
+      "matches": [
+        {
+          "line": 79,
+          "text": "loaded_map=subprocess.check_output(['dumpkeys','-C','/dev/tty3','--keys-only'], text=True),"
+        },
+        {
+          "line": 121,
+          "text": "guest.command(stage + '-getty', 'set -e; for n in {1..60}; do if test \"$(cat /sys/class/tty/tty0/active)\" = tty3 && pgrep -t tty3 -x agetty; then exit 0; fi; sleep 1; done; exit 1')"
+        },
+        {
+          "line": 126,
+          "text": "guest.command(stage + '-login-ready', 'set -e; for n in {1..60}; do if pgrep -t tty3 -u 1000 -x bash; then exit 0; fi; sleep 1; done; exit 1')"
+        },
+        {
+          "line": 128,
+          "text": "guest.command(stage + '-sudo-ready', 'set -e; for n in {1..30}; do pgrep -t tty3 -x sudo && exit 0; sleep 1; done; exit 1')"
+        },
+        {
+          "line": 134,
+          "text": "guest.screenshot(stage + '-tty3')"
+        },
+        {
+          "line": 136,
+          "text": "guest.command(stage + '-logout', 'set -e; for n in {1..30}; do if pgrep -t tty3 -x agetty; then if pgrep -t tty3 -u 1000; then exit 1; fi; exit 0; fi; sleep 1; done; exit 1')"
+        },
+        {
+          "line": 141,
+          "text": "guest.command(stage + '-foot-ready', 'set -e; for n in {1..120}; do if test \"$(cat /sys/class/tty/tty0/active)\" = tty1 && pgrep -u ares -x foot; then exit 0; fi; sleep 1; done; exit 1')"
+        }
+      ]
+    },
+    {
+      "sha256": "0411a6548883dac30cf9b75aa875457ba8961f077d06053642ccdd792329f853",
+      "path": "os/ci/overlay/checks.py",
+      "matches": [
+        {
+          "line": 41,
+          "text": "if pathlib.Path('/sys/class/tty/tty0/active').read_text().strip() == 'tty3':"
+        },
+        {
+          "line": 45,
+          "text": "raise TimeoutError('Recovery shortcut did not select tty3')"
+        },
+        {
+          "line": 46,
+          "text": "getty = run('systemctl', 'show', 'getty@tty3.service', '-p', 'ActiveState', '-p', 'MainPID')"
+        },
+        {
+          "line": 52,
+          "text": "assert 'agetty' in cmdline and tty == '/dev/tty3', (cmdline, tty)"
+        },
+        {
+          "line": 53,
+          "text": "assert pathlib.Path('/sys/class/tty/tty0/active').read_text().strip() == 'tty3'"
+        }
+      ]
+    },
+    {
+      "sha256": "5ede303496247609dd80f2c30b4a0ab409303641f3e809ba274fe9d8af520283",
+      "path": "os/ci/overlay/pam_check.py",
+      "matches": [
+        {
+          "line": 67,
+          "text": "result = dict(service='login', tty='/dev/tty3', start=status)"
+        },
+        {
+          "line": 71,
+          "text": "status = pam.pam_set_item(handle, 3, c.cast(c.c_char_p(b'/dev/tty3'), c.c_void_p))  # PAM_TTY"
+        }
+      ]
+    },
+    {
+      "sha256": "455368807800f39a75e7417315d0721a14841b2dc0d0c0304b132227dca1cfdc",
+      "path": "os/ci/owner_console.py",
+      "matches": [
+        {
+          "line": 143,
+          "text": "assert tty in ('tty3', 'tty4')"
+        },
+        {
+          "line": 164,
+          "text": "assert tty in ('tty3', 'tty4')"
+        }
+      ]
+    },
+    {
+      "sha256": "15ac0a3eab8c7f06bdafde2d58282bbff8e48fd7dd4c183af399c89268115360",
+      "path": "os/ci/owner_vm.py",
+      "matches": [
+        {
+          "line": 205,
+          "text": "def __init__(self, guest, tty='tty3'):"
+        },
+        {
+          "line": 267,
+          "text": "self.guest.command(stage + '-no-session', 'set -e; if pgrep -t ' + self.tty + ' -u 1000 -x bash; then exit 1; fi')"
+        },
+        {
+          "line": 360,
+          "text": "self.guest.command(stage + '-no-session', 'set -e; if pgrep -t ' + self.tty + ' -u 1000 -x bash; then exit 1; fi')"
+        },
+        {
+          "line": 386,
+          "text": "localed=reply,loaded_map=subprocess.check_output(['dumpkeys','-C','/dev/tty3','--keys-only'],text=True),cmdline=pathlib.Path('/proc/cmdline').read_text(),"
+        },
+        {
+          "line": 546,
+          "text": "second = Console(guest, 'tty4')"
+        },
+        {
+          "line": 566,
+          "text": "second = Console(guest, 'tty4')"
+        }
+      ]
+    },
+    {
+      "sha256": "17f92d080ff492100fd4993ad7a95a388b7e5a7c7f6ad0d839bbf9558fa57121",
+      "path": "os/ci/prepare-disk.py",
+      "matches": [
+        {
+          "line": 25,
+          "text": "append = \"console=tty0 console=ttyS0,115200n8 systemd.show_status=yes\""
+        }
+      ]
+    },
+    {
+      "sha256": "366d743b11f1788532cf6125dccc0d0c534bef0b8cb90e695600b57a375591f8",
+      "path": "os/ci/switch_vm.py",
+      "matches": [
+        {
+          "line": 211,
+          "text": "\"\"\"The prior serial command completed; tty3 input grants no UART input."
+        },
+        {
+          "line": 480,
+          "text": "if test \"$(cat /sys/class/tty/tty0/active)\" = tty3 && pgrep -t tty3 -x agetty; then exit 0; fi"
+        },
+        {
+          "line": 484,
+          "text": "# QMP keyboard -> actual tty3 getty -> login -> sudo. The"
+        },
+        {
+          "line": 495,
+          "text": "if test \"$(loginctl show-session \"$session\" -p TTY --value)\" = tty3; then"
+        },
+        {
+          "line": 505,
+          "text": "guest.command('tty-sudo-prompt', 'set -e; for n in {1..30}; do pgrep -t tty3 -x sudo && exit 0; sleep 1; done; exit 1')"
+        },
+        {
+          "line": 510,
+          "text": "guest.screenshot('recovery-admin-tty3')"
+        },
+        {
+          "line": 515,
+          "text": "if pgrep -t tty3 -x agetty; then"
+        },
+        {
+          "line": 516,
+          "text": "if pgrep -t tty3 -u 1000; then echo 'Administrator still logged in on tty3'; exit 1; fi"
+        },
+        {
+          "line": 523,
+          "text": "guest.screenshot('recovery-tty3-logged-out')"
+        },
+        {
+          "line": 550,
+          "text": "recovery_admin_tty='/dev/tty3', recovery_admin_uid=1000,"
+        },
+        {
+          "line": 555,
+          "text": "print('Published-image switch, policy, tty3 login/logout, partition equality, rendered stock rollback and second default boot passed; GRUB recovery promotion UNTESTED', flush=True)"
+        }
+      ]
+    },
+    {
+      "sha256": "c1c96418bb566f0dc43ccda295fb612b6344543d38908b3c85720268c254c346",
+      "path": "os/ci/tty_password.py",
+      "matches": [
+        {
+          "line": 9,
+          "text": "def wait_for_hidden_password(tty='tty3', timeout=30):"
+        }
+      ]
+    },
+    {
+      "sha256": "dc1b812003e2d30f8a7ed6e1d18a2e9e6b667cd07fc97cb599dae2490eac7df1",
+      "path": "os/ci/two_disk_vm.py",
+      "matches": [
+        {
+          "line": 155,
+          "text": "'-append', 'root=live:CDLABEL=Bazzite-Live enforcing=0 rd.live.image console=tty0 console=ttyS0,115200n8']"
+        },
+        {
+          "line": 246,
+          "text": "self.command('tty-keymap-proof', 'set -e; source /etc/vconsole.conf; test \"$KEYMAP\" = de; cat /etc/vconsole.conf; localectl status; dumpkeys -C /dev/tty3 --keys-only')"
+        },
+        {
+          "line": 435,
+          "text": "bootloader --boot-drive={target} --append=\"console=tty0 console=ttyS0,115200n8\""
+        }
+      ]
+    },
+    {
+      "sha256": "22e33809c0364b15a681817226df2abd85e35069ae3a0d4d544431d6d635c08e",
+      "path": "os/ci/vm.py",
+      "matches": [
+        {
+          "line": 122,
+          "text": "screenshot('aresos-tty3-getty.png')"
+        },
+        {
+          "line": 148,
+          "text": "print('UEFI VM checks passed: session, updater/sleep policy, recovery shortcut, tty3 getty, password authentication via login PAM, ignored lid/sleep events, clean ACPI poweroff', flush=True)"
+        }
+      ]
+    },
+    {
+      "sha256": "986fd0944c712f6f5371473d6b91d520bff18f1742fd80be6442c388b00acce3",
+      "path": "os/owner-tools/owner.py",
+      "matches": [
+        {
+          "line": 543,
+          "text": "PHYSICAL_LOGIN = 'Use a physical tty3/tty4 recovery login'"
+        },
+        {
+          "line": 730,
+          "text": "require(sys.stdin.isatty(), 'Login requires a real hidden terminal prompt')"
+        },
+        {
+          "line": 812,
+          "text": "dump = self.host.read('dumpkeys', '-C', '/dev/tty3', '--keys-only')"
+        },
+        {
+          "line": 858,
+          "text": "require(sys.stdin.isatty(), PHYSICAL_LOGIN)"
+        },
+        {
+          "line": 869,
+          "text": "matching = [s for s in sessions if str(s['session']) == session and s['tty'] in ('tty3', 'tty4')"
+        },
+        {
+          "line": 885,
+          "text": "physical_stdin(tty, os.ttyname(0))"
+        },
+        {
+          "line": 932,
+          "text": "return ['Old console/X11 settings restored; no reboot', 'Log out tty4; prove a fresh password login using the old layout',"
+        },
+        {
+          "line": 963,
+          "text": "require(sys.stdin.isatty(), 'Install requires the two independently recorded disk serials')"
+        }
+      ]
+    }
+  ],
+  "classifications": {
+    "owner_session": "stdin ttyname used only to validate direct physical tty or proven pts ancestry; physical identity from cgroup/logind/Audit",
+    "owner_generic_isatty": "install and login require any real terminal; pts is correct for hidden input, no change needed",
+    "loaded_maps": "dumpkeys names an explicit physical VT; does not infer stdin, no change",
+    "physical_vt_observers": "VCSA, active VT and getty/PAM probes intentionally inspect physical tty; sudo is a physical foreground proxy, not a getty/login shell",
+    "owner_idle": "14ze verifies exact sudo -i monitor and foreground pts Bash; active owner commands remain busy",
+    "physical_login_and_logout": "UID1000 getty/login Bash belongs to the physical recovery login; sudo root Bash is not counted as that account",
+    "legacy_tty_helpers": "keyboard_vm.tty/switch_vm legacy sudo readiness is not package14 qualification route; physical sudo frontend still belongs to that VT"
+  },
+  "preserved": [
+    "loginuid1000",
+    "logind Service login Type tty Remote no Name ares-recovery User1000",
+    "session start monotonic microseconds",
+    "boot ID",
+    "exact owner commands",
+    "frozen release",
+    "all disk/NVRAM audits"
+  ],
+  "resolved14zf": "14zg explicitly accepts verified nested relays; guide route and commands unchanged; max3 hops"
+}

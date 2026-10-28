@@ -570,27 +570,43 @@ def terminal_number(path):
 
 
 def physical_stdin(tty, name):
+    physical = terminal_number('/dev/' + tty)
     if name == '/dev/' + tty:
+        require(process_terminal(os.getpid())['tty'] == physical, PHYSICAL_LOGIN)
         return
     require(re.fullmatch(r'/dev/pts/[0-9]+', name), PHYSICAL_LOGIN)
-    pts, physical = terminal_number(name), terminal_number('/dev/' + tty)
+    pts = terminal_number(name)
     pid, chain, seen = os.getpid(), [], set()
+    def sudo(row):
+        return row['comm'] == 'sudo' and row['exe'] == '/usr/bin/sudo'
     for _ in range(128):
         require(pid > 1 and pid not in seen, PHYSICAL_LOGIN)
         seen.add(pid)
         row = process_terminal(pid)
         chain.append(row)
         if row['tty'] == physical:
-            require(row['comm'] == 'sudo' and row['exe'] == '/usr/bin/sudo' and len(chain) >= 3, PHYSICAL_LOGIN)
-            monitor = chain[-2]
-            require(monitor['comm'] == 'sudo' and monitor['exe'] == '/usr/bin/sudo'
-                and monitor['session'] == monitor['pid'] and monitor['tty'] == pts, PHYSICAL_LOGIN)
-            require(all(r['session'] == monitor['pid'] for r in chain[:-1]), PHYSICAL_LOGIN)
+            require(sudo(row) and chain[0]['tty'] == pts, PHYSICAL_LOGIN)
+            # Validate outside-in: only a sudo frontend may introduce a new
+            # pts, first seen at its direct monitor child/session leader.
+            ordered = list(reversed(chain))
+            terminals, hops = {physical}, 0
+            for parent, child in zip(ordered, ordered[1:]):
+                if child['tty'] == parent['tty']:
+                    require(child['session'] == parent['session'], PHYSICAL_LOGIN)
+                else:
+                    require(sudo(parent) and sudo(child) and child['session'] == child['pid']
+                        and 136 <= (child['tty'] >> 8) & 0xfff <= 143
+                        and child['tty'] not in terminals, PHYSICAL_LOGIN)
+                    terminals.add(child['tty'])
+                    hops += 1
+                    require(hops <= 3, PHYSICAL_LOGIN)
+            require(hops >= 1, PHYSICAL_LOGIN)
             require(all(process_terminal(r['pid']) == r for r in chain), PHYSICAL_LOGIN)
             return
         python = (re.fullmatch(r'/usr/bin/python3(?:\.[0-9]+)?', row['exe'])
             and row['comm'] in ('python3', os.path.basename(row['exe'])))
-        require(row['tty'] == pts and (python or row['exe'] in ('/usr/bin/bash', '/usr/bin/sudo')
+        require(136 <= (row['tty'] >> 8) & 0xfff <= 143
+            and (python or row['exe'] in ('/usr/bin/bash', '/usr/bin/sudo')
             and row['comm'] == os.path.basename(row['exe'])), PHYSICAL_LOGIN)
         pid = row['ppid']
     raise Stop(PHYSICAL_LOGIN)

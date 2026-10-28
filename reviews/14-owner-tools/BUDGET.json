@@ -15,7 +15,7 @@
     "owner-tools": 5
   },
   "consumed_minutes": 727,
-  "reserved_minutes": 0,
+  "reserved_minutes": 238,
   "runs": [
     {
       "run": 40596167369,
@@ -711,13 +711,13 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-28T00:41:11.443332+00:00",
-  "snapshot_kind": "14zf closed local PLAN-GAP; no push or dispatch",
+  "checked_at": "2026-10-28T01:04:50.810246+00:00",
+  "snapshot_kind": "14zg pre-push plan; fresh guards still required",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-28T00:41:09.928009+00:00",
-    "response_sha256": "736b0848d1ce4b5c330215eaef931d69b812ac1f76dd4cc9a65f64c268d0ae86",
+    "checked_at": "2026-10-28T01:04:49.823514+00:00",
+    "response_sha256": "605d4e8bd907eb366ff5785cde76e9d963a2aaa5f352480653b0c6ca2aa4c6bf",
     "usage": [
       {
         "sku": "actions_linux",
@@ -733,11 +733,11 @@
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 14.849511957,
-        "discountQuantity": 14.849511957,
+        "grossQuantity": 15.086400148,
+        "discountQuantity": 15.086400148,
         "netQuantity": 0.0,
-        "grossAmount": 0.004989675,
-        "discountAmount": 0.004989675,
+        "grossAmount": 0.005069274,
+        "discountAmount": 0.005069274,
         "netAmount": 0.0
       }
     ],
@@ -762,30 +762,41 @@
       "exception_month": "2026-10"
     },
     "remaining_minutes": 558,
-    "reserved_minutes": 0,
-    "after_reservation": 558,
+    "reserved_minutes": 238,
+    "after_reservation": 320,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
   },
+  "reservation_plan": {
+    "push": 6,
+    "probe": 72,
+    "qualification": 160,
+    "closing_privacy": 0,
+    "pre_push": 238,
+    "before_probe": 232,
+    "before_qualification": 160,
+    "decision": "briefs/14r-no-closing-reservation.md",
+    "exception_month": "2026-10",
+    "merge_requires_privacy": true
+  },
   "current_bundle": {
-    "sha256": "110bd009c3a60aa74afccd97f3b8d08be91db1acb8028aa1b02c5df23fb9bbba",
+    "sha256": "683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974",
     "path": "os/owner-tools/payload/SHA256.json"
   },
   "acceptance_met": false,
-  "probe16": "not dispatched",
-  "qualification6": "not dispatched",
+  "probe16": "pending",
+  "qualification6": "pending",
   "closing_reservation": 0,
   "reserve": 0,
   "restore_condition_met": false,
   "pushes_this_followup": 0,
   "dispatches_this_followup": 0,
   "reruns_this_followup": 0,
-  "stop_reason": "STOP / PLAN-GAP: single-pts rule conflicts with exact nested-sudo owner route",
   "local_privacy_scans": {
     "version": "8.21.2",
-    "required": "clean pinned all-history/pending scan before local commit",
+    "required": "clean pinned all-history/pending scan before commit/push",
     "full_history_findings": 0,
     "pending_findings": 0,
-    "receipt": "os/manifest/ci/14/14zf-preflight/local-privacy.json"
+    "receipt": "os/manifest/ci/14/14zg-preflight/local-privacy.json"
   }
 }

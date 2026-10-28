@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "version": "8.21.2",
+  "binary": {
+    "sha256": "671591bd75e11fcd4a25732852afbbf0c3892b368181164ba19aa72e7513af8e",
+    "path": ".work/14/gitleaks/gitleaks.exe"
+  },
+  "checked_at": "2026-10-28T01:15:23.380585+00:00",
+  "full_history_findings": 0,
+  "pending_findings": 0,
+  "pending_files": 36,
+  "ignore_changes": false,
+  "workflow_changes": false
+}

@@ -26,6 +26,8 @@ class Model:
             22: dict(ppid=21, session=21, tty=pts, comm='bash', exe='/usr/bin/bash'),
             21: dict(ppid=20, session=21, tty=pts, comm='sudo', exe='/usr/bin/sudo'),
             20: dict(ppid=10, session=10, tty=TTY3 if tty == 'tty3' else TTY4, comm='sudo', exe='/usr/bin/sudo')}
+        if name == '/dev/' + tty:
+            self.rows[40].update(tty=TTY3 if tty == 'tty3' else TTY4, session=10)
         self.facts = dict(Service='login', Type='tty', Remote='no', Name='ares-recovery', User='1000')
         self.identity = dict(Id='7', TTY=tty, Audit='7', Scope='session-7.scope')
         self.listed = [dict(session='7', user='ares-recovery', uid=1000, tty=tty)]
@@ -75,9 +77,25 @@ class Model:
             stack.enter_context(patch.object(owner.os, 'readlink', side_effect=readlink))
             stack.enter_context(patch.object(owner.os, 'getpid', return_value=40))
             stack.enter_context(patch.object(owner, 'terminal_number', side_effect=lambda name:
-                self.pts if name == self.name else TTY3 if name == '/dev/tty3' else TTY4))
+                TTY3 if name == '/dev/tty3' else TTY4 if name == '/dev/tty4' else self.pts))
             tool = object.__new__(owner.Tools); tool.host = self
             yield tool
+
+
+def relays(count, tty='tty3'):
+    model = Model(tty)
+    model.rows = {}
+    parent, device, session = 10, TTY3 if tty == 'tty3' else TTY4, 10
+    for index in range(count):
+        frontend, monitor, shell = 100 + 10 * index, 101 + 10 * index, 102 + 10 * index
+        model.rows[frontend] = dict(ppid=parent, session=session, tty=device, comm='sudo', exe='/usr/bin/sudo')
+        device, session = PTS + index, monitor
+        model.rows[monitor] = dict(ppid=frontend, session=session, tty=device, comm='sudo', exe='/usr/bin/sudo')
+        model.rows[shell] = dict(ppid=monitor, session=session, tty=device, comm='bash', exe='/usr/bin/bash')
+        parent = shell
+    model.rows[40] = dict(ppid=parent, session=session, tty=device, comm='python3', exe='/usr/bin/python3')
+    model.pts, model.name = device, '/dev/pts/' + str(2 + count - 1)
+    return model
 
 
 class SessionTest(unittest.TestCase):
@@ -95,6 +113,8 @@ class SessionTest(unittest.TestCase):
 
     def test_direct_tty3_and_tty4(self):
         for tty in ('tty3', 'tty4'): self.check(Model(tty, '/dev/' + tty), True)
+        model = Model('tty3', '/dev/tty3'); model.rows[40]['tty'] = PTS
+        self.check(model, False)
         model = Model()
         with model.install() as tool, patch.object(owner.sys.stdin, 'isatty', return_value=False):
             with self.assertRaisesRegex(owner.Stop, owner.PHYSICAL_LOGIN): tool.session()
@@ -169,15 +189,50 @@ class SessionTest(unittest.TestCase):
             else: model.name = '/dev/null'
             self.check(model, False)
 
-    def test_nested_sudo_pts_refuses_under_the_briefs_single_pts_rule(self):
-        # Pinned sudo allocates a second pts when a sudo command is typed
-        # inside the sudo -i shell. This documents the unresolved guide case.
-        model = Model()
-        model.name, model.pts = '/dev/pts/3', PTS + 1
-        model.rows[40].update(ppid=31, session=31, tty=PTS + 1)
-        model.rows[31] = dict(ppid=30, session=31, tty=PTS + 1, comm='sudo', exe='/usr/bin/sudo')
-        model.rows[30] = dict(ppid=22, session=21, tty=PTS, comm='sudo', exe='/usr/bin/sudo')
+    def test_guide_nested_route_and_three_hops_pass_four_refuses(self):
+        for count in (1, 2, 3):
+            for tty in ('tty3', 'tty4'): self.check(relays(count, tty), True)
+        self.check(relays(4), False)
+
+    def test_unknown_pts_and_a_pts_reused_above_its_sudo_refuse(self):
+        model = relays(2); model.rows[110]['tty'] = PTS + 9
         self.check(model, False)
+        model = relays(3)
+        for pid in (121, 122, 40): model.rows[pid]['tty'] = PTS
+        model.name, model.pts = '/dev/pts/2', PTS
+        self.check(model, False)
+
+    def test_non_sudo_terminal_change_missing_monitor_and_tool_on_wrong_pts_refuse(self):
+        model = relays(2); model.rows[111].update(comm='bash', exe='/usr/bin/bash')
+        self.check(model, False)
+        model = relays(2); model.rows[112]['ppid'] = 110; del model.rows[111]
+        self.check(model, False)
+        model = relays(2); model.rows[40]['tty'] = PTS
+        self.check(model, False)
+
+    def test_tmux_screen_script_ssh_or_terminal_emulator_at_every_relay_refuses(self):
+        for name in ('tmux', 'screen', 'script', 'ssh', 'sshd', 'konsole', 'foot'):
+            for pid in (102, 112, 122):
+                model = relays(3); model.rows[pid].update(comm=name, exe='/usr/bin/' + name)
+                self.check(model, False)
+
+    def test_harness_sudo_i_then_exact_commands_matches_the_guide(self):
+        sys.path.insert(0, str(ROOT/'os/ci'))
+        import owner_vm as vm
+        from unittest.mock import Mock
+        guest = Mock(owner_input_epoch=0)
+        console = vm.Console(guest)
+        typed = []
+        with patch.object(vm, 'type_text', side_effect=lambda g, text, *a: typed.append(text)), \
+                patch.object(console, 'prompt'), patch.object(console, 'hidden'), \
+                patch.object(console, 'after_hidden'):
+            console.become_root('synthetic-password', 'guide')
+        self.assertEqual(typed, ['sudo -k\nsudo -i\n', 'synthetic-password\n'])
+        self.assertTrue(console.root)
+        guide = (ROOT/'docs/INSTALL.md').read_text()
+        self.assertIn('sudo -i', guide)
+        for command in vm.COMMANDS.values(): self.assertIn(command, guide)
+        self.assertEqual(vm.COMMANDS['layout-us'], 'sudo /var/lib/ares/at layout begin us')
 
     def test_real_unprivileged_pts_uses_real_stdin_with_modelled_session_facts(self):
         if os.name != 'posix': self.skipTest('Real PTY execution runs in existing WSL/native Linux')
@@ -199,7 +254,13 @@ if __name__ == '__main__':
     if sys.argv[1:] == ['--real-pts']:
         name = os.ttyname(0)
         pts = owner.terminal_number(name)
-        model = Model(name=name, pts=pts)
+        model = relays(2)
+        model.name, model.pts = name, pts
+        # The innermost terminal is the real allocated stdin pts; the outer
+        # relay and logind metadata are explicit stand-ins, never local sudo.
+        outer = pts + 1
+        for pid in (101, 102, 110): model.rows[pid]['tty'] = outer
+        for pid in (111, 112, 40): model.rows[pid]['tty'] = pts
         model.rows[40].update(exe=os.readlink('/proc/self/exe'),
             comm=pathlib.Path('/proc/self/comm').read_text().strip())
         with model.install(real_stdin=True) as tool: result = tool.session()

@@ -1,9 +1,77 @@
 # 14: checked owner tools
 
-**Current 14zf: PLAN-GAP / STOP before push or dispatch — the exact guide route nests sudo pts, which the brief's single-pts rule refuses.**
-The original stdin-name defect is fixed under the prescribed single-pts rule.
-The guide/harness route remains blocked. This report and implementation are local
-only; remote stays `e3751ad`. PR #13 remains draft / NOT RELEASED.
+**Current 14zg: bounded nested-sudo relay chain implemented; local checks complete.**
+The14ze/14zf PLAN-GAPs are resolved by the integrator's explicit14zg decision.
+Probe16 and qualification6 are pending; acceptance is not established. PR #13
+remains draft / NOT RELEASED until the required gates and qualification pass.
+
+## 14zg — Verified relay chain, max3 sudo hops
+
+**Done:** the ancestry check now validates outside-in from the physical tty
+selected by the same cgroup/logind/Audit session. A controlling-tty transition
+is accepted only from a verified `/usr/bin/sudo` frontend to its direct sudo
+monitor child, which must own a new pts/session. Each subsequent process stays
+on that controlling tty/session until another verified sudo transition. A pts
+already seen above its sudo is refused; at most3 transitions are allowed.
+The innermost controlling tty must match this tool's stdin. Direct physical
+stdin also requires the tool itself to control that physical tty.
+Unknown processes, tmux/screen/script/ssh/emulators, uncreated/reused pts,
+missing monitors, broken/changing/cyclic chains and four hops refuse with the
+existing physical-login message. The original loginuid1000, unique cgroup and
+logind session, Id/Scope/Audit/TTY cross-check, five login-service facts, start
+time, boot ID and post-observation scope/audit consistency checks are retained.
+No environment hint or argv is trusted to establish physical identity.
+
+**Guide/CI equality:** a test runs the actual `Console.become_root` method and
+checks `sudo -k; sudo -i` followed by the exact commands.json owner command shape.
+The complete host walk still types every command shown by INSTALL. The approved
+root-shell plus nested owner-command route uses2 verified hops and passes the
+modelled helper; tty4's direct sudo proof uses1 hop. No guide/command route change.
+The16 session tests include direct tty3/tty4, one/two/three hops, four-hop refusal,
+unknown/reused pts, non-sudo transitions, terminal-owning programs at every hop,
+graphical/remote sessions, all original facts and the real unprivileged pts
+stdin reproduction with explicitly modelled guest proc/logind metadata. Every
+refusal records0 host mutations. The20 session/parser targets pass.
+
+**Verified locally:** the complete host walk passed232 tests in208.581s. The
+whole suite ran451 tests in391.844s:443 distinct passes and8 known native host
+limitations (2 failures/9 errors), exactly named in `14zg-preflight/whole-suite.txt`.
+Those privileged host/DrvFS constraints remain mandatory in native CI; no test,
+assertion or skip was weakened. Actual release/git/file replay and53 offline
+source checks pass; four CI-token-only registry checks remain deferred with
+their14f reasons and fail-closed CI steps. The ISO replay passed first attempt:
+9,068,650,496 bytes, exact pinned/fresh official checksum,4 localization and102
+WebUI sources. No local Windows retry or inspector behavior change was needed.
+Strict checks pass283 guest/serial/staging scripts,258 embedded Python,12 shells,
+46 Python sources and the native workflow body. Windows copy tests pass15
+zero-write destination refusals and exact payload equality. Four local dispatch
+controller and7 fixed-watcher regressions pass. No Gradle daemon started.
+
+**Payload / For package15:** current generated bundle/INSTALL fingerprint is
+`683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974`.
+Package15 must take that fingerprint after qualification. Historical receipts
+retain the fingerprint actually tested at their recorded time. Frozen image,
+release/config/policy, workflows, privacy rules and all disk/NVRAM/BootNext
+rules are unchanged. INSTALL/EMERGENCY and the physical/followability release
+gates remain true; no real laptop, image build or publication is involved.
+
+**Privacy/local closing checks:** pinned gitleaks8.21.2 full history and36 pending files returned0 findings; final manifest/session validation passed17 tests. No ignore/rule/workflow changes.
+
+**Dispatch plan / budget:** one normal fast-forward push, then fresh exact-head
+privacy with all3 steps actually executed, complete ledger and read-only billing/
+$6 budget (prevent true; net Actions spend deducted), probe16, then only after
+probe/native/artifact acceptance a fresh guard and qualification6 on that same
+head. The pre-push snapshot is727 consumed +238 bound /1100, complete99/99 history,
+probes15/16 and owner-tools5/6; org after that bound320 minutes. Reserve0/closing0
+remain until acceptance. Both run attempts are single dispatches, with the fixed
+returned-URL watcher and no POST retry. Any CI stop requires diagnostics/report
+and no rerun; no extra push before qualification finishes. Final reserve150/
+closing12 restoration, closing privacy and PR-ready require actual acceptance.
+
+**Not verified / open questions / JUDGMENT-CALL:** actual fresh native/probe/VM
+results are pending. The integrator explicitly approved nested relays; the
+implementation adds no broader terminal acceptance. No ready/laptop release
+claim is made before the prescribed gates.
 
 ## 14zf — Physical recovery session through sudo, with the nested-route contradiction retained
 

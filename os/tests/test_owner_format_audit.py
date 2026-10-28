@@ -81,6 +81,7 @@ class FormatAuditTest(unittest.TestCase):
             if str(path)=='/proc/sys/kernel/random/boot_id':return '11111111-1111-4111-8111-111111111111\n'
             return original(path,*a,**kw)
         with patch.object(owner.sys.stdin,'isatty',return_value=True), patch.object(owner.os,'ttyname',return_value='/dev/tty4'), \
+             patch.object(owner,'terminal_number',return_value=1028), patch.object(owner,'process_terminal',return_value=dict(tty=1028)), \
              patch.object(pathlib.Path,'read_text',read):
             self.assertEqual(tools.session()['started_us'],123456789)
             host.remote='yes'

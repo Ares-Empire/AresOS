@@ -1,0 +1,362 @@
+{
+  "status": "pinned sources read only",
+  "sudo_version": "1.9.17-10.p2.fc44",
+  "systemd_version": "259.9-1.fc44",
+  "sudo_revision": "d1b48c651cec19fe37d1f0d3299d2283fb0f88e4",
+  "systemd_revision": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+  "sources": [
+    {
+      "sha256": "2e53f704372b6c7fb69cdc4dfd6c27456d642c83feff8b1588fa1f9cb1126cd0",
+      "path": ".work/14/14zf-source/etc_authselect_password-auth"
+    },
+    {
+      "sha256": "2e53f704372b6c7fb69cdc4dfd6c27456d642c83feff8b1588fa1f9cb1126cd0",
+      "path": ".work/14/14zf-source/etc_authselect_system-auth"
+    },
+    {
+      "sha256": "f6b3fca4ccae04e1df17b59b3b09ff07cebd257daa8a36233ff3395e654cf17f",
+      "path": ".work/14/14zf-source/etc_bashrc"
+    },
+    {
+      "sha256": "9c730de7207b901279091b7ca040a75fd42714a3bb224d97614aabc2750d187d",
+      "path": ".work/14/14zf-source/etc_pam.d_login"
+    },
+    {
+      "sha256": "fb766aab394fc417c72f07365ea29f9ba65bb101991293a14a6e81aed6202f77",
+      "path": ".work/14/14zf-source/etc_pam.d_sudo"
+    },
+    {
+      "sha256": "5d89db46c1c53757e962280a1a188dacc436c13eb4e5a2c4cac65203d76ae55f",
+      "path": ".work/14/14zf-source/etc_profile"
+    },
+    {
+      "sha256": "2ffd3f2be26ee5ebbe37b31d9991d452b3cb62cb9cb1e5d4bc66f9fac468b461",
+      "path": ".work/14/14zf-source/etc_profile.d_askpass.sh"
+    },
+    {
+      "sha256": "93b86a8147d0aab114c81c3b202b5ef69044ccf5e4085c4ad6062216a21d4691",
+      "path": ".work/14/14zf-source/etc_profile.d_bash-color-prompt.sh"
+    },
+    {
+      "sha256": "f6b5063c8437ad9adb5d2c9c75095f80b00e1b3110f44efe82ee44b2905ce82e",
+      "path": ".work/14/14zf-source/etc_profile.d_bash_completion.sh"
+    },
+    {
+      "sha256": "590c5469aa85577f24ad99a16bca2fecef59077ad3cbf5a3cc22357e9ebf12ee",
+      "path": ".work/14/14zf-source/etc_profile.d_bazzite-neofetch.sh"
+    },
+    {
+      "sha256": "527f96a81a956afc03713993911ecca3cd98cea09b503652d6bff40701c05fd9",
+      "path": ".work/14/14zf-source/etc_profile.d_brew-bash-completion.sh"
+    },
+    {
+      "sha256": "2c83fd4b32709f9ad9f52c3dde0f915527295385a92262b7beb8a039462863c1",
+      "path": ".work/14/14zf-source/etc_profile.d_brew.sh"
+    },
+    {
+      "sha256": "d84dd24f4cd383210316eff0a0fe73223a8de69bc600ba8fc1c9012bbe023c60",
+      "path": ".work/14/14zf-source/etc_profile.d_colorgrep.sh"
+    },
+    {
+      "sha256": "1b8a47e0b3d9e9b811da968e4b024538ea9371b1b333df75b1885a3215c60164",
+      "path": ".work/14/14zf-source/etc_profile.d_colorls.sh"
+    },
+    {
+      "sha256": "6028d3839bf85c0d373081560a3297ec6c8f8790ad7b98e66c02411d030fcdcc",
+      "path": ".work/14/14zf-source/etc_profile.d_colorxzgrep.sh"
+    },
+    {
+      "sha256": "873ff1677c3430a2d90fa6257ddd5b511cc480cf7098b1cfbb246b5af9044a82",
+      "path": ".work/14/14zf-source/etc_profile.d_colorzgrep.sh"
+    },
+    {
+      "sha256": "f5da564d0fccd8ca32788a7b89a7e69f329b798b6a0444ab9569614b1bd8f9b3",
+      "path": ".work/14/14zf-source/etc_profile.d_debuginfod.sh"
+    },
+    {
+      "sha256": "c7d161f14af684d17db1441cc3300798a13cd7a9f337ed151221e9cd43b8f332",
+      "path": ".work/14/14zf-source/etc_profile.d_dnf-dummy.sh"
+    },
+    {
+      "sha256": "ad6b9413f1f320fdd811045ef071dfece43891712afd09a8e018b6f14b1a9108",
+      "path": ".work/14/14zf-source/etc_profile.d_flatpak.sh"
+    },
+    {
+      "sha256": "70621a3b586d3d523b020e76977633b444a70013ba50e1ea901a3a07a676f15f",
+      "path": ".work/14/14zf-source/etc_profile.d_gawk.sh"
+    },
+    {
+      "sha256": "50148f6ce2f0257fff104ef8da7fdc1fb47221a102f82723fb6dd7789c5d99c5",
+      "path": ".work/14/14zf-source/etc_profile.d_gmpopenh264.sh"
+    },
+    {
+      "sha256": "d5ce176b494616eb798d5465a616e046eaa06ec513bf32314a2211a9b3b080bf",
+      "path": ".work/14/14zf-source/etc_profile.d_gnome-ssh-askpass.sh"
+    },
+    {
+      "sha256": "4d227126bd67d84630a54d4b47d8620d3f2354b3bf6350f19fccd4dac5dc44f2",
+      "path": ".work/14/14zf-source/etc_profile.d_gnupg2.sh"
+    },
+    {
+      "sha256": "5b26beb0c22749387362f8614ffdd9eca9d0a4bbeda5c64b976dfa94f66a6401",
+      "path": ".work/14/14zf-source/etc_profile.d_kde-openssh-askpass.sh"
+    },
+    {
+      "sha256": "3b6de17c156b2e4444ae94bb0f77062d34d772485fdcd5b0732a2b6eefa59711",
+      "path": ".work/14/14zf-source/etc_profile.d_kde.sh"
+    },
+    {
+      "sha256": "58bf8b07428754b273560c5ea4040c672440b2bb04709842cf94163e15dc144f",
+      "path": ".work/14/14zf-source/etc_profile.d_lang.sh"
+    },
+    {
+      "sha256": "7b85508c9181670fe169935310b8c95d7c2573f0318a70cecd12868569aab891",
+      "path": ".work/14/14zf-source/etc_profile.d_less.sh"
+    },
+    {
+      "sha256": "9b440b4c4e3e1ad0c7815e2662aa4e3ea09ab9dd97a0b0ef2d446d9ea7ae8a54",
+      "path": ".work/14/14zf-source/etc_profile.d_makemkv.sh"
+    },
+    {
+      "sha256": "e1fc35e5c7a21ca37833722e8789da1a919ad4d8a2e4d57b41fb76119f9d86ec",
+      "path": ".work/14/14zf-source/etc_profile.d_ms-edit-default-editor.sh"
+    },
+    {
+      "sha256": "093fa4a80330c1fa04033fae467e675ec9eea304ffe53e70ee87bc55d685c316",
+      "path": ".work/14/14zf-source/etc_profile.d_nano-default-editor.sh"
+    },
+    {
+      "sha256": "8eb210991a9be0c842e0c2201421d3b6e2e96d6cf670ba456a2a260c385518da",
+      "path": ".work/14/14zf-source/etc_profile.d_open.sh"
+    },
+    {
+      "sha256": "f583a40c7e9f1d2f9286113c13806eed8998698bcce58d00c72b694a9c69eebf",
+      "path": ".work/14/14zf-source/etc_profile.d_user-motd.sh"
+    },
+    {
+      "sha256": "b76cb6a30d6ad571bf4c208fca0fe6a6cf88e3a9a713b585e69fd90ead875e0d",
+      "path": ".work/14/14zf-source/etc_profile.d_vim.sh"
+    },
+    {
+      "sha256": "e73f6f5f6a397cc83e26858cfea5cd1313b5e8e562293077a696ab8ae48dd249",
+      "path": ".work/14/14zf-source/etc_profile.d_which2.sh"
+    },
+    {
+      "sha256": "53fb514aefa7b5280314277abffc9b008910c0689304c267be0d38ba16dd5319",
+      "path": ".work/14/14zf-source/etc_skel_.bash_profile"
+    },
+    {
+      "sha256": "c5566fb3645f14ef9f8fd2bcb0ad468bf6ef8a0c51a55633cb57f4c3e572aac6",
+      "path": ".work/14/14zf-source/etc_skel_.bashrc"
+    },
+    {
+      "sha256": "346a6aec86770dca128400155598161d5132f02745c29e4ed0f9605b15de4b62",
+      "path": ".work/14/14zf-source/plugins_sudoers_policy.c"
+    },
+    {
+      "sha256": "91029b5f5e825eb958ad72e98e8081d4e7d621403eb6f34062d3726fcbabcb00",
+      "path": ".work/14/14zf-source/plugins_sudoers_sudoers.c"
+    },
+    {
+      "sha256": "8d8bcbafeb9a1eec2ade91cfca7670735af42a94ff152903c2c034d870c81503",
+      "path": ".work/14/14zf-source/src_exec_pty.c"
+    },
+    {
+      "sha256": "71920ad72de95c30c222474049cc35ad5a204a446eb797d4565df45e01f97e6c",
+      "path": ".work/14/14zf-source/systemd_src_basic_cgroup-util.c"
+    },
+    {
+      "sha256": "40414c7ec3a23d83801124843c8d2c0cc4a0093f7e99b56aad8f031c7acca41c",
+      "path": ".work/14/14zf-source/systemd_src_login_logind-session-dbus.c"
+    },
+    {
+      "sha256": "071b4b9eb00fb21ed7c533c83055fc769c3d5579897f666621bd63d7750b8cf3",
+      "path": ".work/14/14zf-source/systemd_src_login_logind-session.c"
+    },
+    {
+      "sha256": "e43b2928a70467fd74428cebd3e398e1b46f92fd0448411220a0e04f209b231c",
+      "path": ".work/14/14zf-source/usr_lib_systemd_profile.d_70-systemd-shell-extra.sh"
+    },
+    {
+      "sha256": "b92edc4a29aded91e8f7ae567554555c30c9730d93893294de9bc17696dd6624",
+      "path": ".work/14/14zf-source/usr_lib_systemd_profile.d_80-systemd-osc-context.sh"
+    }
+  ],
+  "audit_property": "SD_BUS_PROPERTY Audit u Session.audit_id; Scope is Session.scope",
+  "pam": "physical login requires pam_loginuid before session system-auth/pam_systemd; sudo has no pam_loginuid reset",
+  "sudo": "policy emits use_pty=true whenever def_use_pty; execute allocates a new pty when /dev/tty is available; no caller UID exception",
+  "profile_audit": {
+    "files": [
+      {
+        "sha256": "f6b3fca4ccae04e1df17b59b3b09ff07cebd257daa8a36233ff3395e654cf17f",
+        "path": "etc/bashrc",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "5d89db46c1c53757e962280a1a188dacc436c13eb4e5a2c4cac65203d76ae55f",
+        "path": "etc/profile",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "2ffd3f2be26ee5ebbe37b31d9991d452b3cb62cb9cb1e5d4bc66f9fac468b461",
+        "path": "etc/profile.d/askpass.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "93b86a8147d0aab114c81c3b202b5ef69044ccf5e4085c4ad6062216a21d4691",
+        "path": "etc/profile.d/bash-color-prompt.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "f6b5063c8437ad9adb5d2c9c75095f80b00e1b3110f44efe82ee44b2905ce82e",
+        "path": "etc/profile.d/bash_completion.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "590c5469aa85577f24ad99a16bca2fecef59077ad3cbf5a3cc22357e9ebf12ee",
+        "path": "etc/profile.d/bazzite-neofetch.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "527f96a81a956afc03713993911ecca3cd98cea09b503652d6bff40701c05fd9",
+        "path": "etc/profile.d/brew-bash-completion.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "2c83fd4b32709f9ad9f52c3dde0f915527295385a92262b7beb8a039462863c1",
+        "path": "etc/profile.d/brew.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "d84dd24f4cd383210316eff0a0fe73223a8de69bc600ba8fc1c9012bbe023c60",
+        "path": "etc/profile.d/colorgrep.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "1b8a47e0b3d9e9b811da968e4b024538ea9371b1b333df75b1885a3215c60164",
+        "path": "etc/profile.d/colorls.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "6028d3839bf85c0d373081560a3297ec6c8f8790ad7b98e66c02411d030fcdcc",
+        "path": "etc/profile.d/colorxzgrep.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "873ff1677c3430a2d90fa6257ddd5b511cc480cf7098b1cfbb246b5af9044a82",
+        "path": "etc/profile.d/colorzgrep.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "f5da564d0fccd8ca32788a7b89a7e69f329b798b6a0444ab9569614b1bd8f9b3",
+        "path": "etc/profile.d/debuginfod.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "c7d161f14af684d17db1441cc3300798a13cd7a9f337ed151221e9cd43b8f332",
+        "path": "etc/profile.d/dnf-dummy.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "ad6b9413f1f320fdd811045ef071dfece43891712afd09a8e018b6f14b1a9108",
+        "path": "etc/profile.d/flatpak.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "70621a3b586d3d523b020e76977633b444a70013ba50e1ea901a3a07a676f15f",
+        "path": "etc/profile.d/gawk.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "50148f6ce2f0257fff104ef8da7fdc1fb47221a102f82723fb6dd7789c5d99c5",
+        "path": "etc/profile.d/gmpopenh264.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "d5ce176b494616eb798d5465a616e046eaa06ec513bf32314a2211a9b3b080bf",
+        "path": "etc/profile.d/gnome-ssh-askpass.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "4d227126bd67d84630a54d4b47d8620d3f2354b3bf6350f19fccd4dac5dc44f2",
+        "path": "etc/profile.d/gnupg2.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "5b26beb0c22749387362f8614ffdd9eca9d0a4bbeda5c64b976dfa94f66a6401",
+        "path": "etc/profile.d/kde-openssh-askpass.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "3b6de17c156b2e4444ae94bb0f77062d34d772485fdcd5b0732a2b6eefa59711",
+        "path": "etc/profile.d/kde.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "58bf8b07428754b273560c5ea4040c672440b2bb04709842cf94163e15dc144f",
+        "path": "etc/profile.d/lang.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "7b85508c9181670fe169935310b8c95d7c2573f0318a70cecd12868569aab891",
+        "path": "etc/profile.d/less.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "9b440b4c4e3e1ad0c7815e2662aa4e3ea09ab9dd97a0b0ef2d446d9ea7ae8a54",
+        "path": "etc/profile.d/makemkv.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "e1fc35e5c7a21ca37833722e8789da1a919ad4d8a2e4d57b41fb76119f9d86ec",
+        "path": "etc/profile.d/ms-edit-default-editor.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "093fa4a80330c1fa04033fae467e675ec9eea304ffe53e70ee87bc55d685c316",
+        "path": "etc/profile.d/nano-default-editor.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "8eb210991a9be0c842e0c2201421d3b6e2e96d6cf670ba456a2a260c385518da",
+        "path": "etc/profile.d/open.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "f583a40c7e9f1d2f9286113c13806eed8998698bcce58d00c72b694a9c69eebf",
+        "path": "etc/profile.d/user-motd.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "b76cb6a30d6ad571bf4c208fca0fe6a6cf88e3a9a713b585e69fd90ead875e0d",
+        "path": "etc/profile.d/vim.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "e73f6f5f6a397cc83e26858cfea5cd1313b5e8e562293077a696ab8ae48dd249",
+        "path": "etc/profile.d/which2.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "53fb514aefa7b5280314277abffc9b008910c0689304c267be0d38ba16dd5319",
+        "path": "etc/skel/.bash_profile",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "c5566fb3645f14ef9f8fd2bcb0ad468bf6ef8a0c51a55633cb57f4c3e572aac6",
+        "path": "etc/skel/.bashrc",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "e43b2928a70467fd74428cebd3e398e1b46f92fd0448411220a0e04f209b231c",
+        "path": "usr/lib/systemd/profile.d/70-systemd-shell-extra.sh",
+        "sudo_lines": []
+      },
+      {
+        "sha256": "b92edc4a29aded91e8f7ae567554555c30c9730d93893294de9bc17696dd6624",
+        "path": "usr/lib/systemd/profile.d/80-systemd-osc-context.sh",
+        "sudo_lines": []
+      }
+    ]
+  }
+}
