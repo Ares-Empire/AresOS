@@ -1,0 +1,38 @@
+{
+  "artifact_sha256": "df12af2c722e83a2d88b4f75b2dbba88f99b8bfe908a6efed8898e50d0f66508",
+  "files": [
+    {
+      "sha256": "4727e1fb006de6cf6e6cfa9d067d7f8f10d199d30a0851b9e4afe0f648c46173",
+      "path": "evidence/two-disk/webui-probe-server-incomplete.txt",
+      "bytes": 6676
+    },
+    {
+      "sha256": "ee805d4f08723ae29d57eeac0af312ba1d99a2da5b8d68f4a5493a4058646e53",
+      "path": "evidence/two-disk/webui-probe-server-transport.json",
+      "bytes": 1139
+    },
+    {
+      "sha256": "0f91798481f043c38449d613f577135e7bfc0b062c985b39b851982bf32ddf85",
+      "path": "evidence/two-disk/probe-failure-diagnostics.txt",
+      "bytes": 5597
+    },
+    {
+      "sha256": "8128aee9bf5dd58f01bf393a402ea2f6e63c19bb9754d52dca90aa84e1280653",
+      "path": "evidence/two-disk/live-ui-probe-failure-counter.json",
+      "bytes": 154
+    },
+    {
+      "sha256": "79cdd1375b92a767f91b78e65c3520662c9329bad4e9ac70e0592f6a26038c06",
+      "path": "evidence/two-disk/live-ui-probe-shutdown-console.txt",
+      "bytes": 19233
+    }
+  ],
+  "raw_consoles_committed": false,
+  "owner_hidden_inputs_reached": false,
+  "native_log": {
+    "sha256": "deffa91b7011154616b7246c83eefaf3110150bb98361f9730f7638baac49cba",
+    "path": "native.log",
+    "review_copy": "native-suite.txt",
+    "normalization": "LF and trailing horizontal whitespace removed from review copy only; exact private source retained"
+  }
+}

@@ -11,12 +11,33 @@
     "owner-tools": 8
   },
   "dispatch_counts": {
-    "probe": 17,
+    "probe": 18,
     "owner-tools": 7
   },
-  "consumed_minutes": 913,
-  "reserved_minutes": 238,
+  "consumed_minutes": 941,
+  "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 40646962291,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+      "conclusion": "failure",
+      "minutes": 22
+    },
+    {
+      "run": 40646398141,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40646392604,
+      "title": "14zi: prove hidden prompts on the actual foreground reader tty",
+      "sha": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+      "conclusion": "success",
+      "minutes": 3
+    },
     {
       "run": 40630352782,
       "title": "Two-disk rehearsal (owner-tools)",
@@ -653,25 +674,28 @@
   "history": {
     "complete": true,
     "pages_read": 2,
-    "ids_count": 107,
-    "total_count": 107,
+    "ids_count": 110,
+    "total_count": 110,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
         "returned": 100,
-        "total_count": 107,
-        "ids_sha256": "31a523fc41b57de9656e2c2cbd46c7056812048f72bfd768a974e510297d166d"
+        "total_count": 110,
+        "ids_sha256": "70c63ac29dbebb06a559ee0c2bfe1e26b48539148db7da491e13d9c671c5166e"
       },
       {
         "page": 2,
-        "returned": 7,
-        "total_count": 107,
-        "ids_sha256": "36430b544555eb1e491d02873d07a0bdca7953150de564cff2a0127ce6697623"
+        "returned": 10,
+        "total_count": 110,
+        "ids_sha256": "16b57b119b9caa522b24c46b2bd24df4b6068b3d8089139dc34d86498512132e"
       }
     ],
     "run_ids": [
+      40646962291,
+      40646398141,
+      40646392604,
       40630352782,
       40628158654,
       40627663601,
@@ -781,37 +805,37 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-28T06:42:20.833340+00:00",
-  "snapshot_kind": "14zi pre-push plan; fresh guards still required",
+  "snapshot_kind": "14zi STOP after probe18; no qualification8; local report only",
+  "checked_at": "2026-10-28T07:22:25.296728+00:00",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-28T06:42:19.764600+00:00",
-    "response_sha256": "ba336276a1a6315892bbf206d3fa4a482e437078e406ff40d42f443ab2623274",
+    "checked_at": "2026-10-28T07:22:23.955836+00:00",
+    "response_sha256": "7dea96c0247e74ea2b114d30b68435bac2cf4c913e21cd5e628125d6ad14b66b",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 2634.0,
+        "grossQuantity": 2643.0,
         "discountQuantity": 2000.0,
-        "netQuantity": 634.0,
-        "grossAmount": 15.804,
+        "netQuantity": 643.0,
+        "grossAmount": 15.858,
         "discountAmount": 12.0,
-        "netAmount": 3.804,
+        "netAmount": 3.858,
         "pricePerUnit": 0.006
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 16.409615292,
-        "discountQuantity": 16.409615292,
+        "grossQuantity": 16.534373449,
+        "discountQuantity": 16.534373449,
         "netQuantity": 0.0,
-        "grossAmount": 0.005513898,
-        "discountAmount": 0.005513898,
+        "grossAmount": 0.005555819,
+        "discountAmount": 0.005555819,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 2634,
+    "used_minutes": 2643,
     "included_minutes": 2000,
     "included_minutes_left": 0,
     "paid_overflow": {
@@ -825,15 +849,15 @@
       "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
       "runner_sku": "actions_linux",
       "pricePerUnit": 0.006,
-      "reported_net_amount": 3.804,
-      "available_budget": 2.196,
-      "paid_minutes": 366,
+      "reported_net_amount": 3.858,
+      "available_budget": 2.142,
+      "paid_minutes": 357,
       "decision": "briefs/14zc-six-dollar-round.md",
       "exception_month": "2026-10"
     },
-    "remaining_minutes": 366,
-    "reserved_minutes": 238,
-    "after_reservation": 128,
+    "remaining_minutes": 357,
+    "reserved_minutes": 0,
+    "after_reservation": 357,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
   },
@@ -849,24 +873,29 @@
     "exception_month": "2026-10",
     "merge_requires_privacy": true
   },
+  "acceptance_met": false,
+  "probe18": {
+    "run": 40646962291,
+    "status": "failure",
+    "accepted": false
+  },
+  "qualification8": "not dispatched; probe STOP",
+  "pushed_head": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+  "pushes_this_followup": 1,
+  "dispatches_this_followup": 1,
+  "reruns_this_followup": 0,
+  "closing_reservation": 0,
+  "reserve": 0,
+  "restore_condition_met": false,
   "current_bundle": {
     "sha256": "683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974",
     "path": "os/owner-tools/payload/SHA256.json"
   },
-  "acceptance_met": false,
-  "probe18": "pending",
-  "qualification8": "pending",
-  "closing_reservation": 0,
-  "reserve": 0,
-  "restore_condition_met": false,
-  "pushes_this_followup": 0,
-  "dispatches_this_followup": 0,
-  "reruns_this_followup": 0,
   "local_privacy_scans": {
     "version": "8.21.2",
-    "required": "clean pinned all-history/pending scan before commit/push",
+    "required": "clean pinned history/pending scan before local STOP commit",
     "full_history_findings": 0,
     "pending_findings": 0,
-    "receipt": "os/manifest/ci/14/14zi-preflight/local-privacy.json"
+    "receipt": "os/manifest/ci/14/14zi-probe-stop/local-privacy.json"
   }
 }

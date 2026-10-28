@@ -1,11 +1,104 @@
 # 14: checked owner tools
 
-**Current14zi: inner-reader hidden-input proof implemented; local checks complete.**
-Probe18 and qualification8 are pending; acceptance is not established. PR #13
-remains draft / NOT RELEASED. This round authorizes one push and one probe, then
-only if accepted one qualification on the same head. Any CI stop ends the round.
+**14zi STOP: probe18 failed before the owner hidden-input stages.** Qualification8
+was not dispatched; no rerun or extra push. PR #13 remains draft / NOT RELEASED.
+The pushed implementation is `9c3f8a3722e3321150813456fecad7abbfefda3e`; the STOP packet is committed locally only.
 
-## 14zi — Hidden prompts on the actual reader tty
+## 14zi REPORT — Inner-pts fix implemented; probe18 serial ACK stop
+
+**Done:** the harness verifies the exact foreground reader through the bounded
+sudo relay chain, its own tty ECHO off, and the expected prompt at the physical
+cursor before typing once. A separate bounded read-completion receipt observes
+echo restoration, exit/exec or authenticated sudo relay creation, without the
+value. Direct physical-tty reads retain their own tty check. All hidden inputs
+share this rule. Owner scripts, payload fingerprint
+683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974,
+guides, frozen runtime, workflows and privacy policy are unchanged. Package14
+only is1200 minutes/probe18/owner-tools8; package13 is unchanged.
+
+**Diagnosis:** confirmed by pinned CPython3.14.8 getpass ordering and real two-PTY
+flush/loss-versus-delivery tests. Qualification7 is consistent with early input
+being flushed; qualification4 additionally retains its independent serial-framing
+failure. Neither historical run retained inner termios/prompt at send, so the
+precise historical flush timing and sole causation are not claimed. Source
+metadata and the redacted retained process fixture are in14zi-preflight.
+
+**Verified:** local462 tests ran with the same8 documented host limitations;
+243 host-walk tests pass, including119 cluttered waits and22 matched hidden-read
+ready/left pairs. All10 hidden tests pass, including the unchanged real at entry
+point resolving the installer's actual tools/owner.py path. Strict checks pass
+549 guest compositions,524 embedded Python,12 shells,47 Python and the native
+workflow body. Local release/file/git/read-only replay passes; a fresh9,068,650,496
+byte ISO replay also passed on its first attempt before this probe completed.
+The four14f CI-only checks remain fail-closed and passed natively in this probe.
+No laptop installation, privileged local operation, real disk/boot/Minecraft
+access, image build, release or publication occurred. No Gradle started.
+
+Exactly one fast-forward push was made. Both exact-head privacy runs40646398141
+and40646392604 passed all3 checks with personal terms actually executed. The
+fresh complete guard authorized919 consumed +232 bound /1200 with109/109 history.
+[Probe18](https://github.com/Ares-Empire/AresOS/actions/runs/40646962291) was attempt1,
+workflow_dispatch on pkg/14-owner-tools, exact head `9c3f8a3722e3321150813456fecad7abbfefda3e`.
+Native CI passed all462 tests in67.200s with0 skips; all20 native loop-image checks
+pass, helper mutations0, protected fixture unchanged and mounts/loops cleaned.
+Pinned ISO length/SHA agree with the fresh official checksum. Native tools,
+release identity, registry access/signature and layer checks passed.
+
+**STOP / PLAN-GAP:** live VM probe stopped at webui-probe-server's staged transport,
+before its script was run and before any owner hidden input. The598-byte script's
+7 chunks and SHA/integrity phase were acknowledged. Syntax phase index10 actually
+emitted status0, immediately followed by `[   58.604886] async_tx: api initialized (async)`
+before the newline. The existing exact `:10:(status)\r?\n` ACK predicate therefore
+has no match in the retained6,676-byte transcript and timed out after its bounded
+10-second wait. The transport records `no acknowledgement; STOP; no retry` and
+verified=false. This is a kernel-output interleave at the serial ACK boundary;
+it is not evidence that the14zi hidden fix failed. No transport, log-level,
+predicate, timeout, product or owner-script change was made after the stop.
+Private raw transcript/diagnostics are retained in artifact12799091255; committed
+metadata records their hashes and the exact parser observation, not raw consoles.
+
+The failure path paused the VM at boot2. Independent replay of actual protected
+captures, counters and varstores passes:2 protected captures,2 zero-write/unmap
+samples,2 BootNext replays,1 NVRAM rule replay and1 complete-variable delta check.
+The failed probe is not accepted. Qualification8, installed/private login, layout,
+AresOS switch, rollback and keep-stock were not run this round.
+
+**Privacy:** artifact SHA256
+`df12af2c722e83a2d88b4f75b2dbba88f99b8bfe908a6efed8898e50d0f66508`,
+3,121,033 bytes/217 members. Pinned8.21.2 artifact scan:509 findings =507 reviewed
+public ISO-listing names +2 exact whole-line kernel X.509 messages below;
+0 unknown findings. Native-suite and failure-step scans return0 findings.
+No ignore, allowlist, rule or privacy workflow change. Raw boot consoles, VCSA,
+ISO listing and credentials are not committed.
+
+| Private artifact path | Line | Certificate name | Whole-line SHA256 |
+|---|---:|---|---|
+| `evidence/two-disk/live-ui-probe-boot-console.txt` | 495 | Fedora kernel signing key | `1a71b7af06abd9e4fdf934035749bdc41b986c66d1021be9e7879866ce19ecb0` |
+| `evidence/two-disk/live-ui-probe-boot-console.txt` | 528 | Fedora kernel signing key | `2fa42f36634355498515b410eb5844db1af48c96624b3d4743f9034dd09c18fc` |
+
+**Local STOP commit checks:** pinned gitleaks8.21.2 full history and all pending
+files return0 findings; manifest-format verification and git diff --check pass.
+Implementation/runtime/workflow/guide/privacy diff from the dispatched head is
+empty. No extra push.
+
+**Closed ledger:**941/1200 consumed, probes18/18 and owner-tools7/8;110/110 complete
+history, reserved0. One push, one dispatch, zero reruns. Read-only billing/budget
+snapshot `2026-10-28T07:22:25.296728+00:00` requires exact$6/prevent=true, deducts already charged
+net spend and uses API pricePerUnit; see closed-ledger.json for the exact values.
+Billing is a timestamped API snapshot and may lag the completed-job ledger.
+Closing0/reserve0 remain because acceptance is unmet; restoration12/150 and a
+final push/PR-ready are conditional on acceptance. No more dispatch or push this
+round. The run is over; the owner can set the Actions budget back to$0.
+
+**Not verified / JUDGMENT-CALL / open questions:** the hidden-input fix has real
+PTY/native/model proof, but no VM owner-input qualification this round. Physical
+and followability gates remain open and INSTALL/EMERGENCY/release gate retain
+that truth. The ACK-boundary interleave needs an integrator decision before any
+further change or dispatch. No new product decision was taken; never merge.
+
+## 14zi preflight — Hidden prompts on the actual reader tty
+
+Historical pre-dispatch snapshot; the STOP outcome above supersedes its pending statements.
 
 **Done:** shared harness code follows the physical foreground through verified
 sudo frontend/direct-monitor transitions, at most3 new pts, and exact expected
