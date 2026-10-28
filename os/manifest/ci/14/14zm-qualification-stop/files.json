@@ -1,0 +1,64 @@
+{
+  "files": [
+    {
+      "sha256": "f9a9b34957f0903c0f8762343380ab2a95f1fcdc730b2621490983b5d10e9930",
+      "path": "closed-ledger.json"
+    },
+    {
+      "sha256": "2a517d38885639143ede7a835b8eb377d353e7b9d8f5f7d3bca290f6fe306f7a",
+      "path": "privacy-ci.json"
+    },
+    {
+      "sha256": "c730ec99b15b672679e69d00e46a8d8aaccb744ca27babfbfa1dc45ab6005b57",
+      "path": "probe-guard.json"
+    },
+    {
+      "sha256": "fa467585135a707207ac634f61713edbd2c92cd9b76047bfff4ce94226becc2b",
+      "path": "probe-native-timing.json"
+    },
+    {
+      "sha256": "d67b73c5fca700ead4079bad1051991365e9d3a2164a290b0231ecf0ff87f448",
+      "path": "probe-privacy.json"
+    },
+    {
+      "sha256": "c67884c5e4fc447e67b8006b114f3d8fe3ea5984c69d0c1c43238493e08b8e1c",
+      "path": "probe-proof.json"
+    },
+    {
+      "sha256": "9a2b3b9545dc4cddbfd118bc1abbe70cbdd0d7e4823575adffdf522f60cdfcb3",
+      "path": "push.json"
+    },
+    {
+      "sha256": "02ca2d53eb09f683cd7871dfaeb8a3b01ca3bb40845309744f50960331506fa4",
+      "path": "qualification-artifact.json"
+    },
+    {
+      "sha256": "9cf80cb81b53c8f082b2331559c0435ddb55e84ccb09e7df4ef001af3b1dee51",
+      "path": "qualification-audits.json"
+    },
+    {
+      "sha256": "eaa120cc68898c94b75383e5ea0844a33fd10cd76788389464c310fe962d54ac",
+      "path": "qualification-guard.json"
+    },
+    {
+      "sha256": "d4cd9f87ae86e3db3138cf2eb28bb3a04c0ce1823dfe7ebebc2f6810416c6336",
+      "path": "qualification-local-replay.json"
+    },
+    {
+      "sha256": "0f0727c8e6a9fc9c5ceb26a57199dccc6656a99822876f0024a2a00d505ed826",
+      "path": "qualification-native-timing.json"
+    },
+    {
+      "sha256": "28d63aa192569f48509e27902efb9804ad7e713bb9221d9ea9944066101b57ef",
+      "path": "qualification-privacy.json"
+    },
+    {
+      "sha256": "296533e299f178d7bb30196327b5ef91e61e84406b983992e2a7a53b8d61ba1c",
+      "path": "stop-observation.json"
+    },
+    {
+      "sha256": "c4e4e56b42bf1e7198353d462f56cae1a6b8e67f6b71cca18d96594742ece00f",
+      "path": "summary.json"
+    }
+  ]
+}
