@@ -1,5 +1,42 @@
 # 14: checked owner tools
 
+**14zl STOP before push:** the mandatory local host suite fails an unchanged
+wall-clock assertion. No push, probe20 or qualification9; PR state unchanged.
+
+## 14zl REPORT — $10 guard prepared; local login-fixture timing gate failed
+
+**Done:** package14 alone now has cap1500, probe22 and owner-tools11. The guard
+requires exactly $10/prevent=true and deducts all net Actions spend at the API
+price. Refusal tests follow those limits; package13, reserve0 and closing0 are
+unchanged. No owner-tool, image/runtime, guide, workflow, privacy-rule or audit
+change. The refreshed walk binding is explicitly **stopped**, not VM authority.
+
+**Verified:** budget tests11 pass; the host suite ran270/688.296s, with269 passes,
+one failure and zero skips. Read-only release/git and53-source replay pass. Fresh
+ISO replay passed attempt1: all9,068,650,496 bytes equal the pin and fresh official
+checksum. Actual standalone stage flow and strict549 guest/wrapper scripts,
+524 embedded Python,12 shells,47 Python and the workflow body pass. The complete
+114/114 ledger is1019 consumed +238 planned /1500. API budget is$10/prevent=true,
+price$0.006, net spend$4.476;920 available minus238 leaves682. No reservation was
+spent. Pinned8.21.2 full-history/pending privacy and diff checks pass.
+
+**STOP / PLAN-GAP:**
+`test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry`
+expects the whole login fixture to finish below30s. It took30.010278s; isolated
+profiling reproduces31.896785s (32.385s including fixture setup). The13,302-byte
+readiness transfer took6.680s and21,012-byte completion transfer11.131s; the
+injected lost result then produced the expected TimeoutError in2.169s. Assertions
+after the elapsed-time assertion were not reached. The end-to-end timing gate
+is red; no assertion/timeout was relaxed and no new transport change was made.
+[Structured diagnostics and scope](../../os/manifest/ci/14/14zl-local-stop/summary.json),
+[timing profile](../../os/manifest/ci/14/14zl-local-stop/timing-profile.json).
+
+**Not verified:** the current full OS suite (blocked by its prerequisite), fresh
+privacy CI, native checks and VM qualification. No CI stop occurred: nothing was
+pushed or dispatched. Ledger stays1019; acceptance is unmet, so reserve0/closing0
+are not restored and PR #13 is not marked ready. The owner's budget remains
+untouched by this agent. No product judgment call; local STOP commit only.
+
 **14zk LOCAL ONLY:** hidden completion fixed and walked locally. Qualification8's
 STOP remains the latest VM result; acceptance is unmet. No push or dispatch.
 

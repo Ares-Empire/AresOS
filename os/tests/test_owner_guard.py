@@ -22,8 +22,8 @@ class GuardTest(unittest.TestCase):
         self.addCleanup(guard.configure,'11c')
 
     def test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun(self):
-        self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(1200,0,0))
-        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':19,'owner-tools':8})
+        self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(1500,0,0))
+        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':22,'owner-tools':11})
         self.assertEqual(guard.SETTINGS['organization_budget']['other_repos_reserve'],0)
         self.assertEqual(guard.PACKAGES['13']['organization_budget']['other_repos_reserve'],150)
         base=dict(head_sha='a'*40,status='completed',conclusion='success',run_attempt=1)
@@ -33,8 +33,8 @@ class GuardTest(unittest.TestCase):
         job=dict(conclusion='success',started_at='2026-10-25T01:00:00Z',completed_at='2026-10-25T01:01:01Z')
         def api(path):return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1,jobs=[job])
         with patch.object(guard,'api',side_effect=api):
-            self.assertEqual(guard.budget(1196)['consumed_minutes'],4)
-            with self.assertRaisesRegex(AssertionError,'exceeds 1200'):guard.budget(1197)
+            self.assertEqual(guard.budget(1496)['consumed_minutes'],4)
+            with self.assertRaisesRegex(AssertionError,'exceeds 1500'):guard.budget(1497)
             runs.append(dict(runs[1],id=4))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],2)
             runs.append(dict(runs[1],id=5))
@@ -72,18 +72,24 @@ class GuardTest(unittest.TestCase):
             runs.append(dict(runs[1],id=21))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],19)
             runs.append(dict(runs[1],id=22))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],20)
+            runs.append(dict(runs[1],id=23))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],21)
+            runs.append(dict(runs[1],id=24))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],22)
+            runs.append(dict(runs[1],id=25))
             with self.assertRaisesRegex(AssertionError,'probe dispatch allowance'):guard.budget(0)
 
-    def test_eighth_owner_qualification_allowed_but_ninth_refuses(self):
+    def test_eleventh_owner_qualification_allowed_but_twelfth_refuses(self):
         base=dict(head_sha='a'*40,status='completed',conclusion='failure',run_attempt=1,
                   event='workflow_dispatch',display_title='Two-disk rehearsal (owner-tools)',
                   created_at='2026-10-25T01:00:00Z')
-        runs=[dict(base,id=i) for i in range(1,9)]
+        runs=[dict(base,id=i) for i in range(1,12)]
         job=dict(conclusion='failure',started_at='2026-10-25T01:00:00Z',completed_at='2026-10-25T01:01:00Z')
         def api(path):return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1,jobs=[job])
         with patch.object(guard,'api',side_effect=api):
-            self.assertEqual(guard.budget(0)['dispatch_counts']['owner-tools'],8)
-            runs.append(dict(base,id=9))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['owner-tools'],11)
+            runs.append(dict(base,id=12))
             with self.assertRaisesRegex(AssertionError,'owner-tools dispatch allowance'):guard.budget(0)
 
     def test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media(self):

@@ -1,6 +1,6 @@
 {
-  "status": "passed",
-  "kind": "local stand-ins, not VM qualification",
+  "status": "stopped",
+  "kind": "local stand-ins; mandatory host suite has one failing unchanged wall-clock assertion; NOT VM acceptance",
   "tests": 270,
   "stick_across_reboot": false,
   "stages": [
@@ -9826,11 +9826,11 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "0f113755b8a24e2ecc823da0843006aca8a1d8b834f5f3b8f678964777fdf875",
+      "sha256": "8d57daaca68c173d9b85a8145681dc2589a7b447165ece003d73efa39075bb6c",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "387996b29eff83517480eef76603f35a7b371fc34044369dfca3b69346c1bebb",
+      "sha256": "92c9cb68a10b0f83e92599ad8fe584beb506844165c003fac71d7e827b01bdca",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
@@ -10118,7 +10118,7 @@
       "path": "os/tests/test_loop_nodes.py"
     },
     {
-      "sha256": "4725a97f0c938ab0914916184a6b6868424a5049f32aba32e03add7ea6005613",
+      "sha256": "715ad208c37e523b3a97f344c712b87b56955f1d27b9588cff77578caa549e2e",
       "path": "os/tests/test_organization_budget.py"
     },
     {
@@ -10174,7 +10174,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "e7731adec864207fe042f5a5e31ef5f20ed7fb6f8b467032cd926eea2c8b1b5f",
+      "sha256": "9b270eb5033fc5dd794ef69890270c05959d8c7818d0dc9fbee8e6b0eec70442",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -10241,5 +10241,11 @@
       "sha256": "175c4ad07840d14d4c81c09d9c42ab6c83e964955635d2a35a26c814935d2451",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
-  ]
+  ],
+  "stop": {
+    "brief": "briefs/14zl-ten-dollar-round.md",
+    "failures": 1,
+    "skips": 0,
+    "record": "os/manifest/ci/14/14zl-local-stop/summary.json"
+  }
 }

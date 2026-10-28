@@ -1,14 +1,14 @@
 {
   "allowance": "14",
   "start": "2026-10-25T22:01:22Z",
-  "cap": 1200,
+  "cap": 1500,
   "full_cap": 0,
   "full_dispatched": 0,
   "part_b_cap": 0,
   "part_b_dispatched": 0,
   "dispatch_caps": {
-    "probe": 19,
-    "owner-tools": 8
+    "probe": 22,
+    "owner-tools": 11
   },
   "dispatch_counts": {
     "probe": 19,
@@ -837,101 +837,69 @@
       40216222435
     ]
   },
-  "snapshot_kind": "14zj STOP after qualification8; probe19 accepted; local packet only",
-  "checked_at": "2026-10-28T09:36:33.304275+00:00",
-  "organization_budget": {
+  "status": "14zl local STOP before push; no dispatch or privacy minutes spent",
+  "probe20": "not dispatched",
+  "qualification9": "not dispatched",
+  "acceptance_met": false,
+  "pushes_this_followup": 0,
+  "dispatches_this_followup": 0,
+  "reruns_this_followup": 0,
+  "closing_reservation": 0,
+  "reserve": 0,
+  "restore_condition_met": false,
+  "owner_decision": "briefs/14zl-ten-dollar-round.md",
+  "organization_budget_snapshot": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-28T09:36:32.275932+00:00",
-    "response_sha256": "20eb4d5c7d336baa048cbef488f240d242fa73d874c4c9b771c47f248be054af",
+    "checked_at": "2026-10-28T19:38:02.549398+00:00",
+    "response_sha256": "c5db87173f63402cbd5c9c37fbb620879749846017480f192856535bad2b4389",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 2744.0,
+        "grossQuantity": 2746.0,
         "discountQuantity": 2000.0,
-        "netQuantity": 744.0,
-        "grossAmount": 16.464,
+        "netQuantity": 746.0,
+        "grossAmount": 16.476,
         "discountAmount": 12.0,
-        "netAmount": 4.464,
+        "netAmount": 4.476,
         "pricePerUnit": 0.006
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 16.971094171,
-        "discountQuantity": 16.971094171,
+        "grossQuantity": 18.81543485,
+        "discountQuantity": 19.015948616,
         "netQuantity": 0.0,
-        "grossAmount": 0.005702565,
-        "discountAmount": 0.005702565,
+        "grossAmount": 0.006322295,
+        "discountAmount": 0.006389671,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 2744,
+    "used_minutes": 2746,
     "included_minutes": 2000,
     "included_minutes_left": 0,
     "paid_overflow": {
       "source": "organizations/Ares-Empire/settings/billing/budgets",
-      "response_sha256": "6a2d43501b82615f494b16bfa80da556ff19b43730a2885fcbe0c0a15ccf104b",
+      "response_sha256": "2a4e170f520cd941cf127290b5d6c9321833bf9da0eef9cb831c5f9b6a9b93de",
       "budget_product_sku": "actions",
-      "budget_amount": 6,
+      "budget_amount": 10,
       "prevent_further_usage": true,
       "budget_scope": "organization",
       "budget_entity_name": "Ares-Empire",
       "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
       "runner_sku": "actions_linux",
       "pricePerUnit": 0.006,
-      "reported_net_amount": 4.464,
-      "available_budget": 1.536,
-      "paid_minutes": 256,
-      "decision": "briefs/14zc-six-dollar-round.md",
+      "reported_net_amount": 4.476,
+      "available_budget": 5.524,
+      "paid_minutes": 920,
+      "decision": "briefs/14zl-ten-dollar-round.md",
       "exception_month": "2026-10"
     },
-    "remaining_minutes": 256,
-    "reserved_minutes": 0,
-    "after_reservation": 256,
+    "remaining_minutes": 920,
+    "reserved_minutes": 238,
+    "after_reservation": 682,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
-  },
-  "reservation_plan": {
-    "push": 6,
-    "probe": 72,
-    "qualification": 160,
-    "closing_privacy": 0,
-    "pre_push": 238,
-    "before_probe": 232,
-    "before_qualification": 160,
-    "decision": "briefs/14r-no-closing-reservation.md",
-    "exception_month": "2026-10",
-    "merge_requires_privacy": true
-  },
-  "acceptance_met": false,
-  "probe19": {
-    "run": 40655273119,
-    "status": "success",
-    "accepted": true
-  },
-  "qualification8": {
-    "run": 40658792992,
-    "status": "failure",
-    "accepted": false
-  },
-  "pushed_head": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
-  "pushes_this_followup": 1,
-  "dispatches_this_followup": 2,
-  "reruns_this_followup": 0,
-  "closing_reservation": 0,
-  "reserve": 0,
-  "restore_condition_met": false,
-  "current_bundle": {
-    "sha256": "683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974",
-    "path": "os/owner-tools/payload/SHA256.json"
-  },
-  "local_privacy_scans": {
-    "version": "8.21.2",
-    "required": "clean pinned history/pending before local STOP commit",
-    "full_history_findings": 0,
-    "pending_findings": 0,
-    "receipt": "os/manifest/ci/14/14zj-qualification-stop/local-privacy.json"
   }
 }
