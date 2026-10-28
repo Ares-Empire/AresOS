@@ -32,6 +32,7 @@ import test_owner_session
 import test_owner_sudo_idle
 import test_owner_console
 import test_owner_hidden
+import test_owner_completion
 import test_owner_devices
 import test_owner_entry
 import test_owner_devices_native
@@ -50,7 +51,7 @@ def main():
     suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(m) for m in
         (test_owner_commands,test_owner_export,test_owner_transport,test_owner_walk,test_owner_guard,test_organization_budget,test_rehearsal_budget,test_installer_download,test_installer_webui,test_owner_equality,test_owner_tools,
          test_release_squash_binding,test_ci_api_permissions,test_ci_step_environment,test_owner_media,test_owner_capabilities,test_guest_framing,
-         test_owner_session,test_owner_sudo_idle,test_owner_console,test_owner_hidden,test_owner_devices,test_owner_entry,test_owner_devices_native,test_loop_nodes,
+         test_owner_session,test_owner_sudo_idle,test_owner_console,test_owner_hidden,test_owner_completion,test_owner_devices,test_owner_entry,test_owner_devices_native,test_loop_nodes,
          test_owner_firmware,test_owner_diagnostics,test_owner_artifact_class,test_owner_format_audit,test_owner_retained,test_serial_staging,test_serial_ack,test_serial_console))
     result=unittest.TextTestRunner(verbosity=2).run(suite)
     assert result.wasSuccessful() and not result.skipped
@@ -79,6 +80,8 @@ def main():
         cluttered_prompt_waits=walk['prompt_waits'], fresh_idle_answers=walk['fresh_idle_answers'],
         prompt_resyncs=walk['resyncs'],
         hidden_read_receipts=walk['hidden_reads'],
+        hidden_transition_shapes=walk['hidden_shapes'],
+        cursor_wait_shapes=walk['wait_shapes'],
         typed_profiles=sorted({profile for text,profile in walk['typed']}),
         sources=[dict(sha256=hashlib.sha256(p.read_bytes()).hexdigest(), path=p.relative_to(ROOT).as_posix())
                  for p in sorted(files)])

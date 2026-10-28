@@ -1,0 +1,74 @@
+{
+  "run": 40658792992,
+  "source": {
+    "sha256": "fbb69f3ca62f9dbd8792fd6cec0cd806017857f684ac57ef5ce13e4a9e4ad61c",
+    "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2-left-timeout-1.vcsa"
+  },
+  "public_cursor_fixture": {
+    "sha256": "a064207daa020fab513ac089f0aa5af1415935d9aa71b484e37fa13b382ee5aa",
+    "path": "os/tests/fixtures/owner-console/14zk-q8-prompt.vcsa",
+    "original_geometry_preserved": true,
+    "other_rows_blank": true
+  },
+  "readiness": {
+    "ready": true,
+    "physical_echo_enabled": false,
+    "reader_echo_enabled": false,
+    "prompt_at_cursor": true,
+    "observation": {
+      "reason": "Expected foreground reader",
+      "foreground_chain": [
+        {
+          "pid": 1962,
+          "comm": "login",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 1,
+          "pgrp": 1962,
+          "session": 1962,
+          "tty": 1027,
+          "tpgid": 1962
+        }
+      ]
+    },
+    "reader": {
+      "pid": 1962,
+      "ppid": 1,
+      "pgrp": 1962,
+      "session": 1962,
+      "tty": 1027,
+      "tpgid": 1962,
+      "start": "5050",
+      "exe": "/usr/bin/login",
+      "tty_path": "/dev/tty3",
+      "physical": 1027
+    }
+  },
+  "completion": {
+    "ready": false,
+    "reason": "Foreground interactive bash",
+    "observation": {
+      "reason": "Foreground interactive bash",
+      "foreground_chain": [
+        {
+          "pid": 2926,
+          "comm": "bash",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 1962,
+          "pgrp": 2926,
+          "session": 2926,
+          "tty": 1027,
+          "tpgid": 2926
+        }
+      ]
+    },
+    "value_recorded": false
+  },
+  "process_model_note": "Bash pid/ppid/pgrp/session/tty/tpgid/comm are exact captured fields; login parent post-tty0 and shell executable/argv come from pinned util-linux source and readiness receipt, not a retained post-read proc dump",
+  "raw_vcsa_committed": false
+}

@@ -34,6 +34,7 @@ OWNER_RESULT_WAIT = 840
 PROMPT_WAIT_IDS = itertools.count(1)
 SUDO_PROMPT = "[sudo] password for ares-recovery:"
 TOKEN_PROMPT = "Read-only token (hidden):"
+LAYOUT_PROMPT = 'Physically type'
 
 
 def type_text(guest, text, layout=None):
@@ -262,25 +263,51 @@ class Console:
         assert value['reader'] and value['prompt_at_cursor'] and value['reader_echo_enabled'] is False
         self.pending_hidden = dict(stage=stage, expected=expected, reader=value['reader'], epoch=epoch)
 
-    def send_hidden(self, value, layout=None):
+    def send_hidden(self, value, layout=None, public_inputs=(), expect_rejection=False):
         pending = self.pending_hidden
         assert pending is not None, 'No hidden reader authority'
         assert not pending.get('sent'), 'Hidden value already sent; no retry'
         assert getattr(self.guest, 'owner_input_epoch', 0) == pending['epoch'], 'Input revoked hidden reader authority'
+        assert not expect_rejection or pending['expected']['kind'] == 'login'
+        if public_inputs:
+            assert pending['expected']['kind'] == 'sudo' and pending['expected']['next'] == owner_hidden.owner_reader(['layout','proof'])
+            assert all(prompt == LAYOUT_PROMPT and not hidden for prompt, _, hidden in public_inputs), 'Unwalked hidden-read continuation'
         pending['sent'] = True
         self.guest.screenshot_safe = False
         type_text(self.guest, value + '\n', layout)
-        epoch = self.guest.owner_input_epoch
         # No secret goes into this script/receipt. Never resend after a timeout.
         self.resync_serial_after_hidden(pending['stage'] + '-read-left')
+        for number, (prompt, public_value, _) in enumerate(public_inputs, 1):
+            epoch = self.guest.owner_input_epoch
+            handoff = self.guest.capture_json(pending['stage'] + '-handoff-' + str(number), sw.framed('python3 -c ' + shlex.quote(
+                owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], handoff=prompt))))
+            assert self.guest.owner_input_epoch == epoch, 'Input revoked public handoff'
+            assert not handoff['ready'] and handoff.get('handoff_ready') and handoff['reader_left'], 'No verified public reader after sudo'
+            type_text(self.guest, public_value + '\n')
+        epoch = self.guest.owner_input_epoch
+        timeout = OWNER_RESULT_WAIT if pending['expected']['kind'] == 'owner' or public_inputs else 60
         result = self.guest.capture_json(pending['stage'] + '-left', sw.framed('python3 -c ' + shlex.quote(
-            owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader']))))
+            owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], timeout=timeout))))
         assert self.guest.owner_input_epoch == epoch, 'Input revoked hidden read completion'
         assert type(result['ready']) is bool
+        if result.get('rejected') and expect_rejection:
+            assert not result['ready'], 'Rejected login cannot grant completion'
+            self.pending_hidden = None
+            return result
+        if not result['ready'] and result.get('reader_left') and result.get('shell_idle') and not result.get('prompt_at_cursor'):
+            # A departed reader plus the independent idle observer authorizes
+            # only the existing bounded redraw. Completion still needs prompt.
+            self.completed_epoch = epoch
+            self.prompt(pending['stage'] + '-transition-prompt')
+            epoch = self.guest.owner_input_epoch
+            result = self.guest.capture_json(pending['stage'] + '-left-after-resync', sw.framed('python3 -c ' + shlex.quote(
+                owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], timeout=timeout))))
+            assert self.guest.owner_input_epoch == epoch, 'Input revoked resynchronized completion'
         if not result['ready']:
             retain_vcsa(self.tty, pending['stage'] + '-left', 1, base64.b64decode(result['raw'], validate=True))
             raise AssertionError('Hidden reader did not leave its read; secret will not be retyped')
         self.pending_hidden = None
+        return result
 
     def login(self, password, stage, wrong=False):
         self.select()
@@ -290,8 +317,9 @@ class Console:
         self.hidden(stage + '-password-prompt', dict(kind='login'), 'Password:')
         # The failure fixture deliberately uses German physical positions while
         # the loaded map is plain US. This does not claim the password was typed.
-        self.send_hidden(password, 'de' if wrong else None)
+        result = self.send_hidden(password, 'de' if wrong else None, expect_rejection=wrong)
         if wrong:
+            assert result['rejected'] and not result['ready'], 'Layout failure did not reject the login'
             self.resync_serial_after_hidden(stage)
             wait_tty(self.guest, self.tty, "'Login incorrect' in full and line.endswith('login:')", stage + '-rejected')
             self.guest.command(stage + '-no-session', 'set -e; if pgrep -t ' + self.tty + ' -u 1000 -x bash; then exit 1; fi')
@@ -333,12 +361,12 @@ class Console:
         if not value['ready']:
             retain_vcsa(self.tty, stage + '-physical-idle', 1, base64.b64decode(value['raw'], validate=True))
             raise AssertionError('Hidden owner command did not return to an idle shell')
-        assert type(value['echo_enabled']) is bool and value['foreground_shell'], 'Hidden completion authority absent'
+        assert value['foreground_shell'], 'Hidden completion authority absent'
         self.completed_epoch = epoch
         # The original strict cursor predicate, three samples and at most two
         # recorded physical Enters apply only after the foreground shell returns.
         self.prompt(stage + '-after-hidden-ready')
-        td.save(stage + '-hidden-completed', dict(status='passed', echo_enabled=value['echo_enabled'],
+        td.save(stage + '-hidden-completed', dict(status='passed', completion_uses_echo=False,
             foreground_shell=True, input_epoch=epoch, token_recorded=False))
 
     def run(self, name, stage, inputs=(), password=None, expect_stop=False):
@@ -349,9 +377,11 @@ class Console:
         args = COMMANDS[name].split('/at ', 1)[-1].split()
         hidden_input = password is not None
         if password is not None:
+            assert all(not hidden for _, _, hidden in inputs), 'Unwalked hidden continuation after sudo'
             self.hidden(stage + '-sudo-hidden', owner_hidden.sudo_reader(['/var/lib/ares/at', *args], owner_hidden.owner_reader(args)), SUDO_PROMPT)
             self.guest.screenshot_safe = False
-            self.send_hidden(password)
+            self.send_hidden(password, public_inputs=inputs)
+            inputs = ()
         for prompt, value, hidden in inputs:
             if hidden:
                 hidden_input = True
@@ -583,14 +613,14 @@ exit 1''', timeout=360)
                 console.run('layout-revert', 'layout-us-revert')
                 guest.owner_layout = 'de'
                 second.login(password, 'layout-reverted-login')
-                second.run('layout-proof', 'layout-reverted-proof', inputs=(('Physically type', 'yz-/!ü', False),), password=password)
+                second.run('layout-proof', 'layout-reverted-proof', inputs=((LAYOUT_PROMPT, 'yz-/!ü', False),), password=password)
                 second.logout('layout-reverted-logout')
                 console.select()
                 console.run('layout-finish', 'layout-revert-finish')
                 console.run('layout-intl', 'layout-intl-begin')
                 guest.owner_layout = 'us-intl'
                 second.login(password, 'layout-intl-login')
-                second.run('layout-proof', 'layout-intl-proof', inputs=(('Physically type', 'yz-/!ü', False),), password=password)
+                second.run('layout-proof', 'layout-intl-proof', inputs=((LAYOUT_PROMPT, 'yz-/!ü', False),), password=password)
                 second.logout('layout-intl-logout')
                 console.select()
                 console.run('layout-finish', 'layout-intl-finish')
@@ -599,7 +629,7 @@ exit 1''', timeout=360)
                 guest.owner_layout = 'de'
                 second = Console(guest, 'tty4')
                 second.login(password, 'layout-back-de-login')
-                second.run('layout-proof', 'layout-back-de-proof', inputs=(('Physically type', 'yz-/!ü', False),), password=password)
+                second.run('layout-proof', 'layout-back-de-proof', inputs=((LAYOUT_PROMPT, 'yz-/!ü', False),), password=password)
                 second.logout('layout-back-de-logout')
                 console.select()
                 console.run('layout-finish', 'layout-de-finish')

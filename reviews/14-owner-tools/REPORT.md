@@ -1,5 +1,40 @@
 # 14: checked owner tools
 
+**14zk LOCAL ONLY:** hidden completion fixed and walked locally. Qualification8's
+STOP remains the latest VM result; acceptance is unmet. No push or dispatch.
+
+## 14zk REPORT — completion follows the reader transition
+
+**Done:** every physical hidden read now requires its reader to leave the
+foreground, followed by the verified idle shell/prompt or exact owner PASS/STOP:
+cursor result. Completion never consults ECHO. Reader readiness, process identity,
+parent/session/group and sudo-relay checks, one secret send, serial staging/SHA,
+redaction and bounded prompt resync remain strict.
+
+**Verified:** read-only pinned-base RPM/unit/source proof confirms util-linux
+2.41.5/systemd 259.9 and login's persistent PAM parent/new Bash session. Exact
+private q8 console/chain replay and a real PTY login-like parent with idle Readline
+ECHO-off pass; waiting getpass, wrong-reader and stale-result refusals pass.
+Host parser waits no longer consume the test's guest clock.
+The host walk passes 270 tests/499.358s: 22 read pairs, 119 cluttered waits,
+three public handoffs. Login, verify, switch, AresOS boots, all layout steps,
+rollback and keep-stock are covered; no uncovered physical Console wait.
+The deliberately rejected login and public challenge never grant completion.
+
+Whole suite: 479 tests/601.101s, 471 distinct passes, the same eight documented
+native host limitations (2 failures/9 errors), zero skips. Strict checks pass:
+549 guest/wrapper scripts, 524 embedded Python, 12 shells, 47 Python files and
+the native workflow body. Commands, results and
+helper/VM coverage limits: [local verification](../../os/manifest/ci/14/14zk-local/verification.json),
+[parent sources](../../os/manifest/ci/14/14zk-local/parent-sources.json).
+
+**Not verified:** this fix in a VM; no Actions run, push, merge or PR-state change.
+Owner payload, guides/release gate, frozen runtime/release, workflows/privacy rules
+and budget settings are unchanged. Ledger stays 1019/1200, probe 19/19 and
+qualification 8/8; closing 0/reserve 0 remain pending acceptance. Pinned gitleaks
+8.21.2 full-history/pending scans report zero; diff check passes. Local commit only.
+No new PLAN-GAP or product judgment call. Owner decides the next funded run.
+
 **14zj STOP: probe19 passed; qualification8 stopped at the first installed-system
 physical login's read-completion proof.** No rerun or extra push. PR #13 remains
 draft / NOT RELEASED. The pushed implementation is `85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7`; the STOP packet is

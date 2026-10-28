@@ -7,10 +7,28 @@ import os
 import pathlib
 import re
 import tempfile
+import time
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from test_owner_sudo_idle import relay, TTY
+
+
+def execute_screen(source, raw):
+    """Run the actual cursor predicate and three-sample loop, no host VCSA."""
+    output = io.StringIO()
+    class Clock:
+        now = 0
+        def monotonic(self): return self.now
+        def sleep(self, delay): self.now += delay
+    clock = Clock()
+    def read(path):
+        assert str(path) in ('/dev/vcsa3','/dev/vcsa4')
+        return raw
+    with patch.object(pathlib.Path,'read_bytes',read), patch.object(time,'monotonic',clock.monotonic), \
+            patch.object(time,'sleep',clock.sleep), contextlib.redirect_stdout(output):
+        exec(compile(source,'modelled-cursor-predicate','exec'),{})
+    return json.loads(output.getvalue())
 
 
 def execute_idle(source, raw, rows=None):
@@ -51,25 +69,58 @@ def execute_idle(source, raw, rows=None):
         return json.loads(output.getvalue())
 
 
-def execute_hidden(source, leaves=True):
-    """Execute a composed hidden-read command on synthetic proc/termios facts."""
-    import termios
-    from test_owner_hidden import Proc, nested, vcsa, PROMPT
-    calls = [n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.Call)
-        and isinstance(n.func, ast.Name) and n.func.id in ('hidden_observation', 'hidden_left')]
-    call, = calls
-    tty, expected, third = [ast.literal_eval(n) for n in call.args]
-    physical = 4 * 256 + int(tty[3:])
-    leaving = call.func.id == 'hidden_left'
+def hidden_rows(physical, expected, phase, leaves=True, rejected=False):
+    from test_owner_sudo_idle import row
+    from test_owner_hidden import nested
+    login = row(1962,1,1962,1962,physical,1962,'login',['login','--','ares-recovery'])
+    shell = row(2926,1962,2926,2926,physical,2926,'bash',['-bash'])
     if expected['kind'] == 'owner':
-        rows = nested(physical, 136 * 256 + 2, 40, expected['argv'])
-    elif expected['kind'] == 'login':
-        rows = [dict(pid=10, ppid=1, pgrp=10, session=10, tty=physical,
-            tpgid=10, comm='login', args=['login', '--', 'ares-recovery'])]
-    else:
-        rows = [dict(pid=20, ppid=1, pgrp=20, session=20, tty=physical,
-            tpgid=20, comm='sudo', args=expected['argv'])]
-    raw = vcsa(('root@bazzite:~# ' if leaves else PROMPT) if leaving else third)
+        rows = nested(physical,136*256+2,40,expected['argv'])
+        if phase == 'left' and leaves:
+            rows = rows[:4]
+            rows[2]['tpgid'] = rows[3]['tpgid'] = rows[3]['pgrp']
+        return rows, 'nested-owner-getpass' if phase != 'left' or not leaves else 'sudo-i-readline'
+    if expected['kind'] == 'login':
+        if phase == 'left' and leaves and not rejected:
+            login.update(tty=0,tpgid=-1)
+            return [login,shell], 'persistent-login-readline'
+        return [login], 'login-rejected' if rejected else 'getty-login-reader'
+    login.update(tty=0,tpgid=-1)
+    shell['tpgid'] = 3000
+    front = row(3000,2926,3000,2926,physical,3000,'sudo',expected['argv'])
+    if phase == 'ready' or not leaves:
+        return [login,shell,front], 'sudo-password-reader'
+    if expected['next']['kind'] == 'shell' or phase == 'handoff':
+        monitor = row(3001,3000,3001,3001,136*256+1,3002,'sudo',expected['argv'])
+        child = row(3002,3001,3002,3001,136*256+1,3002,'bash',['-bash'])
+        if phase == 'handoff':
+            child.update(pid=4000,pgrp=4000,tpgid=4000,comm='python3',args=expected['next']['argv'])
+            monitor['tpgid'] = 4000
+        return [login,shell,front,monitor,child], 'sudo-owner-public-handoff' if phase == 'handoff' else 'sudo-i-readline'
+    shell['tpgid'] = shell['pid']
+    return [login,shell], 'persistent-login-readline'
+
+
+def execute_hidden(source, leaves=True, rejected=False, facts=False, raw=None):
+    """Real composed proof over proc/VCSA facts; ECHO is always off.
+
+    Completion deliberately traps tcgetattr so an ECHO dependency cannot pass.
+    """
+    import termios
+    from test_owner_hidden import Proc, vcsa, PROMPT
+    names = ('hidden_observation','hidden_left','hidden_handoff')
+    calls = [n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name) and n.func.id in names]
+    call, = calls
+    tty, expected, third = [ast.literal_eval(n) for n in call.args[:3]]
+    physical = 4 * 256 + int(tty[3:])
+    phase = 'ready' if call.func.id == 'hidden_observation' else 'handoff' if call.func.id == 'hidden_handoff' else 'left'
+    if phase != 'ready':
+        assert 'tcgetattr' not in source, 'Completion script contains an ECHO check'
+    rows, shape = hidden_rows(physical, expected, phase, leaves, rejected)
+    text = third if phase == 'ready' else ('Physically type yz-/!ü then Return:' if phase == 'handoff'
+        else 'Login incorrect\nlocalhost login:' if rejected else 'root@bazzite:~# ' if leaves else PROMPT)
+    raw = vcsa(text) if raw is None else raw
     with tempfile.TemporaryDirectory(dir=pathlib.Path(__file__).parent) as folder:
         proc = Proc(folder, rows).root
         read_text, read_bytes, glob, readlink = pathlib.Path.read_text, pathlib.Path.read_bytes, pathlib.Path.glob, os.readlink
@@ -78,8 +129,11 @@ def execute_hidden(source, leaves=True):
             return proc / p.relative_to('/proc') if str(p).startswith('/proc/') else p
         def open_tty(path, *args, **kw):
             if str(path) == '/dev/' + tty: return 123
-            assert str(path) == '/dev/pts/2', path
+            assert str(path).startswith('/dev/pts/'), path
             return 124
+        def terminal(fd):
+            assert phase == 'ready', 'Completion consulted ECHO'
+            return [0,0,0,0]
         output = io.StringIO()
         with contextlib.ExitStack() as stack:
             stack.enter_context(patch.object(pathlib.Path, 'read_text', lambda p: read_text(mapped(p))))
@@ -88,9 +142,11 @@ def execute_hidden(source, leaves=True):
             stack.enter_context(patch.object(os, 'readlink', lambda p: readlink(mapped(p))))
             stack.enter_context(patch.object(os, 'open', side_effect=open_tty))
             stack.enter_context(patch.object(os, 'close'))
+            # Owner getpass is on pts2; a second-console sudo is direct tty.
             stack.enter_context(patch.object(os, 'fstat', side_effect=lambda fd: SimpleNamespace(
                 st_rdev=os.makedev(4, int(tty[3:])) if fd == 123 else os.makedev(136, 2))))
-            stack.enter_context(patch.object(termios, 'tcgetattr', return_value=[0, 0, 0, termios.ECHO if leaving and leaves else 0]))
+            stack.enter_context(patch.object(termios, 'tcgetattr', side_effect=terminal))
             with contextlib.redirect_stdout(output):
                 exec(compile(source, 'modelled-hidden-reader', 'exec'), {})
-        return json.loads(output.getvalue())
+        value = json.loads(output.getvalue())
+    return (value,rows,shape) if facts else value

@@ -162,24 +162,22 @@ def hidden_idle_source(tty, timeout):
     command never grants Enter authority, even if output ends with '#'.
     """
     assert tty in ('tty3', 'tty4')
-    return ('import base64,json,os,pathlib,termios,time\n' + foreground_source()) + '''
+    return ('import base64,json,os,pathlib,time\n' + foreground_source()) + '''
 ready=False
-echo=False
 observation={}
 deadline=time.monotonic()+@TIMEOUT@
 while time.monotonic()<deadline:
     try:
         fd=os.open('/dev/@TTY@',os.O_RDONLY|os.O_NOCTTY|os.O_NONBLOCK)
         try:
-            echo=bool(termios.tcgetattr(fd)[3]&termios.ECHO)
             shell=foreground_is_shell(fd,observation)
         finally: os.close(fd)
         ready=shell
         if ready: break
-    except (OSError,termios.error): pass
+    except OSError: pass
     time.sleep(.2)
 raw=pathlib.Path('/dev/vcsa@NUMBER@').read_bytes() if not ready else b''
-print(json.dumps(dict(ready=ready,echo_enabled=echo,foreground_shell=ready,observation=observation,raw=base64.b64encode(raw).decode())))
+print(json.dumps(dict(ready=ready,completion_uses_echo=False,foreground_shell=ready,observation=observation,raw=base64.b64encode(raw).decode())))
 '''.replace('@TTY@', tty).replace('@NUMBER@', tty[3:]).replace('@TIMEOUT@', repr(timeout))
 
 

@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import shutil
 import shlex
 import string
@@ -25,7 +26,8 @@ import owner_media
 import test_owner_tools as common
 from owner_fuse_shim import Volume
 from guest_shell import syntax
-from owner_console_shim import execute_idle, execute_hidden
+from owner_console_shim import execute_idle, execute_hidden, execute_screen
+from test_owner_hidden import vcsa
 
 FIXTURES = ROOT / 'os/tests/fixtures/owner-tools'
 
@@ -37,6 +39,7 @@ def retained(name):
 def walk():
     visits, commands, typed, checks, markers = [], [], [], [], []
     prompt_waits, idle_answers, hidden_reads = {}, [], []
+    hidden_shapes, wait_shapes = [], []
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
     first = common.stock()
@@ -48,6 +51,7 @@ def walk():
             self.owner_physical_signed_in = False
             self.owner_media = None
             self.mode = 'installed'
+            self.idle_models, self.idle_shapes = {}, {}
             self.screenshot_safe = True
             self.process = Mock(); self.process.poll.return_value = None
             self.monitor = Mock()
@@ -66,32 +70,50 @@ def walk():
             if '# hidden-phase:' in source:
                 words = shlex.split(source)
                 script = words[words.index('python3') + 2]
-                result = execute_hidden(script)
-                assert result['ready']
-                hidden_reads.append((name, 'left' if '# hidden-phase: left' in script else 'ready'))
+                phase = 'handoff' if '# hidden-phase: handoff' in script else 'left' if '# hidden-phase: left' in script else 'ready'
+                rejected = phase == 'left' and 'layout-plain-us' in name
+                result, rows, shape = execute_hidden(script, rejected=rejected, facts=True)
+                assert (result.get('handoff_ready') and not result['ready']) if phase == 'handoff' else (result.get('rejected') and not result['ready']) if rejected else result['ready']
+                tty, = re.findall(r"(?:hidden_observation|hidden_left|hidden_handoff)\('(?P<tty>tty[34])'", script)
+                if phase == 'left':
+                    self.idle_models[tty] = rows
+                    self.idle_shapes[tty] = shape
+                hidden_reads.append((name, phase))
+                hidden_shapes.append(dict(boot=self.stage, tty=tty, stage=name, phase=phase, shape=shape, completion=result['ready'] if phase=='left' else None,
+                    expected_rejection=rejected, completion_uses_echo=False if phase!='ready' else None))
                 return result
             if 'ready=shell' in source:
                 words = shlex.split(source)
                 script = words[words.index('python3') + 2]
                 # Execute the real read-only observer on the pinned sudo relay
                 # model at every wait, not a pre-granted Boolean authority.
-                value = execute_idle(script, (ROOT / 'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes())
+                tty, = re.findall(r"os.open\('/dev/(tty[34])'", script)
+                value = execute_idle(script, (ROOT / 'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes(), rows=self.idle_models.get(tty))
                 idle_answers.append(name)
                 return value
-            if name.endswith('-physical-idle'):
-                return dict(ready=True,echo_enabled=False,foreground_shell=True,raw='')
             if 'base64.b64encode(data)' in source or 'base64.b64encode(raw)' in source:
-                if "bool(re.search(r'" in source:
-                    wait = name.rsplit('-sample-', 1)[0]
-                    prompt_waits[wait] = prompt_waits.get(wait, 0) + 1
-                    if prompt_waits[wait] == 1:
-                        return dict(ready=False, raw=base64.b64encode((ROOT /
-                            'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes()).decode())
-                # Readiness observation only; the dedicated VCSA tests execute
-                # the real reader. Every shell wait here is cluttered first.
-                return dict(ready=True, raw=base64.b64encode(
-                        bytes([1, 80, 15, 0]) + b''.join(bytes([c, 7]) for c in
-                            b'root@bazzite:~#'.ljust(80))).decode())
+                words=shlex.split(source);script=words[words.index('python3')+2]
+                tty,=re.findall(r"pathlib.Path\('/dev/(vcsa[34])'",script)
+                tty='tty'+tty[-1]
+                predicate,=re.findall(r'^    if \((.*)\):$',script,re.M)
+                if "bool(re.search(r'" in predicate:
+                    wait=name.rsplit('-sample-',1)[0]
+                    prompt_waits[wait]=prompt_waits.get(wait,0)+1
+                    raw=(ROOT/'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes() if prompt_waits[wait]==1 else vcsa('ares-recovery@bazzite:~$')
+                    kind='shell-prompt';shape=self.idle_shapes.get(tty,'sudo-i-readline')
+                elif "line.endswith('login:')" in predicate:
+                    raw=vcsa(('Login incorrect\n' if 'Login incorrect' in predicate else '')+'localhost login:')
+                    kind='rejected-login' if 'Login incorrect' in predicate else 'getty-login-prompt';shape='getty-login-reader'
+                elif predicate.endswith(' in full'):
+                    import ast
+                    prompt=ast.literal_eval(predicate.removesuffix(' in full'))
+                    assert prompt in ('Photographed Crucial serial:', 'Windows baseline Micron serial:', 'GitHub username:'), ('Uncovered public prompt',prompt)
+                    raw=vcsa(prompt);kind='public-owner-input';shape='nested-owner-reader'
+                else:
+                    raise AssertionError('Uncovered cursor wait: '+name)
+                result=execute_screen(script,raw)
+                wait_shapes.append(dict(boot=self.stage,tty=tty,stage=name,kind=kind,shape=shape,predicate_executed=True))
+                return result
             if name in ('offline-first-stock-link', 'stock-offline-login', 'live-offline-before-webui'):
                 return dict(status='passed', physical_link_down=True)
             if name == 'owner-record-list': return []
@@ -188,7 +210,7 @@ def walk():
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, checks=checks, markers=markers,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
-        hidden_reads=hidden_reads)
+        hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
 
 
 class OwnerWalkTest(unittest.TestCase):
@@ -261,6 +283,16 @@ class OwnerWalkTest(unittest.TestCase):
         for fragment in ('layout-us-begin','layout-plain-us-rejected','layout-us-revert','layout-intl-proof',
                          'layout-back-de-proof','rollback-from-stock-refused','owner-keep-stock'):
             self.assertTrue(any(fragment in n for n in names), fragment)
+        self.assertEqual({s['shape'] for s in result['hidden_shapes']}, {'getty-login-reader',
+            'persistent-login-readline','sudo-password-reader','sudo-i-readline',
+            'nested-owner-getpass','sudo-owner-public-handoff','login-rejected'})
+        left=[s for s in result['hidden_shapes'] if s['phase']=='left']
+        self.assertEqual(len(left),22)
+        self.assertEqual(sum(s['expected_rejection'] and not s['completion'] for s in left),1)
+        self.assertTrue(all(not s['completion_uses_echo'] for s in left))
+        self.assertEqual(sum(s['phase']=='handoff' for s in result['hidden_shapes']),3)
+        self.assertEqual({s['boot'] for s in left},set(result['stages'])-{'stock'})
+        self.assertTrue(all(s['predicate_executed'] for s in result['wait_shapes']))
         for text, profile in result['typed']:
             # Deliberately wrong positions in the plain-US failure use de.
             for char in text: vm.physical_keys(char, profile)

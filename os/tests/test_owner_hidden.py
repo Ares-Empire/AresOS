@@ -140,6 +140,12 @@ os.read(int(os.environ['FINISH_GATE']),1)
                 lambda p: raw if str(p) == '/dev/vcsa3' else original_read(p)):
             return hidden.hidden_observation('tty3', self.expected, PROMPT, self.model.root)
 
+    def completion(self, receipt):
+        original = pathlib.Path.read_bytes
+        raw = vcsa(self.output.decode('latin1'))
+        with patch.object(pathlib.Path, 'read_bytes', lambda p: raw if str(p) == '/dev/vcsa3' else original(p)):
+            return hidden.hidden_left('tty3', self.expected, receipt, self.model.root)
+
     def close(self):
         self.stop.set()
         try: os.killpg(self.process.pid, signal.SIGKILL)
@@ -207,8 +213,10 @@ class HiddenTest(unittest.TestCase):
             self.assertFalse(ready['reader_echo_enabled'])
             before = len(f.output); f.send(); f.until(b'READ_OK')
             self.assertNotIn(VALUE, f.output[before:])
-            left = hidden.hidden_left('tty3', f.expected, ready['reader'], f.model.root)
-            self.assertTrue(left['ready']); self.assertEqual(left['reason'], 'Reader tty echo restored')
+            left = f.completion(ready['reader'])
+            # Restored ECHO is not completion while the reader process still
+            # owns the foreground and has not produced a result/shell prompt.
+            self.assertFalse(left['ready']); self.assertFalse(left['completion_uses_echo'])
             self.assertFalse(left['value_recorded']); self.assertEqual(len(f.sent), 1)
 
     def test_busy_reader_with_echo_off_is_not_ready_without_cursor_prompt(self):
@@ -249,14 +257,18 @@ class HiddenTest(unittest.TestCase):
         proof = execute_hidden(hidden.source('tty3', expected, prompt=PROMPT))
         class Clock:
             now = 0
+            delays = []
             def monotonic(self): return self.now
-            def sleep(self, delay): self.now += delay
+            def sleep(self, delay):
+                self.delays.append(delay)
+                self.now += 10  # Model slow observations without 600 DrvFS scans.
         clock = Clock()
         with patch.object(time, 'monotonic', clock.monotonic), patch.object(time, 'sleep', clock.sleep):
             left = execute_hidden(hidden.source('tty3', expected, receipt=proof['reader']), leaves=False)
         self.assertFalse(left['ready']); self.assertFalse(left['value_recorded'])
         self.assertTrue(left['observation']['foreground_chain'])
         self.assertGreaterEqual(clock.now, 60); self.assertLess(clock.now, 60.2)
+        self.assertTrue(clock.delays and all(delay == .1 for delay in clock.delays))
 
     def test_three_sudo_transitions_pass_and_four_refuse(self):
         for hops in (3, 4):

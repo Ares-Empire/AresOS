@@ -1,0 +1,545 @@
+{
+  "status": "passed locally; VM qualification not performed",
+  "whole_suite": {
+    "tests": 479,
+    "seconds": 601.101,
+    "failures": 2,
+    "errors": 9,
+    "skips": 0,
+    "distinct_refusals": [
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "log": {
+      "sha256": "846d087fb408632cc75e99aa9b6b1d0c2eec52b5e47f06e8f3c0292ca2269855",
+      "path": ".work/14/14zk/whole-suite-final.log"
+    }
+  },
+  "distinct_passed": 471,
+  "host_walk": {
+    "tests": 270,
+    "seconds": 499.358,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "distinct_refusals": [],
+    "log": {
+      "sha256": "853f93c606a036b15165011184e07a4dda739727aad7d34494b6dcbb5b9877f2",
+      "path": ".work/14/14zk/host-walk-final.log"
+    }
+  },
+  "strict": {
+    "native_workflow_shells": 1,
+    "status": "passed",
+    "guest_scripts": 549,
+    "serial_wrappers": 549,
+    "stderr_policy": "any parse stderr, including warnings, refuses",
+    "embedded_python": 524,
+    "ci_release_shells": 12,
+    "ci_overlay_owner_python": 47,
+    "execution": "syntax/compile only; no guest, service, privilege or hardware operation"
+  },
+  "coverage": [
+    {
+      "boot": "tools-stock",
+      "physical_ttys": [
+        "tty3"
+      ],
+      "hidden_observations": [
+        {
+          "stage": "tools-stock-password-prompt-read-wait-357",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "tools-stock-password-prompt-read-wait-357-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "tools-stock-sudo-hidden-read-wait-360",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "tools-stock-sudo-hidden-read-wait-360-left",
+          "phase": "left",
+          "shape": "sudo-i-readline",
+          "completion": true,
+          "expected_rejection": false
+        }
+      ],
+      "cursor_samples": 39
+    },
+    {
+      "boot": "corrected-stock",
+      "physical_ttys": [
+        "tty3"
+      ],
+      "hidden_observations": [
+        {
+          "stage": "corrected-stock-password-prompt-read-wait-380",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "corrected-stock-password-prompt-read-wait-380-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "corrected-stock-sudo-hidden-read-wait-383",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "corrected-stock-sudo-hidden-read-wait-383-left",
+          "phase": "left",
+          "shape": "sudo-i-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "private-owner-login-hidden-input-read-wait-392",
+          "phase": "ready",
+          "shape": "nested-owner-getpass",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "private-owner-login-hidden-input-read-wait-392-left",
+          "phase": "left",
+          "shape": "sudo-i-readline",
+          "completion": true,
+          "expected_rejection": false
+        }
+      ],
+      "cursor_samples": 38
+    },
+    {
+      "boot": "aresos",
+      "physical_ttys": [
+        "tty3",
+        "tty4"
+      ],
+      "hidden_observations": [
+        {
+          "stage": "aresos-password-prompt-read-wait-403",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "aresos-password-prompt-read-wait-403-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "aresos-sudo-hidden-read-wait-406",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "aresos-sudo-hidden-read-wait-406-left",
+          "phase": "left",
+          "shape": "sudo-i-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-plain-us-password-prompt-read-wait-418",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-plain-us-password-prompt-read-wait-418-left",
+          "phase": "left",
+          "shape": "login-rejected",
+          "completion": false,
+          "expected_rejection": true
+        },
+        {
+          "stage": "layout-reverted-login-password-prompt-read-wait-423",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-reverted-login-password-prompt-read-wait-423-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-reverted-proof-sudo-hidden-read-wait-426",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-reverted-proof-sudo-hidden-read-wait-426-handoff-1",
+          "phase": "handoff",
+          "shape": "sudo-owner-public-handoff",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-reverted-proof-sudo-hidden-read-wait-426-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-intl-login-password-prompt-read-wait-436",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-intl-login-password-prompt-read-wait-436-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-intl-proof-sudo-hidden-read-wait-439",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-intl-proof-sudo-hidden-read-wait-439-handoff-1",
+          "phase": "handoff",
+          "shape": "sudo-owner-public-handoff",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-intl-proof-sudo-hidden-read-wait-439-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        }
+      ],
+      "cursor_samples": 73
+    },
+    {
+      "boot": "aresos-intl",
+      "physical_ttys": [
+        "tty3",
+        "tty4"
+      ],
+      "hidden_observations": [
+        {
+          "stage": "aresos-intl-password-prompt-read-wait-450",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "aresos-intl-password-prompt-read-wait-450-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "aresos-intl-sudo-hidden-read-wait-453",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "aresos-intl-sudo-hidden-read-wait-453-left",
+          "phase": "left",
+          "shape": "sudo-i-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-back-de-login-password-prompt-read-wait-461",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-back-de-login-password-prompt-read-wait-461-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-back-de-proof-sudo-hidden-read-wait-464",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-back-de-proof-sudo-hidden-read-wait-464-handoff-1",
+          "phase": "handoff",
+          "shape": "sudo-owner-public-handoff",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "layout-back-de-proof-sudo-hidden-read-wait-464-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        }
+      ],
+      "cursor_samples": 39
+    },
+    {
+      "boot": "aresos-back-de",
+      "physical_ttys": [
+        "tty3"
+      ],
+      "hidden_observations": [
+        {
+          "stage": "aresos-back-de-password-prompt-read-wait-475",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "aresos-back-de-password-prompt-read-wait-475-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "aresos-back-de-sudo-hidden-read-wait-478",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "aresos-back-de-sudo-hidden-read-wait-478-left",
+          "phase": "left",
+          "shape": "sudo-i-readline",
+          "completion": true,
+          "expected_rejection": false
+        }
+      ],
+      "cursor_samples": 23
+    },
+    {
+      "boot": "rollback-stock",
+      "physical_ttys": [
+        "tty3"
+      ],
+      "hidden_observations": [
+        {
+          "stage": "rollback-stock-password-prompt-read-wait-489",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "rollback-stock-password-prompt-read-wait-489-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "rollback-stock-sudo-hidden-read-wait-492",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "rollback-stock-sudo-hidden-read-wait-492-left",
+          "phase": "left",
+          "shape": "sudo-i-readline",
+          "completion": true,
+          "expected_rejection": false
+        }
+      ],
+      "cursor_samples": 27
+    },
+    {
+      "boot": "default-stock",
+      "physical_ttys": [
+        "tty3"
+      ],
+      "hidden_observations": [
+        {
+          "stage": "default-stock-password-prompt-read-wait-505",
+          "phase": "ready",
+          "shape": "getty-login-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "default-stock-password-prompt-read-wait-505-left",
+          "phase": "left",
+          "shape": "persistent-login-readline",
+          "completion": true,
+          "expected_rejection": false
+        },
+        {
+          "stage": "default-stock-sudo-hidden-read-wait-508",
+          "phase": "ready",
+          "shape": "sudo-password-reader",
+          "completion": null,
+          "expected_rejection": false
+        },
+        {
+          "stage": "default-stock-sudo-hidden-read-wait-508-left",
+          "phase": "left",
+          "shape": "sudo-i-readline",
+          "completion": true,
+          "expected_rejection": false
+        }
+      ],
+      "cursor_samples": 18
+    }
+  ],
+  "requested_action_waits": [
+    "private-owner-login",
+    "owner-signature",
+    "owner-switch",
+    "layout-us-begin",
+    "layout-us-revert",
+    "layout-reverted-proof",
+    "layout-revert-finish",
+    "layout-intl-begin",
+    "layout-intl-proof",
+    "layout-intl-finish",
+    "layout-de-begin",
+    "layout-back-de-proof",
+    "layout-de-finish",
+    "owner-rollback",
+    "rollback-from-stock-refused",
+    "owner-keep-stock"
+  ],
+  "uncovered_owner_console_stages": [],
+  "cluttered_prompt_waits": 119,
+  "hidden_read_pairs": 22,
+  "public_handoffs_not_completion": 3,
+  "negative_login_refusals_not_completion": 1,
+  "completion_signal": "reader leaves foreground plus verified idle shell and cursor prompt, or exact owner PASS / STOP: cursor result; no ECHO",
+  "deadlines": {
+    "login_or_sudo_shell": 60,
+    "owner_completion": 840,
+    "serial_command": 900,
+    "job_or_vm_limits_changed": false
+  },
+  "bound_source_count": 119,
+  "existing_helpers": {
+    "serial_bootstrap": "Unchanged UART prompt/nonce completion; no ECHO completion signal. No live UART boot in this local run.",
+    "public_keyboard": "Existing keyboard stand-in tests cover tty/foot public typing; owner walk substitutes public typing and checks its physical prompt. No actual guest typing in this run."
+  },
+  "local_only": true,
+  "vm_runs": 0,
+  "pushes": 0,
+  "acceptance_met": false,
+  "early_failures_fixed": [
+    "owner result line exited before three stable observations",
+    "clutter test redrew on the synthetic password terminator before observing clutter",
+    "fake guest clock also counted host Bash subprocess exit waits; host parser now uses real clock",
+    "larger completion transport timed out the unchanged local lost-chunk test; readiness and completion now stage only their own required helpers"
+  ],
+  "commands": [
+    {
+      "command": "python3 -m unittest discover -s os/tests -v",
+      "environment": {
+        "PATH_prefix": ".work/14/local/bin (sudo refuses every invocation)",
+        "TMPDIR": ".work/14/local/tmp"
+      },
+      "result": "479 tests/601.101s; 471 distinct passes, exactly the listed eight host limitations, 2 failures/9 errors, zero skips"
+    },
+    {
+      "command": "python3 reviews/14-owner-tools/walk-host.py",
+      "environment": {
+        "PATH_prefix": ".work/14/local/bin",
+        "TMPDIR": ".work/14/local/tmp"
+      },
+      "result": "270 tests/499.358s OK; PASS local owner host walk; no stick across any reboot; no VM started"
+    },
+    {
+      "command": "python3 .work/14/14zk/strict.py",
+      "result": "passed; 549 guest/serial wrappers, 524 embedded Python, 12 shells, 47 Python, native workflow body; zero parse stderr"
+    },
+    {
+      "command": "python3 .work/14/14zk/replay-q8.py",
+      "result": "PASS exact private q8 VCSA + retained foreground chain; no decoded console saved"
+    },
+    {
+      "command": "python -X utf8 .work/14/14zk-parent-source.py",
+      "result": "PASS pinned base getty member ancestry + byte equality; matching util-linux2.41.5/systemd259.9 and login/agetty source"
+    },
+    {
+      "command": "python -X utf8 .work/14/14zk/scope.py",
+      "result": "PASS frozen paths, payload, budgets, fixture hashes and noreply author; local-only scope"
+    },
+    {
+      "command": ".work/14/gitleaks/gitleaks.exe git . --log-opts=\"--all --full-history\" --redact=100 --no-banner --log-level warn --report-format json --report-path .work/14/gitleaks/14zk-history.json",
+      "result": "exit0; zero findings"
+    },
+    {
+      "command": ".work/14/gitleaks/gitleaks.exe dir .work/14/14zk-pending --redact=100 --no-banner --log-level warn --report-format json --report-path .work/14/gitleaks/14zk-pending.json",
+      "result": "exit0; zero findings"
+    },
+    {
+      "command": "git diff --check",
+      "result": "exit0; no output"
+    }
+  ],
+  "privacy": {
+    "version": "8.21.2",
+    "binary": {
+      "sha256": "671591bd75e11fcd4a25732852afbbf0c3892b368181164ba19aa72e7513af8e",
+      "path": ".work/14/gitleaks/gitleaks.exe"
+    },
+    "full_history_findings": 0,
+    "pending_findings": 0,
+    "ignore_or_rules_changed": false
+  }
+}

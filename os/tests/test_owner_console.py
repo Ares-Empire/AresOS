@@ -7,8 +7,10 @@ import json
 import pathlib
 import re
 import shlex
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -16,12 +18,20 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'os/ci'))
 import owner_console as vc
 import owner_vm as vm
-from guest_shell import syntax
+from guest_shell import syntax as guest_syntax
 from owner_console_shim import execute_idle
 from test_owner_sudo_idle import relay, row, PTS
 
 FIXTURE = ROOT / 'os/tests/fixtures/owner-console'
 PROMPT = b'root@bazzite:~# '
+HOST_SLEEP, HOST_MONOTONIC = time.sleep, time.monotonic
+
+
+def syntax(name, source):
+    # subprocess.wait may sleep while the Bash parser exits. Those real host
+    # waits must not spend the fake guest's readiness deadline by spinning.
+    with patch.object(time,'sleep',HOST_SLEEP),patch.object(time,'monotonic',HOST_MONOTONIC):
+        guest_syntax(name,source)
 
 
 def redrawn():
@@ -89,6 +99,18 @@ class ConsoleTest(unittest.TestCase):
         paths = [p for p in self.evidence.iterdir() if re.fullmatch(expression, p.name)]
         self.assertEqual(len(paths), 1, pattern)
         return paths[0]
+
+    def test_host_parser_exit_wait_cannot_spend_guest_deadline(self):
+        original=subprocess.Popen
+        def delayed_exit(args,**kwargs):
+            self.assertEqual(args,['bash','--noprofile','--norc','-n'])
+            # Pipes may close before process exit. Popen's real wait sleeps
+            # must never advance the simulated physical-console clock.
+            return original(['bash','--noprofile','--norc','-c',
+                'exec 1>&- 2>&-; sleep 0.02'],**kwargs)
+        before=self.clock.now
+        with patch.object(subprocess,'Popen',side_effect=delayed_exit):syntax('host-wait','true\n')
+        self.assertEqual(self.clock.now,before)
 
     def complete_then_clutter(self):
         self.console.prompt('completion-observed')
@@ -254,6 +276,33 @@ class ConsoleTest(unittest.TestCase):
         self.assertEqual(self.guest.pressed,[['ret']])
         self.assertTrue(json.loads(self.receipt('secret-done-after-hidden-ready-resync-1.json').read_text())['enter_sent'])
         self.assertTrue(json.loads((self.evidence/'secret-done-hidden-completed.json').read_text())['foreground_shell'])
+
+    def test_departed_reader_with_clutter_redraws_then_reproves_the_transition(self):
+        from owner_console_shim import execute_hidden
+        capture=self.guest.capture_json
+        observed=[]
+        def observe(name,source):
+            if '# hidden-phase:' in source:
+                script=shlex.split(source)[shlex.split(source).index('python3')+2]
+                raw=None if '# hidden-phase: ready' in script else self.guest.raw
+                value=execute_hidden(script,raw=raw)
+                observed.append((name,value['ready']))
+                if not value['ready']:self.guest.redraw_on_enter=True
+                return value
+            return capture(name,source)
+        with patch.object(self.guest,'capture_json',side_effect=observe):
+            self.console.hidden('transition',dict(kind='login'),'Password:')
+            self.guest.raw=self.clutter;self.guest.redraw_on_enter=False
+            value=self.console.send_hidden('synthetic-fixture')
+        self.assertTrue(value['ready'] and value['reader_left'])
+        self.assertIsNone(self.console.pending_hidden)
+        self.assertEqual([ready for _,ready in observed],[True,False,True])
+        self.assertTrue(observed[-1][0].endswith('-left-after-resync'))
+        # One Enter terminates the sole synthetic hidden send; the other is
+        # the existing independently-observed idle prompt redraw.
+        self.assertEqual(self.guest.pressed.count(['ret']),2)
+        event,=self.evidence.glob('*transition-prompt*resync-1.json')
+        self.assertTrue(json.loads(event.read_text())['observer']['ready'])
 
     def test_typing_during_hidden_completion_revokes_enter_authority(self):
         self.guest.owner_input_epoch=7
