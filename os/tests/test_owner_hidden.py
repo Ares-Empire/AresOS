@@ -324,7 +324,7 @@ class HiddenTest(unittest.TestCase):
         c.pending_hidden = dict(stage='synthetic-read', epoch=0, expected=hidden.owner_reader(['login']),
             reader=dict(pid=10, start='1', exe='/usr/bin/python3', tty=34818, tty_path='/dev/pts/2', physical=1027))
         calls = []
-        def type_once(g, text, layout): calls.append(text); g.owner_input_epoch += 1
+        def type_once(g, text, layout, counts=None): calls.append(text); g.owner_input_epoch += 1
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as folder, patch.object(vm.td, 'EVIDENCE', pathlib.Path(folder)), \
                 patch.object(vm, 'type_text', side_effect=type_once):
             with self.assertRaisesRegex(AssertionError, 'will not be retyped'): c.send_hidden(VALUE.decode())

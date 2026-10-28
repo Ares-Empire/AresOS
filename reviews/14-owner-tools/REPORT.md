@@ -1,5 +1,67 @@
 # 14: checked owner tools
 
+## 14zn REPORT — token read diagnostics and 180-second completion wait
+
+**Done:** the harness collects read-only TIOCINQ/TIOCOUTQ counts and ICANON,
+ECHO, ICRNL, IXON, IEXTEN and ISIG for tty3, every relay pts and the reader pts
+(also the selected physical tty4). It exports per-process state, wchan and only
+the syscall number; active VT, keyboard mode/LED getters and Python/sudo versions.
+It never reads queued input, exports syscall arguments or stores a secret/key
+sequence. Actual successfully sent QMP chord and press/release-event counts,
+length, final-Return flag and non-default mapping classes accompany the snapshot.
+Token completion gets an immediate serial snapshot and a **180s** observer wait;
+any hidden completion refusal gets a final snapshot and raw VCSA before STOP.
+Post-completion physical-idle refusals also collect diagnostics. Other60s/840s
+waits and the900s UART deadline remain unchanged. There is no secret retype.
+The owner payload/fingerprint, guides, runtime, workflows and privacy rules are
+unchanged. Fixture adapters accept counters and distinguish readiness from the
+new post-send diagnostics; no assertion, bound, skip or marker was weakened.
+
+**Guest source check:** read-only extraction from the pinned image's layer
+ancestry gives Python3.14.8, with getpass.py byte-identical to
+[CPython3.14.8](https://raw.githubusercontent.com/python/cpython/v3.14.8/Lib/getpass.py).
+Compared with [3.12](https://raw.githubusercontent.com/python/cpython/v3.12.0/Lib/getpass.py),
+3.14 adds optional echo_char; this tool uses its default None, so it still clears
+ECHO, preserves ICANON, flushes before printing the prompt, reads a line and
+restores settings before newline/return. The3.13 getuser exception change does
+not affect this read. Pinned sudo is1.9.17-10.p2.fc44 with use_pty enabled and no
+override. Matching [1.9.17p2 relay source](https://github.com/sudo-project/sudo/blob/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/src/exec_pty.c)
+versus [1.9.15p5](https://github.com/sudo-project/sudo/blob/SUDO_1_9_15p5/src/exec_pty.c)
+has initialization, terminal-revocation/SIGHUP and fd-to-foreground-group matching
+changes; ordinary read/write buffer forwarding is retained and exec_iolog.c is
+byte-identical. The [release notes](https://github.com/sudo-project/sudo/blob/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/NEWS)
+also describe Linux serial-console and password echo-flush fixes. These are
+source differences, **not proof** of Q9's cause. The integrator's successful
+3.12/1.9.15 nested-sudo reproduction is accepted; the new VM observations must
+locate the remaining VT/keyboard/version/token difference.
+
+**Verified locally:** final whole suite484/627.893s, 475 distinct
+passes, 9 observed previously approved host limitations, zero skips.
+The unchanged30s case remains mandatory in native CI; historical30.010278s and
+31.896785s are host limitations, not CI exceptions. This full local run measured
+32.613702s against that same30s bound; the isolated two-case run passed. Five collector/deadline/
+counter tests pass with modelled proc/ioctls, including missing processes and
+ioctl refusal without exported exception text. The two real PTY login/limited-
+serial/lost-result tests pass with diagnostics staged and SHA-verified. The
+current all-stage walk covers22 hidden pairs,3 public handoffs, the token-start
+snapshot and every later wait; strict Bash/Python checks pass. Full ISO replay
+passed against all9,068,650,496 bytes and a fresh official checksum; actual
+release/git/53-source replay and four no-repeat controller tests pass. Four
+credential-only registry checks remain explicitly CI-only and fail closed.
+[Source-bound preparation](../../os/manifest/ci/14/14zn-preflight/preparation.json).
+
+**Budget / pending:** complete118/118 history:1124 consumed +238 planned /1500.
+Package14 remains probe22/owner-tools11, reserve0/closing0. The$10/prevent=true
+guard deducts net charged Actions spend. Pinned local gitleaks must be clean
+before the single fast-forward push. Fresh exact-head privacy and a fresh guard
+precede probe21; qualification10 requires its acceptance on the same head.
+Any CI stop ends the round with diagnostics and no rerun. PR #13 remains draft
+and acceptance is unmet; restore reserve150/closing12 only upon acceptance.
+
+**Not verified:** native484/no skips, actual new diagnostics and full VM owner
+route on this head. **PLAN-GAP / open question:** where the private token input
+stops remains unproved. No owner tool, image or physical laptop change.
+
 **14zm STOP: probe20 passed; qualification9 stopped at the private registry
 login's hidden-read completion.** One push and one of each planned dispatch;
 no rerun or further push. PR #13 remains draft / NOT RELEASED.

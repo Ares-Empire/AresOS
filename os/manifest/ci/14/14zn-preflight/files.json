@@ -1,0 +1,80 @@
+{
+  "files": [
+    {
+      "sha256": "d22a14f4fd4dc038f0a05b708545a22e9682e713de6a4d8952fa57c961fd54bf",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "7c109d0a16d001912aa218f0071c664202e3185e1ae36388bba0b75825421316",
+      "path": "budget-snapshot.json"
+    },
+    {
+      "sha256": "b8cbaf270e93a1346d5b740169d391271b67257dac9d37a4165a3d2ddbc9eedb",
+      "path": "cache-reclaim.json"
+    },
+    {
+      "sha256": "3f7b3a7524295cf2dd4e772956238162a9d3ecf4d1c7676b17a140022d0f8f21",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
+      "path": "dispatch-watcher.py"
+    },
+    {
+      "sha256": "cbc9ccee1d40170ed7bf6aa577dc2eb7178d0bf0bdc4e7227a528ac95dc6a1a2",
+      "path": "guest-versions.json"
+    },
+    {
+      "sha256": "e79faca8f054a66df6f1c24ff10b7d69509d1629b6c2d2b35f143097445242b6",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "cf1474481385a6ed17e0f8f251b76ce255aadca9873272ec4fe9e8348951a544",
+      "path": "installer-replay.json"
+    },
+    {
+      "sha256": "b46bbfb17ae258cf2383ee44c79786fc453d5fd7ac49a77762be8d014016be42",
+      "path": "installer-retry.py"
+    },
+    {
+      "sha256": "f0065398d8ef1f65b43a0f50256b207d7e504d10575aa807325bf3e92751b437",
+      "path": "local-receipt.py"
+    },
+    {
+      "sha256": "eed4b7f9011296e9c82b679b804d1bc6a5974d919a9bee07f4c1542d51a088da",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "e819a2a77ff77df244419d18335ab9b2647f91062687557dbb322428a43b4ad3",
+      "path": "probe-review.py"
+    },
+    {
+      "sha256": "f234048952427bfd79e772949f991d665d4158b1c9c78b43f59a9eacc14cc675",
+      "path": "push-once.py"
+    },
+    {
+      "sha256": "7a5a84ae8240563b2fb71696e10727b10e3316bce790adfdd8faa6190c4623f8",
+      "path": "qualification-installer.py"
+    },
+    {
+      "sha256": "3f857a96d345de4f63b221f3cc41f904bd6b9c15e86a14338b81087e8f9b6361",
+      "path": "qualification-retry.py"
+    },
+    {
+      "sha256": "825b31b178c5eb86e16973a96a0ff9cf19f90a1c620adefa890ece675af9b24e",
+      "path": "qualification-review.py"
+    },
+    {
+      "sha256": "2465c1cb88ee7e247856dc4225629c3a25df4149072217e240fcfb8a381dd63e",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "42b3d1947afe3222b2cfdcffb40c369fdf7b21a489b51a0c50541a05fa4b240b",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "af3f79cc05c3a4b03f07e97d89fd792382b90f193f551372a46dbd70807ea60f",
+      "path": "test_dispatch_control.py"
+    }
+  ]
+}

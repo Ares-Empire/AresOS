@@ -67,6 +67,10 @@ def walk():
         def capture_json(self, name, source):
             syntax(name, source)
             commands.append((name, source))
+            if '# hidden-read-diagnostics' in source:
+                from test_owner_read_diagnostics import execute_diagnostics
+                words = shlex.split(source)
+                return execute_diagnostics(words[words.index('python3') + 2])
             if '# hidden-phase:' in source:
                 words = shlex.split(source)
                 script = words[words.index('python3') + 2]
@@ -174,9 +178,9 @@ def walk():
         checks.append(stage + '-physical-observer')
 
     original = vm.type_text
-    def collect(guest, text, layout=None):
+    def collect(guest, text, layout=None, counts=None):
         typed.append((text, layout or guest.owner_layout))
-        original(guest, text, layout)
+        original(guest, text, layout, counts=counts)
 
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
         stack.enter_context(patch.object(vm.Guest, 'network_up', False))

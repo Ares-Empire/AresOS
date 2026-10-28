@@ -22,7 +22,8 @@ import keyboard_entries as ke
 import offline_webui
 import owner_console
 import owner_hidden
-from owner_keys import physical_keys
+import owner_read_diagnostics
+from owner_keys import maps, physical_keys
 from owner_media import Media
 
 COMMANDS = json.loads(pathlib.Path('os/owner-tools/commands.json').read_text())
@@ -31,18 +32,24 @@ TEXT = 'yz-/!ü'
 PROBE_MEDIA = None
 OWNER_COMMAND_TIMEOUT = 900
 OWNER_RESULT_WAIT = 840
+TOKEN_RESULT_WAIT = 180
 PROMPT_WAIT_IDS = itertools.count(1)
 SUDO_PROMPT = "[sudo] password for ares-recovery:"
 TOKEN_PROMPT = "Read-only token (hidden):"
 LAYOUT_PROMPT = 'Physically type'
 
 
-def type_text(guest, text, layout=None):
+def type_text(guest, text, layout=None, counts=None):
     if text:
         # Shared by all physical consoles/observers, including hidden input.
         guest.owner_input_epoch = getattr(guest, 'owner_input_epoch', 0) + 1
     for char in text:
-        guest.keys(physical_keys(char, layout or guest.owner_layout))
+        keys = physical_keys(char, layout or guest.owner_layout)
+        guest.keys(keys)
+        if counts is not None:
+            counts['key_event_count'] += 2 * len(keys)  # QMP send-key presses/releases each key.
+            counts['key_chord_count'] += 1
+            counts['last_key_was_ret'] = keys == ['ret']
         time.sleep(0.12)
 
 
@@ -220,6 +227,7 @@ class Console:
         self.root = False
         self.completed_epoch = None
         self.pending_hidden = None
+        self.last_hidden = None
 
     def select(self):
         self.guest.keys(['ctrl', 'alt', 'f' + self.tty[3:]])
@@ -261,7 +269,16 @@ class Console:
             retain_vcsa(self.tty, stage, 1, base64.b64decode(value['raw'], validate=True))
             raise AssertionError('No verified hidden prompt')
         assert value['reader'] and value['prompt_at_cursor'] and value['reader_echo_enabled'] is False
-        self.pending_hidden = dict(stage=stage, expected=expected, reader=value['reader'], epoch=epoch)
+        self.pending_hidden = dict(stage=stage, expected=expected, reader=value['reader'], epoch=epoch,
+            token=expected == owner_hidden.owner_reader(['login']) and prompt.rstrip() == TOKEN_PROMPT)
+
+    def hidden_diagnostics(self, pending, phase):
+        name = pending['stage'] + '-diagnostics-' + phase
+        value = self.guest.capture_json(name, sw.framed('python3 -c ' + shlex.quote(
+            owner_read_diagnostics.source(self.tty, pending['expected'], pending['reader']))))
+        value.update(phase=phase, typed=pending.get('counts'), token=pending.get('token', False))
+        td.save(name, value)
+        return value
 
     def send_hidden(self, value, layout=None, public_inputs=(), expect_rejection=False):
         pending = self.pending_hidden
@@ -274,9 +291,24 @@ class Console:
             assert all(prompt == LAYOUT_PROMPT and not hidden for prompt, _, hidden in public_inputs), 'Unwalked hidden-read continuation'
         pending['sent'] = True
         self.guest.screenshot_safe = False
-        type_text(self.guest, value + '\n', layout)
+        # Counts/classes only; never export the value, individual keys or their order.
+        profile = layout or self.guest.owner_layout
+        classes = set()
+        for char in value:
+            keys = physical_keys(char, profile)
+            if 'shift' in keys: classes.add('shift')
+            if 'alt_r' in keys: classes.add('altgr')
+            if ord(char) > 127: classes.add('non_ascii')
+            if char in maps()['us'] and keys != physical_keys(char, 'us'):
+                classes.add('layout_differs_from_us')
+        pending['counts'] = dict(length=len(value), key_event_count=0, key_chord_count=0,
+            last_key_was_ret=False, non_default_mapping_classes=sorted(classes))
+        type_text(self.guest, value + '\n', layout, counts=pending['counts'])
+        self.last_hidden = pending
         # No secret goes into this script/receipt. Never resend after a timeout.
         self.resync_serial_after_hidden(pending['stage'] + '-read-left')
+        if pending.get('token'):
+            self.hidden_diagnostics(pending, 'completion-start')
         for number, (prompt, public_value, _) in enumerate(public_inputs, 1):
             epoch = self.guest.owner_input_epoch
             handoff = self.guest.capture_json(pending['stage'] + '-handoff-' + str(number), sw.framed('python3 -c ' + shlex.quote(
@@ -285,7 +317,7 @@ class Console:
             assert not handoff['ready'] and handoff.get('handoff_ready') and handoff['reader_left'], 'No verified public reader after sudo'
             type_text(self.guest, public_value + '\n')
         epoch = self.guest.owner_input_epoch
-        timeout = OWNER_RESULT_WAIT if pending['expected']['kind'] == 'owner' or public_inputs else 60
+        timeout = TOKEN_RESULT_WAIT if pending.get('token') else OWNER_RESULT_WAIT if pending['expected']['kind'] == 'owner' or public_inputs else 60
         result = self.guest.capture_json(pending['stage'] + '-left', sw.framed('python3 -c ' + shlex.quote(
             owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], timeout=timeout))))
         assert self.guest.owner_input_epoch == epoch, 'Input revoked hidden read completion'
@@ -305,6 +337,7 @@ class Console:
             assert self.guest.owner_input_epoch == epoch, 'Input revoked resynchronized completion'
         if not result['ready']:
             retain_vcsa(self.tty, pending['stage'] + '-left', 1, base64.b64decode(result['raw'], validate=True))
+            self.hidden_diagnostics(pending, 'completion-timeout')
             raise AssertionError('Hidden reader did not leave its read; secret will not be retyped')
         self.pending_hidden = None
         return result
@@ -360,6 +393,8 @@ class Console:
         assert self.guest.owner_input_epoch == epoch, 'Input revoked hidden completion observation'
         if not value['ready']:
             retain_vcsa(self.tty, stage + '-physical-idle', 1, base64.b64decode(value['raw'], validate=True))
+            if self.last_hidden is not None:
+                self.hidden_diagnostics(self.last_hidden, 'physical-idle-timeout-' + stage)
             raise AssertionError('Hidden owner command did not return to an idle shell')
         assert value['foreground_shell'], 'Hidden completion authority absent'
         self.completed_epoch = epoch

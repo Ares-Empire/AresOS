@@ -267,7 +267,7 @@ print('PASS login')
                 phase=name.split('-read-wait-',1)[0].split('-wait-',1)[0]
                 if phase.endswith('-input-ready'):
                     f.physical.until(b'GitHub username:',3)
-                if phase.endswith('-hidden-input') and not name.endswith('-left'):
+                if phase.endswith('-hidden-input') and '# hidden-phase: ready' in source:
                     f.physical.until(b'Read-only token (hidden):',3)
                 f.physical.settimeout(.02)
                 while True:
@@ -289,8 +289,14 @@ print('PASS login')
                 (f.root/'vcsa3').write_bytes(raw)
                 return capture(name,source)
             f.guest.capture_json=snapshot
-            def physical(guest,text,layout=None):
+            def physical(guest,text,layout=None,counts=None):
                 guest.owner_input_epoch+=1
+                if counts is not None:
+                    for char in text:
+                        keys=vm.physical_keys(char,layout or guest.owner_layout)
+                        counts['key_event_count']+=2*len(keys)
+                        counts['key_chord_count']+=1
+                        counts['last_key_was_ret']=keys==['ret']
                 if text==vm.COMMANDS['login']+'\n':text='python3 -I -B '+shlex.quote(str(helper))+' login\n'
                 f.physical.sendall(text.encode())
             with patch.object(vm,'type_text',side_effect=physical),patch.object(vm.td,'EVIDENCE',f.evidence):
