@@ -1,7 +1,93 @@
 # 14: checked owner tools
 
-**Current 14ze: PLAN-GAP / STOP before push or dispatch — owner layout guard rejects sudo pts.**
-Acceptance is not established. PR #13 remains draft / NOT RELEASED. This report and fix are committed locally only; remote stays `e3751ad`.
+**Current 14zf: PLAN-GAP / STOP before push or dispatch — the exact guide route nests sudo pts, which the brief's single-pts rule refuses.**
+The original stdin-name defect is fixed under the prescribed single-pts rule.
+The guide/harness route remains blocked. This report and implementation are local
+only; remote stays `e3751ad`. PR #13 remains draft / NOT RELEASED.
+
+## 14zf — Physical recovery session through sudo, with the nested-route contradiction retained
+
+**Done:** `Tools.session()` derives exactly one logind session from
+`/proc/self/cgroup`, matches the same recovery session/tty3 or tty4 in
+`loginctl list-sessions`, and cross-checks Id/Scope/TTY/Audit against
+`/proc/self/sessionid`. Missing/unset/inconsistent audit facts refuse. The exact
+original loginuid1000 and Service=login, Type=tty, Remote=no, Name=ares-recovery,
+User=1000 checks remain, together with start time and boot ID. Scope/audit are
+rechecked after ancestry validation. Direct physical stdin passes. A pts passes
+only through a stable chain of the permitted interpreters and sudo, on one pts
+owned by sudo's monitor, ending at sudo on that physical tty. Unknown programs,
+terminal emulators, sshd, tmux/screen, cycles, broken/changed identities and
+session/tty mismatches refuse. No environment hint is trusted.
+The pinned PAM login file requires pam_loginuid before pam_systemd. Pinned
+systemd259.9 exports Audit as the kernel audit session ID. Pinned sudo1.9.17
+sets use_pty unconditionally from its enabled default and allocates a fresh pts
+when /dev/tty is available, including another invocation from a root shell.
+The shell profile audit found no sudo wrapper disabling that behavior.
+
+**PLAN-GAP:** the guide and `owner_vm.Console.become_root()` enter `sudo -i`.
+The exact owner command then begins with another sudo, for example
+`sudo /var/lib/ares/at layout begin us`. The resulting model is physical tty3
+→ sudo → monitor/pts2 → root Bash → sudo → monitor/pts3 → owner Python.
+The outer sudo controls tty3 but the processes between it and Python cross two
+pts; the inner sudo controls pts2 rather than tty3. The literal requirement
+“Every process between sudo and this one must sit on that same pts” therefore
+refuses the required route. The actual new helper reproduces that refusal with
+`Use a physical tty3/tty4 recovery login` and0 mutations. A direct fresh tty4
+worker through one sudo relay separately passes. These PIDs are explicitly
+modelled from pinned source; they are not claimed as captured guest PIDs.
+[Exact model and proof](../../os/manifest/ci/14/14zf-preflight/nested-route.json).
+
+**Decision needed:** either authorize individually verified sudo-owned pts
+relays ending at the same physical logind session, or change the owner/CI route
+so it does not nest sudo. No recursive extension, command/guide-route change,
+audit relaxation or paid run was made. The clarification is unresolved. The
+inherited brief14 instruction to stop on anything the rules do not cover applies.
+No push was made because that would spend privacy minutes before this gate is
+resolved. Probe16 and qualification6 remain unused.
+
+**Verified:**12 model/real-PTY session tests pass, including every listed refusal,
+all original fact checks, qualification5's explicitly modelled sudo/monitor/Bash
+shape, and real local pts stdin with modelled logind/proc metadata. The real
+interpreter symlink/comm distinction (`python3` vs `python3.x`) is covered.
+All refusals make0 host mutations. The20 session/parser/equality targets pass.
+The complete host walk passed228 tests in186.080s, with warning-free Bash parsing
+at every composed guest boundary. This walk uses stand-in guest responses and
+does not establish that the nested real owner route is accepted.
+
+The full local suite ran447 tests in327.862s:439 distinct passes and the8 known
+native host limitations, reported as2 failures/9 errors. The full exact output
+and failed names are retained in `14zf-preflight/whole-suite.txt`; no skip or
+assertion was weakened. The ISO replay passed on its first attempt, rehashing
+all9,068,650,496 bytes against the pin and a fresh official checksum, with4
+localization and102 WebUI sources. No Windows retry was used and Linux CI's
+inspector is unchanged. Actual release/git/file and53 offline-source replay
+checks pass; four CI-token-only registry checks remain deferred fail-closed in CI.
+Strict checks pass for283 guest/serial/staged scripts,258 embedded Python,
+12 shells,46 Python sources and the native workflow body. Windows copy testing
+passes15 zero-write refusals and exact payload equality.
+
+**Payload / For package15:** generated owner payload and current INSTALL
+fingerprint are now
+`110bd009c3a60aa74afccd97f3b8d08be91db1acb8028aa1b02c5df23fb9bbba`.
+Only the owner implementation/its generated copy and manifest changed; frozen
+release/runtime/config/policy, workflows, privacy rules and disk/NVRAM audits
+are unchanged. Historical evidence retains the fingerprint actually observed
+at that time. Package15 must pick up the current fingerprint after qualification;
+all existing physical/followability and INSTALL/EMERGENCY release gates remain.
+
+**Privacy:** pinned gitleaks8.21.2 returned0 findings over full history and33 pending files. Final manifest/payload/session validation passed14 tests. No ignore/rule/workflow changes.
+
+**Budget:** complete99/99 history,727/1100 consumed, probes15/16 and owner-tools5/6.
+The read-only$6 Actions budget still has prevent_further_usage=true; reported
+net spend$2.652 at$0.006/minute leaves558 paid minutes (billing may lag). This
+follow-up made0 pushes,0 dispatches and0 reruns. Reserve0 and closing0 remain
+because acceptance is false; no budget or credential/scope change was made.
+No Gradle daemon started.
+
+**Not verified / open questions / JUDGMENT-CALL:** fresh privacy/native/probe16/
+qualification6 were held behind the contradiction above. No ready-for-review or
+laptop acceptance is claimed. The strict single-pts policy is retained until an
+integrator decision; no wider ancestry acceptance is inferred from elapsed time.
 
 ## 14ze — Verify sudo PTY relay and preserve idle authority
 

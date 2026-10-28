@@ -69,12 +69,15 @@ class FormatAuditTest(unittest.TestCase):
                     **{'class':'user'},tty='tty4',idle=False,since=None)]
             def read(self, *args):
                 if '--value' in args: return '123456789\n'
+                if args[-1]=='--property=Id,TTY,Audit,Scope':return 'Id=7\nTTY=tty4\nAudit=7\nScope=session-7.scope\n'
                 return 'Service=login\nType=tty\nRemote='+self.remote+'\nName=ares-recovery\nUser=1000\n'
             def mutate(self, *args): raise AssertionError('No mutation permitted')
         host=Host();tools=object.__new__(owner.Tools);tools.host=host
         original=pathlib.Path.read_text
         def read(path,*a,**kw):
             if str(path)=='/proc/self/loginuid':return '1000\n'
+            if str(path)=='/proc/self/cgroup':return '0::/user.slice/user-1000.slice/session-7.scope\n'
+            if str(path)=='/proc/self/sessionid':return '7\n'
             if str(path)=='/proc/sys/kernel/random/boot_id':return '11111111-1111-4111-8111-111111111111\n'
             return original(path,*a,**kw)
         with patch.object(owner.sys.stdin,'isatty',return_value=True), patch.object(owner.os,'ttyname',return_value='/dev/tty4'), \

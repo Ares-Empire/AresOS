@@ -1,0 +1,92 @@
+{
+  "files": [
+    {
+      "sha256": "14bed42e85896b4259f53baf89e1514a72b04d25436886fa0f63ab98fd11b619",
+      "path": "closed-ledger.json"
+    },
+    {
+      "sha256": "64eec06bd4fcfd2c7a8b02b81ed7de1e3d72d94162a41a2d20e355c75e46d310",
+      "path": "current-bundle.json"
+    },
+    {
+      "sha256": "3e4bfdc994e5fd48495e4ec9a6b1c505b14eba8b7d9227b97c87447c44ef798a",
+      "path": "final-validation.txt"
+    },
+    {
+      "sha256": "e38e12928bb4dcc1415194343447d48dbe0aef298da58261aa35f4d93a029671",
+      "path": "host-walk.txt"
+    },
+    {
+      "sha256": "41a6eab7e510d247f4c5a0fb7c5354e9a28c88a56299dbc9109dd59bb20f3278",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "8733f71100b1aa2f746a7605a71109b77a8b6446771d0707b683f0aa4b167b4e",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "5d6a92f2d6f12effc5f0a03100ba152b8f1ce830b41e0e1b128f6972edba83f0",
+      "path": "iso-download.json"
+    },
+    {
+      "sha256": "20d27ecc36f3794f88d5068fda61fc6df462ccb2adb2b5c190399d0aac8b3030",
+      "path": "local-privacy.json"
+    },
+    {
+      "sha256": "d126973374fc8ef7b8454d659d4fbe00c13f05f26730028f3a17f10a3a0c9a91",
+      "path": "local-replay-attempts.json"
+    },
+    {
+      "sha256": "880da220c4eea975876abef41317754280431ece23f78ddc3d0575c93871e5c0",
+      "path": "local-retry.py"
+    },
+    {
+      "sha256": "77b0e706193ceee43b6039ff08b5c37d7b8ebeed0bb61f616a84f28ebd5ccd10",
+      "path": "nested-proof.py"
+    },
+    {
+      "sha256": "63a4d8e7065167ef215d289e898ad7386daf2ebf16cee96a5578314008fa17ed",
+      "path": "nested-route.json"
+    },
+    {
+      "sha256": "09606d8cf566eba928bbcc52f4ebb3eabe392af3638eceb905e6593d7e1ee823",
+      "path": "official-CHECKSUM.txt"
+    },
+    {
+      "sha256": "f74b38ebb091310bf3cb745ec9d57d4ac43796a59bf2c6a4697c37b7d0a237b6",
+      "path": "owner-targets.txt"
+    },
+    {
+      "sha256": "1eddb16d69bc2d78d7c20eedbd4ff6c915397bd4701a40df4e67c4ccf74ee23c",
+      "path": "pinned-source-audit.json"
+    },
+    {
+      "sha256": "fa73a89de0d7278939ea15d9b83ae666f0df06d47fe487b7758b07f6af4e7a49",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "acf0244c262a5b7f4974a960a08cf0051c73a8f05b41bcdc683c9129e9c4015e",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "bddf133e6e93e39ea4c9f930ef8c4cacdee34be3acb0f9586cbc7812142f7b08",
+      "path": "session-tests.txt"
+    },
+    {
+      "sha256": "52711bce559f71a89cfffa8862e7102b362ff28565eb96f3248702125b386d64",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "84fa647ac4001bf7afaba450faed992214231f8a052c47bc4d6f697bc4ddfed4",
+      "path": "tty-assumption-audit.json"
+    },
+    {
+      "sha256": "0ebbdb11fc3e9793b55a8f9354a844aa90e11064a20544d5b49a8392ef6eae5e",
+      "path": "whole-suite.txt"
+    },
+    {
+      "sha256": "b310476393ff7dafec34ec85d32a09b0f7a4748fbb4e194a7d8bf29ed3999df5",
+      "path": "windows-copy.txt"
+    }
+  ]
+}

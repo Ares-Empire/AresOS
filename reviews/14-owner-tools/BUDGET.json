@@ -711,12 +711,12 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-28T00:11:39.028051+00:00",
-  "snapshot_kind": "14ze closed local PLAN-GAP; no push or dispatch",
+  "checked_at": "2026-10-28T00:41:11.443332+00:00",
+  "snapshot_kind": "14zf closed local PLAN-GAP; no push or dispatch",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-28T00:11:37.944629+00:00",
+    "checked_at": "2026-10-28T00:41:09.928009+00:00",
     "response_sha256": "736b0848d1ce4b5c330215eaef931d69b812ac1f76dd4cc9a65f64c268d0ae86",
     "usage": [
       {
@@ -767,32 +767,25 @@
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
   },
+  "current_bundle": {
+    "sha256": "110bd009c3a60aa74afccd97f3b8d08be91db1acb8028aa1b02c5df23fb9bbba",
+    "path": "os/owner-tools/payload/SHA256.json"
+  },
   "acceptance_met": false,
   "probe16": "not dispatched",
   "qualification6": "not dispatched",
-  "current_bundle": {
-    "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
-    "path": "os/owner-tools/payload/SHA256.json"
-  },
-  "local_stop": {
-    "reason": "Use a physical tty3/tty4 recovery login",
-    "pushes": 0,
-    "dispatches": 0,
-    "reruns": 0,
-    "owner_payload_unchanged": true
-  },
   "closing_reservation": 0,
   "reserve": 0,
   "restore_condition_met": false,
   "pushes_this_followup": 0,
   "dispatches_this_followup": 0,
   "reruns_this_followup": 0,
-  "stop_reason": "14ze zero-cost PLAN-GAP: real owner Tools.session rejects sudo use_pty pts; no push or dispatch",
+  "stop_reason": "STOP / PLAN-GAP: single-pts rule conflicts with exact nested-sudo owner route",
   "local_privacy_scans": {
     "version": "8.21.2",
-    "receipt": "os/manifest/ci/14/14ze-preflight/local-privacy.json",
-    "required": "clean pinned all-history and pending-file scans before local commit",
+    "required": "clean pinned all-history/pending scan before local commit",
     "full_history_findings": 0,
-    "pending_findings": 0
+    "pending_findings": 0,
+    "receipt": "os/manifest/ci/14/14zf-preflight/local-privacy.json"
   }
 }

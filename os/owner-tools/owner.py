@@ -540,6 +540,62 @@ def disk_record(host, expected):
         partitions={d['path']: host.json('sfdisk', '--json', d['path']) for d in selected})
 
 
+PHYSICAL_LOGIN = 'Use a physical tty3/tty4 recovery login'
+
+
+def logind_scope(text):
+    sessions = []
+    for line in text.splitlines():
+        fields = line.split(':', 2)
+        require(len(fields) == 3 and fields[0].isdigit() and fields[2].startswith('/'), PHYSICAL_LOGIN)
+        sessions.extend(re.findall(r'(?:^|/)session-([A-Za-z0-9_-]+)\.scope(?=/|$)', fields[2]))
+    require(len(sessions) == 1, PHYSICAL_LOGIN)
+    return sessions[0]
+
+
+def process_terminal(pid):
+    path = pathlib.Path('/proc') / str(pid) / 'stat'
+    raw = path.read_text()
+    fields = raw.rsplit(')', 1)[1].split()
+    require(len(fields) >= 20 and int(raw.split(' ', 1)[0]) == pid, PHYSICAL_LOGIN)
+    return dict(pid=pid, comm=raw.split('(', 1)[1].rsplit(')', 1)[0],
+        ppid=int(fields[1]), session=int(fields[3]), tty=int(fields[4]) & 0xffffffff,
+        start=fields[19], exe=os.readlink(str(path.with_name('exe'))))
+
+
+def terminal_number(path):
+    device = os.stat(path).st_rdev
+    minor = os.minor(device)
+    return (minor & 255) | (os.major(device) << 8) | ((minor & ~255) << 12)
+
+
+def physical_stdin(tty, name):
+    if name == '/dev/' + tty:
+        return
+    require(re.fullmatch(r'/dev/pts/[0-9]+', name), PHYSICAL_LOGIN)
+    pts, physical = terminal_number(name), terminal_number('/dev/' + tty)
+    pid, chain, seen = os.getpid(), [], set()
+    for _ in range(128):
+        require(pid > 1 and pid not in seen, PHYSICAL_LOGIN)
+        seen.add(pid)
+        row = process_terminal(pid)
+        chain.append(row)
+        if row['tty'] == physical:
+            require(row['comm'] == 'sudo' and row['exe'] == '/usr/bin/sudo' and len(chain) >= 3, PHYSICAL_LOGIN)
+            monitor = chain[-2]
+            require(monitor['comm'] == 'sudo' and monitor['exe'] == '/usr/bin/sudo'
+                and monitor['session'] == monitor['pid'] and monitor['tty'] == pts, PHYSICAL_LOGIN)
+            require(all(r['session'] == monitor['pid'] for r in chain[:-1]), PHYSICAL_LOGIN)
+            require(all(process_terminal(r['pid']) == r for r in chain), PHYSICAL_LOGIN)
+            return
+        python = (re.fullmatch(r'/usr/bin/python3(?:\.[0-9]+)?', row['exe'])
+            and row['comm'] in ('python3', os.path.basename(row['exe'])))
+        require(row['tty'] == pts and (python or row['exe'] in ('/usr/bin/bash', '/usr/bin/sudo')
+            and row['comm'] == os.path.basename(row['exe'])), PHYSICAL_LOGIN)
+        pid = row['ppid']
+    raise Stop(PHYSICAL_LOGIN)
+
+
 class Tools:
     def __init__(self, payload, host, store):
         self.payload, self.host, self.store = pathlib.Path(payload), host, pathlib.Path(store)
@@ -783,12 +839,25 @@ class Tools:
         require(self.keyboard() == values, 'Keyboard setting did not round-trip')
 
     def session(self):
-        require(sys.stdin.isatty() and os.ttyname(0) in ('/dev/tty3', '/dev/tty4'), 'Use a physical tty3/tty4 recovery login')
+        require(sys.stdin.isatty(), PHYSICAL_LOGIN)
         require(pathlib.Path('/proc/self/loginuid').read_text().strip() == '1000', 'Use ares-recovery, authenticated with its password')
+        try:
+            session = logind_scope(pathlib.Path('/proc/self/cgroup').read_text())
+            audit = pathlib.Path('/proc/self/sessionid').read_text().strip()
+            require(audit.isdigit() and 0 <= int(audit) < 4294967295, PHYSICAL_LOGIN)
+        except (OSError, ValueError, IndexError):
+            raise Stop(PHYSICAL_LOGIN) from None
         sessions = self.host.json('loginctl', 'list-sessions', '--json=short')
-        tty = os.ttyname(0).removeprefix('/dev/')
-        matching = [s for s in sessions if s['tty'] == tty and s['user'] == 'ares-recovery']
+        require(isinstance(sessions, list) and all(isinstance(s, dict)
+            and {'session', 'tty', 'user', 'uid'} <= s.keys() for s in sessions), PHYSICAL_LOGIN)
+        matching = [s for s in sessions if str(s['session']) == session and s['tty'] in ('tty3', 'tty4')
+            and s['user'] == 'ares-recovery' and s['uid'] == 1000]
         require(len(matching) == 1, 'Cannot identify this physical recovery session')
+        tty = matching[0]['tty']
+        identity = self.host.read('loginctl', 'show-session', session, '--property=Id,TTY,Audit,Scope')
+        rows = [line.split('=', 1) for line in identity.splitlines() if '=' in line]
+        require(len(rows) == 4 and len({r[0] for r in rows}) == 4, PHYSICAL_LOGIN)
+        require(dict(rows) == dict(Id=session, TTY=tty, Audit=audit, Scope='session-' + session + '.scope'), PHYSICAL_LOGIN)
         details = self.host.read('loginctl', 'show-session', str(matching[0]['session']),
             '--property=TimestampMonotonic', '--value').strip()
         require(details.isdigit(), 'Cannot read recovery login time')
@@ -796,6 +865,12 @@ class Tools:
             '--property=Service,Type,Remote,Name,User').splitlines() if '=' in line)
         require(facts == dict(Service='login', Type='tty', Remote='no', Name='ares-recovery', User='1000'),
             'Proof is not a local physical recovery login')
+        try:
+            physical_stdin(tty, os.ttyname(0))
+            require(logind_scope(pathlib.Path('/proc/self/cgroup').read_text()) == session
+                and pathlib.Path('/proc/self/sessionid').read_text().strip() == audit, PHYSICAL_LOGIN)
+        except (OSError, ValueError, IndexError):
+            raise Stop(PHYSICAL_LOGIN) from None
         return dict(tty=tty, session=str(matching[0]['session']), started_us=int(details),
             boot=pathlib.Path('/proc/sys/kernel/random/boot_id').read_text().strip())
 
