@@ -11,12 +11,40 @@
     "owner-tools": 6
   },
   "dispatch_counts": {
-    "probe": 15,
-    "owner-tools": 5
+    "probe": 16,
+    "owner-tools": 6
   },
-  "consumed_minutes": 727,
-  "reserved_minutes": 238,
+  "consumed_minutes": 810,
+  "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 40617562735,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+      "conclusion": "failure",
+      "minutes": 54
+    },
+    {
+      "run": 40614909488,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+      "conclusion": "success",
+      "minutes": 23
+    },
+    {
+      "run": 40614313020,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40614308783,
+      "title": "14zg: verify up to three nested sudo PTY relays for owner sessions",
+      "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+      "conclusion": "success",
+      "minutes": 3
+    },
     {
       "run": 40596167369,
       "title": "Two-disk rehearsal (owner-tools)",
@@ -596,20 +624,30 @@
   "publish_attempts": [],
   "history": {
     "complete": true,
-    "pages_read": 1,
-    "ids_count": 99,
-    "total_count": 99,
+    "pages_read": 2,
+    "ids_count": 103,
+    "total_count": 103,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
-        "returned": 99,
-        "total_count": 99,
-        "ids_sha256": "a42faec1496d37cc03db1cdddd8ce209b29c8a595db0144e45d7bdb0df943e87"
+        "returned": 100,
+        "total_count": 103,
+        "ids_sha256": "74d7170c71cee2c113fef8ff903dae173351ee58f7bb9ea2c4f0e25259890a56"
+      },
+      {
+        "page": 2,
+        "returned": 3,
+        "total_count": 103,
+        "ids_sha256": "38ab089c34263b314bbd35172a9ec0af32a04b4913500a715bc970529bcdef24"
       }
     ],
     "run_ids": [
+      40617562735,
+      40614909488,
+      40614313020,
+      40614308783,
       40596167369,
       40592552658,
       40591924586,
@@ -711,37 +749,37 @@
       40216222435
     ]
   },
-  "checked_at": "2026-10-28T01:04:50.810246+00:00",
-  "snapshot_kind": "14zg pre-push plan; fresh guards still required",
+  "checked_at": "2026-10-28T02:52:39.832453+00:00",
+  "snapshot_kind": "14zg closed STOP: probe16 pass, qualification6 readiness failure",
   "organization_budget": {
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-28T01:04:49.823514+00:00",
-    "response_sha256": "605d4e8bd907eb366ff5785cde76e9d963a2aaa5f352480653b0c6ca2aa4c6bf",
+    "checked_at": "2026-10-28T02:52:38.749132+00:00",
+    "response_sha256": "d6ba011b3f6aefc1e54ac4d6cfaa953fd83e3f87515ca1cd39ddd145f46b72cc",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 2442.0,
+        "grossQuantity": 2531.0,
         "discountQuantity": 2000.0,
-        "netQuantity": 442.0,
-        "grossAmount": 14.652,
+        "netQuantity": 531.0,
+        "grossAmount": 15.186,
         "discountAmount": 12.0,
-        "netAmount": 2.652,
+        "netAmount": 3.186,
         "pricePerUnit": 0.006
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 15.086400148,
-        "discountQuantity": 15.086400148,
+        "grossQuantity": 15.591757963,
+        "discountQuantity": 15.591757963,
         "netQuantity": 0.0,
-        "grossAmount": 0.005069274,
-        "discountAmount": 0.005069274,
+        "grossAmount": 0.005239083,
+        "discountAmount": 0.005239083,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 2442,
+    "used_minutes": 2531,
     "included_minutes": 2000,
     "included_minutes_left": 0,
     "paid_overflow": {
@@ -755,48 +793,43 @@
       "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
       "runner_sku": "actions_linux",
       "pricePerUnit": 0.006,
-      "reported_net_amount": 2.652,
-      "available_budget": 3.348,
-      "paid_minutes": 558,
+      "reported_net_amount": 3.186,
+      "available_budget": 2.814,
+      "paid_minutes": 469,
       "decision": "briefs/14zc-six-dollar-round.md",
       "exception_month": "2026-10"
     },
-    "remaining_minutes": 558,
-    "reserved_minutes": 238,
-    "after_reservation": 320,
+    "remaining_minutes": 469,
+    "reserved_minutes": 0,
+    "after_reservation": 469,
     "other_repos_reserve": 0,
     "credential": "existing local gh login; GET only"
-  },
-  "reservation_plan": {
-    "push": 6,
-    "probe": 72,
-    "qualification": 160,
-    "closing_privacy": 0,
-    "pre_push": 238,
-    "before_probe": 232,
-    "before_qualification": 160,
-    "decision": "briefs/14r-no-closing-reservation.md",
-    "exception_month": "2026-10",
-    "merge_requires_privacy": true
   },
   "current_bundle": {
     "sha256": "683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974",
     "path": "os/owner-tools/payload/SHA256.json"
   },
   "acceptance_met": false,
-  "probe16": "pending",
-  "qualification6": "pending",
+  "probe16": {
+    "run": 40614909488,
+    "status": "passed"
+  },
+  "qualification6": {
+    "run": 40617562735,
+    "status": "stopped"
+  },
   "closing_reservation": 0,
   "reserve": 0,
   "restore_condition_met": false,
-  "pushes_this_followup": 0,
-  "dispatches_this_followup": 0,
+  "pushes_this_followup": 1,
+  "dispatches_this_followup": 2,
   "reruns_this_followup": 0,
+  "stop_reason": "passed after-first-network title; kernel scheduler message after root prompt; no idle-granted resync; physical cursor readiness timeout",
   "local_privacy_scans": {
     "version": "8.21.2",
-    "required": "clean pinned all-history/pending scan before commit/push",
+    "required": "clean all-history/pending scans before local STOP commit",
     "full_history_findings": 0,
     "pending_findings": 0,
-    "receipt": "os/manifest/ci/14/14zg-preflight/local-privacy.json"
+    "receipt": "os/manifest/ci/14/14zg-qualification-stop/local-privacy.json"
   }
 }

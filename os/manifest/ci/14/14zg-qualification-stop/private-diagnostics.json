@@ -1,0 +1,76 @@
+{
+  "raw_files": [
+    {
+      "sha256": "33c42b6c5293f5594b1f676a91b168ddfceda5de69d2f58ff62fa3a81ade16ed",
+      "path": "evidence/two-disk/after-first-network-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "eac0e6d2eec39607eb91913099a7e1cf7d7d23844c36f6ac17163e008a3bda8c",
+      "path": "evidence/two-disk/tools-install-owner-diagnostics.json",
+      "status": "passed",
+      "command": null,
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "9fc5c7bd794569f0b91094209f1ed8cfa3ff925713dc2302f72b03a71cbe0344",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "host_trace_mutations": 4
+    },
+    {
+      "sha256": "5c7924d879875655fe11e93a93e4d9a3caa5c258dbb96f9a1528a9eb73555fc6",
+      "path": "evidence/two-disk/tools-prepare-rerun-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "49fe0fb31a704316aaf873a5e3105009fc47384b014040bd99029d24f678dc23",
+      "path": "evidence/two-disk/after-first-network-title-completed-timeout-1.vcsa"
+    },
+    {
+      "sha256": "1a08879e0d843677864fe04d896d5b76a62fc98240cd17fe19348e990ee06b14",
+      "path": "evidence/two-disk/after-first-network-title-completed-timeout-1.json"
+    },
+    {
+      "sha256": "2e698ec6580083b0054f8fa3fdd8b3d20c935ed015433e29df42b969b5feb514",
+      "path": "evidence/two-disk/after-first-network-title-completed-transport.json"
+    },
+    {
+      "sha256": "129835a615182474c6632636034a08cb018b9761805f5ff796078b239fe13692",
+      "path": "evidence/two-disk/after-first-network-title-completed.json"
+    },
+    {
+      "sha256": "3e4e9aae17170698464489e1b50dd438c660cb9954890cc87bf174e24965b565",
+      "path": "evidence/two-disk/after-first-network-title-owner-result.txt"
+    },
+    {
+      "sha256": "19b9dec00883d8f5505f574db63b258b32aa2dee460e3a25d7070cb35431070e",
+      "path": "evidence/two-disk/tools-stock-sudo-physical-idle-transport.json"
+    },
+    {
+      "sha256": "7601a412f812f6ff272c874de64272d1613165accb49ec65287c3c4f1431c43d",
+      "path": "evidence/two-disk/tools-stock-sudo-physical-idle.json"
+    },
+    {
+      "sha256": "bdd0458cdc62b73b632109a59113e6a7edc5b28a72d233f9055928a0a77f6547",
+      "path": "evidence/two-disk/tools-stock-sudo-physical-idle.txt"
+    },
+    {
+      "sha256": "6470ca2e358db8b2fe942aa1e29b12022830b9d3b4f651bafbb4515b2f5a5f7c",
+      "path": "evidence/two-disk/tools-stock-sudo-serial-resync.json"
+    }
+  ],
+  "artifact_sha256": "2d9db6f7c9ee0a41d376138bd0da27acef6fbeeb8e75709421dfba9638563854",
+  "raw_consoles_or_vcsa_committed": false
+}
