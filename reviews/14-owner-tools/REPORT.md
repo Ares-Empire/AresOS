@@ -1,8 +1,98 @@
 # 14: checked owner tools
 
-**14zi STOP: probe18 failed before the owner hidden-input stages.** Qualification8
-was not dispatched; no rerun or extra push. PR #13 remains draft / NOT RELEASED.
-The pushed implementation is `9c3f8a3722e3321150813456fecad7abbfefda3e`; the STOP packet is committed locally only.
+**Current14zj: serial-marker framing fix implemented; local checks complete.**
+Probe19 and qualification8 are pending. Acceptance is not established; PR #13
+remains draft / NOT RELEASED. One push, then one probe, then only after probe
+acceptance one qualification on the same head. Any CI stop ends this round.
+
+## 14zj — Self-delimiting ACKs and shared kernel-line filtering
+
+**Done:** staged transfers and cleanup/resync use a fresh per-transfer nonce and
+`ARESOS_ACK:<nonce>:<phase>:<index>:<status>:END`. No newline is required to delimit
+an ACK. The parser requires exact nonce, phase and canonical index, and a complete
+canonical status0..255; only0 grants success. Mismatches, duplicates (including a
+buffered stale ACK before sending), out-of-order replies and malformed statuses
+STOP. Refused nonzero integrity/syntax steps retain the existing acknowledged
+cleanup. Per-ACK10-second/transfer120-second deadlines,512-byte controls,96-byte
+chunks, root-only tmpfs/modes, guest SHA verification and checksum-framed result
+protocol remain. A failed or ambiguous transfer is not retried or run.
+
+One shared function removes only complete timestamped kernel records with their
+newline wherever they interrupt a userspace marker. An incomplete kernel record
+cannot grant an ACK/readiness/completion; the live wait remains bounded, and the
+export decoder refuses incomplete input. The export decoder still verifies the
+exact decoded-byte SHA. Guest.wait normalizes before matching all UART markers:
+command completion, login/readiness and hidden-resync ACKs. The passive serial
+journal-readiness poll uses the same function and its original60-second bound.
+Raw transcripts/boot consoles retain the emitted kernel messages. Physical VCSA
+prompt/idle/resync predicates and kernel log levels/emission are unchanged.
+Failure exports the redacted received transcript, including an already-buffered
+stale ACK on a pre-send refusal; no write is sent under that refusal.
+
+**Marker audit:** marker-audit.json lists each source hash and receiver path.
+Stock/keyboard result markers already consume normalized Guest.command output.
+Native tool stdout, offline journal JSON and the firmware Windows marker's
+separate debugcon are distinct channels; no firmware audit was widened. The
+inherited binary check channel and runtime emitters are unchanged.
+
+**Verified:** all8 new ACK tests pass: the exact retained14zi non-secret ACK span,
+the complete private14zi transcript replay, a kernel record at every ACK byte
+position, every socket split, incomplete records with bounded STOP, exact fields,
+duplicate/out-of-order/malformed replies, every other UART readiness/completion
+marker, export marker/checksum regressions, real Bash/PTY staging + hidden resync
+and zero execution/retry on a duplicated ACK. The initial excerpt fixture omitted
+the following userspace CRLF; it was corrected from the retained bytes, never by
+loosening the assertion or adding legacy ACK acceptance. Whole raw transcripts
+remain private; only the exact non-secret ACK span/source hash is a test fixture.
+Existing export/terminal/real-PTY tests execute unchanged.
+
+Final local470-test suite:599.076s on the first complete pass; the final rerun is
+recorded as588.251s. Both have the same8 native host limitations (2 failures/9 errors),
+listed by name in whole-suite.txt;462 distinct passes,0 skips. Native CI must pass
+all470 before a VM can count. The261-test host walk passes and covers all remaining
+stages,119 cluttered prompt waits and22 matched hidden-read ready/left pairs.
+Strict checks pass549 guest/control compositions,524 embedded Python,12 shells,
+47 Python files and the native workflow body, refusing any Bash parse stderr.
+Windows copy:15 zero-write refusals plus exact payload equality. Local single-POST
+controller4 tests and fixed watcher7 tests pass; counters are18-before/19-after
+probe with qualification8 unused.
+
+Actual release/git/file/read-only replay and53 zero-cost source checks pass. The
+four14f credential steps remain explicitly CI-only/fail-closed; no local scope or
+credential change and no owner secret use. Actual ISO replay rehashes9,068,650,496
+bytes against the pin and fresh official checksum, extracting4 localization/102
+WebUI sources. Attempts1/2 hit authorized Windows checkpoint WinError5; attempt3
+was the local >25GiB preflight, with no reader started. Ended partial files were
+prefix-hash-verified against the retained ISO and only those ordinary duplicates
+removed. A read-only Restart Manager snapshot found no holders. After the final
+30-second wait, fresh-path attempt4 passed. No overlapping ISO reader, process
+termination, Windows setting, install or Linux CI inspector behavior change.
+
+**Scope / safety / JUDGMENT-CALL:** harness/tests and package14's probe cap19 only;
+minute cap1200 and owner-tools8. Package13 settings, owner commands, payload hash
+683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974,
+INSTALL/EMERGENCY/release gate, frozen runtime/image, workflows, privacy policy,
+firmware/BootNext/disk audits and credentials are unchanged. No automatic re-send
+was introduced: no receiver not-stored receipt exists, so ambiguous chunk waits
+STOP under the brief's conditional permission. This takes the allowed conservative
+option without changing an owner/product decision. No image dispatch, publication,
+local privilege or real laptop/disk/boot/Minecraft access. No Gradle started.
+
+**Privacy / final local checks:** pinned gitleaks8.21.2 full history and pending files return0 findings. Manifest/session/console equality checks and git diff --check pass; no policy or ignore change.
+
+**Budget / plan:** complete baseline941 consumed +238 bound /1200; probes18/19 and
+owner-tools7/8, complete110/110 history, org after bound97 at that snapshot. Fresh
+ledger/billing/$6 prevent=true budget (deducting net charged Actions spend at API
+pricePerUnit) is required immediately before push/each dispatch. Exactly one clean
+pinned-gitleaks fast-forward push, fresh exact-head privacy, probe19; only accepted
+probe evidence permits qualification8 on the same head in protected-second order.
+Any CI stop exports diagnostics and ends dispatches with no rerun. Only acceptance
+permits closing12/reserve150 restoration, final clean push/privacy and PR-ready;
+never merge. Physical/followability release gates remain unverified and true.
+
+**Not verified / PLAN-GAP / open questions:** new native/probe/qualification results
+are pending. The requested serial ACK repair is the integrator's explicit change;
+no new product policy or owner-script change. Physical release gates remain open.
 
 ## 14zi REPORT — Inner-pts fix implemented; probe18 serial ACK stop
 

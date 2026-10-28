@@ -15,7 +15,7 @@ import time
 import secrets as random_secrets
 
 from qmp import QMP
-from serial_console import TerminalReplies, decode_export, encode_command
+from serial_console import TerminalReplies, decode_export, encode_command, strip_kernel_lines, serial_search, IncompleteKernelLine, command_status
 import serial_transport
 from greeter import capture_stock_greeter
 
@@ -181,7 +181,11 @@ class Guest:
     def wait(self, pattern, timeout=300):
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            match = re.search(pattern, self.buffer)
+            try:
+                clean, match = serial_search(pattern, self.buffer)
+                self.buffer = clean
+            except IncompleteKernelLine:
+                match = None
             if match:
                 result = self.buffer[:match.end()]
                 self.buffer = self.buffer[match.end():]
@@ -203,6 +207,8 @@ class Guest:
         raise TimeoutError(f'Guest console did not reach {pattern}')
 
     def send(self, text):
+        # A stale ACK must not authorize another command or script execution.
+        assert 'ARESOS_ACK:' not in strip_kernel_lines(self.buffer), 'Unexpected or duplicate serial ACK before input; STOP'
         self.serial_input_epoch = getattr(self, 'serial_input_epoch', 0) + 1
         self.serial_completed_epoch = None
         self.console.sendall(text.encode())
@@ -216,6 +222,7 @@ class Guest:
         epoch = getattr(self, 'serial_input_epoch', 0)
         assert not self.command_pending and self.serial_completed_epoch == epoch, 'Serial idle authority absent'
         drained = 0
+        drain_buffer = self.buffer
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline:
             self.console.settimeout(0.2)
@@ -225,11 +232,13 @@ class Guest:
                 break
             assert data, 'Serial console closed during drain'
             drained += len(data)
+            drain_buffer += data.decode(errors='replace')
             reply = self.replies.feed(data)
             if reply:
                 self.console.sendall(reply)
         else:
             raise TimeoutError('Serial output did not become quiet after hidden input')
+        serial_search(r'\Z', drain_buffer)
         self.buffer = ''
         nonce = random_secrets.token_hex(8)
         self.command_pending = True
@@ -271,13 +280,14 @@ class Guest:
             output = serial_transport.execute(self.send, self.wait, script, timeout,
                 lambda value: (EVIDENCE / f'{name}-transport.json').write_text(json.dumps(value, indent=2) + '\n'),
                 getattr(self, 'secrets', ()))
-        except (TimeoutError, EOFError):
-            if not private:
-                (EVIDENCE / f'{name}-incomplete.txt').write_text(redact(self.transcript[transcript_start:], self.secrets))
+        except (TimeoutError, EOFError, AssertionError, IncompleteKernelLine):
+            if not private and (len(self.transcript) > transcript_start or 'ARESOS_ACK:' in self.buffer):
+                output = self.transcript[transcript_start:] if len(self.transcript) > transcript_start else self.buffer
+                (EVIDENCE / f'{name}-incomplete.txt').write_text(redact(output, self.secrets))
             raise
         self.command_pending = False
         self.serial_completed_epoch = getattr(self, 'serial_input_epoch', 0)
-        code = int(re.search(r'ARESOS_CMD_DONE:(\d+)', output).group(1))
+        code = command_status(output)
         clean = redact(output, self.secrets)
         if not private:
             (EVIDENCE / f'{name}.txt').write_text(clean)

@@ -1,0 +1,20 @@
+{
+  "files": [
+    {
+      "sha256": "a2e9d3d9566e3d3df6d05b4afaceb8ba7f5e1cc4dc3627b405614188346ce155",
+      "path": ".work/14/14zj-replay-1/work/bazzite-nvidia-open-stable-live-amd64.iso",
+      "bytes": 4513071104,
+      "preserved_source": ".work/14/bazzite-nvidia-open-stable-live-amd64.iso",
+      "action": "unlink verified prefix duplicate from ended failed local replay only"
+    },
+    {
+      "sha256": "0bbe3e4bb8902119254037924ba383013c6e027f397fbeea90afcd3e4c8ba0a1",
+      "path": ".work/14/14zj-replay-2/work/bazzite-nvidia-open-stable-live-amd64.iso",
+      "bytes": 4974444544,
+      "preserved_source": ".work/14/bazzite-nvidia-open-stable-live-amd64.iso",
+      "action": "unlink verified prefix duplicate from ended failed local replay only"
+    }
+  ],
+  "checkpoint_evidence_retained": true,
+  "free_bytes": 35970244608
+}

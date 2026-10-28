@@ -12,6 +12,7 @@ from PIL import Image
 from channel import Frames, frame, import_bytes
 from qmp import QMP, assert_guest_poweroff
 from offline_journal import check_offline_poweroff
+from serial_console import serial_search, IncompleteKernelLine
 
 work = pathlib.Path('vm-work').resolve()
 evidence = pathlib.Path('evidence').resolve() / f'vm-pass-{os.environ["ARESOS_VM_PASS"]}'
@@ -124,7 +125,13 @@ try:
     journal_start = (evidence / 'serial.log').stat().st_size
     prepared = request('prepare-poweroff')
     deadline = time.monotonic() + 60
-    while b'ARESOS_JOURNAL_READY' not in (evidence / 'serial.log').read_bytes()[journal_start:]:
+    while True:
+        try:
+            _, ready = serial_search('ARESOS_JOURNAL_READY', (evidence / 'serial.log').read_bytes()[journal_start:].decode(errors='replace'))
+        except IncompleteKernelLine:
+            ready = None
+        if ready:
+            break
         if qemu.poll() is not None or time.monotonic() >= deadline:
             raise TimeoutError('Journal follower did not forward its readiness record')
         time.sleep(0.1)

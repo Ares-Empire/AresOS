@@ -23,7 +23,7 @@ class GuardTest(unittest.TestCase):
 
     def test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun(self):
         self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(1200,0,0))
-        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':18,'owner-tools':8})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':19,'owner-tools':8})
         self.assertEqual(guard.SETTINGS['organization_budget']['other_repos_reserve'],0)
         self.assertEqual(guard.PACKAGES['13']['organization_budget']['other_repos_reserve'],150)
         base=dict(head_sha='a'*40,status='completed',conclusion='success',run_attempt=1)
@@ -70,6 +70,8 @@ class GuardTest(unittest.TestCase):
             runs.append(dict(runs[1],id=20))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],18)
             runs.append(dict(runs[1],id=21))
+            self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],19)
+            runs.append(dict(runs[1],id=22))
             with self.assertRaisesRegex(AssertionError,'probe dispatch allowance'):guard.budget(0)
 
     def test_eighth_owner_qualification_allowed_but_ninth_refuses(self):

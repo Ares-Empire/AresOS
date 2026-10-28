@@ -1,0 +1,63 @@
+{
+  "status": "passed exact retained full-transcript replay and serial-marker audit",
+  "source": {
+    "sha256": "4727e1fb006de6cf6e6cfa9d067d7f8f10d199d30a0851b9e4afe0f648c46173",
+    "path": "evidence/two-disk/webui-probe-server-incomplete.txt",
+    "run": 40646962291,
+    "bytes": 6676
+  },
+  "raw_old_predicate_matches": false,
+  "shared_filter_old_status": 0,
+  "legacy_protocol_accepted_by_new_ack": false,
+  "exact_nonsecret_fixture_span_matches": true,
+  "raw_transcript_committed": false,
+  "physical_vcsa_prompt_and_kernel_emission_unchanged": true,
+  "resend_policy": "none; no receiver not-stored receipt exists; an ambiguous timeout STOPs",
+  "sources": [
+    {
+      "sha256": "eedcecf9b547b7c77ee8c77db2d47b648bdbe474c291ae2354b6c8221b668f17",
+      "path": "os/ci/serial_console.py",
+      "audit": "one complete-kernel-line filter shared by export decoder, marker search and completion parser; partial records cannot grant readiness; export SHA unchanged"
+    },
+    {
+      "sha256": "e365cad208c09b5aeafe32a4f7c0805dde2070d1aac1818ffe0736ffc17a6ebb",
+      "path": "os/ci/serial_transport.py",
+      "audit": "self-delimiting nonce/phase/index/status ACK; duplicate/out-of-order/mismatch STOP; bounded waits and SHA verification; no automatic re-send"
+    },
+    {
+      "sha256": "3d977e51e019a1a6c44d5d2068f537264050e791ed4d3e1fa6b272e5c67d536f",
+      "path": "os/ci/switch_vm.py",
+      "audit": "all UART waits including login/readiness/command completion and hidden-resync; raw transcript preserved; buffered stale ACK refuses next send; drain checked before clearing"
+    },
+    {
+      "sha256": "dc1b812003e2d30f8a7ed6e1d18a2e9e6b667cd07fc97cb599dae2490eac7df1",
+      "path": "os/ci/two_disk_vm.py",
+      "audit": "inherits normalized UART wait; reset/deadline/QMP behavior unchanged; firmware Windows marker uses a separate debugcon, not Linux UART"
+    },
+    {
+      "sha256": "0aeeef5cb6d19611c0082f466ba4369dea19e3514bb270a47a237c0709afa49e",
+      "path": "os/ci/vm.py",
+      "audit": "passive UART journal-readiness file uses same filter, unchanged 60-second deadline"
+    },
+    {
+      "sha256": "635729f8eec21f35b32c973e8bf0b263e4b27bea4c920aa3664b59fe1b4ae98f",
+      "path": "os/ci/keyboard_vm.py",
+      "audit": "structured marker consumed only from normalized Guest.command result"
+    },
+    {
+      "sha256": "4cc50604a4734527ab20002be13e28f780b0c9085399784f4a980dcd0bb6e5d0",
+      "path": "os/ci/stock_probe.py",
+      "audit": "native container/tool stdout; not the UART marker path"
+    },
+    {
+      "sha256": "661741f8506495c1043aa703c14d14e33093abac687681efb2c8041292ba9f86",
+      "path": "os/ci/greeter.py",
+      "audit": "heredoc delimiter is source syntax; command result passes through Guest.command"
+    },
+    {
+      "sha256": "d639f9ca220b61f74b503c7cda6dbd63074b47946f22bffe1e1218d877711b22",
+      "path": "os/ci/offline_journal.py",
+      "audit": "offline journal JSON MESSAGE comparison, not UART matching"
+    }
+  ]
+}

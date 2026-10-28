@@ -10,7 +10,7 @@ import secrets
 import shlex
 import time
 
-from serial_console import encode_command
+from serial_console import encode_command, strip_kernel_lines
 
 INLINE_BYTES = 256
 CHUNK_BYTES = 96
@@ -20,9 +20,34 @@ TRANSFER_TIMEOUT = 120
 STAGE_ROOT = '/run'
 
 
-def acknowledged(command, nonce, index):
-    line = ("{ " + command + "; _ares_status=$?; printf '\\nARESOS_STAGE_%s:%s:%s\\n' "
-        + nonce + ' ' + str(index) + ' "$_ares_status"; }\n')
+class Ack:
+    serial_ack = True
+    record = re.compile(r'ARESOS_ACK:(?P<nonce>[^:\r\n]+):(?P<phase>[^:\r\n]+):'
+        r'(?P<index>[^:\r\n]+):(?P<status>[^:\r\n]+):END')
+
+    def __init__(self, nonce, phase, index):
+        assert re.fullmatch('[0-9a-f]{16}', nonce) and re.fullmatch('[a-z]+', phase) and index >= 0
+        self.nonce, self.phase, self.index = nonce, phase, index
+
+    def __str__(self):
+        return f'ARESOS_ACK:{self.nonce}:{self.phase}:{self.index}:<status>:END'
+
+    def search(self, transcript):
+        clean = strip_kernel_lines(transcript)
+        matches = list(self.record.finditer(clean))
+        assert clean.count('ARESOS_ACK:') <= 1 and len(matches) <= 1, 'Duplicate serial ACK; STOP'
+        if not matches:
+            return None
+        match, = matches
+        assert (match['nonce'], match['phase'], match['index']) == (self.nonce, self.phase, str(self.index)), 'Mismatched or out-of-order serial ACK; STOP'
+        assert re.fullmatch(r'0|[1-9][0-9]{0,2}', match['status']) and int(match['status']) <= 255, 'Malformed serial ACK status; STOP'
+        return match
+
+
+def acknowledged(command, nonce, phase, index):
+    Ack(nonce, phase, index)
+    line = ("{ " + command + "; _ares_status=$?; printf '\\nARESOS_ACK:%s:%s:%s:%s:END\\n' "
+        + nonce + ' ' + phase + ' ' + str(index) + ' "$_ares_status"; }\n')
     assert len(line.encode()) <= MAX_CONTROL_LINE, 'Serial control line too large'
     return line
 
@@ -56,14 +81,14 @@ def plan(script, nonce, root=STAGE_ROOT):
         'then :; else _ares_status=125; fi; '
         'printf "\\nARESOS_CMD_%s:%s\\n" DONE "$_ares_status"; }\n')
     assert len(run.encode()) <= MAX_CONTROL_LINE
-    return [(phase, acknowledged(command, nonce, i)) for i, (phase, command) in enumerate(steps)], run
+    return [(phase, acknowledged(command, nonce, phase, i)) for i, (phase, command) in enumerate(steps)], run
 
 
-def roundtrip(send, wait, command, nonce, index, timeout):
-    send(acknowledged(command, nonce, index))
-    pattern = r'\r?\nARESOS_STAGE_' + nonce + ':' + str(index) + r':(\d+)\r?\n'
+def roundtrip(send, wait, command, nonce, index, timeout, phase='resync'):
+    send(acknowledged(command, nonce, phase, index))
+    pattern = Ack(nonce, phase, index)
     output = wait(pattern, timeout)
-    assert int(re.search(pattern, output).group(1)) == 0, 'Serial control step refused'
+    assert int(pattern.search(output)['status']) == 0, 'Serial control step refused'
     return output
 
 
@@ -85,12 +110,14 @@ def execute(send, wait, script, timeout, record, known_secrets=()):
         remaining = deadline - time.monotonic()
         assert remaining > 0, 'Serial transfer deadline'
         send(line)
-        pattern = r'\r?\nARESOS_STAGE_' + nonce + ':' + str(index) + r':(\d+)\r?\n'
+        pattern = Ack(nonce, phase, index)
         try:
             output = wait(pattern, min(ACK_TIMEOUT, remaining))
-            code = int(re.search(pattern, output).group(1))
-        except BaseException:
-            summary['steps'].append(dict(index=index, phase=phase, status='no acknowledgement; STOP; no retry'))
+            code = int(pattern.search(output)['status'])
+        except BaseException as error:
+            summary['steps'].append(dict(index=index, phase=phase,
+                status='invalid acknowledgement; STOP; no retry' if isinstance(error, AssertionError) else 'no acknowledgement; STOP; no retry',
+                failure_kind=type(error).__name__))
             record(dict(summary))
             raise
         summary['steps'].append(dict(index=index, phase=phase, status='passed' if code == 0 else 'refused'))
@@ -100,7 +127,7 @@ def execute(send, wait, script, timeout, record, known_secrets=()):
             # never cause a speculative cleanup command into a possibly busy tty.
             if phase in ('chunk', 'integrity', 'syntax'):
                 roundtrip(send, wait, 'rm -f -- "$_ares_stage/script" "$_ares_stage/syntax"'
-                    ' && rmdir -- "$_ares_stage"', nonce, len(steps), ACK_TIMEOUT)
+                    ' && rmdir -- "$_ares_stage"', nonce, len(steps), ACK_TIMEOUT, phase='cleanup')
                 summary['cleanup'] = 'completed after acknowledged refusal'
                 record(dict(summary))
             raise AssertionError('Serial staged ' + phase + ' refused; script not executed')
