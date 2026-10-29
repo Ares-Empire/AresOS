@@ -1,5 +1,132 @@
 # 14: checked owner tools
 
+**14zr STOP:** the loginctl fix and scoped journal are confirmed in the VM.
+Probe25 passed. Qualification14 passed plain-US refusal and layout revert,
+then the tty4 hidden-reader guard withheld Enter when its verified login
+process disappeared. No rerun, product fix or extra push. PR #13 stays draft;
+this STOP report is committed locally.
+
+## 14zr actual runs — properties fixed; later tty4 reader replacement STOP
+
+Both runs used pushed head `a247ee898598636aee3f9cd1d9e60c01632d0280`:
+
+| Run | Result | Native suite | Package minutes |
+|---|---|---|---:|
+| [Probe25](https://github.com/Ares-Empire/AresOS/actions/runs/40863215153) | Independently accepted |526 /105.897s, zero skips |22 |
+| [Qualification14](https://github.com/Ares-Empire/AresOS/actions/runs/40866713472) | STOP at reverted tty4 login pre-Enter guard |526 /102.550s, zero skips |68 |
+
+**Fix confirmed:** `layout begin us` and `layout revert` passed on AresOS.
+Their6 actual loginctl queries use separate `--property=` options and return
+every requested Key=Value exactly once, in the real systemd output order.
+Identity, audit id, scope, login start, Service/Type/Remote/Name/User checks
+all passed. No session predicate was relaxed. The real post-staging hold
+exclusion was observed twice again; switch, refreshed title, AresOS boot,
+physical tty3 login/password sudo and `check` passed.
+[Exact property commands/output](../../os/manifest/ci/14/14zr-qualification-stop/property-proof.json).
+
+The bounded previous-boot logind query returned24 JSON records, all transport
+`journal`, with **zero kernel records**. The full-boot query was not run.
+Qualification artifact privacy:519 findings =507 reviewed ISO-listing
+findings +12 permitted whole kernel boot-console lines; unclassified0.
+Probe509 =507 ISO +2 whole kernel lines. No decoded-MESSAGE exception, ignore,
+rule or workflow change was needed. Native and VM failure logs scan0.
+[Scoped-journal proof](../../os/manifest/ci/14/14zr-qualification-stop/journal-proof.json).
+
+**STOP / PLAN-GAP:** the deliberate plain-US physical-key login was rejected,
+and an attempted reboot during the unproved layout trial correctly refused
+with zero mutations. The original tty3 administrator stayed available;
+`layout revert` round-tripped the saved German settings. The subsequent
+tty4 login reached the correct hidden password prompt with foreground
+`login` PID13852, canonical input, ECHO off and syscall0/read. Before Enter,
+that PID had disappeared and foreground PID20186 was an unexpected reader.
+The guard correctly refused: `No unchanged hidden reader waiting in read;
+Enter withheld`. It did not send Return, Ctrl-U, a retype or another attempt.
+The retained diagnostics prove reader replacement; they **do not establish
+why the old login exited**. Its proc files were absent; the replacement was
+sleeping in syscall270 with wchan `poll_schedule_timeout.constprop.0`.
+No claim that a timeout or a particular replacement executable is proved.
+[Guard, counter and non-secret diagnostics](../../os/manifest/ci/14/14zr-qualification-stop/hidden-reader-stop.json).
+
+The stopped30-character password window delivered **64/64 key events**
+(32 presses +32 releases), repeats0, SYN_DROPPED0, keys released,21.825s.
+`last_key_was_ret=false`. The counts prove no observed event loss, not the
+old reader's exit cause. There were10 hidden windows with matching counts;
+9 completed/read-rejection transitions and this guarded stop. The40-character
+dummy delivered116/116 events and got the expected registry refusal. The
+377-character CI token delivered1118/1118 events and authenticated. Totals
+vary with generated modifiers; no credential value or ordered key codes were
+retained. All10 windows used one attempt, zero clears/retypes,30ms holds and
+minimum120ms gaps. [Counts and records](../../os/manifest/ci/14/14zr-qualification-stop/outcome.json).
+
+The qualification contains19 owner records:17 passed and2 expected refusals
+(dummy registry login and unproved-trial reboot). Its unexpected stop was in
+the harness's hidden-input guard, not an owner-command refusal. All267 staged
+transfers verified SHA and Bash syntax;36 visible-input echo proofs passed.
+The paused VM STOP is retained. Independent raw replay passed10 protected
+captures,11 zero-write/unmap samples,10 BootNext checks and9 NVRAM/all-variable
+comparisons. Protected disks, detached-device rules, Windows firmware default,
+firmware grammar and all safety gates remain unchanged.
+[Raw safety replay](../../os/manifest/ci/14/14zr-qualification-stop/qualification-audits.json).
+
+**Not reached / not verified:** fresh tty4 login after revert; its proof and
+finish; US International trial/proof/finish and boot; final German proof and
+boot; remaining labwc physical typing; rollback; keep-stock; final Windows
+checks. The German setting was restored, but the trial remains pending and
+unproved; a reboot was not authorized. Full package14 acceptance is **unmet**.
+INSTALL/EMERGENCY/physical release gates remain NOT RELEASED.
+
+**Budget / closing:** complete138/138 history, **1619/1800 minutes**:
+1523 previous +6 push privacy +22 probe +68 qualification. Counts:25 probes,
+14 owner qualifications. Exactly1 FF push,1 probe and1 qualification in this
+follow-up; reruns0. The closing read-only$10/prevent=true budget snapshot
+reports net$8.124 charged,312 available minutes. No budget API write occurred.
+Reserve0/closing0 stay because acceptance was not met; no final push or ready
+transition. This round is over; the owner can set Actions budget back to$0.
+[Complete closing ledger](../../os/manifest/ci/14/14zr-qualification-stop/closed-ledger.json).
+
+**Verified commands:** pinned gitleaks8.21.2 full-history (`git .
+--log-opts=--all`) and curated-pending scans0 before the single push;
+`python3 -B -m unittest discover -s os/tests -v` under existing WSL attempted
+526 locally with only the9 approved14zm host limitations, then all526 passed
+natively on both runs. The strict805-command/wrapper/799-embedded-Python
+checks, full pinned ISO/fresh-checksum replay, release/git/53-source replay,
+exact-head privacy's3 actual steps on both events, complete ledger/billing/
+budget guards, independent probe review and final raw qualification audit
+were executed. Local qualification ISO replay passed on attempt1. Product
+source, generated payload, guides, workflow and privacy policy remain the
+exact pushed head after this STOP; only report/accounting/evidence are added.
+
+Final local STOP verification:2 manifest-order/payload-equality tests passed
+in20.294s; `git diff --check` passed. The runtime/guide/privacy diff against
+the pushed head is empty. Pinned full-history gitleaks is0; the local STOP
+commit is gated on a fresh curated-pending scan with0 findings. Repository
+privacy and PR draft state were rechecked. No additional Actions dispatch.
+
+**JUDGMENT-CALL / open questions:** none changing owner behavior. Determine
+why PID13852 exited during the reverted login window, using retained facts
+and pinned login behavior. Any fix needs a later authorized follow-up; no
+reader/identity predicate was loosened and no secret was automatically retyped.
+
+Every accepted certificate occurrence is recorded below by source-line hash;
+raw lines and fingerprint values stay in the private artifact only:
+
+| Source-line SHA256 | Private artifact path:line | Certificate label |
+|---|---|---|
+| `99efc6ef27a9a84adf890257ade5fe9e4c70610439bd38ab82f0435e8f924ddb` | Probe25: `evidence/two-disk/live-ui-probe-boot-console.txt:496` | Fedora kernel signing key |
+| `894a2fd45676374de68013315b6bf69dbeb92ebe614bfc39ada697df16e95441` | Probe25: `evidence/two-disk/live-ui-probe-boot-console.txt:529` | Fedora kernel signing key |
+| `1eb8d7b777e7b2c9751b573445810fcbc4bff66160f85bd917d83f6dbdf465a7` | Qualification14: `evidence/two-disk/aresos-boot-console.txt:503` | Build time autogenerated kernel key |
+| `31e2d7766898de605ac78dddc16a7465e5e2b26279e648b24dfe4c1d6f5ddee1` | Qualification14: `evidence/two-disk/aresos-boot-console.txt:513` | Build time autogenerated kernel key |
+| `1cf339ee844afc020461183afa81fa5346d9266313a762f7f76d4591b3817a53` | Qualification14: `evidence/two-disk/corrected-stock-boot-console.txt:503` | Build time autogenerated kernel key |
+| `0f1389df363c9fb44f9ed977d065f947ae1518a83f09e4aa8b996ef1c28caf1a` | Qualification14: `evidence/two-disk/corrected-stock-boot-console.txt:513` | Build time autogenerated kernel key |
+| `c2db7812c96b178e961595fdb6814a4a6c86d56097104a68842a3a4718f20295` | Qualification14: `evidence/two-disk/offline-first-stock-boot-console.txt:503` | Build time autogenerated kernel key |
+| `94c868d121f7eebd662d289e4088dfee056e5de3400ef4bd9e56b05c9f719de0` | Qualification14: `evidence/two-disk/offline-first-stock-boot-console.txt:517` | Build time autogenerated kernel key |
+| `2d8f87d0c555b5ff8d9e78360319f7e779947f642dfcdc100a7fb68cf69b9f6c` | Qualification14: `evidence/two-disk/protected-second-install-boot-console.txt:496` | Fedora kernel signing key |
+| `db3f2cbf855031ef119424dc76372374de12a9596d94989488427fe76ae71310` | Qualification14: `evidence/two-disk/protected-second-install-boot-console.txt:529` | Fedora kernel signing key |
+| `d97e4a2243677be41bb2120e091a8e6de093586da9bbabcbfa4da5ff51c9d85c` | Qualification14: `evidence/two-disk/stock-initialization-0-boot-console.txt:503` | Build time autogenerated kernel key |
+| `fcacc5b034e5bfd3628a441cb2d517d0ce04f8ef9427578af4cfbdc8591bca07` | Qualification14: `evidence/two-disk/stock-initialization-0-boot-console.txt:513` | Build time autogenerated kernel key |
+| `cd4fca8ac4f6242c403679232ff2a4ec292eaf9f99d8a2abb7b990d5aed34cba` | Qualification14: `evidence/two-disk/tools-stock-boot-console.txt:503` | Build time autogenerated kernel key |
+| `145c22f960ae3df55815771148d39cddddd8c0c1cc51c9aba0fe02ade3906962` | Qualification14: `evidence/two-disk/tools-stock-boot-console.txt:513` | Build time autogenerated kernel key |
+
 ## 14zr REPORT — literal loginctl selectors and bounded diagnostics
 
 **Done:** all3 owner `show-session` queries now pass one `--property=` per

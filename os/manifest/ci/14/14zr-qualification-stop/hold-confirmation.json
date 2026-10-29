@@ -1,0 +1,41 @@
+{
+  "status": "actual hold exclusion confirmed again",
+  "run": 40866713472,
+  "head": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+  "observations": [
+    {
+      "sha256": "9b84a978f8ceb00e0ea41932fb7119374ee41c14f0469664e33042d9ca615271",
+      "path": "evidence/two-disk/owner-switch-owner-diagnostics.json",
+      "process": {
+        "pid": 24913,
+        "exe": "/usr/bin/ostree",
+        "cmdline": [
+          "/usr/bin/ostree",
+          "admin",
+          "finalize-staged",
+          "--hold"
+        ],
+        "cgroup": "0::/system.slice/ostree-finalize-staged-hold.service\n",
+        "excluded_as_daemon": false,
+        "excluded_as_system_helper": true
+      }
+    },
+    {
+      "sha256": "1bcae6569df29cf34a8228a2fda218d97f57a4570bd8d7ca6ba382bc4f63b643",
+      "path": "evidence/two-disk/owner-switch-title-owner-diagnostics.json",
+      "process": {
+        "pid": 24913,
+        "exe": "/usr/bin/ostree",
+        "cmdline": [
+          "/usr/bin/ostree",
+          "admin",
+          "finalize-staged",
+          "--hold"
+        ],
+        "cgroup": "0::/system.slice/ostree-finalize-staged-hold.service\n",
+        "excluded_as_daemon": false,
+        "excluded_as_system_helper": true
+      }
+    }
+  ]
+}

@@ -11,12 +11,40 @@
     "owner-tools": 15
   },
   "dispatch_counts": {
-    "probe": 24,
-    "owner-tools": 13
+    "probe": 25,
+    "owner-tools": 14
   },
-  "consumed_minutes": 1523,
-  "reserved_minutes": 238,
+  "consumed_minutes": 1619,
+  "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 40866713472,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+      "conclusion": "failure",
+      "minutes": 68
+    },
+    {
+      "run": 40863215153,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+      "conclusion": "success",
+      "minutes": 22
+    },
+    {
+      "run": 40862222252,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40862211666,
+      "title": "14zr: use literal loginctl selectors and bounded logind diagnostics",
+      "sha": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+      "conclusion": "success",
+      "minutes": 3
+    },
     {
       "run": 40844950597,
       "title": "Two-disk rehearsal (owner-tools)",
@@ -842,25 +870,29 @@
   "history": {
     "complete": true,
     "pages_read": 2,
-    "ids_count": 134,
-    "total_count": 134,
+    "ids_count": 138,
+    "total_count": 138,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
         "page": 1,
         "returned": 100,
-        "total_count": 134,
-        "ids_sha256": "22be5def5dbd87d524cbc1a3fec18761aa1526caa02b1a9731f83935a4837f32"
+        "total_count": 138,
+        "ids_sha256": "7cfca24f11296061f3241eaa6ea58d483db296615013c560e39bf50ec5c62b54"
       },
       {
         "page": 2,
-        "returned": 34,
-        "total_count": 134,
-        "ids_sha256": "f9768ad9dd797a18f23a6609474f537b192ba2939f5fef1823407cfb57800724"
+        "returned": 38,
+        "total_count": 138,
+        "ids_sha256": "0f81b9ee1a214d8452f60433932804448b59518733a2f8157bc9e95fc86a8eff"
       }
     ],
     "run_ids": [
+      40866713472,
+      40863215153,
+      40862222252,
+      40862211666,
       40844950597,
       40841171586,
       40840258629,
@@ -997,14 +1029,68 @@
       40216222435
     ]
   },
-  "status": "14zr prepared; fresh privacy/guards/probe/qualification pending",
-  "probe25": "pending",
-  "qualification14": "pending",
+  "status": "STOP after successful plain-US refusal and de revert, at reverted tty4 login pre-Enter guard",
+  "probe25": 40863215153,
+  "qualification14": 40866713472,
   "acceptance_met": false,
-  "pushes_this_followup": 0,
-  "dispatches_this_followup": 0,
+  "pushes_this_followup": 1,
+  "dispatches_this_followup": 2,
   "reruns_this_followup": 0,
   "reserve": 0,
   "closing_reservation": 0,
-  "owner_decision": "briefs/14zr-loginctl-properties.md"
+  "restore_condition_met": false,
+  "organization_budget_snapshot": {
+    "status": "passed",
+    "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
+    "checked_at": "2026-10-29T12:46:46.169198+00:00",
+    "response_sha256": "590005573c5e82f01ca59763e06b62eeb909028399c9fa3ea3a90571ad91b852",
+    "usage": [
+      {
+        "sku": "actions_linux",
+        "unit": "minutes",
+        "grossQuantity": 3354.0,
+        "discountQuantity": 2000.0,
+        "netQuantity": 1354.0,
+        "grossAmount": 20.124,
+        "discountAmount": 12.0,
+        "netAmount": 8.124,
+        "pricePerUnit": 0.006
+      },
+      {
+        "sku": "actions_storage",
+        "unit": "gigabyte-hours",
+        "grossQuantity": 23.077972474,
+        "discountQuantity": 23.077972474,
+        "netQuantity": 0.0,
+        "grossAmount": 0.007754573,
+        "discountAmount": 0.007754573,
+        "netAmount": 0.0
+      }
+    ],
+    "used_minutes": 3354,
+    "included_minutes": 2000,
+    "included_minutes_left": 0,
+    "paid_overflow": {
+      "source": "organizations/Ares-Empire/settings/billing/budgets",
+      "response_sha256": "2a4e170f520cd941cf127290b5d6c9321833bf9da0eef9cb831c5f9b6a9b93de",
+      "budget_product_sku": "actions",
+      "budget_amount": 10,
+      "prevent_further_usage": true,
+      "budget_scope": "organization",
+      "budget_entity_name": "Ares-Empire",
+      "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
+      "runner_sku": "actions_linux",
+      "pricePerUnit": 0.006,
+      "reported_net_amount": 8.124,
+      "available_budget": 1.876,
+      "paid_minutes": 312,
+      "decision": "briefs/14zl-ten-dollar-round.md",
+      "exception_month": "2026-10"
+    },
+    "remaining_minutes": 312,
+    "reserved_minutes": 0,
+    "after_reservation": 312,
+    "other_repos_reserve": 0,
+    "credential": "existing local gh login; GET only"
+  }
 }
