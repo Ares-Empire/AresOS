@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "tests": {
+    "command": "wsl --exec bash --noprofile --norc -c 'cd /mnt/c/Users/pab/AresOS-14-owner-tools && python3 -B -m unittest discover -s os/tests -p test_owner_equality.py -v'",
+    "tests": 4,
+    "seconds": 153.061,
+    "result": "OK",
+    "skips": 0
+  },
+  "git_diff_check": true,
+  "tested_head": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+  "source_unchanged": true,
+  "scanner_version": "8.21.2",
+  "full_history_findings": 0,
+  "pending_findings": 0,
+  "closing_commit_pushed": false,
+  "pr_ready": false
+}

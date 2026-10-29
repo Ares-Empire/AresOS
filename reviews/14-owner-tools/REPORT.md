@@ -1,5 +1,133 @@
 # 14: checked owner tools
 
+**14zp STOP:** probe23 passed. Qualification12 proved short-hold physical typing,
+the owner-length dummy and the377-character CI login, then STOPped after staging
+the exact AresOS release: the refreshed-title idle guard reported an active
+deployment client. No rerun, product change or extra push. PR #13 stays draft;
+acceptance is unmet. This STOP report is committed locally.
+
+## 14zp actual runs — typing passes; post-staging title guard STOPs
+
+Both runs used pushed head `c0ab14c3c442a6abea2d158311277ed30e4419b1`:
+
+| Run | Result | Native suite | Package minutes |
+|---|---|---|---:|
+| [Probe23](https://github.com/Ares-Empire/AresOS/actions/runs/40823225012) | Accepted |511 /138.277s, zero skips |26 |
+| [Qualification12](https://github.com/Ares-Empire/AresOS/actions/runs/40826092372) | STOP after staging, before refreshed title |511 /131.129s, zero skips |75 |
+
+**Typing evidence:** all6 reached hidden values passed their pre-Enter count
+proof and completed normally: four account/sudo passwords, the40-character
+dummy and the377-character real CI token. Each window was complete with all
+keys released, exact press/release counts, repeats0, SYN_DROPPED0, one attempt.
+All12 blocked-reader guards passed, and24 current-cursor visible echo checks
+passed. No Ctrl-U, retype, unverified Return, hidden-read timeout or pre-Enter
+STOP occurred. VM clear/retype remains unexercised; its real owned-PTY and model
+regressions remain local evidence.
+
+| Hidden input | Sent / received events | Presses / releases | Counter seconds |
+|---|---:|---:|---:|
+| Initial account password |66 /66 |33 /33 |22.324 |
+| Initial sudo password |66 /66 |33 /33 |22.768 |
+| Corrected-stock account password |66 /66 |33 /33 |23.436 |
+| Corrected-stock sudo password |66 /66 |33 /33 |26.067 |
+| Fresh owner-length dummy (40 chars) |112 /112 |56 /56 |25.867 |
+| Real CI token (377 chars) |1110 /1110 |555 /555 |91.364 |
+
+These complete-window totals include the single verified Return.
+
+The fresh dummy returned the existing registry-refusal STOP with zero mutation
+calls. Its112 events differ from Q11's110 because each fresh random value has
+its own modifier count. Q11's40-character110/110 owner-path proof remains
+in the preparation section. The real CI token used16-character chunks with1s pauses and1s
+before the pre-Enter proof; **registry login passed**, followed by owner
+signature verification. Timing is recorded as30ms holds /minimum120ms gaps;
+guest autorepeat stayed250/33ms. No credential values, ordered keys or event
+codes were recorded. [Counts, guards and completion diagnostics](../../os/manifest/ci/14/14zp-qualification-stop/diagnostics.json).
+
+**Exact STOP / PLAN-GAP:** `/var/lib/ares/at switch` physically reached the owner
+tool. Its checked switch script returned0 (`Deploying...done (53 seconds)`).
+The subsequent rpm-ostree/bootc observations agree on the exact pinned AresOS
+release staged, saved stock serial1 still booted and pinned, the older stock
+serial0 retained, transaction null and rollbackQueued false. Source/trace
+analysis places the refusal in `Tools.title()`'s idle gate, after the staging
+checks: `rpm-ostree/bootc/ostree client active`. The command did **one intended
+switch mutation before this postcondition refusal**; it is not a zero-mutation
+preflight refusal and is not claimed passed.
+
+The detected process's PID/executable/argv/cgroup are not retained by this
+refusal record. Its identity, whether it was still doing work, and whether a
+bounded settle would be appropriate are **unproved**. No process exclusion,
+sleep/retry, owner-tool edit or audit relaxation was added. A fresh post-switch
+title was not saved, and AresOS boot, layout begin/proof/revert/finish, rollback,
+keep-stock and final Windows checks were not reached. The harness exported the
+private STOP diagnostics and observed a paused VM STOP; it did not reboot or
+retry. [Staged-state summary](../../os/manifest/ci/14/14zp-qualification-stop/switch-state.json).
+
+**Other verification:** both native511-test suites have zero skips and explicitly
+pass the unchanged30-second serial timing test. Both native logs and the VM
+failure-step log scan with pinned gitleaks8.21.2:0 findings. The probe proves
+the live zero-event counter checkpoint, released-key state, Unicode VCSU getter,
+restored VT, loop-image20 checks /zero helper mutations and28 verified tmpfs
+transfers. Qualification retains180 SHA/syntax-verified transfers,13 owner
+records (11 passed; expected dummy refusal plus switch STOP),6 successful hidden
+completions, prepare/rerun, network checkpoint, record export, private login and
+signature verification. Its independent raw replay passes9 protected captures,
+10 zero-write/unmap samples,9 BootNext replays and8 NVRAM/all-variable comparisons.
+No protected-disk write, firmware widening or frozen release change is accepted.
+
+The fresh qualification local ISO replay passed on attempt1. Release/git and
+53-source replay and strict805-command checks were refreshed before dispatch.
+A redundant invocation through Windows text-mode pipes produced a CRLF Bash
+heredoc parse error; the unchanged checker rerun under existing WSL passed all
+805 commands/wrappers and799 embedded Python blocks. No CI behaviour or test
+bound changed for that local invocation issue.
+
+Final report/evidence checks: the4 owner equality/manifest tests passed in
+153.061s, `git diff --check` passed, and the pinned full-history and pending-file
+gitleaks scans report0. The final local commit changes only this REPORT, the
+ledger and sanitized evidence; CI/tests/owner payload/runtime/guides/workflows
+and privacy policy remain exactly the tested head.
+
+**Artifact privacy:** probe509 =507 reviewed public-ISO listing matches +2 exact
+whole-line kernel X.509 messages; qualification517 =507 +10 exact messages.
+There are zero unclassified findings, no new ignore/rule/workflow entries, and
+no raw console, ISO listing, credential file or screenshot committed. Each
+accepted kernel source line is recorded below (SHA256 before path):
+
+| Source-line SHA256 | Private artifact path:line | Certificate label |
+|---|---|---|
+| `6c83c3d69de4a558645c4881fefb1fed81d6032c842739701abd76a21d7ea891` | Probe23: `evidence/two-disk/live-ui-probe-boot-console.txt:491` | Fedora kernel signing key |
+| `94b4bc7bb3ca061d67d806bbf61102d05be71d7997cfd4eda3222b95dd134d22` | Probe23: `evidence/two-disk/live-ui-probe-boot-console.txt:524` | Fedora kernel signing key |
+| `c1b20ec3a9b4af46b0eb3136997d2e8cc6efa54bb486b72a2674865d95fe858a` | Qualification12: `evidence/two-disk/corrected-stock-boot-console.txt:498` | Build time autogenerated kernel key |
+| `05626d7cf69f61eb52ed486942886265b778f81f24ee482fad82f44e1bccbbd7` | Qualification12: `evidence/two-disk/corrected-stock-boot-console.txt:509` | Build time autogenerated kernel key |
+| `203244910ded9a6fd5f44aebdb7c0f5852ed3a10dcc8292d8abc9c9e111a5b67` | Qualification12: `evidence/two-disk/offline-first-stock-boot-console.txt:503` | Build time autogenerated kernel key |
+| `7babf3b28b2bb8d4454b9f09a88a4f4594b911c9d21faca3d115652c48f67cd4` | Qualification12: `evidence/two-disk/offline-first-stock-boot-console.txt:520` | Build time autogenerated kernel key |
+| `e5702c0c13e38d43c3f333bb7d8fb17e2b7517e14ec9269e34442ca06dcd5117` | Qualification12: `evidence/two-disk/protected-second-install-boot-console.txt:492` | Fedora kernel signing key |
+| `e27b4b05c779c93562cca544400721c6f17b0a05c35e15104fa604a0b3622b24` | Qualification12: `evidence/two-disk/protected-second-install-boot-console.txt:524` | Fedora kernel signing key |
+| `e1ae852f74d9d6bb3581c330ec39d5249086fb24524a5ef08d1583fccc4cb0af` | Qualification12: `evidence/two-disk/stock-initialization-0-boot-console.txt:502` | Build time autogenerated kernel key |
+| `0ab1161b753161c7873634f24a47597f5cc4072d12e2149d7d3b4048254af6f0` | Qualification12: `evidence/two-disk/stock-initialization-0-boot-console.txt:519` | Build time autogenerated kernel key |
+| `c20dd4a65bf16bfd31339a87b2a4308b9858978652d76083d1be6682524309f7` | Qualification12: `evidence/two-disk/tools-stock-boot-console.txt:498` | Build time autogenerated kernel key |
+| `35259b28a129295f6ba8ad8cc45069f741c6abaea82a8f459e281f9080f0acb5` | Qualification12: `evidence/two-disk/tools-stock-boot-console.txt:511` | Build time autogenerated kernel key |
+
+**Closing state:** complete130/130 history, **1412/1600** package minutes,
+23 probes /12 owner qualifications dispatched cumulatively. This round used
+one fast-forward push, one probe and one qualification; no reruns. Exact-head
+push/PR privacy both executed all3 required steps successfully. The timestamped
+read-only billing snapshot reports$6.414 net charged and597
+available minutes under the$10/prevent=true budget; this is a snapshot, not a
+final invoice. No further Actions work is authorized by this stopped round.
+Reserve0/closing0 remain because the restore condition is unmet; no final
+closing push or ready transition occurred. The owner can set the budget back
+to$0 now that this run is over.
+[Complete ledger and decision packet](../../os/manifest/ci/14/14zp-qualification-stop/closed-ledger.json).
+
+**Not verified / open question:** identify the active client at the post-switch
+title gate before authorizing a fix or a new run. The complete installed-AresOS,
+layout/recovery route remains unqualified. INSTALL, EMERGENCY and the release
+gate retain NOT RELEASED and their physical/For package15 gates. No real laptop,
+image rebuild, release, publication, merge or force push. Owner payload remains
+`683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974`.
+
 ## 14zp REPORT — short holds and counter-verified hidden input
 
 **Done:** package14's guest sends each physical chord with a30ms QMP hold and a
