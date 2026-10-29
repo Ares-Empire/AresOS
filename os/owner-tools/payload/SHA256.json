@@ -8,7 +8,7 @@
     "path": "media.py"
   },
   {
-    "sha256": "986fd0944c712f6f5371473d6b91d520bff18f1742fd80be6442c388b00acce3",
+    "sha256": "3b601ca9d155db0b341cb44565d652880e2cbf9041045da507c1fb2ed55eeeed",
     "path": "owner.py"
   },
   {
@@ -20,11 +20,11 @@
     "path": "release/default-stock.sh"
   },
   {
-    "sha256": "f5110c74466d53e8ee28620d326fd641746c1a6be488d3c0de9d21fdb7485a9c",
+    "sha256": "2e5b201038127a80f9cc02642017a6d010693ba367d5373173684ca7d6528e00",
     "path": "release/pause-stock-updates.sh"
   },
   {
-    "sha256": "bc079def58a73f2ffaf2085b64f9e02d72eb45cc76f64be60ad0e476483ecf4f",
+    "sha256": "32cc7ff61f5135b924a64ab851c862f0a95cb2e9b71144b6ae244e7aaa89a649",
     "path": "release/pin-stock.sh"
   },
   {

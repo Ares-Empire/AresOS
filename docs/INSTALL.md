@@ -131,7 +131,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974` and `PASS ARESTOOLS ready`.
+Require `PASS tools manifest SHA256 025622f56d61f669912ce9d6320e7171e2007194420c79ce54dc6b89a0570486` and `PASS ARESTOOLS ready`.
 The copy checks removable/USB/exFAT/boot/system identity before writing,
 verifies every copied file, and labels it **ARESTOOLS**. A STOP means preserve
 it and get help. Safely eject and **unplug** it before [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), shutdown or restart. Record B must pass with

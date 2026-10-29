@@ -1,5 +1,103 @@
 # 14: checked owner tools
 
+## 14zq REPORT — exact post-staging hold helper
+
+**Done:** the owner tools and both shared pause-script bodies classify only the
+verified `/usr/bin/ostree admin finalize-staged --hold` in the exact cgroup
+`/system.slice/ostree-finalize-staged-hold.service` as
+`excluded_as_system_helper`. The full argv, executable path and single cgroup-v2
+membership must all match. Wrong argv/cgroup/executable remains a client.
+Shutdown finalizers remain clients. The existing daemon exclusion and mandatory
+transaction null check are unchanged. A single client filter is used by both
+script bodies and all owner idle/prepare callers. Process classifications are
+recorded in private owner diagnostics before a possible refusal.
+
+The pinned ISO's RPM database verifies ostree2026.4, bootc1.16.13 and systemd259.9.
+Read-only `unsquashfs -cat` gives these unit commands; expected cgroups follow
+the verified default system-service slice, with no Slice/ExecStart override:
+
+| Unit | ExecStart | ExecStop | Expected cgroup |
+|---|---|---|---|
+| ostree-finalize-staged-hold.service | `+/usr/bin/ostree admin finalize-staged --hold` | none | `/system.slice/ostree-finalize-staged-hold.service` |
+| ostree-finalize-staged.service | none | `/usr/bin/ostree admin finalize-staged` | `/system.slice/ostree-finalize-staged.service` |
+| bootc-finalize-staged.service | none | `/usr/bin/bootc composefs-finalize-staged` | `/system.slice/bootc-finalize-staged.service` |
+
+There is no finalize-staged `.path` unit in this pinned listing. The pinned
+ostreev2026.4 source starts `ostree-finalize-staged.service` programmatically;
+its Wants/After dependency starts the hold unit. The hold branch loads the
+sysroot unlocked, holds `/boot` and waits for SIGTERM. The actual finalizers run
+at shutdown. The generic service drop-in only sets timeout abort behavior.
+[Exact unit/source hashes and RPM provenance](../../os/manifest/ci/14/14zq-finalize-sources/index.json).
+
+**Retained-evidence limitation / PLAN-GAP:** Q12's exported STOP record proves
+successful exact staging and the subsequent client-active refusal. It does not
+retain that client's PID/argv/cgroup. A complete JSON traversal finds only the
+earlier real rpm-ostreed PID12599 from prepare. That real row and the real
+Q12 staged/prepared state are fixtures. The hold PID and post-staging reuse of
+the pre-stage BLS list are explicitly labelled unit-derived/model fixtures,
+not claimed as observed Q12 processes/BLS. Future diagnostics now record the
+process list; acceptance additionally requires an actual correctly classified
+post-staging hold in the successful switch record. No missing process identity
+is invented or used to authorize a broader exclusion.
+
+**Verified locally:**9 finalize regressions/2.578s,6 stock-idle/.319s,
+10 budget/.202s and4 no-repeat dispatch-controller/.016s pass. The tests execute
+the real proc classifier against file fixtures and refuse wrong argv/cgroup,
+real clients, shutdown finalizers and active/unknown transactions with no
+mutation. Retained staged-state title/records tests pass, stale-title reboot
+refuses, fresh-title mocked reboot passes, and verify/layout/recovery keep
+their state refusals. [Every staged-capable gate](14zq-staged-gates.md) was
+reviewed; no state, media, disk, firmware or session predicate is relaxed.
+
+Whole local suite:520 attempted in835.541s, 511 distinct passes,
+9 approved host limitations, zero skips. The unchanged30-second case
+measured54.72680228400009s locally;14zm's host-timing decision
+applies locally only. All520 tests, including that bound, remain mandatory in
+native CI; any native failure stops this round. Frozen-image payload, workflow,
+privacy policy and the PIN_STOCK mutation tail are unchanged.
+
+The current stand-in walk covers all8 stages,23 hidden pairs and3 public
+handoffs with no uncovered wait. Strict checks parse805
+guest commands and wrappers and799 embedded Python
+blocks; any parse stderr refuses. Full pinned ISO replay passed on attempt2:
+attempt1 had the documented Windows checkpoint replace WinError5, then the
+authorized10s retry used a fresh path. No Linux CI behavior changed. All pinned
+bytes and a fresh official checksum pass. Release/git/53-source replay passes;
+the four registry checks requiring only the CI token remain explicitly CI-only
+and fail closed, with no owner-secret or scope change.
+[Source-bound preparation](../../os/manifest/ci/14/14zq-preflight/preparation.json).
+
+The final manifest-order regression passed1/9.487s. Pinned local gitleaks8.21.2
+reports0 findings in full history and the curated pending files; ignore/rules
+and the privacy workflow are unchanged.
+
+**Current bundle / For package15:**
+`025622f56d61f669912ce9d6320e7171e2007194420c79ce54dc6b89a0570486`.
+The reviewed payload is regenerated and INSTALL's current copy/check pin uses
+this value. Earlier REPORT sections and evidence retain their historical pins.
+Package15 takes this fingerprint after qualification; its worktree was not
+touched. INSTALL/EMERGENCY/release gates retain NOT RELEASED and all physical
+followability, keyboard, firmware and forgotten-stick gates.
+
+**JUDGMENT-CALL:** exclude the hold only. Excluding the two shutdown finalizers
+would hide actual deployment work, so those exact commands still block idle.
+No waiting, masking or process-name wildcard was added; any future expansion
+requires source evidence and refusal regressions.
+
+**Budget / pending:** complete130/130 history:1412 +238 pre-push bound =1650/1700.
+Only package14 changes: cap1700, probe25, owner-tools14; reserve0/closing0 stay.
+Package13 is byte-for-byte unchanged. The read-only$10/prevent=true budget guard
+deducts net charged spend. Pinned local gitleaks0 precedes the single FF push;
+fresh exact-head privacy/all3 actual steps, complete ledger and billing precede
+probe24. Only accepted probe24 permits qualification13 on the same head. Any
+CI stop is reported with diagnostics, without rerun. Restore closing12/reserve150
+and mark PR #13 ready only after acceptance, then tell the owner the round is
+over so the budget can be reset0. Never merge.
+
+**Not verified / open questions:** actual VM post-staging hold classification,
+the complete AresOS/layout/recovery route on this head, and the physical laptop
+gates. No image rebuild, release or publication. No real laptop touched.
+
 **14zp STOP:** probe23 passed. Qualification12 proved short-hold physical typing,
 the owner-length dummy and the377-character CI login, then STOPped after staging
 the exact AresOS release: the refreshed-title idle guard reported an active

@@ -13,9 +13,9 @@ import test_stock_prepare as prepare
 
 DAEMON = dict(pid=101, exe='/usr/bin/rpm-ostree',
               cmdline=['rpm-ostree', 'start-daemon'],
-              cgroup='0::/system.slice/rpm-ostreed.service\n', excluded_as_daemon=True)
+              cgroup='0::/system.slice/rpm-ostreed.service\n', excluded_as_daemon=True, excluded_as_system_helper=False)
 CLIENT = dict(pid=202, exe='/usr/bin/bootc', cmdline=['bootc', 'upgrade'],
-              cgroup='0::/user.slice/session-1.scope\n', excluded_as_daemon=False)
+              cgroup='0::/user.slice/session-1.scope\n', excluded_as_daemon=False, excluded_as_system_helper=False)
 
 
 class StockIdleTest(unittest.TestCase):

@@ -169,14 +169,19 @@ def agree(state):
     return booted[0]
 
 
+def deployment_client(process):
+    return not (process['excluded_as_daemon'] is True
+                or process.get('excluded_as_system_helper', False) is True)
+
+
 def idle(state, processes):
     require('transaction' in state['rpm'] and state['rpm']['transaction'] is None, 'Deployment transaction active or unknown')
-    require(not any(not p['excluded_as_daemon'] for p in processes), 'rpm-ostree/bootc/ostree client active')
+    require(not any(deployment_client(p) for p in processes), 'rpm-ostree/bootc/ostree client active')
 
 
 def preflight_prepare(state, processes, saved=None, updater_names=()):
     stock = agree(state)
-    owned = [p for p in processes if not p['excluded_as_daemon']]
+    owned = [p for p in processes if deployment_client(p)]
     def updater_owned(p):
         return any('/system.slice/' + name + '/' in p.get('cgroup', '') + '/'
                    or ('/system.slice/' + name + '\n') in p.get('cgroup', '') for name in updater_names)
@@ -619,7 +624,9 @@ class Tools:
         self.pause = program(self.payload, 'pause-stock-updates', 'PAUSE_STOCK')
 
     def processes(self):
-        return self.pause['deployment_processes']()
+        processes = self.pause['deployment_processes']()
+        self.host.trace.append(dict(observation='deployment-processes', processes=processes, mutation=False))
+        return processes
 
     def load(self, name):
         path = self.store / (name + '.json')
