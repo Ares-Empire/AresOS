@@ -1,5 +1,113 @@
 # 14: checked owner tools
 
+## 14zu REPORT — local PS/2 typing and xHCI health gates
+
+**Done:** Package14's VM and early native capability check no longer add
+`usb-kbd`. All package14 QMP physical typing uses q35's built-in i8042/PS-2
+keyboard, including VT selection, visible commands, hidden input, layout proof,
+foot and bounded Enter resyncs. The tools stick remains on the same xHCI
+controller/port2 and follows the existing attach/remove-before-reboot rules.
+The event selector requires exactly one `AT Translated Set 2 keyboard`,
+BUS_I8042 `0x11`, vendor/product `1/1`, required key capabilities, then rechecks
+the opened device's EVIOCGID. Boot also reads every used static EVIOCGKEYCODE
+slot and refuses a mapping mismatch before typing. It never assumes an event number. Boot evidence
+and physical-typing receipts identify the AT transport; the native capability
+step now requires `i8042` and `ps2-kbd`, with no `usb-kbd`, in QMP's qtree.
+
+**Zero-cost source/device verification:** The retained Q15 guest already logged
+the i8042 controller and `AT Translated Set 2 keyboard` on platform/i8042/serio0.
+[Source proof](../../os/manifest/ci/14/14zu-local/source-proof.json) binds that
+private boot console by hash and the public references by hash/URL. QEMU
+v8.2.2's [q35 initialization](https://github.com/qemu/qemu/blob/v8.2.2/hw/i386/pc_q35.c)
+calls the PC basic-device initialization; [pc.c](https://github.com/qemu/qemu/blob/v8.2.2/hw/i386/pc.c)
+defaults i8042 enabled and creates TYPE_I8042. The pinned runner package remains
+`1:8.2.2+ds-0ubuntu1.18`; no host package or guest setting changed.
+
+The exact pinned ISO's de/us/us-intl VT maps still decide characters. The test
+cross-checks every used qcode, modifiers and VT-selection keys through the pinned
+QEMU keycodemapdb's AT set1/set2 fields and Linux's raw/translated AT tables to
+the same Linux keycode. No layout-specific mapping override was needed. Linux
+v6.17 atkbd is an explicitly identified upstream reference, not a claim that
+the Bazzite fork's module was rebuilt or its bytes matched that reference.
+QEMU [ps2.c](https://github.com/qemu/qemu/blob/v8.2.2/hw/input/ps2.c) has a
+16-byte scancode admission limit and 8-byte reply headroom;
+[ps2.h](https://github.com/qemu/qemu/blob/v8.2.2/include/hw/input/ps2.h) keeps a
+256-byte compatibility backing buffer. Each qualification chord fits below 16
+scancode bytes. Holds remain 30ms and gaps 120ms. This permits draining; it does
+not prove immunity to arbitrary host stalls. Echo and count/refusal checks stay.
+
+**xHCI health:** Every Linux boot-stage uses the full current-boot monotonic
+interval beginning at 0, so early failures cannot be hidden by a late serial
+login. Checks run at boot/owner-command/media/stage boundaries, inside every
+cursor, idle, visible-echo, hidden-read, prepared-login and owner-result wait,
+and after a completed not-ready observation. Read-only current-boot kernel
+journal polls are throttled to once per second inside loops and forced at
+observer entry/exit. The original predicates/deadlines/resync limit stay.
+Missing/inconsistent journal data refuses. Only counts/classes leave the guest.
+A controller-dead or unrequested USB-disconnect class while the stick is
+attached or needed immediately STOPs with the explicit xHCI message; the
+stop-endpoint timeout alone is counted diagnostically. One independently
+requested tools removal is recognized only for its sysfs-resolved port2 under
+the owned PCI00:05.0 controller. Repeated/unrelated disconnects or controller
+death are not excused. Firmware/Windows markers have no Linux journal: existing
+tools-absent, QMP, BootNext, NVRAM and protected-disk audits remain mandatory.
+
+**Verified locally:** `PYTHONPATH=os/ci:os/tests python3 -B -m unittest -v test_owner_ps2 test_owner_key_counter test_owner_capabilities test_owner_console test_owner_hidden test_owner_login test_owner_walk test_owner_records_prompt test_owner_sudo_idle test_owner_equality test_keyboard_vm` in existing WSL: **103
+tests, 848.898s, PASS, 0 skips**. This includes device selection,
+AT ioctl/counter tests, source mapping/queue limits, exact retained Q15 failure
+classes, since-boundary filtering, expected removal vs death, missing/invalid
+journal refusal, a failure arriving during a wait, all guarded observer forms,
+timeout receipts, old VCSA/idle fixtures, and exact owner-block/bundle checks.
+The initial Windows-Python attempt could not run Linux terminal/pipe tests and
+its Bash subprocess quoting differed; it is not passing evidence. WSL passed
+the unchanged checks. No software was installed and no test bound was changed.
+After correcting early-STOP diagnostic export to stderr, all
+**14 PS/2/health/framing tests pass in
+3.717s**. The added real-Bash regression verifies counts
+survive failure before stdout's checksum export, in direct and serial modes.
+Its first local setup correctly refused the production `/run` mktemp path;
+the existing owned-repo-directory mktemp shim fixed that setup, with production
+framing and assertions unchanged. An intermediate broader local run was
+invalidated by concurrent inspected-source edits and is not passing evidence;
+the 103-test rerun used frozen sources.
+
+The separately retained healthy walk passes **8 stages,
+23 hidden pairs, 3 public handoffs,
+86 health boundaries and 940
+composed guest commands**. Every composed command and its serial/staged wrapper
+passes real `bash -n` with empty stderr. It covers US-intl proof/finish, back to
+German, rollback, keep-stock and both final Windows markers. The Q15 screen
+shape is injected as clutter into later-stage waits; a synthetic healthy AT
+redraw follows one independently idle-authorized Enter. This is a local model,
+not evidence that Q15 recovered or that a new VM ran. Historical dead-keyboard
+fixtures still refuse; no old historical prompt becomes a readiness grant.
+The host walk and source bindings are refreshed. `git diff --check` passes.
+The final hash-manifest order and regenerated-payload equality checks also pass:2 tests,12.015s,0 skips.
+Pinned gitleaks 8.21.2 full history and curated pending files: 0 findings.
+
+**Not verified:** No new VM, native runner or laptop test. Actual AT event
+delivery through all layouts, native qtree and guest journal timing await the
+November probe/qualification. The whole native suite was not run locally in
+this round; its existing host limitations remain documented and its native
+requirements remain mandatory. No raw Q15 VCSA, screenshot, console or secret
+was committed. The owner payload/fingerprint, owner scripts/guides, frozen
+runtime/image/release paths, privacy policy/workflow and budget settings are
+unchanged. Payload fingerprint stays
+`320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6`.
+INSTALL/EMERGENCY/release gate remains **NOT RELEASED** and PR13 remains draft.
+
+**Budget / disposition:** 0 Actions minutes; no pull, push, dispatch, publication
+or merge. The last closed ledger remains 1715/1900 (26 probes, 15 qualifications).
+No new allowance was inferred. Commit locally only; the integrator will supply
+fresh November settings including the 150-minute reserve before another CI round.
+
+**JUDGMENT-CALL:** The keyboard topology change is the integrator's explicit 14zu
+decision. Health polling and sysfs-identified intentional-removal handling are
+confined to the CI harness; no owner workflow or product setting changes.
+**PLAN-GAP:** 14zt's keyboard-transport gap is addressed in the harness, pending
+real VM qualification. The original cause of xHCI death remains unproven.
+**Open questions:** November native/VM acceptance remains outstanding.
+
 ## 14zt REPORT — PLAN-GAP: disconnected keyboard, unchanged prompt
 
 **Done / finding:** Q15's problem is not an alternate rendered prompt form.

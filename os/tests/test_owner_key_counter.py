@@ -44,8 +44,8 @@ class KeyCounterTest(unittest.TestCase):
             root=pathlib.Path(folder)
             def add(number,bits):
                 p=root/('event'+str(number))/'device';(p/'id').mkdir(parents=True);(p/'capabilities').mkdir()
-                (p/'name').write_text('QEMU QEMU USB Keyboard\n')
-                for name,value in (('bustype','0003'),('vendor','0627'),('product','0001')):(p/'id'/name).write_text(value+'\n')
+                (p/'name').write_text('AT Translated Set 2 keyboard\n')
+                for name,value in (('bustype','0011'),('vendor','0001'),('product','0001')):(p/'id'/name).write_text(value+'\n')
                 (p/'capabilities/key').write_text(hex(bits)[2:]+'\n')
             with self.assertRaisesRegex(AssertionError,'unique'):counter.keyboard(root)
             add(5,sum(1<<n for n in (28,30,42,44)))
@@ -60,7 +60,7 @@ class KeyCounterTest(unittest.TestCase):
         calls=[]
         def ioctl(fd,request,data,mutate):
             calls.append(request)
-            if request==0x80084502:data[:]=__import__('array').array('H',[3,0x0627,1,1])
+            if request==0x80084502:data[:]=__import__('array').array('H',[0x11,1,1,1])
             elif request==0x80084503:data[:]=__import__('array').array('I',[250,33])
             else:self.assertEqual(request,0x80604518)
         with patch.object(fcntl,'ioctl',side_effect=ioctl):

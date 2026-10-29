@@ -26,7 +26,8 @@ import owner_hidden
 import owner_read_diagnostics
 import owner_key_counter
 import owner_login
-from owner_keys import maps, physical_keys
+import owner_xhci
+from owner_keys import maps, physical_keys, at_keycodes
 from owner_media import Media
 
 COMMANDS = json.loads(pathlib.Path('os/owner-tools/commands.json').read_text())
@@ -95,6 +96,7 @@ class Guest(td.Guest):
     owner_media = None
     owner_layout = 'de'
     run_secret_tainted = False
+    keyboard_transport = 'QMP i8042/PS-2 AT keyboard'
 
     def screenshot(self, name):
         result=super().screenshot(name)
@@ -113,8 +115,7 @@ class Guest(td.Guest):
         return 'user,model=virtio-net-pci,id=owner-net'
 
     def peripheral_args(self):
-        args = ['-device', 'virtio-vga,addr=0x4', '-device', 'qemu-xhci,id=usb-controller,addr=0x5',
-                '-device', 'usb-kbd,bus=usb-controller.0,port=1']
+        args = ['-device', 'virtio-vga,addr=0x4', '-device', 'qemu-xhci,id=usb-controller,addr=0x5']
         if self.mode == 'live':
             path = td.WORK / 'owner-webui.sock'
             if path.is_socket():
@@ -131,13 +132,39 @@ class Guest(td.Guest):
         self.webui_server = None
         self.webui_socket = None
         self.owner_signed_in = False
+        self.xhci_context = dict(stage=getattr(self, 'boot_purpose', self.mode), since_usec=0,
+            attached=False, needed=self.mode == 'live' or getattr(self, 'boot_purpose', '') == 'tools-stock',
+            expected_disconnect=None)
         super().__init__(*args, **kwargs)
         # The CPU has never run. Set carrier before even the firmware starts.
         self.monitor.command('set_link', {'name': 'owner-net', 'up': self.network_up})
         self.monitor.command('cont')
         td.save(f'boot-{self.boot_number}-owner-route', dict(network_up=self.network_up,
             configured_before_cpu_start=True, tools_storage_attached=False,
+            keyboard_device='i8042/PS-2 AT', usb_keyboard=False,
             keyboard_timing=dict(hold_ms=KEY_HOLD_MS,minimum_gap_ms=KEY_GAP_SECONDS*1000)))
+
+    def keyboard_device(self):
+        source = ('import json,os,pathlib,stat\n' + ''.join(inspect.getsource(f) for f in (
+            owner_key_counter.keyboard, owner_key_counter.settings, owner_key_counter.released, owner_key_counter.at_mapping))
+            + '\ndevice=keyboard()\nfd=os.open(device,os.O_RDONLY|os.O_NONBLOCK|os.O_NOCTTY)\n'
+            + 'try:\n    assert stat.S_ISCHR(os.fstat(fd).st_mode)\n    settings(fd)\n'
+            + '    checked=at_mapping(fd,' + repr(at_keycodes()) + ')\nfinally: os.close(fd)\n'
+            + 'print(json.dumps(dict(device=device,name="AT Translated Set 2 keyboard",bus=17,static_keycodes_checked=checked)))\n')
+        value = self.capture_json('boot-' + str(self.boot_number) + '-at-keyboard',
+            sw.framed('python3 -c ' + shlex.quote(source)))
+        assert value['name'] == 'AT Translated Set 2 keyboard' and value['bus'] == 17
+        assert value['static_keycodes_checked'] == len(at_keycodes())
+
+    def capture_json(self, name, command):
+        value = super().capture_json(name, command)
+        if (isinstance(value, dict) and value.get('ready') is False
+                and not value.get('handoff_ready') and not value.get('rejected')):
+            # A completed UART command is safe to follow with this independent
+            # journal receipt. Failed/still-running UART transfers are never
+            # interrupted with a second command.
+            owner_xhci.checkpoint(self, name + '-not-ready')
+        return value
 
     def prepare_registry_auth(self, encoded_auth=None):
         # The physical `login` command is the only credential writer in the guest.
@@ -146,12 +173,16 @@ class Guest(td.Guest):
     def login(self):
         super().login()
         self.owner_signed_in = True
+        self.keyboard_device()
+        owner_xhci.checkpoint(self, 'boot-' + str(self.boot_number) + '-begin')
         if not self.network_up:
             self.assert_offline('stock-offline-login')
 
     def login_live(self):
         super().login_live()
         self.owner_signed_in = True
+        self.keyboard_device()
+        owner_xhci.checkpoint(self, 'boot-' + str(self.boot_number) + '-begin')
 
     def assert_offline(self, stage):
         result = self.capture_json(stage, sw.framed('''python3 - <<'PY'
@@ -189,6 +220,7 @@ PY'''))
 
     def finish_shutdown(self, stage, expected, timeout=180):
         self.media_absent(stage)
+        # Owner reboot performs its health check before typing the command.
         return super().finish_shutdown(stage, expected, timeout=timeout)
 
     def poweroff(self, stage):
@@ -229,7 +261,7 @@ def wait_tty(guest, tty, predicate, stage, timeout=90, resync=None, observe=None
         nonlocal samples
         samples += 1
         return guest.capture_json(stage + '-sample-' + str(samples), sw.framed('python3 -c ' + shlex.quote(
-            owner_console.source(tty, predicate, seconds))))
+            owner_console.source(tty, predicate, seconds, health=owner_xhci.context(guest)))))
     owner_console.wait(sample, timeout,
         lambda phase, raw: retain_vcsa(tty, stage, phase, raw), resync=resync,
         observe=(lambda seconds, attempt: observe(stage + '-idle-' + str(attempt), seconds)) if observe else None,
@@ -307,7 +339,7 @@ class Console:
                         +'    if stable>=3: ready=True;break\n    time.sleep(.1)\n'
                         +'print(json.dumps(dict(ready=ready,echo_matches=ready,value_recorded=False)))\n')
                     result=(self.login_prepared.rpc('echo') if self.login_prepared is not None
-                        else self.guest.capture_json(name,sw.framed('python3 -c '+shlex.quote(source))))
+                        else self.guest.capture_json(name,sw.framed('python3 -c '+shlex.quote(owner_xhci.guard(source,owner_xhci.context(self.guest))))))
                     td.save(name,result)
                     assert result['ready'] and result['echo_matches'], 'Visible text differs; Enter withheld'
                 type_text(self.guest,'\n')
@@ -317,7 +349,7 @@ class Console:
         def observe(name, seconds):
             assert getattr(self.guest, 'owner_input_epoch', 0) == epoch, 'Input revoked idle proof'
             value = self.guest.capture_json(name, sw.framed('python3 -c ' + shlex.quote(
-                owner_console.hidden_idle_source(self.tty, seconds))))
+                owner_console.hidden_idle_source(self.tty, seconds, health=owner_xhci.context(self.guest)))))
             td.save(name, value)
             assert getattr(self.guest, 'owner_input_epoch', 0) == epoch, 'Input revoked idle proof'
             assert type(value['ready']) is bool, 'Invalid physical idle observation'
@@ -343,7 +375,7 @@ class Console:
         epoch = getattr(self.guest, 'owner_input_epoch', 0)
         prepared=self.login_prepared if expected['kind']=='login' else None
         value = (prepared.rpc('ready') if prepared is not None else self.guest.capture_json(stage, sw.framed('python3 -c ' + shlex.quote(
-            owner_hidden.source(self.tty, expected, prompt=prompt.rstrip())))))
+            owner_hidden.source(self.tty, expected, prompt=prompt.rstrip(), health=owner_xhci.context(self.guest))))))
         if prepared is not None:
             td.save(stage,value)
             if value.get('reader_changed'):raise owner_login.ReaderChanged('Login reader replaced before secret')
@@ -363,7 +395,7 @@ class Console:
         prepared=pending.get('login_prepared')
         result=(prepared.guard(pending,phase,pending['counts']['length']*KEY_GAP_SECONDS*2+5 if phase.startswith('before-value') else 0)
             if prepared else self.guest.capture_json(name,sw.framed('python3 -c '+shlex.quote(
-            owner_hidden.guard_source(self.tty,pending['expected'],pending['reader'],clearing)))))
+            owner_hidden.guard_source(self.tty,pending['expected'],pending['reader'],clearing,health=owner_xhci.context(self.guest))))))
         td.save(name,result)
         assert result['ready'] and not result['echo_enabled'] and result['syscall_number']==0, \
             'No unchanged hidden reader waiting in read; Enter withheld'
@@ -515,14 +547,14 @@ class Console:
         for number, (prompt, public_value, _) in enumerate(public_inputs, 1):
             epoch = self.guest.owner_input_epoch
             handoff = self.guest.capture_json(pending['stage'] + '-handoff-' + str(number), sw.framed('python3 -c ' + shlex.quote(
-                owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], handoff=prompt))))
+                owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], handoff=prompt,health=owner_xhci.context(self.guest)))))
             assert self.guest.owner_input_epoch == epoch, 'Input revoked public handoff'
             assert not handoff['ready'] and handoff.get('handoff_ready') and handoff['reader_left'], 'No verified public reader after sudo'
             self.visible(public_value + '\n',pending['stage']+'-public-handoff')
         epoch = self.guest.owner_input_epoch
         timeout = TOKEN_RESULT_WAIT if pending.get('token') else OWNER_RESULT_WAIT if pending['expected']['kind'] == 'owner' or public_inputs else 60
         result = self.guest.capture_json(pending['stage'] + '-left', sw.framed('python3 -c ' + shlex.quote(
-            owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], timeout=timeout))))
+            owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], timeout=timeout,health=owner_xhci.context(self.guest)))))
         assert self.guest.owner_input_epoch == epoch, 'Input revoked hidden read completion'
         assert type(result['ready']) is bool
         if result.get('rejected') and expect_rejection:
@@ -536,7 +568,7 @@ class Console:
             self.prompt(pending['stage'] + '-transition-prompt')
             epoch = self.guest.owner_input_epoch
             result = self.guest.capture_json(pending['stage'] + '-left-after-resync', sw.framed('python3 -c ' + shlex.quote(
-                owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], timeout=timeout))))
+                owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], timeout=timeout,health=owner_xhci.context(self.guest)))))
             assert self.guest.owner_input_epoch == epoch, 'Input revoked resynchronized completion'
         if not result['ready']:
             retain_vcsa(self.tty, pending['stage'] + '-left', 1, base64.b64decode(result['raw'], validate=True))
@@ -618,7 +650,7 @@ class Console:
         self.completed_epoch = None
         self.resync_serial_after_hidden(stage)
         value = self.guest.capture_json(stage + '-physical-idle', sw.framed('python3 -c ' + shlex.quote(
-            owner_console.hidden_idle_source(self.tty, OWNER_RESULT_WAIT))))
+            owner_console.hidden_idle_source(self.tty, OWNER_RESULT_WAIT, health=owner_xhci.context(self.guest)))))
         assert type(value['ready']) is bool, 'Invalid hidden idle observation'
         assert self.guest.owner_input_epoch == epoch, 'Input revoked hidden completion observation'
         if not value['ready']:
@@ -635,6 +667,7 @@ class Console:
             foreground_shell=True, input_epoch=epoch, token_recorded=False))
 
     def run(self, name, stage, inputs=(), password=None, expect_stop=False, token_chunks=False):
+        owner_xhci.checkpoint(self.guest, stage + '-begin')
         self.select()
         self.prompt(stage + '-ready')
         before = self.records()
@@ -665,12 +698,13 @@ class Console:
             self.guest.finish_shutdown(stage, 'guest-reset')
             return
         command = COMMANDS[name].split('/at ', 1)[-1].split()[0] if name != 'install' else 'install'
-        source = diagnostic_reader(before, command)
+        source = owner_xhci.guard(diagnostic_reader(before, command), owner_xhci.context(self.guest))
         result = self.guest.capture_json(stage + '-owner-result', sw.framed('python3 -c ' + shlex.quote(source)))
         # Save before checking acceptance: an unexpected STOP is the evidence
         # needed to diagnose the failure, not an excuse to lose its record.
         td.save(stage + '-owner-diagnostics', result)
         assert result['status'] == ('stopped' if expect_stop else 'passed'), 'Owner command failed: ' + stage
+        owner_xhci.checkpoint(self.guest, stage + '-completed')
         self.prompt(stage + '-completed')
         self.guest.screenshot_safe = True
         if not expect_stop:
@@ -779,6 +813,8 @@ def public_typing(guest, stage, profile, console, foot=False):
 
 def finish(guest, audit, stage):
     try:
+        if sys.exc_info()[0] is None and not getattr(guest, 'stopped_events_verified', False):
+            owner_xhci.checkpoint(guest, stage + '-end')
         if guest.process.poll() is None and not getattr(guest, 'failed_command', False) and sys.exc_info()[0] is None \
                 and not getattr(guest, 'stopped_events_verified', False):
             guest.poweroff(stage)

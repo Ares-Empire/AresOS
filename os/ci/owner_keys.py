@@ -63,3 +63,23 @@ def physical_keys(char, profile):
     assert isinstance(char, str) and len(char) == 1 and profile in ('de', 'us', 'us-intl')
     assert char in maps()[profile], 'Unknown or untypeable physical character'
     return maps()[profile][char]
+
+
+def at_keycodes():
+    """Static evdev keymap indices, not observed or typed input events."""
+    keys = {key for profile in maps().values() for chord in profile.values() for key in chord}
+    keys.update(('ctrl', 'alt', 'f2', 'f3', 'f4', 'u', 'd'))
+    path = ROOT / 'os/manifest/ci/13/13f-zero-cost/qemu-keymap.csv'
+    # maps() already verifies this exact pinned keycodemapdb file's SHA-256.
+    rows = {r['QEMU QKeyCode']: r for r in csv.DictReader(io.StringIO(path.read_text()))
+            if r['Linux Keycode'] and r['AT set1 keycode']}
+    result = {}
+    for key in keys:
+        # The selected name is AT *Translated*: atkbd_set_keycode_table
+        # indexes set1 and untranslates to its set2 defaults internally.
+        scan = int(rows[key]['AT set1 keycode'], 0)
+        index = (scan & 0x7f) | (0x80 if scan >> 8 == 0xe0 else 0)
+        code = int(rows[key]['Linux Keycode'], 0)
+        assert index not in result or result[index] == code, 'Ambiguous AT keymap'
+        result[index] = code
+    return dict(sorted(result.items()))

@@ -11,14 +11,14 @@ def keyboard(sysroot=pathlib.Path('/sys/class/input')):
     matches = []
     for event in sysroot.glob('event[0-9]*'):
         device = event / 'device'
-        if (device / 'name').read_text().strip() != 'QEMU QEMU USB Keyboard': continue
+        if (device / 'name').read_text().strip() != 'AT Translated Set 2 keyboard': continue
         ident = tuple(int((device / 'id' / name).read_text(), 16) for name in ('bustype','vendor','product'))
-        if ident != (3, 0x0627, 1): continue
+        if ident != (0x11, 1, 1): continue  # BUS_I8042, atkbd translated set 2.
         bits = 0
         for word in (device / 'capabilities/key').read_text().split(): bits = (bits << 64) | int(word, 16)
         assert all(bits & (1 << code) for code in (28,30,42,44)), 'Unexpected keyboard capabilities'
         matches.append('/dev/input/' + event.name)
-    assert len(matches) == 1, 'No unique qualified QEMU USB keyboard'
+    assert len(matches) == 1, 'No unique qualified i8042 AT keyboard'
     return matches[0]
 
 
@@ -26,7 +26,7 @@ def settings(fd):
     import array, fcntl
     ident = array.array('H', [0]*4)
     fcntl.ioctl(fd, 0x80084502, ident, True)  # EVIOCGID, linux/input.h
-    assert tuple(ident[:3]) == (3,0x0627,1), 'Opened input device changed'
+    assert tuple(ident[:3]) == (0x11,1,1), 'Opened input device changed'
     repeat = array.array('I', [0,0])
     fcntl.ioctl(fd, 0x80084503, repeat, True)  # EVIOCGREP: read, never set.
     assert released(fd), 'Keyboard still has pressed keys before typing window'
@@ -38,6 +38,15 @@ def released(fd):
     pressed = bytearray(96)  # EVIOCGKEY getter; discard the bitmap, export only a Boolean.
     fcntl.ioctl(fd, 0x80604518, pressed, True)
     return not any(pressed)
+
+
+def at_mapping(fd, expected):
+    import array, fcntl
+    for index, code in expected.items():
+        pair = array.array('I', [index, 0])
+        fcntl.ioctl(fd, 0x80084504, pair, True)  # EVIOCGKEYCODE: static mapping getter.
+        assert tuple(pair) == (index, code), 'STOP: AT keyboard keycode mapping differs'
+    return len(expected)
 
 
 def count_events(data, counts, dropping=False):

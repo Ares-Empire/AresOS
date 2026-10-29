@@ -36,7 +36,7 @@ def retained(name):
     return json.loads((FIXTURES / (name + '-deployments.json')).read_text())
 
 
-def walk():
+def walk(ps2=False):
     visits, commands, typed, checks, markers = [], [], [], [], []
     prompt_waits, idle_answers, hidden_reads = {}, [], []
     hidden_shapes, wait_shapes = [], []
@@ -58,6 +58,10 @@ def walk():
             self.process = Mock(); self.process.poll.return_value = None
             self.monitor = Mock()
             self.boot_number = len(visits) + 1
+            if ps2:
+                from test_owner_ps2 import context
+                self.xhci_context=context(needed=stage=='tools-stock')
+                self.xhci_context['stage']=stage
             visits.append(stage)
 
         def command(self, name, source, **kw):
@@ -79,6 +83,14 @@ def walk():
         def capture_json(self, name, source):
             syntax(name, source)
             commands.append((name, source))
+            if ps2 and name.endswith('-xhci-health'):
+                import io,contextlib
+                script=shlex.split(source)[shlex.split(source).index('python3')+2]
+                output=io.StringIO()
+                with contextlib.redirect_stdout(output):exec(script,{})
+                result=json.loads(output.getvalue());assert not result['stop']
+                checks.append(name)
+                return result
             if '# hidden-key-counter' in source:
                 if '-start' in name:
                     self.key_counts = dict(press=0,release=0,repeat=0,syn_dropped=0)
@@ -138,7 +150,11 @@ def walk():
                 if "bool(re.search(r'" in predicate:
                     wait=name.rsplit('-sample-',1)[0]
                     prompt_waits[wait]=prompt_waits.get(wait,0)+1
-                    raw=(ROOT/'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes() if prompt_waits[wait]==1 else vcsa('ares-recovery@bazzite:~$')
+                    if ps2 and self.stage not in ('stock','tools-stock'):
+                        from test_owner_records_prompt import retained_shape
+                        clutter=retained_shape()
+                    else:clutter=(ROOT/'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes()
+                    raw=clutter if prompt_waits[wait]==1 else vcsa('ares-recovery@bazzite:~$')
                     kind='shell-prompt';shape=self.idle_shapes.get(tty,'sudo-i-readline')
                 elif "line.endswith('login:')" in predicate:
                     raw=vcsa(('Login incorrect\n' if 'Login incorrect' in predicate else '')+'localhost login:')
@@ -199,10 +215,12 @@ def walk():
         def attach(self, guest, stage):
             assert guest.owner_signed_in and guest.owner_physical_signed_in
             guest.owner_media = self
+            if ps2:vm.owner_xhci.checkpoint(guest,stage+'-model-after-hotplug',attached=True)
             checks.append(stage + '-hotplug')
         def detach(self, guest, stage):
             assert guest.owner_media is self
             guest.owner_media = None
+            if ps2:vm.owner_xhci.checkpoint(guest,stage+'-model-after-detach',attached=False,needed=False)
             checks.append(stage + '-detach')
 
     def snapshot(guest, stage):
@@ -224,6 +242,14 @@ def walk():
         original(guest, text, layout, counts=counts)
 
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
+        if ps2:
+            import subprocess
+            from test_owner_ps2 import kernel_result,journal
+            original_run=subprocess.run
+            def run(argv,*args,**kwargs):
+                if argv[0]=='journalctl':return kernel_result(journal())
+                return original_run(argv,*args,**kwargs)
+            stack.enter_context(patch.object(subprocess,'run',side_effect=run))
         # The walk models guest time; deadline boundaries have dedicated tests.
         stack.enter_context(patch.object(vm.owner_login.time,'monotonic',return_value=10.0))
         save=vm.td.save
@@ -270,6 +296,15 @@ def walk():
 
 
 class OwnerWalkTest(unittest.TestCase):
+    def test_ps2_health_and_q15_clutter_walk_all_remaining_stages(self):
+        result=walk(ps2=True)
+        self.assertIn('final-unattended-windows',result['markers'])
+        self.assertIn('final-detached-windows',result['markers'])
+        names=[name for name,source in result['commands']]
+        self.assertTrue(any(name.endswith('-xhci-health') for name in names))
+        for stage in ('aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock'):
+            self.assertTrue(any(name.startswith(stage) and name.endswith('-xhci-health') for name in names),stage)
+
     def test_live_offline_command_is_composed_and_checked(self):
         guest = object.__new__(vm.Guest)
         checked = []

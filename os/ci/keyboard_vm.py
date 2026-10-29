@@ -113,7 +113,7 @@ def physical_input(guest, stage, layout, uid):
     guest.command(stage + '-input-ready', 'set -e; for n in {1..30}; do if test -e ' + ready + '.ready; then test "$(cat ' + ready + '.ready)" = ' + str(uid) + '; exit 0; fi; sleep 1; done; exit 1')
     type_text(guest, TEXT + '\n', layout)
     guest.command(stage + '-input-result', 'set -e; for n in {1..30}; do if test -e ' + ready + '; then test "$(cat ' + ready + ')" = ' + shlex.quote(TEXT) + '; test "$(stat -c %u ' + ready + ')" = ' + str(uid) + '; cat ' + ready + '; exit 0; fi; sleep 1; done; exit 1')
-    td.save(stage + '-physical', dict(status='passed', layout=layout, text=TEXT, physical_qcodes=[physical_keys(c,layout) for c in TEXT], uid=uid, transport='QMP USB keyboard; serial observation only'))
+    td.save(stage + '-physical', dict(status='passed', layout=layout, text=TEXT, physical_qcodes=[physical_keys(c,layout) for c in TEXT], uid=uid, transport=getattr(guest, 'keyboard_transport', 'QMP USB keyboard') + '; serial observation only'))
 
 
 def tty(guest, stage, layout, password):

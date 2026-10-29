@@ -64,6 +64,7 @@ class CapabilitiesTest(unittest.TestCase):
                 def __init__(self,sock):self.events=[]
                 def command(self,name,args=None):
                     calls.append((name,args))
+                    if name=='human-monitor-command':return 'dev: i8042; dev: ps2-kbd'
                     if name=='query-status':return dict(status='prelaunch')
                     if name=='query-pci':return [dict(bus=0)]
                     if name=='query-block':return [dict(inserted={'node-name':'cap-raw'})]

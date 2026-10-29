@@ -139,9 +139,10 @@ def screen(data):
     return '\n'.join(lines), text[y * cols:y * cols + x].rstrip()
 
 
-def source(tty, predicate, timeout):
+def source(tty, predicate, timeout, health=None):
     assert tty in ('tty3', 'tty4')
-    return ('import base64,json,pathlib,re,time\n' + inspect.getsource(screen) +
+    import owner_xhci
+    return owner_xhci.guard(('import base64,json,pathlib,re,time\n' + inspect.getsource(screen) +
         '\ndata=None\nstable=0\nready=False\n' +
         'deadline=time.monotonic()+' + repr(timeout) + '\n' +
         'while time.monotonic()<deadline:\n' +
@@ -152,17 +153,18 @@ def source(tty, predicate, timeout):
         '        if stable>=3:\n            ready=True\n            break\n' +
         '    else: stable=0\n    time.sleep(0.2)\n' +
         'assert data is not None, "No VCSA sample"\n' +
-        'print(json.dumps(dict(ready=ready,raw=base64.b64encode(data).decode())))\n')
+        'print(json.dumps(dict(ready=ready,raw=base64.b64encode(data).decode())))\n'), health)
 
 
-def hidden_idle_source(tty, timeout):
+def hidden_idle_source(tty, timeout, health=None):
     """Only exact public shell/sudo argv may be exported on refusal.
 
     Readline may turn ECHO off at an idle prompt. A foreground owner/Python
     command never grants Enter authority, even if output ends with '#'.
     """
     assert tty in ('tty3', 'tty4')
-    return ('import base64,json,os,pathlib,time\n' + foreground_source()) + '''
+    import owner_xhci
+    return owner_xhci.guard(('import base64,json,os,pathlib,time\n' + foreground_source()) + '''
 ready=False
 observation={}
 deadline=time.monotonic()+@TIMEOUT@
@@ -178,7 +180,7 @@ while time.monotonic()<deadline:
     time.sleep(.2)
 raw=pathlib.Path('/dev/vcsa@NUMBER@').read_bytes() if not ready else b''
 print(json.dumps(dict(ready=ready,completion_uses_echo=False,foreground_shell=ready,observation=observation,raw=base64.b64encode(raw).decode())))
-'''.replace('@TTY@', tty).replace('@NUMBER@', tty[3:]).replace('@TIMEOUT@', repr(timeout))
+'''.replace('@TTY@', tty).replace('@NUMBER@', tty[3:]).replace('@TIMEOUT@', repr(timeout)), health)
 
 
 def wait(sample, timeout, retain, resync=None, record=None, observe=None):

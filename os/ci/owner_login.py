@@ -11,6 +11,7 @@ import time
 import owner_console
 import owner_hidden
 import owner_key_counter
+import owner_xhci
 from owner_console import screen
 from owner_hidden import hidden_snapshot, identity, input_guard, same_process, device_number, reader_matches, echo_at
 from owner_key_counter import publish, start, checkpoint, finish, count_events, compare
@@ -290,7 +291,8 @@ def login_root(root):
     assert stat.S_ISDIR(info.st_mode) and info.st_uid==0 and info.st_mode&0o777==0o700
 
 
-def guest_source():
+def guest_source(health=None):
+    import owner_xhci
     counter=(owner_key_counter.keyboard,owner_key_counter.settings,owner_key_counter.released,
         owner_key_counter.count_events,owner_key_counter.private_root,owner_key_counter.publish,
         owner_key_counter.observe,owner_key_counter.start,owner_key_counter.checkpoint,owner_key_counter.finish,
@@ -301,7 +303,7 @@ def guest_source():
         owner_hidden.echo_at,owner_hidden.return_shells,owner_hidden.hidden_observation,owner_hidden.input_guard)
     functions=(*counter,*hidden,login_timeout,login_foreground,login_public,login_remaining,login_guard,
         login_visibility,login_audit_batch,login_exposure,login_audit,login_initialize,login_action,login_root)
-    return ('import base64,hashlib,json,os,pathlib,re,sys,time,termios\n'
+    return owner_xhci.guard(('import base64,hashlib,json,os,pathlib,re,sys,time,termios\n'
         +''.join(inspect.getsource(f) for f in functions)+'''
 root=pathlib.Path(__file__).parent
 login_root(root)
@@ -312,7 +314,7 @@ print('\\nARESOS_EXPORT_START')
 print(base64.encodebytes(raw).decode(),end='')
 print('ARESOS_EXPORT_END')
 print('ARESOS_EXPORT_SHA256 '+hashlib.sha256(raw).hexdigest()+'  guest.json')
-''')
+'''),health)
 
 
 class Prepared:
@@ -324,7 +326,7 @@ class Prepared:
         self.finished=False
         self.public_baseline=None
         self.root='/run/ares-login-'+secrets.token_hex(8)
-        raw=guest_source().encode();self.digest=hashlib.sha256(raw).hexdigest()
+        raw=guest_source(owner_xhci.context(self.guest)).encode();self.digest=hashlib.sha256(raw).hexdigest()
         compile(raw,'prepared-login-observer','exec')
         source='''set -e
 test "$(/usr/bin/findmnt -n -o FSTYPE -T /run)" = tmpfs

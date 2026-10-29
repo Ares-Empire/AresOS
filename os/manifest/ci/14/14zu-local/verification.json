@@ -1,0 +1,157 @@
+{
+  "status": "local verification passed; November native/VM pending",
+  "tests": {
+    "command": "PYTHONPATH=os/ci:os/tests python3 -B -m unittest -v test_owner_ps2 test_owner_key_counter test_owner_capabilities test_owner_console test_owner_hidden test_owner_login test_owner_walk test_owner_records_prompt test_owner_sudo_idle test_owner_equality test_keyboard_vm",
+    "count": 103,
+    "seconds": 848.898,
+    "skips": 0,
+    "log": {
+      "sha256": "e758f50cf7a01511860aaf91fc43c7afdbf7c72f058773689f1b882a1078e33f",
+      "path": ".work/14/14zu/frozen-tests.log"
+    }
+  },
+  "post_change": {
+    "command": "PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_ps2",
+    "count": 14,
+    "seconds": 3.717,
+    "skips": 0,
+    "purpose": "Verify early-STOP count/class diagnostics survive checksum framing on stderr; healthy walk rerun after this change"
+  },
+  "full_native_suite": "Not run locally; unchanged native requirements remain mandatory; existing nine host limitations not skipped or weakened",
+  "prior_attempts": [
+    {
+      "kind": "Windows Python",
+      "result": "Linux fcntl/termios/pipe unavailable; Git Bash subprocess quoting mismatch; not passing evidence"
+    },
+    {
+      "kind": "early WSL focused6 modules",
+      "tests": 63,
+      "seconds": 224.388,
+      "result": "passed"
+    },
+    {
+      "kind": "early PS2 health walk",
+      "tests": 1,
+      "seconds": 159.689,
+      "result": "passed"
+    },
+    {
+      "kind": "intermediate broader run",
+      "result": "terminated because inspected sources were edited while it ran; not counted as evidence"
+    }
+  ],
+  "local_setup_correction": "Initial new framing test tried the unchanged /run mktemp allocation and correctly failed without privilege. Reused the existing owned-directory mktemp shim; production framing unchanged; regression then passes in both direct and serial modes.",
+  "immutable_scope": [
+    "os/owner-tools",
+    "docs",
+    "os/config",
+    "os/release",
+    "os/Containerfile",
+    "os/Containerfile.keyboard",
+    ".github",
+    ".gitleaksignore",
+    ".gitleaks.toml",
+    "os/ci/rehearsal-packages.json",
+    "reviews/14-owner-tools/BUDGET.json"
+  ],
+  "payload_sha256": "320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6",
+  "sources": [
+    {
+      "sha256": "9e7553d82e0658f940cf147d6a20aa48eca6c9065dd139a5aa07aba13b4be92e",
+      "path": "os/ci/owner_capabilities.py"
+    },
+    {
+      "sha256": "662478226f64b2b7df1c7731e584426f899afc1339a49e825943a354f0a47749",
+      "path": "os/ci/owner_console.py"
+    },
+    {
+      "sha256": "05c4ee1f34b9f19fb348a90a4326773ae4062e91342b751679c4b805e16920d5",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
+      "sha256": "56143e7310331cef87aac1e143df5ed99eefac61c9f3e1d49cf0dc727865de1c",
+      "path": "os/ci/owner_fuse.py"
+    },
+    {
+      "sha256": "69950a544dc8ce4c3ccc57f88253e6f60788b036e4f1b5d307103c57e52a726f",
+      "path": "os/ci/owner_hidden.py"
+    },
+    {
+      "sha256": "a1df0e51564b4ae961c8a535fe333b52853ecbc2e2e98d91738ac3f41bd56547",
+      "path": "os/ci/owner_key_counter.py"
+    },
+    {
+      "sha256": "f2452f7cd01efa6ff038b6fc5f8959cf8ae35ea0af5cb71d06b8912f7aab5e15",
+      "path": "os/ci/owner_keys.py"
+    },
+    {
+      "sha256": "cce2d126f59130fbe890bea5fe0552894111c3bdbee74b7a5da5ca49845ca4c0",
+      "path": "os/ci/owner_login.py"
+    },
+    {
+      "sha256": "15d1f0f4762a98412f89382acfb65c3de268dc5afc7e46cbd03b7a5f3a533320",
+      "path": "os/ci/owner_media.py"
+    },
+    {
+      "sha256": "204b8f43c087bc08820fd6de095c5b1a1942bc2fe687a31990aea1198ad42936",
+      "path": "os/ci/owner_read_diagnostics.py"
+    },
+    {
+      "sha256": "67614b3b8f9d3529cde631fae8eb975fbef8ae3735d8bd7b5660704dff35860f",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "b63ee2f11764077cc4041a4c0c0deba86b459cae7ee93986d265bf3060560b9a",
+      "path": "os/ci/owner_xhci.py"
+    },
+    {
+      "sha256": "c4ba1ad642b328d9d6f9514f5131e64848862e548f7698dfd2f448bf09cef312",
+      "path": "os/ci/keyboard_vm.py"
+    },
+    {
+      "sha256": "2292df3a5a0b4384c67530a21f25bc1b1356d3c2e45f4769ee85b7de2e1094e4",
+      "path": "os/tests/test_owner_ps2.py"
+    },
+    {
+      "sha256": "61c56b0397a3ea85a58392c6c161ab03284e4c8a0986a1325bd3f5c441b2e928",
+      "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "624294968658522128d594206d3f90d69aa588f5daedcf5c348f52a8f92e5c90",
+      "path": "os/tests/test_owner_key_counter.py"
+    },
+    {
+      "sha256": "73f709e98231a91ccb511c71d5dfdf4ba2bbd68dc21149b38607f84b8c02da6f",
+      "path": "os/tests/test_owner_capabilities.py"
+    }
+  ],
+  "gitleaks": {
+    "version": "8.21.2",
+    "full_history_findings": 0,
+    "pending_findings": 0,
+    "policy_unchanged": true
+  },
+  "actions_minutes": 0,
+  "push": false,
+  "dispatch": false,
+  "merge": false,
+  "ledger": {
+    "consumed_minutes": 1715,
+    "cap": 1900,
+    "probes": 26,
+    "qualifications": 15,
+    "changed": false
+  },
+  "source_proof": "source-proof.json",
+  "healthy_walk": "walk.json",
+  "final_metadata_checks": {
+    "count": 2,
+    "seconds": 12.015,
+    "skips": 0,
+    "command": "PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload",
+    "log": {
+      "sha256": "b38b292ef9a4bee1272eb6877091bc9e67f4061a6baa6f0ec7b6a789bf745300",
+      "path": ".work/14/14zu/final-metadata-tests.log"
+    }
+  }
+}

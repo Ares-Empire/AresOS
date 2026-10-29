@@ -298,16 +298,17 @@ def input_guard(tty, expected, receipt, for_clear=False, proc=pathlib.Path('/pro
     return value
 
 
-def guard_source(tty,expected,receipt,for_clear=False):
+def guard_source(tty,expected,receipt,for_clear=False,health=None):
+    import owner_xhci
     functions=(interactive_shell,process_snapshot,hidden_snapshot,reader_matches,reader_chain,redacted_chain,
         identity,same_process,device_number,input_guard)
-    return ('import json,os,pathlib,re,time\n# hidden-input-guard\n'+''.join(inspect.getsource(f) for f in functions)
+    return owner_xhci.guard(('import json,os,pathlib,re,time\n# hidden-input-guard\n'+''.join(inspect.getsource(f) for f in functions)
         + '\nvalue=dict(ready=False,reason="No stable canonical hidden reader")\n'
         + 'deadline=time.monotonic()+5\nstable=0\nwhile time.monotonic()<deadline:\n'
         + '    try:\n        value=input_guard('+repr(tty)+','+repr(expected)+','+repr(receipt)+','+repr(for_clear)+')\n'
         + '        stable=stable+1 if value["ready"] else 0\n        if stable>=3: break\n'
         + '    except (OSError,AssertionError): stable=0\n    time.sleep(.1)\n'
-        + 'value["ready"]=bool(value.get("ready") and stable>=3)\nprint(json.dumps(value))\n')
+        + 'value["ready"]=bool(value.get("ready") and stable>=3)\nprint(json.dumps(value))\n'),health)
 
 
 def hidden_handoff(tty, expected, receipt, prompt, proc=pathlib.Path('/proc')):
@@ -319,7 +320,8 @@ def hidden_handoff(tty, expected, receipt, prompt, proc=pathlib.Path('/proc')):
     return value
 
 
-def source(tty, expected, prompt=None, receipt=None, timeout=60, handoff=None):
+def source(tty, expected, prompt=None, receipt=None, timeout=60, handoff=None, health=None):
+    import owner_xhci
     assert 0 < timeout <= (840 if receipt is not None else 60)
     functions = (interactive_shell, process_snapshot, screen, hidden_snapshot, reader_matches,
         reader_chain, redacted_chain, identity)
@@ -332,7 +334,7 @@ def source(tty, expected, prompt=None, receipt=None, timeout=60, handoff=None):
     call = ('hidden_observation(' + repr(tty) + ',' + repr(expected) + ',' + repr(prompt) + ')' if receipt is None
         else ('hidden_handoff(' + repr(tty) + ',' + repr(expected) + ',' + repr(receipt) + ',' + repr(handoff) + ')' if handoff
             else 'hidden_left(' + repr(tty) + ',' + repr(expected) + ',' + repr(receipt) + ')'))
-    return body + '\n# hidden-phase: ' + ('ready' if receipt is None else 'handoff' if handoff else 'left') + '''
+    return owner_xhci.guard(body + '\n# hidden-phase: ' + ('ready' if receipt is None else 'handoff' if handoff else 'left') + '''
 deadline=time.monotonic()+@TIMEOUT@
 value=dict(ready=False,observation=dict(reason='No readable reader observation',foreground_chain=[]),raw='')
 stable=0
@@ -349,4 +351,4 @@ if value['ready'] and stable<3:
 if not value['ready'] and not value.get('handoff_ready') and not value.get('raw'):
     value['raw']=base64.b64encode(pathlib.Path(@VCSA@).read_bytes()).decode()
 print(json.dumps(value))
-'''.replace('@TIMEOUT@', repr(timeout)).replace('@CALL@', call).replace('@VCSA@', repr('/dev/vcsa' + tty[3:]))
+'''.replace('@TIMEOUT@', repr(timeout)).replace('@CALL@', call).replace('@VCSA@', repr('/dev/vcsa' + tty[3:])),health)
