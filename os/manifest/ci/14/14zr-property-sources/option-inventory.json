@@ -1,0 +1,165 @@
+{
+  "scope": "owner payload sources (generated copies equal) plus every CI/release Python and shell file",
+  "occurrences": [
+    {
+      "path": "os/owner-tools/owner.py",
+      "line": 53,
+      "source": "*['--property=' + name for name in names])"
+    },
+    {
+      "path": "os/owner-tools/owner.py",
+      "line": 343,
+      "source": "'--property=LoadState,ActiveState,SubState').splitlines() if '=' in line)"
+    },
+    {
+      "path": "os/owner-tools/owner.py",
+      "line": 354,
+      "source": "'systemctl', '--user', 'show', name, '--property=LoadState,ActiveState').splitlines() if '=' in line)"
+    },
+    {
+      "path": "os/owner-tools/owner.py",
+      "line": 366,
+      "source": "'--property=LoadState,ActiveState,SubState,Result,ConditionResult,ExecMainStatus')),"
+    },
+    {
+      "path": "os/release/pause-stock-updates.sh",
+      "line": 38,
+      "source": "[*command, 'show', name, '--property=LoadState,ActiveState,SubState']).splitlines() if '=' in line)"
+    },
+    {
+      "path": "os/release/pin-stock.sh",
+      "line": 38,
+      "source": "[*command, 'show', name, '--property=LoadState,ActiveState,SubState']).splitlines() if '=' in line)"
+    },
+    {
+      "path": "os/release/pin-stock.sh",
+      "line": 233,
+      "source": "subprocess.run(['rpm-ostree', 'cleanup', '-p'], check=True)"
+    },
+    {
+      "path": "os/ci/activation_audit.py",
+      "line": 36,
+      "source": "output = subprocess.check_output([*command, 'show', '--all', '--property=' + ','.join(PROPERTIES), '--', *batch], text=True)"
+    },
+    {
+      "path": "os/ci/activation_canaries.py",
+      "line": 20,
+      "source": "assert run('systemctl', 'show', static, '--property=UnitFileState', '--value') == 'static'"
+    },
+    {
+      "path": "os/ci/activation_canaries.py",
+      "line": 21,
+      "source": "assert run('systemctl', 'show', generated, '--property=UnitFileState', '--value') == 'generated'"
+    },
+    {
+      "path": "os/ci/activation_canaries.py",
+      "line": 22,
+      "source": "fragment = run('systemctl', 'show', generated, '--property=FragmentPath', '--value')"
+    },
+    {
+      "path": "os/ci/activation_canaries.py",
+      "line": 35,
+      "source": "timer=run('systemctl', 'show', timer, '--property=Triggers,UnitFileState,ActiveState'),"
+    },
+    {
+      "path": "os/ci/install-tools.sh",
+      "line": 6,
+      "source": "mkdir -p \"$directory/lists/partial\""
+    },
+    {
+      "path": "os/ci/install-tools.sh",
+      "line": 51,
+      "source": "mkdir -p \"$source_directory\""
+    },
+    {
+      "path": "os/ci/overlay/checks.py",
+      "line": 46,
+      "source": "getty = run('systemctl', 'show', 'getty@tty3.service', '-p', 'ActiveState', '-p', 'MainPID')"
+    },
+    {
+      "path": "os/ci/overlay/checks.py",
+      "line": 72,
+      "source": "'--property=DefaultDependencies=no', '--property=IgnoreOnIsolate=yes',"
+    },
+    {
+      "path": "os/ci/overlay/checks.py",
+      "line": 73,
+      "source": "'--property=Type=exec', '--property=StandardOutput=tty',"
+    },
+    {
+      "path": "os/ci/overlay/checks.py",
+      "line": 74,
+      "source": "'--property=TTYPath=/dev/ttyS0', '/usr/bin/journalctl',"
+    },
+    {
+      "path": "os/ci/overlay/updater_regressions.py",
+      "line": 15,
+      "source": "assert run('systemctl', 'show', static, '--property=UnitFileState', '--value') == 'static'"
+    },
+    {
+      "path": "os/ci/overlay/updater_regressions.py",
+      "line": 16,
+      "source": "assert run('systemctl', 'show', generated, '--property=UnitFileState', '--value') == 'generated'"
+    },
+    {
+      "path": "os/ci/overlay/updater_regressions.py",
+      "line": 17,
+      "source": "fragment = run('systemctl', 'show', generated, '--property=FragmentPath', '--value')"
+    },
+    {
+      "path": "os/ci/owner_devices.py",
+      "line": 66,
+      "source": "# The live query selects -o value. Accept the complete real -p output too,"
+    },
+    {
+      "path": "os/ci/owner_devices.py",
+      "line": 219,
+      "source": "blkid=['blkid','-p','-s','PART_ENTRY_UUID','-o','value',target+'p1']"
+    },
+    {
+      "path": "os/ci/owner_vm.py",
+      "line": 662,
+      "source": "mkdir -p /run/owner-probe-stick"
+    },
+    {
+      "path": "os/ci/parser-preflight.sh",
+      "line": 24,
+      "source": "if sudo podman exec \"$container\" systemctl show basic.target --property=ActiveState --value | grep -qx active; then"
+    },
+    {
+      "path": "os/ci/parser-preflight.sh",
+      "line": 29,
+      "source": "test \"$(sudo podman exec \"$container\" systemctl show basic.target --property=ActiveState --value)\" = active"
+    },
+    {
+      "path": "os/ci/publish.sh",
+      "line": 20,
+      "source": "mkdir -p .work"
+    },
+    {
+      "path": "os/ci/stock_probe.py",
+      "line": 32,
+      "source": "mkdir -p \"$probe/grub2\""
+    },
+    {
+      "path": "os/ci/switch_vm.py",
+      "line": 265,
+      "source": "self.send(\"sudo -k; sudo -p 'ARESOS_SUDO_PASSWORD:' -v\\n\")"
+    },
+    {
+      "path": "os/ci/switch_vm.py",
+      "line": 461,
+      "source": "guest.command('stock-hardware-setup', 'set -e; systemctl is-active bazzite-hardware-setup.service; test \"$(systemctl show bazzite-hardware-setup.service -p ExecMainStatus --value)\" = 0; journalctl -b -u bazzite-hardware-setup.service --no-pager; rpm-ostree kargs')"
+    },
+    {
+      "path": "os/ci/switch_vm.py",
+      "line": 505,
+      "source": "if test \"$(loginctl show-session \"$session\" -p TTY --value)\" = tty3; then"
+    },
+    {
+      "path": "os/ci/switch_vm.py",
+      "line": 506,
+      "source": "loginctl show-session \"$session\" -p Name -p User -p TTY -p Type -p Active"
+    }
+  ]
+}

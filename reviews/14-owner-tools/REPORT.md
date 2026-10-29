@@ -1,5 +1,86 @@
 # 14: checked owner tools
 
+## 14zr REPORT — literal loginctl selectors and bounded diagnostics
+
+**Done:** all3 owner `show-session` queries now pass one `--property=` per
+name. A shared parser requires each requested Key=Value exactly once,
+independent of output order; duplicate, missing, extra, blank and malformed
+rows refuse. All existing recovery session facts and physical sudo-relay
+checks remain mandatory. The old test stand-ins that invented successful
+comma-joined results now implement loginctl's literal selector matching.
+Fixtures show both old comma queries returning empty output.
+
+The requested systemd258 source and actual pinned-image259.9 source are both
+verified and archived. `systemctl` explicitly splits comma lists; `loginctl`
+does not. `busctl` uses positional property names / typed method results;
+`localectl` uses positional setting arguments; systemd-run options are unit
+assignments. Every payload/harness `--property` / standalone `-p` was audited.
+[Tool-by-tool audit and exact primary-source citations](14zr-properties-audit.md).
+
+`logs` now captures the previous boot's logind unit only, at most200 JSON
+records. The full-boot journal read is removed. The tool has no dedicated
+service unit; its own trace/result are already recorded privately. The source
+unit filter has no matching origin for unrelated kernel boot certificates, so
+the conditional decoded-MESSAGE exception is not needed. The14s/14v artifact
+classifier and all rules/ignores/workflows are unchanged; journal JSON cannot
+silently become an allowed whole boot-console line. Any such unexpected
+finding is a STOP. Historical Q13 findings are not reclassified.
+
+**Verified locally:**6 property/journal tests/.060s,16 session/.904s,
+4 real-format/.045s,10 guard/.092s and4 local controller/.005s passed.
+An initial new test mixed its explicit negative query call history with the
+subsequent owner-route history; its setup was separated, then all6 passed.
+No assertion or production requirement was weakened.
+
+The full suite attempted526 tests in791.896s: 517 distinct
+passes, 9 approved14zm host limitations, zero skips. Local timing
+measurements: [54.607805094000014]. All526 tests
+remain mandatory in native CI; a native failure is a STOP. The full pinned
+ISO replay passes with fresh official checksum, and the14e/14f release/git/
+53-source replay passes. CI-only registry steps retain their recorded reasons
+and fail closed in CI; no credential or scope was changed.
+
+The current stand-in walk covers all8 stages,23 hidden pairs and3 handoffs,
+with no uncovered wait. Strict parsing covers805 guest
+commands and wrappers and799 embedded Python blocks;
+any Bash parse stderr is a refusal. The local qualification reviewer also
+uses the regenerated bundle fingerprint and the actual retained switch-record
+directory. [Source-bound preparation](../../os/manifest/ci/14/14zr-preflight/preparation.json).
+
+The first standalone walk invocation used Windows Python and refused at its
+Linux `fcntl` import; the identical script then passed under existing WSL.
+ISO replay attempts1–3 hit the documented Windows checkpoint replace
+WinError5. Attempt4 passed after the authorized10/20/30-second waits on fresh
+paths, with no overlapping ISO replay and no Linux CI behavior change.
+
+Final manifest-order/payload equality:2 tests/5.244s pass; `git diff --check`
+passes. To reserve space for the later qualification replay, only two ended,
+byte-identical14zq qualification cache files (ISO and squashfs) were removed
+after resolved-path and full-hash checks. Canonical inputs and all diagnostics
+remain. [Cleanup evidence](../../os/manifest/ci/14/14zr-preflight/cache-reclaim.json).
+
+**Current bundle / For package15:**
+`320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6`.
+Generated Windows/CI payload equality and INSTALL's current copy/check pin
+agree. Historical evidence keeps its historical pins. Package15's worktree
+was not touched. No harness runtime, release script, image, publication,
+firmware audit or physical gate changed. INSTALL/EMERGENCY retain NOT RELEASED.
+
+**Budget / pending:** complete134/134 history:1523 +238 =1761/1800 pre-push.
+The read-only$10/prevent=true guard deducts charged net spend and leaves170
+org minutes after reservation. Only package14 cap1800/probe26/owner-tools15
+changes; package13 stays byte-for-byte unchanged. Exactly one FF push is
+allowed after pinned gitleaks0 and local checks. Fresh exact-head privacy
+(all3 actual steps), ledger/billing/budget precede probe25. Only accepted
+probe25 permits qualification14 on that same head. Any CI stop gets exported
+diagnostics and no rerun. Closing12/reserve150 and ready status are restored
+only after acceptance. Never merge; owner resets budget0 when the round ends.
+
+**Not verified / open questions:** actual layout begin/proof/revert/finish and
+the complete remaining VM recovery route on this head; all real-laptop gates.
+No real laptop touched. No new JUDGMENT-CALL or PLAN-GAP beyond the documented
+258 audit versus actual259.9 image version; both formats were checked.
+
 **14zq STOP:** the hold fix is confirmed in the real VM. Probe24 passed;
 qualification13 passed `switch`, refreshed `title`, AresOS boot and `check`, then
 STOPped at `layout begin us` before any layout mutation. Four artifact findings

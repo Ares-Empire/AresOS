@@ -1,0 +1,14 @@
+{
+  "status": "passed allowed property/journal function and package14-only cap scope",
+  "base": "8746282",
+  "changed_owner_functions": [
+    "Tools.logs",
+    "Tools.session",
+    "login_properties"
+  ],
+  "package13_unchanged": true,
+  "release_scripts_unchanged": true,
+  "harness_runtime_unchanged": true,
+  "privacy_classifier_unchanged": true,
+  "guide_current_fingerprint_and_scoped_journal_description_only": true
+}

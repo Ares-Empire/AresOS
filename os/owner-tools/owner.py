@@ -47,6 +47,16 @@ def require(condition, message):
         raise Stop(message)
 
 
+def login_properties(host, session, names, message):
+    # loginctl takes one literal selector per option, unlike systemctl.
+    output = host.read('loginctl', 'show-session', session,
+        *['--property=' + name for name in names])
+    rows = [line.split('=', 1) for line in output.splitlines()]
+    require(len(rows) == len(names) and all(len(row) == 2 for row in rows)
+        and {row[0] for row in rows} == set(names), message)
+    return dict(rows)
+
+
 def key(deployment):
     checksum, serial, stateroot = (deployment[k] for k in IDENTITY)
     require(re.fullmatch('[0-9a-f]{64}', checksum) and type(serial) is int and serial >= 0
@@ -840,9 +850,9 @@ class Tools:
                 'Also prove yz-/!ü by physical typing in the console and labwc terminal']
 
     def logs(self):
-        self.host.read('journalctl', '-b', '-1', '-u', 'systemd-logind.service', '--no-pager')
-        self.host.read('journalctl', '-b', '-1', '--no-pager')
-        return ['Previous boot logind/full diagnostics saved privately',
+        self.host.read('journalctl', '-b', '-1', '-u', 'systemd-logind.service',
+            '--lines=200', '--output=json', '--no-pager')
+        return ['Previous boot logind diagnostics saved privately (at most 200 records)',
                 'This does not prove a physical power-button event; the laptop gate remains open']
 
     def export(self):
@@ -877,15 +887,13 @@ class Tools:
             and s['user'] == 'ares-recovery' and s['uid'] == 1000]
         require(len(matching) == 1, 'Cannot identify this physical recovery session')
         tty = matching[0]['tty']
-        identity = self.host.read('loginctl', 'show-session', session, '--property=Id,TTY,Audit,Scope')
-        rows = [line.split('=', 1) for line in identity.splitlines() if '=' in line]
-        require(len(rows) == 4 and len({r[0] for r in rows}) == 4, PHYSICAL_LOGIN)
-        require(dict(rows) == dict(Id=session, TTY=tty, Audit=audit, Scope='session-' + session + '.scope'), PHYSICAL_LOGIN)
-        details = self.host.read('loginctl', 'show-session', str(matching[0]['session']),
-            '--property=TimestampMonotonic', '--value').strip()
+        identity = login_properties(self.host, session, ('Id', 'TTY', 'Audit', 'Scope'), PHYSICAL_LOGIN)
+        require(identity == dict(Id=session, TTY=tty, Audit=audit, Scope='session-' + session + '.scope'), PHYSICAL_LOGIN)
+        details = login_properties(self.host, session, ('TimestampMonotonic',),
+            'Cannot read recovery login time')['TimestampMonotonic']
         require(details.isdigit(), 'Cannot read recovery login time')
-        facts = dict(line.split('=', 1) for line in self.host.read('loginctl', 'show-session', str(matching[0]['session']),
-            '--property=Service,Type,Remote,Name,User').splitlines() if '=' in line)
+        facts = login_properties(self.host, session, ('Service', 'Type', 'Remote', 'Name', 'User'),
+            'Proof is not a local physical recovery login')
         require(facts == dict(Service='login', Type='tty', Remote='no', Name='ares-recovery', User='1000'),
             'Proof is not a local physical recovery login')
         try:

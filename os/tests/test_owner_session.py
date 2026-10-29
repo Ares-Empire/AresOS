@@ -43,9 +43,13 @@ class Model:
     def read(self, *args):
         self.calls.append(args)
         assert args[:3] == ('loginctl', 'show-session', '7')
-        if '--value' in args: return self.started + '\n'
-        fields = self.identity if args[-1] == '--property=Id,TTY,Audit,Scope' else self.facts
-        return ''.join(k + '=' + v + '\n' for k, v in fields.items())
+        fields = dict(self.identity, **self.facts, TimestampMonotonic=self.started)
+        selectors = [arg.removeprefix('--property=') for arg in args[3:]]
+        assert all(arg.startswith('--property=') for arg in args[3:])
+        # The source iterates D-Bus properties, not the option order. Commas
+        # stay literal: the old implementation must get an empty response.
+        order = ('Id','User','Name','TimestampMonotonic','TTY','Remote','Service','Scope','Audit','Type')
+        return ''.join(k + '=' + fields[k] + '\n' for k in order if k in selectors)
 
     def mutate(self, *args):
         self.mutations.append(args)

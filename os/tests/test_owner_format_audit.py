@@ -68,9 +68,12 @@ class FormatAuditTest(unittest.TestCase):
                 return [dict(session='7',uid=1000,user='ares-recovery',seat='seat0',leader=1234,
                     **{'class':'user'},tty='tty4',idle=False,since=None)]
             def read(self, *args):
-                if '--value' in args: return '123456789\n'
-                if args[-1]=='--property=Id,TTY,Audit,Scope':return 'Id=7\nTTY=tty4\nAudit=7\nScope=session-7.scope\n'
-                return 'Service=login\nType=tty\nRemote='+self.remote+'\nName=ares-recovery\nUser=1000\n'
+                fields = dict(Id='7', TTY='tty4', Audit='7', Scope='session-7.scope',
+                    Service='login', Type='tty', Remote=self.remote, Name='ares-recovery',
+                    User='1000', TimestampMonotonic='123456789')
+                selectors = [arg.removeprefix('--property=') for arg in args[3:]]
+                order = ('Id','User','Name','TimestampMonotonic','TTY','Remote','Service','Scope','Audit','Type')
+                return ''.join(k+'='+fields[k]+'\n' for k in order if k in selectors)
             def mutate(self, *args): raise AssertionError('No mutation permitted')
         host=Host();tools=object.__new__(owner.Tools);tools.host=host
         original=pathlib.Path.read_text

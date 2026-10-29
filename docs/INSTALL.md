@@ -131,7 +131,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 025622f56d61f669912ce9d6320e7171e2007194420c79ce54dc6b89a0570486` and `PASS ARESTOOLS ready`.
+Require `PASS tools manifest SHA256 320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6` and `PASS ARESTOOLS ready`.
 The copy checks removable/USB/exFAT/boot/system identity before writing,
 verifies every copied file, and labels it **ARESTOOLS**. A STOP means preserve
 it and get help. Safely eject and **unplug** it before [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), shutdown or restart. Record B must pass with
@@ -440,7 +440,7 @@ layout. Log out using §6's supplied steps, return to the session, then verify a
 short physical power-button press reaches logind and cleanly powers off. Power
 on, press **F12 → the recorded Linux entry**, let AresOS start, then use
 **Ctrl+Alt+F3 → sign in as `ares-recovery` → `sudo -i`**. Collect the previous
-persistent journal in that root shell (PASS means collected; inspect the saved logind and full journal for the actual button/shutdown evidence):
+persistent logind journal in that root shell (PASS means collected; inspect the saved, bounded previous-boot logind records for the actual button/shutdown evidence):
 
 ```bash
 sudo /var/lib/ares/at logs
