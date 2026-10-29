@@ -1,0 +1,14 @@
+{
+  "run": 40866713472,
+  "secret_tainted": true,
+  "private_only": true,
+  "never_commit_raw_visuals": true,
+  "scope": "all VCSA, raw screen fields and screenshots from qualification14",
+  "possible_non_hidden_events": {
+    "minimum": 0,
+    "maximum": 64
+  },
+  "exact_visibility_not_retained": true,
+  "decision": "briefs/14zs-login-timeout.md",
+  "original_evidence_unchanged": true
+}

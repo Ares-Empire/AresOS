@@ -1,5 +1,115 @@
 # 14: checked owner tools
 
+**14zs STOP:** probe26 passed; qualification15 stopped after the passed
+`corrected-stock records` command, at its physical prompt-readiness wait.
+The two completed tty3 logins met the new30s budget. No source fix, rerun or
+extra push followed the stop. PR #13 remains draft; this STOP report is local.
+
+## 14zs actual runs — bounded logins confirmed; later prompt-readiness STOP
+
+Both runs used pushed head `65edb1195b12cade6f62d9952f70f5920ad13631`:
+
+| Run | Result | Native suite | Package minutes |
+|---|---|---|---:|
+| [Probe26](https://github.com/Ares-Empire/AresOS/actions/runs/40892685683) | Independently accepted |540 /120.924s, zero skips |24 |
+| [Qualification15](https://github.com/Ares-Empire/AresOS/actions/runs/40897501964) | STOP after corrected-stock records |540 /131.362s, zero skips |66 |
+
+**Verified in the VM:** both `tools-stock` and `corrected-stock` tty3 logins
+passed on their first attempt, without a replacement/restart. Runtime login
+and agetty report util-linux2.41.5, timeout60s. Observers/counters were prepared
+before the username. Measured username-to-verified-Enter windows were
+**8.912992063s** and **8.933182460s**, both below the30s bound. The two
+visibility observers completed with non-hidden0, unknown0, repeats0 and
+SYN_DROPPED0; no current-run visual taint was observed. All4 completed hidden
+windows (two account logins and two password-sudo steps) delivered66/66 events
+including Return, with zero repeats/drops. No registry token was typed: the
+private login/dummy-token stage had not been reached.
+[Counts, identities and timing receipts](../../os/manifest/ci/14/14zs-qualification-stop/outcome.json).
+
+The real install/copy, prepare, zero-mutation prepare rerun, first-network
+deployment/pin/pending/BLS identity check, record export, refreshed stock title,
+unattended Windows roundtrip, corrected-stock boot and password sudo passed.
+Nine exported owner records have status passed; no owner command unexpectedly
+refused. The corrected stock's saved deployment and German keymap checks passed.
+The subsequent `records` owner diagnostic also has status passed.
+
+**STOP / PLAN-GAP:** its completion wait never obtained the strict cursor-line
+prompt. Both fresh observers reported the exact sudo-i relay leading to an idle
+foreground interactive bash. The wait used both authorized physical Enter
+resyncs, with unique receipts; neither restored the cursor-line predicate.
+All3 retained VCSA samples are50x160, cursor `(0,49)`, with an empty cursor
+line. Public root-prefix rows remain23/33/45 and `PASS records` occurs on row34;
+no row ends in the accepted prompt delimiter. The configured90s readiness deadline then
+raised `Physical console readiness deadline`. These facts establish the guard's
+reason for stopping; **why the Enters did not restore the prompt is unproved**.
+No claim of keyboard loss, reader replacement, active-VT change or a kernel
+cause. No third Enter, predicate/log-level/limit change or new fix was attempted.
+Raw VCSA, the redacted foreground chain, resync receipts and failure log remain
+in the private artifact; only geometry/hashes/public process facts are committed.
+
+The original Q14 expiry diagnosis remains source-and-timing evidence, not a
+retained exit signal. Its private artifact now also has an explicit companion
+visual-policy marker: all raw Q14 VCSA/screenshots/raw-screen fields are tainted,
+private and never commit-safe; possible non-hidden events0..64. Its artifact
+bytes are unchanged. [Policy metadata](../../os/manifest/ci/14/14zs-qualification-stop/q14-private-visual-policy.json).
+
+**Independent verification:** probe20 native loop checks/zero helper mutations,
+28 verified staged transfers and raw audits3 protected captures/4 zero-write
+samples/3 BootNext/2 NVRAM-all-variable comparisons. Qualification131 staged
+transfers verified SHA/syntax; raw replay passed9 protected captures,10 zero
+write/unmap samples,9 BootNext checks and8 NVRAM/all-variable comparisons.
+All detached-device, Windows-first and firmware audit rules are unchanged.
+Both native runs explicitly passed the unchanged30s timing case. Native and
+VM failure logs each scan0. Final local command-equality/manifest-refusal tests:
+2 passed/.980s; `git diff --check` passed; runtime/tests/payload/release/guides/
+workflow/privacy diff against the pushed head is empty.
+[Safety replay](../../os/manifest/ci/14/14zs-qualification-stop/qualification-audits.json).
+
+**Privacy:** probe509 findings =507 reviewed public ISO-listing names +2 exact
+kernel certificate lines. Qualification517 =507 ISO names +10 exact kernel
+certificate lines. Unclassified0; no ignore/rule/workflow changes. Each allowed
+kernel occurrence is recorded below by whole-line hash, private path/line and
+certificate label. No raw boot console, VCSA or screenshot is committed.
+
+| SHA-256 of whole source line | Occurrence | Public certificate label |
+|---|---|---|
+| `2ccb076755b1bfe99bf34f3efbf4c516c621301d2f372e9511d53b882f6f48dc` | Probe26: `evidence/two-disk/live-ui-probe-boot-console.txt:497` | Fedora kernel signing key |
+| `0943e71d027ce9b60582042ea3e6e1923d1dbce0c9c3ac47d3d82588a45aa5d9` | Probe26: `evidence/two-disk/live-ui-probe-boot-console.txt:530` | Fedora kernel signing key |
+| `49ccdcc339a9507a41bfa52f00016449326dfae5fd6233a544eb095158619952` | Qualification15: `evidence/two-disk/corrected-stock-boot-console.txt:498` | Build time autogenerated kernel key |
+| `632d9645e71bb8274e8a1d879889018cb64e962c1fb6bec41e3708ee181bbd8a` | Qualification15: `evidence/two-disk/corrected-stock-boot-console.txt:508` | Build time autogenerated kernel key |
+| `39610970917955d5d67fb2a960d6a915339d0b5026d85a5b86ac85244b3060d7` | Qualification15: `evidence/two-disk/offline-first-stock-boot-console.txt:498` | Build time autogenerated kernel key |
+| `72e0477ad291a46082da5ec21776df7168e6b6a7a911e950aa0062088428b3b7` | Qualification15: `evidence/two-disk/offline-first-stock-boot-console.txt:517` | Build time autogenerated kernel key |
+| `69030d052b2db7a8871212379e9335b71ab3c7459ddb728e276219a7a4878a9f` | Qualification15: `evidence/two-disk/stock-initialization-0-boot-console.txt:499` | Build time autogenerated kernel key |
+| `2e682aa663bbf0db73801fdefe58b9a99c2d0c345cc6954a4cd82f0d63dee2a2` | Qualification15: `evidence/two-disk/stock-initialization-0-boot-console.txt:522` | Build time autogenerated kernel key |
+| `5804c2e2c951b31ff17937e4a127f5cf6fd198d3a41f47e044fb90010e429767` | Qualification15: `evidence/two-disk/protected-second-install-boot-console.txt:491` | Fedora kernel signing key |
+| `acd683d99e60cd03a1eeadfc43bcfe7b1f9835cbfff9c0e4ca49653e891b5993` | Qualification15: `evidence/two-disk/protected-second-install-boot-console.txt:524` | Fedora kernel signing key |
+| `83fb21d99aea6939f56a3e8f23891dcd357bc2d344dd31e4a42dacc6075e9ed0` | Qualification15: `evidence/two-disk/tools-stock-boot-console.txt:509` | Build time autogenerated kernel key |
+| `e8ddbdbe9b3ae23d5a70f2c5adcb9b22a6cbee514fbb7ef1b7cf55c3df5ebe7e` | Qualification15: `evidence/two-disk/tools-stock-boot-console.txt:524` | Build time autogenerated kernel key |
+
+**Budget / closing:** complete142/142 history, **1715/1900 minutes**:
+1619 prior +6 push privacy +24 probe +66 qualification. Counts:26 probes,
+15 owner qualifications. Exactly1 FF push,1 fresh probe and1 qualification;
+reruns0. Closing read-only$10/prevent=true snapshot reports net$8.304 charged
+and282 available minutes at that time; this is the API's reported charged
+snapshot, not an assertion that all new usage has settled. No billing/budget
+write occurred. Reserve0/closing0 remain because acceptance is unmet; no final
+push or ready transition. [Complete closed ledger](../../os/manifest/ci/14/14zs-qualification-stop/closed-ledger.json).
+
+**Not verified:** the later tty4 failure/revert/restart path in a VM; private
+login and40-character dummy; verify/switch; AresOS boot and keymaps; plain-US
+refusal/revert, US International and final German proof/finish; rollback,
+keep-stock and final Windows checks. Those local stand-in paths were walked,
+but are not passing VM evidence. Full package14 acceptance is **unmet**.
+Owner bundle remains `320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6`;
+INSTALL/EMERGENCY/release gates remain NOT RELEASED. No owner script, image,
+publication, physical laptop or other worktree changed.
+
+**JUDGMENT-CALL / open questions:** source-verified getty Ctrl-U/Ctrl-D restart
+is documented in the preparation section; no restart was needed in these two
+VM logins. Investigate the blank cursor-line/prompt resync failure from retained
+evidence in a later authorized follow-up. This round is over; no more Actions
+dispatch is authorized, and the owner can set the Actions budget back to$0.
+
 ## 14zs REPORT — bounded physical logins and safe reader replacement
 
 **Done:** harness only. All tty3/tty4 logins prepare root-only tmpfs observers,

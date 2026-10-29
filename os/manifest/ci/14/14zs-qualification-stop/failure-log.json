@@ -1,0 +1,8 @@
+{
+  "sha256": "133695f0dc6055801b19e5f78b33598e5da070cfa8c8c6231b4882881781fafe",
+  "path": ".work/14/run-40897501964/failure.log",
+  "findings": 0,
+  "exception": "AssertionError: Physical console readiness deadline",
+  "site": "Console.run records -> prompt completed -> owner_console.wait",
+  "raw_log_committed": false
+}
