@@ -1,0 +1,255 @@
+{
+  "status": "read-only inspected counts/flags only",
+  "run": 40788594413,
+  "head": "d523fb257afd72d7438340c35f6bf463341ea02b",
+  "records": [
+    {
+      "sha256": "ecd24c55d391ff80ab65d2eaa35f807ad0790a392e709017010dd79ab5f23b5a",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-37-diagnostics-completion-start.json",
+      "value": {
+        "kind": "hidden-read-diagnostics",
+        "read_only": true,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "syscall_arguments_recorded": false,
+        "active_vt": "tty3",
+        "python_version": "3.14.8",
+        "sudo_version": "1.9.17p2",
+        "terminals": [
+          {
+            "path": "/dev/tty3",
+            "device": 1027,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": false,
+              "IEXTEN": false,
+              "ISIG": false
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0,
+            "KDGKBMODE": 3,
+            "KDGETLED": 0,
+            "KDGKBLED": 0
+          },
+          {
+            "path": "/dev/pts/1",
+            "device": 34817,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": false,
+              "IEXTEN": false,
+              "ISIG": false
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0
+          },
+          {
+            "path": "/dev/pts/2",
+            "device": 34818,
+            "termios": {
+              "ICANON": true,
+              "ECHO": false,
+              "ICRNL": true,
+              "IXON": true,
+              "IEXTEN": true,
+              "ISIG": true
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0
+          }
+        ],
+        "processes": [
+          {
+            "pid": 4417,
+            "state": "S",
+            "wchan_error": {
+              "kind": "AssertionError",
+              "errno": null
+            },
+            "syscall_number": 271
+          },
+          {
+            "pid": 5355,
+            "state": "S",
+            "wchan_error": {
+              "kind": "AssertionError",
+              "errno": null
+            },
+            "syscall_number": 271
+          },
+          {
+            "pid": 5356,
+            "state": "S",
+            "wchan": "do_wait",
+            "syscall_number": 61
+          },
+          {
+            "pid": 7993,
+            "state": "S",
+            "wchan_error": {
+              "kind": "AssertionError",
+              "errno": null
+            },
+            "syscall_number": 271
+          },
+          {
+            "pid": 7998,
+            "state": "S",
+            "wchan_error": {
+              "kind": "AssertionError",
+              "errno": null
+            },
+            "syscall_number": 271
+          },
+          {
+            "pid": 7999,
+            "state": "S",
+            "wchan": "wait_woken",
+            "syscall_number": 0
+          }
+        ],
+        "phase": "completion-start",
+        "typed": {
+          "length": 377,
+          "key_event_count": 1108,
+          "key_chord_count": 378,
+          "last_key_was_ret": true,
+          "non_default_mapping_classes": [
+            "layout_differs_from_us",
+            "shift"
+          ]
+        },
+        "token": true
+      }
+    },
+    {
+      "sha256": "b37aa46ee07ed0fb24b967ea9a602e1ceac7a02918c58bac0863ff40e0de310e",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-37-diagnostics-completion-timeout.json",
+      "value": {
+        "kind": "hidden-read-diagnostics",
+        "read_only": true,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "syscall_arguments_recorded": false,
+        "active_vt": "tty3",
+        "python_version": "3.14.8",
+        "sudo_version": "1.9.17p2",
+        "terminals": [
+          {
+            "path": "/dev/tty3",
+            "device": 1027,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": false,
+              "IEXTEN": false,
+              "ISIG": false
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0,
+            "KDGKBMODE": 3,
+            "KDGETLED": 0,
+            "KDGKBLED": 0
+          },
+          {
+            "path": "/dev/pts/1",
+            "device": 34817,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": false,
+              "IEXTEN": false,
+              "ISIG": false
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0
+          },
+          {
+            "path": "/dev/pts/2",
+            "device": 34818,
+            "termios": {
+              "ICANON": true,
+              "ECHO": false,
+              "ICRNL": true,
+              "IXON": true,
+              "IEXTEN": true,
+              "ISIG": true
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0
+          }
+        ],
+        "processes": [
+          {
+            "pid": 4417,
+            "state": "S",
+            "wchan_error": {
+              "kind": "AssertionError",
+              "errno": null
+            },
+            "syscall_number": 271
+          },
+          {
+            "pid": 5355,
+            "state": "S",
+            "wchan_error": {
+              "kind": "AssertionError",
+              "errno": null
+            },
+            "syscall_number": 271
+          },
+          {
+            "pid": 5356,
+            "state": "S",
+            "wchan": "do_wait",
+            "syscall_number": 61
+          },
+          {
+            "pid": 7993,
+            "state": "S",
+            "wchan_error": {
+              "kind": "AssertionError",
+              "errno": null
+            },
+            "syscall_number": 271
+          },
+          {
+            "pid": 7998,
+            "state": "S",
+            "wchan_error": {
+              "kind": "AssertionError",
+              "errno": null
+            },
+            "syscall_number": 271
+          },
+          {
+            "pid": 7999,
+            "state": "S",
+            "wchan": "wait_woken",
+            "syscall_number": 0
+          }
+        ],
+        "phase": "completion-timeout",
+        "typed": {
+          "length": 377,
+          "key_event_count": 1108,
+          "key_chord_count": 378,
+          "last_key_was_ret": true,
+          "non_default_mapping_classes": [
+            "layout_differs_from_us",
+            "shift"
+          ]
+        },
+        "token": true
+      }
+    }
+  ],
+  "raw_consoles_saved": false,
+  "secret_value_or_key_sequence_recorded": false
+}

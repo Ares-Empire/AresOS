@@ -1,5 +1,153 @@
 # 14: checked owner tools
 
+**14zn STOP: probe21 accepted; qualification10 stopped after the180s private-token
+completion wait.** The secret was sent once, never retyped. No rerun or additional
+dispatch/push. PR #13 stays draft / NOT RELEASED; acceptance is unmet.
+
+## 14zn actual runs — token diagnostics exported, input delivery still unproved
+
+**Done:** the single fast-forward push carried `d523fb257afd72d7438340c35f6bf463341ea02b`.
+Exact-head privacy40784619811/40784610639 passed all three checks, including
+personal terms actually executed. The fresh120/120 pre-probe guard authorized
+1129+232/1500; the121/121 pre-qualification guard authorized1152+160/1500.
+Both required$10/prevent=true and deducted reported net Actions charges. No
+owner tool, frozen image/release/runtime, guide, workflow or privacy-rule change.
+
+**Verified:** [probe21](https://github.com/Ares-Empire/AresOS/actions/runs/40785271949)
+passed native484/80.333s, zero skips, including the unchanged30s timing case.
+It passed20 native loop checks/zero helper mutations and23 verified guest tmpfs
+transfers. Independent3 protected captures/4 zero-write-unmap/3 BootNext/
+2 NVRAM and full-variable replays pass. Artifact12860151875:354 members,
+4,743,904 bytes, SHA-256`1936f53639bfcc1eeca79ab039a2790676423d205d268f46f23cbdb5d616d288`.
+The scan has509 findings:507 reviewed public ISO names and2 exact whole kernel
+certificate messages. Native log0; unknown artifact findings0.
+
+Before qualification, actual release/git/53-source replay, strict550 guest
+commands/wrappers and the full ISO inspector replay passed again. The ISO replay
+passed attempt1 against all9,068,650,496 bytes, the pin and a fresh official
+checksum; no Windows retry was needed. Four registry steps remained CI-only and
+passed live. [Qualification10](https://github.com/Ares-Empire/AresOS/actions/runs/40788594413)
+was a fresh workflow_dispatch, attempt1, on the same head in protected-second order.
+
+**STOP:** qualification10 passed native484/83.530s, zero skips, and the unchanged
+timing case. Its20 native loop checks/zero mutations, immutable release/signature/
+layer gates, exact ISO, offline install/first boot/hardware-setup reboot,
+unattended/detached Windows round trips, tools install, prepare, zero-mutation
+prepare rerun, first-network state equality, record export and public stock typing
+passed. Nine owner command records passed; account login/password sudo on both
+stock boots produced4 successful hidden transitions. All109 staged transfers,
+including both new diagnostics snapshots and the completion observer, verify
+guest SHA and syntax. The VM paused/exported/closed on STOP.
+
+Readiness proved Python7999 on inner pts2, ECHO off, and the exact token prompt.
+The checksum of the actual staged observer equals a reconstruction with180s:
+`8132f9d56df699adce8a789805bdfc1dc73568454bf88e1b74fa1c8f9cf9880f`.
+The UART execution deadline stayed900s. At expiry, the same expected reader
+remained foreground: `reader_left=false`, `shell_idle=false`, no owner PASS/STOP
+result. Retained VCSA50x160, cursor26,49 still ends at the token prompt; its
+decoded-text scan is0. Decoding was in memory only. No token value, queued bytes,
+ordered key sequence or syscall arguments were recorded.
+
+Both serial-side snapshots (completion-start and completion-timeout) agree:
+
+| Terminal | TIOCINQ / TIOCOUTQ | ICANON | ECHO | ICRNL | IXON | IEXTEN | ISIG |
+|---|---|---|---|---|---|---|---|
+| tty3 | 0 / 0 | false | false | false | false | false | false |
+| pts1 | 0 / 0 | false | false | false | false | false | false |
+| reader pts2 | 0 / 0 | true | false | true | true | true | true |
+
+Active VT istty3; tty3 KDGKBMODE=3 (Unicode), KDGETLED=0, KDGKBLED=0. Runtime
+versions confirm Python3.14.8 and sudo1.9.17p2. The sent value had377 characters;
+the harness recorded378 accepted QMP send-key chords,1108 requested press/release
+events, a final `ret`, and mapping classes`shift`/`layout_differs_from_us`.
+These are counts/flags, not evidence that all events reached the guest reader.
+
+| Process | PID | State | Syscall number (x86-64 ABI) | wchan |
+|---|---|---|---|---|
+| outer sudo | 4417 | S | 271 (ppoll) | unavailable: validation rejected text |
+| outer monitor | 5355 | S | 271 (ppoll) | unavailable: validation rejected text |
+| root Bash | 5356 | S | 61 (wait4) | do_wait |
+| inner sudo | 7993 | S | 271 (ppoll) | unavailable: validation rejected text |
+| inner monitor | 7998 | S | 271 (ppoll) | unavailable: validation rejected text |
+| expected owner Python | 7999 | S | 0 (read) | wait_woken |
+
+The syscall names follow the public
+[Linux x86-64 ABI table](https://github.com/torvalds/linux/blob/v6.17/arch/x86/entry/syscalls/syscall_64.tbl).
+The two samples show the expected VT, inner canonical mode and CR translation;
+they do not reconstruct every instant during typing. Under the canonical
+[Linux N_TTY input-count path](https://github.com/torvalds/linux/blob/v6.17/drivers/tty/n_tty.c#L2329),
+an incomplete line can still produce zero TIOCINQ. Consequently these samples
+cannot distinguish lost keys/Return from an incomplete buffered line. No queued
+contents were read, and **the cause remains unproved**. No new experiment, fix,
+secret retype or workflow rerun was attempted after the CI stop.
+
+**PLAN-GAP / diagnostics defect:** my collector's wchan symbol validator rejected
+the returned text for all4 sudo processes. Their exact strings were not retained,
+so their names cannot be recovered from this artifact. Their states and syscall
+numbers are present; Bash/reader wchan values are present. The model fixtures did
+not cover those returned strings. The collector is not claimed complete or fixed;
+it is left unchanged after this STOP. The owner tool is unchanged throughout.
+
+The pinned image getpass byte comparison and sudo source comparison remain in
+the preparation section below. Additional source verification found sudo1.9.15
+and1.9.15p5 `exec_pty.c`/`exec_iolog.c` byte-identical, so that comparison covers
+the integrator's stated baseline. Source changes alone do not establish this
+failure's cause. Reference Linux ABI sources are distinguished from the guest's
+kernel fork in the evidence metadata.
+
+Qualification artifact12863022691:793 members,9,631,137 bytes,
+SHA-256`049aadcf9144ba0cf31a8ce6ead1a9515b6db08fce4e64613ffbbc005c14497f`.
+Scan517=507 public ISO names +10 exact whole kernel certificate lines; native
+log0, failure log0 and all4 decoded VCSA screens0. Independent9 protected/
+10 zero-write-unmap/9 BootNext/8 NVRAM/full-variable replays pass. No unknown
+finding was accepted; no ignore/rule/workflow change. Each accepted kernel line:
+
+| Run | Boot console and line | Public certificate label | Whole-line SHA-256 |
+|---|---|---|---|
+| probe21 | live-ui-probe-boot-console.txt:495 | Fedora kernel signing key | `004f47551d0828686404bf4b5bfbd34575295c2926e307f32d80eacf70efcd23` |
+| probe21 | live-ui-probe-boot-console.txt:528 | Fedora kernel signing key | `c4b44134b72aa8c1f8e6aea6abdda7f523ec960a4947f17132ac6828d0191fd4` |
+| qualification10 | corrected-stock-boot-console.txt:503 | Build time autogenerated kernel key | `524e3f79fe59dd10112e474de39d3baa049aa2622340f8e896dd75784a4e65f0` |
+| qualification10 | corrected-stock-boot-console.txt:514 | Build time autogenerated kernel key | `9f45e110acef3179a371fbf0835d8907dea44651525cd64b5e14ffeb19ca98cc` |
+| qualification10 | offline-first-stock-boot-console.txt:503 | Build time autogenerated kernel key | `bf6f09ffd9260524cfc8e8c780ad394aae140d820c9e57600e22ead9236614e3` |
+| qualification10 | offline-first-stock-boot-console.txt:514 | Build time autogenerated kernel key | `ba4c39aaa05a15199737b1d6fe3ca457189cc21759a06e25b313b7709e9af80d` |
+| qualification10 | protected-second-install-boot-console.txt:496 | Fedora kernel signing key | `eb741a2246454824cafc66dd90ff5e82d4a9f0e8660f1ef2b339c5d32db56a39` |
+| qualification10 | protected-second-install-boot-console.txt:529 | Fedora kernel signing key | `57b31b754ff1cb0fe2a686a5ff6ad166ea166c84a46480552c3f5fba11f43c25` |
+| qualification10 | stock-initialization-0-boot-console.txt:503 | Build time autogenerated kernel key | `5e5726b96d58cf45995cb4e44eee173e32e11ba39eaa091620734da6b0e3a612` |
+| qualification10 | stock-initialization-0-boot-console.txt:513 | Build time autogenerated kernel key | `1842084a4ee1030b1d09b233ed9c053072ee93b43ed9dd6527bdb40a514f5f4f` |
+| qualification10 | tools-stock-boot-console.txt:503 | Build time autogenerated kernel key | `90fcce03f72716e68a64710518dbe5c80038f7034f2fd4dee3d1eb5ff16f04d2` |
+| qualification10 | tools-stock-boot-console.txt:513 | Build time autogenerated kernel key | `718abbb03c5ac2b35c6c3872c2813c94062e2d2be26a49bb30956b451e2abc6c` |
+
+Raw consoles, VCSA, redacted foreground chains, both counts/flags snapshots,
+transport receipts and private diagnostics remain in the private artifact and
+ignored `.work/14/run-40788594413/`. The failed login never returned an owner
+result record; its harness readiness/completion and new serial diagnostics were
+exported. Committed metadata contains no raw console or secret value.
+[STOP packet](../../os/manifest/ci/14/14zn-qualification-stop/summary.json).
+
+**Budget:** fresh complete122/122 history; probe21/22, owner-tools10/11.
+
+| Package14 ledger item | Minutes |
+|---|---:|
+| Before this follow-up | 1124 |
+| Single push's privacy | 5 |
+| Probe21 | 23 |
+| Qualification10 | 56 |
+| Consumed / cap | 1208 /1500 |
+
+The closing read-only API snapshot still requires$10/prevent=true and reports
+net charged Actions spend$5.304 (the API's value at capture, not an assertion
+that all completed-run charges have posted). No budget setting was changed.
+Acceptance is unmet, so reserve0/closing0 were not restored and PR #13 remains
+draft. The STOP report/ledger are committed locally with pinned clean gitleaks;
+the one pre-dispatch push is the only push this round. No merge/publication.
+
+**Not verified / open questions:** input/Return delivery and the missing sudo
+wchan names; owner verify/switch, AresOS boot, layout failure/revert/success/back,
+rollback, keep-stock and final Windows checks were not reached. Physical install
+and laptop followability remain NOT RELEASED. INSTALL, EMERGENCY, release gate
+and the existing For package15 list are unchanged. The run is over; no Actions
+remain from this round, and the owner can set the budget back to$0.
+
 ## 14zn REPORT — token read diagnostics and 180-second completion wait
 
 **Done:** the harness collects read-only TIOCINQ/TIOCOUTQ counts and ICANON,
