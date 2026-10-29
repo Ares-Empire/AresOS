@@ -73,9 +73,24 @@ def walk():
                 if '-start' in name:
                     self.key_counts = dict(press=0,release=0,repeat=0,syn_dropped=0)
                     return dict(status='ready',path='/run/ares-input-fixture1',pid=77,device='/dev/input/event5',autorepeat=dict(delay_ms=250,period_ms=33),counts_only=True)
-                result=dict(status='passed',counts_only=True,complete=True,counts=self.key_counts,
+                result=dict(status='passed',counts_only=True,complete=True,keys_released=True,counts=dict(self.key_counts),
                     autorepeat=dict(delay_ms=250,period_ms=33),codes_recorded=False,values_recorded=False)
-                self.key_counts=None
+                if name.endswith('-stop'):self.key_counts=None
+                return result
+            if '# hidden-input-guard' in source:
+                from test_owner_reliable_typing import execute_guard
+                words=shlex.split(source);script=words[words.index('python3')+2]
+                result=execute_guard(script)
+                assert result['ready'], 'Modelled canonical reader refused'
+                checks.append(name+'-canonical-blocked-reader')
+                return result
+            if '# visible-echo' in source:
+                import ast
+                words=shlex.split(source);script=words[words.index('python3')+2]
+                value,=[ast.literal_eval(n.args[0]) for n in ast.walk(ast.parse(script)) if isinstance(n,ast.Call)
+                    and isinstance(n.func,ast.Attribute) and n.func.attr=='endswith']
+                result=execute_screen(script,vcsa('root# '+value))
+                assert result['ready'];checks.append(name+'-cursor-echo-verified')
                 return result
             if '# hidden-read-diagnostics' in source:
                 from test_owner_read_diagnostics import execute_diagnostics
@@ -118,9 +133,9 @@ def walk():
                 elif "line.endswith('login:')" in predicate:
                     raw=vcsa(('Login incorrect\n' if 'Login incorrect' in predicate else '')+'localhost login:')
                     kind='rejected-login' if 'Login incorrect' in predicate else 'getty-login-prompt';shape='getty-login-reader'
-                elif predicate.endswith(' in full'):
+                elif predicate.startswith('line.endswith('):
                     import ast
-                    prompt=ast.literal_eval(predicate.removesuffix(' in full'))
+                    prompt=ast.literal_eval(ast.parse(predicate,mode='eval').body.args[0])
                     assert prompt in ('Photographed Crucial serial:', 'Windows baseline Micron serial:', 'GitHub username:'), ('Uncovered public prompt',prompt)
                     raw=vcsa(prompt);kind='public-owner-input';shape='nested-owner-reader'
                 else:

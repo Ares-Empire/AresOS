@@ -130,7 +130,9 @@ class DiagnosticsTest(unittest.TestCase):
                 deadlines=[]
                 def capture(name, source):
                     if name.endswith('-key-counter-start'): return dict(status='ready',counts_only=True,path='/run/ares-input-fixture1')
-                    if name.endswith('-key-counter-stop'): return dict(complete=True,counts=dict(press=6,release=6,repeat=0,syn_dropped=0))
+                    if '-key-counter-sample-' in name:return dict(complete=True,keys_released=True,counts=dict(press=5,release=5,repeat=0,syn_dropped=0))
+                    if name.endswith('-key-counter-stop'): return dict(complete=True,keys_released=True,counts=dict(press=6,release=6,repeat=0,syn_dropped=0))
+                    if '# hidden-input-guard' in source:return dict(ready=True,canonical=True,echo_enabled=False,vkill=21,syscall_number=0)
                     if '-diagnostics-' in name: return dict(kind='hidden-read-diagnostics')
                     words=shlex.split(source)
                     script=words[words.index('python3')+2]

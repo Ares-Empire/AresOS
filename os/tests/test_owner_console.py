@@ -64,6 +64,16 @@ class Guest:
 
     def capture_json(self, name, command):
         syntax(name, command)
+        if '# hidden-key-counter' in command:
+            if name.endswith('-start'):
+                self.counter_start=len(self.pressed)
+                return dict(status='ready',counts_only=True,path='/run/ares-input-fixture1')
+            number=sum(len(keys) for keys in self.pressed[self.counter_start:])
+            return dict(complete=True,keys_released=True,counts=dict(press=number,release=number,repeat=0,syn_dropped=0))
+        if '# hidden-input-guard' in command:
+            from test_owner_reliable_typing import execute_guard
+            words=shlex.split(command)
+            return execute_guard(words[words.index('python3')+2])
         words = shlex.split(command)
         index = words.index('python3')
         assert words[index + 1] == '-c'

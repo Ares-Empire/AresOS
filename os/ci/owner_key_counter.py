@@ -29,10 +29,15 @@ def settings(fd):
     assert tuple(ident[:3]) == (3,0x0627,1), 'Opened input device changed'
     repeat = array.array('I', [0,0])
     fcntl.ioctl(fd, 0x80084503, repeat, True)  # EVIOCGREP: read, never set.
-    pressed = bytearray(96)  # EVIOCGKEY, KEY_MAX=0x2ff; count only, never retain the bitmap.
-    fcntl.ioctl(fd, 0x80604518, pressed, True)
-    assert not any(pressed), 'Keyboard still has pressed keys before typing window'
+    assert released(fd), 'Keyboard still has pressed keys before typing window'
     return dict(delay_ms=repeat[0], period_ms=repeat[1])
+
+
+def released(fd):
+    import fcntl
+    pressed = bytearray(96)  # EVIOCGKEY getter; discard the bitmap, export only a Boolean.
+    fcntl.ioctl(fd, 0x80604518, pressed, True)
+    return not any(pressed)
 
 
 def count_events(data, counts, dropping=False):
@@ -71,6 +76,7 @@ def observe(fd, path, repeat, max_seconds=180):
     result = dict(status='stopped', counts_only=True, autorepeat=repeat, counts=counts,
         codes_recorded=False, values_recorded=False)
     start = time.monotonic(); stopped = None; quiet = start; dropping = False
+    sample = None; requested = None; sequence = 0
     try:
         # A new evdev client starts empty. Drain only pre-window events, then ACK.
         drain_deadline = time.monotonic()+2
@@ -85,8 +91,23 @@ def observe(fd, path, repeat, max_seconds=180):
                 data = os.read(fd, 24*256)
                 assert data, 'Input device closed'
                 dropping = count_events(data, counts, dropping); quiet = time.monotonic()
-            if stopped is not None and (time.monotonic()-quiet >= .5 or time.monotonic()-stopped >= 2):
-                result['status'] = 'passed'; break
+            requests = list(path.glob('sample-*.request'))
+            assert len(requests) <= 1, 'Concurrent counter checkpoints refused'
+            if requests and requested is None:
+                match = re.fullmatch(r'sample-([1-9][0-9]?)\.request', requests[0].name)
+                assert match and int(match[1]) == sequence+1 <= 64, 'Counter checkpoint sequence refused'
+                sample = requests[0]; requested = now
+            quiet_now = time.monotonic()-quiet >= .5
+            keys_up = quiet_now and released(fd)
+            if requested is not None and (keys_up or now-requested >= 5):
+                sequence += 1
+                publish(path/('sample-'+str(sequence)+'.json'), dict(status='passed' if keys_up else 'stopped',
+                    sequence=sequence, counts_only=True, counts=dict(counts), keys_released=keys_up,
+                    complete=keys_up and counts['syn_dropped']==0, codes_recorded=False, values_recorded=False))
+                sample.unlink(); sample = requested = None
+            if stopped is not None and (keys_up or now-stopped >= 2):
+                result.update(status='passed' if keys_up else 'stopped',keys_released=keys_up)
+                break
         else: result['error'] = 'Counter typing-window deadline'
     except (OSError,AssertionError) as error:
         result['error'] = type(error).__name__  # Never include event data/exception text.
@@ -124,6 +145,22 @@ def start():
     return dict(status='ready',path=str(path),pid=pid,device=device,autorepeat=repeat,counts_only=True)
 
 
+def checkpoint(ticket, sequence):
+    path = pathlib.Path(ticket['path']); private_root(path)
+    assert type(sequence) is int and 1 <= sequence <= 64
+    target = path/('sample-'+str(sequence)+'.json')
+    assert not target.exists(), 'Counter checkpoint already consumed'
+    (path/('sample-'+str(sequence)+'.request')).touch(mode=0o600,exist_ok=False)
+    deadline = time.monotonic()+7
+    while not target.exists() and time.monotonic()<deadline:
+        assert not (path/'result.json').exists(), 'Counter ended before checkpoint'
+        time.sleep(.05)
+    assert target.exists(), 'Counter checkpoint deadline'
+    result = json.loads(target.read_text())
+    assert result['sequence']==sequence, 'Counter checkpoint identity changed'
+    return result
+
+
 def finish(ticket):
     path = pathlib.Path(ticket['path']); private_root(path)
     (path/'stop').touch(mode=0o600,exist_ok=False)
@@ -132,16 +169,22 @@ def finish(ticket):
     assert (path/'result.json').exists(), 'Keyboard counter finish deadline'
     result = json.loads((path/'result.json').read_text())
     result.update(device=ticket['device'],pid=ticket['pid'])
-    assert {p.name for p in path.iterdir()} == {'ready.json','stop','result.json'}, 'Unexpected counter files'
-    for name in ('ready.json','stop','result.json'): (path/name).unlink()
+    names = {p.name for p in path.iterdir()}
+    assert {'ready.json','stop','result.json'} <= names
+    assert all(name in ('ready.json','stop','result.json') or re.fullmatch(r'sample-[1-9][0-9]?\.(?:json|request)',name)
+        for name in names), 'Unexpected counter files'
+    if any(name.endswith('.request') for name in names): result.update(status='stopped',complete=False,unfinished_checkpoint=True)
+    for name in names: (path/name).unlink()
     path.rmdir()
     return result
 
 
-def source(ticket=None):
-    functions = (keyboard,settings,count_events,private_root,publish,observe,start,finish)
+def source(ticket=None, sequence=None):
+    functions = (keyboard,settings,released,count_events,private_root,publish,observe,start,checkpoint,finish)
+    call = ('start()' if ticket is None else 'checkpoint('+repr(ticket)+','+repr(sequence)+')'
+        if sequence is not None else 'finish('+repr(ticket)+')')
     return ('import json,os,pathlib,re,time\n# hidden-key-counter\n' + ''.join(inspect.getsource(f) for f in functions)
-        + '\nprint(json.dumps(' + ('start()' if ticket is None else 'finish('+repr(ticket)+')') + '))\n')
+        + '\nprint(json.dumps(' + call + '))\n')
 
 
 def compare(received, sent):
@@ -150,3 +193,9 @@ def compare(received, sent):
         press=counts['press'],release=counts['release'],repeat=counts['repeat'],syn_dropped=counts['syn_dropped'],
         matches=received['complete'] and counts['repeat']==0 and counts['press']==counts['release']
             and counts['press']*2==sent['key_event_count'])
+
+
+def delta(received, before):
+    counts = {key:received['counts'][key]-before.get(key,0) for key in ('press','release','repeat','syn_dropped')}
+    assert all(type(v) is int and v>=0 for v in counts.values()), 'Counter moved backwards'
+    return dict(received,counts=counts)

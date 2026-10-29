@@ -250,6 +250,7 @@ print('PASS login')
     def login_sequence(self,lose_result=False):
         with Fixture(self.retained['before']) as f:
             helper=self.physical_tool(f);f.serial.limit=512
+            f.shim('fixture-at','exec '+shlex.quote(sys.executable)+' -I -B '+shlex.quote(str(helper))+' "$@"\n')
             sentinel='synthetic-hidden-input';f.guest.secrets=[sentinel]
             capture=f.guest.capture_json;command=f.guest.command
             dropped=[]
@@ -262,6 +263,7 @@ print('PASS login')
                 return command(name,script,min(timeout,5),private)
             f.guest.command=bounded
             def snapshot(name,source):
+                if '# visible-echo' in source:source=source.replace(vm.COMMANDS['login'],'fixture-at login')
                 # Wait receipts now have unique sequence/sample suffixes. The
                 # physical PTY still waits for the same public owner prompt.
                 phase=name.split('-read-wait-',1)[0].split('-wait-',1)[0]
@@ -301,7 +303,7 @@ print('PASS login')
                         if model.exists():
                             aggregate=json.loads(model.read_text());aggregate['press']+=len(keys);aggregate['release']+=len(keys)
                             model.write_text(json.dumps(aggregate))
-                if text==vm.COMMANDS['login']+'\n':text='python3 -I -B '+shlex.quote(str(helper))+' login\n'
+                if text==vm.COMMANDS['login']:text='fixture-at login'
                 f.physical.sendall(text.encode())
             with patch.object(vm,'type_text',side_effect=physical),patch.object(vm.td,'EVIDENCE',f.evidence):
                 console=vm.Console(f.guest)

@@ -14,7 +14,7 @@ from unittest.mock import patch
 from test_owner_sudo_idle import relay, TTY
 
 
-def execute_screen(source, raw):
+def execute_screen(source, raw, unicode_data=None):
     """Run the actual cursor predicate and three-sample loop, no host VCSA."""
     output = io.StringIO()
     class Clock:
@@ -23,12 +23,26 @@ def execute_screen(source, raw):
         def sleep(self, delay): self.now += delay
     clock = Clock()
     def read(path):
+        if str(path) in ('/dev/vcsu3','/dev/vcsu4'):
+            if unicode_data is not None:return unicode_data
+            import struct
+            return struct.pack('='+'I'*(len(raw[4::2])),*raw[4::2])
         assert str(path) in ('/dev/vcsa3','/dev/vcsa4')
         return raw
     with patch.object(pathlib.Path,'read_bytes',read), patch.object(time,'monotonic',clock.monotonic), \
             patch.object(time,'sleep',clock.sleep), contextlib.redirect_stdout(output):
         exec(compile(source,'modelled-cursor-predicate','exec'),{})
     return json.loads(output.getvalue())
+
+
+def execute_echo(command):
+    """Actual echo predicate on explicit public-text screen facts."""
+    import shlex
+    from test_owner_hidden import vcsa
+    words=shlex.split(command);source=words[words.index('python3')+2]
+    value,=[ast.literal_eval(n.args[0]) for n in ast.walk(ast.parse(source)) if isinstance(n,ast.Call)
+        and isinstance(n.func,ast.Attribute) and n.func.attr=='endswith']
+    return execute_screen(source,vcsa('root# '+value))
 
 
 def execute_idle(source, raw, rows=None):

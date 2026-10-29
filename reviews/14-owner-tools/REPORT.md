@@ -1,5 +1,103 @@
 # 14: checked owner tools
 
+## 14zp REPORT — short holds and counter-verified hidden input
+
+**Done:** package14's guest sends each physical chord with a30ms QMP hold and a
+minimum120ms gap, recorded per boot and hidden value. Existing parent delays
+can add time. No guest repeat, keymap, keyboard-mode or console setting is
+changed. The owner bundle/fingerprint, frozen runtime/release, guides,
+workflows, audit predicates and privacy rules are unchanged.
+
+All23 hidden values use a continuous read-only evdev counter. Atomic numbered
+checkpoints require a quiet window and all keys released. Before Return the
+expected press/release totals must match exactly, repeats0 and SYN_DROPPED0;
+the same expected foreground reader must still be waiting in read0 with ECHO
+off. No hidden value, individual event code/value or ordered keys are exported.
+The377-character CI token retains16-character chunks with1s pauses, plus1s
+before its pre-Enter checks. The counter continues through the single Return.
+
+One pre-Enter recovery is permitted: before and after Ctrl-U the unchanged
+reader must be canonical with VKILL21, still waiting with no Return sent. The
+Ctrl-U itself must have exactly2 presses +2 releases, no repeats/drops and all
+keys released. Only that complete proof permits one retype. A drop, held key,
+unproved clear, second bad value or final Return count mismatch STOPs. A
+noncanonical reader cannot get the clear/retype. There is no post-Enter retry.
+The complete window, failed attempt and clear counts remain in evidence;
+accepted-attempt counts are also reported separately, so recovery cannot hide
+a previous repeat. Existing60s/180s/840s completion and900s UART bounds stay.
+
+Visible owner commands and public inputs now have an explicit current-cursor
+echo check **before** Return. Q11 was caught by the later hidden-read readiness
+check; this adds the earlier gate. Public prompt waits use the cursor instead
+of old fullscreen text. Existing physical-text assertions remain. For the
+umlaut proof the echo reader uses native32-bit Unicode VCSU cells, bounded by
+stable VCSA geometry, rather than treating font slots as Unicode. The probe
+must prove this getter and the live counter checkpoint before qualification;
+its temporary VT selection restores the originally active VT. No firmware or
+disk audit is widened.
+
+**Q11 owner-path evidence:** the per-run40-character dummy traversed tty3, both
+sudo relays and getpass, then returned the existing registry-refusal STOP with
+zero mutation calls. All110 events arrived:55 presses,55 releases, repeats0,
+SYN_DROPPED0, autorepeat250/33ms. This proves the owner-length hidden path,
+not successful registry authentication. The integrator classifies Q11's
+subsequent `/var/lib/ares/aatt` corruption as autorepeat from late100ms
+releases. The same cause remains unproved for Q9/Q10. No real CI token was
+typed in Q11. [Retained proof](../../os/manifest/ci/14/14zo-qualification-stop/owner-length-token-proof.json).
+
+**Source verification:** the public Linux N_TTY reference implements canonical
+VKILL line removal; a local owned PTY/getpass execution confirms Ctrl-U removes
+the previous incomplete value before any Enter. The pinned sudo1.9.17p2
+tgetpass source uses noecho (cbreak for pwfeedback), reads bytes and accepts CR
+or LF. VCSU's native32-bit/no-header format and device creation are verified in
+[the upstream reference](https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux/+/v6.17/drivers/tty/vt/vc_screen.c).
+Reference ABI sources are distinguished from the guest kernel fork; actual
+guest capability is required in the probe. [Source hashes and Q11 binding](../../os/manifest/ci/14/14zp-preflight/input-reference-sources.json).
+
+**Verified locally:** final whole suite511/806.326s, 502 distinct
+passes, 9 previously approved host limitations, zero skips. The first
+whole run511/815.037s found five older fixture setups that did not model the
+new phases; their five regressions pass after setup/expected-chunk repairs,
+with no refusal/completion assertion removed. The original serial-staging
+assertions and30s timing bound are byte-structure equivalent to the brief head.
+The lost-result case measured57.652880255s in the isolated run; final whole
+run measured54.94096418999993s. Historical30.010278s and
+31.896785s remain recorded under14zm. This is a local host-timing limitation;
+all511 tests and that same30s bound remain mandatory natively, no skips or
+environment switch. A native overrun is a real STOP.
+
+The focused timing/counter/diagnostic/budget tests, actual all-stage walk,
+real Bash/limited-line login, owned PTY clear, Unicode echo predicate, updated
+fixture regressions and four no-repeat dispatch-controller tests were run.
+The serial fixture explicitly models evdev and the non-parent proc-syscall
+getter that local ptrace policy may deny; foreground identities, termios,
+byte transport, ACKs and SHA framing run for real. No host keyboard is opened.
+The stand-in walk covers all8 stages,23 hidden values,46 blocked-reader guards,
+every existing cluttered-screen resync and all public/hidden inputs. Strict
+checks compile 805 guest commands and the same number of
+wrappers, 799 embedded Python blocks, all shell/Python
+sources and the native workflow body; parse stderr including warnings refuses.
+Full ISO replay passed on attempt1 against all9,068,650,496 pinned bytes and a
+fresh official checksum, using a new local checkpoint and no overlapping ISO
+reader. Release/git/53-source replay passes. The four credential-only registry
+checks remain explicitly CI-only and fail closed, with no scope/secret change.
+[Source-bound preparation](../../os/manifest/ci/14/14zp-preflight/preparation.json).
+
+**Budget / pending:** complete126/126 history:1306 consumed +238 pre-push bound
+=1544/1600. Package14 only is cap1600, probe24, owner-tools13, reserve0/closing0;
+package13 is unchanged. The read-only$10/prevent=true guard deducts charged net
+Actions spend. Pinned local full-history gitleaks0 is required before the
+single fast-forward push. Fresh exact-head privacy (all3 actual steps), complete
+ledger, billing and budget precede probe23. Only accepted probe23 permits
+qualification12 on the same head. Any CI stop ends the round with counts and
+diagnostics, no rerun. Restore reserve150/closing12 and mark PR #13 ready only
+after acceptance, then say the run is over so the owner can reset the budget0.
+
+**Not verified:** actual guest holds/checkpoints/Unicode getter and a complete
+VM route on this head; accepted pre-Enter recovery in the VM if it is needed.
+The physical install stays NOT RELEASED and all laptop gates / For package15
+items remain. No physical laptop, image rebuild, release or publication.
+
 **14zo STOP:** probe22 passed; qualification11 stopped before the real token's
 hidden prompt. The owner-length dummy passed with all110 events accounted for.
 The real CI token was never typed. No rerun or additional push. PR #13 remains

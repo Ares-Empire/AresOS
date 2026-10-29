@@ -74,28 +74,48 @@ class KeyCounterTest(unittest.TestCase):
     def test_observer_consumes_after_ready_and_publishes_only_counts(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as folder:
             root=pathlib.Path(folder);incoming,writer=os.pipe()
-            worker=threading.Thread(target=counter.observe,args=(incoming,root,dict(delay_ms=250,period_ms=33),3))
-            worker.start()
-            deadline=time.monotonic()+2
-            while not (root/'ready.json').exists() and time.monotonic()<deadline:time.sleep(.01)
-            self.assertTrue((root/'ready.json').exists())
-            os.write(writer,event(1,30,1)+event(1,30,0));(root/'stop').touch()
-            worker.join(4);os.close(writer)
+            with patch.object(counter,'released',return_value=True):
+                worker=threading.Thread(target=counter.observe,args=(incoming,root,dict(delay_ms=250,period_ms=33),3))
+                worker.start()
+                deadline=time.monotonic()+2
+                while not (root/'ready.json').exists() and time.monotonic()<deadline:time.sleep(.01)
+                self.assertTrue((root/'ready.json').exists())
+                os.write(writer,event(1,30,1)+event(1,30,0));(root/'stop').touch()
+                worker.join(4);os.close(writer)
             self.assertFalse(worker.is_alive())
             result=json.loads((root/'result.json').read_text())
             self.assertTrue(result['complete']);self.assertEqual(result['counts']['press'],1)
             self.assertFalse(result['codes_recorded']);self.assertFalse(result['values_recorded'])
             self.assertEqual({p.name for p in root.iterdir()},{'ready.json','stop','result.json'})
 
-    def test_chunk_schedule_exactly_one_return_and_pauses_between_and_after_chunks(self):
+    def test_checkpoint_waits_for_key_release_and_keeps_whole_window(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as folder:
+            root=pathlib.Path(folder);incoming,writer=os.pipe();up=threading.Event()
+            with patch.object(counter,'released',side_effect=lambda fd:up.is_set()),patch.object(counter,'private_root'):
+                worker=threading.Thread(target=counter.observe,args=(incoming,root,dict(delay_ms=250,period_ms=33),5))
+                worker.start();deadline=time.monotonic()+2
+                while not (root/'ready.json').exists() and time.monotonic()<deadline:time.sleep(.01)
+                os.write(writer,event(1,30,1)+event(1,30,0));(root/'sample-1.request').touch()
+                time.sleep(.6);self.assertFalse((root/'sample-1.json').exists())
+                up.set();deadline=time.monotonic()+2
+                while not (root/'sample-1.json').exists() and time.monotonic()<deadline:time.sleep(.01)
+                first=json.loads((root/'sample-1.json').read_text());self.assertTrue(first['keys_released'])
+                self.assertEqual(first['counts']['press'],1)
+                os.write(writer,event(1,28,1)+event(1,28,0))
+                final=counter.finish(dict(path=str(root),device='/dev/input/fixture',pid=1))
+                worker.join(2);os.close(writer)
+                self.assertTrue(final['complete']);self.assertEqual(final['counts']['press'],2)
+                self.assertEqual(first['counts']['press'],1);self.assertFalse(root.exists())
+
+    def test_chunk_schedule_withholds_return_and_pauses_between_and_after_chunks(self):
         calls=[]
         with patch.object(vm,'type_text',side_effect=lambda g,t,l,counts: calls.append(('text',len(t),t=='\n'))), \
                 patch.object(vm.time,'sleep',side_effect=lambda s:calls.append(('pause',s))):
             vm.type_token(None,'A'*33,'de',{},True)
-        self.assertEqual(calls,[('text',16,False),('pause',1),('text',16,False),('pause',1),('text',1,False),('pause',1),('text',1,True)])
+        self.assertEqual(calls,[('text',16,False),('pause',1),('text',16,False),('pause',1),('text',1,False),('pause',1)])
         calls.clear()
         with patch.object(vm,'type_text',side_effect=lambda g,t,l,counts:calls.append((len(t),t=='\n'))):vm.type_token(None,'A'*40,'de',{},False)
-        self.assertEqual(calls,[(40,False),(1,True)])
+        self.assertEqual(calls,[(40,False)])
         with patch.object(vm,'type_text') as typed:
             for value in ('','public\nfixture','public\rfixture'):
                 with self.assertRaisesRegex(AssertionError,'before input'):vm.type_token(None,value,'de',{},True)
@@ -107,11 +127,16 @@ class KeyCounterTest(unittest.TestCase):
         def capture(name,source):
             syntax(name,source);names.append(name)
             if name.endswith('-start'):return dict(status='ready',path='/run/ares-input-fixture1',pid=77,device='/dev/input/event5')
-            return dict(complete=True,counts=dict(press=0,release=0,repeat=0,syn_dropped=0))
+            if name=='probe-active-vt':return dict(active='tty2')
+            if name=='probe-unicode-console':return dict(status='passed',getter_only=True,unicode_cells=8000)
+            return dict(complete=True,keys_released=True,counts=dict(press=0,release=0,repeat=0,syn_dropped=0))
         guest.capture_json.side_effect=capture
-        media.attach.side_effect=lambda *a: self.assertEqual(names,['probe-key-counter-start','probe-key-counter-stop'])
+        media.attach.side_effect=lambda *a: self.assertEqual(names,['probe-key-counter-start','probe-key-counter-sample-1',
+            'probe-key-counter-stop','probe-active-vt','probe-unicode-console'])
         with patch.object(vm.td,'save'):vm.probe_media(guest,media)
         media.detach.assert_called_once_with(guest,'probe')
+        self.assertEqual(guest.keys.call_args_list,[__import__('unittest').mock.call(['ctrl','alt','f3']),
+            __import__('unittest').mock.call(['ctrl','alt','f2'])])
 
     def test_dummy_gate_never_enters_real_login_on_stall_or_wrong_refusal(self):
         for failure in ('stall','wrong'):

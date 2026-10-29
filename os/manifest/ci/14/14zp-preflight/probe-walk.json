@@ -1,0 +1,23 @@
+{
+  "status": "passed stand-in probe path; not VM acceptance",
+  "commands": 6,
+  "vt_selection_restored": true,
+  "event_counter_checkpoint_exercised": true,
+  "unicode_getter_exercised": true,
+  "media_hotplug_after_checks": true,
+  "bundle_fingerprint": "683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974",
+  "sources": [
+    {
+      "sha256": "09df5375e0bc0cc28e5e494d46ae3d53003e3d824f9ba896ee9922700b2fc3e5",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "73c0b1aae6bfe30707027e002a93653847a4d1e9a1052de7260fb889a20e1665",
+      "path": "os/ci/owner_key_counter.py"
+    },
+    {
+      "sha256": "9a11a1a7b2b782659c9c0bd0263e0b1ff4df7f5ba9a7497d75f233945b628067",
+      "path": "os/ci/owner_hidden.py"
+    }
+  ]
+}

@@ -165,6 +165,9 @@ class DiagnosticsTest(unittest.TestCase):
         sources = []
         def capture(name, source):
             syntax(name, source); sources.append(source)
+            if '# visible-echo' in source:
+                from owner_console_shim import execute_echo
+                return execute_echo(source)
             return [] if name == 'owner-record-list' else record
         guest.capture_json = capture
         console = vm.Console(guest); console.prompt = Mock()
@@ -173,7 +176,8 @@ class DiagnosticsTest(unittest.TestCase):
             console.run('install', 'unexpected-stop')
         saved = json.loads((self.root/'unexpected-stop-owner-diagnostics.json').read_text())
         self.assertEqual(saved, record)
-        self.assertEqual(len(sources), 2)
+        self.assertEqual(len(sources), 3)
+        self.assertEqual(sum('# visible-echo' in source for source in sources),1)
         guest.screenshot.assert_not_called()
 
     def test_real_framed_reader_decodes_preinstall_stop_and_refuses_unsafe_records(self):

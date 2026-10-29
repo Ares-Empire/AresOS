@@ -221,14 +221,16 @@ class SessionTest(unittest.TestCase):
         import owner_vm as vm
         from unittest.mock import Mock
         guest = Mock(owner_input_epoch=0)
+        from owner_console_shim import execute_echo
+        guest.capture_json.side_effect=lambda name,source:execute_echo(source)
         console = vm.Console(guest)
         typed = []
         with patch.object(vm, 'type_text', side_effect=lambda g, text, *a: typed.append(text)), \
                 patch.object(console, 'prompt'), patch.object(console, 'hidden'), \
                 patch.object(console, 'send_hidden', side_effect=lambda value, layout=None, **kw: vm.type_text(guest, value+'\n', layout)), \
-                patch.object(console, 'after_hidden'):
+                patch.object(console, 'after_hidden'), patch.object(vm.td,'save'):
             console.become_root('synthetic-password', 'guide')
-        self.assertEqual(typed, ['sudo -k\nsudo -i\n', 'synthetic-password\n'])
+        self.assertEqual(typed, ['sudo -k','\n','sudo -i','\n', 'synthetic-password\n'])
         self.assertTrue(console.root)
         guide = (ROOT/'docs/INSTALL.md').read_text()
         self.assertIn('sudo -i', guide)

@@ -9,10 +9,10 @@
   "14": {
     "branch": "pkg/14-owner-tools",
     "start": "first-dispatch",
-    "minute_cap": 1500,
+    "minute_cap": 1600,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"probe": 23, "owner-tools": 12},
+    "dispatch_caps": {"probe": 24, "owner-tools": 13},
     "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 0},
     "closing_privacy_reservation": {
       "minutes": 0,

@@ -116,10 +116,12 @@ class SudoIdleTest(unittest.TestCase):
         import owner_vm as vm
         from unittest.mock import Mock
         guest = Mock(owner_input_epoch=0)
+        from owner_console_shim import execute_echo
+        guest.capture_json.side_effect=lambda name,source:execute_echo(source)
         console = vm.Console(guest)
         with patch.object(console, 'after_hidden') as after, patch.object(console, 'hidden'), patch.object(console, 'send_hidden'), \
                 patch.object(console, 'prompt'), patch.object(console, 'select'), \
-                patch.object(vm, 'wait_tty'), patch.object(vm, 'type_text'):
+                patch.object(vm, 'wait_tty'), patch.object(vm, 'type_text'),patch.object(vm.td,'save'):
             console.login('synthetic-password', 'same-stage')
             console.become_root('synthetic-password', 'same-stage')
         self.assertEqual([c.args[0] for c in after.call_args_list],

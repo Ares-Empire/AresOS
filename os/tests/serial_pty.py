@@ -34,13 +34,14 @@ from types import SimpleNamespace
 RealPath=pathlib.Path
 root=RealPath(os.environ['SERIAL_FIXTURE_ROOT'])
 source=sys.argv[2].replace("/var/lib/ares/tools/owner.py", str(root/"mock-login.py"))
+guard_mode='# hidden-input-guard' in source
 # Explicit stand-in for new guest-only evdev access. Transport/ACK/SHA still run.
 if '# hidden-key-counter' in source:
  if 'print(json.dumps(start()))' in source:
   (root/'key-counts.json').write_text('{"press":0,"release":0,"repeat":0,"syn_dropped":0}')
   source="import json; print(json.dumps(dict(status='ready',counts_only=True,path='/run/ares-input-fixture1')))"
  else:
-  source="import json,pathlib,os; p=pathlib.Path(os.environ['SERIAL_FIXTURE_ROOT'])/'key-counts.json'; print(json.dumps(dict(status='passed',complete=True,counts=json.loads(p.read_text()),counts_only=True,codes_recorded=False,values_recorded=False)))"
+  source="import json,pathlib,os; p=pathlib.Path(os.environ['SERIAL_FIXTURE_ROOT'])/'key-counts.json'; print(json.dumps(dict(status='passed',complete=True,keys_released=True,counts=json.loads(p.read_text()),counts_only=True,codes_recorded=False,values_recorded=False)))"
 class VirtualPath:
  def __init__(self,p):self.value=str(p)
  def real(self):
@@ -53,7 +54,11 @@ class VirtualPath:
  def is_symlink(self):return self.real().is_symlink()
  def lstat(self):return SimpleNamespace(st_mode=(stat.S_IFDIR|0o700) if self.real().is_dir() else (stat.S_IFREG|0o600),st_uid=0)
  def glob(self,pattern):return [VirtualPath(self.value+'/'+p.relative_to(self.real()).as_posix()) for p in self.real().glob(pattern)]
- def read_text(self):return self.real().read_text()
+ def read_text(self):
+  # The owned getpass is a sibling of the UART adapter; Yama may deny this
+  # getter locally. Reader identities, foreground groups and termios are real.
+  if guard_mode and self.value.startswith('/proc/') and self.value.endswith('/syscall'):return '0'
+  return self.real().read_text()
  def read_bytes(self):return self.real().read_bytes()
  @property
  def parent(self):return VirtualPath(str(self.real().parent))

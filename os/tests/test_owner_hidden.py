@@ -312,24 +312,25 @@ class HiddenTest(unittest.TestCase):
             self.assertTrue(f.observe()['ready']);self.assertEqual(f.sent,[])
 
     def test_secret_is_not_retyped_when_read_completion_refuses(self):
-        class Guest:
-            owner_input_epoch = 0
-            owner_layout = 'de'
-            def resync_after_hidden(self, stage): return dict(status='passed')
+        from test_owner_reliable_typing import Driver
+        class Guest(Driver):
             def capture_json(self, stage, command):
                 self.command = command
+                if '# hidden-phase: left' not in command:return super().capture_json(stage,command)
                 return dict(ready=False, raw=__import__('base64').b64encode(vcsa(PROMPT)).decode(),
                     observation=dict(foreground_chain=[]))
-        guest = Guest(); c = vm.Console(guest)
+        guest = Guest(); guest.proven=True; c = vm.Console(guest)
         c.pending_hidden = dict(stage='synthetic-read', epoch=0, expected=hidden.owner_reader(['login']),
             reader=dict(pid=10, start='1', exe='/usr/bin/python3', tty=34818, tty_path='/dev/pts/2', physical=1027))
         calls = []
-        def type_once(g, text, layout, counts=None): calls.append(text); g.owner_input_epoch += 1
+        original=vm.type_text
+        def type_once(g, text, layout, counts=None):
+            calls.append(text);return original(g,text,layout,counts=counts)
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as folder, patch.object(vm.td, 'EVIDENCE', pathlib.Path(folder)), \
                 patch.object(vm, 'type_text', side_effect=type_once):
             with self.assertRaisesRegex(AssertionError, 'will not be retyped'): c.send_hidden(VALUE.decode())
-            with self.assertRaisesRegex(AssertionError, 'already sent'): c.send_hidden(VALUE.decode())
-        self.assertEqual(calls, [VALUE.decode() + '\n']); self.assertNotIn(VALUE.decode(), guest.command)
+            with self.assertRaisesRegex(AssertionError, 'already attempted'): c.send_hidden(VALUE.decode())
+        self.assertEqual(calls, [VALUE.decode(), '\n']); self.assertNotIn(VALUE.decode(), guest.command)
 
 
 if __name__ == '__main__': unittest.main()

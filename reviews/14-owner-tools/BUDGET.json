@@ -1,21 +1,21 @@
 {
   "allowance": "14",
   "start": "2026-10-25T22:01:22Z",
-  "cap": 1500,
+  "cap": 1600,
   "full_cap": 0,
   "full_dispatched": 0,
   "part_b_cap": 0,
   "part_b_dispatched": 0,
   "dispatch_caps": {
-    "probe": 23,
-    "owner-tools": 12
+    "probe": 24,
+    "owner-tools": 13
   },
   "dispatch_counts": {
     "probe": 22,
     "owner-tools": 11
   },
   "consumed_minutes": 1306,
-  "reserved_minutes": 0,
+  "reserved_minutes": 238,
   "runs": [
     {
       "run": 40805607265,
@@ -933,68 +933,14 @@
       40216222435
     ]
   },
-  "status": "14zo probe22 accepted; qualification11 STOP before real-token readiness after successful40-character dummy",
-  "probe22": 40802757524,
-  "qualification11": 40805607265,
+  "status": "14zp preparation; fresh exact-head CI/guards pending",
+  "probe23": "pending",
+  "qualification12": "pending",
   "acceptance_met": false,
-  "pushes_this_followup": 1,
-  "dispatches_this_followup": 2,
+  "pushes_this_followup": 0,
+  "dispatches_this_followup": 0,
   "reruns_this_followup": 0,
-  "closing_reservation": 0,
   "reserve": 0,
-  "restore_condition_met": false,
-  "organization_budget_snapshot": {
-    "status": "passed",
-    "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-    "checked_at": "2026-10-29T03:27:29.869346+00:00",
-    "response_sha256": "df1c7d961cc750fe986c5aefee88c29df10915375ea075f291621ebd890f75c2",
-    "usage": [
-      {
-        "sku": "actions_linux",
-        "unit": "minutes",
-        "grossQuantity": 3038.0,
-        "discountQuantity": 2000.0,
-        "netQuantity": 1038.0,
-        "grossAmount": 18.228,
-        "discountAmount": 12.0,
-        "netAmount": 6.228,
-        "pricePerUnit": 0.006
-      },
-      {
-        "sku": "actions_storage",
-        "unit": "gigabyte-hours",
-        "grossQuantity": 20.685506159,
-        "discountQuantity": 20.685506159,
-        "netQuantity": 0.0,
-        "grossAmount": 0.006950669,
-        "discountAmount": 0.006950669,
-        "netAmount": 0.0
-      }
-    ],
-    "used_minutes": 3038,
-    "included_minutes": 2000,
-    "included_minutes_left": 0,
-    "paid_overflow": {
-      "source": "organizations/Ares-Empire/settings/billing/budgets",
-      "response_sha256": "2a4e170f520cd941cf127290b5d6c9321833bf9da0eef9cb831c5f9b6a9b93de",
-      "budget_product_sku": "actions",
-      "budget_amount": 10,
-      "prevent_further_usage": true,
-      "budget_scope": "organization",
-      "budget_entity_name": "Ares-Empire",
-      "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
-      "runner_sku": "actions_linux",
-      "pricePerUnit": 0.006,
-      "reported_net_amount": 6.228,
-      "available_budget": 3.772,
-      "paid_minutes": 628,
-      "decision": "briefs/14zl-ten-dollar-round.md",
-      "exception_month": "2026-10"
-    },
-    "remaining_minutes": 628,
-    "reserved_minutes": 0,
-    "after_reservation": 628,
-    "other_repos_reserve": 0,
-    "credential": "existing local gh login; GET only"
-  }
+  "closing_reservation": 0,
+  "owner_decision": "briefs/14zp-reliable-typing.md"
 }

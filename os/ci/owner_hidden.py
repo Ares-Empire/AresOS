@@ -269,6 +269,47 @@ def hidden_left(tty, expected, receipt, proc=pathlib.Path('/proc')):
     return completion_observation(tty, expected, receipt, proc)
 
 
+def input_guard(tty, expected, receipt, for_clear=False, proc=pathlib.Path('/proc')):
+    """Prove canonical VKILL semantics without inspecting queued secret bytes."""
+    import termios
+    rows = hidden_snapshot(proc)
+    trace = reader_chain(rows, receipt['physical'], expected)
+    value = dict(ready=False,canonical=False,echo_enabled=None,vkill=None,syscall_number=None,
+        value_recorded=False,queue_contents_read=False,
+        observation=dict(reason=trace['reason'],foreground_chain=redacted_chain(trace['chain'])))
+    row = trace['reader']
+    if not trace['valid'] or not row or not reader_matches(row,expected) or not same_process(row,receipt): return value
+    if [identity(r) for r in trace['chain']] != receipt['origin_chain']: return value
+    fd = os.open(receipt['tty_path'],os.O_RDONLY|os.O_NOCTTY|os.O_NONBLOCK)
+    try:
+        assert device_number(fd)==receipt['tty'], 'Hidden reader tty changed'
+        attrs = termios.tcgetattr(fd)
+    finally: os.close(fd)
+    kill = attrs[6][termios.VKILL]
+    kill = kill if type(kill) is int else ord(kill)
+    number = (proc/str(row['pid'])/'syscall').read_text().split()[0]
+    assert re.fullmatch(r'-?[0-9]+',number), 'Hidden reader syscall unavailable'
+    value.update(canonical=bool(attrs[3]&termios.ICANON),echo_enabled=bool(attrs[3]&termios.ECHO),
+        vkill=kill,syscall_number=int(number))
+    again = reader_chain(hidden_snapshot(proc),receipt['physical'],expected)
+    stable = again['valid'] and [identity(r) for r in again['chain']]==receipt['origin_chain']
+    value['ready'] = bool(stable and row['state']=='S' and not value['echo_enabled'] and value['syscall_number']==0
+        and (not for_clear or (value['canonical'] and kill==21)))
+    return value
+
+
+def guard_source(tty,expected,receipt,for_clear=False):
+    functions=(interactive_shell,process_snapshot,hidden_snapshot,reader_matches,reader_chain,redacted_chain,
+        identity,same_process,device_number,input_guard)
+    return ('import json,os,pathlib,re,time\n# hidden-input-guard\n'+''.join(inspect.getsource(f) for f in functions)
+        + '\nvalue=dict(ready=False,reason="No stable canonical hidden reader")\n'
+        + 'deadline=time.monotonic()+5\nstable=0\nwhile time.monotonic()<deadline:\n'
+        + '    try:\n        value=input_guard('+repr(tty)+','+repr(expected)+','+repr(receipt)+','+repr(for_clear)+')\n'
+        + '        stable=stable+1 if value["ready"] else 0\n        if stable>=3: break\n'
+        + '    except (OSError,AssertionError): stable=0\n    time.sleep(.1)\n'
+        + 'value["ready"]=bool(value.get("ready") and stable>=3)\nprint(json.dumps(value))\n')
+
+
 def hidden_handoff(tty, expected, receipt, prompt, proc=pathlib.Path('/proc')):
     value = completion_observation(tty, expected, receipt, proc)
     _, line = screen(pathlib.Path('/dev/vcsa' + tty[3:]).read_bytes())

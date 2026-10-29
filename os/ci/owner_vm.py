@@ -39,6 +39,8 @@ PROMPT_WAIT_IDS = itertools.count(1)
 SUDO_PROMPT = "[sudo] password for ares-recovery:"
 TOKEN_PROMPT = "Read-only token (hidden):"
 LAYOUT_PROMPT = 'Physically type'
+KEY_HOLD_MS = 30
+KEY_GAP_SECONDS = .12
 
 
 def type_text(guest, text, layout=None, counts=None):
@@ -52,7 +54,6 @@ def type_text(guest, text, layout=None, counts=None):
             counts['key_event_count'] += 2 * len(keys)  # QMP send-key presses/releases each key.
             counts['key_chord_count'] += 1
             counts['last_key_was_ret'] = keys == ['ret']
-        time.sleep(0.12)
 
 
 def type_token(guest, value, layout, counts, chunked):
@@ -64,7 +65,7 @@ def type_token(guest, value, layout, counts, chunked):
         time.sleep(1)
     else:
         type_text(guest, value, layout, counts=counts)
-    type_text(guest, '\n', layout, counts=counts)  # Exactly one Return, never a retry.
+    # Return belongs exclusively to the counter-verified pre-Enter gate.
 
 
 def private_login(console):
@@ -92,6 +93,11 @@ class Guest(td.Guest):
     network_up = False
     owner_media = None
     owner_layout = 'de'
+
+    def keys(self, names):
+        self.monitor.command('send-key', {'keys':[{'type':'qcode','data':name} for name in names],
+            'hold-time':KEY_HOLD_MS})
+        time.sleep(KEY_GAP_SECONDS)
 
     def network_args(self):
         # No host-forwarded NIC is needed: live WebUI uses virtio-serial.
@@ -121,7 +127,8 @@ class Guest(td.Guest):
         self.monitor.command('set_link', {'name': 'owner-net', 'up': self.network_up})
         self.monitor.command('cont')
         td.save(f'boot-{self.boot_number}-owner-route', dict(network_up=self.network_up,
-            configured_before_cpu_start=True, tools_storage_attached=False))
+            configured_before_cpu_start=True, tools_storage_attached=False,
+            keyboard_timing=dict(hold_ms=KEY_HOLD_MS,minimum_gap_ms=KEY_GAP_SECONDS*1000)))
 
     def prepare_registry_auth(self, encoded_auth=None):
         # The physical `login` command is the only credential writer in the guest.
@@ -267,6 +274,32 @@ class Console:
     def select(self):
         self.guest.keys(['ctrl', 'alt', 'f' + self.tty[3:]])
 
+    def visible(self, text, stage='public-input'):
+        for line in text.splitlines(keepends=True):
+            value = line.removesuffix('\n')
+            assert '\r' not in value and len(value)<120, 'Unexpected visible input line'
+            type_text(self.guest,value)
+            if line.endswith('\n'):
+                if value:
+                    name=stage+'-echo-'+str(next(PROMPT_WAIT_IDS))
+                    source=('import json,pathlib,struct,time\n# visible-echo\n'+inspect.getsource(owner_console.screen)
+                        +'\nready=False\ndeadline=time.monotonic()+5\nstable=0\nwhile time.monotonic()<deadline:\n'
+                        +'    data=pathlib.Path('+repr('/dev/vcsa'+self.tty[3:])+').read_bytes()\n    _,line=screen(data)\n'
+                        +('    uni=pathlib.Path('+repr('/dev/vcsu'+self.tty[3:])+').read_bytes()\n'
+                          +'    rows,cols,x,y=data[:4]\n    assert len(uni)==rows*cols*4, "Invalid Unicode console size"\n'
+                          +'    if pathlib.Path('+repr('/dev/vcsa'+self.tty[3:])+').read_bytes()[:4]!=data[:4]:\n'
+                          +'        stable=0;time.sleep(.1);continue\n'
+                          +'    chars=struct.unpack("="+"I"*(rows*cols),uni)\n'
+                          +'    line="".join(chr(c) for c in chars[y*cols:y*cols+x]).rstrip()\n'
+                          if not value.isascii() else '')
+                        +'    stable=stable+1 if line.endswith('+repr(value)+') else 0\n'
+                        +'    if stable>=3: ready=True;break\n    time.sleep(.1)\n'
+                        +'print(json.dumps(dict(ready=ready,echo_matches=ready,value_recorded=False)))\n')
+                    result=self.guest.capture_json(name,sw.framed('python3 -c '+shlex.quote(source)))
+                    td.save(name,result)
+                    assert result['ready'] and result['echo_matches'], 'Visible text differs; Enter withheld'
+                type_text(self.guest,'\n')
+
     def prompt(self, stage):
         epoch = getattr(self.guest, 'owner_input_epoch', 0)
         def observe(name, seconds):
@@ -307,6 +340,66 @@ class Console:
         self.pending_hidden = dict(stage=stage, expected=expected, reader=value['reader'], epoch=epoch,
             token=expected == owner_hidden.owner_reader(['login']) and prompt.rstrip() == TOKEN_PROMPT)
 
+    def input_guard(self, pending, phase):
+        name=pending['stage']+'-input-guard-'+phase
+        clearing=phase in ('before-clear','after-clear')
+        result=self.guest.capture_json(name,sw.framed('python3 -c '+shlex.quote(
+            owner_hidden.guard_source(self.tty,pending['expected'],pending['reader'],clearing))))
+        td.save(name,result)
+        assert result['ready'] and not result['echo_enabled'] and result['syscall_number']==0, \
+            'No unchanged hidden reader waiting in read; Enter withheld'
+        assert not clearing or (result['canonical'] and result['vkill']==21), 'Canonical line clear unproved; Enter withheld'
+        return result
+
+    def counter_sample(self, pending, ticket):
+        sequence=pending.get('counter_sequence',0)+1;pending['counter_sequence']=sequence
+        name=pending['stage']+'-key-counter-sample-'+str(sequence)
+        result=self.guest.capture_json(name,sw.framed('python3 -c '+shlex.quote(owner_key_counter.source(ticket,sequence))))
+        td.save(name,result)
+        assert result['complete'] and result['keys_released'] and result['counts']['syn_dropped']==0, \
+            'Incomplete keyboard counter or held key; Enter withheld'
+        return result
+
+    def verified_value(self,pending,ticket,value,layout,chunked):
+        baseline=dict(press=0,release=0,repeat=0,syn_dropped=0)
+        pending['counter_baseline']=baseline;pending['attempts']=[]
+        original=dict(pending['counts'])
+        for attempt in (1,2):
+            pending['counts']=dict(original,key_event_count=0,key_chord_count=0,last_key_was_ret=False)
+            self.input_guard(pending,'before-value-'+str(attempt))
+            type_token(self.guest,value,layout,pending['counts'],chunked)
+            assert pending['counts']['key_event_count']==pending['expected_events'] \
+                and pending['counts']['key_chord_count']==len(value) and not pending['counts']['last_key_was_ret'], \
+                'Hidden value was not completely sent; Enter withheld'
+            epoch=self.guest.owner_input_epoch
+            observed=self.counter_sample(pending,ticket)
+            comparison=owner_key_counter.compare(owner_key_counter.delta(observed,baseline),pending['counts'])
+            pending['attempts'].append(dict(attempt=attempt,sent=dict(pending['counts']),comparison=comparison))
+            td.save(pending['stage']+'-pre-enter-proof',dict(status='pending',attempts=pending['attempts'],enter_sent=False))
+            if comparison['matches']:
+                self.input_guard(pending,'before-enter-'+str(attempt))
+                assert self.guest.owner_input_epoch==epoch, 'Input revoked pre-Enter proof'
+                pending['enter_epoch']=epoch
+                td.save(pending['stage']+'-pre-enter-proof',dict(status='passed',attempts=pending['attempts'],
+                    enter_sent=False,accepted_attempt=attempt,clear=pending.get('clear_proof')))
+                return
+            assert attempt==1, 'Second hidden-value count mismatch; Enter withheld'
+            before=self.input_guard(pending,'before-clear')
+            assert self.guest.owner_input_epoch==epoch, 'Input revoked clear authority'
+            # No Return has been sent. Canonical VKILL is verified to be Ctrl-U.
+            self.guest.owner_input_epoch=getattr(self.guest,'owner_input_epoch',0)+1
+            self.guest.keys(['ctrl','u'])
+            cleared=self.counter_sample(pending,ticket)
+            clear_count=owner_key_counter.compare(owner_key_counter.delta(cleared,observed['counts']),dict(key_event_count=4))
+            after=self.input_guard(pending,'after-clear')
+            pending['clear_proof']=dict(ready=clear_count['matches'] and before['ready'] and after['ready'],
+                comparison=clear_count,canonical=True,vkill=21,reader_still_waiting=True,enter_sent=False,
+                value_recorded=False)
+            td.save(pending['stage']+'-canonical-clear',pending['clear_proof'])
+            assert pending['clear_proof']['ready'], 'Canonical line clear unproved; Enter withheld'
+            baseline=cleared['counts'];pending['counter_baseline']=baseline
+        raise AssertionError('Hidden pre-Enter proof unavailable')
+
     def hidden_diagnostics(self, pending, phase):
         name = pending['stage'] + '-diagnostics-' + phase
         value = self.guest.capture_json(name, sw.framed('python3 -c ' + shlex.quote(
@@ -320,7 +413,7 @@ class Console:
     def send_hidden(self, value, layout=None, public_inputs=(), expect_rejection=False, chunk_token=False):
         pending = self.pending_hidden
         assert pending is not None, 'No hidden reader authority'
-        assert not pending.get('sent'), 'Hidden value already sent; no retry'
+        assert not pending.get('sent'), 'Hidden input already attempted; no caller retry'
         assert getattr(self.guest, 'owner_input_epoch', 0) == pending['epoch'], 'Input revoked hidden reader authority'
         assert not expect_rejection or pending['expected']['kind'] == 'login'
         if public_inputs:
@@ -330,37 +423,53 @@ class Console:
         self.guest.screenshot_safe = False
         # Counts/classes only; never export the value, individual keys or their order.
         profile = layout or self.guest.owner_layout
-        classes = set()
+        assert value and '\n' not in value and '\r' not in value, 'Hidden line break refused before input'
+        classes = set(); expected_events=0
         for char in value:
-            keys = physical_keys(char, profile)
+            try: keys = physical_keys(char, profile)
+            except (AssertionError,KeyError): raise AssertionError('Unsupported hidden character; no input sent') from None
+            assert 'ctrl' not in keys and 'ret' not in keys, 'Hidden control character refused before input'
+            expected_events += 2*len(keys)
             if 'shift' in keys: classes.add('shift')
             if 'alt_r' in keys: classes.add('altgr')
             if ord(char) > 127: classes.add('non_ascii')
             if char in maps()['us'] and keys != physical_keys(char, 'us'):
                 classes.add('layout_differs_from_us')
         pending['counts'] = dict(length=len(value), key_event_count=0, key_chord_count=0,
-            last_key_was_ret=False, non_default_mapping_classes=sorted(classes))
+            last_key_was_ret=False, non_default_mapping_classes=sorted(classes),
+            timing=dict(hold_ms=KEY_HOLD_MS,minimum_gap_ms=KEY_GAP_SECONDS*1000))
+        pending['expected_events']=expected_events
         if pending.get('token'):
             pending['counts'].update(chunked=chunk_token,chunk_size=16 if chunk_token else None,
                 between_chunks_seconds=1 if chunk_token else 0,before_return_seconds=1 if chunk_token else 0)
         self.last_hidden = pending
         assert not chunk_token or pending.get('token'), 'Chunking is only for the CI token'
-        if pending.get('token'):
-            ticket = self.guest.capture_json(pending['stage']+'-key-counter-start', sw.framed('python3 -c '+shlex.quote(owner_key_counter.source())))
-            assert ticket['status']=='ready' and ticket['counts_only'], 'No guest keyboard counter authority'
-            td.save(pending['stage']+'-key-counter-start', ticket)
+        ticket = self.guest.capture_json(pending['stage']+'-key-counter-start', sw.framed('python3 -c '+shlex.quote(owner_key_counter.source())))
+        assert ticket['status']=='ready' and ticket['counts_only'], 'No guest keyboard counter authority'
+        td.save(pending['stage']+'-key-counter-start', ticket)
+        try:
             try:
-                type_token(self.guest,value,layout,pending['counts'],chunk_token)
+                self.verified_value(pending,ticket,value,profile,chunk_token)
+                assert self.guest.owner_input_epoch==pending['enter_epoch'], 'Input revoked verified hidden value'
+                # The only Enter for this value, after its successful pre-Enter proof.
+                type_text(self.guest,'\n',profile,counts=pending['counts'])
             finally:
                 td.save(pending['stage']+'-key-events-sent',pending['counts'])
-                # Observe the final release without sending any additional input.
                 time.sleep(1)
                 received = self.guest.capture_json(pending['stage']+'-key-counter-stop', sw.framed('python3 -c '+shlex.quote(owner_key_counter.source(ticket))))
-                pending['received_keys'] = received
-                pending['key_comparison'] = owner_key_counter.compare(received,pending['counts'])
-                td.save(pending['stage']+'-key-counter-result', dict(received=received,comparison=pending['key_comparison']))
-        else:
-            type_text(self.guest, value + '\n', layout, counts=pending['counts'])
+                current=owner_key_counter.delta(received,pending.get('counter_baseline',{}))
+                pending['received_keys'] = dict(current,whole_window_counts=received['counts'])
+                pending['key_comparison'] = owner_key_counter.compare(current,pending['counts'])
+                td.save(pending['stage']+'-key-counter-result', dict(received=pending['received_keys'],
+                    whole_window=received,comparison=pending['key_comparison'],attempts=pending.get('attempts'),
+                    clear=pending.get('clear_proof')))
+            assert pending['key_comparison']['matches'], 'Final key counts differ; no post-Enter retry'
+        except BaseException:
+            td.save(pending['stage']+'-pre-enter-stop',dict(status='stopped',enter_sent=pending['counts']['last_key_was_ret'],
+                attempts=pending.get('attempts'),clear=pending.get('clear_proof'),value_recorded=False))
+            try: self.hidden_diagnostics(pending,'input-refused')
+            except BaseException as error: td.save(pending['stage']+'-diagnostics-unavailable',dict(kind=type(error).__name__))
+            raise
         self.last_hidden = pending
         # No secret goes into this script/receipt. Never resend after a timeout.
         self.resync_serial_after_hidden(pending['stage'] + '-read-left')
@@ -372,7 +481,7 @@ class Console:
                 owner_hidden.source(self.tty, pending['expected'], receipt=pending['reader'], handoff=prompt))))
             assert self.guest.owner_input_epoch == epoch, 'Input revoked public handoff'
             assert not handoff['ready'] and handoff.get('handoff_ready') and handoff['reader_left'], 'No verified public reader after sudo'
-            type_text(self.guest, public_value + '\n')
+            self.visible(public_value + '\n',pending['stage']+'-public-handoff')
         epoch = self.guest.owner_input_epoch
         timeout = TOKEN_RESULT_WAIT if pending.get('token') else OWNER_RESULT_WAIT if pending['expected']['kind'] == 'owner' or public_inputs else 60
         result = self.guest.capture_json(pending['stage'] + '-left', sw.framed('python3 -c ' + shlex.quote(
@@ -403,7 +512,7 @@ class Console:
         self.select()
         wait_tty(self.guest, self.tty, "line.endswith('login:')", stage + '-login-prompt')
         self.guest.screenshot_safe = False
-        type_text(self.guest, 'ares-recovery\n')
+        self.visible('ares-recovery\n',stage+'-username')
         self.hidden(stage + '-password-prompt', dict(kind='login'), 'Password:')
         # The failure fixture deliberately uses German physical positions while
         # the loaded map is plain US. This does not claim the password was typed.
@@ -422,7 +531,9 @@ class Console:
 
     def become_root(self, password, stage):
         self.prompt(stage + '-ready')
-        type_text(self.guest, 'sudo -k\nsudo -i\n')
+        self.visible('sudo -k\n',stage+'-sudo-reset')
+        self.prompt(stage+'-sudo-reset-done')
+        self.visible('sudo -i\n',stage+'-sudo-command')
         self.hidden(stage + '-sudo-hidden', owner_hidden.sudo_reader(['-i'], dict(kind='shell')), SUDO_PROMPT)
         self.guest.screenshot_safe = False
         self.send_hidden(password)
@@ -465,7 +576,7 @@ class Console:
         self.select()
         self.prompt(stage + '-ready')
         before = self.records()
-        type_text(self.guest, COMMANDS[name] + '\n')
+        self.visible(COMMANDS[name] + '\n',stage+'-command')
         args = COMMANDS[name].split('/at ', 1)[-1].split()
         hidden_input = password is not None
         if password is not None:
@@ -480,11 +591,11 @@ class Console:
                 self.hidden(stage + '-hidden-input', owner_hidden.owner_reader(args), prompt.rstrip())
                 self.guest.screenshot_safe = False
             else:
-                wait_tty(self.guest, self.tty, repr(prompt) + ' in full', stage + '-input-ready')
+                wait_tty(self.guest, self.tty, 'line.endswith('+repr(prompt.rstrip())+')', stage + '-input-ready')
             if hidden:
                 self.send_hidden(value,chunk_token=token_chunks)
             else:
-                type_text(self.guest, value + '\n')
+                self.visible(value + '\n',stage+'-public-input')
         if hidden_input:
             self.after_hidden(stage)
         if name == 'reboot' and not expect_stop:
@@ -511,9 +622,11 @@ class Console:
         self.select()
         self.prompt(stage + '-ready')
         if self.root:
-            type_text(self.guest, 'exit\n')
+            self.visible('exit\n',stage+'-root-exit')
             self.prompt(stage + '-user-ready')
-        type_text(self.guest, 'sudo -k\nexit\n')
+        self.visible('sudo -k\n',stage+'-sudo-reset')
+        self.prompt(stage+'-sudo-reset-done')
+        self.visible('exit\n',stage+'-logout')
         wait_tty(self.guest, self.tty, "line.endswith('login:')", stage + '-getty-returned')
         self.guest.command(stage + '-no-session', 'set -e; if pgrep -t ' + self.tty + ' -u 1000 -x bash; then exit 1; fi')
 
@@ -521,9 +634,29 @@ class Console:
 def probe_media(guest, media):
     ticket=guest.capture_json('probe-key-counter-start',sw.framed('python3 -c '+shlex.quote(owner_key_counter.source())))
     td.save('probe-key-counter-start',ticket)
+    checkpoint=guest.capture_json('probe-key-counter-sample-1',sw.framed('python3 -c '+shlex.quote(owner_key_counter.source(ticket,1))))
+    td.save('probe-key-counter-sample-1',checkpoint)
+    assert checkpoint['complete'] and checkpoint['keys_released'] and checkpoint['counts']==dict(press=0,release=0,repeat=0,syn_dropped=0)
     observed=guest.capture_json('probe-key-counter-stop',sw.framed('python3 -c '+shlex.quote(owner_key_counter.source(ticket))))
     td.save('probe-key-counter-result',observed)
     assert observed['complete'] and observed['counts']==dict(press=0,release=0,repeat=0,syn_dropped=0), 'Guest key counter capability failed'
+    active=guest.capture_json('probe-active-vt',sw.framed("python3 -c 'import json,pathlib; print(json.dumps(dict(active=pathlib.Path(\"/sys/class/tty/tty0/active\").read_text().strip())))'"))
+    assert re.fullmatch(r'tty(?:[1-9]|1[0-2])',active['active']), 'Unknown live VT before Unicode getter proof'
+    guest.keys(['ctrl','alt','f3'])
+    try:
+        unicode=guest.capture_json('probe-unicode-console',sw.framed('''python3 - <<'PY'
+import json,pathlib,struct
+raw=pathlib.Path('/dev/vcsa3').read_bytes()
+rows,cols,x,y=raw[:4]
+assert rows and cols and x<cols and y<rows and len(raw)==4+rows*cols*2
+uni=pathlib.Path('/dev/vcsu3').read_bytes()
+assert len(uni)==rows*cols*4
+assert all(c<=0x10ffff for c in struct.unpack('='+'I'*(rows*cols),uni))
+print(json.dumps(dict(status='passed',getter_only=True,unicode_cells=rows*cols)))
+PY'''))
+        td.save('probe-unicode-console',unicode)
+        assert unicode['status']=='passed' and unicode['getter_only']
+    finally: guest.keys(['ctrl','alt','f'+active['active'][3:]])
     media.attach(guest, 'probe')
     source = '''set -e
 mkdir -p /run/owner-probe-stick
