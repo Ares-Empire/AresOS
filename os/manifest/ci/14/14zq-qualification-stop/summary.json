@@ -1,0 +1,51 @@
+{
+  "status": "STOP qualification13 at layout session property gate, plus4 unclassified artifact findings; no rerun",
+  "head": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+  "probe24": 40841171586,
+  "qualification13": 40844950597,
+  "native": {
+    "probe": {
+      "tests": 520,
+      "seconds": 132.061,
+      "skips": 0
+    },
+    "qualification": {
+      "tests": 520,
+      "seconds": 130.754,
+      "skips": 0
+    }
+  },
+  "hold_fix_confirmed": true,
+  "switch_and_title_passed": true,
+  "aresos_boot_and_check_passed": true,
+  "hidden_windows": 8,
+  "all_counts_match": true,
+  "repeats": 0,
+  "syn_dropped": 0,
+  "retypes": 0,
+  "ci_token_length": 377,
+  "ci_token_events": 1100,
+  "ci_token_login_passed": true,
+  "dummy_events": 114,
+  "layout_begin_error": "Use a physical tty3/tty4 recovery login",
+  "layout_mutations": 0,
+  "empty_loginctl_property_query": true,
+  "unclassified_findings": 4,
+  "artifact_policy_changed": false,
+  "not_reached": [
+    "plain-US login-failure/revert",
+    "US International success/proof/finish",
+    "final German restoration/proof",
+    "labwc physical typing after layout",
+    "rollback",
+    "keep-stock",
+    "final Windows checks"
+  ],
+  "acceptance_met": false,
+  "pr_ready": false,
+  "pushes": 1,
+  "reruns": 0,
+  "reserve": 0,
+  "closing_reservation": 0,
+  "product_fix_after_stop": false
+}

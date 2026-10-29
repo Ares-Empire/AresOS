@@ -1,5 +1,131 @@
 # 14: checked owner tools
 
+**14zq STOP:** the hold fix is confirmed in the real VM. Probe24 passed;
+qualification13 passed `switch`, refreshed `title`, AresOS boot and `check`, then
+STOPped at `layout begin us` before any layout mutation. Four artifact findings
+also fall outside the permitted privacy classes. No rerun, post-stop product
+fix or extra push. PR #13 stays draft; this STOP report is committed locally.
+
+## 14zq actual runs — hold fixed; layout property selector and artifact privacy STOPs
+
+Both runs used pushed head `2755c70bd138678557ff0e44ead6d33fa7cabcc6`:
+
+| Run | Result | Native suite | Package minutes |
+|---|---|---|---:|
+| [Probe24](https://github.com/Ares-Empire/AresOS/actions/runs/40841171586) | Accepted |520 /132.061s, zero skips |25 |
+| [Qualification13](https://github.com/Ares-Empire/AresOS/actions/runs/40844950597) | STOP at layout session gate |520 /130.754s, zero skips |81 |
+
+**Actual hold confirmation:** two post-staging process observations record
+PID25368, executable `/usr/bin/ostree`, exact argv
+`[/usr/bin/ostree, admin, finalize-staged, --hold]`, and exact cgroup
+`0::/system.slice/ostree-finalize-staged-hold.service`. Both record
+`excluded_as_system_helper=true`, `excluded_as_daemon=false`. The switch and
+its explicit refreshed-title command passed; the VM rebooted into the exact
+AresOS release and `check` passed. This supplies the actual runtime evidence
+that Q12 lacked. It does not retroactively invent Q12's detected PID.
+[Actual process observations](../../os/manifest/ci/14/14zq-qualification-stop/hold-confirmation.json).
+
+**Layout STOP / PLAN-GAP:** the physical AresOS tty3 account login and password
+sudo passed. `layout begin us` got through the recovery state and disk gates.
+`loginctl list-sessions --json=short` identified session5 as `ares-recovery`,
+UID1000, tty3. The next command was:
+`loginctl show-session 5 --property=Id,TTY,Audit,Scope`.
+It returned0 with **empty stdout and stderr**. The owner tool correctly
+refused its required four-property shape with
+`Use a physical tty3/tty4 recovery login`. The failed command's trace has
+**zero mutation calls** and stopped before saving a layout trial or changing
+settings. No session fact or relay requirement was relaxed.
+[Exact command/output and refusal](../../os/manifest/ci/14/14zq-qualification-stop/layout-session.json).
+
+Read-only inspection of the pinned-version upstream systemd259.9 source at
+`63c0371fa71ae32ba02f05f90658bc40aaa19168` explains the result:
+[`loginctl` stores each property argument as one selector](https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/login/loginctl.c#L1572),
+and [the printer matches property names exactly](https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/shared/bus-print-properties.c#L380).
+It does not expand the comma-separated argument into four names. The same
+assumption affects the subsequent comma-joined facts query. Correct selector
+spelling with all existing facts preserved needs its own authorized fix and
+real-format regressions; none was made after this CI stop.
+
+**Typing / other evidence:**8 hidden windows and their8 completion transitions
+passed, with16 blocked-reader guards and32 current-cursor echo proofs. Every
+window had exact press/release counts, keys released, repeats0, SYN_DROPPED0,
+one attempt and no Ctrl-U/retype. The fresh40-character dummy had114/114 events
+and the expected registry refusal; the real377-character CI token had
+1100/1100 events (550 presses +550 releases),91.169s, and authenticated. These
+totals include the verified Return. Modifier totals vary with each generated
+value.30ms holds/minimum120ms gaps and the16-character/1s token schedule stayed
+unchanged. No secret values or ordered event codes were retained.
+
+Qualification retained241 SHA/syntax-verified transfers and17 owner records:
+15 passed, expected dummy refusal, and the layout STOP. The paused VM STOP is
+retained. Raw independent replay passes10 protected captures,11 zero-write/
+unmap samples,10 BootNext replays and9 NVRAM/all-variable comparisons. The
+protected disk, detached-device rule, Windows firmware default and firmware
+audit are unchanged. Both native520-test suites explicitly passed the unchanged
+30-second serial test; native and VM failure logs scan with pinned gitleaks:0.
+[Counts, completions and records](../../os/manifest/ci/14/14zq-qualification-stop/outcome.json).
+
+Final report/evidence verification:2 manifest/payload equality tests passed in
+11.173s; `git diff --check` passed; pinned local full-history and curated-pending
+gitleaks scans report0. The runtime, owner bundle, guides, workflow and privacy
+policy remain exactly pushed head2755c70. The artifact privacy STOP remains.
+
+**Artifact privacy STOP:** probe509 =507 reviewed ISO-listing findings +2
+approved exact kernel messages. Qualification has **523 findings**:507 ISO,
+12 approved exact boot-console messages, and **4 unclassified findings**:
+
+| Source-line SHA256 | Private artifact path:line | Findings |
+|---|---|---:|
+| `1499d081b9068409c35ad9610056b59eff1e82add2c830b4044707ee62f66ca4` | `evidence/two-disk/owner-logind-diagnostics-owner-diagnostics.json:30` |2 |
+| `1499d081b9068409c35ad9610056b59eff1e82add2c830b4044707ee62f66ca4` | `evidence/two-disk/owner-logind-diagnostics-owner-result.json:30` |2 |
+
+All4 are generic-api-key matches redacted as `key: REDACTED'`. Decoded journal
+stdout contains two X.509-shaped messages labelled `Build time autogenerated
+kernel key`, repeated in result and diagnostics. That is **candidate context,
+not an accepted classification**: the original matched source line is escaped
+JSON journal stdout, not an exact whole kernel line in a captured boot-console
+file. The unchanged14s/14v classifier refuses it. No ignore, rule, workflow or
+exception was added; no raw source line or fingerprint value was committed.
+[Refused finding metadata](../../os/manifest/ci/14/14zq-qualification-stop/qualification-privacy-stop.json).
+
+Each approved kernel source line is recorded separately, SHA256 before path:
+
+| Source-line SHA256 | Private artifact path:line | Certificate label |
+|---|---|---|
+| `f0209c07357d7fb1780b58b9ade61416ec304dd50cf1d5a28bbc5f783bd0c039` | Probe24: `evidence/two-disk/live-ui-probe-boot-console.txt:491` | Fedora kernel signing key |
+| `ab737edfff4461ff20d48b88d03f0673ab373135b4398c3bd43fadbc8f34148a` | Probe24: `evidence/two-disk/live-ui-probe-boot-console.txt:524` | Fedora kernel signing key |
+| `0825dac067b1c6db192622cc1d16a12a92554f54330d763a938746dc51222699` | Qualification13: `evidence/two-disk/aresos-boot-console.txt:498` | Build time autogenerated kernel key |
+| `dc8ada5d03bdcdb7dbb6fd7f821732e626b0d75a6e933c039474e9509b527916` | Qualification13: `evidence/two-disk/aresos-boot-console.txt:519` | Build time autogenerated kernel key |
+| `e3f034fe5ec43af9fafd580c44d0f4297f04d60672da41526d3a3b090e499163` | Qualification13: `evidence/two-disk/corrected-stock-boot-console.txt:498` | Build time autogenerated kernel key |
+| `9b1f74cac7a5be361b253f4d165f12ce2523ff9394b18e23e84e07f0b0dc0240` | Qualification13: `evidence/two-disk/corrected-stock-boot-console.txt:508` | Build time autogenerated kernel key |
+| `11582f7337ec13099e813a6b0427c35e3a3e5d493578bfe19978c26586a6df11` | Qualification13: `evidence/two-disk/offline-first-stock-boot-console.txt:498` | Build time autogenerated kernel key |
+| `f111976d64fe05ba0cb493e202b5d618f8dd8c85d27ce74489339fcd512b09af` | Qualification13: `evidence/two-disk/offline-first-stock-boot-console.txt:516` | Build time autogenerated kernel key |
+| `48400d856c6c0ccabbc79d4495f56014d63494ce3e76f6d23b5c3e062b53e1e8` | Qualification13: `evidence/two-disk/protected-second-install-boot-console.txt:491` | Fedora kernel signing key |
+| `f28a5882a4c932d610a826c92d5323ffed854b693d68cb13ab12e8eb24261a28` | Qualification13: `evidence/two-disk/protected-second-install-boot-console.txt:524` | Fedora kernel signing key |
+| `ba4737cbee0c6eff60a9452c22838a3e7f21384a854cecbab74cbb479bd94201` | Qualification13: `evidence/two-disk/stock-initialization-0-boot-console.txt:498` | Build time autogenerated kernel key |
+| `9514637e96933321f6c0eb7e3e49d4ea5f892733be9ed9a7d6cde13df53c77f3` | Qualification13: `evidence/two-disk/stock-initialization-0-boot-console.txt:509` | Build time autogenerated kernel key |
+| `b0d2e9b4f195b7d0cb2f2e7c75d8f4149b0b5c3bce68596a24527b04b7d2a454` | Qualification13: `evidence/two-disk/tools-stock-boot-console.txt:498` | Build time autogenerated kernel key |
+| `f3c1fdaaaaf183879b86eb31e58121ed349fb390462658043e681b0ff7f81600` | Qualification13: `evidence/two-disk/tools-stock-boot-console.txt:509` | Build time autogenerated kernel key |
+
+**Closing state:** complete134/134 history, **1523/1700** minutes consumed,
+24 probes /13 owner qualifications cumulatively. This round used one FF push,
+one probe, one qualification and zero reruns. Exact-head push/PR privacy both
+executed all3 required steps. The read-only$10/prevent=true billing snapshot
+reports$7.548 net charged and
+408 minutes available; it is a timestamped snapshot.
+Reserve0/closing0 remain because acceptance is unmet. No final push or ready
+transition occurred. The run is over; the owner can set the budget back to$0.
+[Complete closing ledger](../../os/manifest/ci/14/14zq-qualification-stop/closed-ledger.json).
+
+**Not verified / open questions:** authorize the exact loginctl selector fix
+with real CLI-format tests, and classify the4 journal-JSON findings explicitly
+before another run. The plain-US failure/revert, US International success/
+proof/finish, final German proof, later labwc typing, rollback, keep-stock and
+final Windows checks were not reached. INSTALL/EMERGENCY/release gates retain
+NOT RELEASED and all physical/For package15 gates. Bundle remains
+`025622f56d61f669912ce9d6320e7171e2007194420c79ce54dc6b89a0570486`.
+No image rebuild, release, publication, real-laptop work, merge or force push.
+
 ## 14zq REPORT — exact post-staging hold helper
 
 **Done:** the owner tools and both shared pause-script bodies classify only the
