@@ -53,6 +53,8 @@ def walk():
             self.mode = 'installed'
             self.idle_models, self.idle_shapes = {}, {}
             self.screenshot_safe = True
+            self.secrets = []
+            self.key_counts = None
             self.process = Mock(); self.process.poll.return_value = None
             self.monitor = Mock()
             self.boot_number = len(visits) + 1
@@ -67,6 +69,14 @@ def walk():
         def capture_json(self, name, source):
             syntax(name, source)
             commands.append((name, source))
+            if '# hidden-key-counter' in source:
+                if '-start' in name:
+                    self.key_counts = dict(press=0,release=0,repeat=0,syn_dropped=0)
+                    return dict(status='ready',path='/run/ares-input-fixture1',pid=77,device='/dev/input/event5',autorepeat=dict(delay_ms=250,period_ms=33),counts_only=True)
+                result=dict(status='passed',counts_only=True,complete=True,counts=self.key_counts,
+                    autorepeat=dict(delay_ms=250,period_ms=33),codes_recorded=False,values_recorded=False)
+                self.key_counts=None
+                return result
             if '# hidden-read-diagnostics' in source:
                 from test_owner_read_diagnostics import execute_diagnostics
                 words = shlex.split(source)
@@ -122,7 +132,8 @@ def walk():
                 return dict(status='passed', physical_link_down=True)
             if name == 'owner-record-list': return []
             if name.endswith('-owner-result'):
-                return dict(status='stopped' if 'refus' in name else 'passed', trace=[])
+                return dict(status='stopped' if 'refus' in name or '-dummy-' in name else 'passed', trace=[],
+                    error='Private release read failed; check read:packages permission/expiry and network; no credential was written')
             if name == 'owner-prepared': return dict(stock=stock,state=dict(rpm=pinned['rpm'],bootc=pinned['bootc']))
             if name == 'owner-switch-pending': return staged['bootc']
             if name == 'owner-rollback-pending': return queued['bootc']
@@ -134,7 +145,12 @@ def walk():
                     cmdline='quiet ostree=/ostree/fixture', bls={e['file']:e['content'] for e in (pinned if self.stage=='corrected-stock' else pair)['bls']})
             raise AssertionError('Unwalked response: ' + name)
 
-        def keys(self, keys): pass
+        def keys(self, keys):
+            if self.key_counts is not None:
+                # Synthetic EV_KEY stream; the real parser computes the aggregate.
+                import struct,owner_key_counter
+                data=b''.join(struct.pack('@llHHi',0,0,1,30,value) for key in keys for value in (1,0))
+                owner_key_counter.count_events(data,self.key_counts)
         def resync_after_hidden(self, stage):
             checks.append(stage + '-serial-idle-resync')
             return dict(status='passed', prior_completion_observed=True,
@@ -291,7 +307,7 @@ class OwnerWalkTest(unittest.TestCase):
             'persistent-login-readline','sudo-password-reader','sudo-i-readline',
             'nested-owner-getpass','sudo-owner-public-handoff','login-rejected'})
         left=[s for s in result['hidden_shapes'] if s['phase']=='left']
-        self.assertEqual(len(left),22)
+        self.assertEqual(len(left),23)
         self.assertEqual(sum(s['expected_rejection'] and not s['completion'] for s in left),1)
         self.assertTrue(all(not s['completion_uses_echo'] for s in left))
         self.assertEqual(sum(s['phase']=='handoff' for s in result['hidden_shapes']),3)

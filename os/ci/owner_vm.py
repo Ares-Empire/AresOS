@@ -11,6 +11,7 @@ import secrets
 import shlex
 import shutil
 import socket
+import string
 import subprocess
 import sys
 import time
@@ -23,6 +24,7 @@ import offline_webui
 import owner_console
 import owner_hidden
 import owner_read_diagnostics
+import owner_key_counter
 from owner_keys import maps, physical_keys
 from owner_media import Media
 
@@ -51,6 +53,39 @@ def type_text(guest, text, layout=None, counts=None):
             counts['key_chord_count'] += 1
             counts['last_key_was_ret'] = keys == ['ret']
         time.sleep(0.12)
+
+
+def type_token(guest, value, layout, counts, chunked):
+    assert value and '\n' not in value and '\r' not in value, 'Token line break refused before input'
+    if chunked:
+        for offset in range(0, len(value), 16):
+            if offset: time.sleep(1)
+            type_text(guest, value[offset:offset+16], layout, counts=counts)
+        time.sleep(1)
+    else:
+        type_text(guest, value, layout, counts=counts)
+    type_text(guest, '\n', layout, counts=counts)  # Exactly one Return, never a retry.
+
+
+def private_login(console):
+    # Generated only in memory. Add it to the existing redactor before any input.
+    dummy = 'ghp_' + ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(36))
+    console.guest.secrets.append(dummy)
+    try:
+        result = console.run('login', 'private-owner-dummy-login', inputs=(
+            ('GitHub username:', os.environ['GITHUB_ACTOR'], False), (TOKEN_PROMPT, dummy, True)), expect_stop=True)
+        assert result['error'] == 'Private release read failed; check read:packages permission/expiry and network; no credential was written', 'Unexpected owner-length token result'
+    except BaseException:
+        td.save('owner-length-token-proof', dict(status='stopped', length=40, value_recorded=False,
+            real_ci_token_typed=False, reason='Owner-length token proof failed; preserve counts and owner diagnostics'))
+        raise AssertionError('Owner-length token path STOP; keep administrator session; real CI token not typed') from None
+    finally:
+        del dummy
+    td.save('owner-length-token-proof', dict(status='passed', length=40, value_recorded=False,
+        outcome='expected-registry-refusal', guest_key_counts=console.last_hidden['received_keys'],
+        comparison=console.last_hidden['key_comparison']))
+    return console.run('login', 'private-owner-login', inputs=(('GitHub username:', os.environ['GITHUB_ACTOR'], False),
+        (TOKEN_PROMPT, os.environ['GH_TOKEN'], True)), token_chunks=True)
 
 
 class Guest(td.Guest):
@@ -277,10 +312,12 @@ class Console:
         value = self.guest.capture_json(name, sw.framed('python3 -c ' + shlex.quote(
             owner_read_diagnostics.source(self.tty, pending['expected'], pending['reader']))))
         value.update(phase=phase, typed=pending.get('counts'), token=pending.get('token', False))
+        if pending.get('token'):
+            value.update(guest_key_counts=pending.get('received_keys'), key_comparison=pending.get('key_comparison'))
         td.save(name, value)
         return value
 
-    def send_hidden(self, value, layout=None, public_inputs=(), expect_rejection=False):
+    def send_hidden(self, value, layout=None, public_inputs=(), expect_rejection=False, chunk_token=False):
         pending = self.pending_hidden
         assert pending is not None, 'No hidden reader authority'
         assert not pending.get('sent'), 'Hidden value already sent; no retry'
@@ -303,7 +340,27 @@ class Console:
                 classes.add('layout_differs_from_us')
         pending['counts'] = dict(length=len(value), key_event_count=0, key_chord_count=0,
             last_key_was_ret=False, non_default_mapping_classes=sorted(classes))
-        type_text(self.guest, value + '\n', layout, counts=pending['counts'])
+        if pending.get('token'):
+            pending['counts'].update(chunked=chunk_token,chunk_size=16 if chunk_token else None,
+                between_chunks_seconds=1 if chunk_token else 0,before_return_seconds=1 if chunk_token else 0)
+        self.last_hidden = pending
+        assert not chunk_token or pending.get('token'), 'Chunking is only for the CI token'
+        if pending.get('token'):
+            ticket = self.guest.capture_json(pending['stage']+'-key-counter-start', sw.framed('python3 -c '+shlex.quote(owner_key_counter.source())))
+            assert ticket['status']=='ready' and ticket['counts_only'], 'No guest keyboard counter authority'
+            td.save(pending['stage']+'-key-counter-start', ticket)
+            try:
+                type_token(self.guest,value,layout,pending['counts'],chunk_token)
+            finally:
+                td.save(pending['stage']+'-key-events-sent',pending['counts'])
+                # Observe the final release without sending any additional input.
+                time.sleep(1)
+                received = self.guest.capture_json(pending['stage']+'-key-counter-stop', sw.framed('python3 -c '+shlex.quote(owner_key_counter.source(ticket))))
+                pending['received_keys'] = received
+                pending['key_comparison'] = owner_key_counter.compare(received,pending['counts'])
+                td.save(pending['stage']+'-key-counter-result', dict(received=received,comparison=pending['key_comparison']))
+        else:
+            type_text(self.guest, value + '\n', layout, counts=pending['counts'])
         self.last_hidden = pending
         # No secret goes into this script/receipt. Never resend after a timeout.
         self.resync_serial_after_hidden(pending['stage'] + '-read-left')
@@ -404,7 +461,7 @@ class Console:
         td.save(stage + '-hidden-completed', dict(status='passed', completion_uses_echo=False,
             foreground_shell=True, input_epoch=epoch, token_recorded=False))
 
-    def run(self, name, stage, inputs=(), password=None, expect_stop=False):
+    def run(self, name, stage, inputs=(), password=None, expect_stop=False, token_chunks=False):
         self.select()
         self.prompt(stage + '-ready')
         before = self.records()
@@ -425,7 +482,7 @@ class Console:
             else:
                 wait_tty(self.guest, self.tty, repr(prompt) + ' in full', stage + '-input-ready')
             if hidden:
-                self.send_hidden(value)
+                self.send_hidden(value,chunk_token=token_chunks)
             else:
                 type_text(self.guest, value + '\n')
         if hidden_input:
@@ -446,6 +503,8 @@ class Console:
         if not expect_stop:
             self.guest.screenshot(stage + '-owner-pass')
         td.save(stage + '-command', dict(command=COMMANDS[name], physical=True, status=result['status'], profile=self.guest.owner_layout))
+        if hidden_input and name=='login':
+            assert self.last_hidden['key_comparison']['matches'], 'Guest keyboard counts differ; preserve diagnostics; never retype token'
         return result
 
     def logout(self, stage):
@@ -460,6 +519,11 @@ class Console:
 
 
 def probe_media(guest, media):
+    ticket=guest.capture_json('probe-key-counter-start',sw.framed('python3 -c '+shlex.quote(owner_key_counter.source())))
+    td.save('probe-key-counter-start',ticket)
+    observed=guest.capture_json('probe-key-counter-stop',sw.framed('python3 -c '+shlex.quote(owner_key_counter.source(ticket))))
+    td.save('probe-key-counter-result',observed)
+    assert observed['complete'] and observed['counts']==dict(press=0,release=0,repeat=0,syn_dropped=0), 'Guest key counter capability failed'
     media.attach(guest, 'probe')
     source = '''set -e
 mkdir -p /run/owner-probe-stick
@@ -622,8 +686,7 @@ exit 1''', timeout=360)
         public_typing(guest, 'corrected-stock', 'de', console)
         output = guest.command('corrected-stock-homebrew', pathlib.Path('os/tests/inherited-homebrew.sh').read_text().replace('@STAGE@', 'stock'))
         brew, = re.findall(r'^([0-9a-f]{64})  /', output, re.M)
-        console.run('login', 'private-owner-login', inputs=(('GitHub username:', os.environ['GITHUB_ACTOR'], False),
-            (TOKEN_PROMPT, os.environ['GH_TOKEN'], True)))
+        private_login(console)
         console.run('verify', 'owner-signature')
         console.run('switch', 'owner-switch')
         sw.inspect_transaction(guest.capture_json('owner-switch-pending', sw.framed('bootc status --json')), release, stock['checksum'])

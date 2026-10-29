@@ -297,6 +297,10 @@ print('PASS login')
                         counts['key_event_count']+=2*len(keys)
                         counts['key_chord_count']+=1
                         counts['last_key_was_ret']=keys==['ret']
+                        model=f.root/'key-counts.json'
+                        if model.exists():
+                            aggregate=json.loads(model.read_text());aggregate['press']+=len(keys);aggregate['release']+=len(keys)
+                            model.write_text(json.dumps(aggregate))
                 if text==vm.COMMANDS['login']+'\n':text='python3 -I -B '+shlex.quote(str(helper))+' login\n'
                 f.physical.sendall(text.encode())
             with patch.object(vm,'type_text',side_effect=physical),patch.object(vm.td,'EVIDENCE',f.evidence):

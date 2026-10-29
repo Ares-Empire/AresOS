@@ -48,7 +48,7 @@ def process_diagnostics(proc, pid):
                 assert re.fullmatch('[RSDZTWtXxKWPIN]', state)
                 value['state'] = state
             elif name == 'wchan':
-                assert re.fullmatch(r'[a-zA-Z0-9_]+\s*', text)
+                assert re.fullmatch(r'[a-zA-Z0-9_.$+-]+\s*', text)
                 value['wchan'] = text.strip()
             else:
                 # Deliberately discard addresses and ALL syscall arguments.

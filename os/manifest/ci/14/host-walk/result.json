@@ -1,7 +1,7 @@
 {
   "status": "passed",
-  "kind": "current standalone host flow plus whole local suite; nine approved host limitations; all tests mandatory natively",
-  "tests": 484,
+  "kind": "current standalone host flow plus whole local suite; approved host limitations; all tests mandatory natively",
+  "tests": 495,
   "stick_across_reboot": false,
   "stages": [
     "stock",
@@ -36,55 +36,57 @@
     "corrected-stock-sudo-hidden-read-wait-28-read-left-serial-idle-resync",
     "corrected-stock-sudo-serial-idle-resync",
     "corrected-stock-physical-observer",
-    "private-owner-login-hidden-input-read-wait-37-read-left-serial-idle-resync",
+    "private-owner-dummy-login-hidden-input-read-wait-37-read-left-serial-idle-resync",
+    "private-owner-dummy-login-serial-idle-resync",
+    "private-owner-login-hidden-input-read-wait-42-read-left-serial-idle-resync",
     "private-owner-login-serial-idle-resync",
     "owner-switch-reboot-tools-absent",
     "owner-switch-reboot-tools-absent",
-    "aresos-password-prompt-read-wait-48-read-left-serial-idle-resync",
+    "aresos-password-prompt-read-wait-53-read-left-serial-idle-resync",
     "aresos-account-login-serial-idle-resync",
-    "aresos-sudo-hidden-read-wait-51-read-left-serial-idle-resync",
+    "aresos-sudo-hidden-read-wait-56-read-left-serial-idle-resync",
     "aresos-sudo-serial-idle-resync",
     "aresos-physical-observer",
-    "layout-plain-us-password-prompt-read-wait-63-read-left-serial-idle-resync",
+    "layout-plain-us-password-prompt-read-wait-68-read-left-serial-idle-resync",
     "layout-plain-us-serial-idle-resync",
-    "layout-reverted-login-password-prompt-read-wait-68-read-left-serial-idle-resync",
+    "layout-reverted-login-password-prompt-read-wait-73-read-left-serial-idle-resync",
     "layout-reverted-login-account-login-serial-idle-resync",
-    "layout-reverted-proof-sudo-hidden-read-wait-71-read-left-serial-idle-resync",
+    "layout-reverted-proof-sudo-hidden-read-wait-76-read-left-serial-idle-resync",
     "layout-reverted-proof-serial-idle-resync",
-    "layout-intl-login-password-prompt-read-wait-81-read-left-serial-idle-resync",
+    "layout-intl-login-password-prompt-read-wait-86-read-left-serial-idle-resync",
     "layout-intl-login-account-login-serial-idle-resync",
-    "layout-intl-proof-sudo-hidden-read-wait-84-read-left-serial-idle-resync",
+    "layout-intl-proof-sudo-hidden-read-wait-89-read-left-serial-idle-resync",
     "layout-intl-proof-serial-idle-resync",
     "aresos-owner-reboot-tools-absent",
     "aresos-owner-reboot-tools-absent",
-    "aresos-intl-password-prompt-read-wait-95-read-left-serial-idle-resync",
+    "aresos-intl-password-prompt-read-wait-100-read-left-serial-idle-resync",
     "aresos-intl-account-login-serial-idle-resync",
-    "aresos-intl-sudo-hidden-read-wait-98-read-left-serial-idle-resync",
+    "aresos-intl-sudo-hidden-read-wait-103-read-left-serial-idle-resync",
     "aresos-intl-sudo-serial-idle-resync",
     "aresos-intl-physical-observer",
-    "layout-back-de-login-password-prompt-read-wait-106-read-left-serial-idle-resync",
+    "layout-back-de-login-password-prompt-read-wait-111-read-left-serial-idle-resync",
     "layout-back-de-login-account-login-serial-idle-resync",
-    "layout-back-de-proof-sudo-hidden-read-wait-109-read-left-serial-idle-resync",
+    "layout-back-de-proof-sudo-hidden-read-wait-114-read-left-serial-idle-resync",
     "layout-back-de-proof-serial-idle-resync",
     "aresos-intl-owner-reboot-tools-absent",
     "aresos-intl-owner-reboot-tools-absent",
-    "aresos-back-de-password-prompt-read-wait-120-read-left-serial-idle-resync",
+    "aresos-back-de-password-prompt-read-wait-125-read-left-serial-idle-resync",
     "aresos-back-de-account-login-serial-idle-resync",
-    "aresos-back-de-sudo-hidden-read-wait-123-read-left-serial-idle-resync",
+    "aresos-back-de-sudo-hidden-read-wait-128-read-left-serial-idle-resync",
     "aresos-back-de-sudo-serial-idle-resync",
     "aresos-back-de-physical-observer",
     "aresos-back-de-owner-reboot-tools-absent",
     "aresos-back-de-owner-reboot-tools-absent",
-    "rollback-stock-password-prompt-read-wait-134-read-left-serial-idle-resync",
+    "rollback-stock-password-prompt-read-wait-139-read-left-serial-idle-resync",
     "rollback-stock-account-login-serial-idle-resync",
-    "rollback-stock-sudo-hidden-read-wait-137-read-left-serial-idle-resync",
+    "rollback-stock-sudo-hidden-read-wait-142-read-left-serial-idle-resync",
     "rollback-stock-sudo-serial-idle-resync",
     "rollback-stock-physical-observer",
     "owner-keep-stock-reboot-tools-absent",
     "owner-keep-stock-reboot-tools-absent",
-    "default-stock-password-prompt-read-wait-150-read-left-serial-idle-resync",
+    "default-stock-password-prompt-read-wait-155-read-left-serial-idle-resync",
     "default-stock-account-login-serial-idle-resync",
-    "default-stock-sudo-hidden-read-wait-153-read-left-serial-idle-resync",
+    "default-stock-sudo-hidden-read-wait-158-read-left-serial-idle-resync",
     "default-stock-sudo-serial-idle-resync",
     "default-stock-physical-observer",
     "default-stock-tools-absent"
@@ -94,33 +96,33 @@
     "after-first-network-records-ready-wait-17",
     "after-first-network-title-completed-wait-16",
     "after-first-network-title-ready-wait-15",
-    "aresos-account-login-after-hidden-ready-wait-49",
-    "aresos-back-de-account-login-after-hidden-ready-wait-121",
-    "aresos-back-de-check-completed-wait-126",
-    "aresos-back-de-check-ready-wait-125",
-    "aresos-back-de-owner-reboot-ready-wait-132",
-    "aresos-back-de-public-ready-wait-127",
-    "aresos-back-de-ready-wait-122",
-    "aresos-back-de-reboot-title-completed-wait-131",
-    "aresos-back-de-reboot-title-ready-wait-130",
-    "aresos-back-de-sudo-after-hidden-ready-wait-124",
-    "aresos-check-completed-wait-54",
-    "aresos-check-ready-wait-53",
-    "aresos-intl-account-login-after-hidden-ready-wait-96",
-    "aresos-intl-check-completed-wait-101",
-    "aresos-intl-check-ready-wait-100",
-    "aresos-intl-owner-reboot-ready-wait-118",
-    "aresos-intl-public-ready-wait-102",
-    "aresos-intl-ready-wait-97",
-    "aresos-intl-reboot-title-completed-wait-117",
-    "aresos-intl-reboot-title-ready-wait-116",
-    "aresos-intl-sudo-after-hidden-ready-wait-99",
-    "aresos-owner-reboot-ready-wait-93",
-    "aresos-public-ready-wait-55",
-    "aresos-ready-wait-50",
-    "aresos-reboot-title-completed-wait-92",
-    "aresos-reboot-title-ready-wait-91",
-    "aresos-sudo-after-hidden-ready-wait-52",
+    "aresos-account-login-after-hidden-ready-wait-54",
+    "aresos-back-de-account-login-after-hidden-ready-wait-126",
+    "aresos-back-de-check-completed-wait-131",
+    "aresos-back-de-check-ready-wait-130",
+    "aresos-back-de-owner-reboot-ready-wait-137",
+    "aresos-back-de-public-ready-wait-132",
+    "aresos-back-de-ready-wait-127",
+    "aresos-back-de-reboot-title-completed-wait-136",
+    "aresos-back-de-reboot-title-ready-wait-135",
+    "aresos-back-de-sudo-after-hidden-ready-wait-129",
+    "aresos-check-completed-wait-59",
+    "aresos-check-ready-wait-58",
+    "aresos-intl-account-login-after-hidden-ready-wait-101",
+    "aresos-intl-check-completed-wait-106",
+    "aresos-intl-check-ready-wait-105",
+    "aresos-intl-owner-reboot-ready-wait-123",
+    "aresos-intl-public-ready-wait-107",
+    "aresos-intl-ready-wait-102",
+    "aresos-intl-reboot-title-completed-wait-122",
+    "aresos-intl-reboot-title-ready-wait-121",
+    "aresos-intl-sudo-after-hidden-ready-wait-104",
+    "aresos-owner-reboot-ready-wait-98",
+    "aresos-public-ready-wait-60",
+    "aresos-ready-wait-55",
+    "aresos-reboot-title-completed-wait-97",
+    "aresos-reboot-title-ready-wait-96",
+    "aresos-sudo-after-hidden-ready-wait-57",
     "corrected-stock-account-login-after-hidden-ready-wait-26",
     "corrected-stock-public-ready-wait-34",
     "corrected-stock-ready-wait-27",
@@ -129,72 +131,75 @@
     "corrected-stock-sudo-after-hidden-ready-wait-29",
     "corrected-stock-title-completed-wait-31",
     "corrected-stock-title-ready-wait-30",
-    "default-stock-account-login-after-hidden-ready-wait-151",
-    "default-stock-check-completed-wait-156",
-    "default-stock-check-ready-wait-155",
-    "default-stock-logout-ready-wait-158",
-    "default-stock-logout-user-ready-wait-159",
-    "default-stock-public-ready-wait-157",
-    "default-stock-ready-wait-152",
-    "default-stock-sudo-after-hidden-ready-wait-154",
-    "layout-back-de-login-account-login-after-hidden-ready-wait-107",
-    "layout-back-de-logout-ready-wait-112",
-    "layout-back-de-proof-after-hidden-ready-wait-110",
-    "layout-back-de-proof-completed-wait-111",
-    "layout-back-de-proof-ready-wait-108",
-    "layout-de-begin-completed-wait-104",
-    "layout-de-begin-ready-wait-103",
-    "layout-de-finish-completed-wait-115",
-    "layout-de-finish-ready-wait-114",
-    "layout-intl-begin-completed-wait-79",
-    "layout-intl-begin-ready-wait-78",
-    "layout-intl-finish-completed-wait-90",
-    "layout-intl-finish-ready-wait-89",
-    "layout-intl-login-account-login-after-hidden-ready-wait-82",
-    "layout-intl-logout-ready-wait-87",
-    "layout-intl-proof-after-hidden-ready-wait-85",
-    "layout-intl-proof-completed-wait-86",
-    "layout-intl-proof-ready-wait-83",
-    "layout-revert-finish-completed-wait-77",
-    "layout-revert-finish-ready-wait-76",
-    "layout-reverted-login-account-login-after-hidden-ready-wait-69",
-    "layout-reverted-logout-ready-wait-74",
-    "layout-reverted-proof-after-hidden-ready-wait-72",
-    "layout-reverted-proof-completed-wait-73",
-    "layout-reverted-proof-ready-wait-70",
-    "layout-unproved-reboot-refusal-completed-wait-61",
-    "layout-unproved-reboot-refusal-ready-wait-60",
-    "layout-us-begin-completed-wait-59",
-    "layout-us-begin-ready-wait-58",
-    "layout-us-revert-completed-wait-66",
-    "layout-us-revert-ready-wait-65",
-    "owner-keep-stock-completed-wait-145",
-    "owner-keep-stock-ready-wait-144",
-    "owner-keep-stock-reboot-ready-wait-148",
-    "owner-keep-stock-title-completed-wait-147",
-    "owner-keep-stock-title-ready-wait-146",
-    "owner-logind-diagnostics-completed-wait-57",
-    "owner-logind-diagnostics-ready-wait-56",
-    "owner-rollback-completed-wait-129",
-    "owner-rollback-ready-wait-128",
-    "owner-signature-completed-wait-41",
-    "owner-signature-ready-wait-40",
-    "owner-switch-completed-wait-43",
-    "owner-switch-ready-wait-42",
-    "owner-switch-reboot-ready-wait-46",
-    "owner-switch-title-completed-wait-45",
-    "owner-switch-title-ready-wait-44",
-    "private-owner-login-after-hidden-ready-wait-38",
-    "private-owner-login-completed-wait-39",
-    "private-owner-login-ready-wait-35",
-    "rollback-from-stock-refused-completed-wait-143",
-    "rollback-from-stock-refused-ready-wait-142",
-    "rollback-stock-account-login-after-hidden-ready-wait-135",
-    "rollback-stock-check-completed-wait-140",
-    "rollback-stock-check-ready-wait-139",
-    "rollback-stock-public-ready-wait-141",
-    "rollback-stock-ready-wait-136",
-    "rollback-stock-sudo-after-hidden-ready-wait-138",
+    "default-stock-account-login-after-hidden-ready-wait-156",
+    "default-stock-check-completed-wait-161",
+    "default-stock-check-ready-wait-160",
+    "default-stock-logout-ready-wait-163",
+    "default-stock-logout-user-ready-wait-164",
+    "default-stock-public-ready-wait-162",
+    "default-stock-ready-wait-157",
+    "default-stock-sudo-after-hidden-ready-wait-159",
+    "layout-back-de-login-account-login-after-hidden-ready-wait-112",
+    "layout-back-de-logout-ready-wait-117",
+    "layout-back-de-proof-after-hidden-ready-wait-115",
+    "layout-back-de-proof-completed-wait-116",
+    "layout-back-de-proof-ready-wait-113",
+    "layout-de-begin-completed-wait-109",
+    "layout-de-begin-ready-wait-108",
+    "layout-de-finish-completed-wait-120",
+    "layout-de-finish-ready-wait-119",
+    "layout-intl-begin-completed-wait-84",
+    "layout-intl-begin-ready-wait-83",
+    "layout-intl-finish-completed-wait-95",
+    "layout-intl-finish-ready-wait-94",
+    "layout-intl-login-account-login-after-hidden-ready-wait-87",
+    "layout-intl-logout-ready-wait-92",
+    "layout-intl-proof-after-hidden-ready-wait-90",
+    "layout-intl-proof-completed-wait-91",
+    "layout-intl-proof-ready-wait-88",
+    "layout-revert-finish-completed-wait-82",
+    "layout-revert-finish-ready-wait-81",
+    "layout-reverted-login-account-login-after-hidden-ready-wait-74",
+    "layout-reverted-logout-ready-wait-79",
+    "layout-reverted-proof-after-hidden-ready-wait-77",
+    "layout-reverted-proof-completed-wait-78",
+    "layout-reverted-proof-ready-wait-75",
+    "layout-unproved-reboot-refusal-completed-wait-66",
+    "layout-unproved-reboot-refusal-ready-wait-65",
+    "layout-us-begin-completed-wait-64",
+    "layout-us-begin-ready-wait-63",
+    "layout-us-revert-completed-wait-71",
+    "layout-us-revert-ready-wait-70",
+    "owner-keep-stock-completed-wait-150",
+    "owner-keep-stock-ready-wait-149",
+    "owner-keep-stock-reboot-ready-wait-153",
+    "owner-keep-stock-title-completed-wait-152",
+    "owner-keep-stock-title-ready-wait-151",
+    "owner-logind-diagnostics-completed-wait-62",
+    "owner-logind-diagnostics-ready-wait-61",
+    "owner-rollback-completed-wait-134",
+    "owner-rollback-ready-wait-133",
+    "owner-signature-completed-wait-46",
+    "owner-signature-ready-wait-45",
+    "owner-switch-completed-wait-48",
+    "owner-switch-ready-wait-47",
+    "owner-switch-reboot-ready-wait-51",
+    "owner-switch-title-completed-wait-50",
+    "owner-switch-title-ready-wait-49",
+    "private-owner-dummy-login-after-hidden-ready-wait-38",
+    "private-owner-dummy-login-completed-wait-39",
+    "private-owner-dummy-login-ready-wait-35",
+    "private-owner-login-after-hidden-ready-wait-43",
+    "private-owner-login-completed-wait-44",
+    "private-owner-login-ready-wait-40",
+    "rollback-from-stock-refused-completed-wait-148",
+    "rollback-from-stock-refused-ready-wait-147",
+    "rollback-stock-account-login-after-hidden-ready-wait-140",
+    "rollback-stock-check-completed-wait-145",
+    "rollback-stock-check-ready-wait-144",
+    "rollback-stock-public-ready-wait-146",
+    "rollback-stock-ready-wait-141",
+    "rollback-stock-sudo-after-hidden-ready-wait-143",
     "tools-before-reboot-title-completed-wait-22",
     "tools-before-reboot-title-ready-wait-21",
     "tools-install-completed-wait-10",
@@ -241,123 +246,127 @@
     "corrected-stock-records-ready-wait-32-idle-1",
     "corrected-stock-records-completed-wait-33-idle-1",
     "corrected-stock-public-ready-wait-34-idle-1",
-    "private-owner-login-ready-wait-35-idle-1",
+    "private-owner-dummy-login-ready-wait-35-idle-1",
+    "private-owner-dummy-login-physical-idle",
+    "private-owner-dummy-login-after-hidden-ready-wait-38-idle-1",
+    "private-owner-dummy-login-completed-wait-39-idle-1",
+    "private-owner-login-ready-wait-40-idle-1",
     "private-owner-login-physical-idle",
-    "private-owner-login-after-hidden-ready-wait-38-idle-1",
-    "private-owner-login-completed-wait-39-idle-1",
-    "owner-signature-ready-wait-40-idle-1",
-    "owner-signature-completed-wait-41-idle-1",
-    "owner-switch-ready-wait-42-idle-1",
-    "owner-switch-completed-wait-43-idle-1",
-    "owner-switch-title-ready-wait-44-idle-1",
-    "owner-switch-title-completed-wait-45-idle-1",
-    "owner-switch-reboot-ready-wait-46-idle-1",
+    "private-owner-login-after-hidden-ready-wait-43-idle-1",
+    "private-owner-login-completed-wait-44-idle-1",
+    "owner-signature-ready-wait-45-idle-1",
+    "owner-signature-completed-wait-46-idle-1",
+    "owner-switch-ready-wait-47-idle-1",
+    "owner-switch-completed-wait-48-idle-1",
+    "owner-switch-title-ready-wait-49-idle-1",
+    "owner-switch-title-completed-wait-50-idle-1",
+    "owner-switch-reboot-ready-wait-51-idle-1",
     "aresos-account-login-physical-idle",
-    "aresos-account-login-after-hidden-ready-wait-49-idle-1",
-    "aresos-ready-wait-50-idle-1",
+    "aresos-account-login-after-hidden-ready-wait-54-idle-1",
+    "aresos-ready-wait-55-idle-1",
     "aresos-sudo-physical-idle",
-    "aresos-sudo-after-hidden-ready-wait-52-idle-1",
-    "aresos-check-ready-wait-53-idle-1",
-    "aresos-check-completed-wait-54-idle-1",
-    "aresos-public-ready-wait-55-idle-1",
-    "owner-logind-diagnostics-ready-wait-56-idle-1",
-    "owner-logind-diagnostics-completed-wait-57-idle-1",
-    "layout-us-begin-ready-wait-58-idle-1",
-    "layout-us-begin-completed-wait-59-idle-1",
-    "layout-unproved-reboot-refusal-ready-wait-60-idle-1",
-    "layout-unproved-reboot-refusal-completed-wait-61-idle-1",
-    "layout-us-revert-ready-wait-65-idle-1",
-    "layout-us-revert-completed-wait-66-idle-1",
+    "aresos-sudo-after-hidden-ready-wait-57-idle-1",
+    "aresos-check-ready-wait-58-idle-1",
+    "aresos-check-completed-wait-59-idle-1",
+    "aresos-public-ready-wait-60-idle-1",
+    "owner-logind-diagnostics-ready-wait-61-idle-1",
+    "owner-logind-diagnostics-completed-wait-62-idle-1",
+    "layout-us-begin-ready-wait-63-idle-1",
+    "layout-us-begin-completed-wait-64-idle-1",
+    "layout-unproved-reboot-refusal-ready-wait-65-idle-1",
+    "layout-unproved-reboot-refusal-completed-wait-66-idle-1",
+    "layout-us-revert-ready-wait-70-idle-1",
+    "layout-us-revert-completed-wait-71-idle-1",
     "layout-reverted-login-account-login-physical-idle",
-    "layout-reverted-login-account-login-after-hidden-ready-wait-69-idle-1",
-    "layout-reverted-proof-ready-wait-70-idle-1",
+    "layout-reverted-login-account-login-after-hidden-ready-wait-74-idle-1",
+    "layout-reverted-proof-ready-wait-75-idle-1",
     "layout-reverted-proof-physical-idle",
-    "layout-reverted-proof-after-hidden-ready-wait-72-idle-1",
-    "layout-reverted-proof-completed-wait-73-idle-1",
-    "layout-reverted-logout-ready-wait-74-idle-1",
-    "layout-revert-finish-ready-wait-76-idle-1",
-    "layout-revert-finish-completed-wait-77-idle-1",
-    "layout-intl-begin-ready-wait-78-idle-1",
-    "layout-intl-begin-completed-wait-79-idle-1",
+    "layout-reverted-proof-after-hidden-ready-wait-77-idle-1",
+    "layout-reverted-proof-completed-wait-78-idle-1",
+    "layout-reverted-logout-ready-wait-79-idle-1",
+    "layout-revert-finish-ready-wait-81-idle-1",
+    "layout-revert-finish-completed-wait-82-idle-1",
+    "layout-intl-begin-ready-wait-83-idle-1",
+    "layout-intl-begin-completed-wait-84-idle-1",
     "layout-intl-login-account-login-physical-idle",
-    "layout-intl-login-account-login-after-hidden-ready-wait-82-idle-1",
-    "layout-intl-proof-ready-wait-83-idle-1",
+    "layout-intl-login-account-login-after-hidden-ready-wait-87-idle-1",
+    "layout-intl-proof-ready-wait-88-idle-1",
     "layout-intl-proof-physical-idle",
-    "layout-intl-proof-after-hidden-ready-wait-85-idle-1",
-    "layout-intl-proof-completed-wait-86-idle-1",
-    "layout-intl-logout-ready-wait-87-idle-1",
-    "layout-intl-finish-ready-wait-89-idle-1",
-    "layout-intl-finish-completed-wait-90-idle-1",
-    "aresos-reboot-title-ready-wait-91-idle-1",
-    "aresos-reboot-title-completed-wait-92-idle-1",
-    "aresos-owner-reboot-ready-wait-93-idle-1",
+    "layout-intl-proof-after-hidden-ready-wait-90-idle-1",
+    "layout-intl-proof-completed-wait-91-idle-1",
+    "layout-intl-logout-ready-wait-92-idle-1",
+    "layout-intl-finish-ready-wait-94-idle-1",
+    "layout-intl-finish-completed-wait-95-idle-1",
+    "aresos-reboot-title-ready-wait-96-idle-1",
+    "aresos-reboot-title-completed-wait-97-idle-1",
+    "aresos-owner-reboot-ready-wait-98-idle-1",
     "aresos-intl-account-login-physical-idle",
-    "aresos-intl-account-login-after-hidden-ready-wait-96-idle-1",
-    "aresos-intl-ready-wait-97-idle-1",
+    "aresos-intl-account-login-after-hidden-ready-wait-101-idle-1",
+    "aresos-intl-ready-wait-102-idle-1",
     "aresos-intl-sudo-physical-idle",
-    "aresos-intl-sudo-after-hidden-ready-wait-99-idle-1",
-    "aresos-intl-check-ready-wait-100-idle-1",
-    "aresos-intl-check-completed-wait-101-idle-1",
-    "aresos-intl-public-ready-wait-102-idle-1",
-    "layout-de-begin-ready-wait-103-idle-1",
-    "layout-de-begin-completed-wait-104-idle-1",
+    "aresos-intl-sudo-after-hidden-ready-wait-104-idle-1",
+    "aresos-intl-check-ready-wait-105-idle-1",
+    "aresos-intl-check-completed-wait-106-idle-1",
+    "aresos-intl-public-ready-wait-107-idle-1",
+    "layout-de-begin-ready-wait-108-idle-1",
+    "layout-de-begin-completed-wait-109-idle-1",
     "layout-back-de-login-account-login-physical-idle",
-    "layout-back-de-login-account-login-after-hidden-ready-wait-107-idle-1",
-    "layout-back-de-proof-ready-wait-108-idle-1",
+    "layout-back-de-login-account-login-after-hidden-ready-wait-112-idle-1",
+    "layout-back-de-proof-ready-wait-113-idle-1",
     "layout-back-de-proof-physical-idle",
-    "layout-back-de-proof-after-hidden-ready-wait-110-idle-1",
-    "layout-back-de-proof-completed-wait-111-idle-1",
-    "layout-back-de-logout-ready-wait-112-idle-1",
-    "layout-de-finish-ready-wait-114-idle-1",
-    "layout-de-finish-completed-wait-115-idle-1",
-    "aresos-intl-reboot-title-ready-wait-116-idle-1",
-    "aresos-intl-reboot-title-completed-wait-117-idle-1",
-    "aresos-intl-owner-reboot-ready-wait-118-idle-1",
+    "layout-back-de-proof-after-hidden-ready-wait-115-idle-1",
+    "layout-back-de-proof-completed-wait-116-idle-1",
+    "layout-back-de-logout-ready-wait-117-idle-1",
+    "layout-de-finish-ready-wait-119-idle-1",
+    "layout-de-finish-completed-wait-120-idle-1",
+    "aresos-intl-reboot-title-ready-wait-121-idle-1",
+    "aresos-intl-reboot-title-completed-wait-122-idle-1",
+    "aresos-intl-owner-reboot-ready-wait-123-idle-1",
     "aresos-back-de-account-login-physical-idle",
-    "aresos-back-de-account-login-after-hidden-ready-wait-121-idle-1",
-    "aresos-back-de-ready-wait-122-idle-1",
+    "aresos-back-de-account-login-after-hidden-ready-wait-126-idle-1",
+    "aresos-back-de-ready-wait-127-idle-1",
     "aresos-back-de-sudo-physical-idle",
-    "aresos-back-de-sudo-after-hidden-ready-wait-124-idle-1",
-    "aresos-back-de-check-ready-wait-125-idle-1",
-    "aresos-back-de-check-completed-wait-126-idle-1",
-    "aresos-back-de-public-ready-wait-127-idle-1",
-    "owner-rollback-ready-wait-128-idle-1",
-    "owner-rollback-completed-wait-129-idle-1",
-    "aresos-back-de-reboot-title-ready-wait-130-idle-1",
-    "aresos-back-de-reboot-title-completed-wait-131-idle-1",
-    "aresos-back-de-owner-reboot-ready-wait-132-idle-1",
+    "aresos-back-de-sudo-after-hidden-ready-wait-129-idle-1",
+    "aresos-back-de-check-ready-wait-130-idle-1",
+    "aresos-back-de-check-completed-wait-131-idle-1",
+    "aresos-back-de-public-ready-wait-132-idle-1",
+    "owner-rollback-ready-wait-133-idle-1",
+    "owner-rollback-completed-wait-134-idle-1",
+    "aresos-back-de-reboot-title-ready-wait-135-idle-1",
+    "aresos-back-de-reboot-title-completed-wait-136-idle-1",
+    "aresos-back-de-owner-reboot-ready-wait-137-idle-1",
     "rollback-stock-account-login-physical-idle",
-    "rollback-stock-account-login-after-hidden-ready-wait-135-idle-1",
-    "rollback-stock-ready-wait-136-idle-1",
+    "rollback-stock-account-login-after-hidden-ready-wait-140-idle-1",
+    "rollback-stock-ready-wait-141-idle-1",
     "rollback-stock-sudo-physical-idle",
-    "rollback-stock-sudo-after-hidden-ready-wait-138-idle-1",
-    "rollback-stock-check-ready-wait-139-idle-1",
-    "rollback-stock-check-completed-wait-140-idle-1",
-    "rollback-stock-public-ready-wait-141-idle-1",
-    "rollback-from-stock-refused-ready-wait-142-idle-1",
-    "rollback-from-stock-refused-completed-wait-143-idle-1",
-    "owner-keep-stock-ready-wait-144-idle-1",
-    "owner-keep-stock-completed-wait-145-idle-1",
-    "owner-keep-stock-title-ready-wait-146-idle-1",
-    "owner-keep-stock-title-completed-wait-147-idle-1",
-    "owner-keep-stock-reboot-ready-wait-148-idle-1",
+    "rollback-stock-sudo-after-hidden-ready-wait-143-idle-1",
+    "rollback-stock-check-ready-wait-144-idle-1",
+    "rollback-stock-check-completed-wait-145-idle-1",
+    "rollback-stock-public-ready-wait-146-idle-1",
+    "rollback-from-stock-refused-ready-wait-147-idle-1",
+    "rollback-from-stock-refused-completed-wait-148-idle-1",
+    "owner-keep-stock-ready-wait-149-idle-1",
+    "owner-keep-stock-completed-wait-150-idle-1",
+    "owner-keep-stock-title-ready-wait-151-idle-1",
+    "owner-keep-stock-title-completed-wait-152-idle-1",
+    "owner-keep-stock-reboot-ready-wait-153-idle-1",
     "default-stock-account-login-physical-idle",
-    "default-stock-account-login-after-hidden-ready-wait-151-idle-1",
-    "default-stock-ready-wait-152-idle-1",
+    "default-stock-account-login-after-hidden-ready-wait-156-idle-1",
+    "default-stock-ready-wait-157-idle-1",
     "default-stock-sudo-physical-idle",
-    "default-stock-sudo-after-hidden-ready-wait-154-idle-1",
-    "default-stock-check-ready-wait-155-idle-1",
-    "default-stock-check-completed-wait-156-idle-1",
-    "default-stock-public-ready-wait-157-idle-1",
-    "default-stock-logout-ready-wait-158-idle-1",
-    "default-stock-logout-user-ready-wait-159-idle-1"
+    "default-stock-sudo-after-hidden-ready-wait-159-idle-1",
+    "default-stock-check-ready-wait-160-idle-1",
+    "default-stock-check-completed-wait-161-idle-1",
+    "default-stock-public-ready-wait-162-idle-1",
+    "default-stock-logout-ready-wait-163-idle-1",
+    "default-stock-logout-user-ready-wait-164-idle-1"
   ],
   "prompt_resyncs": [
     {
       "stage": "after-first-network-records-completed-wait-18",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:44.852770+00:00",
+      "time": "2026-10-29T01:18:06.677281+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -413,14 +422,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:45.335593+00:00",
+      "after_time": "2026-10-29T01:18:07.169515+00:00",
       "ready": true
     },
     {
       "stage": "after-first-network-records-ready-wait-17",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:44.289444+00:00",
+      "time": "2026-10-29T01:18:06.114119+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -476,14 +485,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:44.735444+00:00",
+      "after_time": "2026-10-29T01:18:06.552459+00:00",
       "ready": true
     },
     {
       "stage": "after-first-network-title-completed-wait-16",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:43.794241+00:00",
+      "time": "2026-10-29T01:18:05.596429+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -539,14 +548,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:44.237065+00:00",
+      "after_time": "2026-10-29T01:18:06.055799+00:00",
       "ready": true
     },
     {
       "stage": "after-first-network-title-ready-wait-15",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:43.255263+00:00",
+      "time": "2026-10-29T01:18:05.045835+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -602,14 +611,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:43.679567+00:00",
+      "after_time": "2026-10-29T01:18:05.480051+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-account-login-after-hidden-ready-wait-49",
+      "stage": "aresos-account-login-after-hidden-ready-wait-54",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:04.942292+00:00",
+      "time": "2026-10-29T01:18:34.187317+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -637,14 +646,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:05.157056+00:00",
+      "after_time": "2026-10-29T01:18:34.360400+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-back-de-account-login-after-hidden-ready-wait-121",
+      "stage": "aresos-back-de-account-login-after-hidden-ready-wait-126",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:47.343432+00:00",
+      "time": "2026-10-29T01:19:15.708807+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -672,14 +681,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:47.572841+00:00",
+      "after_time": "2026-10-29T01:19:15.949844+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-back-de-check-completed-wait-126",
+      "stage": "aresos-back-de-check-completed-wait-131",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:51.564241+00:00",
+      "time": "2026-10-29T01:19:20.260275+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -735,14 +744,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:52.004413+00:00",
+      "after_time": "2026-10-29T01:19:20.737982+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-back-de-check-ready-wait-125",
+      "stage": "aresos-back-de-check-ready-wait-130",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:50.899687+00:00",
+      "time": "2026-10-29T01:19:19.672163+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -798,14 +807,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:51.409102+00:00",
+      "after_time": "2026-10-29T01:19:20.148191+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-back-de-owner-reboot-ready-wait-132",
+      "stage": "aresos-back-de-owner-reboot-ready-wait-137",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:54.788806+00:00",
+      "time": "2026-10-29T01:19:23.657628+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -861,14 +870,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:55.245780+00:00",
+      "after_time": "2026-10-29T01:19:24.111183+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-back-de-public-ready-wait-127",
+      "stage": "aresos-back-de-public-ready-wait-132",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:52.063474+00:00",
+      "time": "2026-10-29T01:19:20.805725+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -924,14 +933,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:52.538311+00:00",
+      "after_time": "2026-10-29T01:19:21.346288+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-back-de-ready-wait-122",
+      "stage": "aresos-back-de-ready-wait-127",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:47.620824+00:00",
+      "time": "2026-10-29T01:19:16.012016+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -959,14 +968,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:47.812958+00:00",
+      "after_time": "2026-10-29T01:19:16.283845+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-back-de-reboot-title-completed-wait-131",
+      "stage": "aresos-back-de-reboot-title-completed-wait-136",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:54.282287+00:00",
+      "time": "2026-10-29T01:19:23.167984+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1022,14 +1031,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:54.734834+00:00",
+      "after_time": "2026-10-29T01:19:23.609539+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-back-de-reboot-title-ready-wait-130",
+      "stage": "aresos-back-de-reboot-title-ready-wait-135",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:53.727513+00:00",
+      "time": "2026-10-29T01:19:22.624506+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1085,14 +1094,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:54.167369+00:00",
+      "after_time": "2026-10-29T01:19:23.044523+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-back-de-sudo-after-hidden-ready-wait-124",
+      "stage": "aresos-back-de-sudo-after-hidden-ready-wait-129",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:50.303153+00:00",
+      "time": "2026-10-29T01:19:19.050930+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1148,14 +1157,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:50.737658+00:00",
+      "after_time": "2026-10-29T01:19:19.616811+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-check-completed-wait-54",
+      "stage": "aresos-check-completed-wait-59",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:09.232493+00:00",
+      "time": "2026-10-29T01:18:38.913663+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1211,14 +1220,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:09.680382+00:00",
+      "after_time": "2026-10-29T01:18:39.356180+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-check-ready-wait-53",
+      "stage": "aresos-check-ready-wait-58",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:08.670359+00:00",
+      "time": "2026-10-29T01:18:38.350595+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1274,14 +1283,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:09.121528+00:00",
+      "after_time": "2026-10-29T01:18:38.798014+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-intl-account-login-after-hidden-ready-wait-96",
+      "stage": "aresos-intl-account-login-after-hidden-ready-wait-101",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:30.567385+00:00",
+      "time": "2026-10-29T01:19:00.314350+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1309,14 +1318,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:30.782061+00:00",
+      "after_time": "2026-10-29T01:19:00.524577+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-intl-check-completed-wait-101",
+      "stage": "aresos-intl-check-completed-wait-106",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:34.987274+00:00",
+      "time": "2026-10-29T01:19:04.808841+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1372,14 +1381,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:35.574678+00:00",
+      "after_time": "2026-10-29T01:19:05.336560+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-intl-check-ready-wait-100",
+      "stage": "aresos-intl-check-ready-wait-105",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:34.360641+00:00",
+      "time": "2026-10-29T01:19:04.277269+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1435,14 +1444,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:34.851125+00:00",
+      "after_time": "2026-10-29T01:19:04.697216+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-intl-owner-reboot-ready-wait-118",
+      "stage": "aresos-intl-owner-reboot-ready-wait-123",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:45.830961+00:00",
+      "time": "2026-10-29T01:19:14.049935+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1498,14 +1507,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:46.212807+00:00",
+      "after_time": "2026-10-29T01:19:14.499603+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-intl-public-ready-wait-102",
+      "stage": "aresos-intl-public-ready-wait-107",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:35.646595+00:00",
+      "time": "2026-10-29T01:19:05.418424+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1561,14 +1570,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:36.281673+00:00",
+      "after_time": "2026-10-29T01:19:05.861760+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-intl-ready-wait-97",
+      "stage": "aresos-intl-ready-wait-102",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:30.841826+00:00",
+      "time": "2026-10-29T01:19:00.583378+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1596,14 +1605,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:31.083328+00:00",
+      "after_time": "2026-10-29T01:19:00.802415+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-intl-reboot-title-completed-wait-117",
+      "stage": "aresos-intl-reboot-title-completed-wait-122",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:45.377983+00:00",
+      "time": "2026-10-29T01:19:13.507561+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1659,14 +1668,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:45.775552+00:00",
+      "after_time": "2026-10-29T01:19:13.988720+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-intl-reboot-title-ready-wait-116",
+      "stage": "aresos-intl-reboot-title-ready-wait-121",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:44.754372+00:00",
+      "time": "2026-10-29T01:19:12.949920+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1722,14 +1731,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:45.266030+00:00",
+      "after_time": "2026-10-29T01:19:13.411341+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-intl-sudo-after-hidden-ready-wait-99",
+      "stage": "aresos-intl-sudo-after-hidden-ready-wait-104",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:33.873678+00:00",
+      "time": "2026-10-29T01:19:03.668327+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1785,14 +1794,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:34.288130+00:00",
+      "after_time": "2026-10-29T01:19:04.211539+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-owner-reboot-ready-wait-93",
+      "stage": "aresos-owner-reboot-ready-wait-98",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:28.775726+00:00",
+      "time": "2026-10-29T01:18:58.549809+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1848,14 +1857,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:29.294660+00:00",
+      "after_time": "2026-10-29T01:18:59.001396+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-public-ready-wait-55",
+      "stage": "aresos-public-ready-wait-60",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:09.741968+00:00",
+      "time": "2026-10-29T01:18:39.424260+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1911,14 +1920,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:10.194145+00:00",
+      "after_time": "2026-10-29T01:18:39.862882+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-ready-wait-50",
+      "stage": "aresos-ready-wait-55",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:05.218692+00:00",
+      "time": "2026-10-29T01:18:34.425639+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1946,14 +1955,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:05.417624+00:00",
+      "after_time": "2026-10-29T01:18:34.651495+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-reboot-title-completed-wait-92",
+      "stage": "aresos-reboot-title-completed-wait-97",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:28.237563+00:00",
+      "time": "2026-10-29T01:18:58.009695+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2009,14 +2018,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:28.720703+00:00",
+      "after_time": "2026-10-29T01:18:58.489857+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-reboot-title-ready-wait-91",
+      "stage": "aresos-reboot-title-ready-wait-96",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:27.663256+00:00",
+      "time": "2026-10-29T01:18:57.441687+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2072,14 +2081,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:28.129955+00:00",
+      "after_time": "2026-10-29T01:18:57.885737+00:00",
       "ready": true
     },
     {
-      "stage": "aresos-sudo-after-hidden-ready-wait-52",
+      "stage": "aresos-sudo-after-hidden-ready-wait-57",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:08.171623+00:00",
+      "time": "2026-10-29T01:18:37.827593+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2135,14 +2144,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:08.615244+00:00",
+      "after_time": "2026-10-29T01:18:38.306249+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-account-login-after-hidden-ready-wait-26",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:49.181035+00:00",
+      "time": "2026-10-29T01:18:11.440392+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2170,14 +2179,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:49.383196+00:00",
+      "after_time": "2026-10-29T01:18:11.667679+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-public-ready-wait-34",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:55.061364+00:00",
+      "time": "2026-10-29T01:18:17.633649+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2233,14 +2242,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:55.452047+00:00",
+      "after_time": "2026-10-29T01:18:18.157956+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-ready-wait-27",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:49.443804+00:00",
+      "time": "2026-10-29T01:18:11.727675+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2268,14 +2277,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:49.665832+00:00",
+      "after_time": "2026-10-29T01:18:11.960926+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-records-completed-wait-33",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:54.543354+00:00",
+      "time": "2026-10-29T01:18:17.113188+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2331,14 +2340,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:55.001334+00:00",
+      "after_time": "2026-10-29T01:18:17.573905+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-records-ready-wait-32",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:54.028214+00:00",
+      "time": "2026-10-29T01:18:16.548064+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2394,14 +2403,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:54.433423+00:00",
+      "after_time": "2026-10-29T01:18:16.996549+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-sudo-after-hidden-ready-wait-29",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:52.380539+00:00",
+      "time": "2026-10-29T01:18:14.899667+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2457,14 +2466,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:52.837382+00:00",
+      "after_time": "2026-10-29T01:18:15.392699+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-title-completed-wait-31",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:53.490573+00:00",
+      "time": "2026-10-29T01:18:16.037389+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2520,14 +2529,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:53.972239+00:00",
+      "after_time": "2026-10-29T01:18:16.479915+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-title-ready-wait-30",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:52.899213+00:00",
+      "time": "2026-10-29T01:18:15.458078+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2583,14 +2592,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:53.380551+00:00",
+      "after_time": "2026-10-29T01:18:15.891494+00:00",
       "ready": true
     },
     {
-      "stage": "default-stock-account-login-after-hidden-ready-wait-151",
+      "stage": "default-stock-account-login-after-hidden-ready-wait-156",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:06.642443+00:00",
+      "time": "2026-10-29T01:19:36.097195+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2618,14 +2627,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:06.827719+00:00",
+      "after_time": "2026-10-29T01:19:36.331124+00:00",
       "ready": true
     },
     {
-      "stage": "default-stock-check-completed-wait-156",
+      "stage": "default-stock-check-completed-wait-161",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:10.999636+00:00",
+      "time": "2026-10-29T01:19:40.558152+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2681,14 +2690,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:11.439435+00:00",
+      "after_time": "2026-10-29T01:19:40.961558+00:00",
       "ready": true
     },
     {
-      "stage": "default-stock-check-ready-wait-155",
+      "stage": "default-stock-check-ready-wait-160",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:10.413701+00:00",
+      "time": "2026-10-29T01:19:39.996989+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2744,14 +2753,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:10.878844+00:00",
+      "after_time": "2026-10-29T01:19:40.449233+00:00",
       "ready": true
     },
     {
-      "stage": "default-stock-logout-ready-wait-158",
+      "stage": "default-stock-logout-ready-wait-163",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:11.992383+00:00",
+      "time": "2026-10-29T01:19:41.576319+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2807,14 +2816,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:12.485233+00:00",
+      "after_time": "2026-10-29T01:19:41.964268+00:00",
       "ready": true
     },
     {
-      "stage": "default-stock-logout-user-ready-wait-159",
+      "stage": "default-stock-logout-user-ready-wait-164",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:12.536833+00:00",
+      "time": "2026-10-29T01:19:42.013605+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2870,14 +2879,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:12.973724+00:00",
+      "after_time": "2026-10-29T01:19:42.460515+00:00",
       "ready": true
     },
     {
-      "stage": "default-stock-public-ready-wait-157",
+      "stage": "default-stock-public-ready-wait-162",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:11.503895+00:00",
+      "time": "2026-10-29T01:19:41.021495+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2933,14 +2942,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:11.917488+00:00",
+      "after_time": "2026-10-29T01:19:41.486294+00:00",
       "ready": true
     },
     {
-      "stage": "default-stock-ready-wait-152",
+      "stage": "default-stock-ready-wait-157",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:06.881836+00:00",
+      "time": "2026-10-29T01:19:36.383772+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2968,14 +2977,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:07.125615+00:00",
+      "after_time": "2026-10-29T01:19:36.605191+00:00",
       "ready": true
     },
     {
-      "stage": "default-stock-sudo-after-hidden-ready-wait-154",
+      "stage": "default-stock-sudo-after-hidden-ready-wait-159",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:09.870747+00:00",
+      "time": "2026-10-29T01:19:39.526819+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3031,14 +3040,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:10.353792+00:00",
+      "after_time": "2026-10-29T01:19:39.934369+00:00",
       "ready": true
     },
     {
-      "stage": "layout-back-de-login-account-login-after-hidden-ready-wait-107",
+      "stage": "layout-back-de-login-account-login-after-hidden-ready-wait-112",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:39.147312+00:00",
+      "time": "2026-10-29T01:19:08.186701+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3066,14 +3075,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:39.409072+00:00",
+      "after_time": "2026-10-29T01:19:08.397228+00:00",
       "ready": true
     },
     {
-      "stage": "layout-back-de-logout-ready-wait-112",
+      "stage": "layout-back-de-logout-ready-wait-117",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:43.291663+00:00",
+      "time": "2026-10-29T01:19:11.494120+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3101,14 +3110,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:43.521515+00:00",
+      "after_time": "2026-10-29T01:19:11.690044+00:00",
       "ready": true
     },
     {
-      "stage": "layout-back-de-proof-after-hidden-ready-wait-110",
+      "stage": "layout-back-de-proof-after-hidden-ready-wait-115",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:42.638291+00:00",
+      "time": "2026-10-29T01:19:10.823768+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3136,14 +3145,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:42.860581+00:00",
+      "after_time": "2026-10-29T01:19:11.082793+00:00",
       "ready": true
     },
     {
-      "stage": "layout-back-de-proof-completed-wait-111",
+      "stage": "layout-back-de-proof-completed-wait-116",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:43.007755+00:00",
+      "time": "2026-10-29T01:19:11.189145+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3171,14 +3180,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:43.236523+00:00",
+      "after_time": "2026-10-29T01:19:11.441154+00:00",
       "ready": true
     },
     {
-      "stage": "layout-back-de-proof-ready-wait-108",
+      "stage": "layout-back-de-proof-ready-wait-113",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:39.484390+00:00",
+      "time": "2026-10-29T01:19:08.451906+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3206,14 +3215,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:39.729256+00:00",
+      "after_time": "2026-10-29T01:19:08.622434+00:00",
       "ready": true
     },
     {
-      "stage": "layout-de-begin-completed-wait-104",
+      "stage": "layout-de-begin-completed-wait-109",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:37.079697+00:00",
+      "time": "2026-10-29T01:19:06.582008+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3269,14 +3278,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:37.616869+00:00",
+      "after_time": "2026-10-29T01:19:07.023444+00:00",
       "ready": true
     },
     {
-      "stage": "layout-de-begin-ready-wait-103",
+      "stage": "layout-de-begin-ready-wait-108",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:36.418046+00:00",
+      "time": "2026-10-29T01:19:05.990603+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3332,14 +3341,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:36.925886+00:00",
+      "after_time": "2026-10-29T01:19:06.478654+00:00",
       "ready": true
     },
     {
-      "stage": "layout-de-finish-completed-wait-115",
+      "stage": "layout-de-finish-completed-wait-120",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:44.269469+00:00",
+      "time": "2026-10-29T01:19:12.409746+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3395,14 +3404,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:44.697700+00:00",
+      "after_time": "2026-10-29T01:19:12.883773+00:00",
       "ready": true
     },
     {
-      "stage": "layout-de-finish-ready-wait-114",
+      "stage": "layout-de-finish-ready-wait-119",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:43.686271+00:00",
+      "time": "2026-10-29T01:19:11.793057+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3458,14 +3467,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:44.152810+00:00",
+      "after_time": "2026-10-29T01:19:12.283759+00:00",
       "ready": true
     },
     {
-      "stage": "layout-intl-begin-completed-wait-79",
+      "stage": "layout-intl-begin-completed-wait-84",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:21.332887+00:00",
+      "time": "2026-10-29T01:18:51.047872+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3521,14 +3530,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:21.743200+00:00",
+      "after_time": "2026-10-29T01:18:51.528378+00:00",
       "ready": true
     },
     {
-      "stage": "layout-intl-begin-ready-wait-78",
+      "stage": "layout-intl-begin-ready-wait-83",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:20.691404+00:00",
+      "time": "2026-10-29T01:18:50.444682+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3584,14 +3593,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:21.226333+00:00",
+      "after_time": "2026-10-29T01:18:50.925669+00:00",
       "ready": true
     },
     {
-      "stage": "layout-intl-finish-completed-wait-90",
+      "stage": "layout-intl-finish-completed-wait-95",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:27.134163+00:00",
+      "time": "2026-10-29T01:18:56.986903+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3647,14 +3656,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:27.601681+00:00",
+      "after_time": "2026-10-29T01:18:57.403405+00:00",
       "ready": true
     },
     {
-      "stage": "layout-intl-finish-ready-wait-89",
+      "stage": "layout-intl-finish-ready-wait-94",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:26.570475+00:00",
+      "time": "2026-10-29T01:18:56.406816+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3710,14 +3719,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:27.016591+00:00",
+      "after_time": "2026-10-29T01:18:56.870595+00:00",
       "ready": true
     },
     {
-      "stage": "layout-intl-login-account-login-after-hidden-ready-wait-82",
+      "stage": "layout-intl-login-account-login-after-hidden-ready-wait-87",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:22.995184+00:00",
+      "time": "2026-10-29T01:18:52.754505+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3745,14 +3754,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:23.209487+00:00",
+      "after_time": "2026-10-29T01:18:53.047380+00:00",
       "ready": true
     },
     {
-      "stage": "layout-intl-logout-ready-wait-87",
+      "stage": "layout-intl-logout-ready-wait-92",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:26.266886+00:00",
+      "time": "2026-10-29T01:18:56.046385+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3780,14 +3789,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:26.482672+00:00",
+      "after_time": "2026-10-29T01:18:56.316892+00:00",
       "ready": true
     },
     {
-      "stage": "layout-intl-proof-after-hidden-ready-wait-85",
+      "stage": "layout-intl-proof-after-hidden-ready-wait-90",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:25.660391+00:00",
+      "time": "2026-10-29T01:18:55.449002+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3815,14 +3824,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:25.908993+00:00",
+      "after_time": "2026-10-29T01:18:55.662276+00:00",
       "ready": true
     },
     {
-      "stage": "layout-intl-proof-completed-wait-86",
+      "stage": "layout-intl-proof-completed-wait-91",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:25.998994+00:00",
+      "time": "2026-10-29T01:18:55.757503+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3850,14 +3859,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:26.202360+00:00",
+      "after_time": "2026-10-29T01:18:55.986951+00:00",
       "ready": true
     },
     {
-      "stage": "layout-intl-proof-ready-wait-83",
+      "stage": "layout-intl-proof-ready-wait-88",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:23.268962+00:00",
+      "time": "2026-10-29T01:18:53.129030+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3885,14 +3894,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:23.471172+00:00",
+      "after_time": "2026-10-29T01:18:53.372734+00:00",
       "ready": true
     },
     {
-      "stage": "layout-revert-finish-completed-wait-77",
+      "stage": "layout-revert-finish-completed-wait-82",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:20.244076+00:00",
+      "time": "2026-10-29T01:18:49.962295+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3948,14 +3957,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:20.635950+00:00",
+      "after_time": "2026-10-29T01:18:50.394691+00:00",
       "ready": true
     },
     {
-      "stage": "layout-revert-finish-ready-wait-76",
+      "stage": "layout-revert-finish-ready-wait-81",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:19.632947+00:00",
+      "time": "2026-10-29T01:18:49.359393+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4011,14 +4020,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:20.111795+00:00",
+      "after_time": "2026-10-29T01:18:49.848640+00:00",
       "ready": true
     },
     {
-      "stage": "layout-reverted-login-account-login-after-hidden-ready-wait-69",
+      "stage": "layout-reverted-login-account-login-after-hidden-ready-wait-74",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:16.162231+00:00",
+      "time": "2026-10-29T01:18:45.874259+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4046,14 +4055,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:16.365083+00:00",
+      "after_time": "2026-10-29T01:18:46.102455+00:00",
       "ready": true
     },
     {
-      "stage": "layout-reverted-logout-ready-wait-74",
+      "stage": "layout-reverted-logout-ready-wait-79",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:19.288217+00:00",
+      "time": "2026-10-29T01:18:49.066777+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4081,14 +4090,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:19.535781+00:00",
+      "after_time": "2026-10-29T01:18:49.282412+00:00",
       "ready": true
     },
     {
-      "stage": "layout-reverted-proof-after-hidden-ready-wait-72",
+      "stage": "layout-reverted-proof-after-hidden-ready-wait-77",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:18.644690+00:00",
+      "time": "2026-10-29T01:18:48.461924+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4116,14 +4125,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:18.883929+00:00",
+      "after_time": "2026-10-29T01:18:48.697357+00:00",
       "ready": true
     },
     {
-      "stage": "layout-reverted-proof-completed-wait-73",
+      "stage": "layout-reverted-proof-completed-wait-78",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:18.982568+00:00",
+      "time": "2026-10-29T01:18:48.780680+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4151,14 +4160,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:19.229159+00:00",
+      "after_time": "2026-10-29T01:18:49.009768+00:00",
       "ready": true
     },
     {
-      "stage": "layout-reverted-proof-ready-wait-70",
+      "stage": "layout-reverted-proof-ready-wait-75",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-10-28T22:52:16.416306+00:00",
+      "time": "2026-10-29T01:18:46.163219+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4186,14 +4195,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:16.627470+00:00",
+      "after_time": "2026-10-29T01:18:46.397907+00:00",
       "ready": true
     },
     {
-      "stage": "layout-unproved-reboot-refusal-completed-wait-61",
+      "stage": "layout-unproved-reboot-refusal-completed-wait-66",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:12.906797+00:00",
+      "time": "2026-10-29T01:18:42.561238+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4249,14 +4258,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:13.355350+00:00",
+      "after_time": "2026-10-29T01:18:43.037782+00:00",
       "ready": true
     },
     {
-      "stage": "layout-unproved-reboot-refusal-ready-wait-60",
+      "stage": "layout-unproved-reboot-refusal-ready-wait-65",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:12.388864+00:00",
+      "time": "2026-10-29T01:18:42.041153+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4312,14 +4321,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:12.796274+00:00",
+      "after_time": "2026-10-29T01:18:42.447578+00:00",
       "ready": true
     },
     {
-      "stage": "layout-us-begin-completed-wait-59",
+      "stage": "layout-us-begin-completed-wait-64",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:11.908984+00:00",
+      "time": "2026-10-29T01:18:41.482926+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4375,14 +4384,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:12.339539+00:00",
+      "after_time": "2026-10-29T01:18:41.975305+00:00",
       "ready": true
     },
     {
-      "stage": "layout-us-begin-ready-wait-58",
+      "stage": "layout-us-begin-ready-wait-63",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:11.353961+00:00",
+      "time": "2026-10-29T01:18:40.972606+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4438,14 +4447,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:11.805043+00:00",
+      "after_time": "2026-10-29T01:18:41.376693+00:00",
       "ready": true
     },
     {
-      "stage": "layout-us-revert-completed-wait-66",
+      "stage": "layout-us-revert-completed-wait-71",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:14.556559+00:00",
+      "time": "2026-10-29T01:18:44.296907+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4501,14 +4510,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:15.022761+00:00",
+      "after_time": "2026-10-29T01:18:44.700325+00:00",
       "ready": true
     },
     {
-      "stage": "layout-us-revert-ready-wait-65",
+      "stage": "layout-us-revert-ready-wait-70",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:13.994535+00:00",
+      "time": "2026-10-29T01:18:43.725764+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4564,14 +4573,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:14.447074+00:00",
+      "after_time": "2026-10-29T01:18:44.185954+00:00",
       "ready": true
     },
     {
-      "stage": "owner-keep-stock-completed-wait-145",
+      "stage": "owner-keep-stock-completed-wait-150",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:03.350536+00:00",
+      "time": "2026-10-29T01:19:32.670057+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4627,14 +4636,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:03.779318+00:00",
+      "after_time": "2026-10-29T01:19:33.126420+00:00",
       "ready": true
     },
     {
-      "stage": "owner-keep-stock-ready-wait-144",
+      "stage": "owner-keep-stock-ready-wait-149",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:02.779268+00:00",
+      "time": "2026-10-29T01:19:32.107759+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4690,14 +4699,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:03.235042+00:00",
+      "after_time": "2026-10-29T01:19:32.554190+00:00",
       "ready": true
     },
     {
-      "stage": "owner-keep-stock-reboot-ready-wait-148",
+      "stage": "owner-keep-stock-reboot-ready-wait-153",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:04.978056+00:00",
+      "time": "2026-10-29T01:19:34.253906+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4753,14 +4762,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:05.456824+00:00",
+      "after_time": "2026-10-29T01:19:34.723310+00:00",
       "ready": true
     },
     {
-      "stage": "owner-keep-stock-title-completed-wait-147",
+      "stage": "owner-keep-stock-title-completed-wait-152",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:04.474289+00:00",
+      "time": "2026-10-29T01:19:33.759467+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4816,14 +4825,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:04.926262+00:00",
+      "after_time": "2026-10-29T01:19:34.196362+00:00",
       "ready": true
     },
     {
-      "stage": "owner-keep-stock-title-ready-wait-146",
+      "stage": "owner-keep-stock-title-ready-wait-151",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:03.838122+00:00",
+      "time": "2026-10-29T01:19:33.191810+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4879,14 +4888,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:04.359037+00:00",
+      "after_time": "2026-10-29T01:19:33.668129+00:00",
       "ready": true
     },
     {
-      "stage": "owner-logind-diagnostics-completed-wait-57",
+      "stage": "owner-logind-diagnostics-completed-wait-62",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:10.866316+00:00",
+      "time": "2026-10-29T01:18:40.486015+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4942,14 +4951,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:11.298110+00:00",
+      "after_time": "2026-10-29T01:18:40.918229+00:00",
       "ready": true
     },
     {
-      "stage": "owner-logind-diagnostics-ready-wait-56",
+      "stage": "owner-logind-diagnostics-ready-wait-61",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:10.319437+00:00",
+      "time": "2026-10-29T01:18:39.997339+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5005,14 +5014,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:10.755657+00:00",
+      "after_time": "2026-10-29T01:18:40.383850+00:00",
       "ready": true
     },
     {
-      "stage": "owner-rollback-completed-wait-129",
+      "stage": "owner-rollback-completed-wait-134",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:53.200595+00:00",
+      "time": "2026-10-29T01:19:21.979061+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5068,14 +5077,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:53.661828+00:00",
+      "after_time": "2026-10-29T01:19:22.549012+00:00",
       "ready": true
     },
     {
-      "stage": "owner-rollback-ready-wait-128",
+      "stage": "owner-rollback-ready-wait-133",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:52.635756+00:00",
+      "time": "2026-10-29T01:19:21.461081+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5131,14 +5140,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:53.094739+00:00",
+      "after_time": "2026-10-29T01:19:21.838615+00:00",
       "ready": true
     },
     {
-      "stage": "owner-signature-completed-wait-41",
+      "stage": "owner-signature-completed-wait-46",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:01.093068+00:00",
+      "time": "2026-10-29T01:18:30.004068+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5194,14 +5203,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:01.457144+00:00",
+      "after_time": "2026-10-29T01:18:30.335971+00:00",
       "ready": true
     },
     {
-      "stage": "owner-signature-ready-wait-40",
+      "stage": "owner-signature-ready-wait-45",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:00.585232+00:00",
+      "time": "2026-10-29T01:18:29.527709+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5257,14 +5266,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:00.979376+00:00",
+      "after_time": "2026-10-29T01:18:29.882721+00:00",
       "ready": true
     },
     {
-      "stage": "owner-switch-completed-wait-43",
+      "stage": "owner-switch-completed-wait-48",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:02.022124+00:00",
+      "time": "2026-10-29T01:18:30.944803+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5320,14 +5329,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:02.390559+00:00",
+      "after_time": "2026-10-29T01:18:31.359337+00:00",
       "ready": true
     },
     {
-      "stage": "owner-switch-ready-wait-42",
+      "stage": "owner-switch-ready-wait-47",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:01.518338+00:00",
+      "time": "2026-10-29T01:18:30.396661+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5383,14 +5392,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:01.917529+00:00",
+      "after_time": "2026-10-29T01:18:30.818969+00:00",
       "ready": true
     },
     {
-      "stage": "owner-switch-reboot-ready-wait-46",
+      "stage": "owner-switch-reboot-ready-wait-51",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:03.422420+00:00",
+      "time": "2026-10-29T01:18:32.473511+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5446,14 +5455,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:03.806858+00:00",
+      "after_time": "2026-10-29T01:18:32.937063+00:00",
       "ready": true
     },
     {
-      "stage": "owner-switch-title-completed-wait-45",
+      "stage": "owner-switch-title-completed-wait-50",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:02.974223+00:00",
+      "time": "2026-10-29T01:18:31.985452+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5509,14 +5518,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:03.372902+00:00",
+      "after_time": "2026-10-29T01:18:32.412138+00:00",
       "ready": true
     },
     {
-      "stage": "owner-switch-title-ready-wait-44",
+      "stage": "owner-switch-title-ready-wait-49",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:02.466982+00:00",
+      "time": "2026-10-29T01:18:31.445500+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5572,14 +5581,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:02.861404+00:00",
+      "after_time": "2026-10-29T01:18:31.874271+00:00",
       "ready": true
     },
     {
-      "stage": "private-owner-login-after-hidden-ready-wait-38",
+      "stage": "private-owner-dummy-login-after-hidden-ready-wait-38",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:59.690554+00:00",
+      "time": "2026-10-29T01:18:22.915808+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5635,14 +5644,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:00.096652+00:00",
+      "after_time": "2026-10-29T01:18:23.323886+00:00",
       "ready": true
     },
     {
-      "stage": "private-owner-login-completed-wait-39",
+      "stage": "private-owner-dummy-login-completed-wait-39",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:00.189691+00:00",
+      "time": "2026-10-29T01:18:23.430818+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5698,14 +5707,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:00.524814+00:00",
+      "after_time": "2026-10-29T01:18:23.904750+00:00",
       "ready": true
     },
     {
-      "stage": "private-owner-login-ready-wait-35",
+      "stage": "private-owner-dummy-login-ready-wait-35",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:55.533212+00:00",
+      "time": "2026-10-29T01:18:18.224628+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5761,14 +5770,203 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:55.970089+00:00",
+      "after_time": "2026-10-29T01:18:18.721722+00:00",
       "ready": true
     },
     {
-      "stage": "rollback-from-stock-refused-completed-wait-143",
+      "stage": "private-owner-login-after-hidden-ready-wait-43",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:02.294767+00:00",
+      "time": "2026-10-29T01:18:28.577386+00:00",
+      "before_cursor_line": "",
+      "after_cursor_line": "ares-recovery@bazzite:~$",
+      "enter_sent": true,
+      "observer": {
+        "ready": true,
+        "completion_uses_echo": false,
+        "foreground_shell": true,
+        "observation": {
+          "ready": true,
+          "reason": "sudo -i monitor to foreground pts interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 20,
+              "comm": "sudo",
+              "argv": [
+                "sudo",
+                "-i"
+              ],
+              "argv_redacted": false,
+              "ppid": 10,
+              "pgrp": 20,
+              "session": 10,
+              "tty": 1027,
+              "tpgid": 20
+            },
+            {
+              "pid": 21,
+              "comm": "sudo",
+              "argv": [
+                "sudo",
+                "-i"
+              ],
+              "argv_redacted": false,
+              "ppid": 20,
+              "pgrp": 21,
+              "session": 21,
+              "tty": 35016,
+              "tpgid": 22
+            },
+            {
+              "pid": 22,
+              "comm": "bash",
+              "argv": [
+                "-bash"
+              ],
+              "argv_redacted": false,
+              "ppid": 21,
+              "pgrp": 22,
+              "session": 21,
+              "tty": 35016,
+              "tpgid": 22
+            }
+          ]
+        }
+      },
+      "after_time": "2026-10-29T01:18:28.994192+00:00",
+      "ready": true
+    },
+    {
+      "stage": "private-owner-login-completed-wait-44",
+      "tty": "tty3",
+      "attempt": 1,
+      "time": "2026-10-29T01:18:29.088183+00:00",
+      "before_cursor_line": "",
+      "after_cursor_line": "ares-recovery@bazzite:~$",
+      "enter_sent": true,
+      "observer": {
+        "ready": true,
+        "completion_uses_echo": false,
+        "foreground_shell": true,
+        "observation": {
+          "ready": true,
+          "reason": "sudo -i monitor to foreground pts interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 20,
+              "comm": "sudo",
+              "argv": [
+                "sudo",
+                "-i"
+              ],
+              "argv_redacted": false,
+              "ppid": 10,
+              "pgrp": 20,
+              "session": 10,
+              "tty": 1027,
+              "tpgid": 20
+            },
+            {
+              "pid": 21,
+              "comm": "sudo",
+              "argv": [
+                "sudo",
+                "-i"
+              ],
+              "argv_redacted": false,
+              "ppid": 20,
+              "pgrp": 21,
+              "session": 21,
+              "tty": 35016,
+              "tpgid": 22
+            },
+            {
+              "pid": 22,
+              "comm": "bash",
+              "argv": [
+                "-bash"
+              ],
+              "argv_redacted": false,
+              "ppid": 21,
+              "pgrp": 22,
+              "session": 21,
+              "tty": 35016,
+              "tpgid": 22
+            }
+          ]
+        }
+      },
+      "after_time": "2026-10-29T01:18:29.461886+00:00",
+      "ready": true
+    },
+    {
+      "stage": "private-owner-login-ready-wait-40",
+      "tty": "tty3",
+      "attempt": 1,
+      "time": "2026-10-29T01:18:23.978108+00:00",
+      "before_cursor_line": "",
+      "after_cursor_line": "ares-recovery@bazzite:~$",
+      "enter_sent": true,
+      "observer": {
+        "ready": true,
+        "completion_uses_echo": false,
+        "foreground_shell": true,
+        "observation": {
+          "ready": true,
+          "reason": "sudo -i monitor to foreground pts interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 20,
+              "comm": "sudo",
+              "argv": [
+                "sudo",
+                "-i"
+              ],
+              "argv_redacted": false,
+              "ppid": 10,
+              "pgrp": 20,
+              "session": 10,
+              "tty": 1027,
+              "tpgid": 20
+            },
+            {
+              "pid": 21,
+              "comm": "sudo",
+              "argv": [
+                "sudo",
+                "-i"
+              ],
+              "argv_redacted": false,
+              "ppid": 20,
+              "pgrp": 21,
+              "session": 21,
+              "tty": 35016,
+              "tpgid": 22
+            },
+            {
+              "pid": 22,
+              "comm": "bash",
+              "argv": [
+                "-bash"
+              ],
+              "argv_redacted": false,
+              "ppid": 21,
+              "pgrp": 22,
+              "session": 21,
+              "tty": 35016,
+              "tpgid": 22
+            }
+          ]
+        }
+      },
+      "after_time": "2026-10-29T01:18:24.379480+00:00",
+      "ready": true
+    },
+    {
+      "stage": "rollback-from-stock-refused-completed-wait-148",
+      "tty": "tty3",
+      "attempt": 1,
+      "time": "2026-10-29T01:19:31.596772+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5824,14 +6022,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:02.736452+00:00",
+      "after_time": "2026-10-29T01:19:32.039906+00:00",
       "ready": true
     },
     {
-      "stage": "rollback-from-stock-refused-ready-wait-142",
+      "stage": "rollback-from-stock-refused-ready-wait-147",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:01.726674+00:00",
+      "time": "2026-10-29T01:19:31.020806+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5887,14 +6085,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:02.178101+00:00",
+      "after_time": "2026-10-29T01:19:31.469838+00:00",
       "ready": true
     },
     {
-      "stage": "rollback-stock-account-login-after-hidden-ready-wait-135",
+      "stage": "rollback-stock-account-login-after-hidden-ready-wait-140",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:56.407817+00:00",
+      "time": "2026-10-29T01:19:25.420634+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5922,14 +6120,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:56.631172+00:00",
+      "after_time": "2026-10-29T01:19:25.624436+00:00",
       "ready": true
     },
     {
-      "stage": "rollback-stock-check-completed-wait-140",
+      "stage": "rollback-stock-check-completed-wait-145",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:00.693534+00:00",
+      "time": "2026-10-29T01:19:29.903461+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5985,14 +6183,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:01.095756+00:00",
+      "after_time": "2026-10-29T01:19:30.430401+00:00",
       "ready": true
     },
     {
-      "stage": "rollback-stock-check-ready-wait-139",
+      "stage": "rollback-stock-check-ready-wait-144",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:00.105454+00:00",
+      "time": "2026-10-29T01:19:29.340536+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6048,14 +6246,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:00.597185+00:00",
+      "after_time": "2026-10-29T01:19:29.775722+00:00",
       "ready": true
     },
     {
-      "stage": "rollback-stock-public-ready-wait-141",
+      "stage": "rollback-stock-public-ready-wait-146",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:53:01.157592+00:00",
+      "time": "2026-10-29T01:19:30.514554+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6111,14 +6309,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:01.647548+00:00",
+      "after_time": "2026-10-29T01:19:30.924842+00:00",
       "ready": true
     },
     {
-      "stage": "rollback-stock-ready-wait-136",
+      "stage": "rollback-stock-ready-wait-141",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:56.687348+00:00",
+      "time": "2026-10-29T01:19:25.664332+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6146,14 +6344,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:52:56.901695+00:00",
+      "after_time": "2026-10-29T01:19:25.886498+00:00",
       "ready": true
     },
     {
-      "stage": "rollback-stock-sudo-after-hidden-ready-wait-138",
+      "stage": "rollback-stock-sudo-after-hidden-ready-wait-143",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:52:59.633535+00:00",
+      "time": "2026-10-29T01:19:28.810154+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6209,14 +6407,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:53:00.046035+00:00",
+      "after_time": "2026-10-29T01:19:29.277506+00:00",
       "ready": true
     },
     {
       "stage": "tools-before-reboot-title-completed-wait-22",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:47.054182+00:00",
+      "time": "2026-10-29T01:18:09.044035+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6272,14 +6470,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:47.471333+00:00",
+      "after_time": "2026-10-29T01:18:09.471297+00:00",
       "ready": true
     },
     {
       "stage": "tools-before-reboot-title-ready-wait-21",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:46.473599+00:00",
+      "time": "2026-10-29T01:18:08.399650+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6335,14 +6533,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:46.943517+00:00",
+      "after_time": "2026-10-29T01:18:08.915422+00:00",
       "ready": true
     },
     {
       "stage": "tools-install-completed-wait-10",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:40.579056+00:00",
+      "time": "2026-10-29T01:18:02.361140+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6398,14 +6596,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:41.025421+00:00",
+      "after_time": "2026-10-29T01:18:02.799262+00:00",
       "ready": true
     },
     {
       "stage": "tools-install-ready-wait-7",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:40.020487+00:00",
+      "time": "2026-10-29T01:18:01.775375+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6461,14 +6659,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:40.416580+00:00",
+      "after_time": "2026-10-29T01:18:02.193377+00:00",
       "ready": true
     },
     {
       "stage": "tools-prepare-completed-wait-12",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:41.648152+00:00",
+      "time": "2026-10-29T01:18:03.373755+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6524,14 +6722,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:42.091830+00:00",
+      "after_time": "2026-10-29T01:18:03.866795+00:00",
       "ready": true
     },
     {
       "stage": "tools-prepare-ready-wait-11",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:41.086710+00:00",
+      "time": "2026-10-29T01:18:02.862560+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6587,14 +6785,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:41.532298+00:00",
+      "after_time": "2026-10-29T01:18:03.260313+00:00",
       "ready": true
     },
     {
       "stage": "tools-prepare-rerun-completed-wait-14",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:42.703487+00:00",
+      "time": "2026-10-29T01:18:04.457135+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6650,14 +6848,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:43.164652+00:00",
+      "after_time": "2026-10-29T01:18:04.946719+00:00",
       "ready": true
     },
     {
       "stage": "tools-prepare-rerun-ready-wait-13",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:42.154894+00:00",
+      "time": "2026-10-29T01:18:03.934503+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6713,14 +6911,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:42.579717+00:00",
+      "after_time": "2026-10-29T01:18:04.349269+00:00",
       "ready": true
     },
     {
       "stage": "tools-record-export-completed-wait-20",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:45.973943+00:00",
+      "time": "2026-10-29T01:18:07.848650+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6776,14 +6974,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:46.409363+00:00",
+      "after_time": "2026-10-29T01:18:08.339387+00:00",
       "ready": true
     },
     {
       "stage": "tools-record-export-ready-wait-19",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:45.383204+00:00",
+      "time": "2026-10-29T01:18:07.219591+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6839,14 +7037,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:45.850890+00:00",
+      "after_time": "2026-10-29T01:18:07.741569+00:00",
       "ready": true
     },
     {
       "stage": "tools-stock-account-login-after-hidden-ready-wait-3",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:36.433724+00:00",
+      "time": "2026-10-29T01:17:57.922194+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6874,14 +7072,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:36.646846+00:00",
+      "after_time": "2026-10-29T01:17:58.101867+00:00",
       "ready": true
     },
     {
       "stage": "tools-stock-ready-wait-4",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:36.706546+00:00",
+      "time": "2026-10-29T01:17:58.149404+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6909,14 +7107,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:36.936675+00:00",
+      "after_time": "2026-10-29T01:17:58.364594+00:00",
       "ready": true
     },
     {
       "stage": "tools-stock-reboot-ready-wait-23",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:47.527697+00:00",
+      "time": "2026-10-29T01:18:09.533750+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6972,14 +7170,14 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:47.990950+00:00",
+      "after_time": "2026-10-29T01:18:09.973336+00:00",
       "ready": true
     },
     {
       "stage": "tools-stock-sudo-after-hidden-ready-wait-6",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-10-28T22:51:39.526733+00:00",
+      "time": "2026-10-29T01:18:01.231512+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7035,7 +7233,7 @@
           ]
         }
       },
-      "after_time": "2026-10-28T22:51:39.960182+00:00",
+      "after_time": "2026-10-29T01:18:01.718175+00:00",
       "ready": true
     }
   ],
@@ -7073,159 +7271,167 @@
       "left"
     ],
     [
-      "private-owner-login-hidden-input-read-wait-37",
+      "private-owner-dummy-login-hidden-input-read-wait-37",
       "ready"
     ],
     [
-      "private-owner-login-hidden-input-read-wait-37-left",
+      "private-owner-dummy-login-hidden-input-read-wait-37-left",
       "left"
     ],
     [
-      "aresos-password-prompt-read-wait-48",
+      "private-owner-login-hidden-input-read-wait-42",
       "ready"
     ],
     [
-      "aresos-password-prompt-read-wait-48-left",
+      "private-owner-login-hidden-input-read-wait-42-left",
       "left"
     ],
     [
-      "aresos-sudo-hidden-read-wait-51",
+      "aresos-password-prompt-read-wait-53",
       "ready"
     ],
     [
-      "aresos-sudo-hidden-read-wait-51-left",
+      "aresos-password-prompt-read-wait-53-left",
       "left"
     ],
     [
-      "layout-plain-us-password-prompt-read-wait-63",
+      "aresos-sudo-hidden-read-wait-56",
       "ready"
     ],
     [
-      "layout-plain-us-password-prompt-read-wait-63-left",
+      "aresos-sudo-hidden-read-wait-56-left",
       "left"
     ],
     [
-      "layout-reverted-login-password-prompt-read-wait-68",
+      "layout-plain-us-password-prompt-read-wait-68",
       "ready"
     ],
     [
-      "layout-reverted-login-password-prompt-read-wait-68-left",
+      "layout-plain-us-password-prompt-read-wait-68-left",
       "left"
     ],
     [
-      "layout-reverted-proof-sudo-hidden-read-wait-71",
+      "layout-reverted-login-password-prompt-read-wait-73",
       "ready"
     ],
     [
-      "layout-reverted-proof-sudo-hidden-read-wait-71-handoff-1",
+      "layout-reverted-login-password-prompt-read-wait-73-left",
+      "left"
+    ],
+    [
+      "layout-reverted-proof-sudo-hidden-read-wait-76",
+      "ready"
+    ],
+    [
+      "layout-reverted-proof-sudo-hidden-read-wait-76-handoff-1",
       "handoff"
     ],
     [
-      "layout-reverted-proof-sudo-hidden-read-wait-71-left",
+      "layout-reverted-proof-sudo-hidden-read-wait-76-left",
       "left"
     ],
     [
-      "layout-intl-login-password-prompt-read-wait-81",
+      "layout-intl-login-password-prompt-read-wait-86",
       "ready"
     ],
     [
-      "layout-intl-login-password-prompt-read-wait-81-left",
+      "layout-intl-login-password-prompt-read-wait-86-left",
       "left"
     ],
     [
-      "layout-intl-proof-sudo-hidden-read-wait-84",
+      "layout-intl-proof-sudo-hidden-read-wait-89",
       "ready"
     ],
     [
-      "layout-intl-proof-sudo-hidden-read-wait-84-handoff-1",
+      "layout-intl-proof-sudo-hidden-read-wait-89-handoff-1",
       "handoff"
     ],
     [
-      "layout-intl-proof-sudo-hidden-read-wait-84-left",
+      "layout-intl-proof-sudo-hidden-read-wait-89-left",
       "left"
     ],
     [
-      "aresos-intl-password-prompt-read-wait-95",
+      "aresos-intl-password-prompt-read-wait-100",
       "ready"
     ],
     [
-      "aresos-intl-password-prompt-read-wait-95-left",
+      "aresos-intl-password-prompt-read-wait-100-left",
       "left"
     ],
     [
-      "aresos-intl-sudo-hidden-read-wait-98",
+      "aresos-intl-sudo-hidden-read-wait-103",
       "ready"
     ],
     [
-      "aresos-intl-sudo-hidden-read-wait-98-left",
+      "aresos-intl-sudo-hidden-read-wait-103-left",
       "left"
     ],
     [
-      "layout-back-de-login-password-prompt-read-wait-106",
+      "layout-back-de-login-password-prompt-read-wait-111",
       "ready"
     ],
     [
-      "layout-back-de-login-password-prompt-read-wait-106-left",
+      "layout-back-de-login-password-prompt-read-wait-111-left",
       "left"
     ],
     [
-      "layout-back-de-proof-sudo-hidden-read-wait-109",
+      "layout-back-de-proof-sudo-hidden-read-wait-114",
       "ready"
     ],
     [
-      "layout-back-de-proof-sudo-hidden-read-wait-109-handoff-1",
+      "layout-back-de-proof-sudo-hidden-read-wait-114-handoff-1",
       "handoff"
     ],
     [
-      "layout-back-de-proof-sudo-hidden-read-wait-109-left",
+      "layout-back-de-proof-sudo-hidden-read-wait-114-left",
       "left"
     ],
     [
-      "aresos-back-de-password-prompt-read-wait-120",
+      "aresos-back-de-password-prompt-read-wait-125",
       "ready"
     ],
     [
-      "aresos-back-de-password-prompt-read-wait-120-left",
+      "aresos-back-de-password-prompt-read-wait-125-left",
       "left"
     ],
     [
-      "aresos-back-de-sudo-hidden-read-wait-123",
+      "aresos-back-de-sudo-hidden-read-wait-128",
       "ready"
     ],
     [
-      "aresos-back-de-sudo-hidden-read-wait-123-left",
+      "aresos-back-de-sudo-hidden-read-wait-128-left",
       "left"
     ],
     [
-      "rollback-stock-password-prompt-read-wait-134",
+      "rollback-stock-password-prompt-read-wait-139",
       "ready"
     ],
     [
-      "rollback-stock-password-prompt-read-wait-134-left",
+      "rollback-stock-password-prompt-read-wait-139-left",
       "left"
     ],
     [
-      "rollback-stock-sudo-hidden-read-wait-137",
+      "rollback-stock-sudo-hidden-read-wait-142",
       "ready"
     ],
     [
-      "rollback-stock-sudo-hidden-read-wait-137-left",
+      "rollback-stock-sudo-hidden-read-wait-142-left",
       "left"
     ],
     [
-      "default-stock-password-prompt-read-wait-150",
+      "default-stock-password-prompt-read-wait-155",
       "ready"
     ],
     [
-      "default-stock-password-prompt-read-wait-150-left",
+      "default-stock-password-prompt-read-wait-155-left",
       "left"
     ],
     [
-      "default-stock-sudo-hidden-read-wait-153",
+      "default-stock-sudo-hidden-read-wait-158",
       "ready"
     ],
     [
-      "default-stock-sudo-hidden-read-wait-153-left",
+      "default-stock-sudo-hidden-read-wait-158-left",
       "left"
     ]
   ],
@@ -7313,7 +7519,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "private-owner-login-hidden-input-read-wait-37",
+      "stage": "private-owner-dummy-login-hidden-input-read-wait-37",
       "phase": "ready",
       "shape": "nested-owner-getpass",
       "completion": null,
@@ -7323,7 +7529,27 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "private-owner-login-hidden-input-read-wait-37-left",
+      "stage": "private-owner-dummy-login-hidden-input-read-wait-37-left",
+      "phase": "left",
+      "shape": "sudo-i-readline",
+      "completion": true,
+      "expected_rejection": false,
+      "completion_uses_echo": false
+    },
+    {
+      "boot": "corrected-stock",
+      "tty": "tty3",
+      "stage": "private-owner-login-hidden-input-read-wait-42",
+      "phase": "ready",
+      "shape": "nested-owner-getpass",
+      "completion": null,
+      "expected_rejection": false,
+      "completion_uses_echo": null
+    },
+    {
+      "boot": "corrected-stock",
+      "tty": "tty3",
+      "stage": "private-owner-login-hidden-input-read-wait-42-left",
       "phase": "left",
       "shape": "sudo-i-readline",
       "completion": true,
@@ -7333,7 +7559,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-password-prompt-read-wait-48",
+      "stage": "aresos-password-prompt-read-wait-53",
       "phase": "ready",
       "shape": "getty-login-reader",
       "completion": null,
@@ -7343,7 +7569,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-password-prompt-read-wait-48-left",
+      "stage": "aresos-password-prompt-read-wait-53-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7353,7 +7579,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-sudo-hidden-read-wait-51",
+      "stage": "aresos-sudo-hidden-read-wait-56",
       "phase": "ready",
       "shape": "sudo-password-reader",
       "completion": null,
@@ -7363,7 +7589,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-sudo-hidden-read-wait-51-left",
+      "stage": "aresos-sudo-hidden-read-wait-56-left",
       "phase": "left",
       "shape": "sudo-i-readline",
       "completion": true,
@@ -7373,7 +7599,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-plain-us-password-prompt-read-wait-63",
+      "stage": "layout-plain-us-password-prompt-read-wait-68",
       "phase": "ready",
       "shape": "getty-login-reader",
       "completion": null,
@@ -7383,7 +7609,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-plain-us-password-prompt-read-wait-63-left",
+      "stage": "layout-plain-us-password-prompt-read-wait-68-left",
       "phase": "left",
       "shape": "login-rejected",
       "completion": false,
@@ -7393,7 +7619,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-login-password-prompt-read-wait-68",
+      "stage": "layout-reverted-login-password-prompt-read-wait-73",
       "phase": "ready",
       "shape": "getty-login-reader",
       "completion": null,
@@ -7403,7 +7629,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-login-password-prompt-read-wait-68-left",
+      "stage": "layout-reverted-login-password-prompt-read-wait-73-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7413,7 +7639,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-proof-sudo-hidden-read-wait-71",
+      "stage": "layout-reverted-proof-sudo-hidden-read-wait-76",
       "phase": "ready",
       "shape": "sudo-password-reader",
       "completion": null,
@@ -7423,7 +7649,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-proof-sudo-hidden-read-wait-71-handoff-1",
+      "stage": "layout-reverted-proof-sudo-hidden-read-wait-76-handoff-1",
       "phase": "handoff",
       "shape": "sudo-owner-public-handoff",
       "completion": null,
@@ -7433,7 +7659,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-proof-sudo-hidden-read-wait-71-left",
+      "stage": "layout-reverted-proof-sudo-hidden-read-wait-76-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7443,7 +7669,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-login-password-prompt-read-wait-81",
+      "stage": "layout-intl-login-password-prompt-read-wait-86",
       "phase": "ready",
       "shape": "getty-login-reader",
       "completion": null,
@@ -7453,7 +7679,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-login-password-prompt-read-wait-81-left",
+      "stage": "layout-intl-login-password-prompt-read-wait-86-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7463,7 +7689,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-proof-sudo-hidden-read-wait-84",
+      "stage": "layout-intl-proof-sudo-hidden-read-wait-89",
       "phase": "ready",
       "shape": "sudo-password-reader",
       "completion": null,
@@ -7473,7 +7699,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-proof-sudo-hidden-read-wait-84-handoff-1",
+      "stage": "layout-intl-proof-sudo-hidden-read-wait-89-handoff-1",
       "phase": "handoff",
       "shape": "sudo-owner-public-handoff",
       "completion": null,
@@ -7483,7 +7709,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-proof-sudo-hidden-read-wait-84-left",
+      "stage": "layout-intl-proof-sudo-hidden-read-wait-89-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7493,7 +7719,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-password-prompt-read-wait-95",
+      "stage": "aresos-intl-password-prompt-read-wait-100",
       "phase": "ready",
       "shape": "getty-login-reader",
       "completion": null,
@@ -7503,7 +7729,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-password-prompt-read-wait-95-left",
+      "stage": "aresos-intl-password-prompt-read-wait-100-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7513,7 +7739,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-sudo-hidden-read-wait-98",
+      "stage": "aresos-intl-sudo-hidden-read-wait-103",
       "phase": "ready",
       "shape": "sudo-password-reader",
       "completion": null,
@@ -7523,7 +7749,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-sudo-hidden-read-wait-98-left",
+      "stage": "aresos-intl-sudo-hidden-read-wait-103-left",
       "phase": "left",
       "shape": "sudo-i-readline",
       "completion": true,
@@ -7533,7 +7759,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-login-password-prompt-read-wait-106",
+      "stage": "layout-back-de-login-password-prompt-read-wait-111",
       "phase": "ready",
       "shape": "getty-login-reader",
       "completion": null,
@@ -7543,7 +7769,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-login-password-prompt-read-wait-106-left",
+      "stage": "layout-back-de-login-password-prompt-read-wait-111-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7553,7 +7779,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-proof-sudo-hidden-read-wait-109",
+      "stage": "layout-back-de-proof-sudo-hidden-read-wait-114",
       "phase": "ready",
       "shape": "sudo-password-reader",
       "completion": null,
@@ -7563,7 +7789,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-proof-sudo-hidden-read-wait-109-handoff-1",
+      "stage": "layout-back-de-proof-sudo-hidden-read-wait-114-handoff-1",
       "phase": "handoff",
       "shape": "sudo-owner-public-handoff",
       "completion": null,
@@ -7573,7 +7799,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-proof-sudo-hidden-read-wait-109-left",
+      "stage": "layout-back-de-proof-sudo-hidden-read-wait-114-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7583,7 +7809,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-password-prompt-read-wait-120",
+      "stage": "aresos-back-de-password-prompt-read-wait-125",
       "phase": "ready",
       "shape": "getty-login-reader",
       "completion": null,
@@ -7593,7 +7819,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-password-prompt-read-wait-120-left",
+      "stage": "aresos-back-de-password-prompt-read-wait-125-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7603,7 +7829,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-sudo-hidden-read-wait-123",
+      "stage": "aresos-back-de-sudo-hidden-read-wait-128",
       "phase": "ready",
       "shape": "sudo-password-reader",
       "completion": null,
@@ -7613,7 +7839,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-sudo-hidden-read-wait-123-left",
+      "stage": "aresos-back-de-sudo-hidden-read-wait-128-left",
       "phase": "left",
       "shape": "sudo-i-readline",
       "completion": true,
@@ -7623,7 +7849,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-password-prompt-read-wait-134",
+      "stage": "rollback-stock-password-prompt-read-wait-139",
       "phase": "ready",
       "shape": "getty-login-reader",
       "completion": null,
@@ -7633,7 +7859,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-password-prompt-read-wait-134-left",
+      "stage": "rollback-stock-password-prompt-read-wait-139-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7643,7 +7869,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-sudo-hidden-read-wait-137",
+      "stage": "rollback-stock-sudo-hidden-read-wait-142",
       "phase": "ready",
       "shape": "sudo-password-reader",
       "completion": null,
@@ -7653,7 +7879,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-sudo-hidden-read-wait-137-left",
+      "stage": "rollback-stock-sudo-hidden-read-wait-142-left",
       "phase": "left",
       "shape": "sudo-i-readline",
       "completion": true,
@@ -7663,7 +7889,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-password-prompt-read-wait-150",
+      "stage": "default-stock-password-prompt-read-wait-155",
       "phase": "ready",
       "shape": "getty-login-reader",
       "completion": null,
@@ -7673,7 +7899,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-password-prompt-read-wait-150-left",
+      "stage": "default-stock-password-prompt-read-wait-155-left",
       "phase": "left",
       "shape": "persistent-login-readline",
       "completion": true,
@@ -7683,7 +7909,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-sudo-hidden-read-wait-153",
+      "stage": "default-stock-sudo-hidden-read-wait-158",
       "phase": "ready",
       "shape": "sudo-password-reader",
       "completion": null,
@@ -7693,7 +7919,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-sudo-hidden-read-wait-153-left",
+      "stage": "default-stock-sudo-hidden-read-wait-158-left",
       "phase": "left",
       "shape": "sudo-i-readline",
       "completion": true,
@@ -8153,7 +8379,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "private-owner-login-ready-wait-35-sample-1",
+      "stage": "private-owner-dummy-login-ready-wait-35-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8161,7 +8387,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "private-owner-login-ready-wait-35-sample-2",
+      "stage": "private-owner-dummy-login-ready-wait-35-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8169,7 +8395,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "private-owner-login-input-ready-wait-36-sample-1",
+      "stage": "private-owner-dummy-login-input-ready-wait-36-sample-1",
       "kind": "public-owner-input",
       "shape": "nested-owner-reader",
       "predicate_executed": true
@@ -8177,7 +8403,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "private-owner-login-after-hidden-ready-wait-38-sample-1",
+      "stage": "private-owner-dummy-login-after-hidden-ready-wait-38-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8185,7 +8411,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "private-owner-login-after-hidden-ready-wait-38-sample-2",
+      "stage": "private-owner-dummy-login-after-hidden-ready-wait-38-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8193,7 +8419,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "private-owner-login-completed-wait-39-sample-1",
+      "stage": "private-owner-dummy-login-completed-wait-39-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8201,7 +8427,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "private-owner-login-completed-wait-39-sample-2",
+      "stage": "private-owner-dummy-login-completed-wait-39-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8209,7 +8435,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-signature-ready-wait-40-sample-1",
+      "stage": "private-owner-login-ready-wait-40-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8217,7 +8443,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-signature-ready-wait-40-sample-2",
+      "stage": "private-owner-login-ready-wait-40-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8225,7 +8451,15 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-signature-completed-wait-41-sample-1",
+      "stage": "private-owner-login-input-ready-wait-41-sample-1",
+      "kind": "public-owner-input",
+      "shape": "nested-owner-reader",
+      "predicate_executed": true
+    },
+    {
+      "boot": "corrected-stock",
+      "tty": "tty3",
+      "stage": "private-owner-login-after-hidden-ready-wait-43-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8233,7 +8467,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-signature-completed-wait-41-sample-2",
+      "stage": "private-owner-login-after-hidden-ready-wait-43-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8241,7 +8475,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-ready-wait-42-sample-1",
+      "stage": "private-owner-login-completed-wait-44-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8249,7 +8483,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-ready-wait-42-sample-2",
+      "stage": "private-owner-login-completed-wait-44-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8257,7 +8491,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-completed-wait-43-sample-1",
+      "stage": "owner-signature-ready-wait-45-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8265,7 +8499,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-completed-wait-43-sample-2",
+      "stage": "owner-signature-ready-wait-45-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8273,7 +8507,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-title-ready-wait-44-sample-1",
+      "stage": "owner-signature-completed-wait-46-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8281,7 +8515,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-title-ready-wait-44-sample-2",
+      "stage": "owner-signature-completed-wait-46-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8289,7 +8523,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-title-completed-wait-45-sample-1",
+      "stage": "owner-switch-ready-wait-47-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8297,7 +8531,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-title-completed-wait-45-sample-2",
+      "stage": "owner-switch-ready-wait-47-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8305,7 +8539,7 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-reboot-ready-wait-46-sample-1",
+      "stage": "owner-switch-completed-wait-48-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8313,7 +8547,55 @@
     {
       "boot": "corrected-stock",
       "tty": "tty3",
-      "stage": "owner-switch-reboot-ready-wait-46-sample-2",
+      "stage": "owner-switch-completed-wait-48-sample-2",
+      "kind": "shell-prompt",
+      "shape": "sudo-i-readline",
+      "predicate_executed": true
+    },
+    {
+      "boot": "corrected-stock",
+      "tty": "tty3",
+      "stage": "owner-switch-title-ready-wait-49-sample-1",
+      "kind": "shell-prompt",
+      "shape": "sudo-i-readline",
+      "predicate_executed": true
+    },
+    {
+      "boot": "corrected-stock",
+      "tty": "tty3",
+      "stage": "owner-switch-title-ready-wait-49-sample-2",
+      "kind": "shell-prompt",
+      "shape": "sudo-i-readline",
+      "predicate_executed": true
+    },
+    {
+      "boot": "corrected-stock",
+      "tty": "tty3",
+      "stage": "owner-switch-title-completed-wait-50-sample-1",
+      "kind": "shell-prompt",
+      "shape": "sudo-i-readline",
+      "predicate_executed": true
+    },
+    {
+      "boot": "corrected-stock",
+      "tty": "tty3",
+      "stage": "owner-switch-title-completed-wait-50-sample-2",
+      "kind": "shell-prompt",
+      "shape": "sudo-i-readline",
+      "predicate_executed": true
+    },
+    {
+      "boot": "corrected-stock",
+      "tty": "tty3",
+      "stage": "owner-switch-reboot-ready-wait-51-sample-1",
+      "kind": "shell-prompt",
+      "shape": "sudo-i-readline",
+      "predicate_executed": true
+    },
+    {
+      "boot": "corrected-stock",
+      "tty": "tty3",
+      "stage": "owner-switch-reboot-ready-wait-51-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8321,7 +8603,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-login-prompt-wait-47-sample-1",
+      "stage": "aresos-login-prompt-wait-52-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -8329,7 +8611,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-account-login-after-hidden-ready-wait-49-sample-1",
+      "stage": "aresos-account-login-after-hidden-ready-wait-54-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8337,7 +8619,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-account-login-after-hidden-ready-wait-49-sample-2",
+      "stage": "aresos-account-login-after-hidden-ready-wait-54-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8345,7 +8627,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-ready-wait-50-sample-1",
+      "stage": "aresos-ready-wait-55-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8353,7 +8635,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-ready-wait-50-sample-2",
+      "stage": "aresos-ready-wait-55-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8361,7 +8643,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-sudo-after-hidden-ready-wait-52-sample-1",
+      "stage": "aresos-sudo-after-hidden-ready-wait-57-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8369,7 +8651,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-sudo-after-hidden-ready-wait-52-sample-2",
+      "stage": "aresos-sudo-after-hidden-ready-wait-57-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8377,7 +8659,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-check-ready-wait-53-sample-1",
+      "stage": "aresos-check-ready-wait-58-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8385,7 +8667,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-check-ready-wait-53-sample-2",
+      "stage": "aresos-check-ready-wait-58-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8393,7 +8675,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-check-completed-wait-54-sample-1",
+      "stage": "aresos-check-completed-wait-59-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8401,7 +8683,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-check-completed-wait-54-sample-2",
+      "stage": "aresos-check-completed-wait-59-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8409,7 +8691,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-public-ready-wait-55-sample-1",
+      "stage": "aresos-public-ready-wait-60-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8417,7 +8699,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-public-ready-wait-55-sample-2",
+      "stage": "aresos-public-ready-wait-60-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8425,7 +8707,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "owner-logind-diagnostics-ready-wait-56-sample-1",
+      "stage": "owner-logind-diagnostics-ready-wait-61-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8433,7 +8715,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "owner-logind-diagnostics-ready-wait-56-sample-2",
+      "stage": "owner-logind-diagnostics-ready-wait-61-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8441,7 +8723,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "owner-logind-diagnostics-completed-wait-57-sample-1",
+      "stage": "owner-logind-diagnostics-completed-wait-62-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8449,7 +8731,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "owner-logind-diagnostics-completed-wait-57-sample-2",
+      "stage": "owner-logind-diagnostics-completed-wait-62-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8457,7 +8739,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-us-begin-ready-wait-58-sample-1",
+      "stage": "layout-us-begin-ready-wait-63-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8465,7 +8747,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-us-begin-ready-wait-58-sample-2",
+      "stage": "layout-us-begin-ready-wait-63-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8473,7 +8755,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-us-begin-completed-wait-59-sample-1",
+      "stage": "layout-us-begin-completed-wait-64-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8481,7 +8763,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-us-begin-completed-wait-59-sample-2",
+      "stage": "layout-us-begin-completed-wait-64-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8489,7 +8771,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-unproved-reboot-refusal-ready-wait-60-sample-1",
+      "stage": "layout-unproved-reboot-refusal-ready-wait-65-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8497,7 +8779,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-unproved-reboot-refusal-ready-wait-60-sample-2",
+      "stage": "layout-unproved-reboot-refusal-ready-wait-65-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8505,7 +8787,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-unproved-reboot-refusal-completed-wait-61-sample-1",
+      "stage": "layout-unproved-reboot-refusal-completed-wait-66-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8513,7 +8795,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-unproved-reboot-refusal-completed-wait-61-sample-2",
+      "stage": "layout-unproved-reboot-refusal-completed-wait-66-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8521,7 +8803,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-plain-us-login-prompt-wait-62-sample-1",
+      "stage": "layout-plain-us-login-prompt-wait-67-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -8529,7 +8811,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-plain-us-rejected-wait-64-sample-1",
+      "stage": "layout-plain-us-rejected-wait-69-sample-1",
       "kind": "rejected-login",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -8537,7 +8819,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-us-revert-ready-wait-65-sample-1",
+      "stage": "layout-us-revert-ready-wait-70-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8545,7 +8827,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-us-revert-ready-wait-65-sample-2",
+      "stage": "layout-us-revert-ready-wait-70-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8553,7 +8835,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-us-revert-completed-wait-66-sample-1",
+      "stage": "layout-us-revert-completed-wait-71-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8561,7 +8843,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-us-revert-completed-wait-66-sample-2",
+      "stage": "layout-us-revert-completed-wait-71-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8569,7 +8851,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-login-login-prompt-wait-67-sample-1",
+      "stage": "layout-reverted-login-login-prompt-wait-72-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -8577,7 +8859,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-login-account-login-after-hidden-ready-wait-69-sample-1",
+      "stage": "layout-reverted-login-account-login-after-hidden-ready-wait-74-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8585,7 +8867,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-login-account-login-after-hidden-ready-wait-69-sample-2",
+      "stage": "layout-reverted-login-account-login-after-hidden-ready-wait-74-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8593,7 +8875,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-proof-ready-wait-70-sample-1",
+      "stage": "layout-reverted-proof-ready-wait-75-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8601,7 +8883,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-proof-ready-wait-70-sample-2",
+      "stage": "layout-reverted-proof-ready-wait-75-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8609,7 +8891,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-proof-after-hidden-ready-wait-72-sample-1",
+      "stage": "layout-reverted-proof-after-hidden-ready-wait-77-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8617,7 +8899,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-proof-after-hidden-ready-wait-72-sample-2",
+      "stage": "layout-reverted-proof-after-hidden-ready-wait-77-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8625,7 +8907,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-proof-completed-wait-73-sample-1",
+      "stage": "layout-reverted-proof-completed-wait-78-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8633,7 +8915,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-proof-completed-wait-73-sample-2",
+      "stage": "layout-reverted-proof-completed-wait-78-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8641,7 +8923,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-logout-ready-wait-74-sample-1",
+      "stage": "layout-reverted-logout-ready-wait-79-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8649,7 +8931,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-logout-ready-wait-74-sample-2",
+      "stage": "layout-reverted-logout-ready-wait-79-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8657,7 +8939,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-reverted-logout-getty-returned-wait-75-sample-1",
+      "stage": "layout-reverted-logout-getty-returned-wait-80-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -8665,7 +8947,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-revert-finish-ready-wait-76-sample-1",
+      "stage": "layout-revert-finish-ready-wait-81-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8673,7 +8955,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-revert-finish-ready-wait-76-sample-2",
+      "stage": "layout-revert-finish-ready-wait-81-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8681,7 +8963,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-revert-finish-completed-wait-77-sample-1",
+      "stage": "layout-revert-finish-completed-wait-82-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8689,7 +8971,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-revert-finish-completed-wait-77-sample-2",
+      "stage": "layout-revert-finish-completed-wait-82-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8697,7 +8979,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-intl-begin-ready-wait-78-sample-1",
+      "stage": "layout-intl-begin-ready-wait-83-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8705,7 +8987,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-intl-begin-ready-wait-78-sample-2",
+      "stage": "layout-intl-begin-ready-wait-83-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8713,7 +8995,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-intl-begin-completed-wait-79-sample-1",
+      "stage": "layout-intl-begin-completed-wait-84-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8721,7 +9003,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-intl-begin-completed-wait-79-sample-2",
+      "stage": "layout-intl-begin-completed-wait-84-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8729,7 +9011,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-login-login-prompt-wait-80-sample-1",
+      "stage": "layout-intl-login-login-prompt-wait-85-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -8737,7 +9019,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-login-account-login-after-hidden-ready-wait-82-sample-1",
+      "stage": "layout-intl-login-account-login-after-hidden-ready-wait-87-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8745,7 +9027,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-login-account-login-after-hidden-ready-wait-82-sample-2",
+      "stage": "layout-intl-login-account-login-after-hidden-ready-wait-87-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8753,7 +9035,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-proof-ready-wait-83-sample-1",
+      "stage": "layout-intl-proof-ready-wait-88-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8761,7 +9043,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-proof-ready-wait-83-sample-2",
+      "stage": "layout-intl-proof-ready-wait-88-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8769,7 +9051,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-proof-after-hidden-ready-wait-85-sample-1",
+      "stage": "layout-intl-proof-after-hidden-ready-wait-90-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8777,7 +9059,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-proof-after-hidden-ready-wait-85-sample-2",
+      "stage": "layout-intl-proof-after-hidden-ready-wait-90-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8785,7 +9067,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-proof-completed-wait-86-sample-1",
+      "stage": "layout-intl-proof-completed-wait-91-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8793,7 +9075,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-proof-completed-wait-86-sample-2",
+      "stage": "layout-intl-proof-completed-wait-91-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8801,7 +9083,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-logout-ready-wait-87-sample-1",
+      "stage": "layout-intl-logout-ready-wait-92-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8809,7 +9091,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-logout-ready-wait-87-sample-2",
+      "stage": "layout-intl-logout-ready-wait-92-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8817,7 +9099,7 @@
     {
       "boot": "aresos",
       "tty": "tty4",
-      "stage": "layout-intl-logout-getty-returned-wait-88-sample-1",
+      "stage": "layout-intl-logout-getty-returned-wait-93-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -8825,7 +9107,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-intl-finish-ready-wait-89-sample-1",
+      "stage": "layout-intl-finish-ready-wait-94-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8833,7 +9115,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-intl-finish-ready-wait-89-sample-2",
+      "stage": "layout-intl-finish-ready-wait-94-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8841,7 +9123,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-intl-finish-completed-wait-90-sample-1",
+      "stage": "layout-intl-finish-completed-wait-95-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8849,7 +9131,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "layout-intl-finish-completed-wait-90-sample-2",
+      "stage": "layout-intl-finish-completed-wait-95-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8857,7 +9139,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-reboot-title-ready-wait-91-sample-1",
+      "stage": "aresos-reboot-title-ready-wait-96-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8865,7 +9147,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-reboot-title-ready-wait-91-sample-2",
+      "stage": "aresos-reboot-title-ready-wait-96-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8873,7 +9155,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-reboot-title-completed-wait-92-sample-1",
+      "stage": "aresos-reboot-title-completed-wait-97-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8881,7 +9163,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-reboot-title-completed-wait-92-sample-2",
+      "stage": "aresos-reboot-title-completed-wait-97-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8889,7 +9171,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-owner-reboot-ready-wait-93-sample-1",
+      "stage": "aresos-owner-reboot-ready-wait-98-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8897,7 +9179,7 @@
     {
       "boot": "aresos",
       "tty": "tty3",
-      "stage": "aresos-owner-reboot-ready-wait-93-sample-2",
+      "stage": "aresos-owner-reboot-ready-wait-98-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8905,7 +9187,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-login-prompt-wait-94-sample-1",
+      "stage": "aresos-intl-login-prompt-wait-99-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -8913,7 +9195,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-account-login-after-hidden-ready-wait-96-sample-1",
+      "stage": "aresos-intl-account-login-after-hidden-ready-wait-101-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8921,7 +9203,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-account-login-after-hidden-ready-wait-96-sample-2",
+      "stage": "aresos-intl-account-login-after-hidden-ready-wait-101-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8929,7 +9211,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-ready-wait-97-sample-1",
+      "stage": "aresos-intl-ready-wait-102-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8937,7 +9219,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-ready-wait-97-sample-2",
+      "stage": "aresos-intl-ready-wait-102-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -8945,7 +9227,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-sudo-after-hidden-ready-wait-99-sample-1",
+      "stage": "aresos-intl-sudo-after-hidden-ready-wait-104-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8953,7 +9235,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-sudo-after-hidden-ready-wait-99-sample-2",
+      "stage": "aresos-intl-sudo-after-hidden-ready-wait-104-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8961,7 +9243,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-check-ready-wait-100-sample-1",
+      "stage": "aresos-intl-check-ready-wait-105-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8969,7 +9251,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-check-ready-wait-100-sample-2",
+      "stage": "aresos-intl-check-ready-wait-105-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8977,7 +9259,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-check-completed-wait-101-sample-1",
+      "stage": "aresos-intl-check-completed-wait-106-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8985,7 +9267,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-check-completed-wait-101-sample-2",
+      "stage": "aresos-intl-check-completed-wait-106-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -8993,7 +9275,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-public-ready-wait-102-sample-1",
+      "stage": "aresos-intl-public-ready-wait-107-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9001,7 +9283,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-public-ready-wait-102-sample-2",
+      "stage": "aresos-intl-public-ready-wait-107-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9009,7 +9291,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "layout-de-begin-ready-wait-103-sample-1",
+      "stage": "layout-de-begin-ready-wait-108-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9017,7 +9299,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "layout-de-begin-ready-wait-103-sample-2",
+      "stage": "layout-de-begin-ready-wait-108-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9025,7 +9307,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "layout-de-begin-completed-wait-104-sample-1",
+      "stage": "layout-de-begin-completed-wait-109-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9033,7 +9315,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "layout-de-begin-completed-wait-104-sample-2",
+      "stage": "layout-de-begin-completed-wait-109-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9041,7 +9323,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-login-login-prompt-wait-105-sample-1",
+      "stage": "layout-back-de-login-login-prompt-wait-110-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -9049,7 +9331,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-login-account-login-after-hidden-ready-wait-107-sample-1",
+      "stage": "layout-back-de-login-account-login-after-hidden-ready-wait-112-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9057,7 +9339,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-login-account-login-after-hidden-ready-wait-107-sample-2",
+      "stage": "layout-back-de-login-account-login-after-hidden-ready-wait-112-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9065,7 +9347,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-proof-ready-wait-108-sample-1",
+      "stage": "layout-back-de-proof-ready-wait-113-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9073,7 +9355,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-proof-ready-wait-108-sample-2",
+      "stage": "layout-back-de-proof-ready-wait-113-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9081,7 +9363,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-proof-after-hidden-ready-wait-110-sample-1",
+      "stage": "layout-back-de-proof-after-hidden-ready-wait-115-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9089,7 +9371,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-proof-after-hidden-ready-wait-110-sample-2",
+      "stage": "layout-back-de-proof-after-hidden-ready-wait-115-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9097,7 +9379,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-proof-completed-wait-111-sample-1",
+      "stage": "layout-back-de-proof-completed-wait-116-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9105,7 +9387,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-proof-completed-wait-111-sample-2",
+      "stage": "layout-back-de-proof-completed-wait-116-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9113,7 +9395,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-logout-ready-wait-112-sample-1",
+      "stage": "layout-back-de-logout-ready-wait-117-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9121,7 +9403,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-logout-ready-wait-112-sample-2",
+      "stage": "layout-back-de-logout-ready-wait-117-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9129,7 +9411,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty4",
-      "stage": "layout-back-de-logout-getty-returned-wait-113-sample-1",
+      "stage": "layout-back-de-logout-getty-returned-wait-118-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -9137,7 +9419,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "layout-de-finish-ready-wait-114-sample-1",
+      "stage": "layout-de-finish-ready-wait-119-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9145,7 +9427,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "layout-de-finish-ready-wait-114-sample-2",
+      "stage": "layout-de-finish-ready-wait-119-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9153,7 +9435,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "layout-de-finish-completed-wait-115-sample-1",
+      "stage": "layout-de-finish-completed-wait-120-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9161,7 +9443,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "layout-de-finish-completed-wait-115-sample-2",
+      "stage": "layout-de-finish-completed-wait-120-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9169,7 +9451,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-reboot-title-ready-wait-116-sample-1",
+      "stage": "aresos-intl-reboot-title-ready-wait-121-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9177,7 +9459,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-reboot-title-ready-wait-116-sample-2",
+      "stage": "aresos-intl-reboot-title-ready-wait-121-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9185,7 +9467,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-reboot-title-completed-wait-117-sample-1",
+      "stage": "aresos-intl-reboot-title-completed-wait-122-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9193,7 +9475,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-reboot-title-completed-wait-117-sample-2",
+      "stage": "aresos-intl-reboot-title-completed-wait-122-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9201,7 +9483,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-owner-reboot-ready-wait-118-sample-1",
+      "stage": "aresos-intl-owner-reboot-ready-wait-123-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9209,7 +9491,7 @@
     {
       "boot": "aresos-intl",
       "tty": "tty3",
-      "stage": "aresos-intl-owner-reboot-ready-wait-118-sample-2",
+      "stage": "aresos-intl-owner-reboot-ready-wait-123-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9217,7 +9499,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-login-prompt-wait-119-sample-1",
+      "stage": "aresos-back-de-login-prompt-wait-124-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -9225,7 +9507,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-account-login-after-hidden-ready-wait-121-sample-1",
+      "stage": "aresos-back-de-account-login-after-hidden-ready-wait-126-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9233,7 +9515,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-account-login-after-hidden-ready-wait-121-sample-2",
+      "stage": "aresos-back-de-account-login-after-hidden-ready-wait-126-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9241,7 +9523,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-ready-wait-122-sample-1",
+      "stage": "aresos-back-de-ready-wait-127-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9249,7 +9531,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-ready-wait-122-sample-2",
+      "stage": "aresos-back-de-ready-wait-127-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9257,7 +9539,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-sudo-after-hidden-ready-wait-124-sample-1",
+      "stage": "aresos-back-de-sudo-after-hidden-ready-wait-129-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9265,7 +9547,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-sudo-after-hidden-ready-wait-124-sample-2",
+      "stage": "aresos-back-de-sudo-after-hidden-ready-wait-129-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9273,7 +9555,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-check-ready-wait-125-sample-1",
+      "stage": "aresos-back-de-check-ready-wait-130-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9281,7 +9563,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-check-ready-wait-125-sample-2",
+      "stage": "aresos-back-de-check-ready-wait-130-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9289,7 +9571,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-check-completed-wait-126-sample-1",
+      "stage": "aresos-back-de-check-completed-wait-131-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9297,7 +9579,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-check-completed-wait-126-sample-2",
+      "stage": "aresos-back-de-check-completed-wait-131-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9305,7 +9587,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-public-ready-wait-127-sample-1",
+      "stage": "aresos-back-de-public-ready-wait-132-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9313,7 +9595,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-public-ready-wait-127-sample-2",
+      "stage": "aresos-back-de-public-ready-wait-132-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9321,7 +9603,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "owner-rollback-ready-wait-128-sample-1",
+      "stage": "owner-rollback-ready-wait-133-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9329,7 +9611,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "owner-rollback-ready-wait-128-sample-2",
+      "stage": "owner-rollback-ready-wait-133-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9337,7 +9619,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "owner-rollback-completed-wait-129-sample-1",
+      "stage": "owner-rollback-completed-wait-134-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9345,7 +9627,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "owner-rollback-completed-wait-129-sample-2",
+      "stage": "owner-rollback-completed-wait-134-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9353,7 +9635,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-reboot-title-ready-wait-130-sample-1",
+      "stage": "aresos-back-de-reboot-title-ready-wait-135-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9361,7 +9643,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-reboot-title-ready-wait-130-sample-2",
+      "stage": "aresos-back-de-reboot-title-ready-wait-135-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9369,7 +9651,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-reboot-title-completed-wait-131-sample-1",
+      "stage": "aresos-back-de-reboot-title-completed-wait-136-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9377,7 +9659,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-reboot-title-completed-wait-131-sample-2",
+      "stage": "aresos-back-de-reboot-title-completed-wait-136-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9385,7 +9667,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-owner-reboot-ready-wait-132-sample-1",
+      "stage": "aresos-back-de-owner-reboot-ready-wait-137-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9393,7 +9675,7 @@
     {
       "boot": "aresos-back-de",
       "tty": "tty3",
-      "stage": "aresos-back-de-owner-reboot-ready-wait-132-sample-2",
+      "stage": "aresos-back-de-owner-reboot-ready-wait-137-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9401,7 +9683,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-login-prompt-wait-133-sample-1",
+      "stage": "rollback-stock-login-prompt-wait-138-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -9409,7 +9691,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-account-login-after-hidden-ready-wait-135-sample-1",
+      "stage": "rollback-stock-account-login-after-hidden-ready-wait-140-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9417,7 +9699,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-account-login-after-hidden-ready-wait-135-sample-2",
+      "stage": "rollback-stock-account-login-after-hidden-ready-wait-140-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9425,7 +9707,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-ready-wait-136-sample-1",
+      "stage": "rollback-stock-ready-wait-141-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9433,7 +9715,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-ready-wait-136-sample-2",
+      "stage": "rollback-stock-ready-wait-141-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9441,7 +9723,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-sudo-after-hidden-ready-wait-138-sample-1",
+      "stage": "rollback-stock-sudo-after-hidden-ready-wait-143-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9449,7 +9731,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-sudo-after-hidden-ready-wait-138-sample-2",
+      "stage": "rollback-stock-sudo-after-hidden-ready-wait-143-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9457,7 +9739,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-check-ready-wait-139-sample-1",
+      "stage": "rollback-stock-check-ready-wait-144-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9465,7 +9747,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-check-ready-wait-139-sample-2",
+      "stage": "rollback-stock-check-ready-wait-144-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9473,7 +9755,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-check-completed-wait-140-sample-1",
+      "stage": "rollback-stock-check-completed-wait-145-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9481,7 +9763,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-check-completed-wait-140-sample-2",
+      "stage": "rollback-stock-check-completed-wait-145-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9489,7 +9771,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-public-ready-wait-141-sample-1",
+      "stage": "rollback-stock-public-ready-wait-146-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9497,7 +9779,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-stock-public-ready-wait-141-sample-2",
+      "stage": "rollback-stock-public-ready-wait-146-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9505,7 +9787,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-from-stock-refused-ready-wait-142-sample-1",
+      "stage": "rollback-from-stock-refused-ready-wait-147-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9513,7 +9795,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-from-stock-refused-ready-wait-142-sample-2",
+      "stage": "rollback-from-stock-refused-ready-wait-147-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9521,7 +9803,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-from-stock-refused-completed-wait-143-sample-1",
+      "stage": "rollback-from-stock-refused-completed-wait-148-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9529,7 +9811,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "rollback-from-stock-refused-completed-wait-143-sample-2",
+      "stage": "rollback-from-stock-refused-completed-wait-148-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9537,7 +9819,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-ready-wait-144-sample-1",
+      "stage": "owner-keep-stock-ready-wait-149-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9545,7 +9827,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-ready-wait-144-sample-2",
+      "stage": "owner-keep-stock-ready-wait-149-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9553,7 +9835,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-completed-wait-145-sample-1",
+      "stage": "owner-keep-stock-completed-wait-150-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9561,7 +9843,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-completed-wait-145-sample-2",
+      "stage": "owner-keep-stock-completed-wait-150-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9569,7 +9851,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-title-ready-wait-146-sample-1",
+      "stage": "owner-keep-stock-title-ready-wait-151-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9577,7 +9859,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-title-ready-wait-146-sample-2",
+      "stage": "owner-keep-stock-title-ready-wait-151-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9585,7 +9867,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-title-completed-wait-147-sample-1",
+      "stage": "owner-keep-stock-title-completed-wait-152-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9593,7 +9875,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-title-completed-wait-147-sample-2",
+      "stage": "owner-keep-stock-title-completed-wait-152-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9601,7 +9883,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-reboot-ready-wait-148-sample-1",
+      "stage": "owner-keep-stock-reboot-ready-wait-153-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9609,7 +9891,7 @@
     {
       "boot": "rollback-stock",
       "tty": "tty3",
-      "stage": "owner-keep-stock-reboot-ready-wait-148-sample-2",
+      "stage": "owner-keep-stock-reboot-ready-wait-153-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9617,7 +9899,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-login-prompt-wait-149-sample-1",
+      "stage": "default-stock-login-prompt-wait-154-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -9625,7 +9907,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-account-login-after-hidden-ready-wait-151-sample-1",
+      "stage": "default-stock-account-login-after-hidden-ready-wait-156-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9633,7 +9915,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-account-login-after-hidden-ready-wait-151-sample-2",
+      "stage": "default-stock-account-login-after-hidden-ready-wait-156-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9641,7 +9923,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-ready-wait-152-sample-1",
+      "stage": "default-stock-ready-wait-157-sample-1",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9649,7 +9931,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-ready-wait-152-sample-2",
+      "stage": "default-stock-ready-wait-157-sample-2",
       "kind": "shell-prompt",
       "shape": "persistent-login-readline",
       "predicate_executed": true
@@ -9657,7 +9939,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-sudo-after-hidden-ready-wait-154-sample-1",
+      "stage": "default-stock-sudo-after-hidden-ready-wait-159-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9665,7 +9947,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-sudo-after-hidden-ready-wait-154-sample-2",
+      "stage": "default-stock-sudo-after-hidden-ready-wait-159-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9673,7 +9955,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-check-ready-wait-155-sample-1",
+      "stage": "default-stock-check-ready-wait-160-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9681,7 +9963,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-check-ready-wait-155-sample-2",
+      "stage": "default-stock-check-ready-wait-160-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9689,7 +9971,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-check-completed-wait-156-sample-1",
+      "stage": "default-stock-check-completed-wait-161-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9697,7 +9979,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-check-completed-wait-156-sample-2",
+      "stage": "default-stock-check-completed-wait-161-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9705,7 +9987,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-public-ready-wait-157-sample-1",
+      "stage": "default-stock-public-ready-wait-162-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9713,7 +9995,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-public-ready-wait-157-sample-2",
+      "stage": "default-stock-public-ready-wait-162-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9721,7 +10003,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-logout-ready-wait-158-sample-1",
+      "stage": "default-stock-logout-ready-wait-163-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9729,7 +10011,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-logout-ready-wait-158-sample-2",
+      "stage": "default-stock-logout-ready-wait-163-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9737,7 +10019,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-logout-user-ready-wait-159-sample-1",
+      "stage": "default-stock-logout-user-ready-wait-164-sample-1",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9745,7 +10027,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-logout-user-ready-wait-159-sample-2",
+      "stage": "default-stock-logout-user-ready-wait-164-sample-2",
       "kind": "shell-prompt",
       "shape": "sudo-i-readline",
       "predicate_executed": true
@@ -9753,7 +10035,7 @@
     {
       "boot": "default-stock",
       "tty": "tty3",
-      "stage": "default-stock-logout-getty-returned-wait-160-sample-1",
+      "stage": "default-stock-logout-getty-returned-wait-165-sample-1",
       "kind": "getty-login-prompt",
       "shape": "getty-login-reader",
       "predicate_executed": true
@@ -9806,6 +10088,10 @@
       "path": "os/ci/owner_hidden.py"
     },
     {
+      "sha256": "5b878329b6baf785f2dca91f2ee424c1e5dd691427020612df731ff85bb58d2d",
+      "path": "os/ci/owner_key_counter.py"
+    },
+    {
       "sha256": "9b3844270a49466ea2294f91a0cad206ffea41eca8ee45313e781065aecaedc3",
       "path": "os/ci/owner_keys.py"
     },
@@ -9814,11 +10100,11 @@
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "21a72b45a942a6bd1be3a55c6645e85ad5279ce21a8f49a84f04e89396715cf6",
+      "sha256": "204b8f43c087bc08820fd6de095c5b1a1942bc2fe687a31990aea1198ad42936",
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "c4a25e9158c64e2bbf62818235a7679a701caa690ebf72eca3b8dafed4f88c10",
+      "sha256": "a23b598c48a3d61510599c702916001937b576d51f2596215495aa5c92cc91b7",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -9830,7 +10116,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "8d57daaca68c173d9b85a8145681dc2589a7b447165ece003d73efa39075bb6c",
+      "sha256": "03242f6a8eab14d96e21d1445aeedcdc6edaa798b8a17ed109a4a2419d915dde",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -10090,7 +10376,7 @@
       "path": "os/tests/owner_shim.py"
     },
     {
-      "sha256": "6baf2ebe02e9a1ec9887889252d9215f525436057276117d0039601b2002a478",
+      "sha256": "782f816c51c9334140b34f972ead6fb585a4f253065c7877f46fe49d07458e79",
       "path": "os/tests/serial_pty.py"
     },
     {
@@ -10178,7 +10464,7 @@
       "path": "os/tests/test_owner_format_audit.py"
     },
     {
-      "sha256": "9b270eb5033fc5dd794ef69890270c05959d8c7818d0dc9fbee8e6b0eec70442",
+      "sha256": "1ac69930b3d52777846db3c22efa7ac72bf7763e9c166461f679078d86db299b",
       "path": "os/tests/test_owner_guard.py"
     },
     {
@@ -10186,11 +10472,15 @@
       "path": "os/tests/test_owner_hidden.py"
     },
     {
+      "sha256": "ae2ad412cca5b71bd4823f48b181c8dbf2cb228068ec6d3ede78f92f7efc8500",
+      "path": "os/tests/test_owner_key_counter.py"
+    },
+    {
       "sha256": "35162391f9b36183b063ac604d833168000e1ff715146ca50a241a85f55f6de6",
       "path": "os/tests/test_owner_media.py"
     },
     {
-      "sha256": "dc9f85d8a6f3faa20c7cb62264085b012caa1a09c114d070a7ae16c9a9d904b5",
+      "sha256": "47ce635fe2002a8729dca7232000fd66276fcd9dbfbbcf904687d22f5996c446",
       "path": "os/tests/test_owner_read_diagnostics.py"
     },
     {
@@ -10214,7 +10504,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "ecb6e1f700ea4dbfdce1d432379b071353cb4da40a3d4ffb0533bb7f82b64dfe",
+      "sha256": "d678bb7f7cbacdc24261a8056dc0016f3b05a470a67a5e262a56f1e736d47d1c",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -10234,7 +10524,7 @@
       "path": "os/tests/test_serial_console.py"
     },
     {
-      "sha256": "cc57281b65e6d99a7aae660c595e7a8bc70d96db62a6cdc3f015b73c81c8b648",
+      "sha256": "379a47c2855d54c2512b8431399182fc7e4569453922a5f6f17672c0c1a26af0",
       "path": "os/tests/test_serial_staging.py"
     },
     {
@@ -10246,7 +10536,7 @@
       "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
     },
     {
-      "sha256": "b82764bdab282a0a7d90ebfa8e1621b6c3e44be28ebbcf34bf701d9d062bb32c",
+      "sha256": "0f8f66ad59fbdf84362d3ae1e926d4843103095adc00cf7f9f2bfc6e06cfb2d0",
       "path": "reviews/14-owner-tools/walk-host.py"
     }
   ],
@@ -10262,9 +10552,9 @@
     "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
   ],
   "local_suite": {
-    "tests": 484,
-    "seconds": 627.893,
-    "distinct_passed": 475,
+    "tests": 495,
+    "seconds": 638.961,
+    "distinct_passed": 486,
     "observed_host_limitations": [
       "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
       "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",

@@ -1,5 +1,65 @@
 # 14: checked owner tools
 
+## 14zo REPORT — owner-length token proof and guest key-event counts
+
+**Done:** during each token typing the harness starts a read-only evdev observer
+over the acknowledged serial transport. It selects the exact retained QEMU USB
+keyboard identity, checks no held keys, reads autorepeat settings and exports
+only press/release/repeat/SYN_DROPPED totals. Raw events, codes, values and key
+order are never saved. SYN_DROPPED invalidates completeness; any count mismatch
+stops continuation. Root-only tmpfs counter files contain aggregate data and are
+removed after collection. The probe checks actual device/getter/fork capability
+with a zero-input window before qualification.
+
+The first private login uses a fresh in-memory 40-character classic-PAT-shaped
+dummy and must return the existing registry-refusal STOP within180s. A stall or
+unexpected refusal exports counts/14zn diagnostics and blocks the real token.
+Only after that proof does the real CI token use16-character chunks with1s
+between chunks and1s before its single Return. No secret is retyped or gets a
+second Return. Counters are finalized even if typing fails. Kernel wchan symbol
+suffixes are accepted, while whitespace/argument text remains refused. Other
+deadlines, owner payload/fingerprint, guides, runtime, workflows and privacy
+rules are unchanged. No image dispatch or publication.
+
+**Evidence / cause:** qualification10 established sent377 characters/1108 QMP
+events, empty terminal queues and a waiting Python read, not actual HID delivery.
+The integrator's17/377-character nested-sudo WSL reproductions succeed. Dropped
+HID events remain unproved. The collector follows the public Linux input-event
+ABI and QEMU8.2.2 base references; these are distinguished from the pinned Ubuntu
+package patches. [Reference/retained-identity record](../../os/manifest/ci/14/14zo-preflight/input-reference-sources.json).
+
+**Verified locally:** final whole suite495/638.961s, 486 distinct
+passes, 9 previously approved host limitations, zero skips. The mandatory
+30s test and every serial-staging assertion are unchanged. Earlier full local
+run measured41.170695s (isolated affected run41.368544s); final run measured
+37.36985975499999s. These are the explicit
+14zm memory-pressure timing limitation, never native exceptions. The walk's
+expected hidden-read count was corrected from22 to23 for the added dummy read.
+Twenty-six focused counter/diagnostic/budget regressions and four controller
+tests pass, including SYN_DROPPED, malformed events, aggregate-only output,
+read-only ioctls, exact chunk pauses/one Return and dummy-stop-before-real wiring.
+The current walk covers all8 stages,23 hidden pairs,3 public handoffs and both
+token-start snapshots; no uncovered wait/input remains. Strict checks cover
+570 guest commands and570 wrappers,545 embedded Python blocks,12 shell files,
+49 Python files and the native workflow body, with no syntax warnings accepted.
+Full ISO replay passed on attempt1 against all9,068,650,496 pinned bytes and a
+fresh official checksum. Release/git/53-source replay passes; four credential-
+only registry checks remain explicitly CI-only/fail-closed.
+[Source-bound preparation](../../os/manifest/ci/14/14zo-preflight/preparation.json).
+
+**Budget / pending:** complete122/122 history:1208 consumed +238 pre-push bound
+/1500. Package14 only is probe23/owner-tools12; package13 is unchanged, reserve0,
+closing0. The read-only$10/prevent=true guard deducts net charged Actions spend.
+One fast-forward push follows pinned local gitleaks; fresh exact-head privacy,
+ledger/billing/budget then precede probe22. Only accepted probe22 permits
+qualification11 on the same head. Any CI stop ends the round without a rerun.
+PR #13 remains draft; acceptance is unmet. Restore reserve150/closing12 only on
+acceptance and tell the owner the round is over so the paid budget can return0.
+
+**Not verified / open question:** actual received HID counts, owner-length proof
+and full VM owner route on this head. No conclusion about lost keys yet. The
+physical release/laptop gates remain outstanding; no real laptop was touched.
+
 **14zn STOP: probe21 accepted; qualification10 stopped after the180s private-token
 completion wait.** The secret was sent once, never retyped. No rerun or additional
 dispatch/push. PR #13 stays draft / NOT RELEASED; acceptance is unmet.

@@ -21,7 +21,7 @@ import owner_vm as vm
 from test_owner_hidden import Proc, nested
 
 
-def execute_diagnostics(source, fail_ioctl=False, disappear=False):
+def execute_diagnostics(source, fail_ioctl=False, disappear=False, wchan='n_tty_read'):
     import fcntl
     call, = [n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.Call)
         and isinstance(n.func, ast.Name) and n.func.id == 'collect']
@@ -30,7 +30,7 @@ def execute_diagnostics(source, fail_ioctl=False, disappear=False):
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory:
         proc = Proc(directory, rows).root
         for r in rows:
-            (proc / str(r['pid']) / 'wchan').write_text('n_tty_read\n')
+            (proc / str(r['pid']) / 'wchan').write_text(wchan+'\n')
             (proc / str(r['pid']) / 'syscall').write_text('0 0xdeadbeef NEVER_EXPORT_ARGUMENTS 0 0\n')
         if disappear:
             (proc / str(receipt['pid']) / 'syscall').unlink()
@@ -76,6 +76,14 @@ def fixture_source():
 
 
 class DiagnosticsTest(unittest.TestCase):
+    def test_normal_kernel_symbol_suffixes_pass_and_arguments_stay_refused(self):
+        for name in ('do_poll.constprop.0','__x64_sys_ppoll.isra.0','0'):
+            result=execute_diagnostics(fixture_source(),wchan=name)
+            self.assertTrue(all(r.get('wchan')==name for r in result['processes']))
+        result=execute_diagnostics(fixture_source(),wchan='do_poll ARGUMENTS_MUST_NOT_ESCAPE')
+        self.assertTrue(all('wchan_error' in r for r in result['processes']))
+        self.assertNotIn('ARGUMENTS_MUST_NOT_ESCAPE',json.dumps(result))
+
     def test_chain_queues_flags_versions_and_syscall_numbers_only(self):
         result = execute_diagnostics(fixture_source())
         self.assertEqual(result['active_vt'], 'tty3')
@@ -121,6 +129,8 @@ class DiagnosticsTest(unittest.TestCase):
                 console.pending_hidden = dict(stage='fixture',expected=expected,reader={},epoch=0,token=token)
                 deadlines=[]
                 def capture(name, source):
+                    if name.endswith('-key-counter-start'): return dict(status='ready',counts_only=True,path='/run/ares-input-fixture1')
+                    if name.endswith('-key-counter-stop'): return dict(complete=True,counts=dict(press=6,release=6,repeat=0,syn_dropped=0))
                     if '-diagnostics-' in name: return dict(kind='hidden-read-diagnostics')
                     words=shlex.split(source)
                     script=words[words.index('python3')+2]
