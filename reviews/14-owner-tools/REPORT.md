@@ -1,5 +1,106 @@
 # 14: checked owner tools
 
+**14zo STOP:** probe22 passed; qualification11 stopped before the real token's
+hidden prompt. The owner-length dummy passed with all110 events accounted for.
+The real CI token was never typed. No rerun or additional push. PR #13 remains
+draft / NOT RELEASED; acceptance is unmet.
+
+## 14zo actual runs — owner-length proof passes; next public command is corrupted
+
+Both runs used pushed head `68df196fc9fbfa8a1f441045baaa57c540ee9e2c`:
+
+| Run | Result | Native suite | Charged package minutes |
+|---|---|---|---:|
+| [Probe22](https://github.com/Ares-Empire/AresOS/actions/runs/40802757524) | Accepted |495 /100.279s, zero skips |25 |
+| [Qualification11](https://github.com/Ares-Empire/AresOS/actions/runs/40805607265) | STOP before real-token readiness |495 /101.118s, zero skips |67 |
+
+**Owner-length result:** a fresh in-memory40-character dummy reached the existing
+registry-refusal STOP within the180s bound. Its owner record has zero mutation
+calls. The guest received55 presses +55 releases, matching110 sent events across
+41 chords (including the single Return); repeats0 and SYN_DROPPED0. Autorepeat
+was250ms delay /33ms period. The11.128s counter window was complete; no codes,
+values, individual keys or dummy value were recorded. The expected STOP was:
+`Private release read failed; check read:packages permission/expiry and network; no credential was written`.
+The resulting hidden completion and idle-shell proof passed.
+[Dummy proof and counts](../../os/manifest/ci/14/14zo-qualification-stop/owner-length-token-proof.json).
+
+**Actual stop:** the next intended command was `/var/lib/ares/at login`. The
+retained timeout screen reports `/var/lib/ares/aatt: command not found`, then the
+public username was also treated as a shell command. The readiness observer
+found an interactive bash through the two sudo relay processes, no expected
+reader, and no token prompt at the cursor. The cursor was an idle shell prompt.
+The harness correctly refused with `No verified hidden prompt` before calling
+the secret typer. There is no real-token counter window, no real-token180s
+completion wait, and no real-token typing or retry. The chunked long-token path
+is therefore **not VM-verified**. The malformed public path is observed;
+dropped/duplicated HID events or stale public-prompt matching as its cause are
+**unproved**. No source change or new dispatch followed this stop.
+[Readiness](../../os/manifest/ci/14/14zo-qualification-stop/real-token-readiness.json),
+[public predicates](../../os/manifest/ci/14/14zo-qualification-stop/public-command-predicates.json).
+
+**Diagnostics:** the dummy's completion-start14zn snapshot was exported. Python
+was3.14.8 and sudo1.9.17p2; tty3 was active in K_UNICODE with LEDs0. Remaining
+tty3/pts1 queues were0; the finished owner's pts2 and processes were already gone
+(explicit FileNotFoundError records, not lost evidence). Three live relay/shell
+wchan values were `poll_schedule_timeout.constprop.0`, accepted by the corrected
+symbol-only validator; no arguments were exported. The real-token readiness
+refusal retained its redacted foreground chain and raw VCSA in the private
+artifact. All3 timeout VCSA screens were decoded **only in memory**, scanned
+with pinned gitleaks:0 findings, no decoded text saved. No token-completion
+timeout occurred, so no timeout snapshot for an untyped real token is claimed.
+[Diagnostics](../../os/manifest/ci/14/14zo-qualification-stop/diagnostics.json).
+
+**Other evidence:** the probe's actual keyboard counter/getter window passed on
+`/dev/input/event4` with all counts0 and autorepeat250/33ms;25 staged transfers
+verified their syntax/SHA. Its native partitioned-loop test passed20 checks with
+zero helper mutations. Qualification verified115 staged transfers,9 passed
+owner records, the dummy's expected zero-mutation STOP and5 hidden completions.
+The independent raw audits passed9 protected captures,10 zero-write/unmap
+samples,9 BootNext replays,8 NVRAM-rule replays and8 full-variable delta
+recomputations. The stopped guest was paused. Owner signature verification, switch,
+AresOS boot, layout failure/revert/success, rollback, keep-stock and final
+Windows checks were not reached. No image, frozen runtime, payload/fingerprint,
+guide, privacy-rule or owner-script change; no physical laptop was touched.
+
+**Privacy:** pinned local full-history and pending scans were0 before the one
+fast-forward push. Both exact-head privacy runs passed all3 actual steps.
+Native and failure-log scans were0. Probe artifact509 findings =507 public ISO
+listing +2 exact kernel X.509 lines; qualification517 =507 ISO +10 such lines.
+No other finding was accepted; no ignore/rule/workflow was changed. Every kernel
+line is recorded below by its SHA-256 before its private-artifact path/line; raw
+boot consoles and certificate fingerprint values are not committed.
+
+| SHA-256 of whole matched line | Captured boot-console path and line | Public certificate label |
+|---|---|---|
+| `ccb4c6e0c9c41ed3b2f31b1f82b7e4e93211b5d084dd0447740db94c2c49b613` | Probe22: `evidence/two-disk/live-ui-probe-boot-console.txt:497` | Fedora kernel signing key |
+| `f8be90af292aa0aa2431dace20561f9c280d03ad369e56d82fdfa4d538e35cd5` | Probe22: `evidence/two-disk/live-ui-probe-boot-console.txt:530` | Fedora kernel signing key |
+| `6152333bb8acebdc70b236e53d06fd8344ecc1b4f7402ab613efe29e1708647b` | Qualification11: `evidence/two-disk/corrected-stock-boot-console.txt:499` | Build time autogenerated kernel key |
+| `a8c7563945f7a50ae329b9f57a34013db4b2e3eada32144c76d19676d277645b` | Qualification11: `evidence/two-disk/corrected-stock-boot-console.txt:509` | Build time autogenerated kernel key |
+| `d1d083d9611dbea5fb4abd35b7cda4858b40b66292d8b3ab340cba28d34aad72` | Qualification11: `evidence/two-disk/offline-first-stock-boot-console.txt:499` | Build time autogenerated kernel key |
+| `7a912980fbbeeb4ba7a67115ae425ddd39dfdcaf947753348df28e8504294ddc` | Qualification11: `evidence/two-disk/offline-first-stock-boot-console.txt:519` | Build time autogenerated kernel key |
+| `e20d132575a37557519863dcd5649674aadf9421b8fddcf8fbbac5c3b52fb4eb` | Qualification11: `evidence/two-disk/protected-second-install-boot-console.txt:491` | Fedora kernel signing key |
+| `167e2dfdeef9ac76b922afe9067e5acf668dacdbaa2f2d17e674dcff2240352b` | Qualification11: `evidence/two-disk/protected-second-install-boot-console.txt:525` | Fedora kernel signing key |
+| `6fa695a1740198af55792038bf738455a64dfddc02d0f1da4282edd7df931dd6` | Qualification11: `evidence/two-disk/stock-initialization-0-boot-console.txt:499` | Build time autogenerated kernel key |
+| `f1fa2e90cc3c256e17904d8e14a2331d2c13403113890b7ced13613868ea6c54` | Qualification11: `evidence/two-disk/stock-initialization-0-boot-console.txt:521` | Build time autogenerated kernel key |
+| `6b867424deeb54815e325c321b73cc3dd69650a43d9e77de9ab377a958cb10cd` | Qualification11: `evidence/two-disk/tools-stock-boot-console.txt:498` | Build time autogenerated kernel key |
+| `ebdea4a6ab6cd67dacfb5778fd3175752551deb2e42ded78996310273bab097f` | Qualification11: `evidence/two-disk/tools-stock-boot-console.txt:513` | Build time autogenerated kernel key |
+
+**Budget / closure:** complete126/126 history.1208 prior +6 push privacy +25 probe
++67 qualification = **1306/1500**. The closing read-only$10/prevent=true budget
+snapshot reports$6.228 net Actions spend and628 available minutes. There was one
+push, one probe, one qualification, no workflow reruns. Closing0/reserve0 remain
+because acceptance is unmet; restoration to12/150 and PR readiness were not
+performed. The STOP report/evidence/accounting are committed **locally only**;
+there is no second push. The run is over: the owner can set the Actions budget
+back to$0. Nothing was merged or made public.
+[Complete STOP packet](../../os/manifest/ci/14/14zo-qualification-stop/summary.json).
+
+**Open question / PLAN-GAP:** the owner-length hidden input is now demonstrated,
+but the next public command was corrupted. Its cause and the long CI token path
+remain unverified. Further diagnosis/fixes or a new VM dispatch require a new
+integrator/owner decision under the stop rule. Existing physical release gates
+and the For package15 work remain unchanged.
+
 ## 14zo REPORT — owner-length token proof and guest key-event counts
 
 **Done:** during each token typing the harness starts a read-only evdev observer

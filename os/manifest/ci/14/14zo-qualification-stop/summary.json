@@ -1,0 +1,145 @@
+{
+  "status": "STOP qualification11 before real-token readiness; no rerun",
+  "brief": "briefs/14zo-token-length-and-key-loss.md",
+  "head": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+  "probe_run": 40802757524,
+  "qualification_run": 40805607265,
+  "native_tests": 495,
+  "native_seconds": 101.118,
+  "native_skips": 0,
+  "verified_staged_transfers": 115,
+  "owner_records": [
+    {
+      "sha256": "beab06a5688652ec7f41245da5474e33eaa8ebad4560e3cd93f7bd89dc201149",
+      "path": "evidence/two-disk/after-first-network-records-owner-diagnostics.json",
+      "status": "passed",
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "33c42b6c5293f5594b1f676a91b168ddfceda5de69d2f58ff62fa3a81ade16ed",
+      "path": "evidence/two-disk/after-first-network-title-owner-diagnostics.json",
+      "status": "passed",
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "c55c2a473526cb2b918e1c9c1bbcd35356bc212c2b26b6e41bb773c2d74546cc",
+      "path": "evidence/two-disk/corrected-stock-records-owner-diagnostics.json",
+      "status": "passed",
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/corrected-stock-title-owner-diagnostics.json",
+      "status": "passed",
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "474ff7136f98bde7e5577c93547464e7841c559217454a9666d8a6aca962847a",
+      "path": "evidence/two-disk/private-owner-dummy-login-owner-diagnostics.json",
+      "status": "stopped",
+      "error": "Private release read failed; check read:packages permission/expiry and network; no credential was written",
+      "mutations": 0
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/tools-before-reboot-title-owner-diagnostics.json",
+      "status": "passed",
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "80750872455f188bd2c47a94e4f5c44acc9d46f531050aff92c0998f6fe5c5f2",
+      "path": "evidence/two-disk/tools-install-owner-diagnostics.json",
+      "status": "passed",
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "129aa59dc6b5b4d279c5604af88a2980f563f82c44dd504d131d78c6ca288d93",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "status": "passed",
+      "error": null,
+      "mutations": 4
+    },
+    {
+      "sha256": "93965d7f5e7f83b057688db22aa7c12634d644fd34456d7756dec71a49109258",
+      "path": "evidence/two-disk/tools-prepare-rerun-owner-diagnostics.json",
+      "status": "passed",
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "7d603b6888cff4de064082bb277a6e019c7b80cc5fb71c6a652463236f9660e0",
+      "path": "evidence/two-disk/tools-record-export-owner-diagnostics.json",
+      "status": "passed",
+      "error": null,
+      "mutations": 5
+    }
+  ],
+  "successful_hidden_completions": 5,
+  "owner_length_dummy": {
+    "status": "passed",
+    "length": 40,
+    "value_recorded": false,
+    "outcome": "expected-registry-refusal",
+    "guest_key_counts": {
+      "status": "passed",
+      "counts_only": true,
+      "autorepeat": {
+        "delay_ms": 250,
+        "period_ms": 33
+      },
+      "counts": {
+        "press": 55,
+        "release": 55,
+        "repeat": 0,
+        "syn_dropped": 0
+      },
+      "codes_recorded": false,
+      "values_recorded": false,
+      "seconds": 11.128,
+      "complete": true,
+      "device": "/dev/input/event4",
+      "pid": 8567
+    },
+    "comparison": {
+      "sent_events": 110,
+      "received_events": 110,
+      "press": 55,
+      "release": 55,
+      "repeat": 0,
+      "syn_dropped": 0,
+      "matches": true
+    }
+  },
+  "real_token_typed": false,
+  "real_token_chunked_path_executed": false,
+  "token_read_timeout_occurred": false,
+  "stop": "No verified hidden prompt",
+  "observed_public_command_path": "/var/lib/ares/aatt",
+  "intended_public_command": "/var/lib/ares/at login",
+  "username_became_shell_command": true,
+  "cause": "Unproved; observed public-command corruption before real token input. Dummy counts match; no long-token delivery conclusion.",
+  "not_reached": [
+    "real-token typing",
+    "owner signature verification",
+    "switch to AresOS",
+    "AresOS boot",
+    "layout begin/proof/revert/finish",
+    "rollback",
+    "keep-stock",
+    "final Windows checks"
+  ],
+  "raw_console_or_secret_value_committed": false,
+  "paused_stop_observed": true,
+  "pushes": 1,
+  "workflow_reruns": 0,
+  "acceptance_met": false,
+  "pr_ready": false,
+  "closing_reservation": 0,
+  "organization_reserve": 0
+}
