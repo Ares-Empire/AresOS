@@ -1,0 +1,266 @@
+{
+  "status": "passed negative exact-private-VCSA replay; never accepts the disconnected-keyboard historical prompt",
+  "source": {
+    "sha256": "8649735e5bd80360e83a626321415b0e87aef64ffb4592f9eb15b14161f5fd8f",
+    "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-records-completed-wait-53-timeout-1.vcsa"
+  },
+  "original_retained_relay_replayed": true,
+  "cases": [
+    {
+      "stage": "corrected-stock-records-completed",
+      "tty": "tty3",
+      "profile": "de",
+      "reason": "Physical console readiness deadline",
+      "resyncs": [
+        {
+          "attempt": 1,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        },
+        {
+          "attempt": 2,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        }
+      ],
+      "raw_timeouts": 3,
+      "observer_timeouts": 0,
+      "completion_granted": false,
+      "physical_enter_attempts": 2
+    },
+    {
+      "stage": "layout-intl-proof-ready",
+      "tty": "tty4",
+      "profile": "us-intl",
+      "reason": "Physical console readiness deadline",
+      "resyncs": [
+        {
+          "attempt": 1,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        },
+        {
+          "attempt": 2,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        }
+      ],
+      "raw_timeouts": 3,
+      "observer_timeouts": 0,
+      "completion_granted": false,
+      "physical_enter_attempts": 2
+    },
+    {
+      "stage": "layout-intl-finish-ready",
+      "tty": "tty3",
+      "profile": "us-intl",
+      "reason": "Physical console readiness deadline",
+      "resyncs": [
+        {
+          "attempt": 1,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        },
+        {
+          "attempt": 2,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        }
+      ],
+      "raw_timeouts": 3,
+      "observer_timeouts": 0,
+      "completion_granted": false,
+      "physical_enter_attempts": 2
+    },
+    {
+      "stage": "layout-de-begin-ready",
+      "tty": "tty3",
+      "profile": "us-intl",
+      "reason": "Physical console readiness deadline",
+      "resyncs": [
+        {
+          "attempt": 1,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        },
+        {
+          "attempt": 2,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        }
+      ],
+      "raw_timeouts": 3,
+      "observer_timeouts": 0,
+      "completion_granted": false,
+      "physical_enter_attempts": 2
+    },
+    {
+      "stage": "layout-back-de-proof-ready",
+      "tty": "tty4",
+      "profile": "de",
+      "reason": "Physical console readiness deadline",
+      "resyncs": [
+        {
+          "attempt": 1,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        },
+        {
+          "attempt": 2,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        }
+      ],
+      "raw_timeouts": 3,
+      "observer_timeouts": 0,
+      "completion_granted": false,
+      "physical_enter_attempts": 2
+    },
+    {
+      "stage": "layout-de-finish-ready",
+      "tty": "tty3",
+      "profile": "de",
+      "reason": "Physical console readiness deadline",
+      "resyncs": [
+        {
+          "attempt": 1,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        },
+        {
+          "attempt": 2,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        }
+      ],
+      "raw_timeouts": 3,
+      "observer_timeouts": 0,
+      "completion_granted": false,
+      "physical_enter_attempts": 2
+    },
+    {
+      "stage": "owner-rollback-ready",
+      "tty": "tty3",
+      "profile": "de",
+      "reason": "Physical console readiness deadline",
+      "resyncs": [
+        {
+          "attempt": 1,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        },
+        {
+          "attempt": 2,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        }
+      ],
+      "raw_timeouts": 3,
+      "observer_timeouts": 0,
+      "completion_granted": false,
+      "physical_enter_attempts": 2
+    },
+    {
+      "stage": "owner-keep-stock-ready",
+      "tty": "tty3",
+      "profile": "de",
+      "reason": "Physical console readiness deadline",
+      "resyncs": [
+        {
+          "attempt": 1,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        },
+        {
+          "attempt": 2,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        }
+      ],
+      "raw_timeouts": 3,
+      "observer_timeouts": 0,
+      "completion_granted": false,
+      "physical_enter_attempts": 2
+    },
+    {
+      "stage": "default-stock-logout-ready",
+      "tty": "tty3",
+      "profile": "de",
+      "reason": "Physical console readiness deadline",
+      "resyncs": [
+        {
+          "attempt": 1,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        },
+        {
+          "attempt": 2,
+          "enter_sent": true,
+          "observer_ready": true,
+          "before_cursor_empty": true,
+          "after_cursor_empty": true,
+          "ready": false
+        }
+      ],
+      "raw_timeouts": 3,
+      "observer_timeouts": 0,
+      "completion_granted": false,
+      "physical_enter_attempts": 2
+    }
+  ],
+  "raw_bytes_committed": false,
+  "later_stage_injection": "counterfactual local refusal cases, not observations that these stages ran in Q15",
+  "final_windows_reachable_after_refusal": false,
+  "production_code_changed": false
+}

@@ -1,5 +1,124 @@
 # 14: checked owner tools
 
+## 14zt REPORT — PLAN-GAP: disconnected keyboard, unchanged prompt
+
+**Done / finding:** Q15's problem is not an alternate rendered prompt form.
+The strict refusal is correct for the retained state. The kernel reported the
+xHCI controller dead and disconnected the qualified QEMU USB keyboard. A
+readiness change that accepts the old row45 prompt would claim recovery without
+any observed successful input. No runtime predicate, resync, hardware topology,
+USB driver, guest setting, owner script or image was changed.
+
+**Screen explanation (zero-based VCSA rows):**
+
+| Row | Retained content / role |
+|---|---|
+|23|`root@bazzite:~# sudo /var/lib/ares/at title` — earlier command history.|
+|33|`root@bazzite:~# sudo /var/lib/ares/at records` — the completed command.|
+|34|`PASS records`.|
+|35–43|Nine diagnostic result lines: target/serial, EFI GUID, stock identity/default, pin/idle, staged/rollback state, stock title, title invalidation, title resolution, Flatpak state.|
+|44|`Full diagnostics: /var/lib/ares/records (private)` footer.|
+|45|The ordinary `root@bazzite:~# ` prompt, immediately followed on that same row by the xHCI stop-endpoint-command error.|
+|46|Kernel message: xHCI host controller not responding; assume dead.|
+|47|Kernel message: HC died; cleaning up.|
+|48|Kernel message: USB `1-1`, device2 disconnected.|
+|49|Empty; the hardware cursor is `(0,49)` on the50x160 screen.|
+
+The exact row transcript and cell attributes remain private at
+`.work/14/14zt/exact-rows-private.json`; no raw VCSA is committed. Its source
+artifact, each screen and each receipt are hash-bound in
+[the analysis](../../os/manifest/ci/14/14zt-local/analysis.json).
+
+**Proven:** all3 complete VCSA buffers (cells, attributes and cursor) have the
+same SHA-256, `8649735e5bd80360e83a626321415b0e87aef64ffb4592f9eb15b14161f5fd8f`.
+Neither recorded Enter produced a visible new line or prompt in the following
+sample. Both host receipts say Enter issued, with a freshly verified idle
+sudo-i relay leading to a foreground interactive bash; they do not contain guest EV_KEY delivery
+proof for those Enters. The prompt occupies row45 columns0-15; the kernel text starts at column16.
+Its16 printable cells are the same normal
+`root@bazzite:~# ` form, without a different trailing character. Literal PS1
+and original ANSI escape bytes are not recoverable from post-rendered VCSA
+cells; color attributes do not turn the command-history rows into prompts.
+
+`records` prints its result lines and diagnostic footer **after** PASS. The
+returned shell prompt is on row45 directly after the footer, without an
+intervening blank row. Kernel output follows/appends to that prompt, leaving
+the cursor at row49. There is no active pager in either retained foreground
+chain: it terminates in the idle interactive bash. Rows23/33 are commands;
+row45 is a rendered prompt followed by kernel output, not a current cursor-line
+prompt. Searching upward for a root prefix would therefore accept history.
+
+The retained boot console maps xHCI PCI `0000:00:05.0` to USB bus1 and maps
+`1-1`, vendor0627/product0001, to **QEMU USB Keyboard**. The retained QMP device
+receipt identifies PCI slot5 as `usb-controller`. Thus the failure/disconnect
+messages concern the qualified keyboard's controller/device, rather than an
+unidentified unrelated stick. The exact source lines and mapping hashes are
+recorded in the analysis. All evidence comes from the existing private Q15
+artifact/receipts; no guest, VM, network source or Actions run was started.
+
+**Likely, not independently proved:** the disconnected keyboard explains why
+both Enters had no effect. We lack per-resync guest key counts, so no claim
+about the exact arrival of either key event. Why the xHCI controller failed is
+unproved. An idle process observer proves shell state, not keyboard transport
+health. The three identical snapshots also cannot prove every intermediate
+screen instant; they prove no retained visible result from either resync.
+
+**Regression / local verification:**4 new mandatory tests use a deliberately
+minimized synthetic fixture derived from the exact geometry/row/prompt/failure
+shape; diagnostic values, hardware address, timestamps and attributes are
+synthetic. Raw Q15 data remains private. The separate local regression executed
+the actual exact private VCSA against the retained sudo relay shape. It refused
+after2 authorized-but-ineffective Enters and retained3 identical samples.
+
+The same exact private screen was injected into8 later readiness contexts:
+US International proof/finish, German begin/proof/finish, rollback, keep-stock,
+and final stock logout before Windows. Every context STOPped, without granting
+completion. These are counterfactual local failure injections, not claims that
+Q15 reached those stages. Busy-foreground tests still send no Enter. A first
+new helper assertion accidentally combined the primary and observer timeout
+files; it now separately asserts both captures. Runtime code/assertions and
+all existing fixtures are unchanged.
+
+`python3 -B` unittest runs of `test_owner_records_prompt`, `test_owner_console`
+and `test_owner_sudo_idle` passed **32 tests/55.265s**, zero skips:4 new,
+28 old. The existing positive full host walk passed all8 stages,23 hidden
+pairs,3 handoffs, US International/back-to-German/rollback/keep-stock, and both
+final Windows markers. That walk models a working keyboard/redraw. It is
+explicitly **not** a successful recovery of the real disconnected-keyboard
+fixture. Every composed guest command and serial wrapper was parsed by real
+local Bash with any parse stderr refusing. No VM operation occurred.
+[Exact refusal replay](../../os/manifest/ci/14/14zt-local/exact-replay.json),
+[positive walk](../../os/manifest/ci/14/14zt-local/walk.json),
+[source-bound checks](../../os/manifest/ci/14/14zt-local/verification.json).
+
+**PLAN-GAP / not done:** a positive readiness/resync repair for this state cannot
+be justified as a prompt-format correction. Making physical input work after
+controller death requires a separately authorized transport/controller diagnosis
+or fix. No historical-prompt acceptance, USB reset/fallback, extra Enter,
+predicate/log-level/timeout change or invented successful redraw was added.
+The requested positive remaining-stage walk with this dead-input fixture is
+blocked; the negative walk and healthy-route walk are reported separately.
+No new native CI or VM qualification was run; package14 acceptance remains unmet.
+
+Discovery counted544 test cases; the full544-case suite was not executed
+this round. Pinned gitleaks8.21.2 full-history (`git . --log-opts=--all`) and
+curated-pending scans both found0; the local commit requires a final curated
+snapshot scan0 as well. No ignore/rule/workflow was edited.
+
+**Scope / budget:** local only; zero push/dispatch/Actions minutes. Existing
+package ledger stays1715/1900,26 probes/15 qualifications. Caps, closing0 and
+reserve0 are unchanged. Owner bundle remains
+`320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6`.
+INSTALL/EMERGENCY/release gates remain NOT RELEASED. No other worktree, real
+laptop device, system software, billing setting, image or publication touched.
+No push, dispatch or merge; the next planned CI round is1 November, subject
+to the unresolved blocker and fresh authorization/guards.
+
+**JUDGMENT-CALL / open questions:** preserve the existing strict refusal rather
+than reinterpret a historical prompt as recovery. Determine the xHCI failure's
+cause and authorize an input-transport response before another qualification.
+This is an evidence-driven stop, not a tested readiness fix.
+
 **14zs STOP:** probe26 passed; qualification15 stopped after the passed
 `corrected-stock records` command, at its physical prompt-readiness wait.
 The two completed tty3 logins met the new30s budget. No source fix, rerun or

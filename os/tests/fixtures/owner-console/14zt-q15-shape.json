@@ -1,0 +1,22 @@
+{
+  "geometry": [50, 160, 0, 49],
+  "rows": {
+    "23": "root@bazzite:~# sudo /var/lib/ares/at title",
+    "33": "root@bazzite:~# sudo /var/lib/ares/at records",
+    "34": "PASS records",
+    "35": "synthetic diagnostic result",
+    "44": "Full diagnostics: /var/lib/ares/records (private)",
+    "45": "root@bazzite:~# [    1.000000] xhci_hcd 0000:00:01.0: xHCI host not responding to stop endpoint command",
+    "46": "[    1.100000] xhci_hcd 0000:00:01.0: xHCI host controller not responding, assume dead",
+    "47": "[    1.200000] xhci_hcd 0000:00:01.0: HC died; cleaning up",
+    "48": "[    1.300000] usb 1-1: USB disconnect, device number 2"
+  },
+  "attribute": 7,
+  "source": {
+    "sha256": "8649735e5bd80360e83a626321415b0e87aef64ffb4592f9eb15b14161f5fd8f",
+    "path": "evidence/two-disk/corrected-stock-records-completed-wait-53-timeout-1.vcsa",
+    "run": 40897501964
+  },
+  "fidelity": "Derived geometry, row locations, exact printable prompt and kernel failure sequence. Upper diagnostic contents, timestamps, PCI address and cell attributes are synthetic. Exact private bytes are replayed separately locally; raw VCSA is never committed.",
+  "expected": "STOP after two idle-authorized but ineffective Enters; historical prompt is not readiness"
+}
