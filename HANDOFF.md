@@ -32,7 +32,7 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - `loginctl` comma selectors
 
   Most other stops were in the test harness's console emulation.
-- **Last stop (qualification 15):** the guest's xHCI controller died and took the USB keyboard with it. **14zu** (local, running or done: check `../AresOS-14zu.log`) moves the test keyboard to i8042/PS-2 and adds xHCI health checks.
+- **Last stop (qualification 15):** the guest's xHCI controller died and took the USB keyboard with it. **14zu is done locally** (`8507dd6`, not pushed): the test keyboard is on i8042/PS-2, with AT-device counters and xHCI health STOPs; 103 regressions and the full stand-in walk pass.
 - **On 1 November, resume Codex with a short brief:**
   - free minutes, org reserve back to **150**, closing reservation **12**
   - package cap and allowances raised to fit the bound; the settings are in `os/ci/rehearsal-packages.json`
