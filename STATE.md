@@ -1,6 +1,6 @@
 # AresOS: state
 
-Updated 2026-10-25. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
+Updated 2026-10-29. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
 
 ## Done (on main)
 
@@ -54,14 +54,14 @@ Updated 2026-10-25. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Waiting on the owner
 
-- **Hardware ORDERED 2026-10-22** (€127.05, delivery Mon 2026-10-26): Crucial P310 500 GB, Kingston 2×64 GB sticks, Wera 2050 PH0 + PH1 screwdrivers. The owner bought the SSD before the slot check because one opening beats two. Evidence the 2280 slot is free: the Windows drive is a Micron 2450 **2242** (MTFDKCD512TFK), and a LaptopMedia teardown of this model shows the factory 2242 in the 2242-only slot with the 2280 slot (by the Wi-Fi card) empty.
+- **Hardware ARRIVED 2026-10-26** (keep it boxed until the guide is released; record A comes before fitting). Ordered 2026-10-22 (€127.05, delivery Mon 2026-10-26): Crucial P310 500 GB, Kingston 2×64 GB sticks, Wera 2050 PH0 + PH1 screwdrivers. The owner bought the SSD before the slot check because one opening beats two. Evidence the 2280 slot is free: the Windows drive is a Micron 2450 **2242** (MTFDKCD512TFK), and a LaptopMedia teardown of this model shows the factory 2242 in the 2242-only slot with the 2280 slot (by the Wi-Fi card) empty.
   - **Return window: request within 14 days of delivery (about 2026-11-09).** Before that: make the Windows recovery stick, open the laptop once following INSTALL.md §3, and fit the SSD if the slot is free; if not, return it sealed. (Opening before the guide is released is the owner's call for the slot check.)
   - Pry the cover clips with plastic (card or pick), never metal.
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
 
 ## Next, in order
 
-1. **Close the remaining install gates** (INSTALL.md "Maintainer release gate"). The CI rehearsal (PR #11) and the keyboard fix (PR #12) are done. The safety and followability council ran 2026-10-25 (`reviews/councils/2026-10-25-install-gate/VERDICT.md`): GAPS-FOUND (11), 7 blocking. Fixes: package 14 (owner tools: short checked commands, the installer stick reused as the tools stick, offline until updates are paused; running), then package 15 (the owner-path rewrite and emergency card), then the chair's delta check. Hardware items (fitting/firmware screens, helper trials, the real menu, live-desktop typing) happen on the laptop with the owner.
+1. **Close the remaining install gates.** Package 14 (owner tools, PR #13): most of the route is proven in the VM; still to prove are US International, back to German, rollback, keep-stock and the final Windows check. CI resumes 1 November (see `HANDOFF.md`). Package 15 (guide and emergency card, PR #14): reviewed, council delta clean, merges after 14 with the final tools fingerprint. Then physical install.
 2. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
