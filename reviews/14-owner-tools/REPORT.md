@@ -1,5 +1,74 @@
 # 14: checked owner tools
 
+## 14zs REPORT — bounded physical logins and safe reader replacement
+
+**Done:** harness only. All tty3/tty4 logins prepare root-only tmpfs observers,
+count-only keyboard counters and checksum-verified short control commands before
+the username. The original hidden-reader, echo, three-sample, count, SHA/export
+and prompt checks remain mandatory. Immediately before the password and Enter,
+the same login PID/start identity and remaining half-timeout budget are checked.
+No secret is sent without authority. The measured guest window includes username
+through verified Enter; host time is an additional bound. No timeout was raised.
+
+The pinned ISO has no active LOGIN_TIMEOUT override; util-linux2.41.5 uses60s,
+with one alarm across authentication retries. The Q14 wrong-password and reverted
+login reused PID13852; first hidden readiness to replacement receipt is66s
+(ZIP timestamp resolution2s). This supports expiry; the exit signal itself was
+not retained. [Pinned source, configuration, hashes and receipt metadata](../../os/manifest/ci/14/14zs-login-sources/timeout-proof.json).
+Primary sources: [login.c](https://github.com/util-linux/util-linux/blob/230de59ffbee328506d92d3534e66d56de1afe5d/login-utils/login.c)
+and [agetty.c](https://github.com/util-linux/util-linux/blob/230de59ffbee328506d92d3534e66d56de1afe5d/term-utils/agetty.c).
+
+Reader replacement withholds Enter, verifies the new public reader, sends and
+counts Ctrl-U, and proves a fresh getty prompt before one whole-login restart.
+**JUDGMENT-CALL:** source-verified public agetty Ctrl-D, also counted, obtains a
+new getty lifetime after line kill; it avoids trusting visual erasure of arbitrary
+username bytes or an old login alarm. It cannot authenticate. Unsupported readers
+or unproved clear refuse; a second replacement STOPs. No owner command changed.
+
+The visibility observer retains only hidden/non-hidden/unknown event counts;
+PID transitions, dropped or incomplete observations conservatively taint the
+whole run's VCSA/raw screen fields/screenshots. Required OCR capture continues,
+privately; raw visuals from a tainted run must never be committed. Q14 is
+retroactively marked tainted: possible non-hidden secret events0..64, not an
+invented exact count. Only hashes/times/counts are committed here.
+
+**Verified locally:**14 focused login tests/7.473s,13 existing sudo/idle
+tests/5.269s and4 controller tests/.006s passed. Cases include budget refusal
+with zero secret typing, Q14 replacement, one restart, second replacement STOP,
+strict generated-helper execution/export/checksum refusal, count-only visibility,
+root-only staging, and preserving required private OCR captures. Earlier local
+suite attempts were interrupted during implementation and are not passing
+evidence. Final frozen-source suite:540 tests/879.542s, 531
+distinct passes, 9 previously approved host limitations, zero skips.
+The unchanged30s local timing test measured[55.74063323600001]; every540 test remains
+mandatory in native CI, where any failure is a STOP. No test/bound/skip changed.
+
+The actual pinned ISO replay passed on its first fresh checkpoint, with fresh
+official checksum, exact length/SHA,53-source/release/git replay and four
+credential-dependent checks explicitly CI-only under14f. No credential/scope
+change or owner secret. The stand-in walk covers all8 stages,23 hidden pairs,
+3 handoffs and no uncovered wait. Strict checks cover860
+composed guest commands/wrappers, 722 embedded Python
+blocks and the actual prepared helper; any Bash parse stderr refuses.
+[Source-bound preparation](../../os/manifest/ci/14/14zs-preflight/preparation.json).
+
+**Scope / budget / pending:** owner bundle fingerprint remains
+`320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6`.
+Owner scripts, INSTALL/EMERGENCY, frozen release/image paths, package13, privacy
+workflow/rules/ignores and14s/14v classifier are unchanged. Physical gates remain
+NOT RELEASED. Complete138/138 baseline:1619 +238 =1857/1900; read-only$10,
+prevent=true, charged net deducted, org margin74 at that snapshot. Only package14
+cap1900/probe27/owner-tools16 changed, closing/reserve remain0 for this dispatch.
+Fresh guards are mandatory immediately before the one FF push and each dispatch.
+Fresh exact-head privacy(all3 actual steps) precedes probe26; only accepted
+probe26 permits qualification15 on the same head. Any CI stop: diagnostics,
+report, no rerun. Acceptance alone permits closing12/reserve150 restoration,
+one final push/closing privacy and ready status. Never merge.
+
+**Not verified / open questions:** this head's native probe and full VM recovery
+route; all real-laptop/physical gates. No real laptop or other worktree touched.
+No new PLAN-GAP. Owner resets the Actions budget to0 when the round ends.
+
 **14zr STOP:** the loginctl fix and scoped journal are confirmed in the VM.
 Probe25 passed. Qualification14 passed plain-US refusal and layout revert,
 then the tty4 hidden-reader guard withheld Enter when its verified login

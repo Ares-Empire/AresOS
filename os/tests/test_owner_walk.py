@@ -63,6 +63,16 @@ def walk():
         def command(self, name, source, **kw):
             syntax(name, source)
             commands.append((name, source))
+            if source.startswith('python3 -B /run/ares-login-'):
+                from owner_login_shim import command
+                return command(self,source)
+            if name.endswith('-login-observers-prepare'):
+                import ast,base64
+                body=source.split("<<'ARES_LOGIN_PREPARE'\n",1)[1].split('\nARES_LOGIN_PREPARE',1)[0]
+                tree=ast.parse(body)
+                encoded,=[ast.literal_eval(n.args[0]) for n in ast.walk(tree) if isinstance(n,ast.Call)
+                    and isinstance(n.func,ast.Attribute) and n.func.attr=='b64decode']
+                compile(base64.b64decode(encoded),'prepared-observer-model','exec')
             if name.endswith('-homebrew'): return 'f' * 64 + '  /home/linuxbrew/.linuxbrew/bin/brew\n'
             return ''
 
@@ -214,6 +224,17 @@ def walk():
         original(guest, text, layout, counts=counts)
 
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
+        # The walk models guest time; deadline boundaries have dedicated tests.
+        stack.enter_context(patch.object(vm.owner_login.time,'monotonic',return_value=10.0))
+        save=vm.td.save
+        def record(name,value):
+            if re.search(r'-read-wait-[0-9]+$',name) and value.get('reader') and value.get('ready'):
+                tty='tty'+str(value['reader']['physical']-1024)
+                hidden_reads.append((name,'ready'))
+                hidden_shapes.append(dict(boot='prepared-login',tty=tty,stage=name,phase='ready',
+                    shape='getty-login-reader',completion=None,expected_rejection=False,completion_uses_echo=None))
+            return save(name,value)
+        stack.enter_context(patch.object(vm.td,'save',side_effect=record))
         stack.enter_context(patch.object(vm.Guest, 'network_up', False))
         for module in (vm.td, vm.sw):
             stack.enter_context(patch.object(module, 'EVIDENCE', pathlib.Path(temporary)))
