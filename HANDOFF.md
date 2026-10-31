@@ -2,9 +2,17 @@
 
 The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up. Detailed history lives in each package's `reviews/NN-*/REPORT.md` and its briefs.
 
-## Where things are (2026-10-29)
+## Where things are (2026-11-01)
 
-**Nothing is running in CI.** CI waits for **1 November** (fresh free org minutes). The owner's paid overflow (an Actions budget of up to $10, about $8.30 used) is finished; the owner should set it back to **$0**.
+**The November round is running.** The owner's Actions budget is **$0 with "stop usage" on** (checked 2026-11-01), so only free minutes are used.
+
+- **14zv** (free minutes, reserve 150) pushed `becfb22`, then STOPPED before the probe. The cause: on 2026-11-01 the owner moved the privacy check from GitHub to aresync's local pre-push hook (`fabd476`), so there was no PR privacy run and no `PRIVATE_TERMS` secret.
+- **14zw** (running; log `../AresOS-14zw.log`, summary `../AresOS-14zw.last.md`) does the rest:
+  - merge `main`
+  - make the local hook the privacy proof, and drop the privacy minute reservations
+  - one push
+  - probe and qualification on that head
+  - stop and report
 
 ### Package 14: owner tools (PR #13, draft)
 
