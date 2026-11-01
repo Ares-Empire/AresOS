@@ -1,5 +1,147 @@
 # 14: checked owner tools
 
+## 14zz REPORT — accounting restored; probe 30 passed; local artifact-review STOP
+
+**Disposition:** One fast-forward push through the installed privacy hook to
+`10921f81f481bd2b2c7bfb2da9e13deabdb1267f`. [Probe 30](https://github.com/Ares-Empire/AresOS/actions/runs/41301148135)
+completed **success**. Its post-run local artifact reviewer then refused a
+redacted-match shape, so **qualification 19 was not dispatched**. Both the
+workflow and the local review are terminal. Acceptance is false; PR #13 remains
+draft. No rerun, second push, merge, image publication or privacy-rule change.
+This closing REPORT/ledger/evidence commit is **local only**, under 14zv/14zw.
+
+### Done — fail-safe accounting and pinned public checksums
+
+- `job_accounting` uses a job interval only when it encloses every ordered
+  step. Otherwise it selects the widest ordered supported job/step span.
+  Missing or unordered steps cost the full approved dispatch bound: **72 probe,
+  160 qualification**. A negative interval is never clamped to one minute.
+  Every job records its rule, charge and response hash; skipped jobs cost zero.
+- The whole history was recomputed. **Only one job changed:** probe 29,
+  run `41290621860`, job `124800927513`, **1 → 26 minutes**, using the retained
+  first-step start `08:51:56Z` to job completion `09:17:30Z` on 1 November.
+  The restored pre-round total is **1,998**, replacing the untrusted 1,973.
+  [Accounting evidence](../../os/manifest/ci/14/14zz-round/accounting.json)
+  lists the changed job and every job's rule is in the complete ledger.
+- Before dispatch, package usage is compared with organization usage since
+  the preceding dispatch. A gap greater than five minutes stops it. The legacy
+  baseline was recomputed **once** under the new policy and saved; later
+  responses cannot silently reprice it and erase undercount evidence.
+  Complete histories, run identity, dispatch count, billing period, ordered
+  observations and nondecreasing totals are required. The pre-probe increase
+  was **5 package / 5 organization**; the closing observation is **24 / 24**.
+- Package 14 dispatch caps are **32 probes / 21 owner-tools**; cap **2,750**,
+  reserve **150**, push/closing privacy reservations **0** under 14zw. Package
+  13 settings, owner payload/fingerprint, image/runtime, guides and workflows
+  were verified unchanged by this round.
+- The third full-log class requires exactly
+  `RELEASE_COSIGN_PUB_KEY_SHA='<64 lowercase hex>'` in the pinned
+  `sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac`
+  step, with the value verbatim in its public
+  [action.yml](https://raw.githubusercontent.com/sigstore/cosign-installer/398d4b0eeef1380460a10c8013a76f728fb906ac/action.yml).
+  Its fetched SHA-256 is recorded in
+  [source.json](../../os/manifest/ci/14/14zz-cosign/source.json). The template
+  and two public checksum entries reconstruct those exact source bytes; the
+  upstream license is retained. Combined-log matches must lie inside the
+  unique complete matching step block. Four retained 14zy findings and the
+  four new probe-log findings pass; other shapes/values/locations refuse.
+  No ignore entry, allowlist, scanner rule or workflow was added or changed.
+
+### Verified — actual results
+
+- New regressions: **11 accounting/safety-net + 4 cosign**. The affected suite
+  passed **60 in 4.656s**; legacy accounting fixture checks **20 in 0.601s**;
+  controller/privacy/basic checks **6 / 7 / 2**. Three legacy fixture modules
+  needed valid step intervals for their existing job-cost assertions; the
+  first superseded whole run exposed them. Assertions were preserved.
+- Final local whole suite: **597 executed in 1409.761s; 588 distinct passes,
+  the same nine documented host limitations, zero skips, zero unknown
+  failures**. Its unchanged 30-second case took **70.02388832899987s** on this
+  host. Missing PIL, privileged fixture refusals, DrvFS mode behavior and that
+  timing overrun are documented local limitations, never native exemptions.
+- Actual probe native suite: **597 passed in 143.006s, zero skips**. The exact
+  mandatory 30-second test explicitly passed. Native log scan: **zero findings**.
+- Real-kernel uinput negative control: **0 press / 1 release** with the old
+  counting-client getter; **1 / 1** with the separate-client fix, zero repeat
+  or drops. Native proof ran; the guest fallback was not needed.
+- Stand-in walk: nine real physical-typing cases, **973 commands**, 23 hidden
+  pairs, three public handoffs, 133 bounded authorized resyncs and 86 health
+  boundaries; probe route seven more commands. Strict checks passed for
+  **980 composed commands/wrappers, 812 embedded Python scripts, 12 shell
+  files, 52 Python source files**, including a fresh pre-qualification replay.
+- Both actual local ISO replays passed on their first attempt, verifying
+  **9,068,650,496 bytes** against the pin and fresh official checksum.
+  Read-only release/git/GitHub replay and 53 retained inputs passed before
+  push and again during probe preparation. The four CI-only credential checks
+  passed in the actual probe. Completed duplicate caches were hash-verified
+  before unlink; master ISO, canonical squashfs, receipts and diagnostics stay.
+- The pre-commit staged-blob check caught CRLF in one archived local helper.
+  It was normalized to LF, hash bindings refreshed, and local commit checks
+  repeated before committing. Production code did not change in that recovery.
+- Probe evidence: **20 native loop checks**, zero helper mutations, protected
+  fixture unchanged, all mounts/loops cleaned; **37 SHA/syntax-verified tmpfs
+  transfers**; actual AT keyboard boot with **57 mappings**, seven healthy xHCI
+  receipts. Independent raw replay passed **3 protected captures, 4 zero-write/
+  unmap samples, 3 BootNext/varstore replays and 2 NVRAM/all-variable replays**.
+- Pinned local **gitleaks 8.21.2: zero pending/history findings** before push.
+  Manual exact-range and actual installed pre-push hook checks both passed,
+  checker **8.30.1**, no personal-terms-skipped warning. No terms were recorded;
+  `--no-verify` was never used. Fresh exact-head hook proof preceded dispatch.
+
+### STOP diagnosis — local reviewer metadata, not a new artifact class
+
+The pinned artifact scan has **509 findings**: **507** in the public ISO file
+listing, byte-identical to the retained probe 29 listing, and **two** in
+`two-disk/live-ui-probe-boot-console.txt`. At lines **529 and 554**, both complete
+source lines match the already approved 14v kernel X.509 certificate message
+form and label **Fedora kernel signing key** with a 40-hex fingerprint.
+Each source-line hash and label is recorded in
+[artifact-review.json](../../os/manifest/ci/14/14zz-round/artifact-review.json).
+No raw console, fingerprint value, token or unredacted scanner finding is
+committed here.
+
+The automatic reviewer first accepted each **whole source line**, then applied
+an additional existing `Match` assertion. Line 529's redacted match is
+`key: REDACTED'`; line 554's is `key: REDACTED`, without the closing quote.
+That latter metadata fails the required `key: REDACTED'` pattern. This is the
+**proven cause of the local refusal**. The exact reason the scanner selected
+different substring boundaries is not established; no inference about a new
+credential is needed or made. Source inspection found **zero findings outside
+the existing approved classes**, and all four full-log cosign findings passed.
+
+The automatic artifact receipt was **not overwritten or bypassed**. Its
+fail-closed refusal remains latched; no qualification authorization or POST was
+attempted. No after-push code/ignore/rule change, retry or rerun was used to
+continue. This is a **local post-run reviewer defect**, not an owner-tool or
+physical-console failure. The qualification-19 typing-stop serial-plan trigger
+did not occur. An integrator decision and a regression based on these exact two
+redacted rows/source lines are needed before a future round; no fix was built.
+
+### Ledger, remaining work and release gate
+
+The closing history proves **150/150 unique IDs over two pages**. Trusted
+package usage is **2,022/2,750**, counts **30/32 probes, 18/21 qualifications**.
+Probe 30 costs **24 minutes** under the normal enclosing-interval rule; the
+organization rose by the same **24**, from 287 to 311 used. **1,689 included
+organization minutes remain**. The November guard read no paid-budget amount,
+counted no paid minutes, and observed zero net paid Actions usage. Reserve 150,
+push 0 and closing 0 remain the 14zw settings. The closing guard reserves zero
+new work; at least one further same-head probe/qualification round is needed,
+with no reliable upper bound inferred. No further dispatch is authorized.
+
+**Not verified:** qualification 19, installed US International success/back to
+German, rollback, keep-stock and final Windows acceptance on this head. The
+fresh local qualification preparation passed, but cannot substitute for the
+withheld real run. INSTALL/EMERGENCY/release gate retain their physical-owner
+checks and NOT RELEASED status. PR #13 remains draft. No real laptop hardware,
+disk, settings, credential scope or software installation was touched.
+
+**JUDGMENT-CALL:** the new accounting/classification decisions are exactly 14zz;
+no new product decision was made. **PLAN-GAP/open question:** settle the local
+reviewer's extra redacted-match quote requirement for the already approved
+whole-line class. The run is over; this closing commit stays local for the
+next authorized round's push.
+
 ## 14zy REPORT — counter fix proved; financial and full-log privacy STOP
 
 **Disposition:** One fast-forward push through the installed privacy hook to

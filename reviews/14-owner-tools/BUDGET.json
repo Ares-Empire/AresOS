@@ -11,12 +11,54 @@
     "owner-tools": 21
   },
   "dispatch_counts": {
-    "probe": 29,
+    "probe": 30,
     "owner-tools": 18
   },
-  "consumed_minutes": 1998,
-  "reserved_minutes": 232,
+  "consumed_minutes": 2022,
+  "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 41301148135,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+      "conclusion": "success",
+      "minutes": 24,
+      "jobs": [
+        {
+          "response_sha256": "81feed246c48b2d46a06f9cc756120e3adb66cef9056eb099db37c567dec797c",
+          "job": 124832138512,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 24,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T11:16:29+00:00",
+          "selected_completion": "2026-11-01T11:39:31+00:00",
+          "seconds": 1382.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "a28707d3d88826c522879188c10d959cfacfedd33068b2f2ba7f5dfd56537355",
+          "job": 124832139334,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "7d2eb9a30c63e2385c4e8b398b82485892537b8658909fd9787553d62d677d2f",
+          "job": 124832139492,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "209d908afeef627d8a88acb2224abc9c1eaf59a825190108d6c795693abc72ee",
+          "job": 124832139615,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
     {
       "run": 41290621860,
       "title": "Two-disk rehearsal (probe)",
@@ -3782,25 +3824,26 @@
   "history": {
     "complete": true,
     "pages_read": 2,
-    "ids_count": 149,
-    "total_count": 149,
+    "ids_count": 150,
+    "total_count": 150,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
-        "ids_sha256": "314e46dca9a604b01102783fef8336a05b8a16a4f16ec3255efcfdd512d06571",
+        "ids_sha256": "704cf4f1c34441cfbdcf447bfc426d5c3e836f70862e226eedd732c3b8778934",
         "page": 1,
         "returned": 100,
-        "total_count": 149
+        "total_count": 150
       },
       {
-        "ids_sha256": "a6a66902527cf0aa885a939a973a1e8afae9c2df8c083c04b05c6e422ba0e636",
+        "ids_sha256": "056fe59e994eaee5c55f3cbcd2484ecc2d2ab9b5160c40e39577eb7984ab60c4",
         "page": 2,
-        "returned": 49,
-        "total_count": 149
+        "returned": 50,
+        "total_count": 150
       }
     ],
     "run_ids": [
+      41301148135,
       41290621860,
       41292826573,
       41278848542,
@@ -3952,7 +3995,7 @@
       40216222435
     ]
   },
-  "status": "14zz complete history recomputed; local/VM qualification pending",
+  "status": "14zz STOP after passing probe30: local artifact-review quote-shape refusal; qualification19 withheld",
   "acceptance_met": false,
   "package_minute_ledger_trusted": true,
   "accounting_decision": "briefs/14zz-ledger-and-cosign.md",
@@ -3969,55 +4012,55 @@
     }
   ],
   "organization_ledger_comparison": {
-    "previous_run_ids_sha256": "4e4f7dbea34615bc0bb698f75505e4b8197982425d187795e79806a72d3be3ec",
+    "previous_run_ids_sha256": "6eda474905df4e504b6aedc0cb114bffea168257fb2330e790ac5a3e7f008d8f",
     "status": "passed",
-    "previous_dispatch": 41292826573,
-    "previous_observed_at": "2026-11-01T09:21:42.719372+00:00",
-    "current_observed_at": "2026-11-01T10:31:47.705376+00:00",
-    "previous_recorded_minutes": 1968,
-    "recomputed_previous_minutes": 1993,
-    "current_minutes": 1998,
-    "package_increase": 5,
-    "organization_increase": 5,
+    "previous_dispatch": 41301148135,
+    "previous_observed_at": "2026-11-01T11:15:30.950487+00:00",
+    "current_observed_at": "2026-11-01T11:44:01.967141+00:00",
+    "previous_recorded_minutes": 1998,
+    "recomputed_previous_minutes": 1998,
+    "current_minutes": 2022,
+    "package_increase": 24,
+    "organization_increase": 24,
     "undercount_tolerance_minutes": 5,
-    "previous_run_count": 131
+    "previous_run_count": 132
   },
   "organization_budget_snapshot": {
-    "response_sha256": "859820cf1c962c8728e1aaef9a7653b428f1fe82bef500e7bf4ff774de2fdc0b",
+    "response_sha256": "a92d1fe1ad8e2837cceebbcb982a7df2a763a6997768091776a43855cd1ab6d1",
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=11",
-    "checked_at": "2026-11-01T10:04:24.958130+00:00",
+    "checked_at": "2026-11-01T11:44:01.967141+00:00",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 287.0,
-        "discountQuantity": 287.0,
+        "grossQuantity": 311.0,
+        "discountQuantity": 311.0,
         "netQuantity": 0.0,
-        "grossAmount": 1.722,
-        "discountAmount": 1.722,
+        "grossAmount": 1.866,
+        "discountAmount": 1.866,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 1.83105937,
-        "discountQuantity": 1.83105937,
+        "grossQuantity": 2.191388806,
+        "discountQuantity": 2.191388806,
         "netQuantity": 0.0,
-        "grossAmount": 0.000615262,
-        "discountAmount": 0.000615262,
+        "grossAmount": 0.000736338,
+        "discountAmount": 0.000736338,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 287,
+    "used_minutes": 311,
     "included_minutes": 2000,
-    "included_minutes_left": 1713,
+    "included_minutes_left": 1689,
     "paid_overflow": null,
     "billing_mode": "free-minutes-only",
     "paid_budget_read": false,
-    "remaining_minutes": 1713,
-    "reserved_minutes": 232,
-    "after_reservation": 1481,
+    "remaining_minutes": 1689,
+    "reserved_minutes": 0,
+    "after_reservation": 1689,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   },
@@ -4037,12 +4080,14 @@
     "owner-tools": 18
   },
   "previous_round": {
-    "brief": "14zy",
-    "probe29": 41290621860,
-    "qualification18": 41292826573,
-    "status": "STOP: invalid probe job timestamps and unclassified full-log privacy findings; qualification18 cancelled before VM"
+    "brief": "14zz",
+    "probe30": 41301148135,
+    "qualification19": null,
+    "status": "Probe CI passed; local artifact gate STOP; no qualification dispatch"
   },
-  "pushed_head": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+  "pushed_head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
   "no_further_dispatch_without_fresh_guards": true,
-  "accounting_policy": "14zz-job-interval-ordered-span-full-bound-v1"
+  "accounting_policy": "14zz-job-interval-ordered-span-full-bound-v1",
+  "closed_round_manifest": "os/manifest/ci/14/14zz-round/round.json",
+  "further_dispatch_authorized": false
 }
