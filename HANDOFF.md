@@ -60,7 +60,7 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 
 ## Watch out
 
-- **Every push costs Actions minutes** (privacy check on push and PR). Batch pushes, and run the pinned local gitleaks first.
+- **Pushes no longer cost Actions minutes** (2026-11-01): the privacy check runs locally before each push (aresync's pre-push hook) instead of on GitHub. Only `os-image.yml` dispatches use the org's minutes. gitleaks 8.30.1 flags 12 false alarms on `pkg/14-owner-tools` (sha256 checksums next to key/token file names in `os/manifest/ci/14/host-walk/*.json`, plus code in `os/ci/owner_vm.py` and `os/ci/owner_key_counter.py`): a new local commit carrying them (e.g. a local squash merge) is blocked until they're allowlisted in `.gitleaks.toml`.
 - **Low memory** stops Claude's background wrappers, but `codex.exe` keeps running. Find its PID and watch its log for `turn.completed`.
 - **Never force-push, and never push `pre-rewrite/*`** (the 2026-10-23 history rewrite). The repo-local git identity uses the noreply email.
 - **Only one Minecraft client-test run at a time** on the laptop.
