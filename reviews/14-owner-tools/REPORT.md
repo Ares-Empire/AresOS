@@ -1,12 +1,13 @@
 # 14: checked owner tools
 
-## 14zzc REPORT: accepted review fixes; fresh qualification pending
+## 14zzc REPORT: review fixes implemented; STOP, no rerun
 
-**Disposition:** all five review findings are addressed. Fresh probe 32 and
-qualification 21 on one pushed head are pending; this changed payload is not
-accepted yet. PR #13 stays draft until independent acceptance. No image build,
-release/publication, laptop operation or merge is authorized. Physical release
-remains **NOT RELEASED** and every existing physical/followability gate applies.
+**Disposition:** [Probe 32](https://github.com/Ares-Empire/AresOS/actions/runs/41356040290)
+failed, once, on pushed head `b15d52f1a24c37fa4f4a3897919b88b591990c49`. **Acceptance is not
+met**: probe 32 failed the native suite: 18 install-resume fixture errors at the strict bundle recheck; default bytecode writes contaminate the fixture bundle, unlike the production -I -B entry point. Qualification 21 was not dispatched. No further push, probe, qualification or rerun was attempted.
+PR #13 remains draft. This STOP report, ledger and curated diagnostics receipts
+are committed **locally only**. No merge, image build or publication occurred.
+Physical release is **NOT RELEASED**.
 
 ### Done
 
@@ -34,8 +35,8 @@ publishes. Matching interrupted phases resume; unknown partial state refuses.
 Prepare journals before its first mutation and permits only precisely matching
 already-completed effects on resume. STOP diagnostics now persist root-only
 under /var/lib/ares/diagnostics and join the checked owner export/readback route.
-The status passages acknowledge completed Q20 scope and this round's pending
-review changes; the closing local status will name this round's actual result.
+The closing guide/card status names this round's actual result, retains the
+completed Q20 history and keeps every outstanding physical gate.
 
 The qualification adds a plain-US pending trial, QMP system_reset, next-boot
 German checks on all six consoles, German password/sudo login, layout abandon
@@ -104,7 +105,58 @@ The prior qualification added 132 to both package and organization usage.
 Organization included minutes: 590 used / 1410 left. Reservation 72+240=312
 leaves more than the 150-minute reserve; 2301+312=2613 <=2750. November remains
 free-minutes-only, no paid budget API read, zero hook privacy reservations.
-Ledger and billing will be rechecked immediately before each dispatch.
+Ledger and billing were rechecked immediately before every attempted dispatch.
+
+### Actual November round / independent review
+
+[probe 32](https://github.com/Ares-Empire/AresOS/actions/runs/41356040290) **failure**. No run was rerun.
+
+Early STOP artifact scan: **0 findings**; ISO inspection was not reached, so no ISO/certificate exception was used. No ignore/rule/workflow changes.
+
+Every completed job log was scanned: **zero findings**, no exception used.
+
+Complete closing history: **154/154 IDs**. Package minutes **2310 / 2750**; added **9** this round. Counts **32 probes / 20 qualifications** (last caps 32/21). Organization free **1401**, reserve **150**. The saved last-dispatch package/organization comparison passed; the complete per-job charge rules and response hashes are in ledger.json. November remains free-minutes-only: no paid budget read or paid overflow; local-hook privacy reservations stay zero. No further dispatch is authorized.
+
+Actual receipts are in `os/manifest/ci/14/14zzc-round/round.json`. Raw consoles,
+VCSA, screenshots, varstores and owner diagnostics remain only in private retained
+artifacts/local evidence; they are not committed. The whole report's outstanding
+physical release gates and the existing For package 15 list still apply.
+
+### Native stop diagnosis / unverified remainder
+
+The native suite ran **626 tests in 218.621 s**, with **18 errors across five
+install-resume test methods**, zero skips and 621 passing methods. All 18 stop
+at owner.py:1150 with `Partial bundle or unexpected file`, before the intended
+failure-injection point. The unchanged 30-second timing case itself passed;
+there is no native timing exception.
+
+The fixture passes its USB payload directly to `install()`. `media_module(payload)`
+imports `media.py` before the second source-bundle validation. Native CI runs
+normal Python, while my local whole-suite driver used **-B**. In an isolated
+fixture, normal import adds `__pycache__/media.cpython-312.pyc` and reproduces
+that exact refusal; **-B** adds no file and the bundle still validates. The
+production entry already invokes **-I -B**. The native temporary directory was
+not retained, so its exact added pathname is inferred from the matching trace
+and this counterfactual, rather than a captured native directory listing.
+See `native-stop.json` and its source/hash bindings for the executed diagnosis.
+
+I missed this local/native invocation difference. The preflight did not faithfully
+replay CI's interpreter mode; this is a verification gap, not an accepted host
+limitation. No production code, test,
+workflow, validator or ignore entry was changed after the CI stop. The isolated
+import diagnostic ran no owner handler, device, credential or mutation command.
+A future owner-authorized round should make the install fixture faithfully
+model the production entry/private-copy boundary, replay normal CI invocation
+locally, and keep the strict unlisted-file refusal. No fix or rerun is attempted
+in this round.
+
+The real native loop-helper test, registry/signature CI-only checks, ISO
+inspection, Linux VM probe and qualification 21 were **not reached**. Host
+capability proof passed. The new reset/German-login/abandon VM path and all five
+review changes still require native and VM acceptance. PR #13 remains draft.
+Both exported artifact and complete job-log scans found zero findings; raw
+logs and 17-member diagnostics artifact remain private. Qualification 21 was
+not dispatched, no Actions run was rerun, and no second push is made.
 
 ### Not verified / JUDGMENT-CALL / PLAN-GAP / open questions
 
@@ -113,8 +165,8 @@ begin/revert never changes boot configuration. No image/service change is needed
 Only explicit finish persists a proved layout. Every original physical laptop,
 USB restore/copy/forgotten-stick, firmware, keyboard, offline/notification and
 followability gate remains outstanding. Backup stock keeps the installer's
-layout; a US-then-rollback hardware run was not performed. Fresh VM acceptance
-is pending. No Gradle/Minecraft process was started. Never merge.
+layout; a US-then-rollback hardware run was not performed. This round
+stopped without VM acceptance. No Gradle/Minecraft process was started. Never merge.
 
 ## 14zzb REPORT: sized limits; probe 31 and complete qualification 20 passed
 

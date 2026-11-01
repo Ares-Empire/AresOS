@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "run": 41356040290,
+  "head": "b15d52f1a24c37fa4f4a3897919b88b591990c49",
+  "findings": 0,
+  "cosign_checksum_findings": [],
+  "ignore_changes": false
+}

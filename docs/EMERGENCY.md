@@ -6,7 +6,7 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 ## Stock preparation stops before the switch
 
-Qualification 20 passed the complete protected-second VM owner route, including both layout proofs, rollback, keep-stock and final Windows boots. The 14zzc review fixes require this round's fresh same-head qualification; use the [14 report](../reviews/14-owner-tools/REPORT.md) for its actual result. Physical installation is still **NOT RELEASED**; every laptop/media/followability gate stays open.
+Qualification 20 remains the last accepted complete VM route. The 14zzc review-fix round stopped; the new head has not met acceptance. See the [14 REPORT](../reviews/14-owner-tools/REPORT.md) for exact runs and evidence. Physical installation remains **NOT RELEASED**; every laptop/media/followability gate stays open.
 
 An NVIDIA Flatpak runtime notification while offline is expected. Leave its
 sync enabled; it retries after networking becomes available. That notification
