@@ -1,0 +1,114 @@
+{
+  "private_files": [
+    {
+      "sha256": "c3c8c3325fd6c0b74b1f6f09bb3de6f5d4f9fc1a586cb65a616870128834d9a8",
+      "path": ".work/14/14zy/closed.json"
+    },
+    {
+      "sha256": "8355d9c8c0d9fd37f9417d3157bb8c6507f1c7334c106a779e001a45b3535577",
+      "path": ".work/14/14zy/probe-job-direct.json"
+    },
+    {
+      "sha256": "6bf216b07e6e316c8107230d1d4bfe5646ba51ae6a61320a887cd7a798d630b0",
+      "path": ".work/14/14zy/probe-jobs-repeat.json"
+    },
+    {
+      "sha256": "c60bd5af8f24f70881a4333093e334e31f8406e0d9f5f24421ebc4fa68d1803a",
+      "path": ".work/14/14zy/qualification-job-direct.json"
+    },
+    {
+      "sha256": "0bdb5abce4b5acbce57f62c83d452f489f59b0d6bf99daa3a323e19d50839d9d",
+      "path": ".work/14/14zy/qualification-cancel-attempt.json"
+    },
+    {
+      "sha256": "0767f5844a7f2f3ef271ce38624c262c04bb24346ffb23c6820e05d37d02a8d7",
+      "path": ".work/14/14zy/unapproved-log-findings.json"
+    },
+    {
+      "sha256": "4879771a85a819b13db56e86685c1544b61395e53e9db90066b3cdb1ca22af17",
+      "path": ".work/14/14zy-qualification-replay-attempts.json"
+    },
+    {
+      "sha256": "897408076fb83351b0c326d87a271e45072d1edd65f087e2a1687bee07124147",
+      "path": ".work/14/14zy-qualification-replay-initial.json"
+    },
+    {
+      "sha256": "e796fe1a469be6c5a88971086aa619972f0419ec181e7e6566b2535e80aae20c",
+      "path": ".work/14/14zy/qualification-cache-reclaim.json"
+    },
+    {
+      "sha256": "a9eb0064bc7059ac0bb23c7bbaf875cc639a957afa82d7f260ef3e7fc7ce0104",
+      "path": ".work/14/run-41290621860/receipt.json"
+    },
+    {
+      "sha256": "968b394a79bb9ce683297f1552ba877db17ee68f5174d834b10dbedf2fd57980",
+      "path": ".work/14/run-41290621860/evidence.zip"
+    },
+    {
+      "sha256": "04a5b6b92ed9d09896d887c4b260711334f9f33a722b82de10e0c13aa301cad2",
+      "path": ".work/14/run-41290621860/logs.zip"
+    },
+    {
+      "sha256": "2b0502fdf3ec987433c465d6f530e0fac385cea53dd2b20e496a6d33f44d4ce7",
+      "path": ".work/14/14zy/basic-41290621860/run.json"
+    },
+    {
+      "sha256": "94ec59f0e8bda62c686c3fb7dd245590ab01f4d7c04a8477e2eb352e09fe3888",
+      "path": ".work/14/14zy/basic-41290621860/jobs.json"
+    },
+    {
+      "sha256": "a6b2568bb4932f1f3e0807043ce31994bae0c63746788ba4ff742893be49dd1f",
+      "path": ".work/14/14zy/basic-41290621860/artifacts.json"
+    },
+    {
+      "sha256": "2f081bab5877b84912a694b26e37b417217bdcaa20cd08f5f6476b524a84795d",
+      "path": ".work/14/run-41292826573/receipt.json"
+    },
+    {
+      "sha256": "6221b7dcc5ff605642a1e318ad4cfb309556ea7e343a8c72c393277b47f0e070",
+      "path": ".work/14/run-41292826573/evidence.zip"
+    },
+    {
+      "sha256": "92907b2b1e069cd89c7cc3fdde4ccbe7d75b3a31f83b62e14701c4d5239dd816",
+      "path": ".work/14/run-41292826573/logs.zip"
+    },
+    {
+      "sha256": "492ada0069bb501bd10eb0252b2838958e9ff9a397f31f0417ef7becc1464cf2",
+      "path": ".work/14/14zy/basic-41292826573/run.json"
+    },
+    {
+      "sha256": "c8f8a8e125944286f1e2d62477e4fa43bb734e79743460b9e0dc2905f9891733",
+      "path": ".work/14/14zy/basic-41292826573/jobs.json"
+    },
+    {
+      "sha256": "f2ebfbc7d44f153b88cc6a3148bcd0320257b4daabfb1aa6533b5723959acbbf",
+      "path": ".work/14/14zy/basic-41292826573/artifacts.json"
+    },
+    {
+      "sha256": "98b27d6ffc3916a1fe4045366220f309a2d469d0531aadbf8743475f70816a41",
+      "path": ".work/14/run-41290621860/native.log"
+    },
+    {
+      "sha256": "949ee49d52070b6be7d496e0ed1de16fddcdfb4186f76ada5e227e45211a0312",
+      "path": ".work/14/run-41290621860/native-timing-proof.json"
+    },
+    {
+      "sha256": "0fc5ae4066b18a275c7dbac53307ea6ad4f9c234b817e75a0385bb89380ac24a",
+      "path": ".work/14/run-41290621860/14zy-kernel-proof.json"
+    },
+    {
+      "sha256": "ba3aadd678498afe70d877f3779851ac2cc41df5da6b86dbbeabc7323b3e145a",
+      "path": ".work/14/run-41290621860/14zy-probe-proof.json"
+    },
+    {
+      "sha256": "c918c3f0e815fd57da8dde318bd427c4ae6af98157ddcc410a60c3d04c9a5b60",
+      "path": ".work/14/run-41290621860/14zy-privacy-classification.json"
+    },
+    {
+      "sha256": "e58a4c6abce97423eb75cb3b254ecba4a3fea91200a4aca82064f7e589253190",
+      "path": ".work/14/run-41290621860/independent-audits.json"
+    }
+  ],
+  "raw_evidence_committed": false,
+  "unapproved_values_committed": false
+}

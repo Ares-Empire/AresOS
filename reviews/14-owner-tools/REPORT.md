@@ -1,5 +1,198 @@
 # 14: checked owner tools
 
+## 14zy REPORT — counter fix proved; financial and full-log privacy STOP
+
+**Disposition:** One fast-forward push through the installed privacy hook to
+`cbaa985ed81eaea268d6f261cb212048da69d9cc`. [Probe 29](https://github.com/Ares-Empire/AresOS/actions/runs/41290621860)
+completed successfully; its native/artifact/counter/disk/firmware checks passed.
+[Qualification 18](https://github.com/Ares-Empire/AresOS/actions/runs/41292826573)
+was dispatched once on that same head, then **cancelled by this agent before its
+native/VM stages** after discovering malformed budget timestamps. Both runs are
+terminal; diagnostics are exported. A subsequent full-job-log scan found four
+additional unclassified findings. Acceptance is false; PR #13 remains draft.
+**No rerun, second push, merge, publication or guard/ignore change. This closing
+report/ledger/evidence commit is local only.**
+
+### Done — separate evdev clients and complete audit
+
+- `owner_key_counter.released(device)` opens and closes a separate evdev client
+  for every `EVIOCGKEY`; it never duplicates or queries the counting fd.
+- Startup identity/repeat getters use a query-only fd before the counting
+  client opens. Both character-device checks remain. `observe` only selects,
+  reads and closes its counting fd; state queries receive the device path.
+- The login visibility audit checks state by a separate open before its own
+  event-reading client opens. Its later observations read events and inspect
+  `/proc`/tty state, without evdev getters.
+- Boot keyboard identity, repeat and static `EVIOCGKEYCODE` getters use their
+  own query-only client. No `EVIOCGLED`, `EVIOCGSND` or `EVIOCGSW` exists in the
+  active harness. Tty LED/termios observations are on tty fds, not evdev clients.
+- Only the deliberate real-kernel negative control queries a counting fd.
+  The exact old ioctl is bound to retained 14zx source and checked by AST.
+  **The strict press/release comparison is unchanged; no tolerance was added.**
+- New `owner_counter_kernel.py` creates a private uinput F24 device, proves the
+  press is queued before querying, and observes it before emitting release.
+  Native CI runs it when `/dev/uinput` exists; otherwise a mandatory first-live-
+  guest proof runs before hidden typing. Missing/refused proof stops the run.
+  The native receipt and VM attestation are head-bound. No laptop input device
+  was accessed, and no package was installed locally.
+- The active after-run label reads the real accepted native test count. It
+  printed **582 native tests/0 skips**, replacing the stale `native569` label.
+  Historical archived controls are preserved.
+
+### Verified — actual checks, with local limitations stated
+
+- Affected local command: existing WSL, workspace `TMPDIR`, refusal-shim `PATH`,
+  `PYTHONPATH=os/ci:os/tests python3 -B -m unittest test_owner_counter_flush
+  test_owner_key_counter test_owner_ps2 test_owner_login -v`: **46 passed in
+  13.650s**. Seven new models cover independent opens/close-on-error, all reader
+  call sites, exact old ioctl, mandatory native/guest routing, wrong receipts,
+  native refusal and the unchanged exact comparison.
+- The initial local fixture test attempted Linux git on this Windows worktree
+  and failed; it now reads a hash-bound extraction of the actual old function.
+  No counter assertion was weakened. The preparation adapter initially rejected
+  harmless model stdout after `OK`; its summary parser was corrected.
+- Full local suite: **582 executed in 1416.373s; 573 distinct passes, the same
+  nine documented host limitations, zero skips, zero unknown failures**. The
+  unchanged 30-second timing test took **68.67903124300005s** here. PIL absence,
+  refused privileged fixture operations, DrvFS mode behavior and that timing
+  limit remain local limitations, never native exemptions.
+- Actual native probe: **582 passed in 200.567s, zero skips**, including the
+  explicit unchanged 30-second case. No host exception was applied in CI.
+- Stand-in route: real typing chain, nine physical cases, 973 commands, all
+  remaining stages and both Windows branches, 133 bounded observer-authorized
+  resyncs, 23 hidden pairs, three public handoffs, 86 health boundaries. The
+  probe walk adds seven commands, including mandatory proof routing. Strict
+  checks passed for **980 commands/wrappers, 812 embedded Python scripts,
+  12 shell files and 52 Python source files**, before push and again before
+  the planned qualification. Controller/privacy/diagnostic suites passed 6/7/2.
+- Both actual ISO replays verified all 9,068,650,496 bytes against the pin and
+  fresh official checksum. Release/git/read-only-gh and 53 retained zero-cost
+  inputs passed; the four CI-only credential checks stayed fail-closed and
+  passed in the probe. The qualification replay hit WinError 5, then its free-
+  space guard after a partial cache; immutable-adapter attempt 3 passed after
+  the authorized 20-second wait and SHA-verified duplicate-cache cleanup.
+  Master ISO, canonical extraction, receipts and failed diagnostics remain.
+  The Windows holder was not identified because the fresh-path retry passed.
+  No Linux inspector behavior, OS setting or installed software changed.
+- Native deterministic proof ran on **7.0.0-1017-azure**: old getter
+  **0 presses / 1 release**, comparison false; separate-client getter **1 / 1**,
+  comparison true, zero repeat/drops. This is real kernel evidence, not a mock.
+  The guest fallback was model/syntax checked and was not needed on this runner.
+- Probe evidence: 20 native loop checks with zero helper mutations and cleanup,
+  37 verified SHA/syntax tmpfs transfers, one actual AT keyboard boot/57 static
+  mappings, seven healthy xHCI receipts. Independent replay passed three
+  protected captures, four zero-write/unmap samples, three raw varstore/BootNext
+  replays and two exact NVRAM/all-variable delta replays.
+
+### STOP / PLAN-GAP — timestamps and a guard that clamps negative time
+
+The retained job-list response and repeated direct-job endpoint agree:
+
+| Probe job 124800927513 field | UTC value |
+| --- | --- |
+| `started_at` | `2026-11-01T09:51:55Z` |
+| first setup step starts | `2026-11-01T08:51:56Z` |
+| last step ends | `2026-11-01T09:17:28Z` |
+| `completed_at` | `2026-11-01T09:17:30Z` |
+
+The run also reports creation/start at 09:51:51Z but update at 09:17:31Z.
+`rehearsal_guard.job_minutes` computes `max(1, ceil(end-start))`, accepting this
+negative interval as **one minute**. Organization usage increased by **26**
+minutes, consistent with the observed step span. History pagination is complete
+(149/149 IDs, two pages), but that does not make timestamp-based accounting
+valid. The source of the upstream timestamp discrepancy is **not proven**;
+no timezone correction or substitute elapsed-time policy is assumed.
+
+**Process error:** the guard returned success and the controller dispatched
+qualification before I inspected the unexpected one-minute ledger delta. I
+should have checked that delta first. I detected it while the run was still
+in early setup, requested cancellation once and watched it become cancelled.
+Actual qualification timestamps are valid (09:22:04Z–09:26:08Z), cost **five
+rounded minutes**; the pinned-tools step was cancelled, native qualification
+and the VM step were skipped. No owner command or real-token typing occurred.
+
+**JUDGMENT-CALL:** cancel rather than continue under a silently understated
+package ledger, even though the organization and conservative cap bounds had
+room. Repairing or compensating for the accounting policy is outside this
+counter brief; no guard/runtime code was changed after the push.
+
+| Closing accounting | Minutes / state |
+| --- | --- |
+| Previously accepted package total | 1,967 |
+| Guard's new raw total | 1,973 — **not trusted** |
+| Step-span-inferred total | 1,998 — **not an approved authoritative charge** |
+| Conservative total using the full 72-minute probe bound plus actual 5-minute cancellation | 2,044 / 2,750 |
+| Original full-round reservation ceiling | 2,199 / 2,750 |
+| Organization included usage / remaining | 287 / 1,713 of 2,000 |
+| Organization reserve / push / closing reservations | 150 / 0 / 0 |
+| Dispatch counters | probe 29/30; owner-tools 18/19 |
+
+There is no exact trusted new package total; `BUDGET.json` therefore records
+`consumed_minutes: null` and labels the raw/inferred/bounded figures separately.
+No paid budget was read or counted; November net paid Actions usage is zero.
+Caps and package 13 are unchanged. This is a correctness STOP, not a request to
+raise or lower any limit. [Timing evidence](../../os/manifest/ci/14/14zy-round/budget-timing-stop.json).
+
+### Privacy — approved artifact classes and additional unclassified logs
+
+Pinned local gitleaks 8.21.2 reported zero findings over history and pending
+files before the one push. Manual exact-range and actual aresync hooks both
+passed with gitleaks 8.30.1, with no skipped-personal-terms warning, no bypass
+and no terms recorded. The hook remains the pushed-head privacy proof.
+
+The private probe artifact has **509 findings = 507 approved public ISO file
+names + the two exact kernel signing-certificate lines below**; native log
+scan is zero. No raw listing or console is committed.
+
+| Whole-line SHA-256 | Private artifact member and line | Public certificate label |
+| --- | --- | --- |
+| `843ea7bb2f91a9525884cb3b17699baccb1319115a985462b28cab888db0aa6b` | `evidence/two-disk/live-ui-probe-boot-console.txt:491` | Fedora kernel signing key |
+| `8bb3742faaf5997a69d3a75f9f7b7b253e142b8180de0335d38f45a593cc700b` | `evidence/two-disk/live-ui-probe-boot-console.txt:516` | Fedora kernel signing key |
+
+After the financial stop, scanning the **full GitHub job-log archive** found
+four additional `generic-api-key` findings in the cosign-installer output,
+two in the step log and two in the combined log. They do not satisfy either approved
+artifact exception. **Classification is not authorized; this is an additional
+privacy STOP.** Values are neither reproduced nor committed; only these line
+hashes/locations are recorded. No ignore, allowlist, rule or workflow privacy
+change was made. The cancelled qualification artifact and full logs scan zero.
+
+| Whole-line SHA-256 | Private extracted job log and line |
+| --- | --- |
+| `ed95dd6caa09f2eb336649083e012674b9dcceb4f7c83f5f0ed5593f626f046e` | `.work/14/14zy/logs-41290621860/Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt:223` |
+| `bcf2fa555ea21b2091d064d54b5ef7253e30ae67650114e35443d763d35157a3` | `.work/14/14zy/logs-41290621860/Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt:227` |
+| `7092f714b4c24c707b21e2ecd9680310b63812e68d04b678d9df7738a9330a25` | `.work/14/14zy/logs-41290621860/0_Pinned live ISO inspection and two-disk rehearsal.txt:4522` |
+| `5ee574cd590fc7bde5a54b5e6646b8ba453e1056993ec8f92a829ece5bcaa325` | `.work/14/14zy/logs-41290621860/0_Pinned live ISO inspection and two-disk rehearsal.txt:4526` |
+
+[Privacy evidence](../../os/manifest/ci/14/14zy-round/artifact-privacy.json) and
+[private file hashes](../../os/manifest/ci/14/14zy-round/retained-files.json)
+bind the receipts, original archives and raw timing responses without copying
+raw evidence into git.
+
+### Not verified / open questions / for package 15
+
+- Qualification 18 never reached a VM. Same-head installed-system typing,
+  US International/back-to-German, rollback, keep-stock, final stock verification
+  and final Windows checks are **not qualified by this round**. Prior 14zx
+  observations remain historical evidence and do not substitute for a complete
+  passing run on this head.
+- At least **one further explicitly authorized fresh probe/qualification round**
+  is needed after trustworthy fail-closed accounting and the log-finding
+  classification are settled; the retained output establishes no upper bound.
+  One probe and one qualification allowance remain, not permission to use them.
+- This stop is financial/privacy, not another console-typing stop. The 14zy
+  conditional serial-run plan is not newly triggered; the existing 14zx proposal
+  remains a proposal. No serial bypass or alternate owner route was built.
+- Owner payload/fingerprint, pinned maps, frozen release paths, INSTALL,
+  EMERGENCY, release gate, package 13 and package 15 worktree are untouched.
+  The existing physical/followability items remain for the owner/package 15;
+  physical installation stays **NOT RELEASED**. No real laptop hardware was used.
+- No Gradle daemon or sub-agent was started. Closing validation consists of
+  pinned history/pending/post-commit scans, the unchanged hash-order regression,
+  `git diff --check` and immutable source-path comparisons, recorded alongside
+  this local closing commit. PR #13 stays draft. No further action is authorized
+  in this round.
+
 ## 14zx REPORT — actual profiles fixed; final stock-login counter STOP
 
 **Disposition:** One fast-forward push through the installed hook to

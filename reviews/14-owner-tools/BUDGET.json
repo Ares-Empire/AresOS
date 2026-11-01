@@ -11,12 +11,26 @@
     "owner-tools": 19
   },
   "dispatch_counts": {
-    "probe": 28,
-    "owner-tools": 17
+    "probe": 29,
+    "owner-tools": 18
   },
-  "consumed_minutes": 1967,
+  "consumed_minutes": null,
   "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 41290621860,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+      "conclusion": "success",
+      "minutes": 1
+    },
+    {
+      "run": 41292826573,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+      "conclusion": "cancelled",
+      "minutes": 5
+    },
     {
       "run": 41278848542,
       "title": "Two-disk rehearsal (owner-tools)",
@@ -933,25 +947,27 @@
   "history": {
     "complete": true,
     "pages_read": 2,
-    "ids_count": 147,
-    "total_count": 147,
+    "ids_count": 149,
+    "total_count": 149,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
-        "ids_sha256": "33df041b3742155329e5ac2e3ea627c74133a13c106480a95159e77b0513e668",
+        "ids_sha256": "314e46dca9a604b01102783fef8336a05b8a16a4f16ec3255efcfdd512d06571",
         "page": 1,
         "returned": 100,
-        "total_count": 147
+        "total_count": 149
       },
       {
-        "ids_sha256": "f9856983c0ff068f8e21b43c96a6dcad7ed05cfb67e8743c3e62fd0665e88314",
+        "ids_sha256": "a6a66902527cf0aa885a939a973a1e8afae9c2df8c083c04b05c6e422ba0e636",
         "page": 2,
-        "returned": 47,
-        "total_count": 147
+        "returned": 49,
+        "total_count": 149
       }
     ],
     "run_ids": [
+      41290621860,
+      41292826573,
       41278848542,
       41276950908,
       41266663581,
@@ -1101,13 +1117,21 @@
       40216222435
     ]
   },
-  "status": "STOP qualification17: final stock account-login counter observed65 of66 events",
+  "status": "STOP: invalid probe job timestamps and unclassified full-log privacy findings; qualification18 cancelled before VM",
   "acceptance_met": false,
-  "pushed_head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
-  "probe28": 41276950908,
-  "qualification17": 41278848542,
+  "guard_reported_consumed_minutes": 1973,
+  "package_minute_ledger_trusted": false,
+  "previous_accepted_consumed_minutes": 1967,
+  "step_span_inferred_total_minutes": 1998,
+  "inferred_total_is_authoritative": false,
+  "conservative_consumed_upper_bound": 2044,
+  "original_round_reservation_upper_bound": 2199,
+  "pushed_head": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+  "probe29": 41290621860,
+  "qualification18": 41292826573,
   "pushes_this_followup": 1,
   "dispatches_this_followup": 2,
+  "cancellations_this_followup": 1,
   "reruns_this_followup": 0,
   "reserve": 150,
   "push_reservation": 0,
@@ -1128,41 +1152,41 @@
     "github_privacy_runs_required": false
   },
   "organization_budget_snapshot": {
-    "response_sha256": "d3224f76f27e66a1ceae10add3ebcfd60e3493fe01a08c4efb343d19614219b1",
+    "response_sha256": "7fecfffffc6e018043f7527170199c658d6a17c5d8c4fdc688d07e74ff788134",
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=11",
-    "checked_at": "2026-11-01T07:57:52.591464+00:00",
+    "checked_at": "2026-11-01T09:28:31.399925+00:00",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 256.0,
-        "discountQuantity": 256.0,
+        "grossQuantity": 282.0,
+        "discountQuantity": 287.0,
         "netQuantity": 0.0,
-        "grossAmount": 1.536,
-        "discountAmount": 1.536,
+        "grossAmount": 1.692,
+        "discountAmount": 1.722,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 1.446282731,
-        "discountQuantity": 1.446282731,
+        "grossQuantity": 1.638601194,
+        "discountQuantity": 1.638601194,
         "netQuantity": 0.0,
-        "grossAmount": 0.000485971,
-        "discountAmount": 0.000485971,
+        "grossAmount": 0.000550593,
+        "discountAmount": 0.000550593,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 256,
+    "used_minutes": 287,
     "included_minutes": 2000,
-    "included_minutes_left": 1744,
+    "included_minutes_left": 1713,
     "paid_overflow": null,
     "billing_mode": "free-minutes-only",
     "paid_budget_read": false,
-    "remaining_minutes": 1744,
+    "remaining_minutes": 1713,
     "reserved_minutes": 0,
-    "after_reservation": 1744,
+    "after_reservation": 1713,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   },
@@ -1174,22 +1198,26 @@
     "probe": 26,
     "owner-tools": 15
   },
-  "this_round_starting_ledger": 1832,
+  "this_round_starting_ledger": 1967,
   "this_round_starting_counts": {
-    "probe": 27,
-    "owner-tools": 16
+    "probe": 28,
+    "owner-tools": 17
   },
   "previous_round": {
-    "brief": "14zw",
-    "probe27": 41264222963,
-    "qualification16": 41266663581,
-    "status": "STOP qualification16: harness collapsed us-intl to us for the public physical typer",
-    "consumed_minutes": 1832
+    "brief": "14zx",
+    "probe28": 41276950908,
+    "qualification17": 41278848542,
+    "consumed_minutes": 1967,
+    "status": "STOP qualification17: final stock account-login counter observed65 of66 events"
   },
   "remaining_rounds_lower_bound": 1,
   "remaining_rounds_upper_bound_known": false,
+  "remaining_allowances": {
+    "probe": 1,
+    "owner-tools": 1
+  },
   "report_commit_local_only": true,
   "no_further_push": true,
   "no_further_dispatch": true,
-  "closing_checked_at": "2026-11-01T07:57:53.218560+00:00"
+  "closing_checked_at": "2026-11-01T09:28:32.004241+00:00"
 }

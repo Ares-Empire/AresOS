@@ -1,0 +1,107 @@
+{
+  "status": "passed",
+  "run": 41290621860,
+  "head": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+  "location": "native",
+  "skipped": false,
+  "proof": {
+    "status": "passed",
+    "real_kernel": true,
+    "kernel": "7.0.0-1017-azure",
+    "negative_control": {
+      "counts": {
+        "press": 0,
+        "release": 1,
+        "repeat": 0,
+        "syn_dropped": 0
+      },
+      "press_before_release": 0,
+      "comparison": {
+        "sent_events": 2,
+        "received_events": 1,
+        "press": 0,
+        "release": 1,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": false
+      }
+    },
+    "fixed": {
+      "counts": {
+        "press": 1,
+        "release": 1,
+        "repeat": 0,
+        "syn_dropped": 0
+      },
+      "press_before_release": 1,
+      "comparison": {
+        "sent_events": 2,
+        "received_events": 2,
+        "press": 1,
+        "release": 1,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      }
+    },
+    "counts_only": true,
+    "skipped": false,
+    "location": "native",
+    "sha": "cbaa985ed81eaea268d6f261cb212048da69d9cc"
+  },
+  "native": {
+    "status": "passed",
+    "real_kernel": true,
+    "kernel": "7.0.0-1017-azure",
+    "negative_control": {
+      "counts": {
+        "press": 0,
+        "release": 1,
+        "repeat": 0,
+        "syn_dropped": 0
+      },
+      "press_before_release": 0,
+      "comparison": {
+        "sent_events": 2,
+        "received_events": 1,
+        "press": 0,
+        "release": 1,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": false
+      }
+    },
+    "fixed": {
+      "counts": {
+        "press": 1,
+        "release": 1,
+        "repeat": 0,
+        "syn_dropped": 0
+      },
+      "press_before_release": 1,
+      "comparison": {
+        "sent_events": 2,
+        "received_events": 2,
+        "press": 1,
+        "release": 1,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      }
+    },
+    "counts_only": true,
+    "skipped": false,
+    "location": "native",
+    "sha": "cbaa985ed81eaea268d6f261cb212048da69d9cc"
+  },
+  "files": [
+    {
+      "sha256": "bc7a3fb4997f8d25a61287d9f511c161998033c8386fbd27510aa16ab89d0e68",
+      "path": "14-counter-kernel.json"
+    },
+    {
+      "sha256": "bc7a3fb4997f8d25a61287d9f511c161998033c8386fbd27510aa16ab89d0e68",
+      "path": "two-disk/counter-kernel-proof.json"
+    }
+  ]
+}
