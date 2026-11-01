@@ -121,7 +121,7 @@ class GuardTest(unittest.TestCase):
             media.assert_not_called()
 
     def test_october_reservation_drops_only_closing_privacy(self):
-        historical=copy.deepcopy(guard.SETTINGS);historical['closing_privacy_reservation']['minutes']=0
+        historical=self.historical_settings(0)
         with patch.object(guard,'SETTINGS',historical):
             plan=guard.owner_reservations(datetime.datetime(2026,10,26,tzinfo=datetime.timezone.utc))
         self.assertEqual({k:plan[k] for k in ('push','probe','qualification','closing_privacy')},
@@ -132,10 +132,10 @@ class GuardTest(unittest.TestCase):
 
     def test_zero_closing_reservation_expires_and_restored_twelve_works(self):
         november=datetime.datetime(2026,11,1,tzinfo=datetime.timezone.utc)
-        historical=copy.deepcopy(guard.SETTINGS);historical['closing_privacy_reservation']['minutes']=0
+        historical=self.historical_settings(0)
         with patch.object(guard,'SETTINGS',historical),self.assertRaisesRegex(AssertionError,'October2026 only'):
             guard.owner_reservations(november)
-        changed=copy.deepcopy(guard.SETTINGS);changed['closing_privacy_reservation']['minutes']=12
+        changed=self.historical_settings(12)
         with patch.object(guard,'SETTINGS',changed):
             plan=guard.owner_reservations(november)
             self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(250,244,172))
@@ -143,12 +143,43 @@ class GuardTest(unittest.TestCase):
     def test_missing_or_altered_closing_decision_refuses(self):
         for field,value in (('minutes',False),('minutes',-1),('minutes',6),('normal_minutes',0),
                              ('exception_month','2026-11'),('decision','unreviewed')):
-            changed=copy.deepcopy(guard.SETTINGS);changed['closing_privacy_reservation'][field]=value
+            changed=self.historical_settings(12);changed['closing_privacy_reservation'][field]=value
             with self.subTest(field=field,value=value),patch.object(guard,'SETTINGS',changed),self.assertRaises(AssertionError):
                 guard.owner_reservations()
-        changed=copy.deepcopy(guard.SETTINGS);changed.pop('closing_privacy_reservation')
+        changed=self.historical_settings(12);changed.pop('closing_privacy_reservation')
         with patch.object(guard,'SETTINGS',changed),self.assertRaisesRegex(AssertionError,'missing closing'):
             guard.owner_reservations()
+
+    def historical_settings(self, closing):
+        value=copy.deepcopy(guard.SETTINGS)
+        value.pop('push_privacy_reservation')
+        value['closing_privacy_reservation']=dict(minutes=closing,normal_minutes=12,
+            exception_month='2026-10',decision='briefs/14r-no-closing-reservation.md')
+        return value
+
+    def test_local_hook_replaces_only_actions_privacy_costs(self):
+        for now in (datetime.datetime(2026,11,1,tzinfo=datetime.timezone.utc),
+                    datetime.datetime(2027,1,1,tzinfo=datetime.timezone.utc)):
+            plan=guard.owner_reservations(now)
+            self.assertEqual({k:plan[k] for k in ('push','probe','qualification','closing_privacy')},
+                             dict(push=0,probe=72,qualification=160,closing_privacy=0))
+            self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(232,232,160))
+            self.assertEqual(plan['decision'],'briefs/14zw-local-privacy.md')
+            self.assertEqual(plan['privacy_proof'],'aresync-local-pre-push')
+            self.assertTrue(plan['merge_requires_privacy'])
+            self.assertFalse(plan['github_privacy_runs_required'])
+        self.assertNotIn('push_privacy_reservation',guard.PACKAGES['13'])
+
+    def test_local_privacy_zero_requires_both_exact_recorded_decisions(self):
+        for key in ('push_privacy_reservation','closing_privacy_reservation'):
+            for field,value in (('minutes',False),('minutes',-1),('minutes',6),('minutes',12),
+                                ('decision','unreviewed'),('normal_minutes',0)):
+                changed=copy.deepcopy(guard.SETTINGS);changed[key][field]=value
+                with self.subTest(key=key,field=field,value=value),patch.object(guard,'SETTINGS',changed),self.assertRaises(AssertionError):
+                    guard.owner_reservations()
+            changed=copy.deepcopy(guard.SETTINGS);changed.pop(key)
+            with self.subTest(missing=key),patch.object(guard,'SETTINGS',changed),self.assertRaises(AssertionError):
+                guard.owner_reservations()
 
     def test_host_reservation_cannot_drop_probe_or_qualification_bound(self):
         for mode,reserve in (('probe',231),('owner-tools',159)):

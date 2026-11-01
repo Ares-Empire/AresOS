@@ -40,9 +40,21 @@ def configure(package):
 
 
 def owner_reservations(now=None):
-    """The October exception defers closing privacy, never a VM bound."""
+    """Local privacy costs no Actions minutes; VM bounds stay reserved."""
     assert PACKAGE=='14', 'STOP: owner reservation plan is package14 only'
     setting=SETTINGS.get('closing_privacy_reservation')
+    push=SETTINGS.get('push_privacy_reservation')
+    local_decision='briefs/14zw-local-privacy.md'
+    if (isinstance(setting,dict) and setting.get('decision')==local_decision or
+            isinstance(push,dict) and push.get('decision')==local_decision):
+        for name,value in (('push',push),('closing',setting)):
+            assert isinstance(value,dict) and set(value)=={'minutes','decision'}, 'STOP: missing or malformed local '+name+' privacy decision'
+            assert type(value['minutes']) is int and value['minutes']==0 and value['decision']==local_decision, 'STOP: unreviewed local '+name+' privacy reservation'
+        return dict(push=0,probe=72,qualification=160,closing_privacy=0,
+            pre_push=232,before_probe=232,before_qualification=160,
+            decision=local_decision,exception_month=None,merge_requires_privacy=True,
+            privacy_proof='aresync-local-pre-push',github_privacy_runs_required=False)
+    assert push is None, 'STOP: unreviewed push privacy reservation'
     assert isinstance(setting,dict) and set(setting)=={'minutes','normal_minutes','exception_month','decision'}, 'STOP: missing closing reservation decision'
     closing=setting['minutes']
     assert type(closing) is int and closing in (0,12) and setting['normal_minutes']==12, 'STOP: invalid closing reservation'
@@ -232,7 +244,7 @@ def organization_budget(reserve, now=None):
 
 
 def budget(reserve, current=None):
-    # Push/PR privacy checks consume the same account minutes as VM dispatches.
+    # Keep every historical push/PR job in the ledger after privacy moves local.
     listing = api(RUN_HISTORY_PATH)
     runs = listing['workflow_runs']
     assert type(reserve) is int and reserve >= 0, 'STOP: invalid reservation'
