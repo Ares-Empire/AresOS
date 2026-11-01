@@ -38,14 +38,19 @@ class EqualityTest(unittest.TestCase):
 
     def test_every_owner_command_equals_the_command_physically_typed_by_ci(self):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
-        typed={text.rstrip('\n') for text,profile in walk.walk()['typed']}
+        result=walk.walk()
+        typed={text.rstrip('\n') for text,profile in result['visible_blocks']}
         guide=(ROOT/'docs/INSTALL.md').read_text()
         for command in commands.values():
             self.assertIn(command, typed)
             self.assertIn(command, guide)
         allowed=set(commands.values())
         for block in re.findall(r'```bash\n(.*?)\n```',guide,re.S):
-            for line in block.splitlines(): self.assertIn(line, allowed)
+            if block not in allowed:
+                for line in block.splitlines(): self.assertIn(line, allowed)
+        self.assertEqual(sum(text.rstrip('\n')==commands['install'] for text,profile in result['visible_blocks']),1)
+        self.assertIn('layout-reset-trial-QMP-system-reset',result['checks'])
+        self.assertIn(commands['layout-abandon'],typed)
         for name,source in common.bundle.PAYLOAD.items():
             self.assertEqual((ROOT/'os/owner-tools/payload'/name).read_bytes(), (ROOT/source).read_bytes())
 

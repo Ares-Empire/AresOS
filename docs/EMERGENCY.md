@@ -6,16 +6,7 @@ This card applies once AresOS is installed. Physical installation is still **not
 
 ## Stock preparation stops before the switch
 
-Package14's new checked commands passed native tests and privacy CI in14d.
-14g's binding/private-access checks and14h's FUSE/capability gate passed in CI.
-The14i brace-group fix passed the fifth probe and all306 native tests. Its
-same-head qualification installed offline and completed the Windows round
-trip, then stopped at tty3 prompt readiness after tools hotplug, before the
-first tools command. No rerun; the complete owner route remains unaccepted.
-14j's local prompt-resync fix has no new VM evidence; dispatch awaits the
-owner's budget decision.
-They are not released for physical installation; see the
-[14 report](../reviews/14-owner-tools/REPORT.md).
+Qualification 20 passed the complete protected-second VM owner route, including both layout proofs, rollback, keep-stock and final Windows boots. The 14zzc review fixes require this round's fresh same-head qualification; use the [14 report](../reviews/14-owner-tools/REPORT.md) for its actual result. Physical installation is still **NOT RELEASED**; every laptop/media/followability gate stays open.
 
 An NVIDIA Flatpak runtime notification while offline is expected. Leave its
 sync enabled; it retries after networking becomes available. That notification
@@ -31,7 +22,9 @@ record B or restarting. After **F12 → Linux → ares-recovery sign-in**, plug 
 the tools stick and use INSTALL's checked bootstrap, then `sudo /var/lib/ares/at prepare`.
 Require PASS (exact identity, pin, pending none), rerun with no mutations, then
 network on → `sudo /var/lib/ares/at title` → `sudo /var/lib/ares/at records`.
-A STOP means keep this session open, preserve diagnostics and get help.
+A STOP means keep this session open, preserve diagnostics and get help. STOP diagnostics persist root-only under `/var/lib/ares/diagnostics` and go through the checked `export` route with records.
+
+Lost the original layout-trial session: fresh physical **ares-recovery** login, then `sudo /var/lib/ares/at layout abandon`; require `PASS layout abandon`, save its refreshed title, then `sudo /var/lib/ares/at reboot`; Windows stays default, so use F12 and the recorded Linux entry for one Linux boot. Unfinished trials do not change the next boot's finished layout; stock keeps its own installer setting.
 
 **Every shutdown/restart: stick absent.** Export with `sudo /var/lib/ares/at export`,
 require SAFE TO REMOVE, unplug. Later commands recheck the installed manifest;

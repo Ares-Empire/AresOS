@@ -150,7 +150,7 @@ class DiagnosticsTest(unittest.TestCase):
     def test_last_install_step_failure_has_no_premature_success_record(self):
         self.stack.enter_context(patch.object(owner.sys,'argv',['at','install']))
         self.stack.enter_context(patch.object(pathlib.Path,'symlink_to',side_effect=OSError('short entry failed')))
-        with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(OSError,'short entry failed'):
+        with common.private_metadata(self.home),contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(OSError,'short entry failed'):
             owner.main()
         result=json.loads(next(self.records.glob('*.json')).read_text())
         self.assertEqual(result['status'],'stopped')
@@ -176,8 +176,8 @@ class DiagnosticsTest(unittest.TestCase):
             console.run('install', 'unexpected-stop')
         saved = json.loads((self.root/'unexpected-stop-owner-diagnostics.json').read_text())
         self.assertEqual(saved, record)
-        self.assertEqual(len(sources), 3)
-        self.assertEqual(sum('# visible-echo' in source for source in sources),1)
+        self.assertEqual(len(sources), 2+len(vm.COMMANDS['install'].splitlines()))
+        self.assertEqual(sum('# visible-echo' in source for source in sources),len(vm.COMMANDS['install'].splitlines()))
         guest.screenshot.assert_not_called()
 
     def test_real_framed_reader_decodes_preinstall_stop_and_refuses_unsafe_records(self):

@@ -162,9 +162,9 @@ class GuardTest(unittest.TestCase):
                     datetime.datetime(2027,1,1,tzinfo=datetime.timezone.utc)):
             plan=guard.owner_reservations(now)
             self.assertEqual({k:plan[k] for k in ('push','probe','qualification','closing_privacy')},
-                             dict(push=0,probe=72,qualification=220,closing_privacy=0))
-            self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(292,292,220))
-            self.assertEqual(plan['qualification_bound_decision'],'briefs/14zzb-step-limit.md')
+                             dict(push=0,probe=72,qualification=240,closing_privacy=0))
+            self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(312,312,240))
+            self.assertEqual(plan['qualification_bound_decision'],'briefs/14zzc-review-fixes.md')
             self.assertEqual(plan['decision'],'briefs/14zw-local-privacy.md')
             self.assertEqual(plan['privacy_proof'],'aresync-local-pre-push')
             self.assertTrue(plan['merge_requires_privacy'])
@@ -183,7 +183,7 @@ class GuardTest(unittest.TestCase):
                 guard.owner_reservations()
 
     def test_host_reservation_cannot_drop_probe_or_qualification_bound(self):
-        for mode,reserve in (('probe',291),('owner-tools',219),('probe',232),('owner-tools',160)):
+        for mode,reserve in (('probe',311),('owner-tools',239),('probe',291),('owner-tools',219),('owner-tools',220),('probe',232),('owner-tools',160)):
             with self.subTest(mode=mode),patch.dict(os.environ,REHEARSAL_PACKAGE='14',clear=True), \
                  patch.object(sys,'argv',['rehearsal_guard.py',mode,str(reserve)]),patch.object(guard,'budget') as budget, \
                  self.assertRaisesRegex(AssertionError,'incomplete owner dispatch reservation'):
@@ -192,7 +192,7 @@ class GuardTest(unittest.TestCase):
 
     def test_workflow_limits_and_both_ci_reservations_cover_the_owner_plan(self):
         job=yaml.load((ROOT/'.github/workflows/os-image.yml').read_text(),Loader=yaml.BaseLoader)['jobs']['rehearsal']
-        limits="${{ inputs.rehearsal == 'owner-tools' && 220 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}"
+        limits="${{ inputs.rehearsal == 'owner-tools' && 240 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}"
         self.assertEqual(job['timeout-minutes'],limits)
         steps={s['name']:s for s in job['steps'] if 'name' in s}
         native=steps[guard.NATIVE_STEP]
@@ -204,7 +204,7 @@ class GuardTest(unittest.TestCase):
         self.assertIn('.work/browser-env/bin/pip --retries 5 --timeout 60 install playwright==1.58.0',native['run'])
         self.assertEqual(steps['Install pinned rehearsal tools on disposable runner']['timeout-minutes'],'20')
         self.assertEqual(steps['Prepare disposable file disks and qualify the real live environment']['timeout-minutes'],
-            "${{ inputs.rehearsal == 'owner-tools' && 180 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
+            "${{ inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}")
         reservation=limits.replace('&& 70','&& 72').replace('|| 40','|| 42')
         self.assertIn(reservation,steps['Reserve the separate 11c minute budget (including privacy checks)']['run'])
         self.assertEqual(steps['Require completed native preflight before any package 13 VM']['run'],

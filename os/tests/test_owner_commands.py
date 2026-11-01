@@ -82,7 +82,7 @@ class CommandTest(unittest.TestCase):
             keyboard=dict(VConsoleKeymap='de', VConsoleKeymapToggle='', X11Layout='de', X11Model='pc105', X11Variant='', X11Options=''))
         self.write()
         self.tools.keyboard = lambda: self.read()['keyboard']
-        self.disk = patch.object(owner, 'disk_record', return_value={})
+        self.disk = patch.object(owner, 'disk_record', return_value=dict(target='TARGET',protected='KEEP',partitions={},esp_guid='fixture'))
         self.disk.start()
         self.addCleanup(self.disk.stop)
         self.bls = patch.object(owner, 'resolved_bls', side_effect=self.entries)
@@ -129,6 +129,7 @@ class CommandTest(unittest.TestCase):
                 self.state.update(kargs='quiet ostree=/ostree/boot.1/stock/0' + (' vconsole.keymap=' + override if override else ''), paused=False)
                 self.write()
                 (self.store / 'prepared.json').unlink(missing_ok=True)
+                (self.store / 'prepare-intent.json').unlink(missing_ok=True)
                 self.tools.prepare()
                 prepared = self.tools.load('prepared')
                 self.assertEqual(len(prepared['state']['rpm']['deployments']), count)
@@ -240,7 +241,7 @@ class CommandTest(unittest.TestCase):
         with patch.object(self.tools, 'title', return_value=['title checked']): self.tools.layout('finish')
         old = self.read()['keyboard']
         self.state = self.read()
-        self.state['fail_x11_once'] = True
+        self.state['fail_loadkeys_once'] = True
         self.write()
         with self.assertRaisesRegex(owner.Stop, 'old settings restored'):
             self.tools.layout('begin', 'de')

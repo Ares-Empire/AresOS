@@ -1,11 +1,15 @@
 import copy
+import contextlib
 import importlib.util
 import json
 import pathlib
+import os
+import stat
 import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -19,6 +23,25 @@ def module(name):
 
 owner = module('owner')
 bundle = module('bundle')
+
+
+@contextlib.contextmanager
+def private_metadata(root):
+    """POSIX metadata model for private ordinary-file fixtures on DrvFS.
+
+    Bytes, paths, no-follow behaviour, atomic renames and fsync are real. Only
+    the mode/owner returned for this explicitly declared private tree change.
+    Permission-refusal tests exercise the production predicate separately.
+    """
+    root=pathlib.Path(root).absolute(); original=pathlib.Path.stat
+    def metadata(path,*args,**kwargs):
+        info=original(path,*args,**kwargs)
+        if path.is_absolute() and path.is_relative_to(root) and not stat.S_ISLNK(info.st_mode):
+            values={name:getattr(info,name) for name in dir(info) if name.startswith('st_')}
+            values.update(st_uid=os.geteuid(),st_mode=stat.S_IFMT(info.st_mode) | (0o700 if stat.S_ISDIR(info.st_mode) or path.name=='at' else 0o600))
+            return SimpleNamespace(**values)
+        return info
+    with patch.object(pathlib.Path,'stat',metadata): yield
 
 
 def stock():

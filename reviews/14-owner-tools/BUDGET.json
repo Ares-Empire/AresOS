@@ -15,7 +15,7 @@
     "owner-tools": 20
   },
   "consumed_minutes": 2301,
-  "reserved_minutes": 0,
+  "reserved_minutes": 312,
   "runs": [
     {
       "run": 41324240079,
@@ -34,7 +34,7 @@
           "selected_completion": "2026-11-01T18:14:00+00:00",
           "seconds": 7890.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "dde81bf0acdb95549fbda18691158f21efd5bc126251f3afae09170ae1e20a07",
@@ -118,7 +118,7 @@
           "selected_completion": "2026-11-01T14:10:32+00:00",
           "seconds": 7313.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "08b7b070f77a788c293069ce63870e77f1c861ad34405366eba10ddfb06627fe",
@@ -244,7 +244,7 @@
           "selected_completion": "2026-11-01T09:26:08+00:00",
           "seconds": 244.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "00fb2f2877ea08be1ba8a054b2520da984ffc8614ae908325688e76efc6e4e37",
@@ -286,7 +286,7 @@
           "selected_completion": "2026-11-01T07:47:24+00:00",
           "seconds": 6625.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "1a003780ad7a7a8fab31e5f46e7c0f104df3123ab9ad68f6163bbe7f99c8eaea",
@@ -370,7 +370,7 @@
           "selected_completion": "2026-11-01T04:16:08+00:00",
           "seconds": 5267.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "0bc27a855975816bc3a4d8cb22b3fa4e93650614c568ad7a3cb1883174378365",
@@ -475,7 +475,7 @@
           "selected_completion": "2026-10-29T16:08:14+00:00",
           "seconds": 3941.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "a2e19625a27a583a4719a548fdb4cf6f7644db8a15f641b3f5a05df9755638ee",
@@ -601,7 +601,7 @@
           "selected_completion": "2026-10-29T12:43:50+00:00",
           "seconds": 4026.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "df582b801eb69d974a12d3bd9aec40cd34d52af689c3e25ee42506b7702e6396",
@@ -727,7 +727,7 @@
           "selected_completion": "2026-10-29T10:09:49+00:00",
           "seconds": 4808.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "de670fe93254de1a68c2a46436cded4fce24096dfb9581a7cb71bcc999c7dda9",
@@ -853,7 +853,7 @@
           "selected_completion": "2026-10-29T07:09:03+00:00",
           "seconds": 4455.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "4e7f8f584f9e413ca3c1729a81933480d6a9ac9ef49e5dcda77a0434e0c8bbcc",
@@ -979,7 +979,7 @@
           "selected_completion": "2026-10-29T03:25:21+00:00",
           "seconds": 3984.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "25c53fc351ef0c657b14e5d1c27cb10a28ce31eaa1cfaf1fc34b3b5b4f811ddc",
@@ -1105,7 +1105,7 @@
           "selected_completion": "2026-10-29T00:32:54+00:00",
           "seconds": 3350.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "803a6189a7d63fb8927e638c3e82950c6944b7be404f3d8832a9b451296b5757",
@@ -1231,7 +1231,7 @@
           "selected_completion": "2026-10-28T22:16:12+00:00",
           "seconds": 4441.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "9b40e5ff7dcb1feaa9f12fd11688c3784cc06b16f23987cdbe1c7b8638ae5391",
@@ -1357,7 +1357,7 @@
           "selected_completion": "2026-10-28T09:32:05+00:00",
           "seconds": 2940.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "8cedf4e000be6832976c67ea0f6ac26dc7f5c4f8d70b12b13f6a5becda00547c",
@@ -1567,7 +1567,7 @@
           "selected_completion": "2026-10-28T05:22:17+00:00",
           "seconds": 4595.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "91f64ced746690dc95f0e801585e9ec3295952f63929d6110d49d282a4132b0a",
@@ -1693,7 +1693,7 @@
           "selected_completion": "2026-10-28T02:45:26+00:00",
           "seconds": 3201.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "aa298a11b95a98c48d9b4b0468fc27b7d5621e519cbb002f668f2fe318072d17",
@@ -1819,7 +1819,7 @@
           "selected_completion": "2026-10-27T23:30:14+00:00",
           "seconds": 3195.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "9ffef7a12a389f089129af66095bda623e99bca0f77926a7a26d7ed744b26d83",
@@ -1945,7 +1945,7 @@
           "selected_completion": "2026-10-27T20:23:03+00:00",
           "seconds": 4427.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "0e22bc57aad678ac16857dd48eb36a143e8fdbb4238422f14f527d2cbee44bbb",
@@ -2071,7 +2071,7 @@
           "selected_completion": "2026-10-27T17:38:02+00:00",
           "seconds": 3181.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "c0874f83771a2670a351d38232e88945b9663ebf5095b80b7ae1a83c8677ee02",
@@ -2365,7 +2365,7 @@
           "selected_completion": "2026-10-27T00:50:40+00:00",
           "seconds": 4072.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "fbd0cc9cf3db7c6eb950a4b0abe09d5214b0e5a8772061d39f37d5fc0ea89d6a",
@@ -3037,7 +3037,7 @@
           "selected_completion": "2026-10-26T04:12:41+00:00",
           "seconds": 2844.0,
           "step_count": 22,
-          "full_bound": 220
+          "full_bound": 240
         },
         {
           "response_sha256": "63ee14146b4eebeeb3202b1112e15b33e5f672b8c2a0ea2a9fa1916d9c6c94ac",
@@ -4124,8 +4124,8 @@
       40216222435
     ]
   },
-  "status": "14zzb accepted: probe31 and complete qualification20 passed on the same head; round closed locally",
-  "acceptance_met": true,
+  "status": "14zzc local checks passed; fresh probe32 and qualification21 pending",
+  "acceptance_met": false,
   "package_minute_ledger_trusted": true,
   "accounting_decision": "briefs/14zz-ledger-and-cosign.md",
   "changed_jobs": [
@@ -4145,7 +4145,7 @@
     "status": "passed",
     "previous_dispatch": 41324240079,
     "previous_observed_at": "2026-11-01T16:01:24.204502+00:00",
-    "current_observed_at": "2026-11-01T18:16:50.470742+00:00",
+    "current_observed_at": "2026-11-01T19:58:20.481254+00:00",
     "previous_recorded_minutes": 2169,
     "recomputed_previous_minutes": 2169,
     "current_minutes": 2301,
@@ -4155,10 +4155,10 @@
     "previous_run_count": 135
   },
   "organization_budget_snapshot": {
-    "response_sha256": "6b41bcf708f89bd01816178a43d964244f4059a7700074a1b8bed2020db77fc3",
+    "response_sha256": "5c58368b72defa5bf83cbe1b51412c9402e285344896c6ab9964a5c60df74c6a",
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=11",
-    "checked_at": "2026-11-01T18:16:50.470742+00:00",
+    "checked_at": "2026-11-01T19:58:20.481254+00:00",
     "usage": [
       {
         "sku": "actions_linux",
@@ -4173,11 +4173,11 @@
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 3.260993816,
-        "discountQuantity": 3.260993816,
+        "grossQuantity": 3.6565536,
+        "discountQuantity": 3.6565536,
         "netQuantity": 0.0,
-        "grossAmount": 0.00109574,
-        "discountAmount": 0.00109574,
+        "grossAmount": 0.001228654,
+        "discountAmount": 0.001228654,
         "netAmount": 0.0
       }
     ],
@@ -4188,8 +4188,8 @@
     "billing_mode": "free-minutes-only",
     "paid_budget_read": false,
     "remaining_minutes": 1410,
-    "reserved_minutes": 0,
-    "after_reservation": 1410,
+    "reserved_minutes": 312,
+    "after_reservation": 1098,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   },
@@ -4203,32 +4203,30 @@
     "owner-tools": 15
   },
   "previous_reported_untrusted_minutes": 1973,
-  "this_round_starting_ledger": 2144,
+  "this_round_starting_ledger": 2301,
   "this_round_starting_counts": {
-    "probe": 30,
-    "owner-tools": 19
+    "probe": 31,
+    "owner-tools": 20
   },
   "previous_round": {
-    "brief": "14zza",
-    "existing_probe30": 41301148135,
-    "qualification19": 41305049425,
-    "status": "Local review fixed and probe accepted; qualification19 deadline failure; no rerun"
+    "brief": "14zzb",
+    "probe31": 41321806985,
+    "qualification20": 41324240079,
+    "status": "complete accepted qualification; closed ledger2301"
   },
   "pushed_head": "211df982b5bf080b0167b8fe6e8dd3c5eb264fe8",
   "no_further_dispatch_without_fresh_guards": true,
   "accounting_policy": "14zz-job-interval-ordered-span-full-bound-v1",
   "closed_round_manifest": "os/manifest/ci/14/14zzb-round/round.json",
   "further_dispatch_authorized": false,
-  "qualification_bound": 220,
-  "vm_step_limit": 180,
-  "limit_decision": "briefs/14zzb-step-limit.md",
-  "timing_manifest": "os/manifest/ci/14/14zzb-timing/projection.json",
+  "qualification_bound": 240,
+  "vm_step_limit": 200,
+  "limit_decision": "briefs/14zzc-review-fixes.md",
+  "timing_manifest": "os/manifest/ci/14/14zzc-timing/projection.json",
   "current_round": {
-    "brief": "14zzb",
-    "probe31": 41321806985,
-    "qualification20": 41324240079,
-    "status": "complete success; all independent acceptance checks passed",
-    "pushes": 1,
+    "brief": "14zzc",
+    "status": "pending fresh same-head probe32/qualification21; no dispatch yet",
+    "pushes": 0,
     "reruns": 0
   },
   "this_round_accounting_charge_changes": []

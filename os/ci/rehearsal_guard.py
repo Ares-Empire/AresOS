@@ -29,7 +29,7 @@ HISTORY_PAGE_LIMIT = 20
 PUBLISH_STEP = 'Publish the tested private release and sign with GitHub OIDC'
 NATIVE_STEP = 'Qualify tools, regressions, rewritten release identity and private access'
 ACCOUNTING_POLICY = '14zz-job-interval-ordered-span-full-bound-v1'
-OWNER_QUALIFICATION_BOUND = 220
+OWNER_QUALIFICATION_BOUND = 240
 
 
 def configure(package):
@@ -55,7 +55,7 @@ def owner_reservations(now=None):
         return dict(push=0,probe=72,qualification=OWNER_QUALIFICATION_BOUND,closing_privacy=0,
             pre_push=72+OWNER_QUALIFICATION_BOUND,before_probe=72+OWNER_QUALIFICATION_BOUND,
             before_qualification=OWNER_QUALIFICATION_BOUND,
-            qualification_bound_decision='briefs/14zzb-step-limit.md',
+            qualification_bound_decision='briefs/14zzc-review-fixes.md',
             decision=local_decision,exception_month=None,merge_requires_privacy=True,
             privacy_proof='aresync-local-pre-push',github_privacy_runs_required=False)
     assert push is None, 'STOP: unreviewed push privacy reservation'

@@ -1,5 +1,121 @@
 # 14: checked owner tools
 
+## 14zzc REPORT: accepted review fixes; fresh qualification pending
+
+**Disposition:** all five review findings are addressed. Fresh probe 32 and
+qualification 21 on one pushed head are pending; this changed payload is not
+accepted yet. PR #13 stays draft until independent acceptance. No image build,
+release/publication, laptop operation or merge is authorized. Physical release
+remains **NOT RELEASED** and every existing physical/followability gate applies.
+
+### Done
+
+The guide's single bootstrap block first copies the read-only stick into a
+fresh private tmpfs directory. Only system tools then check the literal full
+SHA256SUMS fingerprint, the exact file list, and every file's SHA-256. Only
+afterward does Bash run the copied entry point; checked_bundle remains the
+second layer. The Windows helper checks both manifests. The current full
+fingerprint is `3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd`.
+The copied bundle root is explicitly refused if it is a symlink, before cd.
+A harmless real-Bash fixture demonstrated that the earlier recursive copy
+preserved such a root link and returned success; the corrected command refuses
+with zero payload execution. The command remains 13 lines, at most 107 columns;
+the payload fingerprint and conservative timing geometry are unchanged.
+
+Layout begin/revert change the running console map only. Saved system/X11 and
+greeter settings stay at the last finished layout until explicit layout finish.
+New layout abandon uses a fresh authenticated physical administrator session,
+qualified deployments, disk identities and idle checks. It restores the finished
+runtime map and clears/journals the pending trial. Stock retains its own finished
+installer settings. Guide/card include the exact command and PASS line.
+
+Installation journals its identity, stages privately, fsyncs and atomically
+publishes. Matching interrupted phases resume; unknown partial state refuses.
+Prepare journals before its first mutation and permits only precisely matching
+already-completed effects on resume. STOP diagnostics now persist root-only
+under /var/lib/ares/diagnostics and join the checked owner export/readback route.
+The status passages acknowledge completed Q20 scope and this round's pending
+review changes; the closing local status will name this round's actual result.
+
+The qualification adds a plain-US pending trial, QMP system_reset, next-boot
+German checks on all six consoles, German password/sudo login, layout abandon
+and guarded reboot. Every original subsequent stage remains, including US
+failure/revert, US International proof/finish, German restoration, rollback,
+keep-stock and final attached/detached Windows checks. The Audit class source
+is unchanged; only the exact host-QMP shutdown origin joins the stop protocol.
+
+### Verified locally before the single push
+
+The full discovery ran **626 tests** in 2323.975 s: **617 passed**, 9 documented laptop/WSL limitations, **zero skips and zero new failures**. The same 626 tests, including the unchanged 30-second timing test, remain mandatory in native CI.
+
+The real bootstrap tamper tests execute no payload for altered at, altered
+owner.py, an extra file, a linked bundle root or a missing file. Session-loss/closed-login/stock-side
+abandon, install/prepare failure injection, and failure -> export -> reboot
+regressions pass. The initial suite exposed an old AST placement fixture;
+it now executes the actual private-copy/atomic-publish/entry placement and
+retains every original installed-path assertion. Its focused rerun passed,
+then the full suite was restarted. No test bound or assertion was relaxed.
+
+Local review also found that abandon's supported-profile check ran before its
+known interrupted-finish branch, making the two-write intermediate unreachable.
+That ordering is corrected: the exact mixed state needs the saved finish intent,
+prior proof and deployment identity. A real first localectl write followed by an
+abrupt-interruption injection now recovers; without the finish intent it refuses
+with zero operational mutations. The final payload, full walk and whole suite
+were regenerated/restarted after this correction; both superseded logs remain
+in the private local work area.
+
+The full stand-in walk passed ten Linux stage groups, 27 hidden transitions,
+three handoffs, 154 cluttered waits with fresh authorized resyncs, 13 physical
+typing cases and the final Windows markers. Real typing runs through the
+layout adapter to recorded QMP key events. No wait/hidden input is uncovered.
+Strict syntax checked all 1,159 composed guest commands and wrappers, 954
+embedded Python bodies, 12 shell files and 53 CI/overlay/owner Python files;
+any Bash parse stderr, including warnings, refuses. Local control tests: 31
+passed. Windows copy/helper tests: 17 zero-write refusals plus successful copy
+and entry point. Real read-only release/git/GH and all 53 retained-input steps
+passed; four credential-only registry steps remain fail-closed in CI.
+
+The actual ISO inspector replay verified all 9,068,650,496 bytes, pinned SHA-256
+and a fresh official checksum. Attempt one hit the previously approved Windows
+checkpoint Path.replace WinError 5; after the permitted 10-second wait, attempt
+two passed in a fresh directory. CI inspector behavior is unchanged. No ISO
+readers overlapped. Pinned gitleaks 8.21.2 pending/full-history zero and the
+installed aresync exact-range privacy hook are required before the one push.
+
+Source/results/control bindings are in
+`os/manifest/ci/14/14zzc-preflight/preparation.json`. Pinned kbd 2.9.0-4.fc44 and
+QEMU 8.2.2 source references and the unchanged Audit source hash are recorded
+in source-proof.json. The frozen image, runtime, release scripts, keys, locks,
+keyboard maps, privacy files, package 13 and package settings remain unchanged.
+
+### Sizing / budget
+
+Timing was calculated before limits changed, using retained Q17/Q19/Q20 stage
+maxima. Each additional reset boot gets a whole slowest comparable boot; each
+extra bootstrap line gets the original full typing/echo/record interval plus
+timestamp granularity. VM 145.901 min +25% = **182.376**, exceeding 180 but fitting
+the authorized **200**. Whole job +25% = **204.480**, fitting bound **240**. The
+probe stays 72; job/guard use 240. Caps remain the last **32/21**, minute cap
+2750. Projection sources and calculations are in 14zzc-timing/projection.json.
+
+Complete history recomputation: 153/153 IDs, 2301 consumed, counts 31/20.
+The prior qualification added 132 to both package and organization usage.
+Organization included minutes: 590 used / 1410 left. Reservation 72+240=312
+leaves more than the 150-minute reserve; 2301+312=2613 <=2750. November remains
+free-minutes-only, no paid budget API read, zero hook privacy reservations.
+Ledger and billing will be rechecked immediately before each dispatch.
+
+### Not verified / JUDGMENT-CALL / PLAN-GAP / open questions
+
+Runtime-only trial was chosen over a new early-boot repair service: an unfinished
+begin/revert never changes boot configuration. No image/service change is needed.
+Only explicit finish persists a proved layout. Every original physical laptop,
+USB restore/copy/forgotten-stick, firmware, keyboard, offline/notification and
+followability gate remains outstanding. Backup stock keeps the installer's
+layout; a US-then-rollback hardware run was not performed. Fresh VM acceptance
+is pending. No Gradle/Minecraft process was started. Never merge.
+
 ## 14zzb REPORT: sized limits; probe 31 and complete qualification 20 passed
 
 **Disposition:** [Probe 31](https://github.com/Ares-Empire/AresOS/actions/runs/41321806985)

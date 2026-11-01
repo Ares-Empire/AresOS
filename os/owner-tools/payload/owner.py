@@ -25,10 +25,12 @@ import urllib.request
 import urllib.error
 import struct
 import uuid
+import copy
+import tempfile
 
 HOME = pathlib.Path('/var/lib/ares')
 AUTH = pathlib.Path('/etc/ostree/auth.json')
-STOP_RECORDS = pathlib.Path('/run/ares-owner-diagnostics')
+STOP_RECORDS = HOME / 'diagnostics'
 BASE = 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151'
 UPSTREAM = r'(?:ostree-image-signed:docker://|ostree-unverified-registry:)?ghcr\.io/ublue-os/bazzite-nvidia-open(?::[A-Za-z0-9_.-]+|@sha256:[0-9a-f]{64})'
 IDENTITY = ('checksum', 'serial', 'osname')
@@ -92,10 +94,13 @@ def checked_bundle(root):
         require(not path.is_symlink(), 'Bundle contains a link')
         if path.is_file():
             actual.add(path.relative_to(root).as_posix())
-    require(actual == set(entries) | {'SHA256.json'}, 'Partial bundle or unexpected file')
+    require(actual == set(entries) | {'SHA256.json', 'SHA256SUMS'}, 'Partial bundle or unexpected file')
     for name, digest in entries.items():
         require(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest, 'Bundle hash mismatch: ' + name)
-    return hashlib.sha256(raw).hexdigest()
+    sums = ''.join(digest + '  ' + name + '\n' for name, digest in entries.items())
+    sums += hashlib.sha256(raw).hexdigest() + '  SHA256.json\n'
+    require((root / 'SHA256SUMS').read_bytes() == sums.encode(), 'System-tool manifest differs')
+    return hashlib.sha256(sums.encode()).hexdigest()
 
 
 def private_tree(root):
@@ -104,6 +109,21 @@ def private_tree(root):
         require(not path.is_symlink() and info.st_uid == 0 and not info.st_mode & 0o077,
                 'Installed tools/records are not root-only: ' + path.name)
         require(path.is_dir() or path.is_file(), 'Unexpected installed file type')
+
+
+def sync_directory(path):
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def owned_directory(path):
+    info = path.lstat()
+    require(not path.is_symlink() and stat.S_ISDIR(info.st_mode)
+        and info.st_uid == os.geteuid() and stat.S_IMODE(info.st_mode) == 0o700,
+        'Unsafe private setup directory: ' + path.name)
 
 
 def program(root, name, marker):
@@ -270,6 +290,53 @@ def qualified_state(state, saved, release):
         if status.get('rollbackQueued'):
             require(booted is ares[0] and status['rollback']['ostree']['checksum'] == stock[0]['checksum']
                 and status['rollback']['ostree']['deploySerial'] == stock[0]['serial'], 'Wrong queued rollback')
+
+
+def setup_identity(record):
+    return {name: record[name] for name in ('target', 'protected', 'partitions', 'esp_guid')}
+
+
+def prepare_resume(intent, state, bls, args, fingerprint, disks):
+    """Only the exact effects of the journalled step may differ on resumption."""
+    require(intent['schema'] == 'prepare1' and intent['manifest'] == fingerprint
+        and intent['disks'] == disks and intent['phase'] in ('pause', 'cleanup', 'keyboard', 'pin', 'records', 'complete'),
+        'Interrupted prepare intent differs; preserve diagnostics and get help')
+    phase = intent['phase']
+    initial = intent['initial']
+    stock = agree(state)
+    require(list(key(stock)) == intent['stock_identity'], 'Interrupted prepare stock identity differs')
+    idle(state, []) if phase != 'pause' else None
+    candidate = copy.deepcopy(state)
+    original = copy.deepcopy(initial)
+    if phase != 'pause':
+        require(candidate['rpm']['transaction'] is None, 'Interrupted prepare has a transaction')
+    else:
+        require(candidate['rpm']['transaction'] in (None, original['rpm']['transaction']), 'Interrupted pause transaction differs')
+    candidate['rpm']['transaction'] = original['rpm']['transaction'] = None
+    if phase in ('pin', 'records', 'complete'):
+        require(stock['pinned'] or phase == 'pin', 'Interrupted pin lost the stock pin')
+        for row in candidate['rpm']['deployments']:
+            if key(row) == key(stock): row['pinned'] = False
+        for slot in candidate['bootc']['status'].values():
+            if isinstance(slot, dict) and slot.get('ostree') == state['bootc']['status']['booted']['ostree']:
+                slot['pinned'] = False
+    cleaned = copy.deepcopy(original)
+    cleaned['rpm']['deployments'] = [d for d in cleaned['rpm']['deployments'] if not d.get('staged')]
+    cleaned['bootc']['status']['staged'] = None
+    allowed = [original] if phase == 'pause' else [original, cleaned] if phase == 'cleanup' else [cleaned]
+    require(candidate in allowed, 'Interrupted prepare deployment list/pin/pending state differs')
+    unchanged_old(initial, intent['before_bls'], bls)
+    before_entry, = [e for e in intent['before_bls'] if e['identity'] == intent['stock_identity']]
+    current_entry, = [e for e in bls if e['identity'] == intent['stock_identity']]
+    require([a for a in args if a.startswith('ostree=')] == [a for a in bls_arguments(current_entry) if a.startswith('ostree=')],
+        'Interrupted prepare default bootlink differs from the resolved stock entry')
+    repair_key = lambda a: re.match(r'(?:rd\.)?vconsole\.keymap(?:[._]toggle)?(?:=|$)', a)
+    strip = lambda words: [a for a in words if not a.startswith('ostree=')]
+    original_args = strip(intent['original_kargs'])
+    corrected = [a for a in original_args if not repair_key(a)]
+    allowed_args = [original_args] if phase in ('pause', 'cleanup') else [original_args, corrected] if phase == 'keyboard' else [corrected]
+    require(strip(args) in allowed_args and strip(bls_arguments(current_entry)) in allowed_args
+        and current_entry['title'] == before_entry['title'], 'Interrupted prepare boot arguments/title differ')
 
 
 def resolved_bls():
@@ -645,12 +712,18 @@ class Tools:
 
     def save(self, name, value):
         path = self.store / (name + '.json')
-        temporary = path.with_suffix('.new')
-        with temporary.open('x', encoding='utf-8') as stream:
-            os.chmod(temporary, 0o600)
-            json.dump(value, stream, indent=2)
-            stream.write('\n')
-        temporary.replace(path)
+        descriptor, name = tempfile.mkstemp(prefix='.' + name + '.', suffix='.new', dir=self.store)
+        temporary = pathlib.Path(name)
+        try:
+            with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
+                json.dump(value, stream, indent=2)
+                stream.write('\n')
+                stream.flush()
+                os.fsync(stream.fileno())
+            temporary.replace(path)
+            sync_directory(self.store)
+        finally:
+            temporary.unlink(missing_ok=True)
 
     def script(self, name, replacements=None):
         text = (self.payload / 'release' / (name + '.sh')).read_text()
@@ -666,10 +739,12 @@ class Tools:
 
     def prepare(self):
         expected = self.load('disks')
-        disk_record(self.host, expected)
+        disks = setup_identity(disk_record(self.host, expected))
         state = observations(self.host)
         saved = self.load('prepared') if (self.store / 'prepared.json').exists() else None
-        stock = preflight_prepare(state, self.processes(), saved, self.pause['SYSTEM'])
+        intent = self.load('prepare-intent') if (self.store / 'prepare-intent.json').exists() else None
+        processes = self.processes()
+        stock = agree(state) if intent and not saved else preflight_prepare(state, processes, saved, self.pause['SYSTEM'])
         account(self.host)
         before_bls = resolved_bls()
         validate_bls(state, before_bls)
@@ -681,22 +756,49 @@ class Tools:
             require(before_bls == saved['bls'], 'Prepared BLS state changed')
             require(not any(repair['keymap_argument'](a) for a in args), 'Prepared keymap override returned')
             paused_state(self.host, self.pause)
+            if intent and intent['phase'] != 'complete':
+                prepare_resume(intent, state, before_bls, args, checked_bundle(self.payload), disks)
+                intent['phase'] = 'complete'
+                self.save('prepare-intent', intent)
             self.host.trace.append(dict(flatpak=deferred))
             return ['Already prepared; no OS mutations', 'stock ' + ' '.join(map(str, key(stock))), 'Flatpak state recorded; it does not block']
-        # The scripts retain their own immediate checks and postconditions.
-        self.script('pause-stock-updates')
-        self.pin_step(True)
-        self.script('system-keyboard')
-        self.pin_step(False)
+        if intent:
+            prepare_resume(intent, state, before_bls, args, checked_bundle(self.payload), disks)
+            if intent['phase'] != 'pause': idle(state, processes)
+            else: preflight_prepare(state, processes, updater_names=self.pause['SYSTEM'])
+        else:
+            intent = dict(schema='prepare1', manifest=checked_bundle(self.payload), disks=disks,
+                initial=state, stock_identity=list(key(stock)), before_bls=before_bls,
+                original_kargs=args, phase='pause')
+            # Durable intent precedes every shared step, including the pause.
+            self.save('prepare-intent', intent)
+        def advance(phase):
+            intent['phase'] = phase
+            self.save('prepare-intent', intent)
+        # Existing shared scripts retain their own immediate safety checks.
+        if intent['phase'] == 'pause':
+            self.script('pause-stock-updates')
+            advance('cleanup')
+        if intent['phase'] == 'cleanup':
+            self.pin_step(True)
+            advance('keyboard')
+        if intent['phase'] == 'keyboard':
+            self.script('system-keyboard')
+            advance('pin')
+        if intent['phase'] == 'pin':
+            if not agree(observations(self.host))['pinned']:
+                self.pin_step(False)
+            advance('records')
         after = observations(self.host)
         now = agree(after)
         require(key(now) == key(stock) and now['pinned'], 'Prepared stock identity/pin changed')
         idle(after, self.processes())
         bls = resolved_bls()
         validate_bls(after, bls)
-        unchanged_old(state, before_bls, bls)
+        unchanged_old(intent['initial'], intent['before_bls'], bls)
         self.save('prepared', dict(stock_identity=list(key(now)), stock=now, state=after,
-            bls=bls, flatpak=deferred, updaters=paused_state(self.host, self.pause), before_bls=before_bls))
+            bls=bls, flatpak=deferred, updaters=paused_state(self.host, self.pause), before_bls=intent['before_bls']))
+        advance('complete')
         return ['stock ' + ' '.join(map(str, key(now))), 'pin yes; pending none; updaters paused',
                 'Flatpak state recorded; network may now be enabled']
 
@@ -871,6 +973,13 @@ class Tools:
             *[values[k] for k in ('X11Layout', 'X11Model', 'X11Variant', 'X11Options')])
         require(self.keyboard() == values, 'Keyboard setting did not round-trip')
 
+    def trial_keyboard(self, values):
+        require(values['VConsoleKeymap'] in ('de', 'us', 'us-intl') and not values['VConsoleKeymapToggle'],
+            'Unsupported finished console map; get help before a trial')
+        # loadkeys changes the kernel console map, not localed or /etc. A
+        # reboot therefore always reloads the last finished system setting.
+        self.host.mutate('loadkeys', '-C', '/dev/tty3', '--', values['VConsoleKeymap'])
+
     def session(self):
         require(sys.stdin.isatty(), PHYSICAL_LOGIN)
         require(pathlib.Path('/proc/self/loginuid').read_text().strip() == '1000', 'Use ares-recovery, authenticated with its password')
@@ -910,8 +1019,8 @@ class Tools:
             'de': dict(VConsoleKeymap='de', VConsoleKeymapToggle='', X11Layout='de', X11Model='pc105', X11Variant='', X11Options=''),
             'us': dict(VConsoleKeymap='us', VConsoleKeymapToggle='', X11Layout='us', X11Model='pc105', X11Variant='', X11Options=''),
             'us-intl': dict(VConsoleKeymap='us-intl', VConsoleKeymapToggle='', X11Layout='us', X11Model='pc105', X11Variant='intl', X11Options='')}
-        require(action == 'begin' and profile in profiles or action in ('proof', 'revert', 'finish') and profile is None,
-                'Choose begin with a profile, or proof/revert/finish without extra arguments')
+        require(action == 'begin' and profile in profiles or action in ('proof', 'revert', 'finish', 'abandon') and profile is None,
+                'Choose begin with a profile, or proof/revert/finish/abandon without extra arguments')
         if action == 'begin':
             require(profile in profiles, 'Choose de, us or us-intl')
             state = observations(self.host)
@@ -919,29 +1028,64 @@ class Tools:
             disk_record(self.host, self.load('disks'))
             session = self.session()
             old = self.keyboard()
+            require(old in profiles.values(), 'Unsupported finished system layout; get help')
             require(old != profiles[profile], 'Layout already selected; no change needed')
             pending = self.store / 'layout-pending.json'
             require(not pending.exists(), 'Finish or revert the pending layout trial first')
-            value = dict(old=old, new=profiles[profile], administrator=session,
+            value = dict(old=old, new=profiles[profile], administrator=session, deployment_identity=list(key(agree(state))),
                 began_us=int(time.monotonic() * 1000000), proof=None)
             self.save('layout-pending', value)
             try:
-                self.set_keyboard(value['new'])
+                self.trial_keyboard(value['new'])
             except (Stop, OSError, subprocess.SubprocessError):
-                self.set_keyboard(old)
+                self.trial_keyboard(old)
                 value['reverted'] = True
                 self.save('layout-pending', value)
                 raise Stop('Layout change failed; old settings restored. Keep this session open; do not reboot')
-            return ['Keep this administrator console OPEN; reboot is not authorized',
+            return ['Console-only trial; system/greeter layout stays finished until layout finish',
+                'Keep this administrator console OPEN; reboot is not authorized',
                 'Ctrl+Alt+F4: fresh ares-recovery password login in the new layout',
                 'Then sudo -k; sudo /var/lib/ares/at layout proof',
                 'If typing/login fails: Ctrl+Alt+F3; sudo /var/lib/ares/at layout revert']
         value = self.load('layout-pending')
         current = self.session()
+        if action == 'abandon':
+            state = observations(self.host)
+            saved = self.load('prepared')
+            booted = agree(state)
+            stock_side = booted['container-image-reference-digest'] == BASE
+            preflight_recovery(state, self.processes(), saved, self.release['reference'], keep=stock_side)
+            disk_record(self.host, self.load('disks'))
+            require(current != value['administrator'] and (current['boot'] != value['administrator']['boot']
+                or current['started_us'] > value['began_us']), 'Abandon requires a fresh physical administrator login')
+            finished = self.keyboard()
+            persistent_before = copy.deepcopy(finished)
+            # Each deployment has its own /etc. Retained stock keeps its own
+            # last finished (installer) setting; never write AresOS settings
+            # into it. Runtime-only trials have not changed either /etc.
+            if list(key(booted)) == value['deployment_identity']:
+                require(value['old'] in profiles.values() and value['new'] in profiles.values(),
+                    'Unsupported recorded layout trial; get help')
+                partial = dict(value['old'], **{k:value['new'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')})
+                require(finished == value['old'] or value.get('finishing') and value['proof']
+                    and finished in (partial, value['new']), 'Finished system layout changed during the abandoned trial')
+                if finished != value['old']:
+                    self.set_keyboard(value['old'])
+                    finished = value['old']
+            else:
+                require(stock_side, 'Abandoned trial belongs to another deployment')
+                require(finished in profiles.values(), 'Unsupported finished system layout; get help')
+            self.trial_keyboard(finished)
+            self.save('layout-abandoned', dict(trial=value, administrator=current, restored=finished,
+                persistent_settings_unchanged=self.keyboard() == persistent_before, stock_side=stock_side))
+            (self.store / 'layout-pending.json').unlink()
+            sync_directory(self.store)
+            return ['Last finished console layout restored; abandoned trial cleared',
+                'Last finished persistent layout verified; stock settings preserved', *self.title()]
         require(current['boot'] == value['administrator']['boot'], 'Trial crossed a reboot without completing the proof')
         if action == 'revert':
             require(current == value['administrator'], 'Revert from the original open administrator session')
-            self.set_keyboard(value['old'])
+            self.trial_keyboard(value['old'])
             value.update(reverted=True, proof=None, began_us=int(time.monotonic() * 1000000))
             self.save('layout-pending', value)
             return ['Old console/X11 settings restored; no reboot', 'Log out tty4; prove a fresh password login using the old layout',
@@ -951,7 +1095,7 @@ class Tools:
                 and current['tty'] != value['administrator']['tty'] and current['started_us'] > value['began_us'],
                 'Proof requires a fresh second-console password login after the change/revert')
             expected = value['old'] if value.get('reverted') else value['new']
-            require(self.keyboard() == expected, 'Console/X11 settings changed during the trial')
+            require(self.keyboard() == value['old'], 'Finished system settings changed during the trial')
             dump = self.host.read('dumpkeys', '-C', '/dev/' + current['tty'], '--keys-only')
             for code, letter in zip((21, 44), ('z', 'y') if expected['VConsoleKeymap'] == 'de' else ('y', 'z')):
                 rows = re.findall(r'^keycode\s+' + str(code) + r'\s*=\s*([^\s]+)', dump, re.M)
@@ -963,17 +1107,28 @@ class Tools:
             return ['Fresh second-console login and physical typing passed', 'Return to the original console; use layout finish']
         require(action == 'finish' and profile is None, 'Choose begin, proof, revert or finish')
         require(current == value['administrator'] and value['proof'], 'Keep the original session open and complete the second-console proof first')
-        require(self.keyboard() == (value['old'] if value.get('reverted') else value['new']), 'Layout changed after proof')
+        require(self.keyboard() == value['old'], 'Finished system settings changed after proof')
         title = self.title()
+        # Persist only after the new console password and typing have passed.
+        # Until this explicit finish action, both boot/greeter files stay old.
+        if not value.get('reverted'):
+            value['finishing'] = True
+            self.save('layout-pending', value)
+            try:
+                self.set_keyboard(value['new'])
+            except (Stop, OSError, subprocess.SubprocessError):
+                self.set_keyboard(value['old'])
+                raise Stop('Layout finish failed; old settings restored. Keep this session open; use fresh-login abandon if needed')
         self.save('layout-completed', value)
         (self.store / 'layout-pending.json').unlink()
+        sync_directory(self.store)
         return ['Layout trial completed; fresh login/typing proof saved', *title,
                 'Reboot is now permitted. Windows stays default; use F12 then Linux',
                 'After boot check loaded console keys and physical typing in the labwc terminal']
 
 
 def install(payload, host=None):
-    require(not HOME.exists() and not HOME.is_symlink(), 'Tools already installed; preserve the current installation')
+    payload = pathlib.Path(payload)
     fingerprint = checked_bundle(payload)
     require(sys.stdin.isatty(), 'Install requires the two independently recorded disk serials')
     target = input('Photographed Crucial serial: ').strip()
@@ -983,25 +1138,121 @@ def install(payload, host=None):
     media = media_module(payload)
     device = media.find(host, require)
     require(device is not None, 'Tools USB label not found')
-    mounted = mount_record(host, '--target', payload)
+    # The trusted bootstrap executes a private copy. Its original remains on
+    # the uniquely identified, read-only-mounted stick until install returns.
+    mounts = [m for m in device['volume']['mountpoints'] if m]
+    require(len(mounts) == 1, 'Tools USB must have one read-only bootstrap mount')
+    source = pathlib.Path(mounts[0]) / 'ares-tools'
+    mounted = mount_record(host, '--target', source)
     require(mounted['source'] == device['volume']['path'] and
-        mounted['fstype'] == 'exfat' and pathlib.Path(mounted['target']) / 'ares-tools' == payload,
+        mounted['fstype'] == 'exfat' and pathlib.Path(mounted['target']) / 'ares-tools' == source,
         'Bundle is not on the labelled removable tools USB')
-    disk_record(host, dict(target=target, protected=protected))
+    require(checked_bundle(source) == fingerprint, 'Private bootstrap copy differs from the tools USB')
+    expected = dict(target=target, protected=protected)
+    identity = setup_identity(disk_record(host, expected))
     # No writes until every bundle/destination/disk preflight has passed.
-    HOME.mkdir(mode=0o700)
-    shutil.copytree(payload, HOME / 'tools', symlinks=False)
-    require(checked_bundle(HOME / 'tools') == fingerprint, 'Installed bundle differs; do not continue')
-    for path in (HOME / 'tools').rglob('*'):
-        path.chmod(0o700 if path.is_dir() or path.name == 'at' else 0o600)
-    (HOME / 'tools').chmod(0o700)
-    (HOME / 'records').mkdir(mode=0o700)
-    tools = Tools(HOME / 'tools', host, HOME / 'records')
-    tools.save('disks', dict(target=target, protected=protected))
-    # Stable short entry; the checked payload remains a separate directory.
-    (HOME / 'at').symlink_to('tools/at')
-    tools.save(datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-install',
-               dict(status='passed', manifest=fingerprint, trace=host.trace, tools_volume_uuid=device['volume']['uuid']))
+    require(not HOME.is_symlink(), 'Installation root is a link')
+    if not HOME.exists():
+        HOME.mkdir(mode=0o700)
+        sync_directory(HOME.parent)
+    owned_directory(HOME)
+    if (HOME / 'diagnostics').exists() or (HOME / 'diagnostics').is_symlink():
+        owned_directory(HOME / 'diagnostics')
+    recorder = object.__new__(Tools)
+    recorder.store = HOME
+    intent_path = HOME / 'install-intent.json'
+    stage, destination = HOME / '.install-tools', HOME / 'tools'
+    if intent_path.exists():
+        require(not intent_path.is_symlink() and stat.S_IMODE(intent_path.stat().st_mode) == 0o600
+            and intent_path.stat().st_uid == os.geteuid(), 'Unsafe installation intent')
+        intent = recorder.load('install-intent')
+        require(intent['schema'] == 'install1' and intent['manifest'] == fingerprint
+            and intent['disks'] == expected and intent['identity'] == identity
+            and intent['tools_volume_uuid'] == device['volume']['uuid']
+            and intent['phase'] in ('copy', 'records', 'publish', 'entry', 'complete'),
+            'Interrupted install does not exactly match this bundle/disks/stick')
+    else:
+        require(all(p.name == 'diagnostics' or p.name.startswith('.install-intent.') and p.name.endswith('.new')
+            for p in HOME.iterdir()), 'Unjournalled partial installation; preserve it and get help')
+        intent = dict(schema='install1', manifest=fingerprint, disks=expected, identity=identity,
+            tools_volume_uuid=device['volume']['uuid'], phase='copy')
+        recorder.save('install-intent', intent)
+    require(all(p.name in ('diagnostics', 'install-intent.json', '.install-tools', 'tools', 'records', 'at')
+        or p.name.startswith('.install-intent.') and p.name.endswith('.new') for p in HOME.iterdir()),
+        'Unexpected installation files; preserve them and get help')
+    def advance(phase):
+        intent['phase'] = phase
+        recorder.save('install-intent', intent)
+    if intent['phase'] == 'copy':
+        require(not destination.exists() and not destination.is_symlink(), 'Unexpected published tools during copy')
+        if stage.exists() or stage.is_symlink():
+            require(not stage.is_symlink() and stage.is_dir() and stage.stat().st_uid == os.geteuid(), 'Unsafe partial payload directory')
+            expected_files = {p.relative_to(payload).as_posix(): p for p in payload.rglob('*') if p.is_file()}
+            # Clean only this journal's private, structurally exact partial
+            # copy. Never recurse through a link or delete an unknown path.
+            for p in stage.rglob('*'):
+                relative = p.relative_to(stage).as_posix()
+                require(not p.is_symlink() and p.stat().st_uid == os.geteuid()
+                    and (p.is_dir() and any(n.startswith(relative + '/') for n in expected_files)
+                    or p.is_file() and relative in expected_files
+                    and expected_files[relative].read_bytes().startswith(p.read_bytes())), 'Unrecognized partial payload; preserve it')
+            for p in sorted(stage.rglob('*'), key=lambda p: len(p.parts), reverse=True):
+                require(p.resolve().is_relative_to(HOME.resolve()), 'Partial-copy cleanup escaped installation')
+                p.rmdir() if p.is_dir() else p.unlink()
+            stage.rmdir()
+        shutil.copytree(payload, stage, symlinks=False, copy_function=shutil.copy2)
+        for p in [stage, *stage.rglob('*')]:
+            p.chmod(0o700 if p.is_dir() or p.name == 'at' else 0o600)
+            if p.is_file():
+                with p.open('rb') as stream: os.fsync(stream.fileno())
+        for directory in sorted([stage, *[p for p in stage.rglob('*') if p.is_dir()]], key=lambda p: len(p.parts), reverse=True):
+            sync_directory(directory)
+        sync_directory(HOME)
+        require(checked_bundle(stage) == fingerprint, 'Staged bundle differs; preserve diagnostics')
+        advance('records')
+    if intent['phase'] == 'records':
+        require(checked_bundle(stage) == fingerprint and not destination.exists(), 'Interrupted staged payload differs')
+        records = HOME / 'records'
+        require(not records.is_symlink(), 'Records directory is a link')
+        records.mkdir(mode=0o700, exist_ok=True)
+        owned_directory(records)
+        require(all(p.name in ('disks.json', 'installation.json') or p.name.startswith('.') and p.name.endswith('.new')
+            for p in records.iterdir()), 'Unexpected partial-install records')
+        private = object.__new__(Tools); private.store = records
+        for name, value in [('disks', expected), ('installation', dict(status='passed', command=['install'],
+                manifest=fingerprint, tools_volume_uuid=device['volume']['uuid'], identity=identity, trace=host.trace))]:
+            if (records / (name + '.json')).exists():
+                old = private.load(name)
+                require({k:v for k,v in old.items() if k != 'trace'} == {k:v for k,v in value.items() if k != 'trace'},
+                    'Interrupted install record differs')
+            else:
+                private.save(name, value)
+        advance('publish')
+    if intent['phase'] == 'publish':
+        if destination.exists():
+            require(not stage.exists() and checked_bundle(destination) == fingerprint, 'Ambiguous published payload')
+        else:
+            require(checked_bundle(stage) == fingerprint, 'Unverified staged tools')
+            stage.replace(destination)
+            sync_directory(HOME)
+        advance('entry')
+    require(checked_bundle(destination) == fingerprint and not stage.exists(), 'Published installation differs')
+    records = object.__new__(Tools); records.store = HOME / 'records'
+    require(records.load('disks') == expected and records.load('installation')['manifest'] == fingerprint,
+        'Published installation records differ')
+    entry = HOME / 'at'
+    if entry.exists() or entry.is_symlink():
+        require(entry.is_symlink() and os.readlink(entry) == 'tools/at', 'Unexpected installed entry point')
+    if intent['phase'] == 'entry':
+        advance('complete')
+    if entry.exists() or entry.is_symlink():
+        require(entry.is_symlink() and os.readlink(entry) == 'tools/at', 'Unexpected installed entry point')
+    else:
+        entry.symlink_to('tools/at')
+        sync_directory(HOME)
+    records.save(datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-install',
+        dict(status='passed', command=['install'], manifest=fingerprint, trace=host.trace,
+            tools_volume_uuid=device['volume']['uuid']))
     return ['manifest SHA256 ' + fingerprint, 'Use sudo /var/lib/ares/at prepare']
 
 
@@ -1014,6 +1265,12 @@ def refusal_record(host, result):
     except (Stop, OSError, ValueError, subprocess.SubprocessError) as error:
         attempted = [r for r in host.trace if r.get('command') == ['efibootmgr', '-v']]
         result['firmware'] = dict(observed=False, error=str(error), attempts=attempted)
+    if STOP_RECORDS.parent == HOME and not HOME.exists():
+        parent = HOME.parent.lstat()
+        require(not HOME.parent.is_symlink() and stat.S_ISDIR(parent.st_mode)
+            and parent.st_uid == 0 and not parent.st_mode & 0o022, 'Unsafe diagnostic storage parent')
+        HOME.mkdir(mode=0o700)
+        sync_directory(HOME.parent)
     parent = STOP_RECORDS.parent.lstat()
     require(not STOP_RECORDS.parent.is_symlink() and stat.S_ISDIR(parent.st_mode)
         and parent.st_uid == 0 and not parent.st_mode & 0o022, 'Unsafe private diagnostic parent')
@@ -1040,7 +1297,7 @@ def main():
     # Never record arbitrary argv: an accidentally pasted credential is not a
     # command. Layout choices are the only accepted extra arguments.
     action = [command]
-    if command == 'layout' and sys.argv[2:] in ([a] for a in ('proof', 'revert', 'finish')):
+    if command == 'layout' and sys.argv[2:] in ([a] for a in ('proof', 'revert', 'finish', 'abandon')):
         action += sys.argv[2:]
     elif command == 'layout' and sys.argv[2:] in (['begin', p] for p in ('de', 'us', 'us-intl')):
         action += sys.argv[2:]
@@ -1059,6 +1316,8 @@ def main():
                     and stat.S_IMODE(HOME.stat().st_mode) == 0o700, 'Run the installed root-only tools')
             private_tree(payload)
             private_tree(HOME / 'records')
+            if STOP_RECORDS.exists():
+                private_tree(STOP_RECORDS)
             tools = Tools(payload, host, HOME / 'records')
             methods = {'prepare': tools.prepare, 'records': tools.records, 'title': tools.title,
                        'login': tools.login, 'verify': tools.verify, 'switch': tools.switch,

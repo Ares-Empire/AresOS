@@ -131,7 +131,7 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6` and `PASS ARESTOOLS ready`.
+Require `PASS tools manifest SHA256 3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd` and `PASS ARESTOOLS ready`.
 The copy checks removable/USB/exFAT/boot/system identity before writing,
 verifies every copied file, and labels it **ARESTOOLS**. A STOP means preserve
 it and get help. Safely eject and **unplug** it before [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), shutdown or restart. Record B must pass with
@@ -140,18 +140,32 @@ both USBs absent; Windows must boot from its original Micron EFI target.
 Use **F12 → the recorded Linux entry**, sign in as **ares-recovery** using the
 installer's German layout, then **Ctrl+Alt+F3**, sign in there with the same
 password and run `sudo -i`. Keep that administrator console open. **Only now**
-plug in ARESTOOLS. If text appears over the prompt after you plug in or remove the stick, press Enter to get the prompt back. Type this first bootstrap command exactly:
+plug in ARESTOOLS. If text appears over the prompt after you plug in or remove the stick, press Enter to get the prompt back. Type this one copyable bootstrap block exactly, including all lines. The continuation prompt is expected until the final quote:
 
 ```bash
-sudo bash -c 'set -e; mount -o ro LABEL=ARESTOOLS /mnt; trap "umount /mnt" EXIT; bash /mnt/ares-tools/at install'
+sudo bash -c 'set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin; umask 077
+trap "echo STOP bootstrap: verification or install refused" ERR
+p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
+mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
+cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
+test -z "$(find . ! -type d ! -type f -print -quit)"
+echo "3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd  SHA256SUMS" | sha256sum -c --strict
+cmp -s \
+  <(find . -type f -printf "%P\n" | sort) \
+  <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
+sha256sum -c --strict SHA256SUMS
+bash ./at install'
 ```
 
 At its prompts enter the independently photographed Crucial serial and record
 A's Micron serial. Require `PASS install` with that manifest fingerprint. It
-checks the label, removable USB, complete manifest and both internal identities
+first uses system tools to copy into a fresh root-only `/run` directory, check the literal SHA256SUMS fingerprint and every listed file, and refuse links, missing or extra files before running any payload. Installation then rechecks the labelled removable USB, the complete copied manifest and both internal identities
 before installing root-only tools in shared `/var/lib/ares`; the frozen AresOS
 image does not shadow that path. The read-only bootstrap unmounts even on STOP.
-A failed bootstrap means stop and preserve the screen, not another mount path.
+A failed bootstrap means stop and preserve the screen. Never execute an entry script directly from the stick. The private copy remains root-only in `/run` until reboot. Interrupted install/prepare can resume only with the same checked bundle, recorded disk identities and matching intent; a different state is a STOP.
+
+STOP diagnostics persist root-only in `/var/lib/ares/diagnostics`; `export` copies them alongside records with SHA-256 readback before you remove the stick.
 
 For each tool command below, require this exact first result line. A different
 or missing action is a STOP; keep its full diagnostics. `layout` includes its
@@ -178,6 +192,7 @@ subcommand and selected profile in that line.
 | `layout proof` | `PASS layout proof` |
 | `layout revert` | `PASS layout revert` |
 | `layout finish` | `PASS layout finish` |
+| `layout abandon` | `PASS layout abandon` |
 
 ```bash
 sudo /var/lib/ares/at prepare
@@ -327,6 +342,10 @@ Test physical typing and password sudo; §7 covers the daily foot terminal.
 apply only to AresOS; no mechanism writes the new layout into stock. A US-then-
 rollback run was not performed; source verification of per-deployment `/etc`
 is not a runtime result. Qualification returns AresOS to German before rollback.
+
+A trial changes only the running console map. Console boot files and system X11/greeter settings keep the last finished layout until `layout finish` after the fresh login/typing proof. An unexpected reset during the trial therefore reloads that finished layout.
+
+If the original session is lost, use a fresh physical **ares-recovery** login and `sudo /var/lib/ares/at layout abandon`; require `PASS layout abandon`, save the refreshed title, then `sudo /var/lib/ares/at reboot`; Windows stays default, so use F12 and the recorded Linux entry for one Linux boot. Retained stock keeps its own finished installer layout.
 
 Keep the original **tty3 ares-recovery → sudo -i** administrator session OPEN.
 For the safe successful trial use US International so the unchanged umlaut
@@ -487,9 +506,11 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
 
 ## Maintainer release gate
 
+- **OPEN - 14zzc physical followability:** the owner must follow the verified multiline bootstrap and its continuation prompts, recover a lost layout-trial session, resume interrupted setup and export STOP diagnostics on the actual laptop. VM acceptance does not close this physical gate.
+
 - **OPEN — package 14 physical gates:** Fedora Media Writer 5.3.2 restore German click path, reviewed bundle copy/eject, novice offline round trip, root-only shared tools across stock/AresOS, and tools-stick hotplug/export/unplug. A forgotten data-only stick at power-on is physically untested; it is never an accepted firmware-audit exception.
 - **OPEN — NVIDIA deferred runtime (14b):** after first network, confirm the enabled sync finishes for the real GPU and the entire deployment/pin/pending/BLS state stays unchanged. Virtio graphics cannot exercise its NVIDIA condition. Never mask or delay it.
-- **STOP — Package 14 automated owner-tools qualification:** 14i's fifth probe and all306 native tests pass, including real Bash framing. The same-head qualification installed offline and completed hardware setup and the Windows round trip, then stopped at tty3 prompt readiness after tools hotplug, before the first tools command. No rerun; later owner-command stages remain unqualified. See [REPORT](../reviews/14-owner-tools/REPORT.md). No image rebuilt or published. Installation stays NOT RELEASED.
+- **VM scope passed — package 14 owner tools:** qualification 20 completed the offline route, all owner commands, layout failure/revert and US International/German proofs, rollback, keep-stock and both final Windows boots. Review fixes in 14zzc require this round's fresh probe/qualification before acceptance at the new head. See [REPORT](../reviews/14-owner-tools/REPORT.md). Physical installation remains **NOT RELEASED**.
 
 
 - **OPEN — 14b NVIDIA Flatpak sync on the real GPU:** after the qualified
@@ -498,17 +519,7 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
   prepared deployment list, pins, pending/transaction state and BLS entries are
   unchanged. The source permits this Flatpak-only deferred work; virtual graphics
   makes its NVIDIA condition false, so a VM cannot close this physical gate.
-- **STOP — package 14 owner tools:** 14b accepts NVIDIA's Flatpak-only retry;
-  14c keeps the tools stick absent at firmware startup, preserving every audit.
-  The14g git-only squash binding and private-access checks passed in CI.
-  The14h FUSE path and native capability gate passed. The14i framing fix passed
-  the fifth probe. Qualification installed offline and completed the Windows
-  round trip, then stopped at tty3 prompt readiness after tools hotplug, before
-  the first tools command. No rerun; the complete route remains unaccepted.
-  14j's local prompt-resync fix has no new VM evidence; dispatch awaits the
-  owner's budget decision.
-  The new commands are not released for physical installation. Existing laptop
-  and followability gates remain open; see the [14 report](../reviews/14-owner-tools/REPORT.md).
+- **VM scope passed / review fixes pending — package 14:** qualification 20 passed the complete protected-second owner route and safety audits. Trusted bootstrap, abandoned-trial recovery, resumable setup and persistent diagnostic changes are awaiting the 14zzc same-head round; the REPORT records the actual result. No image rebuild or publication. Physical laptop, media and followability gates remain open / **NOT RELEASED**.
 
 - **OWNER DECISION / guide-only (13g, 2026-10-25) — recovery layout exception:**
   later AresOS layout changes affect only its running deployment. Retained

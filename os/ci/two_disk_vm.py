@@ -251,7 +251,7 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
             time.sleep(0.12)
 
     def finish_shutdown(self, stage, reason, timeout=180):
-        assert reason in ('guest-shutdown', 'guest-reset'), reason
+        assert reason in ('guest-shutdown', 'guest-reset', 'host-qmp-system-reset'), reason
         deadline = time.monotonic() + timeout
         output = bytearray()
         while not any(e.get('event') == 'SHUTDOWN' for e in self.monitor.events):
@@ -267,7 +267,7 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
             if reply:
                 self.console.sendall(reply)
         shutdowns = [e for e in self.monitor.events if e.get('event') == 'SHUTDOWN']
-        assert len(shutdowns) == 1 and shutdowns[0]['data'] == dict(guest=True, reason=reason), shutdowns
+        assert len(shutdowns) == 1 and shutdowns[0]['data'] == dict(guest=reason != 'host-qmp-system-reset', reason=reason), shutdowns
         assert not any(e.get('event') == 'GUEST_PANICKED' for e in self.monitor.events)
         # -no-shutdown keeps QEMU alive with the guest stopped, so this final
         # counter includes shutdown/unmount writes too. Only then close it.

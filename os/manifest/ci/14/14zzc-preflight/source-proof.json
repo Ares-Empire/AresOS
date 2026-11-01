@@ -1,0 +1,36 @@
+{
+  "audit_source_sha256": "6cdb6957c41e04f4bb46ec7cfca5392b35b202fe983c953fbdcb402fd2040540",
+  "status": "passed; complete firmware Audit class source unchanged",
+  "base": "bd85527",
+  "path": "os/ci/two_disk_vm.py",
+  "change": "only exact host-qmp-system-reset shutdown origin added to the stopping protocol; firmware audits unchanged",
+  "kbd": {
+    "rpmdb_sha256": "5e5d7aa4d67d30e72c59d0e173d91d117cc1f00bd4f3a606804b4a944d05d424",
+    "name": "kbd",
+    "version": "2.9.0",
+    "release": "4.fc44",
+    "source_rpm": "kbd-2.9.0-4.fc44.src.rpm"
+  },
+  "upstream": [
+    {
+      "sha256": "55c2e54c91ae16f2dd4c13b24f73f1acf37220abbc27117c52d5fbaeaba4d694",
+      "path": ".work/14/14zzc/upstream-loadkeys.c",
+      "url": "https://raw.githubusercontent.com/legionus/kbd/v2.9.0/src/loadkeys.c"
+    },
+    {
+      "sha256": "452636313bf359a2797bdf1af413be87aa04e2a9cfcd72dbc3f8eedb5105a5ee",
+      "path": ".work/14/14zzc/upstream-machine-qmp-cmds.c",
+      "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/core/machine-qmp-cmds.c"
+    },
+    {
+      "sha256": "fe562e8e062e89d8099cf8d7c6202184fd822ed49bd6af7e250d0a8060b3a027",
+      "path": ".work/14/14zzc/upstream-runstate.c",
+      "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/system/runstate.c"
+    },
+    {
+      "sha256": "e24fd60cff34bd4cab5dcae69149a3bbe922185109e77bf14948a954b1d80926",
+      "path": ".work/14/14zzc/upstream-run-state.json",
+      "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/qapi/run-state.json"
+    }
+  ]
+}

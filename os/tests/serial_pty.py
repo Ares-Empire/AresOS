@@ -45,7 +45,7 @@ if '# hidden-key-counter' in source:
 class VirtualPath:
  def __init__(self,p):self.value=str(p)
  def real(self):
-  for prefix,name in (('/var/lib/ares/records','records'),('/run/ares-owner-diagnostics','stops')):
+  for prefix,name in (('/var/lib/ares/records','records'),('/var/lib/ares/diagnostics','stops')):
    if self.value==prefix or self.value.startswith(prefix+'/'):return root/name/self.value[len(prefix):].lstrip('/')
   if self.value.startswith('/dev/vcsa'):return root/('vcsa'+self.value.removeprefix('/dev/vcsa'))
   return RealPath(self.value)

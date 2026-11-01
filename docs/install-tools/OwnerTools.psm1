@@ -11,6 +11,7 @@ function Test-AresToolsBundle {
     $raw = Get-Content -LiteralPath $manifest -Raw
     $document = [System.Text.Json.JsonDocument]::Parse($raw)
     $entries = @{}
+    $sumRows = @()
     try {
         if ($document.RootElement.ValueKind -ne [System.Text.Json.JsonValueKind]::Array) {
             throw 'STOP: manifest must be a hash-before-path list.'
@@ -29,6 +30,7 @@ function Test-AresToolsBundle {
                 $name.StartsWith('/') -or $digest -cnotmatch '^[0-9a-f]{64}$') { throw 'STOP: invalid manifest entry.' }
             if ($entries.ContainsKey($name)) { throw 'STOP: duplicate manifest path.' }
             $entries[$name] = $digest
+            $sumRows += $digest + '  ' + $name
         }
     } finally { $document.Dispose() }
     if (-not $entries.ContainsKey('at') -or -not $entries.ContainsKey('owner.py') -or
@@ -40,7 +42,7 @@ function Test-AresToolsBundle {
     $actual = @($files | Where-Object { -not $_.PSIsContainer } | ForEach-Object {
         [IO.Path]::GetRelativePath($root, $_.FullName).Replace('\', '/')
     } | Sort-Object)
-    $expected = @(@($entries.Keys) + 'SHA256.json' | Sort-Object)
+    $expected = @(@($entries.Keys) + 'SHA256.json' + 'SHA256SUMS' | Sort-Object)
     if (Compare-Object $actual $expected) { throw 'STOP: partial or unexpected bundle files.' }
     foreach ($name in $entries.Keys) {
         if ($name -notmatch '^[a-zA-Z0-9._/-]+$' -or $name.Split('/') -contains '..' -or
@@ -52,7 +54,11 @@ function Test-AresToolsBundle {
             throw "STOP: bundle hash mismatch: $name"
         }
     }
-    (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant()
+    $sums = ($sumRows -join "`n") + "`n"
+    $sums += (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant() + "  SHA256.json`n"
+    $sumPath = Join-Path $root 'SHA256SUMS'
+    if ([IO.File]::ReadAllText($sumPath) -cne $sums) { throw 'STOP: system-tool manifest differs.' }
+    (Get-FileHash -LiteralPath $sumPath -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
 function Copy-AresToolsPayload {

@@ -1,0 +1,163 @@
+{
+  "status": "passed",
+  "sources": [
+    {
+      "sha256": "d0b5385b0285e89bcdf31211ca0794ba814a81bc1526d21869db17d1bf198ca4",
+      "path": "os/manifest/ci/14/14zzb-timing/projection.json"
+    },
+    {
+      "sha256": "a3d8c44557350d35e7056bb2de4b1c0017c5e917f70e8373783591937be76cf7",
+      "path": "os/manifest/ci/14/14zzb-round/terminal-facts.json"
+    },
+    {
+      "sha256": "e495c239d8267bd0eb57d44faf6e0bbe2601b93fb6a67866ec59d2cbbfc848f9",
+      "path": ".work/14/run-41324240079/evidence.zip"
+    },
+    {
+      "sha256": "b105c90b8c0b5b9d089be0afefce95673fe1f48e8553fdffb56de59d6561061a",
+      "path": "os/owner-tools/commands.json"
+    }
+  ],
+  "projection": [
+    {
+      "stage": "baseline-firmware",
+      "seconds": 109.958364,
+      "selected_qualification": 17,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "protected-second-install",
+      "seconds": 1498.883687,
+      "selected_qualification": 19,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "boot-3-pre-login-reset",
+      "seconds": 190.41842,
+      "selected_qualification": 20,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "offline-first-stock",
+      "seconds": 113.159832,
+      "selected_qualification": 19,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "offline-roundtrip-unattended-windows",
+      "seconds": 54.767217,
+      "selected_qualification": 19,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "offline-roundtrip-detached-windows",
+      "seconds": 54.801504,
+      "selected_qualification": 19,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "tools-stock",
+      "seconds": 661.816871,
+      "selected_qualification": 19,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "prepared-unattended-windows",
+      "seconds": 55.384624,
+      "selected_qualification": 19,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "corrected-stock",
+      "seconds": 1266.111588,
+      "selected_qualification": 19,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "aresos",
+      "seconds": 1108.37693,
+      "selected_qualification": 20,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "aresos-intl",
+      "seconds": 631.951681,
+      "selected_qualification": 19,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "aresos-back-de",
+      "seconds": 484.076024,
+      "selected_qualification": 19,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "rollback-stock",
+      "seconds": 488.458017,
+      "selected_qualification": 20,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "default-stock",
+      "seconds": 361.491736,
+      "selected_qualification": 20,
+      "rule": "slowest completed retained interval; failure-unwind default-stock excluded"
+    },
+    {
+      "stage": "final-unattended-windows",
+      "seconds": 55.384624,
+      "selected_qualification": 19,
+      "comparable": "prepared-unattended-windows",
+      "rule": "slowest complete Windows-marker interval"
+    },
+    {
+      "stage": "final-detached-windows",
+      "seconds": 55.384624,
+      "selected_qualification": 19,
+      "comparable": "prepared-unattended-windows",
+      "rule": "slowest complete Windows-marker interval"
+    },
+    {
+      "stage": "layout-reset-trial",
+      "seconds": 661.816871,
+      "selected_qualification": 19,
+      "comparable": "tools-stock",
+      "rule": "one whole slowest comparable boot, including its existing owner-command work"
+    },
+    {
+      "stage": "layout-reset-recovery",
+      "seconds": 661.816871,
+      "selected_qualification": 19,
+      "comparable": "tools-stock",
+      "rule": "one whole slowest comparable boot, including its existing owner-command work"
+    },
+    {
+      "stage": "extra-bootstrap-lines",
+      "seconds": 240.0,
+      "rule": "one whole retained original113-character typing/record-list/echo interval per extra line; +4s DOS timestamp granularity allowance",
+      "lines": 13,
+      "maximum_line_chars": 107,
+      "old_line_chars": 113,
+      "seconds_per_extra_line": 20.0,
+      "source_ready": "two-disk/tools-install-ready-wait-11-resync-1.json",
+      "source_echo": "two-disk/tools-install-command-echo-12-transport.json"
+    }
+  ],
+  "vm_projection_minutes": 145.90099141666667,
+  "margin_fraction": 0.25,
+  "vm_with_margin_minutes": 182.37623927083334,
+  "vm_limit_minutes": 200,
+  "before_vm_slower_minutes": 17.433333333333334,
+  "after_vm_slower_minutes": 0.25,
+  "whole_job_with_margin_minutes": 204.4804059375,
+  "qualification_bound_minutes": 240,
+  "probe_bound_minutes": 72,
+  "starting_minutes": 2301,
+  "cap_minutes": 2750,
+  "round_worst_case_minutes": 2613,
+  "caps": {
+    "probe": 32,
+    "owner-tools": 21
+  },
+  "limit_decision": "briefs/14zzc-review-fixes.md"
+}

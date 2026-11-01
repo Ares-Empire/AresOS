@@ -167,18 +167,20 @@ class HiddenTest(unittest.TestCase):
         import shutil
         source = ast.parse((ROOT/'os/owner-tools/owner.py').read_text())
         install, = [n for n in source.body if isinstance(n, ast.FunctionDef) and n.name == 'install']
-        # Execute only the real installer's three ordinary-file placement steps.
+        # Execute the real installer's private copy, atomic publication and
+        # entry placement. Device checks and handlers remain outside this test.
         # Device checks and privileged handlers are not called by this path test.
-        placement = [n for n in install.body if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
-            and isinstance(n.value.func, ast.Attribute) and (n.value.func.attr in ('copytree','symlink_to')
-                or ast.unparse(n.value.func) == 'HOME.mkdir')]
-        self.assertEqual([n.value.func.attr for n in placement], ['mkdir','copytree','symlink_to'])
+        placement = sorted([n for n in ast.walk(install) if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+            and isinstance(n.value.func, ast.Attribute) and ast.unparse(n.value.func) in
+            ('HOME.mkdir', 'shutil.copytree', 'stage.replace', 'entry.symlink_to')], key=lambda n:n.lineno)
+        self.assertEqual([n.value.func.attr for n in placement], ['mkdir','copytree','replace','symlink_to'])
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as folder:
             root = pathlib.Path(folder); payload=root/'payload'; payload.mkdir(); home=root/'home'
             shutil.copyfile(ROOT/'os/owner-tools/at', payload/'at')
             (payload/'owner.py').write_text('import json,sys; print(json.dumps(sys.argv))')
             exec(compile(ast.Module(body=placement, type_ignores=[]), 'real install placement', 'exec'),
-                dict(HOME=home, payload=payload, shutil=shutil))
+                dict(HOME=home, payload=payload, shutil=shutil, stage=home/'.install-tools',
+                    destination=home/'tools', entry=home/'at'))
             result=subprocess.run(['bash',str(home/'at'),'login'],capture_output=True,text=True,check=True)
             self.assertFalse(result.stderr)
             actual=json.loads(result.stdout)

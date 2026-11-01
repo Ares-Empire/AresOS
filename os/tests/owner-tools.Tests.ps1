@@ -23,12 +23,14 @@ foreach ($bad in $cases) {
     if (-not $refused -or @(Get-ChildItem -LiteralPath $usb -Force).Count -ne 0) { throw 'Refusal wrote files.' }
     $count++
 }
-foreach ($kind in 'tamper','partial','duplicate','duplicate-field','old-shape','path-first','traversal') {
+foreach ($kind in 'tamper','partial','duplicate','duplicate-field','old-shape','path-first','traversal','sums-tamper','extra') {
     $badBundle = Join-Path $full $kind
     Copy-Item -LiteralPath $Bundle -Destination $badBundle -Recurse
     if ($kind -eq 'tamper') { Add-Content -LiteralPath (Join-Path $badBundle 'at') -Value 'BAD' }
     if ($kind -eq 'partial') { Remove-Item -LiteralPath (Join-Path $badBundle 'at') }
-    if ($kind -notin 'tamper','partial') {
+    if ($kind -eq 'sums-tamper') { Add-Content -LiteralPath (Join-Path $badBundle 'SHA256SUMS') -Value 'BAD' }
+    if ($kind -eq 'extra') { Set-Content -LiteralPath (Join-Path $badBundle 'unlisted') -Value 'BAD' }
+    if ($kind -notin 'tamper','partial','sums-tamper','extra') {
         $manifest = Join-Path $badBundle 'SHA256.json'
         $raw = Get-Content -LiteralPath $manifest -Raw
         $rows = @($raw | ConvertFrom-Json -AsHashtable)

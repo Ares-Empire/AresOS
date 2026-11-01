@@ -3,6 +3,7 @@ import json
 import pathlib
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import test_owner_tools as common
@@ -18,6 +19,11 @@ class ExportTest(unittest.TestCase):
             fingerprint=common.bundle.build(usb/'ares-tools')
             store=root/'records';store.mkdir()
             (store/'prepared.json').write_text('{"passed":true}')
+            diagnostics=root/'diagnostics'
+            failure=dict(status='stopped',command=['records'],error='fixture refusal',trace=[])
+            with patch.object(owner,'STOP_RECORDS',diagnostics),patch.object(owner.os,'geteuid',return_value=0),common.private_metadata(root):
+                owner.refusal_record(SimpleNamespace(read=lambda *args:'retained firmware fixture',trace=[]),failure)
+            diagnostic,=diagnostics.glob('*.json')
             mount=root/'mount'
             calls=[]
             class Host:
@@ -53,7 +59,15 @@ class ExportTest(unittest.TestCase):
                 self.assertIn('SAFE TO REMOVE',result[-1])
                 self.assertFalse(host.mounted)
                 self.assertEqual((target/'prepared.json').read_bytes(),(store/'prepared.json').read_bytes())
-                self.assertEqual([p.name for p in target.iterdir()],['prepared.json'])
+                exported=target/('diagnostic-'+diagnostic.name)
+                self.assertEqual(set(p.name for p in target.iterdir()),{'prepared.json',exported.name})
+                self.assertEqual(exported.read_bytes(),diagnostic.read_bytes())
+                # Reboot model: discard volatile state, create fresh readers;
+                # both the persistent internal record and off-device copy stay.
+                volatile=root/'run';volatile.mkdir();(volatile/'discarded').write_text('volatile')
+                (volatile/'discarded').unlink();volatile.rmdir()
+                self.assertEqual(json.loads(diagnostic.read_text())['status'],'stopped')
+                self.assertEqual(json.loads(exported.read_text())['error'],'fixture refusal')
 
     def test_bad_usb_identity_never_mounts(self):
         for bad in (dict(tran='nvme'),dict(rm=False),dict(fstype='ntfs'),dict(uuid='')):

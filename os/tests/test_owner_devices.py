@@ -18,6 +18,10 @@ class FixtureHost(owner.Host):
     def __init__(self, tree, usb_root=None):
         super().__init__()
         self.tree, self.usb_root = tree, usb_root
+        if usb_root is not None:
+            for disk in tree['blockdevices']:
+                for volume in disk.get('children', []):
+                    if volume.get('label') == 'ARESTOOLS': volume['mountpoints'] = [str(usb_root)]
 
     def read(self, *command, **unused):
         self.trace.append(dict(command=list(command), mutation=False))
@@ -115,7 +119,7 @@ class DevicesTest(unittest.TestCase):
             payload=usb/'ares-tools'; fingerprint=common.bundle.build(payload)
             home=root/'home'; host=FixtureHost(fixture(),usb)
             with patch.object(owner,'HOME',home), patch.object(owner,'Host',return_value=host), \
-                 patch.object(owner.sys.stdin,'isatty',return_value=True), patch('builtins.input',side_effect=['TARGET','KEEP']):
+                 patch.object(owner.sys.stdin,'isatty',return_value=True), patch('builtins.input',side_effect=['TARGET','KEEP']),common.private_metadata(home):
                 result=owner.install(payload)
             self.assertIn('manifest SHA256 '+fingerprint,result)
             self.assertEqual(owner.checked_bundle(home/'tools'),fingerprint)

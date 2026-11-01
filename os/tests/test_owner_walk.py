@@ -39,6 +39,7 @@ def retained(name):
 
 def walk(ps2=False):
     visits, commands, typed, checks, markers = [], [], [], [], []
+    visible_blocks = []
     physical_cases = []
     prompt_waits, idle_answers, hidden_reads = {}, [], []
     hidden_shapes, wait_shapes = [], []
@@ -61,8 +62,11 @@ def walk(ps2=False):
             self.monitor = SimpleNamespace(command=self.qmp)
             self.physical_case = None
             self.last_typing_frame = None
+            self.last_visible_frame = None
             self.typing_case = None
             self.boot_number = len(visits) + 1
+            self.events = []
+            self.monitor = SimpleNamespace(command=self.qmp,events=self.events)
             if ps2:
                 from test_owner_ps2 import context
                 self.xhci_context=context(needed=stage=='tools-stock')
@@ -192,15 +196,21 @@ def walk(ps2=False):
                 layout, variant = {'de': ('de', ''), 'us': ('us', ''), 'us-intl': ('us', 'intl')}[self.owner_layout]
                 return dict(XKB_DEFAULT_LAYOUT=layout, XKB_DEFAULT_VARIANT=variant)
             if name.endswith('-loaded-keyboard'):
-                profile = self.owner_layout
+                profile = 'de' if self.stage=='layout-reset-trial' and '-pending-' in name else self.owner_layout
                 layout, variant = {'de': ('de', ''), 'us': ('us', ''), 'us-intl': ('us', 'intl')}[profile]
                 props = dict(VConsoleKeymap=profile, X11Layout=layout, X11Variant=variant)
                 return dict(localed=dict(data=[{k:dict(data=v) for k,v in props.items()}]),
-                    loaded_map=json.loads((FIXTURES/('dumpkeys-'+profile+'.json')).read_text()),
+                    console='KEYMAP='+profile, x11='X11='+profile,
+                    loaded_map=json.loads((FIXTURES/('dumpkeys-'+self.owner_layout+'.json')).read_text()),
                     cmdline='quiet ostree=/ostree/fixture', bls={e['file']:e['content'] for e in (pinned if self.stage=='corrected-stock' else pair)['bls']})
+            if name.endswith('-all-console-maps'):
+                return {str(n):json.loads((FIXTURES/'dumpkeys-de.json').read_text()) for n in range(1,7)}
             raise AssertionError('Unwalked response: ' + name)
 
         def qmp(self, command, args=None):
+            if command == 'system_reset':
+                self.events.append(dict(event='SHUTDOWN',data=dict(guest=False,reason='host-qmp-system-reset')))
+                checks.append(self.stage+'-QMP-system-reset')
             if command != 'send-key': return
             assert args['hold-time'] == 30
             assert all(k['type'] == 'qcode' for k in args['keys'])
@@ -210,6 +220,11 @@ def walk(ps2=False):
             while frame is not None and frame.f_code is not vm.type_text.__code__:
                 frame = frame.f_back
             if frame is not None:
+                visible=frame
+                while visible is not None and visible.f_code is not vm.Console.visible.__code__: visible=visible.f_back
+                if visible is not None and visible is not self.last_visible_frame:
+                    self.last_visible_frame=visible
+                    visible_blocks.append((visible.f_locals['text'],self.owner_layout))
                 if frame is not self.last_typing_frame:
                     self.last_typing_frame = frame
                     text, layout = frame.f_locals['text'], frame.f_locals['layout']
@@ -240,12 +255,17 @@ def walk(ps2=False):
             assert self.owner_media is None, 'Stick crossed a reboot'
             checks.append(stage + '-tools-absent')
         def finish_shutdown(self, stage, event):
-            assert event == 'guest-reset'
+            assert event in ('guest-reset','host-qmp-system-reset')
+            if event=='host-qmp-system-reset':
+                assert self.events==[dict(event='SHUTDOWN',data=dict(guest=False,reason=event))]
+                self.stopped_events=list(self.events)
             self.media_absent(stage)
             self.stopped_events_verified = True
+        hard_reset=vm.Guest.hard_reset
         def poweroff(self, stage): self.media_absent(stage)
         def close(self, stage):
             self.last_typing_frame = None
+            self.last_visible_frame = None
 
     class Media:
         fingerprint = '0' * 64
@@ -305,7 +325,7 @@ def walk(ps2=False):
         vm.qualification(audit, Media(), 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH')
         result = json.loads((pathlib.Path(temporary) / 'owner-tools-result.json').read_text())
         assert result['status'] == 'passed'
-        assert audit.check.call_count == 8
+        assert audit.check.call_count == 10
         events = [json.loads(p.read_text()) for p in pathlib.Path(temporary).glob('*-resync-1.json')]
         assert len(events) == len(prompt_waits) and all(n == 2 for n in prompt_waits.values())
         assert all(e['enter_sent'] and e['ready'] and e['observer']['ready'] and
@@ -314,10 +334,10 @@ def walk(ps2=False):
         ready_names = [name for name, phase in hidden_reads if phase == 'ready']
         left_names = [name.removesuffix('-left') for name, phase in hidden_reads if phase == 'left']
         assert ready_names and len(set(ready_names)) == len(ready_names) and set(ready_names) == set(left_names)
-    assert visits == ['stock','tools-stock','corrected-stock','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
+    assert visits == ['stock','tools-stock','corrected-stock','layout-reset-trial','layout-reset-recovery','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
     assert {'prepared-unattended-windows','offline-roundtrip-unattended-windows','offline-roundtrip-detached-windows','final-unattended-windows','final-detached-windows'} <= set(markers)
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
-    return dict(stages=visits, commands=commands, typed=typed, checks=checks, markers=markers,
+    return dict(stages=visits, commands=commands, typed=typed, visible_blocks=visible_blocks, checks=checks, markers=markers,
         physical_cases=physical_cases,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
         hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
@@ -330,6 +350,8 @@ class OwnerWalkTest(unittest.TestCase):
         international = [['y'], ['z'], ['minus'], ['slash'], ['shift', '1'], ['alt_r', 'y'], ['ret']]
         expected = {
             'corrected-stock-console': 'de', 'aresos-console': 'de', 'aresos-foot': 'de',
+            'layout-reset-trial-console':'de','layout-reset-trial-foot':'de',
+            'layout-reset-recovery-console':'de','layout-reset-recovery-foot':'de',
             'aresos-intl-console': 'us-intl', 'aresos-intl-foot': 'us-intl',
             'aresos-back-de-console': 'de', 'aresos-back-de-foot': 'de',
             'rollback-stock-console': 'de', 'default-stock-console': 'de',
@@ -426,7 +448,7 @@ class OwnerWalkTest(unittest.TestCase):
             'persistent-login-readline','sudo-password-reader','sudo-i-readline',
             'nested-owner-getpass','sudo-owner-public-handoff','login-rejected'})
         left=[s for s in result['hidden_shapes'] if s['phase']=='left']
-        self.assertEqual(len(left),23)
+        self.assertEqual(len(left),27)
         self.assertEqual(sum(s['expected_rejection'] and not s['completion'] for s in left),1)
         self.assertTrue(all(not s['completion_uses_echo'] for s in left))
         self.assertEqual(sum(s['phase']=='handoff' for s in result['hidden_shapes']),3)

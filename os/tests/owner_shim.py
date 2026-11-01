@@ -59,6 +59,7 @@ elif tool == 'localectl':
     mutation = True
     if args[1] == 'set-keymap':
         state['keyboard']['VConsoleKeymap'], state['keyboard']['VConsoleKeymapToggle'] = args[2:]
+        state['loaded_keymap'] = args[2]
     elif args[1] == 'set-x11-keymap':
         if state.pop('fail_x11_once', False):
             (root / 'machine.json').write_text(json.dumps(state))
@@ -67,8 +68,15 @@ elif tool == 'localectl':
             state['keyboard'][key] = value
     else:
         raise SystemExit('Unknown localectl operation')
+elif tool == 'loadkeys':
+    assert args[:3] == ['-C', '/dev/tty3', '--'] and args[3] in ('de','us','us-intl')
+    if state.pop('fail_loadkeys_once', False):
+        (root / 'machine.json').write_text(json.dumps(state))
+        raise SystemExit(42)
+    state['loaded_keymap'] = args[3]
+    mutation = True
 elif tool == 'dumpkeys':
-    profile = state['keyboard']['VConsoleKeymap']
+    profile = state.get('loaded_keymap', state['keyboard']['VConsoleKeymap'])
     if profile not in ('de', 'us', 'us-intl'):
         raise SystemExit('Unknown physical layout profile in dumpkeys shim')
     result = json.loads((pathlib.Path(__file__).parent/'fixtures/owner-tools'/('dumpkeys-'+profile+'.json')).read_text())

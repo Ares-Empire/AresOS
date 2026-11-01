@@ -29,7 +29,7 @@ import owner_counter_kernel
 import owner_login
 import owner_xhci
 from owner_keys import maps, physical_keys, at_keycodes
-from owner_media import Media
+from owner_media import Media, bundle_module
 
 COMMANDS = json.loads(pathlib.Path('os/owner-tools/commands.json').read_text())
 TEXT = 'yz-/!ü'
@@ -244,6 +244,20 @@ PY'''))
         # Owner reboot performs its health check before typing the command.
         return super().finish_shutdown(stage, expected, timeout=timeout)
 
+    def hard_reset(self, stage):
+        self.media_absent(stage)
+        owner_xhci.checkpoint(self, stage + '-before-hard-reset')
+        assert not any(e.get('event') == 'SHUTDOWN' for e in self.monitor.events)
+        self.monitor.command('system_reset')
+        # Pinned QEMU8.2.2 converts system_reset to this exact host shutdown
+        # under -no-reboot, then -no-shutdown keeps counters readable. There
+        # is no guest shutdown/finalizer. The next start uses the existing
+        # explicit one-boot Linux authorization; Windows remains default.
+        self.finish_shutdown(stage, 'host-qmp-system-reset')
+        td.save(stage + '-hard-reset', dict(status='passed', qmp='system_reset',
+            reason='host-qmp-system-reset', guest_shutdown=False, tools_absent=True,
+            stopped_events=self.stopped_events, physical_keyboard='i8042/PS-2 AT'))
+
     def poweroff(self, stage):
         if self.mode == 'live' and PROBE_MEDIA is not None and not getattr(self, 'media_probe_done', False) \
                 and not getattr(self, 'failed_command', False) and sys.exc_info()[0] is None:
@@ -290,7 +304,7 @@ def wait_tty(guest, tty, predicate, stage, timeout=90, resync=None, observe=None
             dict(stage=stage, tty=tty, **event)))
 
 
-def diagnostic_reader(before=None, command=None, folders=('/var/lib/ares/records', '/run/ares-owner-diagnostics'), timeout=OWNER_RESULT_WAIT):
+def diagnostic_reader(before=None, command=None, folders=('/var/lib/ares/records', '/var/lib/ares/diagnostics'), timeout=OWNER_RESULT_WAIT):
     """Read only private owner JSON, including pre-install STOP records."""
     source = '''import json,pathlib,stat,time
 folders=@FOLDERS@
@@ -775,23 +789,13 @@ PY'''))
         assert unicode['status']=='passed' and unicode['getter_only']
     finally: guest.keys(['ctrl','alt','f'+active['active'][3:]])
     media.attach(guest, 'probe')
-    source = '''set -e
-mkdir -p /run/owner-probe-stick
-mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS /run/owner-probe-stick
-trap 'umount /run/owner-probe-stick' EXIT
-python3 - <<'PY'
-import runpy,pathlib
-root=pathlib.Path('/run/owner-probe-stick/ares-tools')
-module=runpy.run_path(str(root/'owner.py'),run_name='owner_probe')
-assert module['checked_bundle'](root)==@FINGERPRINT@
-print('LIVE_TOOLS_BUNDLE_MATCHED_WINDOWS_COPY')
-PY
-'''.replace('@FINGERPRINT@', repr(media.fingerprint))
+    source = bundle_module('bootstrap').verification(media.fingerprint)
+    source += '\necho LIVE_TOOLS_BUNDLE_MATCHED_WINDOWS_COPY\n'
     guest.command('probe-media-manifest', source)
     media.detach(guest, 'probe')
 
 
-def keyboard(guest, stage, profile, temporary_old=None):
+def keyboard(guest, stage, profile, temporary_old=None, loaded_profile=None):
     value = guest.capture_json(stage + '-loaded-keyboard', sw.framed('''python3 - <<'PY'
 import json,pathlib,subprocess
 reply=json.loads(subprocess.check_output(['busctl','--system','--json=short','call','org.freedesktop.locale1','/org/freedesktop/locale1','org.freedesktop.DBus.Properties','GetAll','s','org.freedesktop.locale1']))
@@ -804,7 +808,7 @@ PY'''))
     x11_layout, x11_variant = kb.x11_profile(profile)
     assert fields['X11Layout']['data'] == x11_layout
     assert fields['X11Variant']['data'] == x11_variant
-    kb.loaded_map(value['loaded_map'], profile)
+    kb.loaded_map(value['loaded_map'], loaded_profile or profile)
     texts = value['bls'].values()
     if temporary_old is not None:
         snapshot = kb.deployment_snapshot(guest, stage + '-temporary-stock')
@@ -814,6 +818,42 @@ PY'''))
     for words in [value['cmdline'].split(), *[shlex.split(line)[1:] for text in texts for line in text.splitlines() if line.startswith('options ')]]:
         assert not any(re.match(r'(?:rd\.)?vconsole\.keymap(?:[._]toggle)?(?:=|$)', word) for word in words)
     return value
+
+
+def finished_consoles(guest, stage):
+    value = guest.capture_json(stage + '-all-console-maps', sw.framed('''python3 - <<'PY'
+import json,subprocess
+print(json.dumps({str(n):subprocess.check_output(['dumpkeys','-C','/dev/tty'+str(n),'--keys-only'],text=True) for n in range(1,7)}))
+PY'''))
+    assert set(value) == set(map(str, range(1,7)))
+    for text in value.values(): kb.loaded_map(text, 'de')
+    return value
+
+
+def abandoned_trial(audit, password, hashed, stock, release, brew):
+    for stage in ('layout-reset-trial', 'layout-reset-recovery'):
+        guest = td.start_installed(password, hashed, stage)
+        try:
+            console, observed = common_boot(guest, stage, 'de', password, stock, release, ares=True)
+            assert observed == brew
+            if stage == 'layout-reset-trial':
+                before = keyboard(guest, stage + '-before', 'de')
+                console.run('layout-us', stage + '-begin-us')
+                guest.owner_layout = 'us'
+                trial = keyboard(guest, stage + '-pending', 'de', loaded_profile='us')
+                assert trial['console'] == before['console'] and trial['x11'] == before['x11'], 'Trial persisted boot/greeter settings'
+                guest.hard_reset(stage)
+            else:
+                finished_consoles(guest, stage)
+                console.run('layout-abandon', stage + '-abandon')
+                console.run('title', stage + '-reboot-title')
+                console.run('reboot', stage + '-guarded-reboot')
+        finally:
+            finish(guest, audit, stage)
+    td.save('layout-reset-proof', dict(status='passed', reset='QMP system_reset',
+        trial='us', finished='de', persistent_console_and_x11_unchanged=True,
+        every_console_german=True, german_password_login=True, physical_foot_german=True,
+        fresh_authenticated_abandon=True, guarded_reboot=True, tools_absent_at_reset=True))
 
 
 def public_typing(guest, stage, profile, console, foot=False):
@@ -949,6 +989,7 @@ exit 1''', timeout=360)
         console.run('reboot', 'owner-switch-reboot')
     finally:
         finish(guest, audit, 'corrected-stock')
+    abandoned_trial(audit, password, hashed, stock, release, brew)
     for stage, profile in (('aresos', 'de'), ('aresos-intl', 'us-intl'), ('aresos-back-de', 'de')):
         guest = td.start_installed(password, hashed, stage)
         try:
@@ -1022,6 +1063,7 @@ exit 1''', timeout=360)
         owner_commands_physically_typed=True, password_contains_umlaut_and_punctuation=True,
         layout_failure_revert=True, layout_profiles=['de', 'us-failed', 'de-revert', 'us-intl', 'de'],
         fresh_second_console_proof=True, tty3_password_sudo=True, foot_physical=True,
+        abandoned_trial_reset=True, finished_layout_after_reset=True, layout_abandon=True, abandoned_trial_guarded_reboot=True,
         rollback_guard=True, rollback=True, keep_stock=True, next_stock_default=True,
         protected_disk_audits=True, nvram_rule_unchanged=True, bootnext_audits=True))
 
