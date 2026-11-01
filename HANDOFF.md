@@ -1,32 +1,76 @@
 # Handoff
 
-The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up.
+The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up. Detailed history lives in each package's `reviews/NN-*/REPORT.md` and its briefs.
 
-## Where things are (2026-10-25)
+## Where things are (2026-11-01)
 
-- **PR #11 merged** (`0c5902a`, squash of briefs 11–11n). 11n's Part B passed in the protected-second VM order. The fresh fix re-review of `d7f0ac4..5d69724` said SAFE (`reviews/11-two-disk-rehearsal/REVIEW.md`, second section). Package 11's CI ledger closed at about 722/900 minutes (5 full runs and 1 Part B run). The org quota resets 1 Nov.
-- **Package 13 (keyboard layout) MERGED 2026-10-25 as `775be05`** (PR #12, briefs 13–13g). The first review was CHANGES-NEEDED; the 13g guide fixes made the re-review SAFE. The owner OK'd both JUDGMENT-CALLs and decided the backup keeps the installer's layout. Ledger 389/460. Worktree `C:/Users/pab/AresOS-13-keyboard-layout` is kept (its ignored `.work/` holds local scratch only); the branch isn't deleted. **Next AresOS step:** the safety and followability council on INSTALL.md and OS-BASE §8 / Appendix C (the last gate that doesn't need the laptop).
-- **Install-gate council DONE 2026-10-25** on `6eb2d0b` (gpt-6-astra, max, read-only): `reviews/councils/2026-10-25-install-gate/` (QUESTION, safety, followability, recovery, VERDICT). **GAPS-FOUND (11): 7 BLOCKING, 4 NON-BLOCKING.** Blocking: (1) the stock-title link skips §5; (2) the owner rollback block lacks CI's target checks; (3) a layout change reboots before proving the password still types; (4) no token revocation on abandonment; (5) first-login preparation order conflicts (EMERGENCY pins first, repair rejects pinned stock; staged update stops repair before cleanup); (6) 547 lines of hand-typed root shell; (7) the tty3 identity check prints ~142 KB of JSON. Next: a fix package (verified helper bundle with short commands, one linear owner checklist, shorter emergency card), owner go pending, then a chair delta check. The worktree was removed. October org Actions use: about 1,406 of 2,000 minutes.
-- **Package 12 (the companion in the hub):** brief drafted, not committed, waiting for the owner's go. Draft: `C:/Users/pab/AppData/Local/Temp/claude/C--Users-pab/c9cf9395-8808-409c-be1f-c393ff13e99c/scratchpad/12-hub-companion.md`. On go: commit it as `briefs/12-hub-companion.md`, create worktree `../AresOS-12-hub-companion`, start a **new** Codex session (gpt-6.1-sol xhigh). The Claude crab look is never in this repo. After Codex defines the pack format, Claude writes the private Clawd pack in `C:/Users/pab/aresos-companions/clawd/` (front view 18x5, see the preview) and checks it in the dev client.
-- **Companions** live in their own private repo `Ares-Empire/companions` (local `C:/Users/pab/companions`; `python tools/serve.py`, then http://127.0.0.1:8765/preview/). Each companion is a `companions/<id>/design.json`: Clawd plus three app companions (Chromie, Termi, Foldi), outfits, bed sleep, file basketball. The Clawd art stays out of this repo.
-- **Later:** new releases from the org publish to `ghcr.io/ares-empire/aresos` with a new Sigstore identity (`publish.sh` and `os-image.yml` still name `carlsenares`). The CI secret `GHCR_READ_TOKEN` expires about 2026-11-22.
+**The November round is running.** The owner's Actions budget is **$0 with "stop usage" on** (checked 2026-11-01), so only free minutes are used.
 
-## History rewrite (2026-10-23 09:34 UTC)
+- **14zv** (free minutes, reserve 150) pushed `becfb22`, then STOPPED before the probe. The cause: on 2026-11-01 the owner moved the privacy check from GitHub to aresync's local pre-push hook (`fabd476`), so there was no PR privacy run and no `PRIVATE_TERMS` secret.
+- **14zw** (running; log `../AresOS-14zw.log`, summary `../AresOS-14zw.last.md`) does the rest:
+  - merge `main`
+  - make the local hook the privacy proof, and drop the privacy minute reservations
+  - one push
+  - probe and qualification on that head
+  - stop and report
 
-- An owner-run Claude session rewrote the GitHub history to replace the personal email with the no-reply address. All SHAs changed, so SHAs in older docs name pre-rewrite commits.
-- The old local heads are kept as `pre-rewrite/*`. **Never push them, and never force-push.**
-- The repo-local git identity is `Patrik Breeck <287037715+carlsenares@users.noreply.github.com>`. The global identity is still personal, so a fresh clone needs the local identity set.
+### Package 14: owner tools (PR #13, draft)
 
-## Waiting on the owner
+- **Where:** branch `pkg/14-owner-tools`, worktree `C:/Users/pab/AresOS-14-owner-tools`.
+- **Codex session:** `01a165f9-31fc-79c2-80de-0a8237188116` (gpt-6.1-sol xhigh). Resume it with `codex exec resume …` from the worktree, logging to `../AresOS-14<id>.log`.
+- **Briefs:** `briefs/14*.md`. The latest is `14zu`.
+- **Full story:** `reviews/14-owner-tools/REPORT.md`, newest section first.
+- **Pushed head:** `65edb11`. **Local commits after it aren't pushed** (14zs/14zt reports, the 14zu work).
+- **Proven in the VM qualification:**
+  - offline install and hardware setup
+  - Windows round trips
+  - tools stick hot-plug, `install`, `prepare` and its zero-change rerun
+  - network invariance
+  - records and export, corrected stock
+  - real token login (owner-length token proven)
+  - `verify`, `switch`, `title`
+  - the AresOS boot and login
+  - `layout begin us`, the rejected plain-US login, the refused trial reboot, `layout revert`
+- **Still to prove:** US International success, back to German, rollback, keep-stock, the final Windows checks.
+- **Real owner-tool bugs the runs found (all fixed):**
+  - flat `lsblk` JSON
+  - `efibootmgr` 18 format; entries are now decided from the decoded `dp:` bytes
+  - sudo `use_pty` broke the physical-session check (now logind/cgroup plus a nested sudo chain)
+  - `ostree admin finalize-staged --hold` counted as busy
+  - `loginctl` comma selectors
 
-- **Hardware** (ordered 2026-10-22, €127.05: SSD, 2 USB sticks, PH0 + PH1 screwdrivers), delivery Mon 2026-10-26. The slot check happens when the parts arrive. The SSD return must be requested by about 2026-11-09. Details in `STATE.md`.
-- **Go for package 12.**
+  Most other stops were in the test harness's console emulation.
+- **Last stop (qualification 15):** the guest's xHCI controller died and took the USB keyboard with it. **14zu is done locally** (`8507dd6`, not pushed): the test keyboard is on i8042/PS-2, with AT-device counters and xHCI health STOPs; 103 regressions and the full stand-in walk pass.
+- **On 1 November, resume Codex with a short brief:**
+  - free minutes, org reserve back to **150**, closing reservation **12**
+  - package cap and allowances raised to fit the bound; the settings are in `os/ci/rehearsal-packages.json`
+  - one push, then probe and qualification on the same head
+
+  If the console-typing harness needs more than about 3 more rounds, switch the remaining stages to serial-run commands. Physical typing is already proven for the earlier stages.
+- **After acceptance:** a fresh package review (gpt-6.1-sol high, read-only), then the owner's "merge".
+
+### Package 15: owner path and emergency card (PR #14, draft)
+
+- **Where:** branch `pkg/15-owner-path`, worktree `C:/Users/pab/AresOS-15-owner-path`.
+- **Codex session:** `01a17936-3347-7552-b472-a7e664893959`.
+- **Status:** reviewed and fixed. The council delta re-check was **DELTA-CLEAN** on `e077bdf` (`reviews/councils/2026-10-25-install-gate/delta/`). Local commits aren't pushed.
+- **Before merge:**
+  1. Merge package 14's final head into it, with **merge commits only: never rebase or force-push.**
+  2. Update the tools fingerprint and the PASS lines, then rerun its doc tests.
+  3. Merge after 14.
+- **Council check:** the tool changes since `e077bdf` need a short chair re-check, or at least the package review.
+
+### Other
+
+- **Hardware arrived 2026-10-26** (SSD, 2 sticks, screwdrivers). Keep it boxed until the guide is released: record A must come before fitting. The SSD return deadline is about **2026-11-09**.
+- **Package 12** (the companion in the hub): the brief is drafted, waiting for the owner's go (scratchpad draft path in the transcript). Companions live in the private repo `Ares-Empire/companions`.
+- **The CI secret `GHCR_READ_TOKEN`** expires about 2026-11-22.
 
 ## Watch out
 
-- **Only one Minecraft client-test run at a time** on the laptop (focus stealing). If the owner is playing, keep Gradle and client tests out of packages.
-- **Merging:** delete a branch only after `gh pr view N --json state` = MERGED. Never launch Codex into a worktree with unmerged files.
-- **Low memory** stops Claude's background wrappers, but `codex.exe` keeps running. Check its PID and the `turn.completed` line in its log.
-- **Codex assumptions:** check every new check's assumptions against the retained real inventories, not just mocks (11i lost a full run to a mocked `pgrep`).
-- **Leftover worktrees** for merged branches 03, 04, 06, 07, 08, 09, 10, 11 and now 13. Remove them with `git worktree remove` from the main checkout once nothing in them is needed (11's ignored `.work/` folders hold local scratch only; the evidence is committed).
-- **Deferred work:** `briefs/03-followup-activation-audit.md` (activation-graph updater audit).
+- **Pushes no longer cost Actions minutes** (2026-11-01): the privacy check runs locally before each push (aresync's pre-push hook) instead of on GitHub. Only `os-image.yml` dispatches use the org's minutes. gitleaks 8.30.1 flags 12 false alarms on `pkg/14-owner-tools` (sha256 checksums next to key/token file names in `os/manifest/ci/14/host-walk/*.json`, plus code in `os/ci/owner_vm.py` and `os/ci/owner_key_counter.py`): a new local commit carrying them (e.g. a local squash merge) is blocked until they're allowlisted in `.gitleaks.toml`.
+- **Low memory** stops Claude's background wrappers, but `codex.exe` keeps running. Find its PID and watch its log for `turn.completed`.
+- **Never force-push, and never push `pre-rewrite/*`** (the 2026-10-23 history rewrite). The repo-local git identity uses the noreply email.
+- **Only one Minecraft client-test run at a time** on the laptop.
+- **Check every new check's assumptions against real retained output, not mocks.** Most of package 14's lost rounds came from invented fixtures.
+- **Leftover worktrees** for merged branches 03–11 and 13 can be removed with `git worktree remove` once they're no longer needed.
