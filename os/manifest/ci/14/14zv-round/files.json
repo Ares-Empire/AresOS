@@ -1,0 +1,36 @@
+{
+  "files": [
+    {
+      "sha256": "8bf6b84ec6eee3c452a4aa79dd8d60ced4ccf0c01ec5da8ef57c67b6db5d30b2",
+      "path": "os/manifest/ci/14/14zv-round/ledger.json"
+    },
+    {
+      "sha256": "f45ab25adf518a80da47bad30d533c78301d47330d02c027a4303ccd76804c23",
+      "path": "os/manifest/ci/14/14zv-round/local-privacy.json"
+    },
+    {
+      "sha256": "560648dd93699c9da72e45f604e5ec2f436b9c9a7ca7aaa5adff5f42fbf6d652",
+      "path": "os/manifest/ci/14/14zv-round/organization-budget.json"
+    },
+    {
+      "sha256": "3862bcda2f483638b5223489455b698e4703d196fbe5932e731dacbf6c3f2625",
+      "path": "os/manifest/ci/14/14zv-round/privacy-gate.json"
+    },
+    {
+      "sha256": "7966d3a3320c2d0aff1d70f0a47adf79e1759584595c7b8c247b2352a60cdd8b",
+      "path": "os/manifest/ci/14/14zv-round/push.json"
+    },
+    {
+      "sha256": "f036e7898186d40536de1840709fe04e985bc543f16e2936915c2133e7f59908",
+      "path": "os/manifest/ci/14/14zv-round/reservation-plan.json"
+    },
+    {
+      "sha256": "8654d43a0afcd2885f194bbee4ea84fa40937ac1e4eef3664d7c805c3014a7bb",
+      "path": "os/manifest/ci/14/14zv-round/retained-files.json"
+    },
+    {
+      "sha256": "926001ea601fd2f6b6193f75f725bf70ee642976fde24436813c5f87937b36b0",
+      "path": "os/manifest/ci/14/14zv-round/round.json"
+    }
+  ]
+}

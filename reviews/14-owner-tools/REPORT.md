@@ -1,5 +1,129 @@
 # 14: checked owner tools
 
+## 14zv REPORT — November settings verified; STOP at privacy gate
+
+**Disposition:** Exactly one fast-forward push, on
+`becfb2221ce0436e97ed117bd7be1028ad3e7648`, at `2026-11-01T00:35:21.775801+00:00`. **No probe or qualification dispatched.**
+The sole new Actions run, [push privacy 41257409190](https://github.com/Ares-Empire/AresOS/actions/runs/41257409190),
+finished success. Its personal-term scan was skipped, so the required privacy
+gate did not pass. This report and closing ledger are committed **locally only**;
+there is no second push. PR #13 stays draft; no merge.
+
+**PLAN-GAP — proven from actual retained output:**
+
+- Main commit `fabd476e39145feace9480c2301b6a2cb0419d6d`, at
+  `2026-11-01T00:00:43Z`, deletes `.github/workflows/privacy-check.yml`
+  (subject: “Remove the GitHub privacy check: it now runs locally before each
+  push (aresync's pre-push hook)”). Both current main and PR #13's actual merge
+  tree `7853858fa9d704d821caf21fc411938cd0a8d060` contain only `os-image.yml`
+  under `.github/workflows/`. The package branch still contains the privacy
+  workflow. The complete branch history and independent exact-head listing
+  show only the push run, with no `pull_request` privacy run. The PR is open,
+  draft, mergeable and clean. This conflicts with 14zv's explicit requirement
+  to wait for both push and PR privacy checks before dispatch.
+- All three push steps have GitHub conclusion `success`, but the actual
+  `No personal terms` log says **`PRIVATE_TERMS secret is not set — skipped`**.
+  The warning is at `scan/5_No personal terms.txt:14`, also duplicated in the
+  combined `0_scan.txt:184`. Thus the job's green conclusion proves neither an
+  executed personal-term check nor the required dispatch authorization.
+  Gitleaks and private-email steps did execute successfully.
+- This is a repository privacy-policy/gate conflict, not a newly observed
+  owner-tool bug or console-emulation failure. No owner-tool or console ran in
+  this round. No workflow, ignore, rule, credential or secret was changed; no
+  replacement privacy dispatch or bypass was attempted. There is no console
+  failure to diagnose or serial-stage proposal to implement in this round.
+
+[Retained privacy proof](../../os/manifest/ci/14/14zv-round/privacy-gate.json)
+records the real trees, run, step conclusions and warning locations/hashes.
+Raw logs remain private under `.work/14/14zv/privacy-stop/`; the committed
+[file manifest](../../os/manifest/ci/14/14zv-round/retained-files.json) binds
+their bytes without copying raw logs, screenshots, VCSA or secrets.
+
+**Done:** `rehearsal_guard.py` keeps the paid-overflow path only for October
+2026; fixed-October tests preserve that history. Every later month uses only
+included minutes, never reads the budgets API and refuses nonzero Actions-minute
+`netQuantity` or `netAmount`. A valid empty current-month summary is zero used;
+wrong organization, stale/malformed period and invalid usage still refuse.
+Package 14 alone now has cap **2750** (`ceil((1715+1000)/50)*50`), dispatch caps
+**30 probes / 19 owner-tools** (starting counts **26 / 15**, plus four each),
+other-repo reserve **150**, closing reservation **12**. The starting ledger is
+**1715**, below the 1800 stop. Package 13 and 11c settings are unchanged.
+Code commit `08056b7` and bound-preflight commit `becfb22` include the pending
+14zs/14zt/14zu work in this one push. The 14zv delta itself changes no owner
+payload, frozen image/release, workflow or runtime path.
+
+**Verified locally (actual executions):**
+
+- Existing WSL: `PYTHONPATH=os/ci:os/tests python3 -B -m unittest
+  test_organization_budget test_owner_guard test_rehearsal_budget
+  test_rehearsal_retry test_rehearsal_history`: **49 tests, 1.207s, PASS,
+  zero skips**. Includes October/November, valid empty month, paid-usage STOP,
+  reserve/cap/history/retry regressions. An initial command named a nonexistent
+  pagination module; the corrected complete command above passed.
+- Local dispatch controller: **6 tests, 0.007s, PASS**, zero live API calls,
+  including the UTC cutoff and one-attempt watcher. Basic diagnostic exporter:
+  **2 tests, 0.005s, PASS**.
+- `.work/14/14zv/whole.py` ran the whole local suite: **567 tests,
+  1560.204s runner / 1560.307s wall; 558 distinct passes, nine documented host
+  limitations, zero skips and no new failure IDs**. The nine retain the prior
+  PIL, privilege/ACL/sysusers, filesystem-mode and approved 14zm timing limits.
+  The unchanged 30-second serial test took **42.79034450799986s** here. It was
+  not weakened or skipped; an overrun in native CI remains a real STOP.
+  This local suite is not reported as fully green.
+- `.work/14/14zv-read-only-replay.py`: actual release/git/read-only GitHub
+  binding and 53 pinned source replays passed, including again on the committed
+  pushed head. The four CI-only registry/package/signature/pull checks remain
+  fail-closed in CI and were not replaced by local credential escalation.
+- Actual `installer_inspect.main` replay passed for all **9,068,650,496**
+  pinned ISO bytes against both pin and fresh official checksum. The first
+  Windows checkpoint hit WinError 5; with no overlapping replay/reader, the
+  authorized 14zd local retry after 10 seconds on fresh `14zv-replay-2` passed
+  (four localization and 102 WebUI sources). No Linux CI inspector behavior
+  changed. The adapter's descriptive `kind` still says probe26/qualification15;
+  that stale label is not an Actions claim: this round planned 27/16 and sent
+  neither.
+- Bound stand-in walk passed all eight stages, **23 hidden-input pairs,
+  three handoffs, 133 authorized resyncs, 86 health boundaries and 940 guest
+  commands**. The probe walk added six commands. Strict real-Bash checks passed
+  **946 guest scripts plus 946 serial wrappers**, 808 embedded Python programs,
+  12 shell files, 51 Python files and the native workflow shell body; any parse
+  stderr was a refusal. These are local syntax/control-path proofs, not VM or
+  physical-owner acceptance evidence.
+- Pinned gitleaks **8.21.2**: full-history and pending-file scans were zero
+  before the one push; the committed-head receipt is bound to `becfb22`.
+  Downloaded push-privacy logs also scan **zero findings**. Closing metadata is
+  scanned before the local commit. `git diff --check` passes.
+
+[Preparation and command bindings](../../os/manifest/ci/14/14zv-preflight/preparation.json)
+retain the local results, source hashes and exact adapters. The same-head
+probe/native requirement was never waived.
+
+**Ledger / November billing:** The first live guard ran at
+`2026-11-01T00:24:15.159266+00:00`, after `2026-11-01T00:05Z`; no live guard, push
+or dispatch ran before that cutoff. Before push, the complete ledger was
+142/142 runs, 1715 minutes. The closing ledger is **143/143 runs, two complete
+pages, 1718/2750 minutes**, counts **26 / 15**; the sole push job adds three
+minutes. One push, zero dispatches, zero reruns. November's closing summary at
+`2026-11-01T00:43:54.073271+00:00` reports **6 used / 1994
+free minutes remaining**; Actions-minute net quantity and amount are zero.
+`paid_budget_read=false`, `paid_overflow=null`: no budget API was read and no
+paid minutes were counted. The owner's $0/stop-usage setting is the integrator's
+statement in 14zv, not a fresh budgets-API verification. Reserve 150 and closing
+12 remain set. No further cost was authorized after the privacy STOP.
+
+**Not verified / acceptance:** No native CI suite, probe 27 or qualification
+16 ran. PS/2 physical typing, US International success, return to German,
+rollback, keep-stock and final Windows acceptance remain unverified. Earlier
+retained partial qualification results are unchanged. No laptop, disk, boot
+configuration, publication, image, owner script or package 15 worktree was
+touched; no Mod/Gradle/game test was run for this OS-only delta.
+
+**JUDGMENT-CALL:** No product choice. The explicit privacy gate was preserved.
+**Open question:** The integrator must reconcile 14zv's required GitHub push/PR
+privacy evidence with the intentional workflow removal and absent
+`PRIVATE_TERMS` before another dispatch. This round is over; the closing
+REPORT/ledger commit stays local for the next authorized push.
+
 ## 14zu REPORT — local PS/2 typing and xHCI health gates
 
 **Done:** Package14's VM and early native capability check no longer add
