@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+  "kind": "aresync local exact-range pre-push and actual git push hook",
+  "checker": {
+    "hook": {
+      "sha256": "7d1ee97830ad31f4c9c7bd2a761d741318f3e5c41cf71eecd0d906db741f0aca",
+      "path": "repository git hooks/pre-push"
+    },
+    "checker": {
+      "sha256": "dd5e33e544b37f9990613e2a4f15039fc2a8733ce6e4a1315e46518b8e49c7ca",
+      "path": "aresync/privacy-check.sh"
+    },
+    "gitleaks": {
+      "sha256": "17157e2ee8b76fc8b1d8bee607a250e34b8a8023c8bc81822d4b5ee4d78fcb7c",
+      "path": "hook-resolved gitleaks",
+      "version": "8.30.1"
+    },
+    "core_hooks_path_override": false
+  },
+  "exit_code": 0,
+  "personal_terms_skipped_warning_absent": true,
+  "standard_stdin": "refs/heads/pkg/14-owner-tools d8adc498064065d506917f6b45bf71ca49c36dc6 refs/heads/pkg/14-owner-tools 75a2c638cecff042b528eb07e3089eda9129de02\n",
+  "commits_checked": [
+    "d8adc498064065d506917f6b45bf71ca49c36dc6",
+    "1c6d162a043f133de2c306df035a40d1c41d9711",
+    "52e010737ce9de45602067a95f2a20c87a2967dd"
+  ],
+  "no_verify": false,
+  "github_privacy_runs_required": false,
+  "actual_push": {
+    "before": "75a2c638cecff042b528eb07e3089eda9129de02",
+    "after": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+    "attempts": 1,
+    "exit_code": 0,
+    "no_verify": false,
+    "personal_terms_skipped_warning_absent": true,
+    "multibyte_warnings": 0,
+    "receipt": {
+      "sha256": "fb2f1218c1627e4bf3f19bb10990ab14ac87b2e91dc491d5e3ae15471c59d5a6",
+      "path": ".work/14/14zx-push-attempt.json"
+    }
+  },
+  "pinned_scanner": {
+    "version": "8.21.2",
+    "head_receipt": {
+      "checked_commit": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+      "findings": 0,
+      "exit_code": 0,
+      "pinned_version": "8.21.2",
+      "checked_at": "2026-11-01T05:19:29.968586+00:00"
+    },
+    "findings": 0
+  }
+}

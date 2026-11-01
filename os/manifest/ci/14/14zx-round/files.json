@@ -1,0 +1,40 @@
+{
+  "files": [
+    {
+      "sha256": "3bcf825ab52af229b3618b7fd3a8925d0f3c9d29e3150d270ded5d02d976a1a8",
+      "path": "os/manifest/ci/14/14zx-round/artifact-privacy.json"
+    },
+    {
+      "sha256": "3d5deb453834e553e5eda632a904766722e5e3e0591671cb4c03dcb050a88e3c",
+      "path": "os/manifest/ci/14/14zx-round/closed.json"
+    },
+    {
+      "sha256": "605925458907be40e6a3d723b0484f650b22b675067592b160c4c2aeca33bc59",
+      "path": "os/manifest/ci/14/14zx-round/local-and-native-checks.json"
+    },
+    {
+      "sha256": "c7e27667ff9703b11d0ba11238f88c1341b8edd9320f13b8acf27472e2902f21",
+      "path": "os/manifest/ci/14/14zx-round/local-privacy.json"
+    },
+    {
+      "sha256": "99e2587ae9caddb2c33cb4532eb9f932a7272541d77d5ad40a73ab98aaa8c648",
+      "path": "os/manifest/ci/14/14zx-round/privacy.json"
+    },
+    {
+      "sha256": "83d487ea1ffb72b297d67f65619339089a93a2298f4d7bf5cab429c16f352bd5",
+      "path": "os/manifest/ci/14/14zx-round/probe.json"
+    },
+    {
+      "sha256": "93e57800e3f9af94433f916ee82c6d6fd853b474dc98404f6d9f17f6da827b2c",
+      "path": "os/manifest/ci/14/14zx-round/qualification-stop.json"
+    },
+    {
+      "sha256": "ed35537718d96a94d79a197dbd70b4ab9e07a9d08382450ed670b5f9265d2b5d",
+      "path": "os/manifest/ci/14/14zx-round/retained-files.json"
+    },
+    {
+      "sha256": "70f0fa04bdfe6ea17ddbcf096c9f02067d0c7ecaef81dffb193c755befbc9e8c",
+      "path": "os/manifest/ci/14/14zx-round/stages.json"
+    }
+  ]
+}
