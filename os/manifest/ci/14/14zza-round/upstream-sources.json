@@ -1,0 +1,20 @@
+{
+  "version": "8.21.2",
+  "sources": [
+    {
+      "sha256": "545653dae6bb9fe4f094977b0f48538779daec57aac8cd980c24ce38b77f57ea",
+      "path": "directory.go",
+      "url": "https://raw.githubusercontent.com/gitleaks/gitleaks/v8.21.2/detect/directory.go"
+    },
+    {
+      "sha256": "e564c662cf599bc07c12a25ead591a24926a4691395adf44670da14d7406a306",
+      "path": "location.go",
+      "url": "https://raw.githubusercontent.com/gitleaks/gitleaks/v8.21.2/detect/location.go"
+    },
+    {
+      "sha256": "e441ac5f6c5ceef6f97fc20374042a3dd29e88495b30a5dca78ad71b18f91a09",
+      "path": "detect.go",
+      "url": "https://raw.githubusercontent.com/gitleaks/gitleaks/v8.21.2/detect/detect.go"
+    }
+  ]
+}

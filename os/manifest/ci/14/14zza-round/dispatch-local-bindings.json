@@ -1,0 +1,58 @@
+{
+  "target": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+  "local_head": "e3f4c937a56b1c65687bcf8c2a3fa2ef099db426",
+  "files": [
+    {
+      "sha256": "15c2eecae7e59392aad2366c45e1d7e868f0eb8223b5f80128fae3a64d51a840",
+      "path": ".work/14/14zza/classify.py"
+    },
+    {
+      "sha256": "9a7f834caa9b5a196e70482c9c101a4cf73e96773930267bcbf2a3d7b05e3b3c",
+      "path": ".work/14/14zza/test_classify.py"
+    },
+    {
+      "sha256": "1fdf9f126f74633a94b26cbb21ca84070a88115f59b161e67317ed724fb385d3",
+      "path": ".work/14/14zza/control.py"
+    },
+    {
+      "sha256": "0f616f686465a985a941e9ce53e9dadce73299199689912e4e3404869aedfd22",
+      "path": ".work/14/14zza/test_control.py"
+    },
+    {
+      "sha256": "60de6bd3cb3bca7d98aa06e905cfb15d4fb11e6ae238238b7b36000831df536a",
+      "path": ".work/14/14zza/local-receipt.py"
+    },
+    {
+      "sha256": "34909264e234949b6bf8a76609e63030b4da92f28a357f162609a59c5d50f46a",
+      "path": ".work/14/14zza/log-review.py"
+    },
+    {
+      "sha256": "e1cd2f88f970ba15e563a478366b907b9bc6e48f2f0a5b008da94b1f2d81e892",
+      "path": ".work/14/14zza/post-run.py"
+    },
+    {
+      "sha256": "f6906c75bec74bfe10a336e15edb60c18cc019b2fe4a420971945dd7c936ffed",
+      "path": ".work/14/14zza/syntax.py"
+    },
+    {
+      "sha256": "d721b62bf995df408848c37d7d13d93fc73f70f905d66e30ca6ee7b73203c804",
+      "path": ".work/14/14zza/read-only-replay.py"
+    },
+    {
+      "sha256": "8070c44729e8aaf7e2d9668156870c18819a73e3c5b3610e0ab59ed069b85b79",
+      "path": ".work/14/14zza/reclaim.py"
+    },
+    {
+      "sha256": "7a5db8e76be97c1c2b7e249684c434064de4333dea902c19b84e2649064aafe7",
+      "path": ".work/14/14zza-installer.py"
+    },
+    {
+      "sha256": "8d4e524775c48fffa94d0c0d76ffb4821efbf2f6f769b24689dfd39eb8d3aa11",
+      "path": ".work/14/14zza-retry.py"
+    },
+    {
+      "sha256": "3896907f038417dbbd7206b47933954528389c2a0899083b5e9a2eb8c8243b3e",
+      "path": ".work/14/14zz/monitor.py"
+    }
+  ]
+}

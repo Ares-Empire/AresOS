@@ -1,5 +1,177 @@
 # 14: checked owner tools
 
+## 14zza REPORT — whole-source review fixed; qualification 19 reached rollback, then step deadline
+
+**Disposition:** **No push and no new probe.** The corrected local gates accepted
+retained [probe 30](https://github.com/Ares-Empire/AresOS/actions/runs/41301148135).
+[Qualification 19](https://github.com/Ares-Empire/AresOS/actions/runs/41305049425)
+ran once on the same pushed head `10921f81f481bd2b2c7bfb2da9e13deabdb1267f` and ended in **failure** when its
+unchanged **106-minute VM step limit** expired. The run is terminal, diagnostics
+are exported and scanned, and there is **no rerun**. Acceptance is false;
+PR #13 stays draft. This REPORT/ledger/evidence commit is **local only**.
+
+### Done — local tooling, whole lines, exact token positions
+
+- The fix lives in `.work/14/14zza/classify.py`; its reviewed copy is archived
+  [here](../../os/manifest/ci/14/14zza-round/classify.py). No pushed-tree change,
+  owner-script/payload/fingerprint change, workflow change, image rebuild,
+  publication, merge or force push was made.
+- Each finding reads its actual complete source line at the reported file and
+  line, classifies that complete line, and records the line SHA-256. The
+  redacted `Match`/`Secret` only cross-check the reported secret's position
+  **inside** the approved token. No class depends on a redacted excerpt's quote.
+  Missing/unreadable/non-UTF8 lines, unknown whole lines, unrelated files,
+  malformed metadata or positions outside the token stop the review.
+- Kernel messages retain the exact whole-line 14v form and 40-hex fingerprint
+  token. The ISO class binds the exact **507 public symlink-name lines** and
+  target tokens to the retained, hash-pinned listing and earlier accepted scan.
+  Cosign retains exact whole checksum lines, known values from the pinned action
+  source, job/run/head identity and a unique complete matching action block in
+  step and combined logs. No new scanner rule, ignore entry or allowlist exists.
+- Source inspection of Gitleaks **8.21.2** confirmed its fixed-size file chunks
+  and previous-LF column anchor. The local cross-check replays those byte
+  coordinates, including a truncated fingerprint excerpt at a chunk boundary.
+  Source URLs and downloaded hashes are
+  [recorded](../../os/manifest/ci/14/14zza-round/upstream-sources.json):
+  [chunk size](https://raw.githubusercontent.com/gitleaks/gitleaks/v8.21.2/detect/detect.go),
+  [directory scanning](https://raw.githubusercontent.com/gitleaks/gitleaks/v8.21.2/detect/directory.go),
+  [column calculation](https://raw.githubusercontent.com/gitleaks/gitleaks/v8.21.2/detect/location.go).
+- A post-run local lookup initially assumed the combined log's numeric prefix
+  was `0_`; qualification 19 supplied **`1_`**. The local reviewer now requires
+  exactly one numeric-prefix file with the exact API-confirmed job name and the
+  unique full pinned-action block. Missing/duplicate context still refuses.
+  This was a read-only review correction after the CI stop, not a CI retry.
+  The original dispatch-time classifier, tests and binding seal are retained
+  alongside the post-review versions; the old dispatch seal was not rewritten.
+
+### Verified — actual checks and retained evidence
+
+- Before dispatch: **14 classifier tests / 1.025s**, including probe 30's exact
+  refused row, probe 29's accepted 509 findings, their full-log findings, and
+  refusal cases. **Four source-binding/control tests / 16.794s** proved that a
+  changed implementation, wrong local head or changed local helper blocks use
+  of the old probe. Local head `e3f4c93` differs from the pushed head only in
+  the owner brief and prior closing REPORT/ledger/manifests.
+- The first local coordinate check exposed the scanner's column convention.
+  An initial negative unit fixture also used columns that actually selected a
+  public fingerprint fragment in the second chunk. The fixture was corrected
+  to select bytes outside the token, preserving its refusal assertion.
+  Post-review **16 tests / 1.019s** pass, now also covering qualification 19's
+  real `1_` log and missing/ambiguous combined-log refusals.
+- Probe 30's entire local gate was rerun on retained inputs and passed:
+  **597 native tests / 143.006s / zero skips**, mandatory unchanged timing test,
+  real-kernel counter proof, 20 native loop checks, 37 verified tmpfs transfers,
+  AT keyboard mappings, xHCI health and independent raw safety audits.
+- Fresh local release/git/read-only GitHub replay, 53 retained inputs and ISO
+  inspection passed. The ISO replay verified **9,068,650,496 bytes** against the
+  pin and fresh official checksum on its **first attempt**. Only completed,
+  SHA-verified duplicate caches were unlinked; master/canonical files, results
+  and diagnostics remain. Strict checks passed for **980 commands/wrappers,
+  812 embedded Python scripts, 12 shell files and 52 Python source files**.
+- Pinned local gitleaks **8.21.2** reports **zero full-history findings**. Fresh
+  validation of the existing pushed head's actual hook/exact-range proof passed
+  with checker **8.30.1**, no skipped-personal-terms warning. No terms were read
+  or recorded by the agent. No new push, hook bypass or GitHub privacy run.
+- Actual qualification native suite: **597 passed / 202.891s / zero skips**;
+  its native log scan has zero findings and its mandatory 30-second case passed.
+  Actual kernel negative control again saw **0 press / 1 release** on the old
+  counting client and **1 / 1** on the separate-client fix.
+- Qualification privacy review passed: **523 artifact findings = 507 public
+  ISO-name lines + 16 exact kernel certificate messages**, and **four** exact
+  cosign full-log findings. Every kernel occurrence's file, line, label and
+  whole-line hash is [recorded](../../os/manifest/ci/14/14zza-round/artifact-review.json).
+  Each secret position lies inside its approved token. No raw console, screenshot,
+  certificate fingerprint value, secret value or unredacted finding is committed.
+- Independent replay of the **available** raw qualification evidence passed:
+  **12 protected captures, 13 zero-write/unmap samples, 12 varstore/BootNext
+  replays and 11 NVRAM/all-variable delta replays**. These cover completed
+  checkpoints through `aresos-back-de`; they do not establish the uncompleted
+  final tail. [Raw-audit summary](../../os/manifest/ci/14/14zza-round/independent-audits.json).
+
+### What qualification 19 proved, and the exact stop
+
+Retained owner result records prove install, prepare/rerun, network-boundary
+records, export, real login, signature verification and switch. They also prove:
+
+- **Plain US failure/revert:** second-console login was rejected as intended;
+  unproved reboot refused without a mutation, then revert, fresh German login,
+  proof and finish passed.
+- **US International success:** `layout begin us-intl`, a fresh tty4 password
+  login, physical layout proof and finish passed. The subsequent AresOS boot's
+  system check and physical foot typing passed with profile `us-intl`.
+- **Back to German:** fresh tty4 login/proof/finish and the next AresOS boot's
+  check, tty3 login/password sudo and physical foot typing passed with `de`.
+- **Rollback:** the owner `rollback` action passed, the staged-state assertions
+  and refreshed title preceded reboot, and the recovered stock snapshot is
+  booted/pinned with the **same checksum, serial1 and stateroot `default`** as
+  corrected stock, transaction None and nothing staged. Its fresh tty3 login
+  passed in **10.020s**, within the 30-second half-timeout budget.
+
+The job log then reports the configured 106-minute step timeout at
+**14:10:17 UTC**. The last sudo password window on recovered stock has exact
+**33 presses / 33 releases, zero repeats/drops**, matching 66 sent events;
+the counter result was written about **14:10:12 UTC**. Its subsequent public
+completion-observer script had passed root-only staging, SHA and syntax checks,
+but there is **no returned completion observation**. Archive timestamps have
+two-second granularity and a final transport write appears during termination
+grace. They do not prove the observer finished or that sudo stayed stuck.
+
+**Proven cause:** the global step deadline terminated the run near that last
+completion observation. **Not proven:** dropped input, a stuck reader, a new
+owner-tool refusal or a new prompt-predicate failure. The last event counts
+support no input-loss diagnosis. There is no recorded visual-taint flag.
+This is a **qualification runtime/step-budget limitation**; no timeout was raised
+and no product or harness fix was inferred. No final `owner-tools-result.json`
+was produced. [Diagnosis and source hashes](../../os/manifest/ci/14/14zza-round/diagnosis.json).
+
+### Remaining tail — plan only, owner/integrator decision required
+
+Not verified: post-rollback sudo completion and `common_boot` check/public typing/
+homebrew/greeter; rollback-from-stock refusal; `keep-stock`, refreshed title and
+reboot; default-stock verification; final unattended/detached Windows checks;
+their final protected-disk/NVRAM/BootNext audits and aggregate acceptance.
+
+There is no demonstrated new console-typing failure. As a possible future serial
+plan for these remaining state/boot stages: deliver the **same installed owner
+commands** and existing audit scripts through the bounded SHA-checked serial
+transport; run owner commands inside an already proven `ares-recovery` physical
+logind/tty/sudo session, not an ordinary root serial shell. First prove that all
+existing session facts survive that route; inability to do so is a PLAN-GAP,
+never a session-check exception. Keep required physical layout/authentication
+proofs and hidden-input counters; no secret may enter serial text or staged files.
+Then run the stock rollback refusal, keep-stock/title/reboot, default-stock
+identity/keyboard/homebrew checks and the two existing unattended Windows marker
+paths, retaining every audit and tools-stick removal rule. No assertion is
+silently dropped or replaced. A zero-cost walk must establish coverage and
+runtime before a future dispatch. **This plan was not built**; an alternative
+step-limit decision also belongs to the owner. The present round is over.
+
+### Trusted ledger and release state
+
+| Item | Minutes / count |
+| --- | --- |
+| Start of 14zza | 2,022; 30 probes / 18 qualifications |
+| New push / new probe | 0 / 0 |
+| Qualification 19 | 122 rounded minutes; normal job interval |
+| Closing package | **2,144 / 2,750**; **30/32 probes, 19/21 qualifications** |
+| Complete history | **151/151 unique IDs**, two pages |
+| Organization | **1,567 included minutes left**, reserve150; no paid budget read |
+| Push / closing privacy reservations | **0 / 0**, per14zw |
+
+The before-dispatch package/organization comparison was **24 / 24**; the closing
+comparison against that saved authorization is **122 / 122**. Every job's rule
+is retained in the [trusted ledger](../../os/manifest/ci/14/14zza-round/ledger.json).
+At least one further qualification round is needed; no upper bound is inferred
+and **no further dispatch is authorized**. INSTALL/EMERGENCY/release gate and the
+existing For-package-15 list remain unchanged and truthful: physical laptop work
+is out of scope and stays **NOT RELEASED**. No real hardware, system settings,
+software installation or credential scope was touched. PR #13 remains draft.
+
+**JUDGMENT-CALL:** none beyond the integrator-approved local classification rule.
+**PLAN-GAP/open question:** the observed route exhausted the fixed106-minute VM
+step before its final tail. Decide the future runtime/transport plan; no limit,
+session guard, typing assertion or audit was weakened in this round.
+
 ## 14zz REPORT — accounting restored; probe 30 passed; local artifact-review STOP
 
 **Disposition:** One fast-forward push through the installed privacy hook to

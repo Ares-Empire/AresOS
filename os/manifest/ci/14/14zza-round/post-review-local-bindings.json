@@ -1,0 +1,89 @@
+{
+  "status": "read-only post-run review only; no further dispatch authorized",
+  "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+  "files": [
+    {
+      "sha256": "c62b5db836a2bbddeb797d5f3926b8fa538e7ead1fe0f752ac5fe993c54585b5",
+      "local_path": ".work/14/14zza/classify.py",
+      "archive": "classify.py"
+    },
+    {
+      "sha256": "1ce4b618865b5433e0ddf833394146c79ce0118e533b816fa143b13da0e05783",
+      "local_path": ".work/14/14zza/test_classify.py",
+      "archive": "test_classify.py"
+    },
+    {
+      "sha256": "15c2eecae7e59392aad2366c45e1d7e868f0eb8223b5f80128fae3a64d51a840",
+      "local_path": ".work/14/14zza/classify-at-dispatch.py",
+      "archive": "classify-at-dispatch.py"
+    },
+    {
+      "sha256": "9a7f834caa9b5a196e70482c9c101a4cf73e96773930267bcbf2a3d7b05e3b3c",
+      "local_path": ".work/14/14zza/test-classify-at-dispatch.py",
+      "archive": "test-classify-at-dispatch.py"
+    },
+    {
+      "sha256": "1fdf9f126f74633a94b26cbb21ca84070a88115f59b161e67317ed724fb385d3",
+      "local_path": ".work/14/14zza/control.py",
+      "archive": "control.py"
+    },
+    {
+      "sha256": "0f616f686465a985a941e9ce53e9dadce73299199689912e4e3404869aedfd22",
+      "local_path": ".work/14/14zza/test_control.py",
+      "archive": "test_control.py"
+    },
+    {
+      "sha256": "60de6bd3cb3bca7d98aa06e905cfb15d4fb11e6ae238238b7b36000831df536a",
+      "local_path": ".work/14/14zza/local-receipt.py",
+      "archive": "local-receipt.py"
+    },
+    {
+      "sha256": "34909264e234949b6bf8a76609e63030b4da92f28a357f162609a59c5d50f46a",
+      "local_path": ".work/14/14zza/log-review.py",
+      "archive": "log-review.py"
+    },
+    {
+      "sha256": "e1cd2f88f970ba15e563a478366b907b9bc6e48f2f0a5b008da94b1f2d81e892",
+      "local_path": ".work/14/14zza/post-run.py",
+      "archive": "post-run.py"
+    },
+    {
+      "sha256": "f6906c75bec74bfe10a336e15edb60c18cc019b2fe4a420971945dd7c936ffed",
+      "local_path": ".work/14/14zza/syntax.py",
+      "archive": "syntax.py"
+    },
+    {
+      "sha256": "d721b62bf995df408848c37d7d13d93fc73f70f905d66e30ca6ee7b73203c804",
+      "local_path": ".work/14/14zza/read-only-replay.py",
+      "archive": "read-only-replay.py"
+    },
+    {
+      "sha256": "25fb180c38e365d7be518f5af2e444354c5fd9c24608f55ac9943eb77c1b15a0",
+      "local_path": ".work/14/14zza/close-guard.py",
+      "archive": "close-guard.py"
+    },
+    {
+      "sha256": "5d48fed2cf7be15513d133204c9b700033e5d3a283f6dd3c5722c232318fe812",
+      "local_path": ".work/14/14zza/diagnose.py",
+      "archive": "diagnose.py"
+    },
+    {
+      "sha256": "7a5db8e76be97c1c2b7e249684c434064de4333dea902c19b84e2649064aafe7",
+      "local_path": ".work/14/14zza-installer.py",
+      "archive": "installer-adapter.py"
+    },
+    {
+      "sha256": "8d4e524775c48fffa94d0c0d76ffb4821efbf2f6f769b24689dfd39eb8d3aa11",
+      "local_path": ".work/14/14zza-retry.py",
+      "archive": "local-retry.py"
+    }
+  ],
+  "changes_after_dispatch": [
+    "Combined log ordinal lookup accepts a unique numeric ordinal instead of requiring0",
+    "Two refusal regressions and real qualification19 combined-log fixture added"
+  ],
+  "original_dispatch_classifier": {
+    "sha256": "15c2eecae7e59392aad2366c45e1d7e868f0eb8223b5f80128fae3a64d51a840",
+    "path": ".work/14/14zza/classify-at-dispatch.py"
+  }
+}
