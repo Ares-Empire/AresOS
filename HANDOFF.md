@@ -20,14 +20,17 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     1. GitHub's job `started_at` for probe 29 came after its `completed_at`, and the guard clamped that to 1 minute; the real charge was 26.
     2. A full-log scan found cosign-installer `RELEASE_COSIGN_PUB_KEY_SHA` lines. These are public checksums, verified against the pinned action source.
   - Package ledger: about 1998/2750 minutes.
-- **14zz** (running; log `../AresOS-14zz.log`, summary `../AresOS-14zz.last.md`):
-  - fail-safe accounting: the step span or the full bound, never a clamp, plus a ledger-versus-organization check
-  - the cosign checksum class approved
-  - caps 32/21
+- **14zz** made the accounting fail-safe (probe 29 is now charged 26) and approved the cosign class. On `10921f8`, probe 30 PASSED.
+- **14zza** fixed the local classifier, which now judges whole source lines rather than gitleaks' redacted Match.
+  - Qualification 19 ran on the same head. It proved US-intl, back to German and rollback; the post-rollback login took 10 s, and the sudo counts were 66/66.
+  - It then hit the **106-minute VM step limit**. This was not a bug.
+  - Package ledger: 2144/2750 minutes.
+- **14zzb** (running; log `../AresOS-14zzb.log`, summary `../AresOS-14zzb.last.md`):
+  - VM step limit 180 and qualification bound 220, sized from the Q17/Q19 stage timings
   - one push
-  - probe 30 and qualification 19
+  - probe 31 and qualification 20
   - stop and report
-  - If it stops on console typing, Codex proposes serial-run commands for what's left.
+  - **Still left to prove:** keep-stock, default-stock, and the two final Windows checks.
 
 ### Package 14: owner tools (PR #13, draft)
 
