@@ -7,11 +7,14 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 **The November round is running.** The owner's Actions budget is **$0 with "stop usage" on** (checked 2026-11-01), so only free minutes are used.
 
 - **14zv** (free minutes, reserve 150) pushed `becfb22`, then STOPPED before the probe. The cause: on 2026-11-01 the owner moved the privacy check from GitHub to aresync's local pre-push hook (`fabd476`), so there was no PR privacy run and no `PRIVATE_TERMS` secret.
-- **14zw** (running; log `../AresOS-14zw.log`, summary `../AresOS-14zw.last.md`) does the rest:
-  - merge `main`
-  - make the local hook the privacy proof, and drop the privacy minute reservations
+- **14zw** merged `main` and made the local hook the privacy proof; pushes now cost no minutes. On `75a2c63`, probe 27 PASSED.
+  - Qualification 16 reached a new stage: US International was installed, its login worked, and `layout proof` and `layout finish` passed. It then stopped on a harness bug: `public_typing` collapsed `us-intl` to `us` and couldn't type `ü`.
+  - Package ledger: 1832/2750 minutes.
+- **14zx** (running; log `../AresOS-14zx.log`, summary `../AresOS-14zx.last.md`):
+  - fix the profile adapter
+  - make the stand-in walk run the real typing chain for every remaining stage
   - one push
-  - probe and qualification on that head
+  - probe 28 and qualification 17
   - stop and report
 
 ### Package 14: owner tools (PR #13, draft)
