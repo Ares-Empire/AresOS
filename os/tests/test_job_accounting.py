@@ -43,7 +43,7 @@ class JobAccountingTest(unittest.TestCase):
         self.assertEqual(result['selected_completion'],'2026-11-01T09:17:28+00:00')
 
     def test_missing_or_unordered_steps_charge_the_whole_dispatch_bound(self):
-        for bound in (72,160):
+        for bound in (72,160,220):
             for defect in ('absent','empty','missing-time','backward','reordered','naive'):
                 job=retained()
                 if defect=='absent':job.pop('steps')
@@ -116,7 +116,7 @@ class LedgerComparisonTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as directory:
             path=pathlib.Path(directory)/'previous.json';path.write_text(json.dumps(self.previous))
             env=dict(REHEARSAL_PACKAGE='14',GITHUB_REF_NAME=guard.BRANCH,GITHUB_SHA='a'*40,REHEARSAL_PREVIOUS_DISPATCH=str(path))
-            with patch.dict(os.environ,env),patch.object(sys,'argv',['guard.py','probe','232']), \
+            with patch.dict(os.environ,env),patch.object(sys,'argv',['guard.py','probe','292']), \
                     patch.object(guard,'budget',return_value=copy.deepcopy(self.current)), \
                     patch.object(guard,'organization_budget',return_value=self.org), \
                     patch.object(pathlib.Path,'write_text') as write,patch.object(sys,'stdout',io.StringIO()):

@@ -1,0 +1,152 @@
+{
+  "files": [
+    {
+      "sha256": "34b697081ca9ac7378d66a712ceef34534d0d47cadee805eb7029d451394594e",
+      "path": "os/manifest/ci/14/14zzb-preflight/after-run-review.py"
+    },
+    {
+      "sha256": "aea920cdbee9672d458babd0aa84b8d0545f81baaf724a6c0bbf5955760a4d12",
+      "path": "os/manifest/ci/14/14zzb-preflight/artifact-collector.py"
+    },
+    {
+      "sha256": "ae30956dac252e10ec79e92763840a1753a4037fea7930f378ec1d1830e3aa63",
+      "path": "os/manifest/ci/14/14zzb-preflight/basic-diagnostics.py"
+    },
+    {
+      "sha256": "93ca892d4213d20e7a0f275d91a745cc1129e62a170844ced09c440db4e208f9",
+      "path": "os/manifest/ci/14/14zzb-preflight/cache-reclaim.json"
+    },
+    {
+      "sha256": "c62b5db836a2bbddeb797d5f3926b8fa538e7ead1fe0f752ac5fe993c54585b5",
+      "path": "os/manifest/ci/14/14zzb-preflight/classify-whole-lines.py"
+    },
+    {
+      "sha256": "1d80185dd4372ada31f871b09f844cc8edc36fa48163813e0da37eec9e586598",
+      "path": "os/manifest/ci/14/14zzb-preflight/closing-guard.py"
+    },
+    {
+      "sha256": "4da51ca7ecb388f32275a531af4d7e50629fd2cb6c716b2440de642b177d9a85",
+      "path": "os/manifest/ci/14/14zzb-preflight/dispatch-control.py"
+    },
+    {
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
+      "path": "os/manifest/ci/14/14zzb-preflight/dispatch-watcher.py"
+    },
+    {
+      "sha256": "e6a8047c5f985045f4a9c17d3caaad3220aec6e80098b1766a161d49d80774db",
+      "path": "os/manifest/ci/14/14zzb-preflight/full-log-review.py"
+    },
+    {
+      "sha256": "c7bccefcc0d8390eb7b39292bc4cd6c824e79a76a5397d01f611b593f15b81a8",
+      "path": "os/manifest/ci/14/14zzb-preflight/installer-adapter.py"
+    },
+    {
+      "sha256": "ede1e01bed9d3ca042dffb9ffdb84f5bec988876ea4aae4fba72188ec7f4cc85",
+      "path": "os/manifest/ci/14/14zzb-preflight/kernel-review.py"
+    },
+    {
+      "sha256": "2360c4c4c55942a2867e4429307443c5dff4bd48946a49e46094d57c174722ac",
+      "path": "os/manifest/ci/14/14zzb-preflight/live-start.json"
+    },
+    {
+      "sha256": "30d79d441b4c7091c6594bdd68f98e789ed61573f9e27c607182bfa60bae548f",
+      "path": "os/manifest/ci/14/14zzb-preflight/local-checks.sh"
+    },
+    {
+      "sha256": "aca4ef9c0c052b803d889bff1553c919007bc3153d2b129d7ffa4addd73c2f86",
+      "path": "os/manifest/ci/14/14zzb-preflight/local-privacy.py"
+    },
+    {
+      "sha256": "a5bd570164ae0fcafe5d2a9348db082241594ac05f2b509cf9d75799a6a7fa01",
+      "path": "os/manifest/ci/14/14zzb-preflight/local-receipt.py"
+    },
+    {
+      "sha256": "be9e144b12eb2ec8db27d1ba40185fea12bf8f658ce8caaa13e0d776b00dddfe",
+      "path": "os/manifest/ci/14/14zzb-preflight/monitor.py"
+    },
+    {
+      "sha256": "8fc433aef830f510735252aa1825eec0e35454fa8bc0f8ccc23678d8671af721",
+      "path": "os/manifest/ci/14/14zzb-preflight/native-timing-review.py"
+    },
+    {
+      "sha256": "754bae25af94e9714821bcec40799066eee2d7781ce2a7767913d00fa4b0e348",
+      "path": "os/manifest/ci/14/14zzb-preflight/preparation.json"
+    },
+    {
+      "sha256": "c4af44bb68955f93c13cfb0edc6f6524216842411b1d832e7a677234ada0487e",
+      "path": "os/manifest/ci/14/14zzb-preflight/previous-dispatch.json"
+    },
+    {
+      "sha256": "c2d27eec453fa6b6ce5ab6facb90190e37fa21789a33acd173e0258f6bfc8df6",
+      "path": "os/manifest/ci/14/14zzb-preflight/probe-retry.py"
+    },
+    {
+      "sha256": "0e445b36ef6ed21173b9b2f553a1c909b3401fe46fca2c411ade010a616aebde",
+      "path": "os/manifest/ci/14/14zzb-preflight/probe-review.py"
+    },
+    {
+      "sha256": "03275c643e2442ba3b836f458618ca528ee74fb24df097e0f74e54061baa9dd5",
+      "path": "os/manifest/ci/14/14zzb-preflight/probe-walk.py"
+    },
+    {
+      "sha256": "5dcacc76ae922c3842f9cff0656c52e0bfe07ce395f9a825e896121eeb539756",
+      "path": "os/manifest/ci/14/14zzb-preflight/push-once.py"
+    },
+    {
+      "sha256": "2222e36bc4bf7a7fbdd97a8ec8fbb70acaa13afb730098f103063cbf0157bca1",
+      "path": "os/manifest/ci/14/14zzb-preflight/qualification-installer.py"
+    },
+    {
+      "sha256": "d8c2cd0b8b7b843c539f2b524586dfaaac65655a4d64e4c660f97872a5b8157d",
+      "path": "os/manifest/ci/14/14zzb-preflight/qualification-retry.py"
+    },
+    {
+      "sha256": "92d0903f089574c1721dccc1b53c7feee9bcc83333f3e530606aff7c4e344d40",
+      "path": "os/manifest/ci/14/14zzb-preflight/qualification-review.py"
+    },
+    {
+      "sha256": "7e82b93214951fc21d4ecdcf6b3933b4b1543daa62eb7f19f41cb4c043dccbe1",
+      "path": "os/manifest/ci/14/14zzb-preflight/qualification-walk.py"
+    },
+    {
+      "sha256": "e576989dd2b4e54654335c609be6b2b951f8423dfa52e0fd410473b0f79b5347",
+      "path": "os/manifest/ci/14/14zzb-preflight/read-only-replay.py"
+    },
+    {
+      "sha256": "6b3ed99c8b0847dd4db23ff5245b28efcaaad035802c2200f70a4af8ee3236bc",
+      "path": "os/manifest/ci/14/14zzb-preflight/recompute.py"
+    },
+    {
+      "sha256": "d0b92fc30c318b51b11d5f4c3438e64220ddd523e10d8416b70f1da23dffc69c",
+      "path": "os/manifest/ci/14/14zzb-preflight/syntax-checks.py"
+    },
+    {
+      "sha256": "2e416acd4932b1d5655f6e536c972b5a191d219a154f9bcb44ce8fd40b267afe",
+      "path": "os/manifest/ci/14/14zzb-preflight/test_basic.py"
+    },
+    {
+      "sha256": "cc546212a1339e9be83ed4df553544bdf366264870b0a3d3c1fc208ba9d36009",
+      "path": "os/manifest/ci/14/14zzb-preflight/test_classify.py"
+    },
+    {
+      "sha256": "48e2b4da3f20a80ef0ae888f9fc5bb0e8c0dbf1b83cb680be520abc11e01ed11",
+      "path": "os/manifest/ci/14/14zzb-preflight/test_dispatch_control.py"
+    },
+    {
+      "sha256": "bd61e0669341228f22c4254026afd5f976c20c69559eb3fd737c369dcebe6daa",
+      "path": "os/manifest/ci/14/14zzb-preflight/test_local_privacy.py"
+    },
+    {
+      "sha256": "e0ac77f5ac5bfd90b0b62c6eef2950ab82906f7b82f6314f752870a1eb1e710b",
+      "path": "os/manifest/ci/14/14zzb-preflight/timing-projection.py"
+    },
+    {
+      "sha256": "999430eda2bdde1d423422d407c2caeb46c721dfd45e8dddc8142d9942354acc",
+      "path": "os/manifest/ci/14/14zzb-preflight/walk.json"
+    },
+    {
+      "sha256": "dd64f7b235f43c2fc51cecf376a10f01a9f23b84f93d519ae603b8ca5e7f85cf",
+      "path": "os/manifest/ci/14/14zzb-preflight/whole.py"
+    }
+  ]
+}

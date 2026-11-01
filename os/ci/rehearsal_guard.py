@@ -29,6 +29,7 @@ HISTORY_PAGE_LIMIT = 20
 PUBLISH_STEP = 'Publish the tested private release and sign with GitHub OIDC'
 NATIVE_STEP = 'Qualify tools, regressions, rewritten release identity and private access'
 ACCOUNTING_POLICY = '14zz-job-interval-ordered-span-full-bound-v1'
+OWNER_QUALIFICATION_BOUND = 220
 
 
 def configure(package):
@@ -51,8 +52,10 @@ def owner_reservations(now=None):
         for name,value in (('push',push),('closing',setting)):
             assert isinstance(value,dict) and set(value)=={'minutes','decision'}, 'STOP: missing or malformed local '+name+' privacy decision'
             assert type(value['minutes']) is int and value['minutes']==0 and value['decision']==local_decision, 'STOP: unreviewed local '+name+' privacy reservation'
-        return dict(push=0,probe=72,qualification=160,closing_privacy=0,
-            pre_push=232,before_probe=232,before_qualification=160,
+        return dict(push=0,probe=72,qualification=OWNER_QUALIFICATION_BOUND,closing_privacy=0,
+            pre_push=72+OWNER_QUALIFICATION_BOUND,before_probe=72+OWNER_QUALIFICATION_BOUND,
+            before_qualification=OWNER_QUALIFICATION_BOUND,
+            qualification_bound_decision='briefs/14zzb-step-limit.md',
             decision=local_decision,exception_month=None,merge_requires_privacy=True,
             privacy_proof='aresync-local-pre-push',github_privacy_runs_required=False)
     assert push is None, 'STOP: unreviewed push privacy reservation'
@@ -371,7 +374,7 @@ def budget(reserve, current=None):
                         publishes.append(dict(run=run['id'], conclusion=step['conclusion']))
         bound = None
         if PACKAGE=='14' and run['event']=='workflow_dispatch':
-            bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else 160
+            bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else OWNER_QUALIFICATION_BOUND
         accounts = [job_accounting(job, bound) for job in jobs]
         records.append(dict(run=run['id'], title=run['display_title'], sha=run['head_sha'],
                             conclusion=run['conclusion'], minutes=sum(row['minutes'] for row in accounts),
