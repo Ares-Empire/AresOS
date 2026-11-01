@@ -76,7 +76,6 @@
     "corrected-stock-records-begin-xhci-health",
     "corrected-stock-records-command-echo-52-cursor-echo-verified",
     "corrected-stock-records-completed-xhci-health",
-    "corrected-stock-physical-observer",
     "private-owner-dummy-login-begin-xhci-health",
     "private-owner-dummy-login-command-echo-56-cursor-echo-verified",
     "private-owner-dummy-login-public-input-echo-58-cursor-echo-verified",
@@ -117,7 +116,6 @@
     "aresos-check-begin-xhci-health",
     "aresos-check-command-echo-91-cursor-echo-verified",
     "aresos-check-completed-xhci-health",
-    "aresos-physical-observer",
     "owner-logind-diagnostics-begin-xhci-health",
     "owner-logind-diagnostics-command-echo-95-cursor-echo-verified",
     "owner-logind-diagnostics-completed-xhci-health",
@@ -183,7 +181,6 @@
     "aresos-intl-check-begin-xhci-health",
     "aresos-intl-check-command-echo-165-cursor-echo-verified",
     "aresos-intl-check-completed-xhci-health",
-    "aresos-intl-physical-observer",
     "layout-de-begin-begin-xhci-health",
     "layout-de-begin-command-echo-169-cursor-echo-verified",
     "layout-de-begin-completed-xhci-health",
@@ -220,7 +217,6 @@
     "aresos-back-de-check-begin-xhci-health",
     "aresos-back-de-check-command-echo-205-cursor-echo-verified",
     "aresos-back-de-check-completed-xhci-health",
-    "aresos-back-de-physical-observer",
     "owner-rollback-begin-xhci-health",
     "owner-rollback-command-echo-209-cursor-echo-verified",
     "owner-rollback-completed-xhci-health",
@@ -242,7 +238,6 @@
     "rollback-stock-check-begin-xhci-health",
     "rollback-stock-check-command-echo-227-cursor-echo-verified",
     "rollback-stock-check-completed-xhci-health",
-    "rollback-stock-physical-observer",
     "rollback-from-stock-refused-begin-xhci-health",
     "rollback-from-stock-refused-command-echo-231-cursor-echo-verified",
     "rollback-from-stock-refused-completed-xhci-health",
@@ -267,7 +262,6 @@
     "default-stock-check-begin-xhci-health",
     "default-stock-check-command-echo-252-cursor-echo-verified",
     "default-stock-check-completed-xhci-health",
-    "default-stock-physical-observer",
     "default-stock-logout-root-exit-echo-256-cursor-echo-verified",
     "default-stock-logout-sudo-reset-echo-258-cursor-echo-verified",
     "default-stock-logout-logout-echo-260-cursor-echo-verified",
@@ -571,7 +565,7 @@
       "stage": "after-first-network-records-completed-wait-29",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:56.284829+00:00",
+      "time": "2026-11-01T04:49:56.475030+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -627,14 +621,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:56.925540+00:00",
+      "after_time": "2026-11-01T04:49:57.013950+00:00",
       "ready": true
     },
     {
       "stage": "after-first-network-records-ready-wait-27",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:55.260554+00:00",
+      "time": "2026-11-01T04:49:55.566972+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -690,14 +684,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:56.077844+00:00",
+      "after_time": "2026-11-01T04:49:56.232665+00:00",
       "ready": true
     },
     {
       "stage": "after-first-network-title-completed-wait-26",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:54.378425+00:00",
+      "time": "2026-11-01T04:49:54.873568+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -753,14 +747,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:55.073428+00:00",
+      "after_time": "2026-11-01T04:49:55.433797+00:00",
       "ready": true
     },
     {
       "stage": "after-first-network-title-ready-wait-24",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:53.254350+00:00",
+      "time": "2026-11-01T04:49:54.094355+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -816,14 +810,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:54.108803+00:00",
+      "after_time": "2026-11-01T04:49:54.652229+00:00",
       "ready": true
     },
     {
       "stage": "aresos-account-login-after-hidden-ready-wait-83",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:54.706408+00:00",
+      "time": "2026-11-01T04:50:43.667895+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -851,14 +845,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:55.045420+00:00",
+      "after_time": "2026-11-01T04:50:43.910033+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-account-login-after-hidden-ready-wait-197",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:29.900251+00:00",
+      "time": "2026-11-01T04:52:01.965408+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -886,14 +880,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:30.252714+00:00",
+      "after_time": "2026-11-01T04:52:02.250425+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-check-completed-wait-206",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:40.958194+00:00",
+      "time": "2026-11-01T04:52:09.131804+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -949,14 +943,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:41.766406+00:00",
+      "after_time": "2026-11-01T04:52:09.623729+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-check-ready-wait-204",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:39.898563+00:00",
+      "time": "2026-11-01T04:52:08.280877+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1012,14 +1006,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:40.698720+00:00",
+      "after_time": "2026-11-01T04:52:08.961837+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-owner-reboot-ready-wait-214",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:46.653446+00:00",
+      "time": "2026-11-01T04:52:13.657314+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1075,14 +1069,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:47.338714+00:00",
+      "after_time": "2026-11-01T04:52:14.290980+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-public-ready-wait-207",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:41.849930+00:00",
+      "time": "2026-11-01T04:52:09.759366+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1138,14 +1132,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:42.595055+00:00",
+      "after_time": "2026-11-01T04:52:10.320269+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-ready-wait-198",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:30.389233+00:00",
+      "time": "2026-11-01T04:52:02.317181+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1173,14 +1167,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:30.735922+00:00",
+      "after_time": "2026-11-01T04:52:02.556064+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-reboot-title-completed-wait-213",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:45.703090+00:00",
+      "time": "2026-11-01T04:52:13.180917+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1236,14 +1230,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:46.510595+00:00",
+      "after_time": "2026-11-01T04:52:13.570290+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-reboot-title-ready-wait-211",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:44.701273+00:00",
+      "time": "2026-11-01T04:52:12.111693+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1299,14 +1293,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:45.455182+00:00",
+      "after_time": "2026-11-01T04:52:12.890743+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-sudo-after-hidden-ready-wait-203",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:38.894490+00:00",
+      "time": "2026-11-01T04:52:07.714659+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1362,14 +1356,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:39.744512+00:00",
+      "after_time": "2026-11-01T04:52:08.204496+00:00",
       "ready": true
     },
     {
       "stage": "aresos-back-de-sudo-reset-done-wait-200",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:30.871915+00:00",
+      "time": "2026-11-01T04:52:02.711090+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1397,14 +1391,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:31.234922+00:00",
+      "after_time": "2026-11-01T04:52:03.106296+00:00",
       "ready": true
     },
     {
       "stage": "aresos-check-completed-wait-92",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:04.512040+00:00",
+      "time": "2026-11-01T04:50:52.183881+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1460,14 +1454,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:05.276936+00:00",
+      "after_time": "2026-11-01T04:50:52.775148+00:00",
       "ready": true
     },
     {
       "stage": "aresos-check-ready-wait-90",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:03.588062+00:00",
+      "time": "2026-11-01T04:50:51.257349+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1523,14 +1517,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:04.226948+00:00",
+      "after_time": "2026-11-01T04:50:51.926040+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-account-login-after-hidden-ready-wait-157",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:52.673415+00:00",
+      "time": "2026-11-01T04:51:32.615240+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1558,14 +1552,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:52.966235+00:00",
+      "after_time": "2026-11-01T04:51:32.880471+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-check-completed-wait-166",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:03.527115+00:00",
+      "time": "2026-11-01T04:51:41.156095+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1621,14 +1615,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:04.215904+00:00",
+      "after_time": "2026-11-01T04:51:41.658187+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-check-ready-wait-164",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:02.248839+00:00",
+      "time": "2026-11-01T04:51:40.246171+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1684,14 +1678,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:03.235096+00:00",
+      "after_time": "2026-11-01T04:51:40.905671+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-owner-reboot-ready-wait-192",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:24.804770+00:00",
+      "time": "2026-11-01T04:51:57.870942+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1747,14 +1741,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:25.580166+00:00",
+      "after_time": "2026-11-01T04:51:58.854460+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-public-ready-wait-167",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:04.302171+00:00",
+      "time": "2026-11-01T04:51:41.729262+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1810,14 +1804,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:05.173836+00:00",
+      "after_time": "2026-11-01T04:51:42.197563+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-ready-wait-158",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:53.066228+00:00",
+      "time": "2026-11-01T04:51:32.979891+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1845,14 +1839,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:53.385940+00:00",
+      "after_time": "2026-11-01T04:51:33.258885+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-reboot-title-completed-wait-191",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:23.899897+00:00",
+      "time": "2026-11-01T04:51:57.206923+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1908,14 +1902,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:24.662426+00:00",
+      "after_time": "2026-11-01T04:51:57.722920+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-reboot-title-ready-wait-189",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:22.884076+00:00",
+      "time": "2026-11-01T04:51:56.397164+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -1971,14 +1965,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:23.651601+00:00",
+      "after_time": "2026-11-01T04:51:57.005289+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-sudo-after-hidden-ready-wait-163",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:01.400853+00:00",
+      "time": "2026-11-01T04:51:39.502766+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2034,14 +2028,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:02.122535+00:00",
+      "after_time": "2026-11-01T04:51:40.109514+00:00",
       "ready": true
     },
     {
       "stage": "aresos-intl-sudo-reset-done-wait-160",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:53.522622+00:00",
+      "time": "2026-11-01T04:51:33.377727+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2069,14 +2063,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:53.845346+00:00",
+      "after_time": "2026-11-01T04:51:33.676313+00:00",
       "ready": true
     },
     {
       "stage": "aresos-owner-reboot-ready-wait-152",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:49.178215+00:00",
+      "time": "2026-11-01T04:51:28.994644+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2132,14 +2126,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:49.696155+00:00",
+      "after_time": "2026-11-01T04:51:29.502683+00:00",
       "ready": true
     },
     {
       "stage": "aresos-public-ready-wait-93",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:05.383975+00:00",
+      "time": "2026-11-01T04:50:52.846572+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2195,14 +2189,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:06.090307+00:00",
+      "after_time": "2026-11-01T04:50:53.550200+00:00",
       "ready": true
     },
     {
       "stage": "aresos-ready-wait-84",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:55.145165+00:00",
+      "time": "2026-11-01T04:50:44.009748+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2230,14 +2224,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:55.441977+00:00",
+      "after_time": "2026-11-01T04:50:44.311383+00:00",
       "ready": true
     },
     {
       "stage": "aresos-reboot-title-completed-wait-151",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:48.535372+00:00",
+      "time": "2026-11-01T04:51:28.311412+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2293,14 +2287,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:49.034332+00:00",
+      "after_time": "2026-11-01T04:51:28.843666+00:00",
       "ready": true
     },
     {
       "stage": "aresos-reboot-title-ready-wait-149",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:47.348346+00:00",
+      "time": "2026-11-01T04:51:27.513225+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2356,14 +2350,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:48.266236+00:00",
+      "after_time": "2026-11-01T04:51:28.071465+00:00",
       "ready": true
     },
     {
       "stage": "aresos-sudo-after-hidden-ready-wait-89",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:02.551477+00:00",
+      "time": "2026-11-01T04:50:50.571816+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2419,14 +2413,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:03.449723+00:00",
+      "after_time": "2026-11-01T04:50:51.151430+00:00",
       "ready": true
     },
     {
       "stage": "aresos-sudo-reset-done-wait-86",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:55.627749+00:00",
+      "time": "2026-11-01T04:50:44.448988+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2454,14 +2448,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:56.028764+00:00",
+      "after_time": "2026-11-01T04:50:44.720438+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-account-login-after-hidden-ready-wait-41",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:05.860383+00:00",
+      "time": "2026-11-01T04:50:03.691727+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2489,14 +2483,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:06.203190+00:00",
+      "after_time": "2026-11-01T04:50:03.993278+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-public-ready-wait-54",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:17.573614+00:00",
+      "time": "2026-11-01T04:50:14.201565+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2552,14 +2546,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:18.330192+00:00",
+      "after_time": "2026-11-01T04:50:14.730554+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-ready-wait-42",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:06.319521+00:00",
+      "time": "2026-11-01T04:50:04.097533+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2587,14 +2581,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:06.631578+00:00",
+      "after_time": "2026-11-01T04:50:04.362158+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-records-completed-wait-53",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:16.722897+00:00",
+      "time": "2026-11-01T04:50:13.517863+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2650,14 +2644,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:17.482748+00:00",
+      "after_time": "2026-11-01T04:50:14.122701+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-records-ready-wait-51",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:15.576888+00:00",
+      "time": "2026-11-01T04:50:12.694455+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2713,14 +2707,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:16.489081+00:00",
+      "after_time": "2026-11-01T04:50:13.264887+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-sudo-after-hidden-ready-wait-47",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:12.699081+00:00",
+      "time": "2026-11-01T04:50:10.533814+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2776,14 +2770,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:13.419068+00:00",
+      "after_time": "2026-11-01T04:50:11.037253+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-sudo-reset-done-wait-44",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:06.741728+00:00",
+      "time": "2026-11-01T04:50:04.490628+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2811,14 +2805,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:07.043172+00:00",
+      "after_time": "2026-11-01T04:50:04.756346+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-title-completed-wait-50",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:14.539257+00:00",
+      "time": "2026-11-01T04:50:11.956471+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2874,14 +2868,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:15.419362+00:00",
+      "after_time": "2026-11-01T04:50:12.571882+00:00",
       "ready": true
     },
     {
       "stage": "corrected-stock-title-ready-wait-48",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:13.539596+00:00",
+      "time": "2026-11-01T04:50:11.161896+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2937,14 +2931,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:14.296302+00:00",
+      "after_time": "2026-11-01T04:50:11.698258+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-account-login-after-hidden-ready-wait-244",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:15.934811+00:00",
+      "time": "2026-11-01T04:52:34.784983+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -2972,14 +2966,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:16.374509+00:00",
+      "after_time": "2026-11-01T04:52:35.059095+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-check-completed-wait-253",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:27.055265+00:00",
+      "time": "2026-11-01T04:52:42.175450+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3035,14 +3029,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:27.921090+00:00",
+      "after_time": "2026-11-01T04:52:42.569299+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-check-ready-wait-251",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:26.030880+00:00",
+      "time": "2026-11-01T04:52:41.133404+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3098,14 +3092,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:26.784982+00:00",
+      "after_time": "2026-11-01T04:52:41.892292+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-logout-ready-wait-255",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:28.918857+00:00",
+      "time": "2026-11-01T04:52:43.524109+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3161,14 +3155,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:29.702280+00:00",
+      "after_time": "2026-11-01T04:52:44.006440+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-logout-sudo-reset-done-wait-259",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:30.915795+00:00",
+      "time": "2026-11-01T04:52:45.223320+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3224,14 +3218,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:31.762851+00:00",
+      "after_time": "2026-11-01T04:52:45.872886+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-logout-user-ready-wait-257",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:29.837124+00:00",
+      "time": "2026-11-01T04:52:44.168478+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3287,14 +3281,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:30.751144+00:00",
+      "after_time": "2026-11-01T04:52:45.056964+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-public-ready-wait-254",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:28.012202+00:00",
+      "time": "2026-11-01T04:52:42.692421+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3350,14 +3344,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:28.817261+00:00",
+      "after_time": "2026-11-01T04:52:43.376538+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-ready-wait-245",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:16.516417+00:00",
+      "time": "2026-11-01T04:52:35.197756+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3385,14 +3379,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:16.858985+00:00",
+      "after_time": "2026-11-01T04:52:35.423876+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-sudo-after-hidden-ready-wait-250",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:25.082630+00:00",
+      "time": "2026-11-01T04:52:40.645581+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3448,14 +3442,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:25.878623+00:00",
+      "after_time": "2026-11-01T04:52:41.008278+00:00",
       "ready": true
     },
     {
       "stage": "default-stock-sudo-reset-done-wait-247",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:17.017219+00:00",
+      "time": "2026-11-01T04:52:35.590937+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3483,14 +3477,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:17.378743+00:00",
+      "after_time": "2026-11-01T04:52:36.033131+00:00",
       "ready": true
     },
     {
       "stage": "layout-back-de-login-account-login-after-hidden-ready-wait-174",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:55:11.312674+00:00",
+      "time": "2026-11-01T04:51:46.971463+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3518,14 +3512,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:11.658683+00:00",
+      "after_time": "2026-11-01T04:51:47.269327+00:00",
       "ready": true
     },
     {
       "stage": "layout-back-de-logout-ready-wait-181",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:55:19.721500+00:00",
+      "time": "2026-11-01T04:51:53.380712+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3553,14 +3547,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:20.112375+00:00",
+      "after_time": "2026-11-01T04:51:53.742783+00:00",
       "ready": true
     },
     {
       "stage": "layout-back-de-logout-sudo-reset-done-wait-183",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:55:20.243432+00:00",
+      "time": "2026-11-01T04:51:53.909148+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3588,14 +3582,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:20.610049+00:00",
+      "after_time": "2026-11-01T04:51:54.257856+00:00",
       "ready": true
     },
     {
       "stage": "layout-back-de-proof-after-hidden-ready-wait-179",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:55:18.750537+00:00",
+      "time": "2026-11-01T04:51:52.326706+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3623,14 +3617,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:19.091803+00:00",
+      "after_time": "2026-11-01T04:51:52.668998+00:00",
       "ready": true
     },
     {
       "stage": "layout-back-de-proof-completed-wait-180",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:55:19.266828+00:00",
+      "time": "2026-11-01T04:51:52.868596+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3658,14 +3652,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:19.625773+00:00",
+      "after_time": "2026-11-01T04:51:53.251375+00:00",
       "ready": true
     },
     {
       "stage": "layout-back-de-proof-ready-wait-175",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:55:11.855538+00:00",
+      "time": "2026-11-01T04:51:47.403150+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3693,14 +3687,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:12.240248+00:00",
+      "after_time": "2026-11-01T04:51:47.677009+00:00",
       "ready": true
     },
     {
       "stage": "layout-de-begin-completed-wait-170",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:06.396083+00:00",
+      "time": "2026-11-01T04:51:43.314821+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3756,14 +3750,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:07.198490+00:00",
+      "after_time": "2026-11-01T04:51:43.862892+00:00",
       "ready": true
     },
     {
       "stage": "layout-de-begin-ready-wait-168",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:05.346058+00:00",
+      "time": "2026-11-01T04:51:42.556981+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3819,14 +3813,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:06.146131+00:00",
+      "after_time": "2026-11-01T04:51:43.055551+00:00",
       "ready": true
     },
     {
       "stage": "layout-de-finish-completed-wait-188",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:21.945353+00:00",
+      "time": "2026-11-01T04:51:55.528348+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3882,14 +3876,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:22.753461+00:00",
+      "after_time": "2026-11-01T04:51:56.276688+00:00",
       "ready": true
     },
     {
       "stage": "layout-de-finish-ready-wait-186",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:20.860709+00:00",
+      "time": "2026-11-01T04:51:54.589582+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -3945,14 +3939,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:21.685765+00:00",
+      "after_time": "2026-11-01T04:51:55.229277+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-begin-completed-wait-130",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:30.539168+00:00",
+      "time": "2026-11-01T04:51:14.940374+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4008,14 +4002,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:31.297844+00:00",
+      "after_time": "2026-11-01T04:51:15.429617+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-begin-ready-wait-128",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:29.683180+00:00",
+      "time": "2026-11-01T04:51:14.137513+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4071,14 +4065,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:30.347325+00:00",
+      "after_time": "2026-11-01T04:51:14.690475+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-finish-completed-wait-148",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:46.216513+00:00",
+      "time": "2026-11-01T04:51:26.864567+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4134,14 +4128,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:47.174605+00:00",
+      "after_time": "2026-11-01T04:51:27.397899+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-finish-ready-wait-146",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:44.942986+00:00",
+      "time": "2026-11-01T04:51:26.023411+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4197,14 +4191,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:45.929944+00:00",
+      "after_time": "2026-11-01T04:51:26.600971+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-login-account-login-after-hidden-ready-wait-134",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:35.562538+00:00",
+      "time": "2026-11-01T04:51:18.870951+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4232,14 +4226,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:35.965954+00:00",
+      "after_time": "2026-11-01T04:51:19.214444+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-logout-ready-wait-141",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:43.666576+00:00",
+      "time": "2026-11-01T04:51:25.172728+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4267,14 +4261,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:44.106446+00:00",
+      "after_time": "2026-11-01T04:51:25.414475+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-logout-sudo-reset-done-wait-143",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:44.241217+00:00",
+      "time": "2026-11-01T04:51:25.552527+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4302,14 +4296,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:44.718291+00:00",
+      "after_time": "2026-11-01T04:51:25.820671+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-proof-after-hidden-ready-wait-139",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:42.624534+00:00",
+      "time": "2026-11-01T04:51:24.426115+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4337,14 +4331,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:42.980609+00:00",
+      "after_time": "2026-11-01T04:51:24.655001+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-proof-completed-wait-140",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:43.210048+00:00",
+      "time": "2026-11-01T04:51:24.838149+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4372,14 +4366,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:43.563095+00:00",
+      "after_time": "2026-11-01T04:51:25.105635+00:00",
       "ready": true
     },
     {
       "stage": "layout-intl-proof-ready-wait-135",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:36.110543+00:00",
+      "time": "2026-11-01T04:51:19.386971+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4407,14 +4401,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:36.454830+00:00",
+      "after_time": "2026-11-01T04:51:19.688531+00:00",
       "ready": true
     },
     {
       "stage": "layout-revert-finish-completed-wait-127",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:28.950106+00:00",
+      "time": "2026-11-01T04:51:13.431045+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4470,14 +4464,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:29.543002+00:00",
+      "after_time": "2026-11-01T04:51:13.988520+00:00",
       "ready": true
     },
     {
       "stage": "layout-revert-finish-ready-wait-125",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:27.960217+00:00",
+      "time": "2026-11-01T04:51:12.579095+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4533,14 +4527,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:28.722859+00:00",
+      "after_time": "2026-11-01T04:51:13.186641+00:00",
       "ready": true
     },
     {
       "stage": "layout-reverted-login-account-login-after-hidden-ready-wait-113",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:18.867143+00:00",
+      "time": "2026-11-01T04:51:05.622164+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4568,14 +4562,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:19.185914+00:00",
+      "after_time": "2026-11-01T04:51:05.942921+00:00",
       "ready": true
     },
     {
       "stage": "layout-reverted-logout-ready-wait-120",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:26.957035+00:00",
+      "time": "2026-11-01T04:51:11.634445+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4603,14 +4597,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:27.349127+00:00",
+      "after_time": "2026-11-01T04:51:11.915574+00:00",
       "ready": true
     },
     {
       "stage": "layout-reverted-logout-sudo-reset-done-wait-122",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:27.438926+00:00",
+      "time": "2026-11-01T04:51:12.040664+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4638,14 +4632,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:27.736841+00:00",
+      "after_time": "2026-11-01T04:51:12.331872+00:00",
       "ready": true
     },
     {
       "stage": "layout-reverted-proof-after-hidden-ready-wait-118",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:26.059241+00:00",
+      "time": "2026-11-01T04:51:10.806300+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4673,14 +4667,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:26.311705+00:00",
+      "after_time": "2026-11-01T04:51:11.117853+00:00",
       "ready": true
     },
     {
       "stage": "layout-reverted-proof-completed-wait-119",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:26.469034+00:00",
+      "time": "2026-11-01T04:51:11.276323+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4708,14 +4702,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:26.840320+00:00",
+      "after_time": "2026-11-01T04:51:11.551344+00:00",
       "ready": true
     },
     {
       "stage": "layout-reverted-proof-ready-wait-114",
       "tty": "tty4",
       "attempt": 1,
-      "time": "2026-11-01T00:54:19.353381+00:00",
+      "time": "2026-11-01T04:51:06.086961+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4743,14 +4737,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:19.730786+00:00",
+      "after_time": "2026-11-01T04:51:06.369943+00:00",
       "ready": true
     },
     {
       "stage": "layout-unproved-reboot-refusal-completed-wait-102",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:10.612861+00:00",
+      "time": "2026-11-01T04:50:57.869122+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4806,14 +4800,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:11.474371+00:00",
+      "after_time": "2026-11-01T04:50:58.531959+00:00",
       "ready": true
     },
     {
       "stage": "layout-unproved-reboot-refusal-ready-wait-100",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:09.641119+00:00",
+      "time": "2026-11-01T04:50:57.076337+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4869,14 +4863,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:10.337968+00:00",
+      "after_time": "2026-11-01T04:50:57.619595+00:00",
       "ready": true
     },
     {
       "stage": "layout-us-begin-completed-wait-99",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:08.913226+00:00",
+      "time": "2026-11-01T04:50:56.383291+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4932,14 +4926,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:09.468319+00:00",
+      "after_time": "2026-11-01T04:50:56.942611+00:00",
       "ready": true
     },
     {
       "stage": "layout-us-begin-ready-wait-97",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:07.936535+00:00",
+      "time": "2026-11-01T04:50:55.717193+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -4995,14 +4989,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:08.682460+00:00",
+      "after_time": "2026-11-01T04:50:56.098830+00:00",
       "ready": true
     },
     {
       "stage": "layout-us-revert-completed-wait-109",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:15.258277+00:00",
+      "time": "2026-11-01T04:51:02.120299+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5058,14 +5052,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:16.222871+00:00",
+      "after_time": "2026-11-01T04:51:02.629159+00:00",
       "ready": true
     },
     {
       "stage": "layout-us-revert-ready-wait-107",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:14.332429+00:00",
+      "time": "2026-11-01T04:51:01.236554+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5121,14 +5115,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:14.987984+00:00",
+      "after_time": "2026-11-01T04:51:01.865107+00:00",
       "ready": true
     },
     {
       "stage": "owner-keep-stock-completed-wait-235",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:07.839260+00:00",
+      "time": "2026-11-01T04:52:29.151976+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5184,14 +5178,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:08.638983+00:00",
+      "after_time": "2026-11-01T04:52:29.825613+00:00",
       "ready": true
     },
     {
       "stage": "owner-keep-stock-ready-wait-233",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:06.859811+00:00",
+      "time": "2026-11-01T04:52:28.422139+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5247,14 +5241,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:07.587207+00:00",
+      "after_time": "2026-11-01T04:52:28.818085+00:00",
       "ready": true
     },
     {
       "stage": "owner-keep-stock-reboot-ready-wait-239",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:10.736310+00:00",
+      "time": "2026-11-01T04:52:31.458618+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5310,14 +5304,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:11.524143+00:00",
+      "after_time": "2026-11-01T04:52:31.994159+00:00",
       "ready": true
     },
     {
       "stage": "owner-keep-stock-title-completed-wait-238",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:09.861450+00:00",
+      "time": "2026-11-01T04:52:30.702443+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5373,14 +5367,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:10.610698+00:00",
+      "after_time": "2026-11-01T04:52:31.297055+00:00",
       "ready": true
     },
     {
       "stage": "owner-keep-stock-title-ready-wait-236",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:08.794390+00:00",
+      "time": "2026-11-01T04:52:29.972167+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5436,14 +5430,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:09.599945+00:00",
+      "after_time": "2026-11-01T04:52:30.342758+00:00",
       "ready": true
     },
     {
       "stage": "owner-logind-diagnostics-completed-wait-96",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:07.308391+00:00",
+      "time": "2026-11-01T04:50:54.939853+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5499,14 +5493,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:07.833235+00:00",
+      "after_time": "2026-11-01T04:50:55.586231+00:00",
       "ready": true
     },
     {
       "stage": "owner-logind-diagnostics-ready-wait-94",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:54:06.266850+00:00",
+      "time": "2026-11-01T04:50:54.048172+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5562,14 +5556,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:54:07.051077+00:00",
+      "after_time": "2026-11-01T04:50:54.662938+00:00",
       "ready": true
     },
     {
       "stage": "owner-rollback-completed-wait-210",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:43.793741+00:00",
+      "time": "2026-11-01T04:52:11.350799+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5625,14 +5619,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:44.547523+00:00",
+      "after_time": "2026-11-01T04:52:11.939797+00:00",
       "ready": true
     },
     {
       "stage": "owner-rollback-ready-wait-208",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:42.777757+00:00",
+      "time": "2026-11-01T04:52:10.622335+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5688,14 +5682,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:43.576534+00:00",
+      "after_time": "2026-11-01T04:52:11.101709+00:00",
       "ready": true
     },
     {
       "stage": "owner-signature-completed-wait-71",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:45.947222+00:00",
+      "time": "2026-11-01T04:50:36.933805+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5751,14 +5745,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:46.525758+00:00",
+      "after_time": "2026-11-01T04:50:37.481283+00:00",
       "ready": true
     },
     {
       "stage": "owner-signature-ready-wait-69",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:45.103427+00:00",
+      "time": "2026-11-01T04:50:36.197266+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5814,14 +5808,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:45.744730+00:00",
+      "after_time": "2026-11-01T04:50:36.660598+00:00",
       "ready": true
     },
     {
       "stage": "owner-switch-completed-wait-74",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:47.517317+00:00",
+      "time": "2026-11-01T04:50:38.413191+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5877,14 +5871,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:48.255938+00:00",
+      "after_time": "2026-11-01T04:50:38.894579+00:00",
       "ready": true
     },
     {
       "stage": "owner-switch-ready-wait-72",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:46.650848+00:00",
+      "time": "2026-11-01T04:50:37.608994+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -5940,14 +5934,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:47.259124+00:00",
+      "after_time": "2026-11-01T04:50:38.163764+00:00",
       "ready": true
     },
     {
       "stage": "owner-switch-reboot-ready-wait-78",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:50.004334+00:00",
+      "time": "2026-11-01T04:50:40.330422+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6003,14 +5997,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:50.670983+00:00",
+      "after_time": "2026-11-01T04:50:40.737412+00:00",
       "ready": true
     },
     {
       "stage": "owner-switch-title-completed-wait-77",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:49.323197+00:00",
+      "time": "2026-11-01T04:50:39.795962+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6066,14 +6060,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:49.851321+00:00",
+      "after_time": "2026-11-01T04:50:40.215790+00:00",
       "ready": true
     },
     {
       "stage": "owner-switch-title-ready-wait-75",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:48.428774+00:00",
+      "time": "2026-11-01T04:50:39.045301+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6129,14 +6123,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:49.047223+00:00",
+      "after_time": "2026-11-01T04:50:39.545187+00:00",
       "ready": true
     },
     {
       "stage": "private-owner-dummy-login-after-hidden-ready-wait-60",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:29.503176+00:00",
+      "time": "2026-11-01T04:50:23.749612+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6192,14 +6186,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:30.108684+00:00",
+      "after_time": "2026-11-01T04:50:24.252906+00:00",
       "ready": true
     },
     {
       "stage": "private-owner-dummy-login-completed-wait-61",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:30.262643+00:00",
+      "time": "2026-11-01T04:50:24.429565+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6255,14 +6249,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:30.784942+00:00",
+      "after_time": "2026-11-01T04:50:24.905366+00:00",
       "ready": true
     },
     {
       "stage": "private-owner-dummy-login-ready-wait-55",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:18.469172+00:00",
+      "time": "2026-11-01T04:50:14.948981+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6318,14 +6312,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:19.040259+00:00",
+      "after_time": "2026-11-01T04:50:15.516767+00:00",
       "ready": true
     },
     {
       "stage": "private-owner-login-after-hidden-ready-wait-67",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:43.752434+00:00",
+      "time": "2026-11-01T04:50:34.909212+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6381,14 +6375,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:44.290128+00:00",
+      "after_time": "2026-11-01T04:50:35.421321+00:00",
       "ready": true
     },
     {
       "stage": "private-owner-login-completed-wait-68",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:44.438803+00:00",
+      "time": "2026-11-01T04:50:35.596738+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6444,14 +6438,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:44.947615+00:00",
+      "after_time": "2026-11-01T04:50:36.095475+00:00",
       "ready": true
     },
     {
       "stage": "private-owner-login-ready-wait-62",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:53:31.027094+00:00",
+      "time": "2026-11-01T04:50:25.026717+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6507,14 +6501,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:31.685999+00:00",
+      "after_time": "2026-11-01T04:50:25.578558+00:00",
       "ready": true
     },
     {
       "stage": "rollback-from-stock-refused-completed-wait-232",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:05.979376+00:00",
+      "time": "2026-11-01T04:52:27.317466+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6570,14 +6564,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:06.708392+00:00",
+      "after_time": "2026-11-01T04:52:28.200650+00:00",
       "ready": true
     },
     {
       "stage": "rollback-from-stock-refused-ready-wait-230",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:05.046937+00:00",
+      "time": "2026-11-01T04:52:26.556652+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6633,14 +6627,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:05.765991+00:00",
+      "after_time": "2026-11-01T04:52:27.141771+00:00",
       "ready": true
     },
     {
       "stage": "rollback-stock-account-login-after-hidden-ready-wait-219",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:51.817733+00:00",
+      "time": "2026-11-01T04:52:17.232835+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6668,14 +6662,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:52.141217+00:00",
+      "after_time": "2026-11-01T04:52:17.467254+00:00",
       "ready": true
     },
     {
       "stage": "rollback-stock-check-completed-wait-228",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:03.340508+00:00",
+      "time": "2026-11-01T04:52:25.201844+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6731,14 +6725,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:04.043363+00:00",
+      "after_time": "2026-11-01T04:52:25.658960+00:00",
       "ready": true
     },
     {
       "stage": "rollback-stock-check-ready-wait-226",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:02.481474+00:00",
+      "time": "2026-11-01T04:52:24.065360+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6794,14 +6788,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:03.126778+00:00",
+      "after_time": "2026-11-01T04:52:24.995116+00:00",
       "ready": true
     },
     {
       "stage": "rollback-stock-public-ready-wait-229",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:04.140080+00:00",
+      "time": "2026-11-01T04:52:25.754809+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6857,14 +6851,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:04.881731+00:00",
+      "after_time": "2026-11-01T04:52:26.321518+00:00",
       "ready": true
     },
     {
       "stage": "rollback-stock-ready-wait-220",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:52.250160+00:00",
+      "time": "2026-11-01T04:52:17.556477+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6892,14 +6886,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:52.877458+00:00",
+      "after_time": "2026-11-01T04:52:17.979356+00:00",
       "ready": true
     },
     {
       "stage": "rollback-stock-sudo-after-hidden-ready-wait-225",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:56:01.550745+00:00",
+      "time": "2026-11-01T04:52:23.438605+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6955,14 +6949,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:56:02.372445+00:00",
+      "after_time": "2026-11-01T04:52:23.868603+00:00",
       "ready": true
     },
     {
       "stage": "rollback-stock-sudo-reset-done-wait-222",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:55:53.051557+00:00",
+      "time": "2026-11-01T04:52:18.152128+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -6990,14 +6984,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:55:53.571251+00:00",
+      "after_time": "2026-11-01T04:52:18.485143+00:00",
       "ready": true
     },
     {
       "stage": "tools-before-reboot-title-completed-wait-35",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:59.198569+00:00",
+      "time": "2026-11-01T04:49:59.308830+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7053,14 +7047,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:59.794043+00:00",
+      "after_time": "2026-11-01T04:49:59.927103+00:00",
       "ready": true
     },
     {
       "stage": "tools-before-reboot-title-ready-wait-33",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:58.415607+00:00",
+      "time": "2026-11-01T04:49:58.479811+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7116,14 +7110,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:59.025129+00:00",
+      "after_time": "2026-11-01T04:49:59.079520+00:00",
       "ready": true
     },
     {
       "stage": "tools-install-completed-wait-17",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:47.907649+00:00",
+      "time": "2026-11-01T04:49:50.680135+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7179,14 +7173,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:48.831665+00:00",
+      "after_time": "2026-11-01T04:49:51.288065+00:00",
       "ready": true
     },
     {
       "stage": "tools-install-ready-wait-11",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:46.773942+00:00",
+      "time": "2026-11-01T04:49:49.834436+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7242,14 +7236,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:47.497065+00:00",
+      "after_time": "2026-11-01T04:49:50.279105+00:00",
       "ready": true
     },
     {
       "stage": "tools-prepare-completed-wait-20",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:49.985866+00:00",
+      "time": "2026-11-01T04:49:52.119691+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7305,14 +7299,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:50.879557+00:00",
+      "after_time": "2026-11-01T04:49:52.640971+00:00",
       "ready": true
     },
     {
       "stage": "tools-prepare-ready-wait-18",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:48.995240+00:00",
+      "time": "2026-11-01T04:49:51.407038+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7368,14 +7362,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:49.776859+00:00",
+      "after_time": "2026-11-01T04:49:51.874719+00:00",
       "ready": true
     },
     {
       "stage": "tools-prepare-rerun-completed-wait-23",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:52.264102+00:00",
+      "time": "2026-11-01T04:49:53.463129+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7431,14 +7425,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:53.063472+00:00",
+      "after_time": "2026-11-01T04:49:53.942744+00:00",
       "ready": true
     },
     {
       "stage": "tools-prepare-rerun-ready-wait-21",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:51.028483+00:00",
+      "time": "2026-11-01T04:49:52.758200+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7494,14 +7488,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:52.003429+00:00",
+      "after_time": "2026-11-01T04:49:53.254151+00:00",
       "ready": true
     },
     {
       "stage": "tools-record-export-completed-wait-32",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:57.719786+00:00",
+      "time": "2026-11-01T04:49:57.841399+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7557,14 +7551,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:58.273624+00:00",
+      "after_time": "2026-11-01T04:49:58.316688+00:00",
       "ready": true
     },
     {
       "stage": "tools-record-export-ready-wait-30",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:57.021561+00:00",
+      "time": "2026-11-01T04:49:57.118194+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7620,14 +7614,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:57.552716+00:00",
+      "after_time": "2026-11-01T04:49:57.599066+00:00",
       "ready": true
     },
     {
       "stage": "tools-stock-account-login-after-hidden-ready-wait-4",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:36.034654+00:00",
+      "time": "2026-11-01T04:49:42.497185+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7655,14 +7649,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:36.442923+00:00",
+      "after_time": "2026-11-01T04:49:42.790484+00:00",
       "ready": true
     },
     {
       "stage": "tools-stock-ready-wait-5",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:36.580017+00:00",
+      "time": "2026-11-01T04:49:42.912175+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7690,14 +7684,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:36.968207+00:00",
+      "after_time": "2026-11-01T04:49:43.193893+00:00",
       "ready": true
     },
     {
       "stage": "tools-stock-reboot-ready-wait-36",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:59.892671+00:00",
+      "time": "2026-11-01T04:50:00.063759+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7753,14 +7747,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:53:00.468089+00:00",
+      "after_time": "2026-11-01T04:50:00.610579+00:00",
       "ready": true
     },
     {
       "stage": "tools-stock-sudo-after-hidden-ready-wait-10",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:45.622949+00:00",
+      "time": "2026-11-01T04:49:49.161253+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7816,14 +7810,14 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:46.597833+00:00",
+      "after_time": "2026-11-01T04:49:49.680551+00:00",
       "ready": true
     },
     {
       "stage": "tools-stock-sudo-reset-done-wait-7",
       "tty": "tty3",
       "attempt": 1,
-      "time": "2026-11-01T00:52:37.172942+00:00",
+      "time": "2026-11-01T04:49:43.310886+00:00",
       "before_cursor_line": "",
       "after_cursor_line": "ares-recovery@bazzite:~$",
       "enter_sent": true,
@@ -7851,7 +7845,7 @@
           ]
         }
       },
-      "after_time": "2026-11-01T00:52:37.570916+00:00",
+      "after_time": "2026-11-01T04:49:43.585721+00:00",
       "ready": true
     }
   ],
@@ -10857,7 +10851,7 @@
       "path": "os/ci/installer_webui.py"
     },
     {
-      "sha256": "c4ba1ad642b328d9d6f9514f5131e64848862e548f7698dfd2f448bf09cef312",
+      "sha256": "b1171ec1dde6bb8a011d31dee17c8b6f8e624ecdaa8771117fc807f379e18aed",
       "path": "os/ci/keyboard_vm.py"
     },
     {
@@ -10905,7 +10899,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "67614b3b8f9d3529cde631fae8eb975fbef8ae3735d8bd7b5660704dff35860f",
+      "sha256": "09f8aeedb6e9aa6ddd7a9e20215f96799521881df55c5336c5441d86815b4164",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -11189,6 +11183,10 @@
       "path": "os/tests/fixtures/owner-tools/dumpkeys-de.json"
     },
     {
+      "sha256": "3df456bd5a61d62420335304cff3196f655d9756c663f4ffb2864a88bd219394",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-us-intl.json"
+    },
+    {
       "sha256": "b35d1bc9f91a3bf08b036110bc259e1b3e9380588405233be17109d122b60a12",
       "path": "os/tests/fixtures/owner-tools/dumpkeys-us.json"
     },
@@ -11203,6 +11201,10 @@
     {
       "sha256": "cafd2e661ef35fd700e2dbb83b907476239fa7e7f5de01be0fe2717f1ff4aca7",
       "path": "os/tests/fixtures/owner-tools/finalize-hold.json"
+    },
+    {
+      "sha256": "41a1aa7095568036c6e589240f9ed33374669f63c5d63aa2bd303ccbad7358aa",
+      "path": "os/tests/fixtures/owner-tools/layout-adapter-sources.json"
     },
     {
       "sha256": "fe27c5cdbe4cadf8528effe599fdb58b1194284d23224c93ba6f04913f6d9308",
@@ -11237,7 +11239,7 @@
       "path": "os/tests/owner_login_shim.py"
     },
     {
-      "sha256": "53229c4b45ce17b5240ffd18999716bec708b32989ade08a18ba93854e92a272",
+      "sha256": "ed78891a331c1bf8bb02c9dc18b134d32c29706d9c2edd234edc365b5232aec7",
       "path": "os/tests/owner_shim.py"
     },
     {
@@ -11345,6 +11347,10 @@
       "path": "os/tests/test_owner_key_counter.py"
     },
     {
+      "sha256": "08489e27e514ccea53b583d56bb6495856a173e5aed6cf6781fcda65a789a5b3",
+      "path": "os/tests/test_owner_layout_adapter.py"
+    },
+    {
       "sha256": "f3e69d963426684daf547b2bcbf0e98fb54c2ff6b130994dada31407c701fb06",
       "path": "os/tests/test_owner_login.py"
     },
@@ -11389,7 +11395,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "61c56b0397a3ea85a58392c6c161ab03284e4c8a0986a1325bd3f5c441b2e928",
+      "sha256": "912b0ff7a6930d6e99e186fd42bed27cf1c51d2e825f9a5e8f20e38bd32412b7",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -11409,7 +11415,7 @@
       "path": "os/tests/test_serial_console.py"
     },
     {
-      "sha256": "d4a7bb68c075a5f93dfd48d4344b017ad0e43d8b6feceb2a763631dc50f3424c",
+      "sha256": "f30f17a1474b0739904d1a34f30a1149edfc65a19cf9a7eb52bb2811b5f09f81",
       "path": "os/tests/test_serial_staging.py"
     },
     {
@@ -11437,5 +11443,304 @@
     "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
   ],
   "ps2_health": true,
-  "current_verification": "os/manifest/ci/14/14zw-preflight/preparation.json"
+  "current_verification": "os/manifest/ci/14/14zx-preflight/preparation.json",
+  "physical_typing_cases": [
+    {
+      "stage": "corrected-stock-console",
+      "boot": "corrected-stock",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-console",
+      "boot": "aresos",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-foot",
+      "boot": "aresos",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-intl-console",
+      "boot": "aresos-intl",
+      "profile": "us-intl",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "alt_r",
+          "y"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-intl-foot",
+      "boot": "aresos-intl",
+      "profile": "us-intl",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "alt_r",
+          "y"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-back-de-console",
+      "boot": "aresos-back-de",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-back-de-foot",
+      "boot": "aresos-back-de",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "rollback-stock-console",
+      "boot": "rollback-stock",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "default-stock-console",
+      "boot": "default-stock",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    }
+  ]
 }

@@ -68,7 +68,9 @@ elif tool == 'localectl':
     else:
         raise SystemExit('Unknown localectl operation')
 elif tool == 'dumpkeys':
-    profile = 'de' if state['keyboard']['VConsoleKeymap'] == 'de' else 'us'
+    profile = state['keyboard']['VConsoleKeymap']
+    if profile not in ('de', 'us', 'us-intl'):
+        raise SystemExit('Unknown physical layout profile in dumpkeys shim')
     result = json.loads((pathlib.Path(__file__).parent/'fixtures/owner-tools'/('dumpkeys-'+profile+'.json')).read_text())
 else:
     raise SystemExit('Unknown command in owner shim: ' + tool)

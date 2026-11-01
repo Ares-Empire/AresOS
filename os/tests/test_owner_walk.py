@@ -17,6 +17,7 @@ import string
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -38,6 +39,7 @@ def retained(name):
 
 def walk(ps2=False):
     visits, commands, typed, checks, markers = [], [], [], [], []
+    physical_cases = []
     prompt_waits, idle_answers, hidden_reads = {}, [], []
     hidden_shapes, wait_shapes = [], []
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
@@ -56,7 +58,10 @@ def walk(ps2=False):
             self.secrets = []
             self.key_counts = None
             self.process = Mock(); self.process.poll.return_value = None
-            self.monitor = Mock()
+            self.monitor = SimpleNamespace(command=self.qmp)
+            self.physical_case = None
+            self.last_typing_frame = None
+            self.typing_case = None
             self.boot_number = len(visits) + 1
             if ps2:
                 from test_owner_ps2 import context
@@ -67,6 +72,10 @@ def walk(ps2=False):
         def command(self, name, source, **kw):
             syntax(name, source)
             commands.append((name, source))
+            if name.endswith('-prepare-input'):
+                self.physical_case = name.removesuffix('-prepare-input')
+            if name.endswith('-input-result'):
+                self.physical_case = None
             if source.startswith('python3 -B /run/ares-login-'):
                 from owner_login_shim import command
                 return command(self,source)
@@ -178,20 +187,47 @@ def walk(ps2=False):
             if name == 'owner-prepared': return dict(stock=stock,state=dict(rpm=pinned['rpm'],bootc=pinned['bootc']))
             if name == 'owner-switch-pending': return staged['bootc']
             if name == 'owner-rollback-pending': return queued['bootc']
+            if name.endswith('-labwc-environment'):
+                # XKB separates its base layout from its variant.
+                layout, variant = {'de': ('de', ''), 'us': ('us', ''), 'us-intl': ('us', 'intl')}[self.owner_layout]
+                return dict(XKB_DEFAULT_LAYOUT=layout, XKB_DEFAULT_VARIANT=variant)
             if name.endswith('-loaded-keyboard'):
                 profile = self.owner_layout
-                props = dict(VConsoleKeymap=profile, X11Layout='de' if profile == 'de' else 'us', X11Variant='intl' if profile == 'us-intl' else '')
+                layout, variant = {'de': ('de', ''), 'us': ('us', ''), 'us-intl': ('us', 'intl')}[profile]
+                props = dict(VConsoleKeymap=profile, X11Layout=layout, X11Variant=variant)
                 return dict(localed=dict(data=[{k:dict(data=v) for k,v in props.items()}]),
-                    loaded_map=json.loads((FIXTURES/('dumpkeys-'+('de' if profile == 'de' else 'us')+'.json')).read_text()),
+                    loaded_map=json.loads((FIXTURES/('dumpkeys-'+profile+'.json')).read_text()),
                     cmdline='quiet ostree=/ostree/fixture', bls={e['file']:e['content'] for e in (pinned if self.stage=='corrected-stock' else pair)['bls']})
             raise AssertionError('Unwalked response: ' + name)
 
-        def keys(self, keys):
+        def qmp(self, command, args=None):
+            if command != 'send-key': return
+            assert args['hold-time'] == 30
+            assert all(k['type'] == 'qcode' for k in args['keys'])
+            keys = [k['data'] for k in args['keys']]
+            # Observe the real call, without replacing any typing helper.
+            frame = sys._getframe(1)
+            while frame is not None and frame.f_code is not vm.type_text.__code__:
+                frame = frame.f_back
+            if frame is not None:
+                if frame is not self.last_typing_frame:
+                    self.last_typing_frame = frame
+                    text, layout = frame.f_locals['text'], frame.f_locals['layout']
+                    profile = self.owner_layout if layout is None else layout
+                    typed.append((text, profile))
+                    self.typing_case = None
+                    if self.physical_case and text == vm.TEXT + '\n':
+                        self.typing_case = dict(stage=self.physical_case, boot=self.stage, profile=profile,
+                            text=text, key_events=[], hold_ms=30, minimum_gap_ms=120)
+                        physical_cases.append(self.typing_case)
+                if self.typing_case is not None:
+                    self.typing_case['key_events'].append(list(keys))
             if self.key_counts is not None:
                 # Synthetic EV_KEY stream; the real parser computes the aggregate.
                 import struct,owner_key_counter
                 data=b''.join(struct.pack('@llHHi',0,0,1,30,value) for key in keys for value in (1,0))
                 owner_key_counter.count_events(data,self.key_counts)
+        keys = vm.Guest.keys
         def resync_after_hidden(self, stage):
             checks.append(stage + '-serial-idle-resync')
             return dict(status='passed', prior_completion_observed=True,
@@ -208,7 +244,8 @@ def walk(ps2=False):
             self.media_absent(stage)
             self.stopped_events_verified = True
         def poweroff(self, stage): self.media_absent(stage)
-        def close(self, stage): pass
+        def close(self, stage):
+            self.last_typing_frame = None
 
     class Media:
         fingerprint = '0' * 64
@@ -230,16 +267,6 @@ def walk(ps2=False):
         if guest.stage.startswith(('tools-stock', 'corrected-stock')): return pinned
         if guest.stage in ('rollback-stock', 'default-stock'): return rolled
         return pair
-
-    def public_typing(guest, stage, profile, console, foot=False):
-        console.select()
-        console.prompt(stage + '-public-ready')
-        checks.append(stage + '-physical-observer')
-
-    original = vm.type_text
-    def collect(guest, text, layout=None, counts=None):
-        typed.append((text, layout or guest.owner_layout))
-        original(guest, text, layout, counts=counts)
 
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
         if ps2:
@@ -270,8 +297,8 @@ def walk(ps2=False):
         stack.enter_context(patch.object(vm.td, 'start_installed', side_effect=lambda p,h,s,**kw: Guest(s)))
         stack.enter_context(patch.object(vm.kb, 'deployment_snapshot', side_effect=snapshot))
         stack.enter_context(patch.object(vm.kb, 'capture_stock_greeter'))
-        stack.enter_context(patch.object(vm, 'public_typing', side_effect=public_typing))
-        stack.enter_context(patch.object(vm, 'type_text', side_effect=collect))
+        # public_typing/physical_input/type_text/physical_keys/Guest.keys are
+        # unpatched. The QMP recorder above observes their actual key events.
         stack.enter_context(patch.object(vm.time, 'sleep'))
         stack.enter_context(patch.dict(os.environ, GITHUB_ACTOR='synthetic-user', GH_TOKEN='synthetic_only_0123', GITHUB_SHA='a'*40))
         audit = Mock()
@@ -291,11 +318,32 @@ def walk(ps2=False):
     assert {'prepared-unattended-windows','offline-roundtrip-unattended-windows','offline-roundtrip-detached-windows','final-unattended-windows','final-detached-windows'} <= set(markers)
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, checks=checks, markers=markers,
+        physical_cases=physical_cases,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
         hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
 
 
 class OwnerWalkTest(unittest.TestCase):
+    def test_real_typing_chain_emits_exact_keys_through_every_remaining_stage(self):
+        result = walk(ps2=True)
+        german = [['z'], ['y'], ['slash'], ['shift', '7'], ['shift', '1'], ['bracket_left'], ['ret']]
+        international = [['y'], ['z'], ['minus'], ['slash'], ['shift', '1'], ['alt_r', 'y'], ['ret']]
+        expected = {
+            'corrected-stock-console': 'de', 'aresos-console': 'de', 'aresos-foot': 'de',
+            'aresos-intl-console': 'us-intl', 'aresos-intl-foot': 'us-intl',
+            'aresos-back-de-console': 'de', 'aresos-back-de-foot': 'de',
+            'rollback-stock-console': 'de', 'default-stock-console': 'de',
+        }
+        self.assertEqual({row['stage']: row['profile'] for row in result['physical_cases']}, expected)
+        self.assertEqual(len(result['physical_cases']), len(expected))
+        for row in result['physical_cases']:
+            self.assertEqual(row['text'], 'yz-/!ü\n')
+            self.assertEqual(row['key_events'], international if row['profile'] == 'us-intl' else german)
+            self.assertEqual((row['hold_ms'], row['minimum_gap_ms']), (30, 120))
+        # These firmware-default marker boots have no typed text or layout.
+        self.assertEqual(result['markers'][-2:], ['final-unattended-windows', 'final-detached-windows'])
+        self.assertFalse(any(row['boot'].startswith('final-') for row in result['physical_cases']))
+
     def test_ps2_health_and_q15_clutter_walk_all_remaining_stages(self):
         result=walk(ps2=True)
         self.assertIn('final-unattended-windows',result['markers'])

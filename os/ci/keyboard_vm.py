@@ -20,8 +20,14 @@ from greeter import capture_stock_greeter
 TEXT = 'yz-/!'
 
 
+def x11_profile(profile):
+    profiles = {'de': ('de', ''), 'us': ('us', ''), 'us-intl': ('us', 'intl')}
+    assert profile in profiles, 'Unknown physical layout profile'
+    return profiles[profile]
+
+
 def loaded_map(text, layout):
-    assert layout in ('de', 'us')
+    x11_profile(layout)
     for code, letter in zip((21, 44), ('z', 'y') if layout == 'de' else ('y', 'z')):
         # kbd 2.9.0 prints '+' for KT_LETTER (CapsLock-sensitive letters).
         rows = re.findall(r'^keycode\s+' + str(code) + r'\s*=\s*([^\s]+)', text, re.M)
@@ -137,6 +143,7 @@ def tty(guest, stage, layout, password):
 
 
 def foot(guest, stage, layout):
+    x11_layout, x11_variant = x11_profile(layout)
     guest.keys(['ctrl','alt','f1'])
     guest.command(stage + '-foot-ready', 'set -e; for n in {1..120}; do if test "$(cat /sys/class/tty/tty0/active)" = tty1 && pgrep -u ares -x foot; then exit 0; fi; sleep 1; done; exit 1')
     # Inspect the actual compositor environment, never substitute a layout just for this test.
@@ -146,7 +153,8 @@ env=dict(s.split('=',1) for s in pathlib.Path('/proc',pid,'environ').read_bytes(
 print(json.dumps({k:v for k,v in env.items() if k.startswith('XKB_DEFAULT_')}))
 '''
     env=guest.capture_json(stage + '-labwc-environment',sw.framed('python3 -c '+shlex.quote(program)))
-    assert env['XKB_DEFAULT_LAYOUT'] == layout
+    assert env['XKB_DEFAULT_LAYOUT'] == x11_layout
+    assert env.get('XKB_DEFAULT_VARIANT', '') == x11_variant
     physical_input(guest, stage + '-foot', layout, 1001)
     guest.screenshot(stage + '-foot')
 

@@ -295,7 +295,7 @@ print('PASS login')
                 guest.owner_input_epoch+=1
                 if counts is not None:
                     for char in text:
-                        keys=vm.physical_keys(char,layout or guest.owner_layout)
+                        keys=vm.physical_keys(char,vm.typing_profile(guest,layout))
                         counts['key_event_count']+=2*len(keys)
                         counts['key_chord_count']+=1
                         counts['last_key_was_ret']=keys==['ret']

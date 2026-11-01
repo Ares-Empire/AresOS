@@ -31,7 +31,6 @@ from owner_keys import maps, physical_keys, at_keycodes
 from owner_media import Media
 
 COMMANDS = json.loads(pathlib.Path('os/owner-tools/commands.json').read_text())
-PROFILE = 'de'
 TEXT = 'yz-/!ü'
 PROBE_MEDIA = None
 OWNER_COMMAND_TIMEOUT = 900
@@ -45,12 +44,19 @@ KEY_HOLD_MS = 30
 KEY_GAP_SECONDS = .12
 
 
+def typing_profile(guest, layout=None):
+    profile = guest.owner_layout if layout is None else layout
+    assert profile in ('de', 'us', 'us-intl'), 'Unknown physical layout profile'
+    return profile
+
+
 def type_text(guest, text, layout=None, counts=None):
+    profile = typing_profile(guest, layout)
     if text:
         # Shared by all physical consoles/observers, including hidden input.
         guest.owner_input_epoch = getattr(guest, 'owner_input_epoch', 0) + 1
     for char in text:
-        keys = physical_keys(char, layout or guest.owner_layout)
+        keys = physical_keys(char, profile)
         guest.keys(keys)
         if counts is not None:
             counts['key_event_count'] += 2 * len(keys)  # QMP send-key presses/releases each key.
@@ -479,7 +485,7 @@ class Console:
         pending['sent'] = True
         self.guest.screenshot_safe = False
         # Counts/classes only; never export the value, individual keys or their order.
-        profile = layout or self.guest.owner_layout
+        profile = typing_profile(self.guest, layout)
         assert value and '\n' not in value and '\r' not in value, 'Hidden line break refused before input'
         classes = set(); expected_events=0
         for char in value:
@@ -780,9 +786,10 @@ print(json.dumps(dict(console=pathlib.Path('/etc/vconsole.conf').read_text(),x11
 PY'''))
     fields = value['localed']['data'][0]
     assert fields['VConsoleKeymap']['data'] == profile
-    assert fields['X11Layout']['data'] == ('de' if profile == 'de' else 'us')
-    assert fields['X11Variant']['data'] == ('intl' if profile == 'us-intl' else '')
-    kb.loaded_map(value['loaded_map'], 'de' if profile == 'de' else 'us')
+    x11_layout, x11_variant = kb.x11_profile(profile)
+    assert fields['X11Layout']['data'] == x11_layout
+    assert fields['X11Variant']['data'] == x11_variant
+    kb.loaded_map(value['loaded_map'], profile)
     texts = value['bls'].values()
     if temporary_old is not None:
         snapshot = kb.deployment_snapshot(guest, stage + '-temporary-stock')
@@ -795,20 +802,21 @@ PY'''))
 
 
 def public_typing(guest, stage, profile, console, foot=False):
-    global PROFILE
-    PROFILE = profile
+    typing_profile(guest, profile)
     guest.owner_layout = profile
     # Reuse the existing observer and real terminal reader; only physical
     # positions now come from the exact three ISO maps, including the umlaut.
-    kb.TEXT = TEXT
-    kb.type_text = type_text
-    kb.physical_keys = lambda char, unused: physical_keys(char, PROFILE)
-    console.select()
-    console.prompt(stage + '-public-ready')
-    kb.physical_input(guest, stage + '-console', 'de' if profile == 'de' else 'us', 0 if console.root else 1000)
-    if foot:
-        kb.foot(guest, stage, 'de' if profile == 'de' else 'us')
+    previous = kb.TEXT, kb.type_text, kb.physical_keys
+    try:
+        kb.TEXT, kb.type_text, kb.physical_keys = TEXT, type_text, physical_keys
         console.select()
+        console.prompt(stage + '-public-ready')
+        kb.physical_input(guest, stage + '-console', profile, 0 if console.root else 1000)
+        if foot:
+            kb.foot(guest, stage, profile)
+            console.select()
+    finally:
+        kb.TEXT, kb.type_text, kb.physical_keys = previous
 
 
 def finish(guest, audit, stage):
