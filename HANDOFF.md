@@ -28,7 +28,16 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 - **14zzb** set the VM step limit to 180 and the qualification bound to 220.
   - **PROBE 31 AND QUALIFICATION 20 PASSED** on `211df98`: the complete owner path, 600 native tests, VM 117.67/180 minutes. **Acceptance is met.**
   - The closing report `f13ac8e` is pushed. Package ledger: 2301/2750 minutes.
-- **The package review is running:** gpt-6.1-sol high, read-only, writing `reviews/14-owner-tools/REVIEW.md`; log `../AresOS-14-review.log`. Then the owner's "merge", then package 15.
+- **The package review** (`reviews/14-owner-tools/REVIEW.md` at `f13ac8e`) returned **CHANGES-NEEDED**.
+  - **Blocking:**
+    1. The bootstrap runs stick code before verifying it.
+    2. An abandoned layout trial can't be recovered, and its layout could be active at the next boot's login.
+  - **Should-fix:**
+    3. resumable install/prepare
+    4. STOP diagnostics left out of the export
+    5. stale status lines
+- **14zzc** (running; log `../AresOS-14zzc.log`, summary `../AresOS-14zzc.last.md`) fixes all five, then pushes once and runs probe 32 and qualification 21. These are the last dispatch allowances, and the step may grow to 200/240 if timings need it.
+  - Then the reviewer re-checks only the fixes. Then the owner's "merge", then package 15.
 
 ### Package 14: owner tools (PR #13, draft)
 
