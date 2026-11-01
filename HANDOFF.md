@@ -15,13 +15,19 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - It then stopped at the final stock login, with 65 of 66 key events counted. The cause was the harness's `EVIOCGKEY` on the counting evdev fd, which flushed the Return press.
   - **Still left:** the final stock verification and the final Windows checks.
   - Package ledger: 1967/2750 minutes.
-- **14zy** (running; log `../AresOS-14zy.log`, summary `../AresOS-14zy.last.md`):
-  - key-state queries move to a separate evdev open
-  - a deterministic uinput test
+- **14zy** fixed the counter: key-state queries now use their own evdev client, and a real-kernel uinput proof showed 0/1 for the old getter and 1/1 for the fix. On `cbaa985`, probe 29 PASSED.
+  - Codex cancelled qualification 18 before its VM stage, for two reasons:
+    1. GitHub's job `started_at` for probe 29 came after its `completed_at`, and the guard clamped that to 1 minute; the real charge was 26.
+    2. A full-log scan found cosign-installer `RELEASE_COSIGN_PUB_KEY_SHA` lines. These are public checksums, verified against the pinned action source.
+  - Package ledger: about 1998/2750 minutes.
+- **14zz** (running; log `../AresOS-14zz.log`, summary `../AresOS-14zz.last.md`):
+  - fail-safe accounting: the step span or the full bound, never a clamp, plus a ledger-versus-organization check
+  - the cosign checksum class approved
+  - caps 32/21
   - one push
-  - probe 29 and qualification 18
+  - probe 30 and qualification 19
   - stop and report
-  - This is the third November round. If it stops on console typing again, Codex proposes serial-run commands for what's left.
+  - If it stops on console typing, Codex proposes serial-run commands for what's left.
 
 ### Package 14: owner tools (PR #13, draft)
 
