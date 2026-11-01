@@ -10,12 +10,18 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 - **14zw** merged `main` and made the local hook the privacy proof; pushes now cost no minutes. On `75a2c63`, probe 27 PASSED.
   - Qualification 16 reached a new stage: US International was installed, its login worked, and `layout proof` and `layout finish` passed. It then stopped on a harness bug: `public_typing` collapsed `us-intl` to `us` and couldn't type `ü`.
   - Package ledger: 1832/2750 minutes.
-- **14zx** (running; log `../AresOS-14zx.log`, summary `../AresOS-14zx.last.md`):
-  - fix the profile adapter
-  - make the stand-in walk run the real typing chain for every remaining stage
+- **14zx** fixed the profile adapter, and probe 28 PASSED.
+  - **Qualification 17 proved** US International success, back to German, rollback, rollback-from-stock refused, and keep-stock.
+  - It then stopped at the final stock login, with 65 of 66 key events counted. The cause was the harness's `EVIOCGKEY` on the counting evdev fd, which flushed the Return press.
+  - **Still left:** the final stock verification and the final Windows checks.
+  - Package ledger: 1967/2750 minutes.
+- **14zy** (running; log `../AresOS-14zy.log`, summary `../AresOS-14zy.last.md`):
+  - key-state queries move to a separate evdev open
+  - a deterministic uinput test
   - one push
-  - probe 28 and qualification 17
+  - probe 29 and qualification 18
   - stop and report
+  - This is the third November round. If it stops on console typing again, Codex proposes serial-run commands for what's left.
 
 ### Package 14: owner tools (PR #13, draft)
 
