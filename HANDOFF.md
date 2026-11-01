@@ -25,12 +25,10 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - Qualification 19 ran on the same head. It proved US-intl, back to German and rollback; the post-rollback login took 10 s, and the sudo counts were 66/66.
   - It then hit the **106-minute VM step limit**. This was not a bug.
   - Package ledger: 2144/2750 minutes.
-- **14zzb** (running; log `../AresOS-14zzb.log`, summary `../AresOS-14zzb.last.md`):
-  - VM step limit 180 and qualification bound 220, sized from the Q17/Q19 stage timings
-  - one push
-  - probe 31 and qualification 20
-  - stop and report
-  - **Still left to prove:** keep-stock, default-stock, and the two final Windows checks.
+- **14zzb** set the VM step limit to 180 and the qualification bound to 220.
+  - **PROBE 31 AND QUALIFICATION 20 PASSED** on `211df98`: the complete owner path, 600 native tests, VM 117.67/180 minutes. **Acceptance is met.**
+  - The closing report `f13ac8e` is pushed. Package ledger: 2301/2750 minutes.
+- **The package review is running:** gpt-6.1-sol high, read-only, writing `reviews/14-owner-tools/REVIEW.md`; log `../AresOS-14-review.log`. Then the owner's "merge", then package 15.
 
 ### Package 14: owner tools (PR #13, draft)
 
