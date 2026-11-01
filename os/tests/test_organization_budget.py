@@ -81,6 +81,8 @@ class OrganizationBudgetTest(unittest.TestCase):
 class PaidOverflowTest(unittest.TestCase):
     def setUp(self):
         guard.configure('14'); self.addCleanup(guard.configure,'11c')
+        historical=copy.deepcopy(guard.SETTINGS);historical['organization_budget']['other_repos_reserve']=0
+        self.historical=patch.object(guard,'SETTINGS',historical);self.historical.start();self.addCleanup(self.historical.stop)
         self.now=datetime.datetime(2026,10,26,tzinfo=datetime.timezone.utc)
         self.usage=dict(timePeriod=dict(year=2026,month=10),organization='Ares-Empire',usageItems=[
             dict(product='Actions',sku='actions_linux',unitType='minutes',grossQuantity=1869,
@@ -146,10 +148,84 @@ class PaidOverflowTest(unittest.TestCase):
         self.usage['usageItems'][0].pop('pricePerUnit')
         with self.assertRaisesRegex(AssertionError,'pricePerUnit'):self.call()
 
-    def test_paid_overflow_is_not_approved_outside_october(self):
-        self.now=datetime.datetime(2026,11,1,tzinfo=datetime.timezone.utc)
-        self.usage['timePeriod']['month']=11
+    def test_paid_overflow_is_not_approved_before_october(self):
+        self.now=datetime.datetime(2026,9,1,tzinfo=datetime.timezone.utc)
+        self.usage['timePeriod']['month']=9
         with self.assertRaisesRegex(AssertionError,'October2026 only'):self.call()
+
+
+class NovemberFreeMinutesTest(unittest.TestCase):
+    def setUp(self):
+        guard.configure('14');self.addCleanup(guard.configure,'11c')
+        self.now=datetime.datetime(2026,11,1,tzinfo=datetime.timezone.utc)
+        self.response=dict(timePeriod=dict(year=2026,month=11),organization='Ares-Empire',usageItems=[])
+
+    def call(self,reserve=250):
+        with patch.object(guard,'read_only',return_value=json.dumps(self.response).encode()) as read:
+            result=guard.organization_budget(reserve,self.now)
+        read.assert_called_once_with('organizations/Ares-Empire/settings/billing/usage/summary?year='+str(self.now.year)+'&month='+str(self.now.month))
+        self.assertIsNone(result['paid_overflow']);self.assertFalse(result['paid_budget_read'])
+        self.assertEqual(result['billing_mode'],'free-minutes-only')
+        return result
+
+    def row(self,**changes):
+        row=dict(product='Actions',sku='actions_linux',unitType='minutes',grossQuantity=10,
+            discountQuantity=12,netQuantity=0,grossAmount=.06,discountAmount=.072,netAmount=0)
+        row.update(changes);return row
+
+    def test_empty_current_month_is_zero_used_without_budget_or_price_read(self):
+        result=self.call()
+        self.assertEqual((result['used_minutes'],result['remaining_minutes'],result['after_reservation']),(0,2000,1750))
+        self.response['usageItems']=[dict(product='Packages')]
+        self.assertEqual(self.call()['used_minutes'],0)
+
+    def test_free_minutes_use_conservative_quantity_and_keep_150(self):
+        self.response['usageItems']=[self.row()]
+        result=self.call();self.assertEqual((result['used_minutes'],result['remaining_minutes']),(12,1988))
+        self.assertEqual(self.call(1838)['after_reservation'],150)
+        with self.assertRaisesRegex(AssertionError,'must leave 150'):self.call(1839)
+
+    def test_any_paid_minute_quantity_or_amount_stops_without_budget_fallback(self):
+        for field in ('netQuantity','netAmount'):
+            for amount in (.001,1):
+                self.response['usageItems']=[self.row(**{field:amount})]
+                with patch.object(guard,'read_only',return_value=json.dumps(self.response).encode()) as read:
+                    with self.assertRaisesRegex(AssertionError,'outside the free'):guard.organization_budget(250,self.now)
+                self.assertEqual(read.call_count,1)
+
+    def test_stale_wrong_org_and_malformed_empty_summaries_still_stop(self):
+        original=copy.deepcopy(self.response)
+        for change in (lambda r:r['timePeriod'].update(month=10),lambda r:r.update(organization='other'),
+            lambda r:r.update(usageItems=None),lambda r:r.update(nextPage=2),lambda r:r.pop('usageItems'),
+            lambda r:r.update(timePeriod=None),lambda r:r['timePeriod'].update(year=True),
+            lambda r:r['usageItems'].append(None)):
+            self.response=copy.deepcopy(original);change(self.response)
+            with self.subTest(response=self.response),self.assertRaises(AssertionError):self.call()
+
+    def test_unknown_duplicate_and_invalid_minute_rows_still_stop(self):
+        for rows in ([self.row(sku='actions_windows')],[self.row(unitType='hours')],
+                     [self.row(),self.row()],[self.row(grossQuantity=True)],[self.row(netAmount=float('nan'))]):
+            self.response['usageItems']=rows
+            with self.subTest(rows=rows),self.assertRaises(AssertionError):self.call()
+
+    def test_all_later_months_are_free_only_even_if_price_is_missing_or_wrong(self):
+        for year,month in ((2026,11),(2026,12),(2027,1)):
+            self.now=datetime.datetime(year,month,1,tzinfo=datetime.timezone.utc)
+            self.response['timePeriod']=dict(year=year,month=month)
+            self.response['usageItems']=[self.row(pricePerUnit='not used')]
+            self.assertEqual(self.call()['remaining_minutes'],1988)
+        self.response['timePeriod']['month']=True
+        with self.assertRaisesRegex(AssertionError,'malformed billing period'):self.call()
+
+    def test_storage_does_not_contribute_minutes(self):
+        self.response['usageItems']=[self.row(sku='actions_storage',unitType='gigabyte-hours')]
+        self.assertEqual(self.call()['used_minutes'],0)
+
+    def test_package13_settings_are_unchanged_and_empty_later_month_works(self):
+        guard.configure('13')
+        self.assertEqual(guard.MINUTE_CAP,460)
+        self.assertEqual(guard.SETTINGS['organization_budget']['other_repos_reserve'],150)
+        self.assertEqual(self.call()['remaining_minutes'],2000)
 
 
 if __name__=='__main__':unittest.main()

@@ -145,15 +145,22 @@ def organization_budget(reserve, now=None):
     assert type(reserve) is int and reserve >= 0, 'STOP: invalid organization reservation'
     settings = SETTINGS['organization_budget']
     now = now or datetime.datetime.now(datetime.timezone.utc)
+    paid_october = PACKAGE == '14' and (now.year, now.month) == (2026, 10)
+    later_month = (now.year, now.month) > (2026, 10)
+    if PACKAGE == '14':
+        assert paid_october or later_month, 'STOP: paid overflow approval is October2026 only'
     path = ('organizations/' + settings['organization'] + '/settings/billing/usage/summary'
             + f'?year={now.year}&month={now.month}')
     raw = read_only(path)
     response = json.loads(raw)
     assert isinstance(response, dict) and set(response) == {'timePeriod', 'organization', 'usageItems'}, 'STOP: malformed billing summary'
     assert response['organization'] == settings['organization'], 'STOP: wrong billing organization'
-    assert response['timePeriod'] == dict(year=now.year, month=now.month), 'STOP: stale billing period'
+    period = response['timePeriod']
+    assert isinstance(period, dict) and set(period) == {'year', 'month'} and all(
+        type(period[key]) is int for key in ('year', 'month')), 'STOP: malformed billing period'
+    assert period == dict(year=now.year, month=now.month), 'STOP: stale billing period'
     rows = response['usageItems']
-    assert isinstance(rows, list) and rows, 'STOP: missing billing usage'
+    assert isinstance(rows, list) and (rows or later_month), 'STOP: missing billing usage'
     used, seen, actions = 0, set(), []
     for row in rows:
         assert isinstance(row, dict) and isinstance(row.get('product'), str), 'STOP: malformed billing row'
@@ -173,18 +180,19 @@ def organization_budget(reserve, now=None):
         # closed instead of guessing free-quota eligibility or multipliers.
         assert (sku, unit) in (('actions_linux', 'minutes'), ('actions_storage', 'gigabyte-hours')), 'STOP: unsupported Actions billing SKU/unit'
         if unit == 'minutes':
+            if not paid_october:
+                assert values['netQuantity'] == values['netAmount'] == 0, 'STOP: Actions minute usage outside the free allowance'
             # Credits/refresh timing can make discountQuantity slightly higher.
             used += math.ceil(max(values['grossQuantity'], values['discountQuantity']))
-            if PACKAGE == '14':
+            if paid_october:
                 price = row.get('pricePerUnit')
                 assert type(price) in (int, float) and math.isfinite(price) and price > 0, 'STOP: missing or invalid runner pricePerUnit'
                 values['pricePerUnit'] = price
         actions.append(dict(sku=sku, unit=unit, **values))
-    assert 'actions_linux' in seen, 'STOP: missing Actions minute usage'
+    assert 'actions_linux' in seen or later_month, 'STOP: missing Actions minute usage'
     included_left = max(0, settings['included_minutes'] - used)
     paid = None
-    if PACKAGE == '14':
-        assert now.strftime('%Y-%m') == '2026-10', 'STOP: paid overflow approval is October2026 only'
+    if paid_october:
         budget_path = 'organizations/' + settings['organization'] + '/settings/billing/budgets'
         budget_raw = read_only(budget_path)
         budgets = json.loads(budget_raw)
@@ -217,6 +225,8 @@ def organization_budget(reserve, now=None):
                 response_sha256=hashlib.sha256(raw).hexdigest(), usage=actions,
                 used_minutes=used, included_minutes=settings['included_minutes'],
                 included_minutes_left=included_left, paid_overflow=paid,
+                billing_mode='historical-october-paid-overflow' if paid_october else 'free-minutes-only',
+                paid_budget_read=paid_october,
                 remaining_minutes=remaining, reserved_minutes=reserve, after_reservation=spare,
                 other_repos_reserve=settings['other_repos_reserve'], credential='existing local gh login; GET only')
 

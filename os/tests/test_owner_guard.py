@@ -22,9 +22,9 @@ class GuardTest(unittest.TestCase):
         self.addCleanup(guard.configure,'11c')
 
     def test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun(self):
-        self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(1900,0,0))
-        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':27,'owner-tools':16})
-        self.assertEqual(guard.SETTINGS['organization_budget']['other_repos_reserve'],0)
+        self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(2750,0,0))
+        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':30,'owner-tools':19})
+        self.assertEqual(guard.SETTINGS['organization_budget']['other_repos_reserve'],150)
         self.assertEqual(guard.PACKAGES['13']['organization_budget']['other_repos_reserve'],150)
         base=dict(head_sha='a'*40,status='completed',conclusion='success',run_attempt=1)
         runs=[dict(base,id=1,event='push',display_title='privacy',created_at='2026-10-25T00:00:00Z'),
@@ -33,8 +33,8 @@ class GuardTest(unittest.TestCase):
         job=dict(conclusion='success',started_at='2026-10-25T01:00:00Z',completed_at='2026-10-25T01:01:01Z')
         def api(path):return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1,jobs=[job])
         with patch.object(guard,'api',side_effect=api):
-            self.assertEqual(guard.budget(1896)['consumed_minutes'],4)
-            with self.assertRaisesRegex(AssertionError,'exceeds 1900'):guard.budget(1897)
+            self.assertEqual(guard.budget(2746)['consumed_minutes'],4)
+            with self.assertRaisesRegex(AssertionError,'exceeds 2750'):guard.budget(2747)
             runs.append(dict(runs[1],id=4))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],2)
             runs.append(dict(runs[1],id=5))
@@ -87,10 +87,13 @@ class GuardTest(unittest.TestCase):
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],26)
             runs.append(dict(runs[1],id=29))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],27)
-            runs.append(dict(runs[1],id=30))
+            for count,run_id in ((28,30),(29,31),(30,32)):
+                runs.append(dict(runs[1],id=run_id))
+                self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],count)
+            runs.append(dict(runs[1],id=33))
             with self.assertRaisesRegex(AssertionError,'probe dispatch allowance'):guard.budget(0)
 
-    def test_sixteenth_owner_qualification_allowed_but_seventeenth_refuses(self):
+    def test_nineteenth_owner_qualification_allowed_but_twentieth_refuses(self):
         base=dict(head_sha='a'*40,status='completed',conclusion='failure',run_attempt=1,
                   event='workflow_dispatch',display_title='Two-disk rehearsal (owner-tools)',
                   created_at='2026-10-25T01:00:00Z')
@@ -103,7 +106,10 @@ class GuardTest(unittest.TestCase):
             self.assertEqual(guard.budget(0)['dispatch_counts']['owner-tools'],15)
             runs.append(dict(base,id=16))
             self.assertEqual(guard.budget(0)['dispatch_counts']['owner-tools'],16)
-            runs.append(dict(base,id=17))
+            for count in (17,18,19):
+                runs.append(dict(base,id=count))
+                self.assertEqual(guard.budget(0)['dispatch_counts']['owner-tools'],count)
+            runs.append(dict(base,id=20))
             with self.assertRaisesRegex(AssertionError,'owner-tools dispatch allowance'):guard.budget(0)
 
     def test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media(self):
@@ -115,7 +121,9 @@ class GuardTest(unittest.TestCase):
             media.assert_not_called()
 
     def test_october_reservation_drops_only_closing_privacy(self):
-        plan=guard.owner_reservations(datetime.datetime(2026,10,26,tzinfo=datetime.timezone.utc))
+        historical=copy.deepcopy(guard.SETTINGS);historical['closing_privacy_reservation']['minutes']=0
+        with patch.object(guard,'SETTINGS',historical):
+            plan=guard.owner_reservations(datetime.datetime(2026,10,26,tzinfo=datetime.timezone.utc))
         self.assertEqual({k:plan[k] for k in ('push','probe','qualification','closing_privacy')},
                          dict(push=6,probe=72,qualification=160,closing_privacy=0))
         self.assertEqual((plan['pre_push'],plan['before_probe'],plan['before_qualification']),(238,232,160))
@@ -124,7 +132,9 @@ class GuardTest(unittest.TestCase):
 
     def test_zero_closing_reservation_expires_and_restored_twelve_works(self):
         november=datetime.datetime(2026,11,1,tzinfo=datetime.timezone.utc)
-        with self.assertRaisesRegex(AssertionError,'October2026 only'): guard.owner_reservations(november)
+        historical=copy.deepcopy(guard.SETTINGS);historical['closing_privacy_reservation']['minutes']=0
+        with patch.object(guard,'SETTINGS',historical),self.assertRaisesRegex(AssertionError,'October2026 only'):
+            guard.owner_reservations(november)
         changed=copy.deepcopy(guard.SETTINGS);changed['closing_privacy_reservation']['minutes']=12
         with patch.object(guard,'SETTINGS',changed):
             plan=guard.owner_reservations(november)
