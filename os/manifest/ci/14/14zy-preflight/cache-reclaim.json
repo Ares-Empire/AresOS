@@ -1,0 +1,32 @@
+{
+  "status": "four verified completed duplicate files unlinked",
+  "files": [
+    {
+      "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+      "path": ".work/14/14zx-replay-1/work/bazzite-nvidia-open-stable-live-amd64.iso",
+      "bytes": 9068650496
+    },
+    {
+      "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+      "path": ".work/14/14zx-qualification-replay-1/work/bazzite-nvidia-open-stable-live-amd64.iso",
+      "bytes": 9068650496
+    },
+    {
+      "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+      "path": ".work/14/14zx-replay-1/work/squashfs.img",
+      "bytes": 8649285632
+    },
+    {
+      "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+      "path": ".work/14/14zx-qualification-replay-1/work/squashfs.img",
+      "bytes": 8649285632
+    }
+  ],
+  "completed_result_preserved": true,
+  "master_iso_preserved": true,
+  "canonical_squashfs_preserved": true,
+  "old_round_results_preserved": true,
+  "diagnostics_preserved": true,
+  "recursive_delete": false,
+  "free_gib": 42.21
+}

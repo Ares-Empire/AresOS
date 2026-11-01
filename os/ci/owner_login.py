@@ -152,8 +152,8 @@ def login_initialize(root, tty):
     ticket = start()
     state = dict(tty=tty,timeout=timeout,ticket=ticket,armed=False,audit_stop=False,versions=versions)
     publish(root/'state.json', state)
+    assert released(ticket['device'])
     fd = os.open(ticket['device'], os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY)
-    assert released(fd)
     pid = os.fork()
     if pid == 0:
         try:

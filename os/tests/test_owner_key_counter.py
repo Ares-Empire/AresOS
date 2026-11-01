@@ -63,19 +63,19 @@ class KeyCounterTest(unittest.TestCase):
             if request==0x80084502:data[:]=__import__('array').array('H',[0x11,1,1,1])
             elif request==0x80084503:data[:]=__import__('array').array('I',[250,33])
             else:self.assertEqual(request,0x80604518)
-        with patch.object(fcntl,'ioctl',side_effect=ioctl):
-            self.assertEqual(counter.settings(123),dict(delay_ms=250,period_ms=33))
+        with patch.object(fcntl,'ioctl',side_effect=ioctl), patch.object(counter.os,'open',return_value=124), patch.object(counter.os,'close'):
+            self.assertEqual(counter.settings(123,'/dev/input/fixture'),dict(delay_ms=250,period_ms=33))
         self.assertEqual(calls,[0x80084502,0x80084503,0x80604518])
         def held(fd,request,data,mutate):
             ioctl(fd,request,data,mutate)
             if request==0x80604518:data[0]=1
-        with patch.object(fcntl,'ioctl',side_effect=held),self.assertRaisesRegex(AssertionError,'pressed'):counter.settings(123)
+        with patch.object(fcntl,'ioctl',side_effect=held), patch.object(counter.os,'open',return_value=124), patch.object(counter.os,'close'),self.assertRaisesRegex(AssertionError,'pressed'):counter.settings(123,'/dev/input/fixture')
 
     def test_observer_consumes_after_ready_and_publishes_only_counts(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as folder:
             root=pathlib.Path(folder);incoming,writer=os.pipe()
             with patch.object(counter,'released',return_value=True):
-                worker=threading.Thread(target=counter.observe,args=(incoming,root,dict(delay_ms=250,period_ms=33),3))
+                worker=threading.Thread(target=counter.observe,args=(incoming,root,dict(delay_ms=250,period_ms=33),3),kwargs=dict(device='/dev/input/fixture'))
                 worker.start()
                 deadline=time.monotonic()+2
                 while not (root/'ready.json').exists() and time.monotonic()<deadline:time.sleep(.01)
@@ -92,7 +92,7 @@ class KeyCounterTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as folder:
             root=pathlib.Path(folder);incoming,writer=os.pipe();up=threading.Event()
             with patch.object(counter,'released',side_effect=lambda fd:up.is_set()),patch.object(counter,'private_root'):
-                worker=threading.Thread(target=counter.observe,args=(incoming,root,dict(delay_ms=250,period_ms=33),5))
+                worker=threading.Thread(target=counter.observe,args=(incoming,root,dict(delay_ms=250,period_ms=33),5),kwargs=dict(device='/dev/input/fixture'))
                 worker.start();deadline=time.monotonic()+2
                 while not (root/'ready.json').exists() and time.monotonic()<deadline:time.sleep(.01)
                 os.write(writer,event(1,30,1)+event(1,30,0));(root/'sample-1.request').touch()

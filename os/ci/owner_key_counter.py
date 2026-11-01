@@ -22,21 +22,25 @@ def keyboard(sysroot=pathlib.Path('/sys/class/input')):
     return matches[0]
 
 
-def settings(fd):
+def settings(fd, device):
     import array, fcntl
     ident = array.array('H', [0]*4)
     fcntl.ioctl(fd, 0x80084502, ident, True)  # EVIOCGID, linux/input.h
     assert tuple(ident[:3]) == (0x11,1,1), 'Opened input device changed'
     repeat = array.array('I', [0,0])
     fcntl.ioctl(fd, 0x80084503, repeat, True)  # EVIOCGREP: read, never set.
-    assert released(fd), 'Keyboard still has pressed keys before typing window'
+    assert released(device), 'Keyboard still has pressed keys before typing window'
     return dict(delay_ms=repeat[0], period_ms=repeat[1])
 
 
-def released(fd):
+def released(device):
     import fcntl
     pressed = bytearray(96)  # EVIOCGKEY getter; discard the bitmap, export only a Boolean.
-    fcntl.ioctl(fd, 0x80604518, pressed, True)
+    # A fresh open is a different evdev client. EVIOCGKEY flushes the queried
+    # client's queued EV_KEY events, so never issue it on an event-reading fd.
+    fd = os.open(device, os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY)
+    try: fcntl.ioctl(fd, 0x80604518, pressed, True)
+    finally: os.close(fd)
     return not any(pressed)
 
 
@@ -79,7 +83,7 @@ def publish(path, value):
     temporary.replace(path)
 
 
-def observe(fd, path, repeat, max_seconds=180):
+def observe(fd, path, repeat, max_seconds=180, *, device):
     import select
     counts = dict(press=0,release=0,repeat=0,syn_dropped=0)
     result = dict(status='stopped', counts_only=True, autorepeat=repeat, counts=counts,
@@ -107,7 +111,7 @@ def observe(fd, path, repeat, max_seconds=180):
                 assert match and int(match[1]) == sequence+1 <= 64, 'Counter checkpoint sequence refused'
                 sample = requests[0]; requested = now
             quiet_now = time.monotonic()-quiet >= .5
-            keys_up = quiet_now and released(fd)
+            keys_up = quiet_now and released(device)
             if requested is not None and (keys_up or now-requested >= 5):
                 sequence += 1
                 publish(path/('sample-'+str(sequence)+'.json'), dict(status='passed' if keys_up else 'stopped',
@@ -131,10 +135,14 @@ def start():
     import tempfile, stat
     assert os.geteuid() == 0
     device = keyboard()
+    query = os.open(device, os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY)
+    try:
+        assert stat.S_ISCHR(os.fstat(query).st_mode)
+        repeat = settings(query, device)
+    finally: os.close(query)
+    # The counting client has no ioctl/getter calls during its entire lifetime.
     fd = os.open(device, os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY)
     assert stat.S_ISCHR(os.fstat(fd).st_mode)
-    try: repeat = settings(fd)
-    except BaseException: os.close(fd); raise
     path = pathlib.Path(tempfile.mkdtemp(prefix='ares-input-',dir='/run')); private_root(path)
     pid = os.fork()
     if pid == 0:
@@ -143,7 +151,7 @@ def start():
             null = os.open('/dev/null',os.O_RDWR)
             for target in (0,1,2): os.dup2(null,target)
             os.closerange(3,fd); os.closerange(fd+1,65536)
-            observe(fd,path,repeat)
+            observe(fd,path,repeat,device=device)
         finally: os._exit(0)
     os.close(fd)
     deadline = time.monotonic()+5

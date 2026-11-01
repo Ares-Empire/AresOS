@@ -25,6 +25,7 @@ import owner_console
 import owner_hidden
 import owner_read_diagnostics
 import owner_key_counter
+import owner_counter_kernel
 import owner_login
 import owner_xhci
 from owner_keys import maps, physical_keys, at_keycodes
@@ -154,7 +155,7 @@ class Guest(td.Guest):
         source = ('import json,os,pathlib,stat\n' + ''.join(inspect.getsource(f) for f in (
             owner_key_counter.keyboard, owner_key_counter.settings, owner_key_counter.released, owner_key_counter.at_mapping))
             + '\ndevice=keyboard()\nfd=os.open(device,os.O_RDONLY|os.O_NONBLOCK|os.O_NOCTTY)\n'
-            + 'try:\n    assert stat.S_ISCHR(os.fstat(fd).st_mode)\n    settings(fd)\n'
+            + 'try:\n    assert stat.S_ISCHR(os.fstat(fd).st_mode)\n    settings(fd,device)\n'
             + '    checked=at_mapping(fd,' + repr(at_keycodes()) + ')\nfinally: os.close(fd)\n'
             + 'print(json.dumps(dict(device=device,name="AT Translated Set 2 keyboard",bus=17,static_keycodes_checked=checked)))\n')
         value = self.capture_json('boot-' + str(self.boot_number) + '-at-keyboard',
@@ -188,7 +189,21 @@ class Guest(td.Guest):
         super().login_live()
         self.owner_signed_in = True
         self.keyboard_device()
+        self.counter_kernel_proof()
         owner_xhci.checkpoint(self, 'boot-' + str(self.boot_number) + '-begin')
+
+    def counter_kernel_proof(self):
+        native = json.loads(pathlib.Path('evidence/14-counter-kernel.json').read_text())
+        assert native['sha'] == os.environ['GITHUB_SHA'] and native['skipped'] is False, 'STOP: counter proof receipt identity'
+        if native['status'] == 'passed':
+            result = native
+        else:
+            assert native['status'] == 'guest-required', 'STOP: unknown counter proof state'
+            result = self.capture_json('counter-kernel-proof', sw.framed('python3 -c ' + shlex.quote(owner_counter_kernel.guest_source())))
+            result.update(location='guest-before-hidden-input', sha=native['sha'])
+        td.save('counter-kernel-proof', result)
+        assert result['status'] == 'passed' and result['real_kernel'] and result['skipped'] is False, 'STOP: mandatory kernel counter proof failed'
+        assert result['negative_control']['comparison']['matches'] is False and result['fixed']['comparison']['matches'] is True
 
     def assert_offline(self, stage):
         result = self.capture_json(stage, sw.framed('''python3 - <<'PY'

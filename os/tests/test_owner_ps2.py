@@ -69,12 +69,12 @@ class Ps2Test(unittest.TestCase):
         def ioctl(fd,request,data,mutate):
             if request==0x80084502:data[:]=array.array('H',[17,1,1,0xab83])
             elif request==0x80084503:data[:]=array.array('I',[250,33])
-        with patch.object(fcntl,'ioctl',side_effect=ioctl):
-            self.assertEqual(counter.settings(1),dict(delay_ms=250,period_ms=33))
+        with patch.object(fcntl,'ioctl',side_effect=ioctl),patch.object(counter.os,'open',return_value=2),patch.object(counter.os,'close'):
+            self.assertEqual(counter.settings(1,'/dev/input/fixture'),dict(delay_ms=250,period_ms=33))
         def usb(fd,request,data,mutate):
             data[:]=array.array('H',[3,0x0627,1,1])
         with patch.object(fcntl,'ioctl',side_effect=usb),self.assertRaisesRegex(AssertionError,'changed'):
-            counter.settings(1)
+            counter.settings(1,'/dev/input/fixture')
 
     def test_actual_guest_static_mapping_getter_requires_every_pinned_index(self):
         import fcntl
