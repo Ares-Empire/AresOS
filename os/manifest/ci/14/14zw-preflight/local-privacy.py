@@ -22,6 +22,12 @@ def standard_input(head, remote):
     assert re.fullmatch('[0-9a-f]{40}',head) and re.fullmatch('[0-9a-f]{40}',remote)
     return f'refs/heads/{BRANCH} {head} refs/heads/{BRANCH} {remote}\n'
 
+def run_with_lf(command,data,timeout=600):
+    # Windows text pipes translate LF to CRLF; Bash keeps CR in the last SHA.
+    result=subprocess.run(command,input=data.encode('ascii'),capture_output=True,timeout=timeout)
+    return subprocess.CompletedProcess(command,result.returncode,
+        result.stdout.decode('utf-8',errors='replace'),result.stderr.decode('utf-8',errors='replace'))
+
 def identity():
     setting=subprocess.run(['git','config','--get','core.hooksPath'],capture_output=True,text=True)
     assert setting.returncode==1 and not setting.stdout,'STOP: core.hooksPath overrides the verified repository hook'
@@ -57,8 +63,7 @@ def precheck(head,remote,url):
     assert ids,'STOP: empty push range cannot prove execution of personal-term checks'
     before=identity()
     data=standard_input(head,remote)
-    result=subprocess.run([BASH,'--noprofile','--norc',POSIX_CHECKER,'pre-push','origin',url],
-        input=data,capture_output=True,text=True,encoding='utf-8',timeout=600)
+    result=run_with_lf([BASH,'--noprofile','--norc',POSIX_CHECKER,'pre-push','origin',url],data)
     log=WORK/'14zw/pre-push-check.log'
     log.write_text(result.stdout+result.stderr,encoding='utf-8',newline='\n')
     value=dict(status='STOP',head=head,remote_before=remote,checked_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),

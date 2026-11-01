@@ -29,7 +29,7 @@
       "path": "live-start.json"
     },
     {
-      "sha256": "f670e34f437a1f24eab8c5a7a7e74f543129b88523174049f335daed064e507b",
+      "sha256": "68a43fce45d60e1fd5cdf6b9445e833e4f61c87a02aa8db6914740ba6f05aa4b",
       "path": "local-privacy.py"
     },
     {
@@ -45,7 +45,7 @@
       "path": "native-timing-review.py"
     },
     {
-      "sha256": "db53784265855a50f850f423caf62a5ec56a579947d3620a6cc2802855a9faad",
+      "sha256": "260a74c94854f5958bf6182ee8cc3991bbe232d138f3fcfde0c03e25f46a1cd3",
       "path": "preparation.json"
     },
     {
@@ -85,6 +85,10 @@
       "path": "read-only-replay.py"
     },
     {
+      "sha256": "7cd0afed58c1062d00bc76a930db4a8c94c837b86d06dddd13684f090d58d22c",
+      "path": "stdin-diagnosis.json"
+    },
+    {
       "sha256": "eac078afe992786b55548824dd36cc79a076b317ae76518746b51d0cd2833472",
       "path": "syntax-checks.py"
     },
@@ -97,7 +101,7 @@
       "path": "test_dispatch_control.py"
     },
     {
-      "sha256": "432b2250d566a520529e9051741ea4798e9147ac56511e30c9c06656eca13a50",
+      "sha256": "54d44db95ed29ba4c3f75f860c0f882222baddcdd4109c30e62975a5d0d3493d",
       "path": "test_local_privacy.py"
     },
     {

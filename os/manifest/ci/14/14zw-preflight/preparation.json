@@ -92,7 +92,7 @@
     "ignore_changes": false
   },
   "privacy_regressions": {
-    "tests": 6,
+    "tests": 7,
     "skips": 0
   },
   "guard_regressions": {
@@ -836,7 +836,7 @@
   ],
   "local_tool_bindings": [
     {
-      "sha256": "f670e34f437a1f24eab8c5a7a7e74f543129b88523174049f335daed064e507b",
+      "sha256": "68a43fce45d60e1fd5cdf6b9445e833e4f61c87a02aa8db6914740ba6f05aa4b",
       "local": "14zw-privacy.py",
       "archive": "local-privacy.py"
     },
@@ -933,5 +933,38 @@
   "pushes": 0,
   "probe27": "pending",
   "qualification16": "pending",
-  "disposition": "one FF push, one fresh probe, one qualification samehead if probe passes; append report and commit locally then STOP"
+  "disposition": "one FF push, one fresh probe, one qualification samehead if probe passes; append report and commit locally then STOP",
+  "manual_precheck_transport": {
+    "status": "corrected local stdin framing; final-head check still required",
+    "failed_head": "2c12f71ba44dd7ec610e0606b757dc69276ba6bf",
+    "checker_exit_code": 1,
+    "reported_error": "invalid pre-push input",
+    "actual_git_push_attempted": false,
+    "actual_git_push_hook_invoked": false,
+    "privacy_finding_reported": false,
+    "correction": "binary ASCII stdin preserves LF; no hook/checker/allowlist/terms change",
+    "local_retry_rule": "briefs/14zd-local-retry.md: zero-cost local checks",
+    "observations": [
+      {
+        "kind": "Windows text stdin",
+        "remote_sha_length": 41,
+        "trailing_cr": true,
+        "valid_sha": false
+      },
+      {
+        "kind": "binary LF stdin",
+        "remote_sha_length": 40,
+        "trailing_cr": false,
+        "valid_sha": true
+      }
+    ],
+    "retained_receipt": {
+      "sha256": "fa51906dd4c36b3b96642c74e03b667ccc46a1fe24819a86bcd865d996ba79e8",
+      "path": ".work/14/14zw/precheck-invalid-text.json"
+    },
+    "retained_log": {
+      "sha256": "b4fef4006ccf258c55afa9a4a0a9719348c9d09fb2e5474ba7e539902493a3be",
+      "path": ".work/14/14zw/pre-push-invalid-text.log"
+    }
+  }
 }

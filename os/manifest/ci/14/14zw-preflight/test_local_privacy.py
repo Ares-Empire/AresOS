@@ -39,12 +39,21 @@ class PrivacyTest(unittest.TestCase):
                 with self.assertRaises(AssertionError):p.verify(valid,H)
 
     def test_standard_input_round_trips_real_bash_four_fields(self):
-        result=subprocess.run([p.BASH,'--noprofile','--norc','-c',
+        result=p.run_with_lf([p.BASH,'--noprofile','--norc','-c',
             'read -r local_ref local_sha remote_ref remote_sha extra; test -z "$extra" || exit 1; printf "%s\\n" "$local_ref" "$local_sha" "$remote_ref" "$remote_sha"'],
-            input=p.standard_input(H,R),capture_output=True,text=True)
+            p.standard_input(H,R))
         self.assertEqual(result.returncode,0)
         self.assertEqual(result.stdout.splitlines(),['refs/heads/pkg/14-owner-tools',H,'refs/heads/pkg/14-owner-tools',R])
         self.assertEqual(result.stderr,'')
+
+    def test_actual_invocation_preserves_lf_and_bash_valid_sha_where_text_mode_does_not(self):
+        command=[p.BASH,'--noprofile','--norc','-c',
+            'read -r a local_sha b remote_sha extra; [[ "$local_sha" =~ ^[0-9a-f]{40}$ && "$remote_sha" =~ ^[0-9a-f]{40}$ && -z "$extra" ]] || exit 73']
+        data=p.standard_input(H,R)
+        old=subprocess.run(command,input=data,capture_output=True,text=True)
+        self.assertEqual(old.returncode,73)
+        actual=p.run_with_lf(command,data)
+        self.assertEqual((actual.returncode,actual.stdout,actual.stderr),(0,'',''))
 
     def test_failed_privacy_prevents_dispatch_without_github_privacy_lookup(self):
         spec=importlib.util.spec_from_file_location('control',WORK/'14zw-control.py')
