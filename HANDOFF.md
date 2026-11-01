@@ -36,8 +36,15 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
     3. resumable install/prepare
     4. STOP diagnostics left out of the export
     5. stale status lines
-- **14zzc** (running; log `../AresOS-14zzc.log`, summary `../AresOS-14zzc.last.md`) fixes all five, then pushes once and runs probe 32 and qualification 21. These are the last dispatch allowances, and the step may grow to 200/240 if timings need it.
-  - Then the reviewer re-checks only the fixes. Then the owner's "merge", then package 15.
+- **14zzc** implemented all five fixes and pushed `b15d52f`. The new bootstrap fingerprint is `3e2c78eb…`. A layout trial now changes only the runtime map, and `layout abandon` was added. The qualification gained a mid-trial `system_reset` stage.
+  - Probe 32 FAILED in its native suite: test fixtures copied a source tree that contained CI-written `__pycache__`. Production is unaffected (`-I -B`, read-only stick).
+  - Package ledger: 2310/2750 minutes.
+- **14zzd** (running; log `../AresOS-14zzd.log`, summary `../AresOS-14zzd.last.md`):
+  - build fixtures from the manifest
+  - probe cap 34
+  - one push
+  - probe 33 and qualification 21
+  - Then the reviewer re-checks only the fixes, then the owner's "merge", then package 15.
 
 ### Package 14: owner tools (PR #13, draft)
 
