@@ -28,6 +28,7 @@ RUN_HISTORY_PATH = f'actions/runs?branch={BRANCH}&per_page=100'
 HISTORY_PAGE_LIMIT = 20
 PUBLISH_STEP = 'Publish the tested private release and sign with GitHub OIDC'
 NATIVE_STEP = 'Qualify tools, regressions, rewritten release identity and private access'
+ACCOUNTING_POLICY = '14zz-job-interval-ordered-span-full-bound-v1'
 
 
 def configure(package):
@@ -144,12 +145,93 @@ def run_history():
     raise AssertionError('STOP: history page limit reached before completeness')
 
 
-def job_minutes(job):
-    if job['conclusion'] == 'skipped':
-        return 0
-    start = datetime.datetime.fromisoformat(job['started_at'].replace('Z', '+00:00'))
-    end = datetime.datetime.fromisoformat(job['completed_at'].replace('Z', '+00:00'))
-    return max(1, math.ceil((end - start).total_seconds() / 60))
+def job_accounting(job, full_bound=None):
+    """Use an enclosing interval, an ordered supported span, or the full bound."""
+    evidence = dict(job=job.get('id'), name=job.get('name'),
+        response_sha256=hashlib.sha256(json.dumps(job, sort_keys=True).encode()).hexdigest())
+    if job.get('conclusion') == 'skipped':
+        return dict(evidence, minutes=0, rule='skipped')
+
+    def stamp(value):
+        if not isinstance(value, str): return None
+        try: parsed = datetime.datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except ValueError: return None
+        return parsed.astimezone(datetime.timezone.utc) if parsed.tzinfo is not None else None
+
+    def bound(reason):
+        assert type(full_bound) is int and full_bound > 0, 'STOP: no approved full bound for unaccountable job'
+        return dict(evidence, minutes=full_bound, rule='full-bound', reason=reason, full_bound=full_bound)
+
+    steps = job.get('steps')
+    if not isinstance(steps, list) or not steps:
+        return bound('missing steps')
+    pairs = [(stamp(s.get('started_at')), stamp(s.get('completed_at')))
+             if isinstance(s, dict) else (None, None) for s in steps]
+    if any(a is None or b is None or a > b for a, b in pairs):
+        return bound('missing or unordered step interval')
+    if any(pairs[i][0] < pairs[i-1][1] for i in range(1, len(pairs))):
+        return bound('unordered steps')
+    start, end = stamp(job.get('started_at')), stamp(job.get('completed_at'))
+    normal = start is not None and end is not None and start <= end and all(
+        start <= a <= b <= end for a, b in pairs)
+    if normal:
+        first, last, rule = start, end, 'job-interval'
+    else:
+        last = max(value for value in (end, pairs[-1][1]) if value is not None)
+        starts = [value for value in (start, pairs[0][0]) if value is not None and value <= last]
+        if not starts: return bound('no ordered span')
+        first, rule = min(starts), 'ordered-span'
+    seconds = (last-first).total_seconds()
+    assert seconds >= 0, 'STOP: inconsistent selected accounting interval'
+    minutes = math.ceil(seconds / 60)
+    # A valid zero-second job still consumes GitHub's minimum billed minute.
+    return dict(evidence, minutes=minutes if minutes else 1, rule=rule,
+        selected_start=first.isoformat(), selected_completion=last.isoformat(),
+        seconds=seconds, step_count=len(steps), full_bound=full_bound)
+
+
+def job_minutes(job, full_bound=None):
+    return job_accounting(job, full_bound)['minutes']
+
+
+def ledger_organization_check(ledger, organization, previous):
+    """Compare against a saved checkpoint already recomputed under this policy."""
+    assert isinstance(previous, dict) and set(previous) == {'authorization','dispatched_run'}, 'STOP: missing previous-dispatch checkpoint'
+    old, dispatched = previous['authorization'], previous['dispatched_run']
+    assert isinstance(old, dict) and old.get('allowance') == ledger['allowance'] == '14' and old.get('start') == ledger['start'], 'STOP: wrong previous package checkpoint'
+    assert old.get('accounting_policy') == ledger.get('accounting_policy') == ACCOUNTING_POLICY, 'STOP: previous checkpoint must be recomputed under the current accounting policy'
+    for value in (old, ledger):
+        proof = value.get('history')
+        assert isinstance(proof,dict) and proof.get('complete') is True and proof.get('ids_count') == proof.get('total_count'), 'STOP: incomplete comparison history'
+    assert type(dispatched) is int and dispatched > 0, 'STOP: missing previous dispatch id'
+    current = {row['run']: row for row in ledger['runs']}
+    before = {row['run']: row for row in old['runs']}
+    assert len(current)==len(ledger['runs']) and len(before)==len(old['runs']), 'STOP: duplicate comparison run'
+    assert before.keys() <= current.keys() and dispatched in current and dispatched not in before, 'STOP: previous dispatch run set is inconsistent'
+    deltas = {kind:ledger['dispatch_counts'][kind]-old['dispatch_counts'][kind] for kind in ledger['dispatch_counts']}
+    assert all(type(n) is int and n >= 0 for n in deltas.values()) and sum(deltas.values())==1, 'STOP: checkpoint is not immediately before the previous dispatch'
+    kind, = [kind for kind,n in deltas.items() if n==1]
+    assert current[dispatched]['title'] == SETTINGS['titles'][kind], 'STOP: previous dispatch kind mismatch'
+    prior_org = old.get('organization_budget')
+    assert isinstance(prior_org,dict) and prior_org.get('source') == organization['source'], 'STOP: billing comparison period or organization differs'
+    for value in (prior_org,organization):
+        assert type(value.get('used_minutes')) is int and value['used_minutes']>=0, 'STOP: invalid comparison usage'
+    assert datetime.datetime.fromisoformat(prior_org['checked_at']) <= datetime.datetime.fromisoformat(organization['checked_at']), 'STOP: reversed billing observations'
+    # Do not reprice the baseline using current responses: that would erase a
+    # later charge reduction and defeat the organization's undercount check.
+    saved_before = sum(row['minutes'] for row in before.values())
+    assert type(old.get('consumed_minutes')) is int and saved_before == old['consumed_minutes'], 'STOP: previous checkpoint total differs from its run charges'
+    assert sum(row['minutes'] for row in current.values()) == ledger['consumed_minutes'], 'STOP: current ledger total differs from its run charges'
+    increase = ledger['consumed_minutes'] - saved_before
+    org_increase = organization['used_minutes'] - prior_org['used_minutes']
+    assert increase >= 0 and org_increase >= 0, 'STOP: comparison usage decreased'
+    assert org_increase-increase <= 5, 'STOP: package ledger increase is more than 5 minutes below organization increase'
+    return dict(status='passed', previous_dispatch=dispatched,
+        previous_observed_at=prior_org['checked_at'], current_observed_at=organization['checked_at'],
+        previous_recorded_minutes=old.get('legacy_recorded_minutes',old['consumed_minutes']), recomputed_previous_minutes=saved_before,
+        current_minutes=ledger['consumed_minutes'], package_increase=increase,
+        organization_increase=org_increase, undercount_tolerance_minutes=5,
+        previous_run_count=len(before), previous_run_ids_sha256=hashlib.sha256(json.dumps(sorted(before)).encode()).hexdigest())
 
 
 def organization_budget(reserve, now=None):
@@ -287,8 +369,13 @@ def budget(reserve, current=None):
                     if step['name'] == PUBLISH_STEP and step['conclusion'] != 'skipped':
                         assert step['status'] == 'completed', 'STOP: publish outcome is not settled'
                         publishes.append(dict(run=run['id'], conclusion=step['conclusion']))
+        bound = None
+        if PACKAGE=='14' and run['event']=='workflow_dispatch':
+            bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else 160
+        accounts = [job_accounting(job, bound) for job in jobs]
         records.append(dict(run=run['id'], title=run['display_title'], sha=run['head_sha'],
-                            conclusion=run['conclusion'], minutes=sum(job_minutes(job) for job in jobs)))
+                            conclusion=run['conclusion'], minutes=sum(row['minutes'] for row in accounts),
+                            jobs=accounts))
     consumed = sum(record['minutes'] for record in records)
     assert consumed + reserve <= MINUTE_CAP, f'STOP: {consumed} + {reserve} reserved exceeds {MINUTE_CAP} minutes'
     assert full <= FULL_CAP, 'STOP: full-run allowance exhausted'
@@ -301,7 +388,7 @@ def budget(reserve, current=None):
                 dispatch_caps=SETTINGS.get('dispatch_caps', {}), dispatch_counts=counts,
                 consumed_minutes=consumed, reserved_minutes=reserve, runs=records,
                 publish_cap=SETTINGS.get('publish_cap', 0), publish_attempts=publishes,
-                history=listing.get('history'))
+                history=listing.get('history'),accounting_policy=ACCOUNTING_POLICY)
 
 
 def require_probe(run, sha):
@@ -441,6 +528,15 @@ def main():
         result['probe'] = proof
     if PACKAGE in ('13', '14') and not ci:
         result['organization_budget'] = organization_budget(reserve)
+        if PACKAGE == '14':
+            previous = os.environ.get('REHEARSAL_PREVIOUS_DISPATCH')
+            assert previous, 'STOP: previous-dispatch checkpoint required'
+            previous = pathlib.Path(previous).resolve()
+            assert previous.is_file() and previous.is_relative_to(pathlib.Path.cwd().resolve()), 'STOP: previous checkpoint outside worktree'
+            raw = previous.read_bytes()
+            result['organization_ledger_comparison'] = dict(
+                checkpoint_sha256=hashlib.sha256(raw).hexdigest(),
+                **ledger_organization_check(result,result['organization_budget'],json.loads(raw)))
     result['read_retries'] = list(READ_RETRIES)
     directory = pathlib.Path('evidence' if ci else '.work/' + PACKAGE)
     directory.mkdir(parents=True, exist_ok=True)

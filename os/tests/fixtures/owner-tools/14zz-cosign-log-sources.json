@@ -1,0 +1,22 @@
+{
+  "run": 41290621860,
+  "fixtures": [
+    {
+      "sha256": "a1829d50b4b19def3efd5b7b8b1b39429096e5a7432416fe4f915c6983fa9572",
+      "retained_sha256": "2a1637c9b7e22291528d4cdb807410c7a96d7239b1ba3a0d57cf86ea3ef7d32b",
+      "path": "os/tests/fixtures/owner-tools/cosign-step.template",
+      "source_path": ".work/14/14zy/logs-41290621860/Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt",
+      "first_source_line": 1,
+      "last_source_line": null
+    },
+    {
+      "sha256": "1b406c6a5cf55dfe57d8a359074846a610225a3d38d91f6c5a748a38ec24ceda",
+      "retained_sha256": "a40f25cb70bd67b72debd0f17c718c427324c1ead68362c16ba564a0be59c049",
+      "path": "os/tests/fixtures/owner-tools/cosign-combined.template",
+      "source_path": ".work/14/14zy/logs-41290621860/0_Pinned live ISO inspection and two-disk rehearsal.txt",
+      "first_source_line": 4299,
+      "last_source_line": 4573
+    }
+  ],
+  "substitution": "Only approved public checksum literals replaced with @SHA0@/@SHA1@; tests restore from byte-exact pinned source manifest"
+}

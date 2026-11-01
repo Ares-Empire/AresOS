@@ -12,7 +12,7 @@
     "minute_cap": 2750,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"probe": 30, "owner-tools": 19},
+    "dispatch_caps": {"probe": 32, "owner-tools": 21},
     "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 150},
     "push_privacy_reservation": {
       "minutes": 0,

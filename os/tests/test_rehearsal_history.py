@@ -48,7 +48,8 @@ class HistoryTest(unittest.TestCase):
 
     def test_real_11l_boundary_now_counts_the_allowance_run_only_on_page_two(self):
         requested = []
-        job = dict(conclusion='success', started_at=guard.START, completed_at='2026-10-23T16:22:00Z')
+        job = dict(conclusion='success', started_at=guard.START, completed_at='2026-10-23T16:22:00Z',
+                   steps=[dict(name='Run fixture task',started_at=guard.START,completed_at='2026-10-23T16:22:00Z')])
         def get(command, **kwargs):
             path = command[-1]; requested.append(path)
             if path.endswith('&page=1'): return self.first

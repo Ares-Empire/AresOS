@@ -44,7 +44,8 @@ class BudgetTest(unittest.TestCase):
                         created_at=date, status=status)
         runs = [run(1, 'privacy-check'), run(2, 'privacy-check'), run(3, 'Two-disk rehearsal (probe)'),
                 run(4, 'Two-disk rehearsal (full)', '2026-10-22T23:00:00Z')]
-        job = dict(conclusion='success', started_at='2026-10-23T16:21:00Z', completed_at='2026-10-23T16:22:01Z')
+        job = dict(conclusion='success', started_at='2026-10-23T16:21:00Z', completed_at='2026-10-23T16:22:01Z',
+                   steps=[dict(name='Run fixture task',started_at='2026-10-23T16:21:00Z',completed_at='2026-10-23T16:22:01Z')])
         def api(path):
             if path.startswith('actions/runs?'):
                 self.assertNotIn('workflow_dispatch', path)

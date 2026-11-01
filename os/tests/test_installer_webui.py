@@ -107,7 +107,8 @@ class ProbeAuthorizationTest(unittest.TestCase):
                 require_probe(wrong, 'a' * 40)
 
     def test_minute_ledger_rounds_each_executed_job_up(self):
-        job = dict(conclusion='success', started_at='2026-10-22T23:40:00Z', completed_at='2026-10-22T23:41:01Z')
+        job = dict(conclusion='success', started_at='2026-10-22T23:40:00Z', completed_at='2026-10-22T23:41:01Z',
+                   steps=[dict(started_at='2026-10-22T23:40:00Z',completed_at='2026-10-22T23:41:01Z')])
         self.assertEqual(job_minutes(job), 2)
         job['conclusion'] = 'skipped'
         self.assertEqual(job_minutes(job), 0)
