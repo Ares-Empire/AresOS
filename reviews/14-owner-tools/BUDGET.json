@@ -11,12 +11,26 @@
     "owner-tools": 19
   },
   "dispatch_counts": {
-    "probe": 26,
-    "owner-tools": 15
+    "probe": 27,
+    "owner-tools": 16
   },
-  "consumed_minutes": 1718,
+  "consumed_minutes": 1832,
   "reserved_minutes": 0,
   "runs": [
+    {
+      "run": 41266663581,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "75a2c638cecff042b528eb07e3089eda9129de02",
+      "conclusion": "failure",
+      "minutes": 88
+    },
+    {
+      "run": 41264222963,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "75a2c638cecff042b528eb07e3089eda9129de02",
+      "conclusion": "success",
+      "minutes": 26
+    },
     {
       "run": 41257409190,
       "title": "14zv: bind November verification and single-round dispatch gates",
@@ -905,25 +919,27 @@
   "history": {
     "complete": true,
     "pages_read": 2,
-    "ids_count": 143,
-    "total_count": 143,
+    "ids_count": 145,
+    "total_count": 145,
     "page_limit": 20,
     "snapshot_reads": 1,
     "pages": [
       {
+        "ids_sha256": "81297949c1b03fae2334d27a14acde6f3b6c6b8e03fc016184fc80e5c333b57c",
         "page": 1,
         "returned": 100,
-        "total_count": 143,
-        "ids_sha256": "4589be94a8be1ab3272a317dcb351ceeb8f95ec0806c07eaa42682ff2091b253"
+        "total_count": 145
       },
       {
+        "ids_sha256": "9d9556194bde117f385e700fe590bbcdbfd0a472e0493f0963fb38530ecc7ba5",
         "page": 2,
-        "returned": 43,
-        "total_count": 143,
-        "ids_sha256": "701374a6f800a34e9709edd60f46e99de4606b9783659c1ca7b88a473addd5ae"
+        "returned": 45,
+        "total_count": 145
       }
     ],
     "run_ids": [
+      41266663581,
+      41264222963,
       41257409190,
       40897501964,
       40892685683,
@@ -1069,68 +1085,97 @@
       40216222435
     ]
   },
-  "status": "STOP before probe27: PR privacy absent; push personal-term check skipped",
+  "status": "STOP qualification16: harness collapsed us-intl to us for the public physical typer",
   "acceptance_met": false,
   "pushes_this_followup": 1,
-  "dispatches_this_followup": 0,
+  "dispatches_this_followup": 2,
   "reruns_this_followup": 0,
   "reserve": 150,
-  "closing_reservation": 12,
+  "closing_reservation": 0,
+  "push_reservation": 0,
+  "reservation_decision": "briefs/14zw-local-privacy.md",
+  "reservation_plan": {
+    "push": 0,
+    "probe": 72,
+    "qualification": 160,
+    "closing_privacy": 0,
+    "pre_push": 232,
+    "before_probe": 232,
+    "before_qualification": 160,
+    "decision": "briefs/14zw-local-privacy.md",
+    "exception_month": null,
+    "merge_requires_privacy": true,
+    "privacy_proof": "aresync-local-pre-push",
+    "github_privacy_runs_required": false
+  },
   "organization_budget_snapshot": {
+    "response_sha256": "fc46ccdb7cb2ac7d6308dc5e6d19bb722a2da24d9d92a234deb3d570dfd64912",
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=11",
-    "checked_at": "2026-11-01T00:43:54.073271+00:00",
-    "response_sha256": "9bae4c9b11fcbf01e1ed3f98f3ced990ca8f60e1a05bd1a609e986f9a0167b0a",
+    "checked_at": "2026-11-01T04:19:07.437597+00:00",
     "usage": [
       {
         "sku": "actions_linux",
         "unit": "minutes",
-        "grossQuantity": 6.0,
-        "discountQuantity": 6.0,
+        "grossQuantity": 121.0,
+        "discountQuantity": 121.0,
         "netQuantity": 0.0,
-        "grossAmount": 0.036,
-        "discountAmount": 0.036,
+        "grossAmount": 0.726,
+        "discountAmount": 0.726,
         "netAmount": 0.0
       },
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 0.101865188,
-        "discountQuantity": 0.101865188,
+        "grossQuantity": 0.722642093,
+        "discountQuantity": 0.722642093,
         "netQuantity": 0.0,
-        "grossAmount": 3.4228e-05,
-        "discountAmount": 3.4228e-05,
+        "grossAmount": 0.000242817,
+        "discountAmount": 0.000242817,
         "netAmount": 0.0
       }
     ],
-    "used_minutes": 6,
+    "used_minutes": 121,
     "included_minutes": 2000,
-    "included_minutes_left": 1994,
+    "included_minutes_left": 1879,
     "paid_overflow": null,
     "billing_mode": "free-minutes-only",
     "paid_budget_read": false,
-    "remaining_minutes": 1994,
+    "remaining_minutes": 1879,
     "reserved_minutes": 0,
-    "after_reservation": 1994,
+    "after_reservation": 1879,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   },
-  "pushed_head": "becfb2221ce0436e97ed117bd7be1028ad3e7648",
-  "privacy_push": 41257409190,
+  "pushed_head": "75a2c638cecff042b528eb07e3089eda9129de02",
+  "privacy_push": null,
   "privacy_pr": null,
-  "probe27": null,
-  "qualification16": null,
+  "privacy_proof": "aresync-local-pre-push",
+  "local_hook_exit_code": 0,
+  "personal_terms_skipped_warning_absent": true,
+  "probe27": 41264222963,
+  "qualification16": 41266663581,
   "previous_round": {
-    "probe26": 40892685683,
-    "qualification15": 40897501964,
-    "status": "STOP after passed corrected-stock records; physical prompt-readiness deadline after two authorized Enter resyncs"
+    "brief": "14zv",
+    "status": "STOP before probe27: PR privacy absent; push personal-term check skipped",
+    "head": "becfb2221ce0436e97ed117bd7be1028ad3e7648",
+    "privacy_push": 41257409190,
+    "consumed_minutes": 1718,
+    "dispatches": 0
   },
   "november_starting_ledger": 1715,
   "november_starting_counts": {
     "probe": 26,
     "owner-tools": 15
   },
-  "reservation_restored_by": "briefs/14zv-november-round.md",
+  "this_round_starting_ledger": 1718,
+  "this_round_starting_counts": {
+    "probe": 26,
+    "owner-tools": 15
+  },
   "report_commit_local_only": true,
-  "acceptance_evidence_unchanged": true
+  "acceptance_evidence_unchanged": false,
+  "no_further_push": true,
+  "qualification_failure": "test harness three-layout adapter; no product fix implemented",
+  "closing_checked_at": "2026-11-01T04:19:07.997687+00:00"
 }

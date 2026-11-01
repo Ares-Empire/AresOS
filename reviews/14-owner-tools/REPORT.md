@@ -1,5 +1,231 @@
 # 14: checked owner tools
 
+## 14zw REPORT — local privacy proof; probe 27 passes, qualification 16 STOPs
+
+**Disposition:** One fast-forward push through the installed privacy hook to
+`75a2c638cecff042b528eb07e3089eda9129de02`. [Probe 27](https://github.com/Ares-Empire/AresOS/actions/runs/41264222963)
+completed **success**; [qualification 16](https://github.com/Ares-Empire/AresOS/actions/runs/41266663581)
+completed **failure** on that same head, attempt 1 each. Both were watched to
+completion and their diagnostics exported. No rerun or second push. Acceptance
+is **not met**; PR #13 stays draft. This report and closing ledger are committed
+**locally only**, as 14zv/14zw require. No merge.
+
+### Done
+
+- Merge `9ad1a74` joins local brief `38ad8e6` with `origin/main`
+  `1ac978644ea40182856a653aa5a767088e2b360b` (the HANDOFF-only child of
+  `fabd476`). `HANDOFF.md` and `STATE.md` equal that main parent's versions.
+  Main's deleted GitHub privacy workflow stays deleted. No rebase or force push.
+- Guard commit `6c3b70b` adopts aresync local privacy proof and explicit package
+  14 push/closing reservations of **0**, each bound to this brief. Organization
+  reserve **150**, probe/qualification bounds **72/160**, cap **2750**, and caps
+  **30 probes / 19 owner-tools** stay set. Package 13 and 11c settings are
+  unchanged. Historical October/November tests remain on fixed dates.
+- Preflight `2c12f71` binds 146 sources and 17 local controls. `75a2c63` corrects
+  only the local manual checker's Windows stdin framing (described below).
+  No owner payload, frozen runtime, release, image, keyboard map, physical
+  typing helper or VM harness implementation was changed in 14zw.
+
+### Proven qualification STOP, from actual retained output
+
+At `2026-11-01T04:16:01Z`, after the `aresos-intl` protected-disk capture, the
+actual traceback runs `owner_vm.public_typing:808` →
+`keyboard_vm.physical_input:114` → `owner_vm.type_text:53` →
+`owner_keys.physical_keys:64`, raising **Unknown or untypeable physical
+character**. The first call converts every profile except German to `us`:
+`'de' if profile == 'de' else 'us'`. At this stage the actual profile is
+`us-intl`. The test text is `yz-/!ü`; U+00FC (`ü`) deliberately has no plain-US
+physical mapping. Reading the unchanged pinned maps confirms that US
+International maps it to `alt_r` + `y`. `type_text` receives the explicit
+incorrect `us` argument, overriding the guest's correct `us-intl` profile.
+The analogous `foot` call at line 810 has the same collapse, but was not reached.
+
+The retained `aresos-intl-loaded-keyboard.json` shows `KEYMAP=us-intl`, X11
+layout `us`, variant `intl`, and matching localed values; no forced vconsole
+cmdline override. Actual tty3 login passed once in **9.003s** of a 30-second
+half-timeout budget, with zero reader replacements and `secret_tainted=false`.
+Account-login and password-sudo completion receipts passed. Owner `check`,
+`layout proof` and `layout finish` records passed; the last explicitly asks for
+post-boot console and labwc physical typing, which this harness then failed
+to complete. These records do not establish full qualification acceptance.
+
+**Classification:** a harness layout-adapter/console-test bug. This assertion
+does not implicate an owner-tool refusal, a wrong installed layout or dropped
+PS/2 key events. The retained run proves the failing call and stage; the pure
+map lookup only explains the deterministic refusal. Source inspection also
+shows the local stand-in walk replaces `public_typing` (`test_owner_walk.py`,
+lines 234/273), so it never exercised the real helper/profile handoff. That is
+a coverage gap, not actual VM success. No fix has been implemented after STOP.
+
+[Qualification diagnosis](../../os/manifest/ci/14/14zw-round/qualification-stop.json)
+binds the real log, loaded map and completion records. Raw logs, VCSA,
+screenshots, private artifacts and ISO file listing stay uncommitted under
+`.work/14/run-41266663581/`; the artifact ZIP binds all 2,068 members.
+
+### Verified
+
+- Local guard suites: **51 tests / 0.975s, PASS, zero skips**. Local privacy
+  checks: **7 / 0.173s, PASS**; dispatch control **6 / 0.006s, PASS**, diagnostic
+  exporter **2 / 0.006s, PASS**. No live API calls in these unit tests.
+- `.work/14/14zw/whole.py` ran the whole local suite twice. Initial:
+  **569 tests / 1535.101s, 559 distinct passes, nine documented host limits,
+  zero skips, one metadata-order failure**. Two old 14zv warning records had
+  paths before hashes; reordered only those keys, preserved all JSON values,
+  refreshed their manifest, and passed the unchanged regression. Full second:
+  **569 / 1600.079s, 560 distinct passes, the same nine host limits, zero skips,
+  zero new failures**. The nine remain three PIL tests, three inherited-Homebrew
+  privilege/ACL tests, credential filesystem-mode, sysusers privilege and 14zm
+  host timing. The unchanged 30-second test took **72.34734368800014s** and
+  **79.63881609000009s** locally; no bound/test/skip/environment change. This
+  local whole suite is not reported as fully green.
+- Actual release/git/read-only GitHub binding and **53 pinned sources** replayed
+  on the final head before each dispatch. Four CI-only package/registry/digest/
+  signature/pull credential checks remained fail-closed in CI; both native jobs
+  passed. No credential scope or owner-secret use was added.
+- Actual ISO replay before each dispatch passed on the first actual attempt:
+  **9,068,650,496 bytes**, pin and fresh official checksum equal, four
+  localization and 102 WebUI sources. Linux CI behavior unchanged. Only two
+  completed, SHA-verified duplicate 14zv cache files were reclaimed inside this
+  worktree; canonical/master data and results remained intact.
+- Stand-in walk: eight stages, **23 hidden-input pairs, three handoffs,
+  133 fresh-authorized resyncs, 86 health boundaries, 940 commands**; probe adds
+  six commands. Strict real Bash: **946 guest scripts and 946 serial wrappers**,
+  808 embedded Python programs, 12 shell and 51 Python files, plus native shell
+  body; parse stderr refuses. Fresh replay/strict checks preceded each dispatch.
+  These syntax/control-path checks did not cover the adapter defect above.
+- Probe's actual native suite: **569 / 172.805s, PASS, zero skips**; qualification
+  native suite: **569 / 125.363s, PASS, zero skips**. The exact mandatory
+  30-second timing case passed natively in both, with no local exception applied.
+  Probe native loop/helper checks: **20**, zero helper mutations, protected
+  fixture unchanged, mounts/loops cleaned. Probe guest has **37** SHA/syntax
+  verified tmpfs transfers, one actual AT keyboard record with 57 mappings,
+  and seven healthy counts-only xHCI checkpoints.
+- Through the qualification STOP, independent raw replay passes **11 protected
+  captures** equal to baseline, **12 zero-write/unmap samples**, **11 raw
+  varstore/BootNext replays** and **10 exact NVRAM/all-variable delta replays**.
+  Six actual boots identify the AT Translated Set 2 keyboard, bus 17, 57 mappings
+  each; all **71** counts-only xHCI checkpoints report no stop. Probe separately
+  passes 3 protected captures, 4 zero-write/unmap samples, 3 varstore/BootNext
+  and 2 NVRAM/all-variable delta replays. These audits cover only reached stages.
+- `git diff --check`, unchanged hash-order regression and pinned closing
+  full-history/all-pending scans are required before this local report commit;
+  final receipts are in the round manifest. No Mod/game tests or Gradle daemon
+  were started for this OS-only work.
+
+[Bound local preparation](../../os/manifest/ci/14/14zw-preflight/preparation.json),
+[probe review](../../os/manifest/ci/14/14zw-round/probe.json) and
+[retained-file bindings](../../os/manifest/ci/14/14zw-round/retained-files.json)
+preserve the evidence without committing raw private output.
+
+### Privacy proof and artifact review
+
+Before the actual push, the exact six-commit range from `becfb22` to `75a2c63`
+was checked with standard four-field full-ref stdin by the installed aresync
+checker. **Exit 0**, hook-selected gitleaks **8.30.1**, no “personal terms check
+skipped” warning. The sole actual `git push origin
+refs/heads/pkg/14-owner-tools:refs/heads/pkg/14-owner-tools` also returned 0
+through the unchanged installed hook, without `--no-verify` or hooksPath
+override. Terms were read only by aresync, not recorded or printed by the agent.
+Separate pinned **8.21.2** full-history/pending/committed-head scans were zero.
+
+An initial manual invocation, before any Git push, rejected malformed stdin:
+Windows text-mode piping added CRLF, making the remote SHA 41 characters.
+Real Bash reproduces old framing rejection and corrected binary-LF acceptance.
+Only the local manual wrapper changed, with a regression; installed hook,
+checker, terms, rules and ignores did not. This was a zero-cost local setup
+failure under 14zd, not a finding or actual push-hook refusal. Both successful
+manual and actual checks emitted one nonfatal awk multibyte warning, retained
+privately; exit 0 and the required skipped-terms-warning absence are recorded.
+No privacy failure was waived. Pushes now start no workflow; branch history
+stayed at 143 until the probe dispatch. Local proof is bound to the pushed head.
+
+Probe artifact: **509 findings = 507 reviewed public ISO filenames + two public
+kernel certificate lines**. Qualification artifact: **521 = 507 + fourteen**.
+Every matched source line was exactly the previously approved whole kernel
+`[timestamp] Loaded X.509 cert '<name>: <40 hex>'` class, in captured boot
+consoles. No other class occurred. Native logs and the failure log scan zero.
+No new ignores/rules/allowlists or privacy workflow changes. These line hashes
+identify each occurrence (not secret values); paths are private artifact members:
+
+| Run | Matched-line SHA256 | Member and line | Public certificate label |
+| --- | --- | --- | --- |
+| probe27 | `eb024f15a7d3286eb67a6f7be7764d7f1b29cd1ce77a8534ec94b4c653e28785` | `evidence/two-disk/live-ui-probe-boot-console.txt:491` | Fedora kernel signing key |
+| probe27 | `fa18da12ea089e3840b553efa8fed995f549764346517c4f1f3413128e9a5eee` | `evidence/two-disk/live-ui-probe-boot-console.txt:517` | Fedora kernel signing key |
+| qualification16 | `d9de19b657e76122a4b8ed0f94abd3691fcf2384b3df7443207911a415743203` | `evidence/two-disk/aresos-boot-console.txt:502` | Build time autogenerated kernel key |
+| qualification16 | `4f6b396b8fe1102bf4ebc34e0fd61bb25d6ed843d7381235ef532402594ab5d5` | `evidence/two-disk/aresos-boot-console.txt:512` | Build time autogenerated kernel key |
+| qualification16 | `aaa06fab271645ca376bcfa3e86a21c91473ba771a1833b29a8c148b8e77eea1` | `evidence/two-disk/aresos-intl-boot-console.txt:502` | Build time autogenerated kernel key |
+| qualification16 | `ffb1ec33f2c9c73a1be2e71a3c4c07fd89ec0dfa61fc9eeb158227cceed6e124` | `evidence/two-disk/aresos-intl-boot-console.txt:512` | Build time autogenerated kernel key |
+| qualification16 | `f3318663d56f79f04ac374bef9377680c345766324d0e98040813285900a909b` | `evidence/two-disk/corrected-stock-boot-console.txt:502` | Build time autogenerated kernel key |
+| qualification16 | `bdbe231144d71978a60cc0aee18210e3f59c74f5054dbbab083ba16055cd0dc8` | `evidence/two-disk/corrected-stock-boot-console.txt:512` | Build time autogenerated kernel key |
+| qualification16 | `8381bfc312d2af54a025584719e51645e875e1b28d4b82197937e1bb5cd652bd` | `evidence/two-disk/offline-first-stock-boot-console.txt:502` | Build time autogenerated kernel key |
+| qualification16 | `3eb6f65abbdaeb7809ca168c2749329f7142010a5d8dbb77f6d293c3a9426470` | `evidence/two-disk/offline-first-stock-boot-console.txt:512` | Build time autogenerated kernel key |
+| qualification16 | `2773367107d11a15cd057029625a57b645a643f0acbece1b68e71216f4ec3d8f` | `evidence/two-disk/protected-second-install-boot-console.txt:495` | Fedora kernel signing key |
+| qualification16 | `19a55db5027ed70e34be9017d1058c61a589f031bb0e2d1b1f10b6d22bb93d52` | `evidence/two-disk/protected-second-install-boot-console.txt:520` | Fedora kernel signing key |
+| qualification16 | `9fa43e0d682e9380aa1fc68c10fa869bf245b93fdad938f6e73fefe7c243fc2b` | `evidence/two-disk/stock-initialization-0-boot-console.txt:502` | Build time autogenerated kernel key |
+| qualification16 | `80bb8fb4f069818b77d6b9af4966252abe6adf0ce97080442f8ef89d73ae3c3a` | `evidence/two-disk/stock-initialization-0-boot-console.txt:512` | Build time autogenerated kernel key |
+| qualification16 | `8c8d6d22256614ed8e1f08b178bd6108e6f6580c0821933f0156bee0c6f89ef1` | `evidence/two-disk/tools-stock-boot-console.txt:502` | Build time autogenerated kernel key |
+| qualification16 | `d4fef9730e825a1fe798ec7adb4163a736db1ad0fbb8ccb06d78aeea0f43ce91` | `evidence/two-disk/tools-stock-boot-console.txt:512` | Build time autogenerated kernel key |
+
+[Privacy proof](../../os/manifest/ci/14/14zw-round/privacy.json) and
+[artifact classification](../../os/manifest/ci/14/14zw-round/artifact-privacy.json)
+retain the per-line decisions. The raw 507-line-class findings and ISO listing
+are never committed.
+
+### Ledger / November billing
+
+Before probe: **143/143** complete history, **1718 + 232 / 2750**, counts 26/15;
+org free **1993**, after the 232 bound **1761**, above the 150 reserve.
+Before qualification: **144/144**, **1744 + 160 / 2750**, counts 27/15;
+org free **1967**, after 160 **1807**. Fresh hook proof, ledger and billing
+passed immediately before each dispatch. No live operation preceded 00:05 UTC.
+
+Closing at `2026-11-01T04:19:07Z`: **145/145 history entries**, two complete
+pages, **1832/2750 package minutes**, **27/30 probes, 16/19 qualifications**.
+Probe cost **26**, qualification **88**, total this round **114**; one push,
+two dispatches, zero reruns. November summary: **121 used / 1879 included
+minutes left**, Actions-minute net quantity and amount both zero.
+`paid_budget_read=false`, `paid_overflow=null`: no budget API read and no paid
+allowance counted. Owner's $0/stop-usage setting is the owner's statement,
+not a fresh budget-API claim. Reserve **150**, push and closing **0** remain
+explicitly bound to 14zw; no restoration to 12 is appropriate under this brief.
+
+### Not verified / acceptance
+
+Full post-boot US International console and foot typing, return to German,
+rollback, keep-stock and final unattended/detached Windows checks **were not
+completed**. The result file for complete qualification and all later stage
+prefixes are absent. Earlier reached Windows/audit checkpoints are not a
+substitute for final Windows acceptance. Physical laptop, battery, forgotten
+stick, NVIDIA deferred-work behavior, live KDE/KWrite and novice followability
+remain physical gates. INSTALL/EMERGENCY/release gate remain NOT RELEASED.
+
+No harness/product/owner-script fix followed STOP. No image build, publication,
+visibility change, credential-scope change, real laptop operation, other
+worktree or real Minecraft access. Payload fingerprint stays
+`320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6`.
+
+### PLAN-GAP / proposed follow-up only
+
+First repair and exercise **all three-layout helper handoffs** in a future
+authorized round, retaining the unknown-character refusal. For remaining
+non-typing rollback/keep-stock/title/reboot/final-Windows stages, propose the
+existing SHA-framed serial command runner with the same owner commands and
+all disk/NVRAM/BootNext/hotplug guards. Physical US International login/typing
+and return-to-German tests must remain. Direct serial-root invocation would
+fail the owner's physical-logind-session guard: an approved harness adapter
+must preserve that verified physical session context, with no product guard
+weakening. This is a proposal, not implemented or dispatched, and does not
+by itself repair the profile bug.
+
+**JUDGMENT-CALL:** No product choice or privacy waiver. Treat the malformed
+manual stdin as the locally correctable setup error proven above; preserve the
+real hook and report its warning. Keep raw evidence private and the closing
+report commit local. Changing this later requires a new authorized round.
+
+**Open question:** Integrator decision on the harness handoff fix, real-helper
+coverage and optional non-typing serial route. This round is over; no further
+push, dispatch or merge.
+
 ## 14zv REPORT — November settings verified; STOP at privacy gate
 
 **Disposition:** Exactly one fast-forward push, on
