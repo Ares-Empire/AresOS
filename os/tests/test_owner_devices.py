@@ -104,7 +104,7 @@ class DevicesTest(unittest.TestCase):
                               (fixture('storage-flat.json'),'Unexpected lsblk tree shape')):
             with self.subTest(message=message), tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as temporary:
                 root = pathlib.Path(temporary); usb=root/'usb'; usb.mkdir()
-                payload = usb/'ares-tools'; common.bundle.build(payload)
+                payload = usb/'ares-tools'; common.fixture_bundle(payload)
                 home = root/'home'; host=FixtureHost(tree,usb)
                 before = {p.relative_to(root).as_posix():p.read_bytes() for p in root.rglob('*') if p.is_file()}
                 with patch.object(owner,'HOME',home), patch.object(owner,'Host',return_value=host), \
@@ -116,7 +116,7 @@ class DevicesTest(unittest.TestCase):
     def test_install_reaches_private_copy_with_real_tree_and_both_helpers(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as temporary:
             root=pathlib.Path(temporary); usb=root/'usb'; usb.mkdir()
-            payload=usb/'ares-tools'; fingerprint=common.bundle.build(payload)
+            payload=usb/'ares-tools'; fingerprint=common.fixture_bundle(payload)
             home=root/'home'; host=FixtureHost(fixture(),usb)
             with patch.object(owner,'HOME',home), patch.object(owner,'Host',return_value=host), \
                  patch.object(owner.sys.stdin,'isatty',return_value=True), patch('builtins.input',side_effect=['TARGET','KEEP']),common.private_metadata(home):

@@ -23,7 +23,7 @@ class GuardTest(unittest.TestCase):
 
     def test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun(self):
         self.assertEqual((guard.MINUTE_CAP,guard.FULL_CAP,guard.PART_B_CAP),(2750,0,0))
-        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':32,'owner-tools':21})
+        self.assertEqual(guard.SETTINGS['dispatch_caps'],{'probe':34,'owner-tools':21})
         self.assertEqual(guard.SETTINGS['organization_budget']['other_repos_reserve'],150)
         self.assertEqual(guard.PACKAGES['13']['organization_budget']['other_repos_reserve'],150)
         base=dict(head_sha='a'*40,status='completed',conclusion='success',run_attempt=1)
@@ -87,10 +87,10 @@ class GuardTest(unittest.TestCase):
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],26)
             runs.append(dict(runs[1],id=29))
             self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],27)
-            for count,run_id in ((28,30),(29,31),(30,32),(31,33),(32,34)):
+            for count,run_id in ((28,30),(29,31),(30,32),(31,33),(32,34),(33,35),(34,36)):
                 runs.append(dict(runs[1],id=run_id))
                 self.assertEqual(guard.budget(0)['dispatch_counts']['probe'],count)
-            runs.append(dict(runs[1],id=35))
+            runs.append(dict(runs[1],id=37))
             with self.assertRaisesRegex(AssertionError,'probe dispatch allowance'):guard.budget(0)
 
     def test_twenty_first_owner_qualification_allowed_but_twenty_second_refuses(self):

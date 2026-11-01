@@ -70,7 +70,7 @@ class CommandTest(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = pathlib.Path(self.temporary.name)
         self.payload = self.root / 'payload'
-        bundle.build(self.payload)
+        common.fixture_bundle(self.payload)
         self.store = self.root / 'records'
         self.store.mkdir()
         self.host = ShimHost(self.root)

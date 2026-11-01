@@ -17,7 +17,7 @@ class BootstrapTest(unittest.TestCase):
     def run_case(self, change):
         with tempfile.TemporaryDirectory(dir=common.ROOT/'os/tests') as temporary:
             root=pathlib.Path(temporary); usb=root/'usb'; usb.mkdir(); private=root/'private'; private.mkdir()
-            payload=usb/'ares-tools'; common.bundle.build(payload)
+            payload=usb/'ares-tools'; common.fixture_bundle(payload)
             # A harmless, executable payload fixture makes any early execute,
             # source or Python import observable, without touching the host.
             (payload/'at').write_text('#!/bin/bash\nprintf "%s\\n" "$PWD" > "$ARES_PAYLOAD_MARKER"\n/usr/bin/python3 -I -B ./owner.py\n')

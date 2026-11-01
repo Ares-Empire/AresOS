@@ -7,7 +7,7 @@
   "part_b_cap": 0,
   "part_b_dispatched": 0,
   "dispatch_caps": {
-    "probe": 32,
+    "probe": 34,
     "owner-tools": 21
   },
   "dispatch_counts": {
@@ -15,7 +15,7 @@
     "owner-tools": 20
   },
   "consumed_minutes": 2310,
-  "reserved_minutes": 0,
+  "reserved_minutes": 312,
   "runs": [
     {
       "run": 41356040290,
@@ -4167,7 +4167,7 @@
       40216222435
     ]
   },
-  "status": "14zzc STOP; no rerun",
+  "status": "14zzd fixtures/local checks passed; probe33 and qualification21 pending",
   "acceptance_met": false,
   "package_minute_ledger_trusted": true,
   "accounting_decision": "briefs/14zz-ledger-and-cosign.md",
@@ -4188,7 +4188,7 @@
     "status": "passed",
     "previous_dispatch": 41356040290,
     "previous_observed_at": "2026-11-01T22:12:20.042893+00:00",
-    "current_observed_at": "2026-11-01T22:29:02.849111+00:00",
+    "current_observed_at": "2026-11-01T23:01:12.508912+00:00",
     "previous_recorded_minutes": 2301,
     "recomputed_previous_minutes": 2301,
     "current_minutes": 2310,
@@ -4198,10 +4198,10 @@
     "previous_run_count": 136
   },
   "organization_budget_snapshot": {
-    "response_sha256": "0813b941cceecee6b290c7a9d76ccefd96df78c3e6277faeb5b6b61248169977",
+    "response_sha256": "0f1d98c391a01b3a9dbc3f8b6e9f1854cf46fe8961175a43d68b7c731ad513e5",
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=11",
-    "checked_at": "2026-11-01T22:29:02.849111+00:00",
+    "checked_at": "2026-11-01T23:01:12.508912+00:00",
     "usage": [
       {
         "sku": "actions_linux",
@@ -4216,11 +4216,11 @@
       {
         "sku": "actions_storage",
         "unit": "gigabyte-hours",
-        "grossQuantity": 4.052113384,
-        "discountQuantity": 4.052113384,
+        "grossQuantity": 4.249893276,
+        "discountQuantity": 4.249893276,
         "netQuantity": 0.0,
-        "grossAmount": 0.001361568,
-        "discountAmount": 0.001361568,
+        "grossAmount": 0.001428025,
+        "discountAmount": 0.001428025,
         "netAmount": 0.0
       }
     ],
@@ -4231,8 +4231,8 @@
     "billing_mode": "free-minutes-only",
     "paid_budget_read": false,
     "remaining_minutes": 1401,
-    "reserved_minutes": 0,
-    "after_reservation": 1401,
+    "reserved_minutes": 312,
+    "after_reservation": 1089,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   },
@@ -4246,9 +4246,9 @@
     "owner-tools": 15
   },
   "previous_reported_untrusted_minutes": 1973,
-  "this_round_starting_ledger": 2301,
+  "this_round_starting_ledger": 2310,
   "this_round_starting_counts": {
-    "probe": 31,
+    "probe": 32,
     "owner-tools": 20
   },
   "previous_round": {
@@ -4267,19 +4267,10 @@
   "limit_decision": "briefs/14zzc-review-fixes.md",
   "timing_manifest": "os/manifest/ci/14/14zzc-timing/projection.json",
   "current_round": {
-    "decision": "briefs/14zzc-review-fixes.md",
-    "runs": [
-      {
-        "mode": "probe",
-        "run": 41356040290,
-        "head": "b15d52f1a24c37fa4f4a3897919b88b591990c49",
-        "conclusion": "failure",
-        "accepted": false
-      }
-    ],
-    "pushes": 1,
-    "reruns": 0,
-    "closing_report_local_only": true
+    "brief": "14zzd",
+    "status": "pending fresh same-head probe33/qualification21",
+    "pushes": 0,
+    "reruns": 0
   },
   "this_round_accounting_charge_changes": []
 }

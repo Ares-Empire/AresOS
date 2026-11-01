@@ -1,5 +1,101 @@
 # 14: checked owner tools
 
+## 14zzd REPORT: manifest-only fixtures; probe 33 / qualification 21 pending
+
+**Disposition:** local checks completed with the established laptop limitations.
+One fast-forward push through the installed local privacy hook is authorized;
+probe 33 and, only after its complete acceptance and a fresh guard, qualification
+21 must use that same head. No rerun is authorized. PR #13 remains draft pending
+acceptance. The closing report will be committed locally only.
+
+### Done
+
+`os/tests/owner_bundle_fixture.py` copies only the reviewed SHA256.json entries
+plus SHA256.json and SHA256SUMS, checking the paths, manifest agreement and file
+hashes. It never copies a directory tree. The common fixture builder validates
+the result with the unchanged real checked_bundle implementation.
+
+The fixture callers updated are test_owner_tools, test_owner_bootstrap,
+test_owner_commands, test_owner_devices, test_owner_diagnostics, test_owner_entry,
+test_owner_export and test_owner_setup_resume. The PowerShell copy stand-in
+owner_fuse_shim also uses the same manifest-only copier. The remaining copytree
+and copy2 references in the hidden-placement and setup-resume tests exercise
+production placement/failure points; the bundle.build equality test exercises
+the production generator. None constructs a fixture by copying the payload tree.
+
+The new regression plants __pycache__/x.pyc and imports the real helper in the
+source bundle. The copied bundle has exactly the manifest files, while the real
+strict validator still refuses both a contaminated source bundle and a copied
+bundle deliberately given an extra bytecode file. Install-resume direct helper
+calls scope sys.dont_write_bytecode to that fixture, restoring it afterward,
+matching the production entry point's existing -I -B without a global CI flag.
+
+Only package 14's probe allowance changes, from 32 to 34. The qualification cap
+stays 21 and the minute cap 2750. The extra probe allowance is not permission to
+rerun a stopped run. No production payload, owner script, harness, workflow,
+frozen image, release path, audit class, privacy rule, package 13 or operational
+guide command changes. The payload fingerprint remains
+`3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd`.
+
+### Verified locally before the single push
+
+The eleven affected modules ran with PYTHONDONTWRITEBYTECODE unset: **75
+tests / zero skips** under normal Python in 595.827 s and the same
+**75 tests / zero skips** with -B in 595.845 s. Both passed.
+They include the fixture, bootstrap, command, device, diagnostics, entry, export,
+setup-resume, media, guard and equality modules.
+
+Full discovery under normal Python with that environment variable unset ran
+**627 tests in 1995.985 s**: **618
+passed**, 9 previously documented local host limitations,
+**zero skips and zero unknown failures**. All 627 remain mandatory in native CI,
+including the unchanged 30-second timing test. Native failure is a real STOP.
+That test took **70.495 s** in this full run. This is the documented local host
+timing limitation; the test, bound and native requirement are unchanged.
+
+The final coordinator was `python -u -X utf8 .work/14/14zzd/final-local.py`.
+It ran the qualification walk, probe walk, strict composed-command checks and
+full discovery sequentially under normal WSL Python with
+`env -u PYTHONDONTWRITEBYTECODE`, repository-local TMPDIR and safe PATH shims.
+The exact commands are retained in preflight/final-local.py and whole.py.
+
+The full stand-in walk passed all Linux stages, 27 hidden transitions, three
+handoffs, all cluttered waits, thirteen real physical-typing cases and final
+Windows markers. No wait or hidden input is uncovered. Strict checks passed
+1,159 composed guest commands, 954 embedded Python bodies, twelve shell files
+and 53 CI/overlay/owner Python files, refusing any Bash stderr. Local controller
+tests: 31 passed. Windows copy/helper tests: seventeen zero-write refusals and
+the successful checked copy/private entry point passed.
+
+The actual read-only release/git/GH replay and 53 retained inputs passed; four
+credential-only registry checks remain fail-closed in CI. Actual ISO inspection
+passed on the first local attempt, rehashing all 9,068,650,496 bytes against the
+pin and fresh official checksum. No Windows-specific CI behavior was changed.
+Only completed SHA-verified duplicate ISO/squash cache bytes were reclaimed;
+the master, canonical extraction, results and failed partials remain retained.
+
+Source, command, result and private controller bindings are recorded in
+`os/manifest/ci/14/14zzd-preflight/preparation.json`. Pinned local gitleaks 8.21.2
+must report zero over pending files and full history before the push; the exact
+range and actual push must pass the installed aresync hook without bypass.
+
+### Sizing / budget
+
+Complete history: 154/154 IDs, **2310 consumed**, counts **32 probes / 20
+qualifications**. Organization free minutes: **1401**, reserve **150**. The last
+dispatch comparison is +9 package / +9 organization. Planned reservation is
+72+240=312; 2310+312=**2622 <=2750**. Unchanged retained timing projection fits
+VM 200 / qualification 240. November remains free-minutes-only, no paid budget
+read, zero local-hook privacy reservations. Ledger and billing will be rechecked
+immediately before every dispatch.
+
+### Not verified / JUDGMENT-CALL / PLAN-GAP / open questions
+
+Fresh same-head native and VM acceptance are pending. All prior physical
+release and followability gates remain open; the product is **NOT RELEASED**.
+The fixture correction does not claim laptop qualification or change a product
+decision. No new PLAN-GAP is identified by the completed local checks.
+
 ## 14zzc REPORT: review fixes implemented; STOP, no rerun
 
 **Disposition:** [Probe 32](https://github.com/Ares-Empire/AresOS/actions/runs/41356040290)

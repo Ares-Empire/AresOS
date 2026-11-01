@@ -37,7 +37,7 @@ class EntryTest(unittest.TestCase):
         for name,command in commands.items():
             with self.subTest(command=name), tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as temporary, contextlib.ExitStack() as stack:
                 root=pathlib.Path(temporary); home=root/'home'; home.mkdir()
-                payload=home/'tools'; common.bundle.build(payload)
+                payload=home/'tools'; common.fixture_bundle(payload)
                 records=home/'records'; records.mkdir()
                 owner=common.module('owner')
                 host=ShimHost(root)

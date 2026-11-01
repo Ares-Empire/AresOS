@@ -16,7 +16,7 @@ class ExportTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=common.ROOT/'os/tests') as directory:
             root=pathlib.Path(directory)
             usb=root/'usb';usb.mkdir()
-            fingerprint=common.bundle.build(usb/'ares-tools')
+            fingerprint=common.fixture_bundle(usb/'ares-tools')
             store=root/'records';store.mkdir()
             (store/'prepared.json').write_text('{"passed":true}')
             diagnostics=root/'diagnostics'

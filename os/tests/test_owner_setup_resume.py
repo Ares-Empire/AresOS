@@ -99,6 +99,13 @@ class PrepareResumeTest(unittest.TestCase):
 
 
 class InstallResumeTest(unittest.TestCase):
+    def setUp(self):
+        # Direct API calls model the shipped entry point's -I -B mode; the
+        # enclosing suite still runs in its original bytecode mode.
+        bytecode = patch.object(sys, 'dont_write_bytecode', True)
+        bytecode.start()
+        self.addCleanup(bytecode.stop)
+
     def test_private_setup_directory_rejects_owner_mode_type_or_link(self):
         p=pathlib.Path('/SYNTHETIC-NEVER-OPENED')
         for uid,mode in ((os.geteuid()+1,stat.S_IFDIR|0o700),(os.geteuid(),stat.S_IFDIR|0o755),
@@ -110,7 +117,7 @@ class InstallResumeTest(unittest.TestCase):
     def installation(self):
         with tempfile.TemporaryDirectory(dir=common.ROOT/'os/tests') as temporary:
             root=pathlib.Path(temporary); usb=root/'usb';usb.mkdir()
-            payload=usb/'ares-tools'; fingerprint=common.bundle.build(payload)
+            payload=usb/'ares-tools'; fingerprint=common.fixture_bundle(payload)
             home=root/'home';host=FixtureHost(fixture(),usb)
             def run():
                 with patch('builtins.input',side_effect=['TARGET','KEEP']):return owner.install(payload,host)

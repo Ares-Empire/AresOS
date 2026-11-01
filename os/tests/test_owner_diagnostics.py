@@ -29,7 +29,7 @@ class DiagnosticsTest(unittest.TestCase):
         self.addCleanup(self.stack.close)
         self.root = pathlib.Path(self.stack.enter_context(tempfile.TemporaryDirectory(dir=ROOT/'os/tests')))
         self.usb = self.root/'usb'; self.usb.mkdir()
-        self.payload = self.usb/'ares-tools'; common.bundle.build(self.payload)
+        self.payload = self.usb/'ares-tools'; common.fixture_bundle(self.payload)
         self.home, self.records = self.root/'uninstalled', self.root/'diagnostics'
         self.host = FixtureHost(fixture(), self.usb)
         self.stack.enter_context(patch.object(sys, 'dont_write_bytecode', True))
@@ -123,7 +123,7 @@ class DiagnosticsTest(unittest.TestCase):
         self.assertFalse(self.home.exists())
 
     def test_success_record_write_failure_exports_stopped_never_passed(self):
-        home=self.root/'installed';home.mkdir();payload=home/'tools';common.bundle.build(payload)
+        home=self.root/'installed';home.mkdir();payload=home/'tools';common.fixture_bundle(payload)
         store=home/'records';store.mkdir()
         self.stack.enter_context(patch.object(owner,'HOME',home))
         self.stack.enter_context(patch.object(owner,'__file__',str(payload/'owner.py')))

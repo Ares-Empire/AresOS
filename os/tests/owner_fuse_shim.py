@@ -59,7 +59,8 @@ class Volume:
             assert self.active and not self.readonly and {'rw','nodev','nosuid','noexec'} <= self.flags
             assert argv[1:3] == ['-NoProfile','-File']
             assert 'Copy-AresToolsPayload' in pathlib.Path(argv[3]).read_text()
-            shutil.copytree(argv[4], argv[5])
+            from owner_bundle_fixture import copy_bundle
+            copy_bundle(argv[4], argv[5])
         elif name == 'fsck.exfat':
             assert not self.active and argv == ['fsck.exfat','-n',self.loop+'p1']
             if self.fsck_failure: raise subprocess.CalledProcessError(1, argv)
