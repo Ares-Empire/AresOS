@@ -1,0 +1,70 @@
+{
+  "status": "local read-only review and closing tools; dispatch tools sealed before push",
+  "files": [
+    {
+      "sha256": "c62b5db836a2bbddeb797d5f3926b8fa538e7ead1fe0f752ac5fe993c54585b5",
+      "path": ".work/14/14zzb-classify.py",
+      "archive": "14zzb-classify.py"
+    },
+    {
+      "sha256": "4da51ca7ecb388f32275a531af4d7e50629fd2cb6c716b2440de642b177d9a85",
+      "path": ".work/14/14zzb-control.py",
+      "archive": "14zzb-control.py"
+    },
+    {
+      "sha256": "a233be31ee2cc476c0e4abbf41d2def73f31a96790b358bec5af2e86c7ff4f70",
+      "path": ".work/14/14zzb-qualification-proof.py",
+      "archive": "14zzb-qualification-proof.py"
+    },
+    {
+      "sha256": "34b697081ca9ac7378d66a712ceef34534d0d47cadee805eb7029d451394594e",
+      "path": ".work/14/14zzb/post-run.py",
+      "archive": "post-run.py"
+    },
+    {
+      "sha256": "e6a8047c5f985045f4a9c17d3caaad3220aec6e80098b1766a161d49d80774db",
+      "path": ".work/14/14zzb/log-review.py",
+      "archive": "log-review.py"
+    },
+    {
+      "sha256": "1d80185dd4372ada31f871b09f844cc8edc36fa48163813e0da37eec9e586598",
+      "path": ".work/14/14zzb/close-guard.py",
+      "archive": "close-guard.py"
+    },
+    {
+      "sha256": "aade6b306d54ea1425f736875d2b19a99a37132fc27507d32a537e642257a7d6",
+      "path": ".work/14/14zzb/archive-round.py",
+      "archive": "archive-round.py"
+    },
+    {
+      "sha256": "0c94a843fecd20fb851e68403c94f85a21e4f2081e08a6a13d49891ebbf8011c",
+      "path": ".work/14/14zzb/commit-report.py",
+      "archive": "commit-report.py"
+    },
+    {
+      "sha256": "62fb9024578a97b4a6131b3344c70780285299d9b72a0d888977f94815734203",
+      "path": ".work/14/14zzb/terminal-facts.py",
+      "archive": "terminal-facts.py"
+    },
+    {
+      "sha256": "bfdf11960a5e08f4d3dff90492d019c136d80cbe2fe0116d7041ae65712306a5",
+      "path": ".work/14/14zzb/test_review_receipts.py",
+      "archive": "test_review_receipts.py"
+    },
+    {
+      "sha256": "92d0903f089574c1721dccc1b53c7feee9bcc83333f3e530606aff7c4e344d40",
+      "path": ".work/14/14zzb/qualification-proof-at-dispatch.py",
+      "archive": "qualification-proof-at-dispatch.py"
+    },
+    {
+      "sha256": "0bf3bf5757f3d7cae97accc446f9da6b15db0ba7e52851a7fa892d34727032f7",
+      "path": ".work/14/14zzb/build-report.py",
+      "archive": "build-report.py"
+    },
+    {
+      "sha256": "10aea51d1a54e58d8db6cf29646d433fa84fddf414fa2c434dd0ed01b0d2c555",
+      "path": ".work/14/14zzb/closing-checks.py",
+      "archive": "closing-checks.py"
+    }
+  ]
+}

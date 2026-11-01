@@ -1,0 +1,495 @@
+{
+  "status": "passed actual completed qualification20 milestones",
+  "run": 41324240079,
+  "head": "211df982b5bf080b0167b8fe6e8dd3c5eb264fe8",
+  "sources": [
+    {
+      "sha256": "52419ecff86d10075fe973cbc3f45cb0879e319471d4436e85b67cdf5d6fbcef",
+      "path": ".work/14/14zzb/basic-41324240079/jobs.json"
+    },
+    {
+      "sha256": "a8997de3918266ac994cea74b2a54c9a4690332c65d9dd8b0ce66fb325db487d",
+      "member_sha256": "aac210663a1744591a0583939684705e01afd01b66ea9fca9b358eaf1bc9de0a",
+      "path": ".work/14/14zzb/basic-41324240079/logs.zip",
+      "member": "Pinned live ISO inspection and two-disk rehearsal/16_Prepare disposable file disks and qualify the real live environment.txt"
+    }
+  ],
+  "before_vm_seconds": 821.0,
+  "vm_seconds": 7060.0,
+  "after_vm_seconds": 9.0,
+  "whole_job_seconds": 7890.0,
+  "stages": [
+    {
+      "stage": "baseline-firmware",
+      "started_at": "2026-11-01T16:16:11+00:00",
+      "completed_at": "2026-11-01T16:17:58.4503602Z",
+      "seconds": 107.45036,
+      "log_line": 72
+    },
+    {
+      "stage": "protected-second-install",
+      "started_at": "2026-11-01T16:17:58.450360+00:00",
+      "completed_at": "2026-11-01T16:42:36.5139398Z",
+      "seconds": 1478.063579,
+      "log_line": 75
+    },
+    {
+      "stage": "boot-3-pre-login-reset",
+      "started_at": "2026-11-01T16:42:36.513939+00:00",
+      "completed_at": "2026-11-01T16:45:46.9323593Z",
+      "seconds": 190.41842,
+      "log_line": 76
+    },
+    {
+      "stage": "offline-first-stock",
+      "started_at": "2026-11-01T16:45:46.932359+00:00",
+      "completed_at": "2026-11-01T16:47:37.1806836Z",
+      "seconds": 110.248324,
+      "log_line": 78
+    },
+    {
+      "stage": "offline-roundtrip-unattended-windows",
+      "started_at": "2026-11-01T16:47:37.180683+00:00",
+      "completed_at": "2026-11-01T16:48:29.9222143Z",
+      "seconds": 52.741531,
+      "log_line": 79
+    },
+    {
+      "stage": "offline-roundtrip-detached-windows",
+      "started_at": "2026-11-01T16:48:29.922214+00:00",
+      "completed_at": "2026-11-01T16:49:22.5306173Z",
+      "seconds": 52.608403,
+      "log_line": 80
+    },
+    {
+      "stage": "tools-stock",
+      "started_at": "2026-11-01T16:49:22.530617+00:00",
+      "completed_at": "2026-11-01T17:00:05.4156490Z",
+      "seconds": 642.885032,
+      "log_line": 83
+    },
+    {
+      "stage": "prepared-unattended-windows",
+      "started_at": "2026-11-01T17:00:05.415649+00:00",
+      "completed_at": "2026-11-01T17:00:58.7494601Z",
+      "seconds": 53.333811,
+      "log_line": 84
+    },
+    {
+      "stage": "corrected-stock",
+      "started_at": "2026-11-01T17:00:58.749460+00:00",
+      "completed_at": "2026-11-01T17:21:05.3446324Z",
+      "seconds": 1206.595172,
+      "log_line": 85
+    },
+    {
+      "stage": "aresos",
+      "started_at": "2026-11-01T17:21:05.344632+00:00",
+      "completed_at": "2026-11-01T17:39:33.7215626Z",
+      "seconds": 1108.37693,
+      "log_line": 86
+    },
+    {
+      "stage": "aresos-intl",
+      "started_at": "2026-11-01T17:39:33.721562+00:00",
+      "completed_at": "2026-11-01T17:49:55.0285006Z",
+      "seconds": 621.306938,
+      "log_line": 87
+    },
+    {
+      "stage": "aresos-back-de",
+      "started_at": "2026-11-01T17:49:55.028500+00:00",
+      "completed_at": "2026-11-01T17:57:53.8698201Z",
+      "seconds": 478.84132,
+      "log_line": 88
+    },
+    {
+      "stage": "rollback-stock",
+      "started_at": "2026-11-01T17:57:53.869820+00:00",
+      "completed_at": "2026-11-01T18:06:02.3278376Z",
+      "seconds": 488.458017,
+      "log_line": 89
+    },
+    {
+      "stage": "default-stock",
+      "started_at": "2026-11-01T18:06:02.327837+00:00",
+      "completed_at": "2026-11-01T18:12:03.8195736Z",
+      "seconds": 361.491736,
+      "log_line": 90
+    },
+    {
+      "stage": "final-unattended-windows",
+      "started_at": "2026-11-01T18:12:03.819573+00:00",
+      "completed_at": "2026-11-01T18:12:57.6715655Z",
+      "seconds": 53.851992,
+      "log_line": 91
+    },
+    {
+      "stage": "final-detached-windows",
+      "started_at": "2026-11-01T18:12:57.671565+00:00",
+      "completed_at": "2026-11-01T18:13:51.3885170Z",
+      "seconds": 53.716952,
+      "log_line": 92
+    }
+  ],
+  "actions": [
+    {
+      "sha256": "e7da956d24a1a472c77b249b536de537ea05265dfcb042cc8e4c6ab1a438d7d7",
+      "path": ".work/14/run-41324240079/evidence/two-disk/after-first-network-records-owner-result.json",
+      "command": [
+        "records"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "876d2660de16ac572710a9dd69a722666ac843f3d0a494cb1677df6b23cd138e",
+      "path": ".work/14/run-41324240079/evidence/two-disk/after-first-network-title-owner-result.json",
+      "command": [
+        "title"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "95eda3dc18fb0f6446cd6e01fde155c2eb0e70767332f5b9f596de8b7b7ae2ce",
+      "path": ".work/14/run-41324240079/evidence/two-disk/aresos-back-de-check-owner-result.json",
+      "command": [
+        "check"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "e8362af39f136683b4b7f01e363640590bfe5353332c3e248dbdb2d733603486",
+      "path": ".work/14/run-41324240079/evidence/two-disk/aresos-back-de-reboot-title-owner-result.json",
+      "command": [
+        "title"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "fdfde50145af506f0f9f0e90017191c91567d13f26b97d0a551d0ff526ff9212",
+      "path": ".work/14/run-41324240079/evidence/two-disk/aresos-check-owner-result.json",
+      "command": [
+        "check"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "548f7e1163485c7d4126a3fa54f32d0ff71983552deda039d1bfaa8b62029375",
+      "path": ".work/14/run-41324240079/evidence/two-disk/aresos-intl-check-owner-result.json",
+      "command": [
+        "check"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "4c0d79b7654913448ac0074909e2362c91508a32432d887b797d5f3cbc6e0549",
+      "path": ".work/14/run-41324240079/evidence/two-disk/aresos-intl-reboot-title-owner-result.json",
+      "command": [
+        "title"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "8b87b2f2c1aafcfac71ec1bdabd807794e517aaf4ec49403f80af08a59cc40fb",
+      "path": ".work/14/run-41324240079/evidence/two-disk/aresos-reboot-title-owner-result.json",
+      "command": [
+        "title"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "e74d4e0b75faec879b7cf0abe491c7a5edf269ca5d55e01023a58d868febd118",
+      "path": ".work/14/run-41324240079/evidence/two-disk/corrected-stock-records-owner-result.json",
+      "command": [
+        "records"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "2c8caf26e120b2005e8ca5759b27577dbe7777bf6e24426fb2b21affc06ce615",
+      "path": ".work/14/run-41324240079/evidence/two-disk/corrected-stock-title-owner-result.json",
+      "command": [
+        "title"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "3ab3e926464b61f11c83fc3726f85d47688dfb410d4e4e7d70731acdc4fab186",
+      "path": ".work/14/run-41324240079/evidence/two-disk/default-stock-check-owner-result.json",
+      "command": [
+        "check"
+      ],
+      "status": "passed",
+      "mutations": 1
+    },
+    {
+      "sha256": "7c64b9c782864cc7a680788be311b6848d01fa1a72e5eaba7adaf65466a8ff88",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-back-de-proof-owner-result.json",
+      "command": [
+        "layout",
+        "proof"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "ad3f14591b2c65c6a09504ea39ceb74d6e79e4fedc18878a2b4c93de22ef8c6c",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-de-begin-owner-result.json",
+      "command": [
+        "layout",
+        "begin",
+        "de"
+      ],
+      "status": "passed",
+      "mutations": 2
+    },
+    {
+      "sha256": "c4d2cb8d6472f5140a01b10541879a7108e308ce8038dfb563901e9526801591",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-de-finish-owner-result.json",
+      "command": [
+        "layout",
+        "finish"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "fb82c0ed7fbe26eeefe8ecf372d97e7607679e4e36ffc4746c55f504eae9eecd",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-intl-begin-owner-result.json",
+      "command": [
+        "layout",
+        "begin",
+        "us-intl"
+      ],
+      "status": "passed",
+      "mutations": 2
+    },
+    {
+      "sha256": "ee10983901d93d63d7b581aba77ee697fc29cdc216b39df413c38c90a605b60f",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-intl-finish-owner-result.json",
+      "command": [
+        "layout",
+        "finish"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "5311a2d4521e081252ee065596ce67721a74c91c5fe36206dd74a9f4e1caecde",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-intl-proof-owner-result.json",
+      "command": [
+        "layout",
+        "proof"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "5461ef8ee1b769e393649dacc06b3d08291de0b7b379d9ea80984403b92eb78e",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-revert-finish-owner-result.json",
+      "command": [
+        "layout",
+        "finish"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "91f2219a19ed909dc08736c141f4fa548c99681866233c09b4458ca9ceb2195c",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-reverted-proof-owner-result.json",
+      "command": [
+        "layout",
+        "proof"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "d59a0621feb2a4166a627baef92e9d405f203cd990ab9ac7c6b220e316f8f121",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-unproved-reboot-refusal-owner-result.json",
+      "command": [
+        "reboot"
+      ],
+      "status": "stopped",
+      "mutations": 0
+    },
+    {
+      "sha256": "10c6b6382a186095caa82e8801ca32906911e2372c3d721211c6daed26ecc997",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-us-begin-owner-result.json",
+      "command": [
+        "layout",
+        "begin",
+        "us"
+      ],
+      "status": "passed",
+      "mutations": 2
+    },
+    {
+      "sha256": "60274ef0db494038c5e5ee1770bd9d2fa1c56ac7096cce2695bf3a2dfc0fb9b8",
+      "path": ".work/14/run-41324240079/evidence/two-disk/layout-us-revert-owner-result.json",
+      "command": [
+        "layout",
+        "revert"
+      ],
+      "status": "passed",
+      "mutations": 2
+    },
+    {
+      "sha256": "4f0f242eb67eaf3123ba85378d5d0b8cea8d5132f7f315d2367def1b80668896",
+      "path": ".work/14/run-41324240079/evidence/two-disk/owner-keep-stock-owner-result.json",
+      "command": [
+        "keep-stock"
+      ],
+      "status": "passed",
+      "mutations": 1
+    },
+    {
+      "sha256": "c01baca85809b85c5d5c81ced37d81bb7bca8661337c002492b3a71d93d81842",
+      "path": ".work/14/run-41324240079/evidence/two-disk/owner-keep-stock-title-owner-result.json",
+      "command": [
+        "title"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "4a7cf7fc07d81e4ef5ac5cf97eff52daabddfa4e9605687d82d222c6bc7f6905",
+      "path": ".work/14/run-41324240079/evidence/two-disk/owner-logind-diagnostics-owner-result.json",
+      "command": [
+        "logs"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "9c398c8062e2b230f7543cd2cedc2a5785cf4bad63d4c956072ee97f152d651f",
+      "path": ".work/14/run-41324240079/evidence/two-disk/owner-rollback-owner-result.json",
+      "command": [
+        "rollback"
+      ],
+      "status": "passed",
+      "mutations": 1
+    },
+    {
+      "sha256": "641047883b807d3ab3bdc2c6e85fe4ff67b052d4d4aae0eff401396350193332",
+      "path": ".work/14/run-41324240079/evidence/two-disk/owner-signature-owner-result.json",
+      "command": [
+        "verify"
+      ],
+      "status": "passed",
+      "mutations": 1
+    },
+    {
+      "sha256": "64a69eb352818ce92bca666728e032d774940c8ca00525aa6ee56137844a3d56",
+      "path": ".work/14/run-41324240079/evidence/two-disk/owner-switch-owner-result.json",
+      "command": [
+        "switch"
+      ],
+      "status": "passed",
+      "mutations": 1
+    },
+    {
+      "sha256": "47681ac91a33cca029f85622852061667608e722f3c57273f65074fce5914d8d",
+      "path": ".work/14/run-41324240079/evidence/two-disk/owner-switch-title-owner-result.json",
+      "command": [
+        "title"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "701542384c1c53eef59fab34d5d2f7b8943cb4bcaebd227c2bd95d2b6e074891",
+      "path": ".work/14/run-41324240079/evidence/two-disk/private-owner-dummy-login-owner-result.json",
+      "command": [
+        "login"
+      ],
+      "status": "stopped",
+      "mutations": 0
+    },
+    {
+      "sha256": "cff096cbd89b09376845f1a67cd51c7fe2c2327c00dc75648f88865091e2b76c",
+      "path": ".work/14/run-41324240079/evidence/two-disk/private-owner-login-owner-result.json",
+      "command": [
+        "login"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "60f24721f7ab0d17c813d9904988fbdb283b2d8b579c7ea05d3f74cc1e656543",
+      "path": ".work/14/run-41324240079/evidence/two-disk/rollback-from-stock-refused-owner-result.json",
+      "command": [
+        "rollback"
+      ],
+      "status": "stopped",
+      "mutations": 0
+    },
+    {
+      "sha256": "4208e9ab57f44b23f5a6fdfe62c7f25a5bbb9953231444d1a3f1ee4c497517da",
+      "path": ".work/14/run-41324240079/evidence/two-disk/rollback-stock-check-owner-result.json",
+      "command": [
+        "check"
+      ],
+      "status": "passed",
+      "mutations": 1
+    },
+    {
+      "sha256": "fc1890eda9d7a17114b04f44ec08dda134511d9ebb17524d32a573dabbb2491a",
+      "path": ".work/14/run-41324240079/evidence/two-disk/tools-before-reboot-title-owner-result.json",
+      "command": [
+        "title"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "1eab42877eee1d4041cdb2dc776ba0bcc0bbb1ff016ee1eab6ecaec80d5966ca",
+      "path": ".work/14/run-41324240079/evidence/two-disk/tools-install-owner-result.json",
+      "command": null,
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "5a35f7efd4c6d0e710ef2fc438108d3f0c54464195c20dc702b06d6bdb0c3036",
+      "path": ".work/14/run-41324240079/evidence/two-disk/tools-prepare-owner-result.json",
+      "command": [
+        "prepare"
+      ],
+      "status": "passed",
+      "mutations": 4
+    },
+    {
+      "sha256": "4542578178f17960f493f97ad054f370ff3808224139ea3d98584c5c25d1e597",
+      "path": ".work/14/run-41324240079/evidence/two-disk/tools-prepare-rerun-owner-result.json",
+      "command": [
+        "prepare"
+      ],
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "495ab57f591225f55bdf14838794554304879d99edb41af1941f823911d72208",
+      "path": ".work/14/run-41324240079/evidence/two-disk/tools-record-export-owner-result.json",
+      "command": [
+        "export"
+      ],
+      "status": "passed",
+      "mutations": 5
+    }
+  ],
+  "expected_refusals_zero_mutations": true,
+  "prepare_rerun_zero_mutations": true,
+  "stock_default_first_booted_and_pinned": true,
+  "final_windows_marker_boots_completed": 2,
+  "private_raw_console_or_secret_values_included": false
+}

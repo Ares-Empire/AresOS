@@ -1,5 +1,195 @@
 # 14: checked owner tools
 
+## 14zzb REPORT: sized limits; probe 31 and complete qualification 20 passed
+
+**Disposition:** [Probe 31](https://github.com/Ares-Empire/AresOS/actions/runs/41321806985)
+and [qualification 20](https://github.com/Ares-Empire/AresOS/actions/runs/41324240079)
+both completed **successfully**, once each, on the same pushed head
+`211df982b5bf080b0167b8fe6e8dd3c5eb264fe8`. Independent evidence review passed. **Acceptance is met** for this
+package's VM scope. There was **one fast-forward push through the privacy hook**,
+no rerun, no merge, no image build or publication. This closing REPORT, ledger
+and curated evidence commit is **local only**. PR readiness: **ready for review** (PR #13).
+Physical installation remains **NOT RELEASED**.
+
+### Done: limits sized from retained runs
+
+Only the owner-tools VM step and qualification limits changed: VM 106 to 180
+minutes, job and guard qualification bound 160 to 220. Probe bound stays 72;
+the other rehearsal modes, native/pinned-tools/ISO step limits, package cap 2750,
+dispatch caps 32/21, organization reserve 150 and zero local-hook privacy
+reservations are unchanged. Historical ordered job charges are unchanged; the
+missing/unordered owner-tools fallback now reserves the full current 220.
+No serial plan was built. Owner payload/fingerprint, bundle, runtime, image,
+release, maps, owner scripts, guide/card and privacy rules remain frozen.
+
+The projection was calculated before the limit changes. Each completed common
+checkpoint uses the slower Q17/Q19 interval. Each of the three stock-tail logical
+groups receives one entire slowest comparable ordinary stock-boot interval
+(11.03 minutes, tools-stock); both final Windows markers each receive the
+slowest observed Windows boot (0.92 minutes). One-time registry/image switch
+and initial multi-login layout-failure work stays in the known total, but is
+excluded from stock-tail comparables. The full source timestamps and SHA-256
+bindings are in `os/manifest/ci/14/14zzb-timing/projection.json`.
+
+The brief's parenthetical that neither run completed keep-stock is not literally
+true: retained Q17 completed rollback-from-stock refusal, keep-stock and title;
+its default-stock checkpoint was failure unwind. The projection still allocates
+the conservative whole-boot allowances to all remaining groups.
+
+| Stage / interval | Q17 min | Q19 min | Projection min |
+| --- | ---: | ---: | ---: |
+| `baseline-firmware` | 1.83 | 1.81 | 1.83 |
+| `protected-second-install` | 22.52 | 24.98 | 24.98 |
+| `boot-3-pre-login-reset` | 2.99 | 2.92 | 2.99 |
+| `offline-first-stock` | 1.56 | 1.89 | 1.89 |
+| `offline-roundtrip-unattended-windows` | 0.82 | 0.91 | 0.91 |
+| `offline-roundtrip-detached-windows` | 0.81 | 0.91 | 0.91 |
+| `tools-stock` | 9.12 | 11.03 | 11.03 |
+| `prepared-unattended-windows` | 0.82 | 0.92 | 0.92 |
+| `corrected-stock` | 16.48 | 21.10 | 21.10 |
+| `aresos` | 14.04 | 17.94 | 17.94 |
+| `aresos-intl` | 8.06 | 10.53 | 10.53 |
+| `aresos-back-de` | 5.79 | 8.07 | 8.07 |
+| `rollback-from-stock-refusal` | allowance | allowance | 11.03 |
+| `keep-stock/title/reboot` | allowance | allowance | 11.03 |
+| `default-stock-verification` | allowance | allowance | 11.03 |
+| `final-unattended-windows` | allowance | allowance | 0.92 |
+| `final-detached-windows` | allowance | allowance | 0.92 |
+| Before VM | 17.43 | 15.42 | 17.43 |
+| After VM | 0.12 | 0.25 | 0.25 |
+
+VM total 138.05 minutes; with 25% margin 172.56, below 180. Slower pre-VM setup 17.43
+minutes and post-VM work 0.25 give a full-job projection 155.73, or 194.66 with 25%
+margin, below 220. The pre-dispatch round bound 2144+72+220=2436 fits 2750.
+
+### Verified: local checks before the single push
+
+- Affected regressions: 30 passed / 0.545 s, including three new retained-timing
+  tests and preserved historical accounting/reservation refusals. Local artifact
+  classifier 16/1.036 s, dispatch controls 6/0.007 s, local privacy 7/0.188 s and
+  basic diagnostic collector 2/0.008 s passed, all zero skips.
+- The entire local suite executed 600 tests in 1364.04 s (wrapper 1364.057 s): 591
+  distinct passes and the same nine documented host limitations, zero skips and
+  zero unknown failures. The unchanged 30-second timing case took 63.860 s on this
+  laptop. Its assertion was not changed, skipped or marked; native CI remains
+  mandatory. The other eight are the documented Pillow/ACL/privilege/DrvFS
+  limitations, not native acceptance evidence.
+- Physical stand-in walk: 9 cases, 973 commands, 23 hidden pairs, 3 handoffs,
+  133 observer-authorized resyncs and 86 xHCI checks. Probe walk 7 commands.
+  Strict composed-command checks: 980 commands/wrappers, 812 embedded Python,
+  12 shell files and 52 Python source files, all passed.
+- Fresh local read-only release/git/GitHub replay and 53 retained inputs passed
+  before the probe and again before qualification. Each fresh ISO replay passed
+  on its first attempt: 9,068,650,496 bytes, pin and fresh official checksum equal.
+  Only completed SHA-verified duplicate replay caches were removed; original
+  inputs, canonical files and diagnostic records were preserved.
+- Pinned local Gitleaks 8.21.2 full history and pending scans were clean before
+  the single fast-forward push. The installed pre-push hook and exact-range
+  checker 8.30.1 passed, with no skipped-personal-terms warning and no hook bypass.
+  No private terms, raw console/screenshot, token, unredacted scanner finding or
+  certificate fingerprint value is included in this commit.
+
+### Verified: actual probe and qualification
+
+- Probe 31: **600 native tests / 142.001s / zero skips**; the mandatory unchanged
+  30-second timing test passed. Actual kernel negative control saw 0 press / 1
+  release with the old getter, and 1 / 1 with the separate-client fix. Twenty
+  native loop checks, 37 SHA/syntax-verified transfers, one AT keyboard boot,
+  57 static key mappings and seven healthy xHCI checkpoints passed. Raw replay:
+  three protected captures, four zero-write/unmap samples, three BootNext
+  replays and two NVRAM/all-variable delta replays.
+- Qualification 20: **600 native tests / 202.315s / zero skips**, mandatory timing
+  case and real-kernel negative/positive counter proof passed. Twenty native
+  loop checks, 38 physical owner-action records and **633 SHA/syntax-verified
+  root-only tmpfs transfers** passed. Every one of the **23 hidden-input
+  readiness/completion pairs** and pre-Enter/counter proofs passed, without
+  recording values. All three public handoffs passed. Five distinct prompt
+  waits each used one observer-authorized Enter resync. Nine actual AT keyboard
+  boots each checked 57 mappings; all **104** xHCI health checkpoints were healthy.
+- Independent replay of actual raw qualification files passed: **16 protected
+  captures, 17 zero-write/unmap samples, 16 decoded-varstore/BootNext replays,
+  15 NVRAM rule replays and 15 complete variable-delta recomputations**. This
+  includes `default-stock` and both final Windows stages, not just the prior tail.
+- Complete log scans passed with **four** approved pinned cosign action checksum
+  occurrences in each run. Probe artifacts: **509 = 507 exact public ISO-name
+  lines + two whole kernel certificate messages**. Qualification artifacts:
+  **527 = 507 ISO lines + 20 whole kernel certificate messages**. Every occurrence
+  is recorded by file, line, label and whole-line SHA in the artifact review.
+  Whole-source classification and the redacted token-position cross-check passed;
+  **zero unknown findings**, zero native-log findings, no new ignore/rule entry.
+- The first local qualification reviewer glob selected 12 files: three handoff
+  receipts plus their transport and public-echo companions. The selector now
+  requires `-handoff-<integer>.json`. The assertion still requires exactly three
+  receipts and every original field check; every other AST node is identical.
+  **Six tests / 0.037s** cover the real 12-file set and missing/extra/wrong-field
+  refusals. Original dispatch-time bytes, the corrected reviewer and tests are
+  archived. The complete local acceptance gate then passed. This was a zero-cost
+  read-only reviewer correction; no CI rerun or pushed-tree change.
+
+### Acceptance evidence for every remaining stage
+
+| Stage | Retained qualification 20 evidence |
+| --- | --- |
+| Offline install / first stock boot | `owner-tools-result.json` records offline install, hardware boot, Windows round trip, hot-plugged tools, removal before every reboot, prepare, zero-mutation rerun, unchanged state after network and export. |
+| Plain US failure and revert | `layout-us-begin`, rejected second-console login, `layout-unproved-reboot-refusal` with zero mutations, `layout-us-revert`, fresh German login, `layout-reverted-proof` and `layout-revert-finish` passed. |
+| US International success | `layout-intl-begin`, fresh tty4 password login, `layout-intl-proof`, finish, subsequent `aresos-intl` system check, tty3 login/password sudo and physical foot typing passed under `us-intl`. |
+| Back to German | `layout-de-begin`, fresh tty4 login, `layout-back-de-proof`, finish and subsequent `aresos-back-de` system/console/foot checks passed under `de`. |
+| Rollback | `owner-rollback` passed on AresOS, followed by refreshed title and reboot. `rollback-stock` common boot verified the saved stock identity and physical checks. |
+| Guard on booted stock | `rollback-from-stock-refused` returned the expected STOP with **zero mutations**. |
+| Keep stock / default | `owner-keep-stock`, refreshed `owner-keep-stock-title` and reboot passed. `default-stock-check` and `default-stock-default-verified-deployments.json` confirm the saved stock identity first, booted and pinned, with no staged work; console, login/sudo, greeter and foot checks passed. |
+| Final Windows | `final-unattended-windows` and `final-detached-windows` marker boots both completed, with tools absent and raw protected-disk, BootNext, NVRAM and full-variable audits passed. |
+
+The completed VM step took **117.67 minutes** (below 180); setup before it took
+**13.68 minutes**, post-step work **0.15 minutes**, and the whole job **131.50
+minutes** (below 220). Full observed stage timings and action result/hash bindings
+are in [terminal facts](../../os/manifest/ci/14/14zzb-round/terminal-facts.json).
+The acceptance summaries and private artifact identities are archived under
+[this round](../../os/manifest/ci/14/14zzb-round/round.json); raw consoles,
+screenshots, varstores and diagnostics remain only in the retained private artifacts.
+
+### Budget: complete history and organization comparison
+
+| Point | Added package minutes | Package total / 2750 | Organization used / free |
+| --- | ---: | ---: | ---: |
+| Before this round | 0 | 2144 | 433 / 1567 |
+| Probe 31 | 25 | 2169 | 458 / 1542 |
+| Qualification 20 | 132 | **2301** | **590 / 1410** |
+
+History completeness is proven against **153/153 IDs over two pages**. Counts
+are **31 probes / 20 owner-tools qualifications**, below caps **32 / 21**.
+The package has **449 minutes left**; organization reserve stays **150**.
+Saved pre-qualification package and organization totals both increased by
+**132**, so there is no undercount. Earlier ordered job charges did not change
+in this limit-only round; the historical probe-29 accounting correction remains
+recorded. Each job's charge rule and source-response SHA are in the ledger.
+November is **free-minutes-only**: no paid budget API read, no paid overflow,
+zero paid Actions-minute quantity/amount. Push and closing reservations remain
+zero under 14zw's local-hook decision. No further dispatch is authorized.
+
+Closing local checks passed: pinned Gitleaks **8.21.2** reports zero full-history
+and pending findings; the hash-before-path equality test and `git diff --check`
+passed, and all runtime, owner payload, release, configuration, workflow and
+privacy-rule paths are byte-for-byte unchanged from the qualified head. PR #13
+is ready for review, still open and unmerged. The report commit stays local.
+
+### Not verified / release gate
+
+No real laptop, physical USB restore/copy, physical installation, physical F12
+boot, firmware, hardware keyboard or laptop-side followability gate was exercised.
+The existing INSTALL, EMERGENCY and RELEASE-GATE remain unchanged and truthful;
+physical release remains NOT RELEASED. The existing **For package 15** list below
+still applies. The nine local-host limitations remain documented; native CI ran
+all 600 tests without skips. No Gradle or Minecraft process was started.
+
+### JUDGMENT-CALL / PLAN-GAP / open questions
+
+The 180/220 limits are the integrator's decision. The conservative comparable
+tail selection and the exact Q17 completion correction are documented above;
+the resulting margin fits before any dispatch. No product choice, audit,
+predicate, retry policy or owner command changed. No serial plan was implemented.
+There is no remaining VM acceptance gap and no further round is needed for this
+brief. Owner/integrator review and the physical release gates remain; never merge.
+
 ## 14zza REPORT — whole-source review fixed; qualification 19 reached rollback, then step deadline
 
 **Disposition:** **No push and no new probe.** The corrected local gates accepted

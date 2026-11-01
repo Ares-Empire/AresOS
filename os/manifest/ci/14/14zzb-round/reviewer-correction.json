@@ -1,0 +1,17 @@
+{
+  "status": "local zero-cost post-run reviewer correction only; CI success unchanged",
+  "cause": "handoff glob also selected associated transport and public-echo JSON files",
+  "correction": "select only names ending handoff-<integer>.json; exact count3 and every field assertion unchanged",
+  "tests": 6,
+  "all_other_reviewer_AST_nodes_identical": true,
+  "new_pushes": 0,
+  "new_dispatches": 0,
+  "original": {
+    "sha256": "92d0903f089574c1721dccc1b53c7feee9bcc83333f3e530606aff7c4e344d40",
+    "path": ".work/14/14zzb/qualification-proof-at-dispatch.py"
+  },
+  "reviewed": {
+    "sha256": "a233be31ee2cc476c0e4abbf41d2def73f31a96790b358bec5af2e86c7ff4f70",
+    "path": ".work/14/14zzb-qualification-proof.py"
+  }
+}

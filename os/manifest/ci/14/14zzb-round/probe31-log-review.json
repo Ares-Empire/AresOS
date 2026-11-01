@@ -1,0 +1,94 @@
+{
+  "status": "passed",
+  "run": 41321806985,
+  "head": "211df982b5bf080b0167b8fe6e8dd3c5eb264fe8",
+  "findings": 4,
+  "cosign_checksum_findings": [
+    {
+      "sha256": "4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e",
+      "line_sha256": "a426f94f7a8d93d0356a9eece049dd7c9490e9311b08366cc18be82964afc1e3",
+      "path": "0_Pinned live ISO inspection and two-disk rehearsal.txt",
+      "line": 10396,
+      "rule": "generic-api-key",
+      "classification": "14zz public checksum in exact pinned-action whole-line block",
+      "cross_check": {
+        "status": "passed",
+        "match_start_column": 51,
+        "match_end_column": 134,
+        "source_secret_start_column": 69,
+        "source_secret_end_column": 132,
+        "approved_token_start_column": 69,
+        "approved_token_end_column": 132,
+        "scanner_chunk_start": 770000,
+        "redacted_excerpt_used_for_classification": false
+      }
+    },
+    {
+      "sha256": "f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126",
+      "line_sha256": "65d705a27476b15129198bf4f29b0741d6f2e488e9c77cbb592f93762156288c",
+      "path": "0_Pinned live ISO inspection and two-disk rehearsal.txt",
+      "line": 10400,
+      "rule": "generic-api-key",
+      "classification": "14zz public checksum in exact pinned-action whole-line block",
+      "cross_check": {
+        "status": "passed",
+        "match_start_column": 51,
+        "match_end_column": 134,
+        "source_secret_start_column": 69,
+        "source_secret_end_column": 132,
+        "approved_token_start_column": 69,
+        "approved_token_end_column": 132,
+        "scanner_chunk_start": 770000,
+        "redacted_excerpt_used_for_classification": false
+      }
+    },
+    {
+      "sha256": "4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e",
+      "line_sha256": "4c0f21d4e88565d66b49c9eba2d216c3b456441b7e69fc93a265c91f6dbe369a",
+      "path": "Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt",
+      "line": 223,
+      "rule": "generic-api-key",
+      "classification": "14zz public checksum in exact pinned-action whole-line block",
+      "cross_check": {
+        "status": "passed",
+        "match_start_column": 51,
+        "match_end_column": 134,
+        "source_secret_start_column": 69,
+        "source_secret_end_column": 132,
+        "approved_token_start_column": 69,
+        "approved_token_end_column": 132,
+        "scanner_chunk_start": 10000,
+        "redacted_excerpt_used_for_classification": false
+      }
+    },
+    {
+      "sha256": "f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126",
+      "line_sha256": "0161326e744e4b81c575ac92f43169a4f5617dd371e142eab0937765bd05773b",
+      "path": "Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt",
+      "line": 227,
+      "rule": "generic-api-key",
+      "classification": "14zz public checksum in exact pinned-action whole-line block",
+      "cross_check": {
+        "status": "passed",
+        "match_start_column": 51,
+        "match_end_column": 134,
+        "source_secret_start_column": 69,
+        "source_secret_end_column": 132,
+        "approved_token_start_column": 69,
+        "approved_token_end_column": 132,
+        "scanner_chunk_start": 10000,
+        "redacted_excerpt_used_for_classification": false
+      }
+    }
+  ],
+  "source": {
+    "sha256": "bbd7f51b170057ad223c140c8fb4dd781010d7265416bb94651c64c1bee30f37",
+    "url": "https://raw.githubusercontent.com/sigstore/cosign-installer/398d4b0eeef1380460a10c8013a76f728fb906ac/action.yml"
+  },
+  "combined_log": "0_Pinned live ISO inspection and two-disk rehearsal.txt",
+  "combined_block_first_line": 10174,
+  "combined_block_lines": 273,
+  "policy": "14zza whole source line plus unique pinned-action block; redacted metadata cross-check only",
+  "ignore_changes": false,
+  "workflow_changes": false
+}
