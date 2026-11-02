@@ -45,7 +45,19 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 - **14zze** bound the sources to Git's checkout bytes and pushed `3fd7916`.
   - **PROBE 34 AND QUALIFICATION 21 PASSED,** with 630 native tests each. The qualification included the mid-trial `system_reset`, the German login and `layout abandon`. VM acceptance is met.
   - The closing report `ae90dd3` is pushed. Package ledger: 2474/2750 minutes. All dispatch allowances are used (34/21).
-- **The fix re-check is running:** a fresh read-only reviewer writes `reviews/14-owner-tools/REVIEW-2.md` (log `../AresOS-14-review2.log`). Then the owner's "merge", then package 15.
+- **The re-checks:**
+  - **REVIEW-2:** findings 1, 2, 3 and 5 CLOSED.
+  - **14zzf:** a real STOP → export → reboot diagnostics test; no payload change.
+  - **REVIEW-3:** finding 4 CLOSED, and the payload is unchanged since `3fd7916`. **SAFE.**
+- **MERGED 2026-11-02** (owner's "merge") as squash `79a67d2`. The worktree `C:/Users/pab/AresOS-14-owner-tools` is kept for now: its `.work/` holds private retained evidence.
+
+### Package 15 next step (2026-11-02)
+
+- **15d** is running (log `../AresOS-15d.log`, summary `../AresOS-15d.last.md`):
+  - merge `origin/main` with `--no-ff`
+  - the new bootstrap block, fingerprint `3e2c78eb…`, `layout abandon`, card entries and the qualification 21 status
+  - equality tests, then one push, and mark PR #14 ready
+- **Then:** a package review of 15. It also checks the council delta's November runtime conditions against qualification 21. Then the owner's "merge", then the physical install (SSD return deadline about 2026-11-09).
 
 ### Package 14: owner tools (PR #13, draft)
 

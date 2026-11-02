@@ -1,8 +1,19 @@
 # AresOS: state
 
-Updated 2026-10-29. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
+Updated 2026-11-02. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
 
 ## Done (on main)
+
+- **Checked owner tools** (PR #13, briefs 14–14zzf, merged 2026-11-02 as `79a67d2`): the root-only `at` tools the owner runs from the ARESTOOLS stick. They cover:
+  - a trusted bootstrap: system tools check the literal `SHA256SUMS` fingerprint `3e2c78eb…` and every file before any stick code runs
+  - `install` and `prepare`, with resume
+  - records and `export`, including persisted STOP diagnostics
+  - token `login`, `verify`, `switch`, `title`, `rollback` and `keep-stock`
+  - keyboard `layout begin/proof/revert/finish/abandon`. A trial changes only the running console; only `finish` persists it.
+
+  **VM qualification 21** (run 41374876561, on `3fd7916`) proved the whole owner path on two file disks, with every Windows-disk capture unchanged. That includes the real token login, US International and back to German, a mid-trial `system_reset`, rollback, keep-stock and the final Windows checks.
+
+  The review found two blocking and three should-fix issues; all were fixed, and the re-checks say SAFE (`reviews/14-owner-tools/REVIEW*.md`). Since 2026-11-01 the privacy check runs as aresync's local pre-push hook, not on GitHub.
 
 - **Keyboard layout follows the system setting** (PR #12, briefs 13–13g, merged 2026-10-25 as `775be05`):
   - A new private release `ghcr.io/ares-empire/aresos` (owner OK): the frozen, tested image with only the 2 keyboard files changed, keyless-signed by the org workflow.
@@ -61,7 +72,7 @@ Updated 2026-10-29. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Next, in order
 
-1. **Close the remaining install gates.** Package 14 (owner tools, PR #13): most of the route is proven in the VM; still to prove are US International, back to German, rollback, keep-stock and the final Windows check. CI resumes 1 November (see `HANDOFF.md`). Package 15 (guide and emergency card, PR #14): reviewed, council delta clean, merges after 14 with the final tools fingerprint. Then physical install.
+1. **Close the remaining install gates.** Package 14 is merged. Package 15 (guide and emergency card, PR #14) is taking in 14's final version (brief 15d). Then come its review and the owner's merge, then the physical install.
 2. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
