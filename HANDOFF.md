@@ -2,6 +2,20 @@
 
 The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up. Detailed history lives in each package's `reviews/NN-*/REPORT.md` and its briefs.
 
+## The repo is public now (2026-11-02, from the MacBook session; keep this until both points are done)
+
+- `Ares-Empire/AresOS` is a fresh **public** repo since 2026-11-02 23:59. Every branch came over with the same commit
+  hashes, so clones and worktrees need nothing: pull as usual. The old repo is the private archive
+  `Ares-Empire/AresOS-archive-2026-11` (read-only): the pull requests #1–#15 and their discussion, the old branch
+  `pkg/03-os-image` and the Actions history live there. PR numbers start again at #1 in the new repo.
+- Public repos get free Actions minutes on GitHub's standard runners, so the $0 budget no longer limits `os-image.yml`.
+- **Two settings did not come along** (GitHub keeps them per repo); Patrik restores them:
+  1. The secret `GHCR_READ_TOKEN` (used by the release-13 and rehearsal runs). It expired around 2026-11-22 anyway: a
+     new token with `read:packages`, best as an organization secret for AresOS.
+  2. Write access for the new repo's workflows on the image packages in GHCR (each package → Package settings →
+     Manage Actions access → add `AresOS` with the Write role). Until then a run that publishes an image fails.
+- Public means: nothing personal in commits (the pre-push privacy check enforces it; never `--no-verify`).
+
 ## Where things are (2026-11-01)
 
 **The November round is running.** The owner's Actions budget is **$0 with "stop usage" on** (checked 2026-11-01), so only free minutes are used.
