@@ -1,0 +1,48 @@
+{
+  "status": "STOP after successful plain-US refusal and de revert, at reverted tty4 login pre-Enter guard",
+  "head": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+  "probe25": 40863215153,
+  "qualification14": 40866713472,
+  "native": {
+    "probe": {
+      "tests": 526,
+      "seconds": 105.897,
+      "skips": 0
+    },
+    "qualification": {
+      "tests": 526,
+      "seconds": 102.55,
+      "skips": 0
+    }
+  },
+  "properties_fixed_in_vm": true,
+  "scoped_journal_confirmed": true,
+  "hidden_windows": 10,
+  "all_key_event_counts_match": true,
+  "final_password_events": 64,
+  "final_return_sent": false,
+  "original_login_pid": 13852,
+  "replacement_foreground_pid": 20186,
+  "login_exit_cause_proven": false,
+  "owner_records_passed": 17,
+  "expected_owner_stops": 2,
+  "unexpected_owner_stops": 0,
+  "held_stop_observed": true,
+  "acceptance_met": false,
+  "pr_ready": false,
+  "pushes": 1,
+  "reruns": 0,
+  "closing_reservation": 0,
+  "reserve": 0,
+  "product_fix_after_stop": false,
+  "not_reached": [
+    "fresh tty4 login after revert",
+    "reverted layout proof/finish",
+    "US International begin/proof/finish and boot",
+    "final German proof/finish and boot",
+    "remaining labwc physical typing",
+    "rollback",
+    "keep-stock",
+    "final Windows checks"
+  ]
+}

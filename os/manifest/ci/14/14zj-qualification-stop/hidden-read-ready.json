@@ -1,0 +1,36 @@
+{
+  "ready": true,
+  "physical_echo_enabled": false,
+  "reader_echo_enabled": false,
+  "prompt_at_cursor": true,
+  "observation": {
+    "reason": "Expected foreground reader",
+    "foreground_chain": [
+      {
+        "pid": 1962,
+        "comm": "login",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 1,
+        "pgrp": 1962,
+        "session": 1962,
+        "tty": 1027,
+        "tpgid": 1962
+      }
+    ]
+  },
+  "reader": {
+    "pid": 1962,
+    "ppid": 1,
+    "pgrp": 1962,
+    "session": 1962,
+    "tty": 1027,
+    "tpgid": 1962,
+    "start": "5050",
+    "exe": "/usr/bin/login",
+    "tty_path": "/dev/tty3",
+    "physical": 1027
+  }
+}

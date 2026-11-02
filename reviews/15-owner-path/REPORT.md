@@ -1,5 +1,27 @@
 # 15: one owner checklist and a symptom-first emergency card
 
+## 15d — Final package 14 integration (2026-11-02)
+
+**Done:** merged `origin/main` (`79a67d2`) with `--no-ff`, preserving the numbered checklist, symptom-first card, Windows proof gate and state-dependent returns. The 13-line bootstrap is byte-equal to the generator exercised by package 14's tamper tests. Regenerated SHA256SUMS fingerprint: `3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd`. Current copies, Windows manifests and all 20 captured dispatcher PASS results agree; earlier report sections retain historical bundle receipts.
+
+The owner path now covers runtime-only begin/revert, persistent finish, fresh-login abandon with separate AresOS/stock returns, matching interrupted install/prepare resume, and exported persistent STOP diagnostics. Two new card entries cover interrupted layouts and tools STOPs. Status records qualification 21 on `3fd7916`, keeping its VM scope separate from 14zzf's local diagnostic-survival sequence.
+
+**Verified in WSL:** `python3 [-B] -m unittest discover -s os/tests -p <pattern> -v`, with `PYTHONDONTWRITEBYTECODE` unset. Patterns: `test_owner_path.py`, `test_owner_equality.py`, `test_owner*.py`. All final runs have zero skips.
+
+| Suite | `python3 -B` | Ordinary `python3` |
+| --- | --- | --- |
+| Owner path | **18 /53.898s, OK** | **18 /44.823s, OK** |
+| Equality | **9 /367.299s, OK** | **9 /318.667s, OK** |
+| Full owner | **318 /2042.911s, OK** | **318 /2093.991s, OK** |
+
+Windows `pwsh -NoProfile -File os/tests/owner-pass.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/15d/windows-pass`: **4 PASS comparisons, 17 zero-write copy refusals, 78 record checks passed**. Installed Pester 3.4.0 ran that test through `.work/15d/windows-pass-pester.Tests.ps1`: **1 passed, 0 failed/skipped**. Logs and runners remain in ignored `.work/15d/`.
+
+Initial runs caught two integration defects: multiline inline invocations escaped the extra-argument mutation (**9 tests /335.702s, one failure**), and the session test searched INSTALL alone (**318 /2014.713s, one failure**). The scanner now checks complete spans; the session input includes INSTALL-PROCEDURES. Original assertions/mutations remain; focused reruns and both final full suites pass.
+
+**Scope/privacy:** `git diff --exit-code 79a67d2 -- .` with only package 15's documents and five owner-test paths excluded is empty. Explicit comparisons of mod, tools/bundle, Windows helpers, workflows, harness and release are empty; screenshots match main. Current-change whitespace checks pass; imported reviews' existing Markdown hard breaks are preserved. Publisher-checksum-verified local **gitleaks 8.21.2**, `git . --log-opts="--all --full-history -m" --redact=100`: **731 commits, zero leaks**, before this commit. The committed head is scanned again before the single privacy-hook push; closing delivery receipt goes in PR #14.
+
+**Not verified:** physical installation remains **NOT RELEASED**, with every laptop/media/phone/credential gate open. Qualification 21 did not test the exact STOP → export → reboot diagnostic sequence; 14zzf separately supplies local sequence evidence. No new VM/dispatch, image build, Minecraft client or Gradle run. **JUDGMENT-CALL / PLAN-GAP / open questions:** none new.
+
 ## 15c — Merge package 14n council fixes (2026-10-26)
 
 **Done:** merged `754cf7c` with `--no-ff` from `3e07271`, preserving package 15's numbered checklist, symptom card, safety gates and state-dependent returns. Imported tools/harness/workflow/release content equals `754cf7c`; no additional runtime changes. The regenerated tools manifest fingerprint is `ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112`. Earlier bundle receipts below and in package 14's historical sections do not qualify this bundle.

@@ -20,6 +20,14 @@ def manifest(root=ROOT):
             for name, source in sorted(PAYLOAD.items())]
 
 
+def manifests(root=ROOT):
+    rows = manifest(root)
+    raw = (json.dumps(rows, indent=2) + '\n').encode()
+    sums = ''.join(row['sha256'] + '  ' + row['path'] + '\n' for row in rows)
+    sums += hashlib.sha256(raw).hexdigest() + '  SHA256.json\n'
+    return raw, sums.encode()
+
+
 def build(destination, root=ROOT):
     destination = pathlib.Path(destination)
     if destination.exists():
@@ -29,19 +37,21 @@ def build(destination, root=ROOT):
         target = destination / name
         target.parent.mkdir(exist_ok=True)
         shutil.copyfile(root / source, target)
-    raw = (json.dumps(manifest(root), indent=2) + '\n').encode()
+    raw, sums = manifests(root)
     (destination / 'SHA256.json').write_bytes(raw)
-    return hashlib.sha256(raw).hexdigest()
+    (destination / 'SHA256SUMS').write_bytes(sums)
+    return hashlib.sha256(sums).hexdigest()
 
 
 def check(destination, root=ROOT):
     destination = pathlib.Path(destination)
-    expected = (json.dumps(manifest(root), indent=2) + '\n').encode()
+    expected, sums = manifests(root)
     assert (destination / 'SHA256.json').read_bytes() == expected, 'Regenerate the reviewed payload'
-    assert {p.relative_to(destination).as_posix() for p in destination.rglob('*') if p.is_file()} == set(PAYLOAD) | {'SHA256.json'}
+    assert (destination / 'SHA256SUMS').read_bytes() == sums, 'Regenerate the system-tool manifest'
+    assert {p.relative_to(destination).as_posix() for p in destination.rglob('*') if p.is_file()} == set(PAYLOAD) | {'SHA256.json', 'SHA256SUMS'}
     for name, source in PAYLOAD.items():
         assert (destination / name).read_bytes() == (root / source).read_bytes(), 'Payload differs: ' + name
-    return hashlib.sha256(expected).hexdigest()
+    return hashlib.sha256(sums).hexdigest()
 
 
 if __name__ == '__main__':
@@ -56,7 +66,9 @@ if __name__ == '__main__':
                 assert not target.is_symlink()
                 target.parent.mkdir(exist_ok=True)
                 target.write_bytes((ROOT / source).read_bytes())
-            (destination / 'SHA256.json').write_text(json.dumps(manifest(), indent=2) + '\n', newline='\n')
+            raw, sums = manifests()
+            (destination / 'SHA256.json').write_bytes(raw)
+            (destination / 'SHA256SUMS').write_bytes(sums)
         print('PASS bundle manifest SHA256 ' + check(destination))
     else:
         print('PASS bundle manifest SHA256 ' + build(sys.argv[1]))

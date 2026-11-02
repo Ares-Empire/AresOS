@@ -1,0 +1,191 @@
+{
+  "whole_local": {
+    "tests": 575,
+    "seconds": 1415.076,
+    "executed": 575,
+    "distinct_passed": 566,
+    "skips": 0,
+    "actual_host_limitations": [
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "documented_host_limitations": [
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "unknown_failures": [],
+    "status": "known local host limitations; native suite mandatory",
+    "runner_seconds": 1415.07,
+    "host_timing_seconds": [
+      64.36261896199994
+    ],
+    "host_causes": [
+      "PIL unavailable; privileged operations refused by existing sudo shim; DrvFS mode mismatch",
+      "14zm local timing limitation only; unchanged30-second case mandatory in native CI"
+    ]
+  },
+  "affected": {
+    "tests": 22,
+    "seconds": 526.839,
+    "skips": 0
+  },
+  "adapter": {
+    "tests": 5,
+    "seconds": 0.028,
+    "skips": 0
+  },
+  "negative_original_adapter": {
+    "status": "expected regression failure on retained faulty adapter",
+    "source": {
+      "sha256": "67614b3b8f9d3529cde631fae8eb975fbef8ae3735d8bd7b5660704dff35860f",
+      "path": "os/ci/owner_vm.py",
+      "commit": "75a2c638cecff042b528eb07e3089eda9129de02"
+    },
+    "test": "test_real_typing_chain_emits_exact_keys_through_every_remaining_stage",
+    "assertion": "Unknown or untypeable physical character",
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "no_source_rewrite": true,
+    "no_vm": true,
+    "no_dispatch": true
+  },
+  "critical_native": [
+    {
+      "status": "passed",
+      "run": 41276950908,
+      "head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+      "log": {
+        "sha256": "453da185d456c664217d039d6e7114912b3841abd13bfe23efae6fa102855c17",
+        "path": "native.log"
+      },
+      "whole_tests": 575,
+      "skips": 0,
+      "critical_tests": [
+        {
+          "test": "test_foot_refuses_wrong_international_variant_before_any_typing (test_owner_layout_adapter.LayoutAdapterTest.test_foot_refuses_wrong_international_variant_before_any_typing)",
+          "line": 561,
+          "result": "ok"
+        },
+        {
+          "test": "test_international_dumpkeys_fixture_is_bound_and_checked_as_international (test_owner_layout_adapter.LayoutAdapterTest.test_international_dumpkeys_fixture_is_bound_and_checked_as_international)",
+          "line": 562,
+          "result": "ok"
+        },
+        {
+          "test": "test_only_an_omitted_profile_uses_the_guest_profile (test_owner_layout_adapter.LayoutAdapterTest.test_only_an_omitted_profile_uses_the_guest_profile)",
+          "line": 563,
+          "result": "ok"
+        },
+        {
+          "test": "test_plain_us_runs_the_same_real_public_typing_chain_for_ascii (test_owner_layout_adapter.LayoutAdapterTest.test_plain_us_runs_the_same_real_public_typing_chain_for_ascii)",
+          "line": 564,
+          "result": "ok"
+        },
+        {
+          "test": "test_x11_profiles_and_loaded_map_admit_international_without_a_fallback (test_owner_layout_adapter.LayoutAdapterTest.test_x11_profiles_and_loaded_map_admit_international_without_a_fallback)",
+          "line": 565,
+          "result": "ok"
+        },
+        {
+          "test": "test_real_typing_chain_emits_exact_keys_through_every_remaining_stage (test_owner_walk.OwnerWalkTest.test_real_typing_chain_emits_exact_keys_through_every_remaining_stage)",
+          "line": 691,
+          "result": "ok"
+        }
+      ],
+      "evidence": "actual native job log; not a stand-in receipt or inferred from test count"
+    },
+    {
+      "status": "passed",
+      "run": 41278848542,
+      "head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+      "log": {
+        "sha256": "e54a84a53c773c2a92fa9e7cd6cc6fae17b937e64bdf4871de37043824759878",
+        "path": "native.log"
+      },
+      "whole_tests": 575,
+      "skips": 0,
+      "critical_tests": [
+        {
+          "test": "test_foot_refuses_wrong_international_variant_before_any_typing (test_owner_layout_adapter.LayoutAdapterTest.test_foot_refuses_wrong_international_variant_before_any_typing)",
+          "line": 561,
+          "result": "ok"
+        },
+        {
+          "test": "test_international_dumpkeys_fixture_is_bound_and_checked_as_international (test_owner_layout_adapter.LayoutAdapterTest.test_international_dumpkeys_fixture_is_bound_and_checked_as_international)",
+          "line": 562,
+          "result": "ok"
+        },
+        {
+          "test": "test_only_an_omitted_profile_uses_the_guest_profile (test_owner_layout_adapter.LayoutAdapterTest.test_only_an_omitted_profile_uses_the_guest_profile)",
+          "line": 563,
+          "result": "ok"
+        },
+        {
+          "test": "test_plain_us_runs_the_same_real_public_typing_chain_for_ascii (test_owner_layout_adapter.LayoutAdapterTest.test_plain_us_runs_the_same_real_public_typing_chain_for_ascii)",
+          "line": 564,
+          "result": "ok"
+        },
+        {
+          "test": "test_x11_profiles_and_loaded_map_admit_international_without_a_fallback (test_owner_layout_adapter.LayoutAdapterTest.test_x11_profiles_and_loaded_map_admit_international_without_a_fallback)",
+          "line": 565,
+          "result": "ok"
+        },
+        {
+          "test": "test_real_typing_chain_emits_exact_keys_through_every_remaining_stage (test_owner_walk.OwnerWalkTest.test_real_typing_chain_emits_exact_keys_through_every_remaining_stage)",
+          "line": 691,
+          "result": "ok"
+        }
+      ],
+      "evidence": "actual native job log; not a stand-in receipt or inferred from test count"
+    }
+  ],
+  "native_timing": [
+    {
+      "status": "passed",
+      "run": 41276950908,
+      "head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+      "test": "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "native_result": "ok; unchanged30-second bound",
+      "log": {
+        "sha256": "453da185d456c664217d039d6e7114912b3841abd13bfe23efae6fa102855c17",
+        "path": "native.log"
+      },
+      "line": 756,
+      "local_exception_applied_in_ci": false
+    },
+    {
+      "status": "passed",
+      "run": 41278848542,
+      "head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+      "test": "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "native_result": "ok; unchanged30-second bound",
+      "log": {
+        "sha256": "e54a84a53c773c2a92fa9e7cd6cc6fae17b937e64bdf4871de37043824759878",
+        "path": "native.log"
+      },
+      "line": 756,
+      "local_exception_applied_in_ci": false
+    }
+  ],
+  "qualification_native": {
+    "tests": 575,
+    "seconds": 201.108,
+    "skips": 0
+  },
+  "stale_status_text": "post-run wrapper final line says native569; count-pinned reviewers and actual logs prove575; no assertion uses569"
+}

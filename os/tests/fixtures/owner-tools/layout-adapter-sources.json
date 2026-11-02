@@ -1,0 +1,16 @@
+{
+  "source": {
+    "sha256": "f5d382d644362de84eff18b15769b391b691eb88956960c90b48b5d4aba89c5a",
+    "artifact_sha256": "47190794ab3a10cf4045c9bb4e5f5d9c928c5e6a7c93f16cc6bfa2c4a30f2574",
+    "path": "evidence/two-disk/aresos-intl-loaded-keyboard.json",
+    "run": 41266663581,
+    "projection": "loaded_map only; exact decoded dumpkeys text; no invented rows"
+  },
+  "fixtures": [
+    {
+      "sha256": "3df456bd5a61d62420335304cff3196f655d9756c663f4ffb2864a88bd219394",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-us-intl.json",
+      "profile": "us-intl"
+    }
+  ]
+}

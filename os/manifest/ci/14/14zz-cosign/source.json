@@ -1,0 +1,14 @@
+{
+  "sha256": "bbd7f51b170057ad223c140c8fb4dd781010d7265416bb94651c64c1bee30f37",
+  "template_sha256": "87ea40f3402cc329014626204c09661fd0c3ec8109041da6cb892f041cac9f30",
+  "license_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+  "commit": "398d4b0eeef1380460a10c8013a76f728fb906ac",
+  "path": "os/manifest/ci/14/14zz-cosign/action.yml.template",
+  "url": "https://raw.githubusercontent.com/sigstore/cosign-installer/398d4b0eeef1380460a10c8013a76f728fb906ac/action.yml",
+  "checksums": [
+    "4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e",
+    "f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126"
+  ],
+  "license_path": "os/manifest/ci/14/14zz-cosign/LICENSE",
+  "encoding": "Replace @SHA0@/@SHA1@ from checksums to reconstruct exact upstream bytes; checksums are public hash data, no scanner-ignore change"
+}

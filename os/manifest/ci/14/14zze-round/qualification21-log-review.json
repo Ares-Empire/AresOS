@@ -1,0 +1,94 @@
+{
+  "status": "passed",
+  "run": 41374876561,
+  "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+  "findings": 4,
+  "cosign_checksum_findings": [
+    {
+      "sha256": "4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e",
+      "line_sha256": "3287e7b78e6da11479959dff9cd1be99254acca0d244fa43351580b1106a4d18",
+      "path": "Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt",
+      "line": 223,
+      "rule": "generic-api-key",
+      "classification": "14zz public checksum in exact pinned-action whole-line block",
+      "cross_check": {
+        "status": "passed",
+        "match_start_column": 51,
+        "match_end_column": 134,
+        "source_secret_start_column": 69,
+        "source_secret_end_column": 132,
+        "approved_token_start_column": 69,
+        "approved_token_end_column": 132,
+        "scanner_chunk_start": 10000,
+        "redacted_excerpt_used_for_classification": false
+      }
+    },
+    {
+      "sha256": "f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126",
+      "line_sha256": "cf706a4a599bdf63625cb10ef9ace9896e93c00e28fe1de89f2d18ad8ab106b2",
+      "path": "Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt",
+      "line": 227,
+      "rule": "generic-api-key",
+      "classification": "14zz public checksum in exact pinned-action whole-line block",
+      "cross_check": {
+        "status": "passed",
+        "match_start_column": 51,
+        "match_end_column": 134,
+        "source_secret_start_column": 69,
+        "source_secret_end_column": 132,
+        "approved_token_start_column": 69,
+        "approved_token_end_column": 132,
+        "scanner_chunk_start": 10000,
+        "redacted_excerpt_used_for_classification": false
+      }
+    },
+    {
+      "sha256": "4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e",
+      "line_sha256": "85311015beb097b213950056020d48b140981d994a9d4841f04e04e012059850",
+      "path": "0_Pinned live ISO inspection and two-disk rehearsal.txt",
+      "line": 6610,
+      "rule": "generic-api-key",
+      "classification": "14zz public checksum in exact pinned-action whole-line block",
+      "cross_check": {
+        "status": "passed",
+        "match_start_column": 51,
+        "match_end_column": 134,
+        "source_secret_start_column": 69,
+        "source_secret_end_column": 132,
+        "approved_token_start_column": 69,
+        "approved_token_end_column": 132,
+        "scanner_chunk_start": 540000,
+        "redacted_excerpt_used_for_classification": false
+      }
+    },
+    {
+      "sha256": "f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126",
+      "line_sha256": "df36ac3b0e3218fc65f456705d4511ca9a4012eb7c39bd7a00a7f6451e19ad82",
+      "path": "0_Pinned live ISO inspection and two-disk rehearsal.txt",
+      "line": 6614,
+      "rule": "generic-api-key",
+      "classification": "14zz public checksum in exact pinned-action whole-line block",
+      "cross_check": {
+        "status": "passed",
+        "match_start_column": 51,
+        "match_end_column": 134,
+        "source_secret_start_column": 69,
+        "source_secret_end_column": 132,
+        "approved_token_start_column": 69,
+        "approved_token_end_column": 132,
+        "scanner_chunk_start": 540000,
+        "redacted_excerpt_used_for_classification": false
+      }
+    }
+  ],
+  "source": {
+    "sha256": "bbd7f51b170057ad223c140c8fb4dd781010d7265416bb94651c64c1bee30f37",
+    "url": "https://raw.githubusercontent.com/sigstore/cosign-installer/398d4b0eeef1380460a10c8013a76f728fb906ac/action.yml"
+  },
+  "combined_log": "0_Pinned live ISO inspection and two-disk rehearsal.txt",
+  "combined_block_first_line": 6388,
+  "combined_block_lines": 273,
+  "policy": "14zza whole source line plus unique pinned-action block; redacted metadata cross-check only",
+  "ignore_changes": false,
+  "workflow_changes": false
+}

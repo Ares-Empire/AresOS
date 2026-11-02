@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "head": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+  "tests": 400,
+  "seconds": 23.023,
+  "skips": 0,
+  "log": {
+    "sha256": "d7acb6b35dcf0a00420247c6f8a81d8cd9fb31977f77356514ff7156d4b1f3e8",
+    "path": ".work/14/run-40560134727/native.log",
+    "committed": false
+  },
+  "loop_checks": 20,
+  "helper_mutations": 0,
+  "protected_unchanged": true,
+  "cleanup_complete": true,
+  "local_host_limits_resolved": 8
+}

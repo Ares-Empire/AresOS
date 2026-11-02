@@ -39,7 +39,9 @@ elif tool == 'ostree' and args[:2] == ['admin', 'pin']:
     mutation = True
 elif tool == 'systemctl':
     if 'list-unit-files' in args:
-        result = 'uupd.service ' + ('masked' if state.get('paused') else 'enabled') + '\nuupd.timer ' + ('disabled' if state.get('paused') else 'enabled')
+        # systemd259 output_unit_file_list has UNIT FILE / STATE / PRESET.
+        result = ('uupd.service ' + ('masked -' if state.get('paused') else 'enabled enabled')
+            + '\nuupd.timer ' + ('disabled enabled' if state.get('paused') else 'enabled enabled'))
     elif 'show' in args:
         result = 'LoadState=loaded\nActiveState=inactive\nSubState=dead\n'
     elif 'mask' in args or 'disable' in args:
@@ -57,6 +59,7 @@ elif tool == 'localectl':
     mutation = True
     if args[1] == 'set-keymap':
         state['keyboard']['VConsoleKeymap'], state['keyboard']['VConsoleKeymapToggle'] = args[2:]
+        state['loaded_keymap'] = args[2]
     elif args[1] == 'set-x11-keymap':
         if state.pop('fail_x11_once', False):
             (root / 'machine.json').write_text(json.dumps(state))
@@ -65,8 +68,18 @@ elif tool == 'localectl':
             state['keyboard'][key] = value
     else:
         raise SystemExit('Unknown localectl operation')
+elif tool == 'loadkeys':
+    assert args[:3] == ['-C', '/dev/tty3', '--'] and args[3] in ('de','us','us-intl')
+    if state.pop('fail_loadkeys_once', False):
+        (root / 'machine.json').write_text(json.dumps(state))
+        raise SystemExit(42)
+    state['loaded_keymap'] = args[3]
+    mutation = True
 elif tool == 'dumpkeys':
-    result = 'keycode 21 = +z\nkeycode 44 = +y' if state['keyboard']['VConsoleKeymap'] == 'de' else 'keycode 21 = +y\nkeycode 44 = +z'
+    profile = state.get('loaded_keymap', state['keyboard']['VConsoleKeymap'])
+    if profile not in ('de', 'us', 'us-intl'):
+        raise SystemExit('Unknown physical layout profile in dumpkeys shim')
+    result = json.loads((pathlib.Path(__file__).parent/'fixtures/owner-tools'/('dumpkeys-'+profile+'.json')).read_text())
 else:
     raise SystemExit('Unknown command in owner shim: ' + tool)
 with (root / 'calls.jsonl').open('a') as log:

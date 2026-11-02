@@ -1,0 +1,299 @@
+{
+  "status": "STOP private login hidden completion; no idle authority, no Enter",
+  "run": 40630352782,
+  "head": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+  "native_tests": 452,
+  "native_seconds": 74.134,
+  "native_skips": 0,
+  "foreground_refusal": {
+    "ready": false,
+    "echo_enabled": false,
+    "foreground_shell": false,
+    "observation": {
+      "ready": false,
+      "reason": "Sudo pts is not foreground interactive bash",
+      "foreground_chain": [
+        {
+          "pid": 3354,
+          "comm": "sudo",
+          "argv": [
+            "sudo",
+            "-i"
+          ],
+          "argv_redacted": false,
+          "ppid": 2887,
+          "pgrp": 3354,
+          "session": 2887,
+          "tty": 1027,
+          "tpgid": 3354
+        },
+        {
+          "pid": 3887,
+          "comm": "sudo",
+          "argv": [
+            "sudo",
+            "-i"
+          ],
+          "argv_redacted": false,
+          "ppid": 3354,
+          "pgrp": 3887,
+          "session": 3887,
+          "tty": 34817,
+          "tpgid": 5396
+        },
+        {
+          "pid": 3888,
+          "comm": "bash",
+          "argv": [
+            "-bash"
+          ],
+          "argv_redacted": false,
+          "ppid": 3887,
+          "pgrp": 3888,
+          "session": 3887,
+          "tty": 34817,
+          "tpgid": 5396
+        },
+        {
+          "pid": 5396,
+          "comm": "sudo",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 3888,
+          "pgrp": 5396,
+          "session": 3887,
+          "tty": 34817,
+          "tpgid": 5396
+        },
+        {
+          "pid": 5399,
+          "comm": "sudo",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 5396,
+          "pgrp": 5399,
+          "session": 5399,
+          "tty": 34818,
+          "tpgid": 5400
+        },
+        {
+          "pid": 5400,
+          "comm": "python3",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 5399,
+          "pgrp": 5400,
+          "session": 5399,
+          "tty": 34818,
+          "tpgid": 5400
+        }
+      ]
+    }
+  },
+  "vcsa": {
+    "sha256": "63df235554d03b43788e97bfdfb7ba5c45dfa6eefaad8c074aa468c06ba84484",
+    "path": "evidence/two-disk/private-owner-login-physical-idle-timeout-1.vcsa",
+    "geometry": [
+      50,
+      160,
+      26,
+      49
+    ],
+    "cursor_line_empty": false,
+    "markers": {
+      "GitHub username:": [
+        49
+      ],
+      "Read-only token (hidden):": [
+        50
+      ],
+      "PASS login": [],
+      "STOP:": [],
+      "root@bazzite:~#": [
+        24,
+        34,
+        46,
+        48
+      ],
+      "Password:": []
+    },
+    "decoded_gitleaks_findings": 0,
+    "token_prefix_present": false,
+    "decoded_text_saved": false
+  },
+  "resyncs": [
+    {
+      "sha256": "d1c186843e49e0efbb8e33afa8589edcc6e220b78f7191b0dc400861ce9a52fa",
+      "path": "evidence/two-disk/tools-before-reboot-title-ready-wait-19-resync-1.json",
+      "event": {
+        "stage": "tools-before-reboot-title-ready-wait-19",
+        "tty": "tty3",
+        "attempt": 1,
+        "time": "2026-10-28T05:01:19.537569+00:00",
+        "before_cursor_line": "",
+        "after_cursor_line": "root@bazzite:~#",
+        "enter_sent": true,
+        "observer": {
+          "ready": true,
+          "echo_enabled": false,
+          "foreground_shell": true,
+          "observation": {
+            "ready": true,
+            "reason": "sudo -i monitor to foreground pts interactive bash",
+            "foreground_chain": [
+              {
+                "pid": 3157,
+                "comm": "sudo",
+                "argv": [
+                  "sudo",
+                  "-i"
+                ],
+                "argv_redacted": false,
+                "ppid": 2715,
+                "pgrp": 3157,
+                "session": 2715,
+                "tty": 1027,
+                "tpgid": 3157
+              },
+              {
+                "pid": 3686,
+                "comm": "sudo",
+                "argv": [
+                  "sudo",
+                  "-i"
+                ],
+                "argv_redacted": false,
+                "ppid": 3157,
+                "pgrp": 3686,
+                "session": 3686,
+                "tty": 34817,
+                "tpgid": 3687
+              },
+              {
+                "pid": 3687,
+                "comm": "bash",
+                "argv": [
+                  "-bash"
+                ],
+                "argv_redacted": false,
+                "ppid": 3686,
+                "pgrp": 3687,
+                "session": 3686,
+                "tty": 34817,
+                "tpgid": 3687
+              }
+            ]
+          }
+        },
+        "after_time": "2026-10-28T05:01:25.170449+00:00",
+        "ready": true
+      }
+    },
+    {
+      "sha256": "7530d6f8a040b2f228316f1a68ca822c0d4dbd259dde75cf7f00242ef3bf4373",
+      "path": "evidence/two-disk/tools-install-ready-wait-5-resync-1.json",
+      "event": {
+        "stage": "tools-install-ready-wait-5",
+        "tty": "tty3",
+        "attempt": 1,
+        "time": "2026-10-28T04:57:19.172697+00:00",
+        "before_cursor_line": "",
+        "after_cursor_line": "root@bazzite:~#",
+        "enter_sent": true,
+        "observer": {
+          "ready": true,
+          "echo_enabled": false,
+          "foreground_shell": true,
+          "observation": {
+            "ready": true,
+            "reason": "sudo -i monitor to foreground pts interactive bash",
+            "foreground_chain": [
+              {
+                "pid": 3157,
+                "comm": "sudo",
+                "argv": [
+                  "sudo",
+                  "-i"
+                ],
+                "argv_redacted": false,
+                "ppid": 2715,
+                "pgrp": 3157,
+                "session": 2715,
+                "tty": 1027,
+                "tpgid": 3157
+              },
+              {
+                "pid": 3686,
+                "comm": "sudo",
+                "argv": [
+                  "sudo",
+                  "-i"
+                ],
+                "argv_redacted": false,
+                "ppid": 3157,
+                "pgrp": 3686,
+                "session": 3686,
+                "tty": 34817,
+                "tpgid": 3687
+              },
+              {
+                "pid": 3687,
+                "comm": "bash",
+                "argv": [
+                  "-bash"
+                ],
+                "argv_redacted": false,
+                "ppid": 3686,
+                "pgrp": 3687,
+                "session": 3686,
+                "tty": 34817,
+                "tpgid": 3687
+              }
+            ]
+          }
+        },
+        "after_time": "2026-10-28T04:57:24.480551+00:00",
+        "ready": true
+      }
+    }
+  ],
+  "staged_transfers": 101,
+  "all_staged_sha_and_syntax_verified": true,
+  "hidden_observation": {
+    "ready": true,
+    "observation": {},
+    "raw": ""
+  },
+  "serial_resync": {
+    "status": "passed",
+    "prior_completion_observed": true,
+    "drained_output_bytes": 20,
+    "raw_output_retained": false,
+    "serial_input_flushed": true,
+    "serial_idle_roundtrips": 1,
+    "physical_enter_sent": false
+  },
+  "failure_counter": {
+    "failure_path": true,
+    "probe_only": false,
+    "boot": 9,
+    "status": "recorded",
+    "counter": "corrected-stock-blockstats.json",
+    "vm_paused": true
+  },
+  "owner_diagnostics_count": 9,
+  "private_login_owner_record_present": false,
+  "after_network_unchanged": true,
+  "tools_removed_before_reboot": true,
+  "last_console_marker": "Read-only token (hidden):",
+  "private_login_cause_proven": false,
+  "not_proven": "No inner pts termios or visible prompt snapshot at the instant hidden input was sent; early/flushed or dropped physical input cannot be distinguished.",
+  "observed_source_boundary": "owner.py login: input username; getpass token; validate_login; podman login. No PASS/STOP or private-login record was produced.",
+  "source_implementation_unchanged": true
+}

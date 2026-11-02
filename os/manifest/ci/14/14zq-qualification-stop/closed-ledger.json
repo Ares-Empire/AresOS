@@ -1,0 +1,1064 @@
+{
+  "checked_at": "2026-10-29T10:15:30.103614+00:00",
+  "ledger": {
+    "allowance": "14",
+    "start": "2026-10-25T22:01:22Z",
+    "cap": 1700,
+    "full_cap": 0,
+    "full_dispatched": 0,
+    "part_b_cap": 0,
+    "part_b_dispatched": 0,
+    "dispatch_caps": {
+      "probe": 25,
+      "owner-tools": 14
+    },
+    "dispatch_counts": {
+      "probe": 24,
+      "owner-tools": 13
+    },
+    "consumed_minutes": 1523,
+    "reserved_minutes": 0,
+    "runs": [
+      {
+        "run": 40844950597,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+        "conclusion": "failure",
+        "minutes": 81
+      },
+      {
+        "run": 40841171586,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+        "conclusion": "success",
+        "minutes": 25
+      },
+      {
+        "run": 40840258629,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40840251987,
+        "title": "14zq: recognize the exact post-staging hold helper and record process\u2026",
+        "sha": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40826092372,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+        "conclusion": "failure",
+        "minutes": 75
+      },
+      {
+        "run": 40823225012,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+        "conclusion": "success",
+        "minutes": 26
+      },
+      {
+        "run": 40822668938,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40822662987,
+        "title": "14zp: shorten key holds and verify hidden values before Return",
+        "sha": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40805607265,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+        "conclusion": "failure",
+        "minutes": 67
+      },
+      {
+        "run": 40802757524,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+        "conclusion": "success",
+        "minutes": 25
+      },
+      {
+        "run": 40802254280,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40802246771,
+        "title": "14zo: prove owner-length token path and count guest keyboard events",
+        "sha": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40788594413,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "d523fb257afd72d7438340c35f6bf463341ea02b",
+        "conclusion": "failure",
+        "minutes": 56
+      },
+      {
+        "run": 40785271949,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "d523fb257afd72d7438340c35f6bf463341ea02b",
+        "conclusion": "success",
+        "minutes": 23
+      },
+      {
+        "run": 40784619811,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "d523fb257afd72d7438340c35f6bf463341ea02b",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40784610639,
+        "title": "14zn: capture hidden-reader queues and VT state; bound token completi\u2026",
+        "sha": "d523fb257afd72d7438340c35f6bf463341ea02b",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40768498320,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+        "conclusion": "failure",
+        "minutes": 75
+      },
+      {
+        "run": 40763979290,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+        "conclusion": "success",
+        "minutes": 24
+      },
+      {
+        "run": 40762971649,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40762962724,
+        "title": "14zm: bind watcher bytes using committed LF newlines",
+        "sha": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40658792992,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+        "conclusion": "failure",
+        "minutes": 49
+      },
+      {
+        "run": 40655273119,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+        "conclusion": "success",
+        "minutes": 24
+      },
+      {
+        "run": 40654614484,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40654606957,
+        "title": "14zj: delimit ACKs and share complete kernel-line filtering",
+        "sha": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40646962291,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+        "conclusion": "failure",
+        "minutes": 22
+      },
+      {
+        "run": 40646398141,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40646392604,
+        "title": "14zi: prove hidden prompts on the actual foreground reader tty",
+        "sha": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40630352782,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+        "conclusion": "failure",
+        "minutes": 77
+      },
+      {
+        "run": 40628158654,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+        "conclusion": "success",
+        "minutes": 20
+      },
+      {
+        "run": 40627663601,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40627657801,
+        "title": "14zh: require fresh physical idle proof before every prompt resync",
+        "sha": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40617562735,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+        "conclusion": "failure",
+        "minutes": 54
+      },
+      {
+        "run": 40614909488,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+        "conclusion": "success",
+        "minutes": 23
+      },
+      {
+        "run": 40614313020,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40614308783,
+        "title": "14zg: verify up to three nested sudo PTY relays for owner sessions",
+        "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40596167369,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+        "conclusion": "failure",
+        "minutes": 54
+      },
+      {
+        "run": 40592552658,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+        "conclusion": "success",
+        "minutes": 21
+      },
+      {
+        "run": 40591924586,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40591916713,
+        "title": "14zd: prove isolated local replay for the six-dollar round",
+        "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40566496658,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+        "conclusion": "failure",
+        "minutes": 74
+      },
+      {
+        "run": 40560134727,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+        "conclusion": "success",
+        "minutes": 22
+      },
+      {
+        "run": 40559090525,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+        "conclusion": "success",
+        "minutes": 4
+      },
+      {
+        "run": 40559083001,
+        "title": "14z: classify owner firmware entries from bounded UEFI device paths",
+        "sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+        "conclusion": "success",
+        "minutes": 4
+      },
+      {
+        "run": 40543952228,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+        "conclusion": "failure",
+        "minutes": 54
+      },
+      {
+        "run": 40538251599,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+        "conclusion": "success",
+        "minutes": 23
+      },
+      {
+        "run": 40537576099,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40537560673,
+        "title": "14y: resume pinned ISO transfers within six verified attempts",
+        "sha": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40528739880,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "c6fc99555de35d3bde4096c347601d18ea270321",
+        "conclusion": "failure",
+        "minutes": 17
+      },
+      {
+        "run": 40527965543,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "c6fc99555de35d3bde4096c347601d18ea270321",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40527954626,
+        "title": "14x: allow slow mirrors within reviewed rehearsal limits",
+        "sha": "c6fc99555de35d3bde4096c347601d18ea270321",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40519384061,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "f8ae9cb80fa7e51ee9bf5f3c21ee6b4d3c02036d",
+        "conclusion": "failure",
+        "minutes": 29
+      },
+      {
+        "run": 40518683163,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "f8ae9cb80fa7e51ee9bf5f3c21ee6b4d3c02036d",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40518675760,
+        "title": "14w: guard the approved $3 retest and bind the complete preflight",
+        "sha": "f8ae9cb80fa7e51ee9bf5f3c21ee6b4d3c02036d",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40421596174,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+        "conclusion": "failure",
+        "minutes": 68
+      },
+      {
+        "run": 40417291358,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+        "conclusion": "success",
+        "minutes": 23
+      },
+      {
+        "run": 40416793839,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40416787226,
+        "title": "Guard October owner-tools runs with the approved paid Actions budget",
+        "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40407466983,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "22e07b1b6abb6f60da9df9c8646aef414e8589d4",
+        "conclusion": "failure",
+        "minutes": 14
+      },
+      {
+        "run": 40406753823,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "22e07b1b6abb6f60da9df9c8646aef414e8589d4",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40406746890,
+        "title": "14r: record October closing privacy deferral and refresh full preflight",
+        "sha": "22e07b1b6abb6f60da9df9c8646aef414e8589d4",
+        "conclusion": "success",
+        "minutes": 4
+      },
+      {
+        "run": 40400763278,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+        "conclusion": "failure",
+        "minutes": 14
+      },
+      {
+        "run": 40400133838,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40400127175,
+        "title": "14p: bind native loop mode, cover every caller and record probe7 STOP",
+        "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40395477901,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "a80cacce5a29c4883e1f0b42e16f4cd860343969",
+        "conclusion": "failure",
+        "minutes": 11
+      },
+      {
+        "run": 40394908641,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "a80cacce5a29c4883e1f0b42e16f4cd860343969",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40394899036,
+        "title": "14o: apply owner-approved 440/7/20 limits and refresh preflight",
+        "sha": "a80cacce5a29c4883e1f0b42e16f4cd860343969",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40363137526,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "5156f5fac592e1e30077b22c196124a1feaafe89",
+        "conclusion": "failure",
+        "minutes": 13
+      },
+      {
+        "run": 40362028134,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "5156f5fac592e1e30077b22c196124a1feaafe89",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40362011848,
+        "title": "14l: record one-push October decision, cap420 and reserve60",
+        "sha": "5156f5fac592e1e30077b22c196124a1feaafe89",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40358600829,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "5efa22b0d87269aeb9f449637b61d7ff17e1dc4a",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40358590302,
+        "title": "Record clean full-history privacy scan for14k budget STOP",
+        "sha": "5efa22b0d87269aeb9f449637b61d7ff17e1dc4a",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40356240144,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "bcf2070b874f07d6b9c9300544837db33e41dcc8",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40356233423,
+        "title": "Brief 14k: owner chose to run probe 6 and qualification 2 now (cap 40\u2026",
+        "sha": "bcf2070b874f07d6b9c9300544837db33e41dcc8",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40271459641,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "ec829b6abebe098632167dbb811e0ede9ea05ca1",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40271454264,
+        "title": "Record clean full-history scan and retained14j replay logs",
+        "sha": "ec829b6abebe098632167dbb811e0ede9ea05ca1",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40269676645,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "259648962f6cd052c16648904ab7399308088e90",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40269672103,
+        "title": "Brief 14j: owner-style prompt resync after kernel messages; stop befo\u2026",
+        "sha": "259648962f6cd052c16648904ab7399308088e90",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40269119367,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "e95352af33e3f23593415c898105158cc5664fe1",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40269115700,
+        "title": "Record clean stopped-qualification full-history privacy scan",
+        "sha": "e95352af33e3f23593415c898105158cc5664fe1",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40263990213,
+        "title": "Two-disk rehearsal (owner-tools)",
+        "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+        "conclusion": "failure",
+        "minutes": 48
+      },
+      {
+        "run": 40261916660,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+        "conclusion": "success",
+        "minutes": 22
+      },
+      {
+        "run": 40261603041,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40261599776,
+        "title": "Record clean framing-fix full-history privacy scan",
+        "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40260375474,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "b71de4af3df67c9f7cbbbb530bf4731fa2383296",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40260372656,
+        "title": "Brief 14i: brace-group guest command framing, composed-command checks\u2026",
+        "sha": "b71de4af3df67c9f7cbbbb530bf4731fa2383296",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40254429101,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "2675f28d927b64834e5f7e2f4bfe153d91ab7fc8",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40254425324,
+        "title": "Remove trailing prompt whitespace from retained stop transcript",
+        "sha": "2675f28d927b64834e5f7e2f4bfe153d91ab7fc8",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40253972397,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "f1df3dae8b444532e8f0944e6213f3c471dcd509",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40253968984,
+        "title": "Record clean full-history scan for fourth-probe stop evidence",
+        "sha": "f1df3dae8b444532e8f0944e6213f3c471dcd509",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40249992092,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+        "conclusion": "failure",
+        "minutes": 22
+      },
+      {
+        "run": 40249682573,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40249678234,
+        "title": "Record clean mount-query refusal scans before the fresh probe",
+        "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40248937111,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "de322e9059fc359d75feb8be048f42533123e26e",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40248932358,
+        "title": "Record the clean FUSE capability history scan in the ledger",
+        "sha": "de322e9059fc359d75feb8be048f42533123e26e",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40247173828,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "afd608b70f22a84c41ea848d4ae11a6f70e57d79",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40247170525,
+        "title": "Brief 14h: exfat-fuse for the virtual tools stick, early runner capab\u2026",
+        "sha": "afd608b70f22a84c41ea848d4ae11a6f70e57d79",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40246837954,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "754eafe273254f6856ec992b58e9ecf8f31700e3",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40246835407,
+        "title": "Record the clean third-probe stop report scan in the ledger",
+        "sha": "754eafe273254f6856ec992b58e9ecf8f31700e3",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40245433868,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
+        "conclusion": "failure",
+        "minutes": 13
+      },
+      {
+        "run": 40245226417,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40245221350,
+        "title": "Record the clean git-binding scan in the package ledger",
+        "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40244218639,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "2d934d7487170bb9b04e9043ca0536c95d2eeec1",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40244215458,
+        "title": "Brief 14g: git-only PR 12 binding (no API read in CI), shallow-clone \u2026",
+        "sha": "2d934d7487170bb9b04e9043ca0536c95d2eeec1",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40243691197,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "500e597a9d87e8aba5ef286da0324ed448752d30",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40243686031,
+        "title": "Record the clean final-probe report scan in the package ledger",
+        "sha": "500e597a9d87e8aba5ef286da0324ed448752d30",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40242538685,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+        "conclusion": "failure",
+        "minutes": 6
+      },
+      {
+        "run": 40242274817,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40242272088,
+        "title": "Record the clean replay history scan in the package ledger",
+        "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40240890854,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40240887069,
+        "title": "Brief 14f: CI-only classification for steps needing the job's package\u2026",
+        "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+        "conclusion": "success",
+        "minutes": 2
+      },
+      {
+        "run": 40240457809,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40240454787,
+        "title": "Record the clean squash-binding history scan in the package ledger",
+        "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40239504514,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40239499609,
+        "title": "Brief 14e: bind the package 13 release to its squash merge; one fresh\u2026",
+        "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40239030452,
+        "title": "14: checked owner tools with idle-only console resync",
+        "sha": "bfbb3c696b9107966eddeb1281954de318f3e476",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40239028076,
+        "title": "Pin canonical retained evidence bytes and record the clean report scan",
+        "sha": "bfbb3c696b9107966eddeb1281954de318f3e476",
+        "conclusion": "success",
+        "minutes": 3
+      },
+      {
+        "run": 40238209435,
+        "title": "Two-disk rehearsal (probe)",
+        "sha": "5dfe2b00955955eecaca6a9edb62da34b7bb5865",
+        "conclusion": "failure",
+        "minutes": 5
+      }
+    ],
+    "publish_cap": 0,
+    "publish_attempts": [],
+    "history": {
+      "complete": true,
+      "pages_read": 2,
+      "ids_count": 134,
+      "total_count": 134,
+      "page_limit": 20,
+      "snapshot_reads": 1,
+      "pages": [
+        {
+          "page": 1,
+          "returned": 100,
+          "total_count": 134,
+          "ids_sha256": "22be5def5dbd87d524cbc1a3fec18761aa1526caa02b1a9731f83935a4837f32"
+        },
+        {
+          "page": 2,
+          "returned": 34,
+          "total_count": 134,
+          "ids_sha256": "f9768ad9dd797a18f23a6609474f537b192ba2939f5fef1823407cfb57800724"
+        }
+      ],
+      "run_ids": [
+        40844950597,
+        40841171586,
+        40840258629,
+        40840251987,
+        40826092372,
+        40823225012,
+        40822668938,
+        40822662987,
+        40805607265,
+        40802757524,
+        40802254280,
+        40802246771,
+        40788594413,
+        40785271949,
+        40784619811,
+        40784610639,
+        40768498320,
+        40763979290,
+        40762971649,
+        40762962724,
+        40658792992,
+        40655273119,
+        40654614484,
+        40654606957,
+        40646962291,
+        40646398141,
+        40646392604,
+        40630352782,
+        40628158654,
+        40627663601,
+        40627657801,
+        40617562735,
+        40614909488,
+        40614313020,
+        40614308783,
+        40596167369,
+        40592552658,
+        40591924586,
+        40591916713,
+        40566496658,
+        40560134727,
+        40559090525,
+        40559083001,
+        40543952228,
+        40538251599,
+        40537576099,
+        40537560673,
+        40528739880,
+        40527965543,
+        40527954626,
+        40519384061,
+        40518683163,
+        40518675760,
+        40421596174,
+        40417291358,
+        40416793839,
+        40416787226,
+        40407466983,
+        40406753823,
+        40406746890,
+        40400763278,
+        40400133838,
+        40400127175,
+        40395477901,
+        40394908641,
+        40394899036,
+        40363137526,
+        40362028134,
+        40362011848,
+        40358600829,
+        40358590302,
+        40356240144,
+        40356233423,
+        40271459641,
+        40271454264,
+        40269676645,
+        40269672103,
+        40269119367,
+        40269115700,
+        40263990213,
+        40261916660,
+        40261603041,
+        40261599776,
+        40260375474,
+        40260372656,
+        40254429101,
+        40254425324,
+        40253972397,
+        40253968984,
+        40249992092,
+        40249682573,
+        40249678234,
+        40248937111,
+        40248932358,
+        40247173828,
+        40247170525,
+        40246837954,
+        40246835407,
+        40245433868,
+        40245226417,
+        40245221350,
+        40244218639,
+        40244215458,
+        40243691197,
+        40243686031,
+        40242538685,
+        40242274817,
+        40242272088,
+        40240890854,
+        40240887069,
+        40240457809,
+        40240454787,
+        40239504514,
+        40239499609,
+        40239030452,
+        40239028076,
+        40238209435,
+        40237883460,
+        40237880873,
+        40236884399,
+        40236881214,
+        40232135063,
+        40232129389,
+        40230932763,
+        40230930408,
+        40223185778,
+        40223182504,
+        40222801527,
+        40222797405,
+        40219764089,
+        40219760184,
+        40219068763,
+        40219035460,
+        40216222435
+      ]
+    }
+  },
+  "organization": {
+    "status": "passed",
+    "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
+    "checked_at": "2026-10-29T10:17:00.926099+00:00",
+    "response_sha256": "c6dc522ec854b00f76d5183cc4ee8a672f804359b5ba4bcd7a8f446b68788e08",
+    "usage": [
+      {
+        "sku": "actions_linux",
+        "unit": "minutes",
+        "grossQuantity": 3258.0,
+        "discountQuantity": 2000.0,
+        "netQuantity": 1258.0,
+        "grossAmount": 19.548,
+        "discountAmount": 12.0,
+        "netAmount": 7.548,
+        "pricePerUnit": 0.006
+      },
+      {
+        "sku": "actions_storage",
+        "unit": "gigabyte-hours",
+        "grossQuantity": 22.308687915,
+        "discountQuantity": 22.308687915,
+        "netQuantity": 0.0,
+        "grossAmount": 0.007496081,
+        "discountAmount": 0.007496081,
+        "netAmount": 0.0
+      }
+    ],
+    "used_minutes": 3258,
+    "included_minutes": 2000,
+    "included_minutes_left": 0,
+    "paid_overflow": {
+      "source": "organizations/Ares-Empire/settings/billing/budgets",
+      "response_sha256": "2a4e170f520cd941cf127290b5d6c9321833bf9da0eef9cb831c5f9b6a9b93de",
+      "budget_product_sku": "actions",
+      "budget_amount": 10,
+      "prevent_further_usage": true,
+      "budget_scope": "organization",
+      "budget_entity_name": "Ares-Empire",
+      "price_source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
+      "runner_sku": "actions_linux",
+      "pricePerUnit": 0.006,
+      "reported_net_amount": 7.548,
+      "available_budget": 2.452,
+      "paid_minutes": 408,
+      "decision": "briefs/14zl-ten-dollar-round.md",
+      "exception_month": "2026-10"
+    },
+    "remaining_minutes": 408,
+    "reserved_minutes": 0,
+    "after_reservation": 408,
+    "other_repos_reserve": 0,
+    "credential": "existing local gh login; GET only"
+  },
+  "pushes_this_round": 1,
+  "probe24": 40841171586,
+  "qualification13": 40844950597,
+  "qualification_conclusion": "failure",
+  "closing_reservation": 0,
+  "reserve": 0,
+  "reruns": 0
+}

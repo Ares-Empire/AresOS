@@ -1,0 +1,133 @@
+{
+  "source": "os/manifest/ci/14/14zw-preflight/preparation.json",
+  "initial_suite": {
+    "tests": 569,
+    "seconds": 1535.101,
+    "executed": 569,
+    "distinct_passed": 559,
+    "skips": 0,
+    "actual_host_limitations": [
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "documented_host_limitations": [
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "unknown_failures": [
+      "test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths"
+    ],
+    "status": "stopped",
+    "runner_seconds": 1535.101,
+    "host_timing_seconds": [
+      72.34734368800014
+    ],
+    "host_causes": [
+      "Existing WSL PIL unavailable; sudo/ACL/sysusers privileges unavailable; Windows filesystem-mode mismatch",
+      "14zm approved local timing limitation only; unchanged30-second test remains mandatory in native CI"
+    ]
+  },
+  "final_suite": {
+    "tests": 569,
+    "seconds": 1600.079,
+    "executed": 569,
+    "distinct_passed": 560,
+    "skips": 0,
+    "actual_host_limitations": [
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "documented_host_limitations": [
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "unknown_failures": [],
+    "status": "known local host limitations; native suite mandatory",
+    "runner_seconds": 1600.079,
+    "host_timing_seconds": [
+      79.63881609000009
+    ],
+    "host_causes": [
+      "Existing WSL PIL unavailable; sudo/ACL/sysusers privileges unavailable; Windows filesystem-mode mismatch",
+      "14zm approved local timing limitation only; unchanged30-second test remains mandatory in native CI"
+    ]
+  },
+  "guard_regressions": {
+    "tests": 51,
+    "seconds": 0.975,
+    "skips": 0
+  },
+  "local_privacy_regressions": {
+    "tests": 7,
+    "seconds": 0.173,
+    "skips": 0
+  },
+  "dispatch_regressions": {
+    "tests": 6,
+    "seconds": 0.006,
+    "skips": 0
+  },
+  "diagnostic_regressions": {
+    "tests": 2,
+    "seconds": 0.006,
+    "skips": 0
+  },
+  "replay": "actual release/git/read-only GitHub and 53 retained sources passed before each dispatch",
+  "installer": "actual pinned 9068650496 bytes, pin and fresh official checksum; first attempt each time",
+  "strict": "946 guest scripts, 946 serial wrappers, 808 embedded Python programs, 12 shell and 51 Python files, native shell body; parse stderr refused",
+  "ci_only": [
+    {
+      "check": "org package metadata",
+      "reason": "Local gh login has no packages:read; only CI job token has package access",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "fail_closed": true
+    },
+    {
+      "check": "registry digest inspect",
+      "reason": "Private manifest access requires CI job packages:read token",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "fail_closed": true
+    },
+    {
+      "check": "private registry signature",
+      "reason": "Private signature artifacts require CI job packages:read token",
+      "ci_step": "Verify the exact private signature natively for the offline guest",
+      "fail_closed": true
+    },
+    {
+      "check": "exact pinned layers pull",
+      "reason": "Private layer access requires CI job packages:read token",
+      "ci_step": "Qualify the exact pinned layer pull without installing",
+      "fail_closed": true
+    }
+  ],
+  "important_limit": "stand-in public_typing bypasses the real three-layout helper handoff; syntax/stand-ins are not VM acceptance"
+}

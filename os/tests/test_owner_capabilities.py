@@ -42,6 +42,7 @@ class CapabilitiesTest(unittest.TestCase):
             directory=pathlib.Path(temporary).resolve();volume=Volume(directory,directory/'fuse')
             stack.enter_context(patch.object(subprocess,'run',side_effect=volume.run))
             stack.enter_context(patch.object(subprocess,'check_output',side_effect=volume.output))
+            volume.patch_nodes(stack)
             original=pathlib.Path.open
             def opened(path,*args,**kwargs):
                 if path.name=='must-refuse' and volume.readonly:raise OSError(errno.EROFS,'synthetic read-only filesystem')
@@ -63,6 +64,7 @@ class CapabilitiesTest(unittest.TestCase):
                 def __init__(self,sock):self.events=[]
                 def command(self,name,args=None):
                     calls.append((name,args))
+                    if name=='human-monitor-command':return 'dev: i8042; dev: ps2-kbd'
                     if name=='query-status':return dict(status='prelaunch')
                     if name=='query-pci':return [dict(bus=0)]
                     if name=='query-block':return [dict(inserted={'node-name':'cap-raw'})]

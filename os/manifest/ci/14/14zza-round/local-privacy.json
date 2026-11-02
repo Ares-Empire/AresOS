@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-11-01T14:33:12.958270+00:00",
+  "checked_parent": "e3f4c937a56b1c65687bcf8c2a3fa2ef099db426",
+  "existing_pushed_head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+  "version": "8.21.2",
+  "history": {
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "path": ".work/14/gitleaks/14zza-closing-history.json",
+    "findings": 0,
+    "exit_code": 0
+  },
+  "pending": {
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "path": ".work/14/gitleaks/14zza-closing-initial-pending.json",
+    "findings": 0,
+    "exit_code": 0
+  },
+  "scanner": {
+    "sha256": "671591bd75e11fcd4a25732852afbbf0c3892b368181164ba19aa72e7513af8e",
+    "path": ".work/14/gitleaks/gitleaks.exe"
+  },
+  "existing_pushed_head_privacy": {
+    "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+    "actual_hook_exit_code": 0,
+    "exact_range_exit_code": 0,
+    "checker_version": "8.30.1",
+    "personal_terms_skipped_warning_absent": true
+  },
+  "new_pushes": 0,
+  "new_ignore_or_rule_entries": false,
+  "closing_commit_local_only": true,
+  "further_dispatch_authorized": false
+}

@@ -1,0 +1,108 @@
+{
+  "status": "verified read-only pinned base image/ISO and matching upstream source; no image executable run",
+  "image_reference": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "image_top_layer": "9d37c429380960079cd52a81d0a6244a24bfdca95d7c5573f25ec7b18cc4c0a3",
+  "image_getty": {
+    "sha256": "988eaaf6676a10fa3d34548eb25bd9e73c6544ee0674bf0b374f56a9019b5d1e",
+    "path": "var/lib/containers/storage/overlay/a29b42fe6a953af020493d0f8186d8e0e295c7d8e4f6f8bbd4fad92accb88ed7/diff/usr/lib/systemd/system/getty@.service",
+    "layer_in_pinned_image_ancestry": true,
+    "byte_identical_to_iso": true,
+    "exec_start": "ExecStart=-/usr/sbin/agetty --noreset --noclear --issue-file=/etc/issue:/etc/issue.d:/run/issue.d:/usr/lib/issue.d - ${TERM}",
+    "tty_path": "/dev/%I"
+  },
+  "rpm_databases": [
+    {
+      "sha256": "5e5d7aa4d67d30e72c59d0e173d91d117cc1f00bd4f3a606804b4a944d05d424",
+      "path": ".work/14/14v/rpmdb.sqlite",
+      "packages": [
+        {
+          "name": "util-linux",
+          "version": "2.41.5",
+          "release": "1.fc44",
+          "source_rpm": "util-linux-2.41.5-1.fc44.src.rpm"
+        },
+        {
+          "name": "util-linux-core",
+          "version": "2.41.5",
+          "release": "1.fc44",
+          "source_rpm": "util-linux-2.41.5-1.fc44.src.rpm"
+        },
+        {
+          "name": "systemd",
+          "version": "259.9",
+          "release": "1.fc44",
+          "source_rpm": "systemd-259.9-1.fc44.src.rpm"
+        },
+        {
+          "name": "bash",
+          "version": "5.3.9",
+          "release": "3.fc44",
+          "source_rpm": "bash-5.3.9-3.fc44.src.rpm"
+        },
+        {
+          "name": "sudo",
+          "version": "1.9.17",
+          "release": "10.p2.fc44",
+          "source_rpm": "sudo-1.9.17-10.p2.fc44.src.rpm"
+        }
+      ]
+    },
+    {
+      "sha256": "5e5d7aa4d67d30e72c59d0e173d91d117cc1f00bd4f3a606804b4a944d05d424",
+      "path": ".work/14/14v/base-rpmdb.sqlite",
+      "packages": [
+        {
+          "name": "util-linux",
+          "version": "2.41.5",
+          "release": "1.fc44",
+          "source_rpm": "util-linux-2.41.5-1.fc44.src.rpm"
+        },
+        {
+          "name": "util-linux-core",
+          "version": "2.41.5",
+          "release": "1.fc44",
+          "source_rpm": "util-linux-2.41.5-1.fc44.src.rpm"
+        },
+        {
+          "name": "systemd",
+          "version": "259.9",
+          "release": "1.fc44",
+          "source_rpm": "systemd-259.9-1.fc44.src.rpm"
+        },
+        {
+          "name": "bash",
+          "version": "5.3.9",
+          "release": "3.fc44",
+          "source_rpm": "bash-5.3.9-3.fc44.src.rpm"
+        },
+        {
+          "name": "sudo",
+          "version": "1.9.17",
+          "release": "10.p2.fc44",
+          "source_rpm": "sudo-1.9.17-10.p2.fc44.src.rpm"
+        }
+      ]
+    }
+  ],
+  "upstream": [
+    {
+      "sha256": "c367d28684d4be56526a67525d3bc4c84de01bc26d69f4962feec753f9d09c65",
+      "url": "https://raw.githubusercontent.com/util-linux/util-linux/v2.41.5/login-utils/login.c",
+      "tag": "v2.41.5",
+      "local_path": "login.c"
+    },
+    {
+      "sha256": "d6a26ddf43d49c7f7150ace5a981f64054d0191347f38e5162e7ed0b468e7e6f",
+      "url": "https://raw.githubusercontent.com/util-linux/util-linux/v2.41.5/term-utils/agetty.c",
+      "tag": "v2.41.5",
+      "local_path": "agetty.c"
+    }
+  ],
+  "parents": [
+    "systemd pid1 starts agetty via getty@; agetty execs login",
+    "util-linux login detaches tty, forks and waits as PAM parent; child starts new session, reacquires physical tty and execs login shell",
+    "sudo -i / nested owner-command monitors retain the already pinned14ze/14zg relay shapes"
+  ],
+  "extra_parent_exceptions": [],
+  "full_upstream_source_committed": false
+}

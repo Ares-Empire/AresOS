@@ -1,0 +1,26 @@
+{
+  "status": "STOP reproduced read-only from retained actual stdout; no mutation or fix",
+  "run": 40543952228,
+  "owner_error": "Unexpected efibootmgr grammar; preserve private diagnostics",
+  "source": {
+    "sha256": "c8cf42ccc4bc50adf37861d6fb238784c3185e912d4558848f019373963b85a9",
+    "path": "os/owner-tools/owner.py",
+    "line": 470,
+    "statement": "require(path.endswith(rendered), message)"
+  },
+  "target_esp_guid": "88420aef-f1fd-4814-8381-339d03f60a65",
+  "raw_firmware": {
+    "sha256": "d7d069cff7c7cbb8ee86958369ddfec7990b6873d7264c3b7c021a017acbf73f",
+    "path": "private artifact two-disk/tools-install-owner-diagnostics.json trace efibootmgr stdout"
+  },
+  "alias": "auto_created_boot_option",
+  "alias_entries": 6,
+  "first_alias_entry": "Boot0002* UEFI Misc Device",
+  "trace_mutations": 0,
+  "conclusion": "16-byte OptionalData is rendered as a GUID by the owner parser, but actual formatter emits the named auto_created_boot_option alias; path.endswith(rendered) refuses before target selection",
+  "fix_applied": false,
+  "refused_boot_number": "0002",
+  "refused_label": "UEFI Misc Device",
+  "computed_expected_suffix": "{8108ac4e-9f11-4d59-850e-e21a522c59b2}",
+  "actual_suffix": "{auto_created_boot_option}"
+}

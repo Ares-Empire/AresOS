@@ -1,0 +1,66 @@
+{
+  "status": "STOP before probe27: PR privacy absent; push personal-term check skipped",
+  "brief": "briefs/14zv-november-round.md",
+  "head": "becfb2221ce0436e97ed117bd7be1028ad3e7648",
+  "checked_at": "2026-11-01T00:45:12.253104+00:00",
+  "utc_not_before": "2026-11-01T00:05:00+00:00",
+  "first_live_guard_at": "2026-11-01T00:24:15.159266+00:00",
+  "starting_ledger": 1715,
+  "starting_counts": {
+    "probe": 26,
+    "owner-tools": 15
+  },
+  "cap_formula": "ceil((1715 + 1000)/50)*50 = 2750",
+  "dispatch_caps": {
+    "probe": 30,
+    "owner-tools": 19
+  },
+  "ending_ledger": 1718,
+  "ending_counts": {
+    "probe": 26,
+    "owner-tools": 15
+  },
+  "pushes": 1,
+  "workflow_dispatches": 0,
+  "reruns": 0,
+  "probe27": null,
+  "qualification16": null,
+  "acceptance_met": false,
+  "stop_class": "privacy/repository policy PLAN-GAP",
+  "owner_tool_bug": false,
+  "console_emulation_failure": false,
+  "paid_budget_api_read": false,
+  "paid_minutes_counted": 0,
+  "organization_reserve": 150,
+  "closing_reservation": 12,
+  "source_preparation": "os/manifest/ci/14/14zv-preflight/preparation.json",
+  "whole_local_suite": {
+    "tests": 567,
+    "runner_seconds": 1560.204,
+    "distinct_passed": 558,
+    "documented_host_limitations": [
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "unknown_failures": [],
+    "skips": 0,
+    "timing_seconds": [
+      42.79034450799986
+    ],
+    "native_mandatory": true,
+    "native_ran": false
+  },
+  "stale_metadata_label": "The ISO adapter kind string retains probe26/qualification15; this round planned probe27/qualification16 and dispatched neither.",
+  "raw_artifacts_committed": false,
+  "image_publication": false,
+  "pr_ready": false,
+  "final_report_commit_local_only": true,
+  "serial_stage_plan_implemented": false
+}

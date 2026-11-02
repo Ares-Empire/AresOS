@@ -1,0 +1,18 @@
+{
+  "files": [
+    {
+      "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+      "path": ".work/14/14zd-replay-1/work/bazzite-nvidia-open-stable-live-amd64.iso",
+      "bytes": 9068650496,
+      "action": "unlink completed ordinary duplicate ISO cache; original ISO, all extracted sources, logs and receipts preserved"
+    },
+    {
+      "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+      "path": ".work/14/14zd-qualification-replay-1/work/bazzite-nvidia-open-stable-live-amd64.iso",
+      "bytes": 9068650496,
+      "action": "unlink completed ordinary duplicate ISO cache; original ISO, all extracted sources, logs and receipts preserved"
+    }
+  ],
+  "original_and_evidence_preserved": true,
+  "free_bytes": 33003962368
+}

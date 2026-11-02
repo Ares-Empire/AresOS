@@ -1,0 +1,100 @@
+{
+  "files": [
+    {
+      "sha256": "c49d21640c2252611a6a699e8463e5a2a04ed4b4eb0ca19df37903b56a68985b",
+      "path": "os/manifest/ci/14/14zzd-round/archive-round.py"
+    },
+    {
+      "sha256": "3ae3f2849c596074a7c3a9440df4e059d1d00b228024a18d741096db50469cb3",
+      "path": "os/manifest/ci/14/14zzd-round/close-report.py"
+    },
+    {
+      "sha256": "9032640ea841c890c5277027c03a2b4164ad318a0decd43df96c3ca5707bd05a",
+      "path": "os/manifest/ci/14/14zzd-round/closing-tools.json"
+    },
+    {
+      "sha256": "d73d3cd85785aa3e13518d696d2ba04ab30972e1346a1bb7cdd3860bdc83e3d4",
+      "path": "os/manifest/ci/14/14zzd-round/commit-report.py"
+    },
+    {
+      "sha256": "6c23d4e96aaededf87e9c7f5bb4b8819c0a57d60d51ddef1c096710523b42d51",
+      "path": "os/manifest/ci/14/14zzd-round/diagnose-stop.py"
+    },
+    {
+      "sha256": "dc1747d19e68054f43b9e003a68d8983dc47ffc3460094055fe779f4fafc759e",
+      "path": "os/manifest/ci/14/14zzd-round/guide-status.json"
+    },
+    {
+      "sha256": "5212c72b490a563aa6058f37a8130811176d868c436069f5617a345fd84dfcce",
+      "path": "os/manifest/ci/14/14zzd-round/hook-privacy.json"
+    },
+    {
+      "sha256": "4d67f9d57a37021fd69b072c16a9f8fb420d809d57c01c78151e28acbba11524",
+      "path": "os/manifest/ci/14/14zzd-round/ledger.json"
+    },
+    {
+      "sha256": "b547bd338a4f7d74115131ded57b80d14bae659093ac5cd80529ee2e0e9a43d3",
+      "path": "os/manifest/ci/14/14zzd-round/linux-checkout-proof.json"
+    },
+    {
+      "sha256": "9bcc8ad0673575b830e4c7c936687703058b1c981fdf4a4d2597608d2d992a62",
+      "path": "os/manifest/ci/14/14zzd-round/linux-checkout-proof.py"
+    },
+    {
+      "sha256": "330513b078eafacb9b82995ecbd76352f38c4ba91db48f14555c61a2f7ff81e4",
+      "path": "os/manifest/ci/14/14zzd-round/local-privacy-pushed-head.json"
+    },
+    {
+      "sha256": "4f3d4941de8e7916b1c87ad658e463112908c65e1357ae3d9e0566f648ab1356",
+      "path": "os/manifest/ci/14/14zzd-round/partial-native-proof.json"
+    },
+    {
+      "sha256": "2239af23709254c4ff11df610d6d3419ca4f9199cdefed3ebdc6acc4e3ed125f",
+      "path": "os/manifest/ci/14/14zzd-round/partial-native.py"
+    },
+    {
+      "sha256": "1df924d448343f19ad65fd53d8e8fe92d0c9074cd7dfb02281776c403e5e5eef",
+      "path": "os/manifest/ci/14/14zzd-round/prepare-linux-filter.py"
+    },
+    {
+      "sha256": "2eb8a06308699235d5ac38bad8fca5b9372e428e36def948878b00688d41f6b5",
+      "path": "os/manifest/ci/14/14zzd-round/probe-authorization.json"
+    },
+    {
+      "sha256": "fcb7017f91e7d042aced0e7c690fa2664f0a607570e741e1a1d9e38d0239fc22",
+      "path": "os/manifest/ci/14/14zzd-round/probe33-artifact-review.json"
+    },
+    {
+      "sha256": "6aca398c3878caaf4d16b3c6356283c3cc57394e5924e2cc3ad97baee3073b96",
+      "path": "os/manifest/ci/14/14zzd-round/probe33-artifact.json"
+    },
+    {
+      "sha256": "bb1573db457eb8e0041496de6e82e1c3d66efc0e922499d71c7b987ea6ecc7fd",
+      "path": "os/manifest/ci/14/14zzd-round/probe33-log-review.json"
+    },
+    {
+      "sha256": "38f267e81e16e03a1c28f32a1c8fb99a70ee232c6fdfe96674224391e34de7ba",
+      "path": "os/manifest/ci/14/14zzd-round/probe33-native-timing.json"
+    },
+    {
+      "sha256": "bd565fd74cb82467cd2459264b10531e3c834d47d711a5ff1ffb10da162d573a",
+      "path": "os/manifest/ci/14/14zzd-round/probe33-source-bindings.json"
+    },
+    {
+      "sha256": "cf30f9dc3143ed6ca398557cccc41c4196898ebc713045fa15fa576f6a3e0c9c",
+      "path": "os/manifest/ci/14/14zzd-round/push.json"
+    },
+    {
+      "sha256": "85dc2162ad510bb58e46a76d7f58434114ff6624264c515066ff8e2413df5786",
+      "path": "os/manifest/ci/14/14zzd-round/round.json"
+    },
+    {
+      "sha256": "41f3545e6693fcf5f29b8083e4ffaf4d64c559ff9155dbd5c0017bc636521197",
+      "path": "os/manifest/ci/14/14zzd-round/stop-diagnosis.json"
+    },
+    {
+      "sha256": "1d8b84dd82ffcda80252dd0cac671c9de305de20371128075efe63fcf35250b1",
+      "path": "os/manifest/ci/14/14zzd-round/stop-diagnostics.json"
+    }
+  ]
+}

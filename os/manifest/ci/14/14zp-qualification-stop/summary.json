@@ -1,0 +1,205 @@
+{
+  "status": "STOP qualification12 after successful staged switch at title idle guard; no rerun",
+  "brief": "briefs/14zp-reliable-typing.md",
+  "head": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+  "probe_run": 40823225012,
+  "qualification_run": 40826092372,
+  "native": {
+    "probe": {
+      "tests": 511,
+      "seconds": 138.277,
+      "skips": 0
+    },
+    "qualification": {
+      "tests": 511,
+      "seconds": 131.129,
+      "skips": 0
+    }
+  },
+  "owner_records": [
+    {
+      "sha256": "d82684e952ab9186d169f922581bde335ee9ae9a316c9edd0dd76941fee558d9",
+      "path": "evidence/two-disk/after-first-network-records-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "records"
+      ],
+      "error": null,
+      "mutations": 0,
+      "trace_length": 12
+    },
+    {
+      "sha256": "33c42b6c5293f5594b1f676a91b168ddfceda5de69d2f58ff62fa3a81ade16ed",
+      "path": "evidence/two-disk/after-first-network-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "error": null,
+      "mutations": 0,
+      "trace_length": 8
+    },
+    {
+      "sha256": "2ddeadbbb1cadf487fe715f59010e2077a8644b55dc2b965db1c063709941d63",
+      "path": "evidence/two-disk/corrected-stock-records-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "records"
+      ],
+      "error": null,
+      "mutations": 0,
+      "trace_length": 12
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/corrected-stock-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "error": null,
+      "mutations": 0,
+      "trace_length": 5
+    },
+    {
+      "sha256": "bef1a4a6637fcd53645bb1ca17215e5d1d769eef1615b9387a28d01d9b3aaf06",
+      "path": "evidence/two-disk/owner-signature-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "verify"
+      ],
+      "error": null,
+      "mutations": 1,
+      "trace_length": 36
+    },
+    {
+      "sha256": "ea9e205c356b261c1d8876d430e811a4f906b9e169ea8ca22af35ca35101f8c0",
+      "path": "evidence/two-disk/owner-switch-owner-diagnostics.json",
+      "status": "stopped",
+      "command": [
+        "switch"
+      ],
+      "error": "rpm-ostree/bootc/ostree client active",
+      "mutations": 1,
+      "trace_length": 41
+    },
+    {
+      "sha256": "b7d6b00bc999e31c097db9774724daff5ebd8229256ddda2cfe0d7edd1569b41",
+      "path": "evidence/two-disk/private-owner-dummy-login-owner-diagnostics.json",
+      "status": "stopped",
+      "command": [
+        "login"
+      ],
+      "error": "Private release read failed; check read:packages permission/expiry and network; no credential was written",
+      "mutations": 0,
+      "trace_length": 36
+    },
+    {
+      "sha256": "0cb0e9189c8382b9e6dca99f69215603267ce33d2ee39fc7403afbff2d182fe9",
+      "path": "evidence/two-disk/private-owner-login-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "login"
+      ],
+      "error": null,
+      "mutations": 0,
+      "trace_length": 35
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/tools-before-reboot-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "error": null,
+      "mutations": 0,
+      "trace_length": 5
+    },
+    {
+      "sha256": "f6d5644b601b931091a5456f64e021ab256458f31b49b253822f3aee714f3057",
+      "path": "evidence/two-disk/tools-install-owner-diagnostics.json",
+      "status": "passed",
+      "command": null,
+      "error": null,
+      "mutations": 0,
+      "trace_length": 9
+    },
+    {
+      "sha256": "8a9bf5124432bbfce2f7aec9e573c7818f55f7968bc5afc33935898615b4d6fe",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "error": null,
+      "mutations": 4,
+      "trace_length": 45
+    },
+    {
+      "sha256": "1e709a04c96bd42e1a6650c0b6683b2487d05d1d39722591a9792538e9ed5f96",
+      "path": "evidence/two-disk/tools-prepare-rerun-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "error": null,
+      "mutations": 0,
+      "trace_length": 40
+    },
+    {
+      "sha256": "d3c4c4be001c450a029144ddd24230b828ec03bd52bc081ac45452de97cbd665",
+      "path": "evidence/two-disk/tools-record-export-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "export"
+      ],
+      "error": null,
+      "mutations": 5,
+      "trace_length": 7
+    }
+  ],
+  "successful_hidden_completions": 6,
+  "hidden_windows": 6,
+  "pre_enter_read0_guards": 12,
+  "visible_echo_proofs": 24,
+  "verified_staged_transfers": 180,
+  "all_hidden_counts_match": true,
+  "all_hidden_repeats": 0,
+  "all_hidden_syn_dropped": 0,
+  "all_hidden_attempts": 1,
+  "canonical_clear_or_retype_used": false,
+  "real_ci_token_length": 377,
+  "real_ci_token_sent_received_events": 1110,
+  "real_ci_token_authentication": "passed",
+  "real_ci_token_chunk_size": 16,
+  "dummy_length": 40,
+  "dummy_sent_received_events": 112,
+  "dummy_outcome": "expected-registry-refusal",
+  "error": "rpm-ostree/bootc/ostree client active",
+  "switch_script_returncode": 0,
+  "switch_mutation_executed": true,
+  "post_switch_title_pass": false,
+  "stock_still_booted_pinned": true,
+  "ares_staged": true,
+  "transaction": null,
+  "rollback_queued": false,
+  "active_client_identity": "not retained; unproved",
+  "not_reached": [
+    "fresh post-switch title",
+    "AresOS boot",
+    "layout begin/proof/revert/finish",
+    "rollback",
+    "keep-stock",
+    "final Windows checks"
+  ],
+  "raw_console_or_secret_value_committed": false,
+  "paused_stop_observed": true,
+  "pushes": 1,
+  "workflow_reruns": 0,
+  "acceptance_met": false,
+  "pr_ready": false,
+  "closing_reservation": 0,
+  "organization_reserve": 0,
+  "owner_bundle_unchanged": true
+}

@@ -1,0 +1,12 @@
+{
+  "prepared_login_helper_compiled": true,
+  "native_workflow_shells": 1,
+  "status": "passed",
+  "guest_scripts": 860,
+  "serial_wrappers": 860,
+  "stderr_policy": "any parse stderr, including warnings, refuses",
+  "embedded_python": 722,
+  "ci_release_shells": 12,
+  "ci_overlay_owner_python": 50,
+  "execution": "syntax/compile only; no guest, service, privilege or hardware operation"
+}

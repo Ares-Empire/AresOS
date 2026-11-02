@@ -1,0 +1,176 @@
+{
+  "status": "STOP before push: mandatory unchanged local test fails; no Actions run attempted",
+  "brief": "briefs/14zl-ten-dollar-round.md",
+  "baseline_head": "5337f597f1a78bff671e27d50bbf16e8a53429b0",
+  "checked_at": "2026-10-28T19:56:08.626892+00:00",
+  "local_host_suite": {
+    "tests": 270,
+    "seconds": 688.296,
+    "passed": 269,
+    "failures": 1,
+    "errors": 0,
+    "skips": 0,
+    "test": "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry",
+    "assertion": "elapsed < 30 seconds",
+    "observed_seconds": 30.010278140999958,
+    "isolated_seconds": 31.896784646,
+    "isolated_fixture_seconds": 32.385,
+    "expected_TimeoutError_observed": true,
+    "subsequent_post_timeout_assertions_not_reached": true
+  },
+  "diagnosis": {
+    "readiness_source_bytes": 13302,
+    "readiness_transfer_seconds": 6.68,
+    "completion_source_bytes": 21012,
+    "completion_transfer_seconds": 11.1313,
+    "lost_result_refusal_seconds": 2.1692,
+    "observation": "End-to-end local fixture includes all acknowledged readiness/completion transfers; failure is its unchanged30-second total bound, not a missing STOP. No assertion or transport limit changed."
+  },
+  "changes": [
+    "package14 minute_cap1500 / probe22 / owner-tools11 only",
+    "budget must equal10 with prevent=true; net billed spend deducted at API price",
+    "refusal tests updated for approved limits",
+    "host binding refreshed with status stopped; cannot authorize a VM"
+  ],
+  "package13_unchanged": true,
+  "owner_payload_unchanged": true,
+  "workflow_or_privacy_changes": false,
+  "read_only_release_replay": "passed",
+  "read_only_zero_cost_replay": {
+    "status": "passed",
+    "retained_sources": 53
+  },
+  "ci_only": [
+    {
+      "check": "org package metadata",
+      "reason": "Local gh login has no packages:read; only CI job token has package access",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "fail_closed": true
+    },
+    {
+      "check": "registry digest inspect",
+      "reason": "Private manifest access requires CI job packages:read token",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "fail_closed": true
+    },
+    {
+      "check": "private registry signature",
+      "reason": "Private signature artifacts require CI job packages:read token",
+      "ci_step": "Verify the exact private signature natively for the offline guest",
+      "fail_closed": true
+    },
+    {
+      "check": "exact pinned layers pull",
+      "reason": "Private layer access requires CI job packages:read token",
+      "ci_step": "Qualify the exact pinned layer pull without installing",
+      "fail_closed": true
+    }
+  ],
+  "installer": {
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "path": ".work/14/bazzite-nvidia-open-stable-live-amd64.iso",
+    "status": "passed",
+    "kind": "actual installer_inspect.main replay before14zl probe20/qualification9; local inspector replay only",
+    "bytes": 9068650496,
+    "official_checksum": "fresh public HTTPS GET; exact pin",
+    "iso_source": "all retained ISO bytes rehashed by actual inspection loop",
+    "adapters": "Windows system bsdtar, WSL unsquashfs, path spellings and Linux LF writes",
+    "localization_sources": 4,
+    "webui_sources": 102,
+    "ci_inspector_changed": false,
+    "download_attempts": [
+      {
+        "attempt": 1,
+        "offset": 0,
+        "range_requested": false,
+        "status": 200,
+        "bytes": 9068650496,
+        "stored_bytes": 9068650496,
+        "received_total": 9068650496,
+        "restarted": false,
+        "outcome": "complete-response",
+        "content-length": [
+          "9068650496"
+        ],
+        "content-range": [],
+        "content-encoding": [],
+        "applied_offset": 0
+      }
+    ],
+    "length_pin": 9068650496
+  },
+  "strict": {
+    "native_workflow_shells": 1,
+    "status": "passed",
+    "guest_scripts": 549,
+    "serial_wrappers": 549,
+    "stderr_policy": "any parse stderr, including warnings, refuses",
+    "embedded_python": 524,
+    "ci_release_shells": 12,
+    "ci_overlay_owner_python": 47,
+    "execution": "syntax/compile only; no guest, service, privilege or hardware operation"
+  },
+  "full_local_suite": "not run: prerequisite host suite failed",
+  "probe20": "not dispatched",
+  "qualification9": "not dispatched",
+  "fresh_exact_head_privacy": "not applicable: no push",
+  "pushes": 0,
+  "dispatches": 0,
+  "minutes_this_round": 0,
+  "acceptance_met": false,
+  "closing_reservation": 0,
+  "organization_reserve": 0,
+  "paid_budget_api_writes": 0,
+  "guard_snapshot": "budget-guard.json",
+  "timing_profile": "timing-profile.json",
+  "test_and_profile_logs": [
+    {
+      "sha256": "9a4f638ae4405fd5f55be0dc4a6bc03d7d81f40c4f09bc81a21afc73080bbac9",
+      "path": ".work/14/14zl/host-walk.log"
+    },
+    {
+      "sha256": "aa6bc9fb4e67e5a18d4504cf132791eeaf3bc7b976e0aa0efef3538ed4b0dd3d",
+      "path": ".work/14/14zl/lost-result-profile.log"
+    }
+  ],
+  "actions_reruns": 0,
+  "local_failed_timing_observations": 2,
+  "commands": [
+    {
+      "command": "python3 -m unittest discover -s os/tests -p test_organization_budget.py -v",
+      "result": "11 tests/0.029s OK"
+    },
+    {
+      "command": "python3 reviews/14-owner-tools/walk-host.py",
+      "result": "270 tests/688.296s; 269 pass, one unchanged elapsed-time assertion fails, zero skips"
+    },
+    {
+      "command": "python3 .work/14/14zl/profile.py",
+      "result": "same unchanged case fails isolated; 31.896784646s total; stage timings retained"
+    },
+    {
+      "command": "python -B -X utf8 .work/14/14zl-read-only-replay.py",
+      "result": "release/source/git and53-source zero-cost replay pass; four scoped registry operations remain CI-only"
+    },
+    {
+      "command": "python -B -X utf8 .work/14/14zl-retry-replay.py",
+      "result": "ISO replay passes attempt1; no Windows retry needed"
+    },
+    {
+      "command": "python3 .work/14/14zl/strict-walk.py",
+      "result": "standalone current control-flow walk passes; does not clear failed host suite"
+    },
+    {
+      "command": "python3 .work/14/14zl-syntax.py",
+      "result": "all549 current composed commands/wrappers and all recorded Python/shell bodies pass"
+    },
+    {
+      "command": "python -m unittest discover -s .work/14 -p test_14zl_control.py -v",
+      "result": "four mocked single-dispatch/controller tests pass; dispatcher never invoked live"
+    },
+    {
+      "command": "git diff --check",
+      "result": "exit0"
+    }
+  ]
+}

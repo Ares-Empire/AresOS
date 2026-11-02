@@ -1,0 +1,30 @@
+{
+  "status": "passed independent replay of actual raw files and counters",
+  "run": 41374876561,
+  "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+  "protected_captures": 18,
+  "zero_write_unmap_samples": 19,
+  "raw_varstores_decoded": 18,
+  "bootnext_exact_replays": 18,
+  "nvram_rule_exact_replays": 17,
+  "all_variable_delta_recomputations": 17,
+  "stages": [
+    "aresos-back-de",
+    "aresos-intl",
+    "aresos",
+    "boot-3-pre-login-reset",
+    "corrected-stock",
+    "default-stock",
+    "final-detached-windows",
+    "final-unattended-windows",
+    "layout-reset-recovery",
+    "layout-reset-trial",
+    "offline-first-stock",
+    "offline-roundtrip-detached-windows",
+    "offline-roundtrip-unattended-windows",
+    "prepared-unattended-windows",
+    "protected-second-install",
+    "rollback-stock",
+    "tools-stock"
+  ]
+}

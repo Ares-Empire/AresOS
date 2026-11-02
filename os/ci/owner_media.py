@@ -14,7 +14,7 @@ import time
 
 import two_disk_vm as td
 import owner_fuse
-from prepare_two_disks import verify_loop
+from prepare_two_disks import verify_loop, wait_loop_partitions
 
 
 def bundle_module(name):
@@ -54,8 +54,14 @@ class Media:
             command.append('--read-only')
         loop = subprocess.check_output([*command, str(self.path)], text=True).strip()
         verify_loop(loop, self.path)
-        self.mount.mkdir(exist_ok=True)
-        assert not self.mount.is_symlink() and not any(self.mount.iterdir())
+        try:
+            wait_loop_partitions(loop,self.path)
+            self.mount.mkdir(exist_ok=True)
+            assert not self.mount.is_symlink() and not any(self.mount.iterdir())
+        except BaseException:
+            verify_loop(loop,self.path)
+            owner_fuse.detach(loop,self.mount)
+            raise
         return loop
 
     def create(self):
@@ -115,15 +121,18 @@ Copy-AresToolsPayload -Source $Source -Destination $Destination -Drive $drive
             manifest_sha256=self.fingerprint, device_attached=False))
 
     def attach(self, guest, stage):
+        import owner_xhci
         assert not self.attached and digest(self.path) == self.expected
         assert getattr(guest, 'owner_signed_in', False), 'Hotplug only after boot and sign-in'
         assert guest.mode == 'live' or getattr(guest, 'owner_physical_signed_in', False)
+        owner_xhci.checkpoint(guest, stage + '-before-hotplug', needed=True)
         guest.monitor.command('blockdev-add', {'driver': 'file', 'node-name': 'owner-tools-file', 'filename': str(self.path)})
         guest.monitor.command('blockdev-add', {'driver': 'raw', 'node-name': 'owner-tools', 'file': 'owner-tools-file'})
         guest.monitor.command('device_add', {'driver': 'usb-storage', 'id': 'owner-tools-usb', 'drive': 'owner-tools',
             'bus': 'usb-controller.0', 'port': '2', 'removable': True})
         self.attached = True
         guest.owner_media = self
+        owner_xhci.checkpoint(guest, stage + '-after-hotplug', attached=True)
         blocks = guest.monitor.command('query-block')
         matching = [b for b in blocks if b.get('inserted', {}).get('node-name') == 'owner-tools']
         assert len(matching) == 1 and pathlib.Path(matching[0]['inserted']['file']).resolve() == self.path
@@ -141,7 +150,9 @@ PY'''))
             manifest_sha256=self.fingerprint, qmp_blocks=blocks, boot=guest.boot_number))
 
     def detach(self, guest, stage):
+        import owner_xhci
         assert self.attached
+        owner_xhci.checkpoint(guest, stage + '-before-unplug')
         guest.command(stage + '-media-unmounted', '''set -e
 python3 - <<'PY'
 import json,subprocess
@@ -153,6 +164,17 @@ matched=[r for d in tree['blockdevices'] for r in rows(d) if r.get('label')=='AR
 assert len(matched)==1 and not any(matched[0].get('mountpoints',[])), 'Tools USB is still mounted'
 print('TOOLS_USB_UNMOUNTED')
 PY''')
+        if owner_xhci.context(guest) is not None:
+            # Resolve the owned controller's port 2 while the stick still
+            # exists. Never excuse an unrelated disconnect or controller death.
+            port = guest.capture_json(stage + '-tools-usb-port', td.sw.framed('''python3 - <<'PY'
+import json,pathlib,re
+root=pathlib.Path('/sys/bus/pci/devices/0000:00:05.0')
+ports=[p.name for p in root.glob('usb*/*-2') if re.fullmatch('[0-9]+-2',p.name)]
+assert len(ports)==1, 'STOP: tools-stick xHCI port identity missing or ambiguous'
+print(json.dumps(dict(port=ports[0])))
+PY'''))
+            owner_xhci.checkpoint(guest, stage + '-requested-unplug', expected_disconnect=port['port'])
         start = len(guest.monitor.events)
         guest.monitor.command('device_del', {'id': 'owner-tools-usb'})
         deadline = time.monotonic() + 30
@@ -170,6 +192,8 @@ for n in {1..30}; do
     sleep 1
 done
 exit 1''')
+        owner_xhci.checkpoint(guest, stage + '-unplug-confirmed')
+        owner_xhci.checkpoint(guest, stage + '-no-more-tools', attached=False, needed=False)
         guest.devices = guest.device_inventory()
         td.save(stage + '-media-detach', dict(status='passed', qmp_events=guest.monitor.events[start:],
             absent_before_shutdown=True, boot=guest.boot_number))

@@ -1,0 +1,1271 @@
+{
+  "sources": [
+    {
+      "sha256": "f26078d31ff5ecf2b031799d4d98fc6ae6c3727f024675dd86edfc30426932f3",
+      "path": ".gitattributes"
+    },
+    {
+      "sha256": "d702530de059f7dc5e4da2ea5817b7b4a74314d09a6f01f75cd0b8b821e0f14e",
+      "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "dd2eea95f06037b9b04edf49b48a27685220354ff5a2e8cd58bd9013576f37c7",
+      "path": "briefs/14zzd-fixture-bundles.md"
+    },
+    {
+      "sha256": "175ff86c95483ef709cc8e69b4eb2d327e38eb83c19a19949493addd468562f8",
+      "path": "briefs/14zze-checkout-bytes.md"
+    },
+    {
+      "sha256": "5bedfe19ac7c40c8cb5b24044dd00aff1f8eb2f988f49403f9dbbbc6190bebfa",
+      "path": "docs/EMERGENCY.md"
+    },
+    {
+      "sha256": "c4e4a41c88a7d61628d8821a129a60f2243c39c20922c2997904049e216cbf27",
+      "path": "docs/INSTALL.md"
+    },
+    {
+      "sha256": "e9350dc5a131ed29370711fbe62f59b3d1f71e0a15c6441190b937920837de44",
+      "path": "docs/install-tools/OwnerTools.psm1"
+    },
+    {
+      "sha256": "f17c5bce41a81318616100d41ba279193ae49e3d8ac3e561258c2a1c53387d84",
+      "path": "os/ci/checkout_sources.py"
+    },
+    {
+      "sha256": "13ab9ba9879a7cf628daaa326643df109da61cbd297663e5b711f0c9e6331057",
+      "path": "os/ci/installer_inspect.py"
+    },
+    {
+      "sha256": "7d721e469f834db910312225029e9ccc93d0c77e4d55c7518a40566c7ad7f8c1",
+      "path": "os/ci/installer_webui.py"
+    },
+    {
+      "sha256": "b1171ec1dde6bb8a011d31dee17c8b6f8e624ecdaa8771117fc807f379e18aed",
+      "path": "os/ci/keyboard_vm.py"
+    },
+    {
+      "sha256": "c13f2920b0e42f295fad80aaeae40d97bc9d99b658678058f5c9f74ddd6c43b5",
+      "path": "os/ci/offline_webui.py"
+    },
+    {
+      "sha256": "9e7553d82e0658f940cf147d6a20aa48eca6c9065dd139a5aa07aba13b4be92e",
+      "path": "os/ci/owner_capabilities.py"
+    },
+    {
+      "sha256": "662478226f64b2b7df1c7731e584426f899afc1339a49e825943a354f0a47749",
+      "path": "os/ci/owner_console.py"
+    },
+    {
+      "sha256": "64dcda6e8c3d699b96284578c2a9fd86b8e0b31fff571b88c6377e76431e8f78",
+      "path": "os/ci/owner_counter_kernel.py"
+    },
+    {
+      "sha256": "05c4ee1f34b9f19fb348a90a4326773ae4062e91342b751679c4b805e16920d5",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
+      "sha256": "56143e7310331cef87aac1e143df5ed99eefac61c9f3e1d49cf0dc727865de1c",
+      "path": "os/ci/owner_fuse.py"
+    },
+    {
+      "sha256": "69950a544dc8ce4c3ccc57f88253e6f60788b036e4f1b5d307103c57e52a726f",
+      "path": "os/ci/owner_hidden.py"
+    },
+    {
+      "sha256": "86387f41c01cd256360953e62229af7e433220488d189cc68810d16e751aece1",
+      "path": "os/ci/owner_key_counter.py"
+    },
+    {
+      "sha256": "f2452f7cd01efa6ff038b6fc5f8959cf8ae35ea0af5cb71d06b8912f7aab5e15",
+      "path": "os/ci/owner_keys.py"
+    },
+    {
+      "sha256": "568222844839c4ecb7b5400d351f430236166bfff221d3102dbca3a2cf1d44c5",
+      "path": "os/ci/owner_login.py"
+    },
+    {
+      "sha256": "15d1f0f4762a98412f89382acfb65c3de268dc5afc7e46cbd03b7a5f3a533320",
+      "path": "os/ci/owner_media.py"
+    },
+    {
+      "sha256": "204b8f43c087bc08820fd6de095c5b1a1942bc2fe687a31990aea1198ad42936",
+      "path": "os/ci/owner_read_diagnostics.py"
+    },
+    {
+      "sha256": "4e9a8d90ea7063a60ef7e408192e117de8b9372db6ddc78b9d54648f7d286e4c",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "b63ee2f11764077cc4041a4c0c0deba86b459cae7ee93986d265bf3060560b9a",
+      "path": "os/ci/owner_xhci.py"
+    },
+    {
+      "sha256": "f0425f057a39fe2216b97da0049f61c1ec4ba1a099a9eea0e558e2b3289ee251",
+      "path": "os/ci/prepare_two_disks.py"
+    },
+    {
+      "sha256": "c4be80c3bb72bad396a76cbc3cd968035a36a9334d9fbad71e6994e5d55406c7",
+      "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "b411767917ada03f82f2007bbaf9c91b4f975dae7c1658f6cb4ad82cc89c9b2d",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "331e54227cb2b3d96fcc4aac452f811fbb898702fa061cd66cb2c6846076dcbc",
+      "path": "os/ci/rehearsal_guard.py"
+    },
+    {
+      "sha256": "eedcecf9b547b7c77ee8c77db2d47b648bdbe474c291ae2354b6c8221b668f17",
+      "path": "os/ci/serial_console.py"
+    },
+    {
+      "sha256": "e365cad208c09b5aeafe32a4f7c0805dde2070d1aac1818ffe0736ffc17a6ebb",
+      "path": "os/ci/serial_transport.py"
+    },
+    {
+      "sha256": "3d977e51e019a1a6c44d5d2068f537264050e791ed4d3e1fa6b272e5c67d536f",
+      "path": "os/ci/switch_vm.py"
+    },
+    {
+      "sha256": "0bca7491cd4d7f037c31b77e15eaed19ac551773f9a3a59347d9805b4c1cf65d",
+      "path": "os/ci/two_disk_vm.py"
+    },
+    {
+      "sha256": "457370d367f809c70bd6d2053665a08142dfb28062a8abf32d15fa531ac7e30b",
+      "path": "os/ci/verify_release.py"
+    },
+    {
+      "sha256": "0aeeef5cb6d19611c0082f466ba4369dea19e3514bb270a47a237c0709afa49e",
+      "path": "os/ci/vm.py"
+    },
+    {
+      "sha256": "1ab95aeeeb04ada969d55a9aa240f6154854adb87b3bfbf951a88f811190ca76",
+      "path": "os/manifest/ci/14/14zu-local/atkbd.c.gz"
+    },
+    {
+      "sha256": "3b2e268c3a6059369a643e5f71199d7adf7aea2cac699476522f034b2f9ecb77",
+      "path": "os/manifest/ci/14/14zu-local/evdev.c.gz"
+    },
+    {
+      "sha256": "abdd51d39d0627a36347d3a4f7f4b7f0248fc3b1390398afd496a15c31411a86",
+      "path": "os/manifest/ci/14/14zu-local/input-keymap.c.gz"
+    },
+    {
+      "sha256": "bac19f8fd535e100bddcdb9d0bf560df3f80b6b590c1980c5912d094c96bec2e",
+      "path": "os/manifest/ci/14/14zu-local/input.h.gz"
+    },
+    {
+      "sha256": "76e12ce286fe0e331fbe94d54e73376131928ee58f420fcabb7195f4a62b5f2a",
+      "path": "os/manifest/ci/14/14zu-local/pc.c.gz"
+    },
+    {
+      "sha256": "a2ebf8b40d5c83e2d469030f6c395427fea3dfcb6b42692aeae86322cba0bf5e",
+      "path": "os/manifest/ci/14/14zu-local/pc_q35.c.gz"
+    },
+    {
+      "sha256": "080b35b53b73d0072a32e3023e62d3850cb0e69c614de9adf7b9b4a617956818",
+      "path": "os/manifest/ci/14/14zu-local/ps2.c.gz"
+    },
+    {
+      "sha256": "be473597af3a2879baac9d1fcfe36b041307a4512e489026f70a61e93edf3202",
+      "path": "os/manifest/ci/14/14zu-local/ps2.h.gz"
+    },
+    {
+      "sha256": "f7663914480c30cbb829f97e1fbea5738f64106fe6b27e425902041a3e790799",
+      "path": "os/manifest/ci/14/14zu-local/source-proof.json"
+    },
+    {
+      "sha256": "e5cf1475fcf48ce50e459f27abd68e23b4250fd1096d5bd395c381f8f9aeaf51",
+      "path": "os/manifest/ci/14/14zu-local/source-proof.py"
+    },
+    {
+      "sha256": "9f62e7efa642e768f5a70e70c9b7ec26aa3dc02eb0c950eb6ec4ac2e1247274b",
+      "path": "os/manifest/ci/14/14zu-local/sources.json"
+    },
+    {
+      "sha256": "034c2db395bb757b7f5b147dab163be9f053c5945afa5df8a8a965b85db66f9d",
+      "path": "os/manifest/ci/14/14zu-local/walk.py"
+    },
+    {
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "path": "os/manifest/ci/14/14zz-cosign/LICENSE"
+    },
+    {
+      "sha256": "87ea40f3402cc329014626204c09661fd0c3ec8109041da6cb892f041cac9f30",
+      "path": "os/manifest/ci/14/14zz-cosign/action.yml.template"
+    },
+    {
+      "sha256": "aede5dce8ef97073d37cec98233edbcbd4102c78575ad430cddb7052283042b8",
+      "path": "os/manifest/ci/14/14zz-cosign/source.json"
+    },
+    {
+      "sha256": "d0b5385b0285e89bcdf31211ca0794ba814a81bc1526d21869db17d1bf198ca4",
+      "path": "os/manifest/ci/14/14zzb-timing/projection.json"
+    },
+    {
+      "sha256": "d37d7598439ce423894022524d7e72f7766fa6e82061c1d35a48cc2c47a0f801",
+      "path": "os/manifest/ci/14/14zzc-preflight/source-proof.json"
+    },
+    {
+      "sha256": "0745c2ec91938a506f61255596081f405c0d01f2bc4880d6f3bfe4f9bc68bb75",
+      "path": "os/manifest/ci/14/14zzc-timing/projection.json"
+    },
+    {
+      "sha256": "7ed3c328e2e41f45638b8666cecf6aed3821a2e7cd8a9ee148aaea8c514b9947",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_bus.c"
+    },
+    {
+      "sha256": "75e51513e85ee1dfd7153d55eb00d43f3321c3f21f10967565c549332cfd776b",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_dev-storage-bot.c"
+    },
+    {
+      "sha256": "41516450961aaf5382a3fb02fa6537fd781a17ccc17ee2fae9ed6e2a1a3f4c7c",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_dev-storage-classic.c"
+    },
+    {
+      "sha256": "18d2554b4256eccb6cc3f56edc2829fd6f8a6e18092bf2e6161b1116ca9a7869",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_dev-storage.c"
+    },
+    {
+      "sha256": "29f5d722ffd5ee895c46df333b1e81d73561f2531d93edd187a48a4ad3a62dad",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_hcd-xhci.c"
+    },
+    {
+      "sha256": "57dd731f6425f59cd94b9d4a91439414796911f3ff4eba03c0607fa3b9eecc9b",
+      "path": "os/manifest/ci/14/hotplug-sources/index.json"
+    },
+    {
+      "sha256": "cbbd6852b3bc2740721d1c956af12444107e79205a63a0bd22746bb1377e7110",
+      "path": "os/manifest/ci/14/hotplug-sources/net_net.c"
+    },
+    {
+      "sha256": "6942b099b20a65a4bd4747d26c2f1e1ec99bb1171daf96f1e9f975874060c6e5",
+      "path": "os/manifest/ci/14/hotplug-sources/qapi_block-core.json"
+    },
+    {
+      "sha256": "9f1d208a44d46dc18aba99eef6c9ae7cce7952357ff7db20eb3631844a32519b",
+      "path": "os/manifest/ci/14/hotplug-sources/qapi_net.json"
+    },
+    {
+      "sha256": "f8069239e7e361f6a999567ccba6286871d13c1d10e0ae84663b83583bdc6e49",
+      "path": "os/manifest/ci/14/hotplug-sources/qapi_qdev.json"
+    },
+    {
+      "sha256": "724e0b333940e134cf26bf50ac4b021823b583ab88903e763f24b109bfbe52cd",
+      "path": "os/manifest/ci/14/keyboard-sources/README.md"
+    },
+    {
+      "sha256": "b635598d31059279adb4d8fd9d06195568acbcb0d5bfefd554687b8acb836c09",
+      "path": "os/manifest/ci/14/keyboard-sources/de.map"
+    },
+    {
+      "sha256": "85c9505ca41855d544b19db43cc02ae9c6fd2137f764a6d51b6de621fd4d3efe",
+      "path": "os/manifest/ci/14/keyboard-sources/index.json"
+    },
+    {
+      "sha256": "ae279da2f69b22d4a732089e7a7ac4bdf084ab3591a550d40e0d1277b66e5c30",
+      "path": "os/manifest/ci/14/keyboard-sources/us-intl.map"
+    },
+    {
+      "sha256": "06e81bf550edf93d2a9129b573adb9d3bdfb8a3939364088f62de58bc36c4041",
+      "path": "os/manifest/ci/14/keyboard-sources/us.map"
+    },
+    {
+      "sha256": "e5af3edc3f5ae73286aeca85caf43979d59129243edc368a1edc68ee7deac5be",
+      "path": "os/manifest/ci/14/parser-sources/README.md"
+    },
+    {
+      "sha256": "05d311d4bd78efb08446d713faee09fb37ed4468097041ad5927cc7639937dc3",
+      "path": "os/manifest/ci/14/parser-sources/index.json"
+    },
+    {
+      "sha256": "8c26de99d74aa06c030d1b0a270340ac435de8ac7cfd6f13f33b1866e9af8467",
+      "path": "os/manifest/ci/14/parser-sources/packages.json"
+    },
+    {
+      "sha256": "554849aa8e9328e71e0890bc54e035380ad0d770dff4e20848f0ef103fca40fa",
+      "path": "os/manifest/ci/14/parser-sources/source-files.zip"
+    },
+    {
+      "sha256": "e5124ee8f6a525d67afd03dd735afc6753562656c183e7ca804c04775c0e6720",
+      "path": "os/manifest/installer-isos.json"
+    },
+    {
+      "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
+      "path": "os/owner-tools/at"
+    },
+    {
+      "sha256": "5fbc65ef999be2ec3f30daf9afbced7443e4d4b5ac357c19b5b84b52f5e3db98",
+      "path": "os/owner-tools/bootstrap.py"
+    },
+    {
+      "sha256": "09e446874936a8f0f0bcfb9c0109899713b7815dc3d250f13d367e332070535e",
+      "path": "os/owner-tools/bundle.py"
+    },
+    {
+      "sha256": "b105c90b8c0b5b9d089be0afefce95673fe1f48e8553fdffb56de59d6561061a",
+      "path": "os/owner-tools/commands.json"
+    },
+    {
+      "sha256": "e3b548c1e59416ce91c3c50a0971c27a052a766e244bee3e565c3c9c7d45b949",
+      "path": "os/owner-tools/media.py"
+    },
+    {
+      "sha256": "42456d5b99b28af1423bb804f7b6b9824653e7ca89a257bbe99ddcde2e110ea6",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "67124c1fae11e6736095fa347ade45808313b999d8409634bb07b454a627304e",
+      "path": "os/owner-tools/payload/SHA256.json"
+    },
+    {
+      "sha256": "3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd",
+      "path": "os/owner-tools/payload/SHA256SUMS"
+    },
+    {
+      "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
+      "path": "os/owner-tools/payload/at"
+    },
+    {
+      "sha256": "e3b548c1e59416ce91c3c50a0971c27a052a766e244bee3e565c3c9c7d45b949",
+      "path": "os/owner-tools/payload/media.py"
+    },
+    {
+      "sha256": "42456d5b99b28af1423bb804f7b6b9824653e7ca89a257bbe99ddcde2e110ea6",
+      "path": "os/owner-tools/payload/owner.py"
+    },
+    {
+      "sha256": "b9383166a21fff6ef961f400d94b51a0c5286d154dfe86cfa528f59dcda6fa6d",
+      "path": "os/owner-tools/payload/release.json"
+    },
+    {
+      "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6",
+      "path": "os/owner-tools/payload/release/default-stock.sh"
+    },
+    {
+      "sha256": "2e5b201038127a80f9cc02642017a6d010693ba367d5373173684ca7d6528e00",
+      "path": "os/owner-tools/payload/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "32cc7ff61f5135b924a64ab851c862f0a95cb2e9b71144b6ae244e7aaa89a649",
+      "path": "os/owner-tools/payload/release/pin-stock.sh"
+    },
+    {
+      "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
+      "path": "os/owner-tools/payload/release/rollback.sh"
+    },
+    {
+      "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",
+      "path": "os/owner-tools/payload/release/stock-session.sh"
+    },
+    {
+      "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c",
+      "path": "os/owner-tools/payload/release/switch.sh"
+    },
+    {
+      "sha256": "014af878488ce708de7ebf5e5869021cf2ae7e8ab37d78193111576ddafae945",
+      "path": "os/owner-tools/payload/release/system-keyboard.sh"
+    },
+    {
+      "sha256": "55947bd644f9741d613dfd9fc2b88aba6e4465a68747ed25c648e59fe95064a3",
+      "path": "os/owner-tools/payload/release/verify.sh"
+    },
+    {
+      "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6",
+      "path": "os/release/default-stock.sh"
+    },
+    {
+      "sha256": "2e5b201038127a80f9cc02642017a6d010693ba367d5373173684ca7d6528e00",
+      "path": "os/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "32cc7ff61f5135b924a64ab851c862f0a95cb2e9b71144b6ae244e7aaa89a649",
+      "path": "os/release/pin-stock.sh"
+    },
+    {
+      "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
+      "path": "os/release/rollback.sh"
+    },
+    {
+      "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",
+      "path": "os/release/stock-session.sh"
+    },
+    {
+      "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c",
+      "path": "os/release/switch.sh"
+    },
+    {
+      "sha256": "014af878488ce708de7ebf5e5869021cf2ae7e8ab37d78193111576ddafae945",
+      "path": "os/release/system-keyboard.sh"
+    },
+    {
+      "sha256": "55947bd644f9741d613dfd9fc2b88aba6e4465a68747ed25c648e59fe95064a3",
+      "path": "os/release/verify.sh"
+    },
+    {
+      "sha256": "79bd8177a207bc4050a25399cf89548d17f1982113368cda0b4948e2a9fac2dd",
+      "path": "os/tests/fixtures/owner-console/14i-hotplug.vcsa"
+    },
+    {
+      "sha256": "a518be16c9f05419de35f2ab1485afe9920246efa5266ec89d2e2875cda5a914",
+      "path": "os/tests/fixtures/owner-console/14za-login-command.json"
+    },
+    {
+      "sha256": "455eff33528a582a83bd633aba27178c75d6ebb111f228f1d232abf55ac707c9",
+      "path": "os/tests/fixtures/owner-console/14ze-qualification5.json"
+    },
+    {
+      "sha256": "38447358dbbe160328c9a58b1a233c88b0a4eef156be8508849c3e7687afd96e",
+      "path": "os/tests/fixtures/owner-console/14zg-source.json"
+    },
+    {
+      "sha256": "852db3dfcf94dc53e9106bd24c1e6cc8d961b47a21fba98826adc4b546ec4dd7",
+      "path": "os/tests/fixtures/owner-console/14zg-title-completed.vcsa"
+    },
+    {
+      "sha256": "404f6bf8b18fb21d4e521f300fbf67676e83f6fcfc0414dc52d72188616028e1",
+      "path": "os/tests/fixtures/owner-console/14zi-qualification7.json"
+    },
+    {
+      "sha256": "1ed75cd72f09a7133f1e925912a3578b56532b3ba5855eb3867e1f12499470cc",
+      "path": "os/tests/fixtures/owner-console/14zj-probe18-ack.json"
+    },
+    {
+      "sha256": "a064207daa020fab513ac089f0aa5af1415935d9aa71b484e37fa13b382ee5aa",
+      "path": "os/tests/fixtures/owner-console/14zk-q8-prompt.vcsa"
+    },
+    {
+      "sha256": "dcad36f516d6f8fa7bb4d079167caefad8356667dbb1bd4ef40e43ba9c0ef8e9",
+      "path": "os/tests/fixtures/owner-console/14zk-q8-transition.json"
+    },
+    {
+      "sha256": "984e365443e7b0793244a370349566294b77af3fdf91009ddc9f00138ca58421",
+      "path": "os/tests/fixtures/owner-console/14zt-q15-shape.json"
+    },
+    {
+      "sha256": "4867d41dc7d7c4aee82e007a93be6e301f0d5a24530462bc0a8887045b9f87f4",
+      "path": "os/tests/fixtures/owner-console/sources.json"
+    },
+    {
+      "sha256": "f137c5c809ab62889ac4f6864ace40054d26f595ca1648dbf0c9446327c80a75",
+      "path": "os/tests/fixtures/owner-tools/14zy-probe29-job.json"
+    },
+    {
+      "sha256": "2decacb15f0553bc559bfeed41563d0b55a382c974846a65eb365def6065a9ef",
+      "path": "os/tests/fixtures/owner-tools/14zz-accounting-source.json"
+    },
+    {
+      "sha256": "8746eb5a08a19a215560bc6b96835af3e08bcf3e3e4f0b04b260120e7fff0b39",
+      "path": "os/tests/fixtures/owner-tools/14zz-cosign-log-sources.json"
+    },
+    {
+      "sha256": "4334df3b48142273f30191f7b285242da852bc458c8f7618697d9d2248b3248d",
+      "path": "os/tests/fixtures/owner-tools/14zzd-checkout-sources.json"
+    },
+    {
+      "sha256": "61e60a134c0d19c5f1cf21851630cb7415f2cfd6886a1a1deeb2564e7756d1f8",
+      "path": "os/tests/fixtures/owner-tools/blkid-p-gpt-source.json"
+    },
+    {
+      "sha256": "a4db20027ecc75ace51c1805a362fa38a3a03a37a2b94ffd22d723585d8c8740",
+      "path": "os/tests/fixtures/owner-tools/blkid-p-gpt.txt"
+    },
+    {
+      "sha256": "1b406c6a5cf55dfe57d8a359074846a610225a3d38d91f6c5a748a38ec24ceda",
+      "path": "os/tests/fixtures/owner-tools/cosign-combined.template"
+    },
+    {
+      "sha256": "a1829d50b4b19def3efd5b7b8b1b39429096e5a7432416fe4f915c6983fa9572",
+      "path": "os/tests/fixtures/owner-tools/cosign-step.template"
+    },
+    {
+      "sha256": "684b921c71889d96af9a6deb7811f5d581dd3f697efca59527cd06300660f37f",
+      "path": "os/tests/fixtures/owner-tools/counter-14zx-released.py"
+    },
+    {
+      "sha256": "79aece957464a7d7b45a6150dc94318d84e4a4ac5d6e6bf3268f310958415b72",
+      "path": "os/tests/fixtures/owner-tools/counter-flush-source.json"
+    },
+    {
+      "sha256": "ff1950fc39761d227d55cf7beb2c725278725476aab829f4dff7cd6ad29544af",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-de.json"
+    },
+    {
+      "sha256": "3df456bd5a61d62420335304cff3196f655d9756c663f4ffb2864a88bd219394",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-us-intl.json"
+    },
+    {
+      "sha256": "b35d1bc9f91a3bf08b036110bc259e1b3e9380588405233be17109d122b60a12",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-us.json"
+    },
+    {
+      "sha256": "c039cafb54189eae97cc7c950aee97326faf4645acf11af1f4a347268d3c3919",
+      "path": "os/tests/fixtures/owner-tools/efibootmgr18-efivar39.txt"
+    },
+    {
+      "sha256": "d7d069cff7c7cbb8ee86958369ddfec7990b6873d7264c3b7c021a017acbf73f",
+      "path": "os/tests/fixtures/owner-tools/efibootmgr18-qualification3.txt"
+    },
+    {
+      "sha256": "cafd2e661ef35fd700e2dbb83b907476239fa7e7f5de01be0fe2717f1ff4aca7",
+      "path": "os/tests/fixtures/owner-tools/finalize-hold.json"
+    },
+    {
+      "sha256": "41a1aa7095568036c6e589240f9ed33374669f63c5d63aa2bd303ccbad7358aa",
+      "path": "os/tests/fixtures/owner-tools/layout-adapter-sources.json"
+    },
+    {
+      "sha256": "fe27c5cdbe4cadf8528effe599fdb58b1194284d23224c93ba6f04913f6d9308",
+      "path": "os/tests/fixtures/owner-tools/retained-parsers.json"
+    },
+    {
+      "sha256": "b156cc601b2d091f739410defcf2fcb6c13bb158adbf141550083eb5a5752118",
+      "path": "os/tests/fixtures/owner-tools/storage-flat.json"
+    },
+    {
+      "sha256": "dad3213300c7d6d922dd084355a74a8ae6deb9cc4859ee2b2e47a8f79549e3d4",
+      "path": "os/tests/fixtures/owner-tools/storage-tree.json"
+    },
+    {
+      "sha256": "5ef6da72bde9700a16e4eb2c5a5f66e9e7ab8f5e2aeaf131c619dbb612b7d521",
+      "path": "os/tests/fixtures/owner-tools/tool-output-sources.json"
+    },
+    {
+      "sha256": "9cd15ec4e24cb44eb0917a70f80000659df6e10191bdd2ca917a5c6c15e28f99",
+      "path": "os/tests/guest_shell.py"
+    },
+    {
+      "sha256": "62a1fd816586ffae3fb1f2f35072d1e2da9373fb9359930eb323684103772948",
+      "path": "os/tests/owner-tools.Tests.ps1"
+    },
+    {
+      "sha256": "77148d16f9fa6015e804b3b4315953a029a79c8093db03c3e6b9549226ea5342",
+      "path": "os/tests/owner_bundle_fixture.py"
+    },
+    {
+      "sha256": "d44a951dbd7e30053eaa66f17d7cac8dfe72c8583f33773bddd829a0af84b984",
+      "path": "os/tests/owner_console_shim.py"
+    },
+    {
+      "sha256": "9248364aa556368df5186d64b6af74a4c81621b4955a2885d355e02e93561cfb",
+      "path": "os/tests/owner_fuse_shim.py"
+    },
+    {
+      "sha256": "8c6a88cfd0774b42e7a77dc1e25f6eb6a0c11d9515f9251a682b857188db1105",
+      "path": "os/tests/owner_login_shim.py"
+    },
+    {
+      "sha256": "797508ca7ae3511b0c8ba9b36f71ed98dfe76b8d6c2120de023e34f16eea97a3",
+      "path": "os/tests/owner_shim.py"
+    },
+    {
+      "sha256": "0d679ec30361e0e2d8b6cc4e67746e7d2b1dc0beace22b5834dfa20dbb1ca9e0",
+      "path": "os/tests/serial_pty.py"
+    },
+    {
+      "sha256": "4cecbdcf66209f6a0404a52ababd89f8eecf6d26161df39d87186476641d6941",
+      "path": "os/tests/test_checkout_sources.py"
+    },
+    {
+      "sha256": "c52e08f26067a405f7bb5e60d2efb17cb3c008fa03c0b7e5e5b66bba89e10bd8",
+      "path": "os/tests/test_ci_api_permissions.py"
+    },
+    {
+      "sha256": "fcae2dc86accd40ef60814881c3b936f5bc029a8a2caa8db4eb0a3345869603b",
+      "path": "os/tests/test_ci_step_environment.py"
+    },
+    {
+      "sha256": "572ce562f035f928db778ac79ebfb3a13dc4b1a4992422a4d2746958d53a4f1c",
+      "path": "os/tests/test_cosign_log_class.py"
+    },
+    {
+      "sha256": "567b73154c0d28eb9f935ae3649a1f3d1341da80a9c439c5007da7eb2d781186",
+      "path": "os/tests/test_guest_framing.py"
+    },
+    {
+      "sha256": "af3344f5ebdf006ca051d9b868f1859528ca4b7153b042984ca6ca4a2fb56a6c",
+      "path": "os/tests/test_installer_download.py"
+    },
+    {
+      "sha256": "eb4ea4d20e100abb629135f7052fc0b278c04d564c6631b46bd9fce23baf8900",
+      "path": "os/tests/test_installer_webui.py"
+    },
+    {
+      "sha256": "a3e7af177cd663d1168839760a67aa6c8557091b9a2e2cef309c23bfd40305e1",
+      "path": "os/tests/test_job_accounting.py"
+    },
+    {
+      "sha256": "14571d4a0f8d9c58498570f63bd94ea0e95808801b9042de19cbd1aeba60df29",
+      "path": "os/tests/test_keyboard_release.py"
+    },
+    {
+      "sha256": "f4a354342eb255ae8a762bf02130120317082b9a701495b46f845374e35c1876",
+      "path": "os/tests/test_keyboard_walk.py"
+    },
+    {
+      "sha256": "d4b098f65b7b45bff2e71fea3ed0522f109da0181593b24c172d8298d46dd792",
+      "path": "os/tests/test_loop_nodes.py"
+    },
+    {
+      "sha256": "72ec6cf18146649fd323892a018085f051f022f04797d69c86543e91e04ef4dc",
+      "path": "os/tests/test_organization_budget.py"
+    },
+    {
+      "sha256": "67428a6a19bd49f0840aa0f3066dc39c0f441a4f5d7fd0dd36a3e096b08afc93",
+      "path": "os/tests/test_owner_abandon.py"
+    },
+    {
+      "sha256": "e48a5c6f1ddece5d6f2e89ded5f6a001f5f5d62011fef699157aaedb42918bf3",
+      "path": "os/tests/test_owner_artifact_class.py"
+    },
+    {
+      "sha256": "c34048662a718b6d2916d996236f2b6bb1466ae89fb29309650248a6d77c3618",
+      "path": "os/tests/test_owner_bootstrap.py"
+    },
+    {
+      "sha256": "73f709e98231a91ccb511c71d5dfdf4ba2bbd68dc21149b38607f84b8c02da6f",
+      "path": "os/tests/test_owner_capabilities.py"
+    },
+    {
+      "sha256": "0a08886200065318894415207575d8cf2b3ff7e9cf9aa858b69e1a3f117d18ef",
+      "path": "os/tests/test_owner_commands.py"
+    },
+    {
+      "sha256": "48b89146778b75959976c79c469cc8c244e341448c6fa197edcb1447997daf69",
+      "path": "os/tests/test_owner_completion.py"
+    },
+    {
+      "sha256": "399033dafe70330f23e4a8fd2618a69524961a794abad4f163d528fed9c634ec",
+      "path": "os/tests/test_owner_console.py"
+    },
+    {
+      "sha256": "205778ccfcf42cb2d2f93284632a4112aa7bb6019335b1de930dc3199cc32c5a",
+      "path": "os/tests/test_owner_counter_flush.py"
+    },
+    {
+      "sha256": "8eada0800e64e2fed17702b1d9f8ecf07a7f7c226e08bdf4b0b60a2a44a95fe2",
+      "path": "os/tests/test_owner_devices.py"
+    },
+    {
+      "sha256": "19c61c44cae25477eff410624f655681ae9961ab7468f80f0ca963080eb7bbfe",
+      "path": "os/tests/test_owner_devices_native.py"
+    },
+    {
+      "sha256": "5a28c86ef719069d7d776a49bde8f5de0f8b74d5a00416bfbb0201acfe351cce",
+      "path": "os/tests/test_owner_diagnostics.py"
+    },
+    {
+      "sha256": "f922bd50cba2c64fc7d3970c130dc326521af1000ff531a73032bcb9ceb78cbf",
+      "path": "os/tests/test_owner_entry.py"
+    },
+    {
+      "sha256": "a8580834fd12a0554596a1fce3afec1a69bdd3538510b5e73e44652d71b4238c",
+      "path": "os/tests/test_owner_equality.py"
+    },
+    {
+      "sha256": "c16e8127a3c5dd0c4a6368d012179a9857f0151cc46292df21459fb462edcb01",
+      "path": "os/tests/test_owner_export.py"
+    },
+    {
+      "sha256": "7ea6333b0f17877061274b11a9471d9b313395849fe756417d79d81d4f56039d",
+      "path": "os/tests/test_owner_finalize.py"
+    },
+    {
+      "sha256": "3c0c1e723b8613761a461075995dffe644e89e94ae6099a6d5c3eed3f4fcf477",
+      "path": "os/tests/test_owner_firmware.py"
+    },
+    {
+      "sha256": "6e18968bc4fcf39fe47dec9394ff79a7736dd245a3f92d856b63887349d4eda4",
+      "path": "os/tests/test_owner_format_audit.py"
+    },
+    {
+      "sha256": "775f203ebd8949e41e4e9eadd7f501e59ad4ec58cdaaa3db244b92121d810ef2",
+      "path": "os/tests/test_owner_guard.py"
+    },
+    {
+      "sha256": "46020d39915f9c8698d2d259439682c372df27d48fe4d62d1aca0fa044cdf127",
+      "path": "os/tests/test_owner_hidden.py"
+    },
+    {
+      "sha256": "2005983c47c7623439304265f34c9386734210282bf7473487fb35f1e7fa314c",
+      "path": "os/tests/test_owner_key_counter.py"
+    },
+    {
+      "sha256": "08489e27e514ccea53b583d56bb6495856a173e5aed6cf6781fcda65a789a5b3",
+      "path": "os/tests/test_owner_layout_adapter.py"
+    },
+    {
+      "sha256": "f3e69d963426684daf547b2bcbf0e98fb54c2ff6b130994dada31407c701fb06",
+      "path": "os/tests/test_owner_login.py"
+    },
+    {
+      "sha256": "35162391f9b36183b063ac604d833168000e1ff715146ca50a241a85f55f6de6",
+      "path": "os/tests/test_owner_media.py"
+    },
+    {
+      "sha256": "c98e4de09519a108e37896dd79c7edbdc78ed2bc7fb943f94ee7cebb7128844c",
+      "path": "os/tests/test_owner_properties.py"
+    },
+    {
+      "sha256": "dbf18289051f50e68cb1bf4604f6acc42a70902465c08ab3153e92c71b916749",
+      "path": "os/tests/test_owner_ps2.py"
+    },
+    {
+      "sha256": "7cf254defde2247c00a4ca07d0a378040ff3c44e6135ca26e2d9174045d84232",
+      "path": "os/tests/test_owner_read_diagnostics.py"
+    },
+    {
+      "sha256": "a91704d410481fdab5e6fd13031df21dc4602ad901dccd3f11839b7bffe43255",
+      "path": "os/tests/test_owner_records_prompt.py"
+    },
+    {
+      "sha256": "74e379f079c961dd6411c09e475ad53f1373bdfd485f0ac60a3dbbf175308eef",
+      "path": "os/tests/test_owner_reliable_typing.py"
+    },
+    {
+      "sha256": "15c30ccf1ad4b5c84a8116077365b68c2f5aeef0bed4b9cd0578ed90326af768",
+      "path": "os/tests/test_owner_reset.py"
+    },
+    {
+      "sha256": "27ca2fba8ba7882d5a346b25b0fad1668e4bdbbe96d9027b5ad331c9d362e662",
+      "path": "os/tests/test_owner_retained.py"
+    },
+    {
+      "sha256": "46f9c51e3043b918273779f7251ee4ade1fcc8fd14493c3c4a883676228c4dab",
+      "path": "os/tests/test_owner_session.py"
+    },
+    {
+      "sha256": "c582f1de888ff0186761ef0dab90063644d4145fa32faf775a5b853cef2a1b2d",
+      "path": "os/tests/test_owner_setup_resume.py"
+    },
+    {
+      "sha256": "9807566021f341592360ff083225b77438ace74a770bb7d43ea0e79811b49dac",
+      "path": "os/tests/test_owner_step_limits.py"
+    },
+    {
+      "sha256": "6006917ef698643f1aa76c0676db36a271862cec55d9db01419159edc25a7421",
+      "path": "os/tests/test_owner_sudo_idle.py"
+    },
+    {
+      "sha256": "e16afbcf3ad2636ba79779cbb24dfb85f6270af47b5811bc2756a48975bf2d21",
+      "path": "os/tests/test_owner_tools.py"
+    },
+    {
+      "sha256": "13d630b9d5827953a62064e78dab0566fa100896dc5b5b5b89434b519bb77a90",
+      "path": "os/tests/test_owner_transport.py"
+    },
+    {
+      "sha256": "879f7121788681994b928a4de50fdf38aedabb21652e2dab4656ea64fb66bb64",
+      "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "8bf60014b9692df5ba6de1bb8e9fa27cec4de1a49c3259eabf04a0e379b2e80e",
+      "path": "os/tests/test_rehearsal_budget.py"
+    },
+    {
+      "sha256": "b708251301dfc00a0cb884eb071bae2dae78d524469430956216aa48865148ed",
+      "path": "os/tests/test_rehearsal_history.py"
+    },
+    {
+      "sha256": "419c0f16e685cd9df398178f8a16265fb68eb884738ceb5f100acbb1f6d24529",
+      "path": "os/tests/test_rehearsal_retry.py"
+    },
+    {
+      "sha256": "2dbe49b016751482b109667389575f242cc516ff7a8bb33faa92ced267b89d9d",
+      "path": "os/tests/test_release_squash_binding.py"
+    },
+    {
+      "sha256": "067a49e76d78218e61e9c68927489086bc909242db69e75f83dbe6e0693e9ec4",
+      "path": "os/tests/test_serial_ack.py"
+    },
+    {
+      "sha256": "ebe9f9cd8712b5d89ec5a9fe371c15b3b6bef6b69fa056c60117d68af6345872",
+      "path": "os/tests/test_serial_console.py"
+    },
+    {
+      "sha256": "f30f17a1474b0739904d1a34f30a1149edfc65a19cf9a7eb52bb2811b5f09f81",
+      "path": "os/tests/test_serial_staging.py"
+    },
+    {
+      "sha256": "6d0467153f768f2e714d26d4bc465c653a2450ec44990f76de1bcb465386ec61",
+      "path": "reviews/14-owner-tools/classify-artifacts.py"
+    },
+    {
+      "sha256": "46542d2905abc0c05142e445b6dd5bb8fd0a794b7cbfd1d91c4e4079d5ffa42f",
+      "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
+    },
+    {
+      "sha256": "6a20ae9ff38ba22e13cea7d06c7e67096ea95234a5766593a14543568510aade",
+      "path": "reviews/14-owner-tools/walk-host.py"
+    }
+  ],
+  "binding_format": "git-checkout-bytes-v1",
+  "trusted_bootstrap": true,
+  "abandoned_trial_reset": true,
+  "visible_command_blocks": 97,
+  "status": "passed",
+  "kind": "local synthetic guest responses; no VM qualification",
+  "stages": [
+    "stock",
+    "tools-stock",
+    "corrected-stock",
+    "layout-reset-trial",
+    "layout-reset-recovery",
+    "aresos",
+    "aresos-intl",
+    "aresos-back-de",
+    "rollback-stock",
+    "default-stock"
+  ],
+  "markers": [
+    "offline-roundtrip-unattended-windows",
+    "offline-roundtrip-detached-windows",
+    "prepared-unattended-windows",
+    "final-unattended-windows",
+    "final-detached-windows"
+  ],
+  "cluttered_prompt_waits": 154,
+  "idle_authorized_resyncs": 154,
+  "hidden_pairs": 27,
+  "public_handoffs": 3,
+  "health_boundaries": 98,
+  "composed_guest_commands": 1152,
+  "strict_bash_syntax": true,
+  "uncovered_waits": [],
+  "keyboard": "real public_typing/physical_input/type_text/physical_keys/Guest.keys; only QMP send recorded; physical redraw simulated",
+  "physical_typing_cases": [
+    {
+      "stage": "corrected-stock-console",
+      "boot": "corrected-stock",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "layout-reset-trial-console",
+      "boot": "layout-reset-trial",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "layout-reset-trial-foot",
+      "boot": "layout-reset-trial",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "layout-reset-recovery-console",
+      "boot": "layout-reset-recovery",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "layout-reset-recovery-foot",
+      "boot": "layout-reset-recovery",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-console",
+      "boot": "aresos",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-foot",
+      "boot": "aresos",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-intl-console",
+      "boot": "aresos-intl",
+      "profile": "us-intl",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "alt_r",
+          "y"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-intl-foot",
+      "boot": "aresos-intl",
+      "profile": "us-intl",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "alt_r",
+          "y"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-back-de-console",
+      "boot": "aresos-back-de",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-back-de-foot",
+      "boot": "aresos-back-de",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "rollback-stock-console",
+      "boot": "rollback-stock",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "default-stock-console",
+      "boot": "default-stock",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    }
+  ],
+  "clutter": "Q15 exact geometry/content shape after tools-stock; synthetic healthy kernel journal. The historical VCSA remains clutter only and never grants authority.",
+  "pending": "Actual PS2 event delivery, FUSE hotplug and health timing need November native/VM runs"
+}

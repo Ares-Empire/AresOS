@@ -1,0 +1,51 @@
+{
+  "ready": false,
+  "physical_echo_enabled": false,
+  "reader_echo_enabled": null,
+  "prompt_at_cursor": false,
+  "observation": {
+    "reason": "Foreground interactive bash",
+    "foreground_chain": [
+      {
+        "pid": 4440,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 3099,
+        "pgrp": 4440,
+        "session": 3099,
+        "tty": 1027,
+        "tpgid": 4440
+      },
+      {
+        "pid": 5187,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 4440,
+        "pgrp": 5187,
+        "session": 5187,
+        "tty": 34817,
+        "tpgid": 5188
+      },
+      {
+        "pid": 5188,
+        "comm": "bash",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 5187,
+        "pgrp": 5188,
+        "session": 5187,
+        "tty": 34817,
+        "tpgid": 5188
+      }
+    ]
+  },
+  "reader": null
+}

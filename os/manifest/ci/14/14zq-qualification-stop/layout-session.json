@@ -1,0 +1,30 @@
+{
+  "sha256": "8b7bbd1be9b02cfb8b09adc01af3c3ebed1a117374a0236f628f8ac0dfd5cef3",
+  "path": "evidence/two-disk/layout-us-begin-owner-diagnostics.json",
+  "error": "Use a physical tty3/tty4 recovery login",
+  "mutation_calls": 0,
+  "loginctl": [
+    {
+      "command": [
+        "loginctl",
+        "list-sessions",
+        "--json=short"
+      ],
+      "stdout": "[{\"session\":\"1\",\"uid\":1001,\"user\":\"ares\",\"seat\":\"seat0\",\"leader\":1216,\"class\":\"user\",\"tty\":\"tty1\",\"idle\":false,\"since\":null},{\"session\":\"2\",\"uid\":1001,\"user\":\"ares\",\"seat\":null,\"leader\":1235,\"class\":\"manager\",\"tty\":null,\"idle\":false,\"since\":null},{\"session\":\"3\",\"uid\":1000,\"user\":\"ares-recovery\",\"seat\":null,\"leader\":1215,\"class\":\"user\",\"tty\":\"ttyS0\",\"idle\":false,\"since\":null},{\"session\":\"4\",\"uid\":1000,\"user\":\"ares-recovery\",\"seat\":null,\"leader\":1481,\"class\":\"manager\",\"tty\":null,\"idle\":false,\"since\":null},{\"session\":\"5\",\"uid\":1000,\"user\":\"ares-recovery\",\"seat\":\"seat0\",\"leader\":1213,\"class\":\"user\",\"tty\":\"tty3\",\"idle\":false,\"since\":null}]\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "command": [
+        "loginctl",
+        "show-session",
+        "5",
+        "--property=Id,TTY,Audit,Scope"
+      ],
+      "stdout": "",
+      "stderr": "",
+      "returncode": 0
+    }
+  ],
+  "expected_audit_value_not_retained": true
+}

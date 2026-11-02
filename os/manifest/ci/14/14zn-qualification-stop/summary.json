@@ -1,0 +1,96 @@
+{
+  "status": "STOP qualification10 at private-token hidden completion; no rerun",
+  "brief": "briefs/14zn-token-read-diagnostics.md",
+  "head": "d523fb257afd72d7438340c35f6bf463341ea02b",
+  "probe_run": 40785271949,
+  "qualification_run": 40788594413,
+  "native_tests": 484,
+  "native_seconds": 83.53,
+  "native_skips": 0,
+  "verified_staged_transfers": 109,
+  "passed_owner_records": [
+    {
+      "sha256": "5a6ac0479f113bd76bb0a2981b20ce700b1010b46771ec8c88ad9542f42fd348",
+      "path": "evidence/two-disk/after-first-network-records-owner-diagnostics.json",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "33c42b6c5293f5594b1f676a91b168ddfceda5de69d2f58ff62fa3a81ade16ed",
+      "path": "evidence/two-disk/after-first-network-title-owner-diagnostics.json",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "c51d9cabe095d9f81d8df3ef204d00ce33f9f2f25cb96a9c12d37c115d976403",
+      "path": "evidence/two-disk/corrected-stock-records-owner-diagnostics.json",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/corrected-stock-title-owner-diagnostics.json",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/tools-before-reboot-title-owner-diagnostics.json",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "454d73430609425de82bfd2ae58e1981f0bed066ec54c1158936fbb254c3a769",
+      "path": "evidence/two-disk/tools-install-owner-diagnostics.json",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "eeadafc42089c942f42680d52a31ea3c1c6a3f68c13918e654c1ab5514141d28",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "status": "passed",
+      "mutations": 4
+    },
+    {
+      "sha256": "e53bb8d20d2abf0dc46a0e714d02708176d1d91cd07015ef3c07d9165dbcf8a8",
+      "path": "evidence/two-disk/tools-prepare-rerun-owner-diagnostics.json",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "5e9703de58b9a7916c47251e7702b7e7be45716ff2b3ee5a09da0110faaf30e1",
+      "path": "evidence/two-disk/tools-record-export-owner-diagnostics.json",
+      "status": "passed",
+      "mutations": 5
+    }
+  ],
+  "successful_hidden_completions": 4,
+  "token_wait_seconds": 180,
+  "diagnostics_snapshots": 2,
+  "diagnostic_limitation": "Four sudo wchan strings rejected by symbol validation; raw strings not retained, names unavailable",
+  "reader": {
+    "pid": 7999,
+    "state": "S",
+    "wchan": "wait_woken",
+    "syscall_number": 0,
+    "tty": "/dev/pts/2"
+  },
+  "cause": "Unproved; QMP send counts and zero canonical input counts do not establish byte or Return delivery",
+  "not_reached": [
+    "owner signature verification",
+    "switch to AresOS",
+    "AresOS boot",
+    "layout begin/proof/revert/finish",
+    "rollback",
+    "keep-stock",
+    "final Windows checks"
+  ],
+  "raw_console_or_secret_value_committed": false,
+  "paused_stop_observed": true,
+  "pushes": 1,
+  "workflow_reruns": 0,
+  "acceptance_met": false,
+  "pr_ready": false,
+  "closing_reservation": 0,
+  "organization_reserve": 0
+}

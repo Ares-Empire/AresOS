@@ -26,6 +26,7 @@ class MediaFuseTest(unittest.TestCase):
             media=owner_media.Media(); volume=Volume(root,media.mount)
             stack.enter_context(patch.object(subprocess,'run',side_effect=volume.run))
             stack.enter_context(patch.object(subprocess,'check_output',side_effect=volume.output))
+            volume.patch_nodes(stack)
             yield media,volume
 
     def test_clean_fsck_readonly_every_file_check_precedes_backing_hash(self):
@@ -70,6 +71,14 @@ class MediaFuseTest(unittest.TestCase):
             result=subprocess.CompletedProcess([],code,text,stderr)
             with self.subTest(code=code),patch.object(subprocess,'run',return_value=result),self.assertRaises(AssertionError):
                 owner_fuse.mounts('--source','/dev/SYNTHETIC')
+
+    def test_node_wait_failure_never_formats_copies_or_hashes_and_cleans_up(self):
+        with self.fixture() as (media,volume), \
+             patch.object(owner_media,'wait_loop_partitions',side_effect=AssertionError('STOP: nodes missing')):
+            with self.assertRaisesRegex(AssertionError,'nodes missing'): media.create()
+            self.assertFalse(any(c[0] in ('mkfs.exfat','pwsh') for c in volume.calls))
+            self.assertIn(['losetup','--detach',volume.loop],volume.calls)
+            self.assertIsNone(media.expected)
 
 
 if __name__=='__main__':unittest.main()

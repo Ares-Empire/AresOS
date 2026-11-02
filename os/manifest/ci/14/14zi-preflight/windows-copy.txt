@@ -1,0 +1,4 @@
+PASS tools manifest SHA256 683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974
+PASS tools manifest SHA256 683b1cff54d8a80406a70afd3f1173343a8a3fc95d301ef8cdbf05ab39010974
+PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.
+PASS 15 destination refusals with zero writes; copied payload equals source

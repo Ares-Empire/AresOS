@@ -1,0 +1,76 @@
+{
+  "status": "local-only; qualification2 remains failed; no push or dispatch authorized",
+  "brief": "briefs/14v-efibootmgr-format.md",
+  "parent": "fcf9c0be7d1c9f7f435bba726642a41038090694",
+  "local_suite": {
+    "tests": 378,
+    "passed_distinct": 370,
+    "seconds": 311.181,
+    "exit": 1,
+    "failures": 2,
+    "errors": 9,
+    "skipped": 0,
+    "native_host_limits": [
+      {
+        "test": "test_greeter.test_active_service_without_drawing_hits_deadline",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_greeter.test_black_cursor_and_flat_background_are_not_rendered_greeters",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_greeter.test_capture_waits_for_drawing_and_keeps_ready_evidence",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_inherited_homebrew.test_absent_inherited_installation_is_not_created",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_inherited_homebrew.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_inherited_homebrew.test_preserves_existing_acl_entries_and_restrictive_mask",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_sysusers.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_rehearsal_auth.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload",
+        "reason": "DrvFS exposes mode0777 rather than required0600"
+      }
+    ],
+    "log": {
+      "sha256": "01fd3aa6b00ad66c5ffbebb6ae2f1fc077b7619f178fdff6c1fbd3a9b4b7d081",
+      "path": ".work/14/local/whole-suite.log"
+    }
+  },
+  "native_execution": false,
+  "vm_execution": false,
+  "pushes": 0,
+  "dispatches": 0,
+  "package_consumed_last_closed": 403,
+  "minute_cap": 520,
+  "dispatch_counts": {
+    "probe": 10,
+    "owner-tools": 2
+  },
+  "caps_changed": false,
+  "org_reserve": 0,
+  "closing_reservation": 0,
+  "reserve_restoration_condition_met": false,
+  "acceptance_met": false,
+  "pr13_ready": false,
+  "upstream_plaintext_gitleaks_findings": 0,
+  "source_archive": "os/manifest/ci/14/parser-sources/source-files.zip",
+  "final_host_walk": {
+    "tests": 135,
+    "seconds": 138.76,
+    "source_bindings": 90,
+    "passed": true
+  }
+}

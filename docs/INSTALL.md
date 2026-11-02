@@ -66,20 +66,32 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 ef9cb33c7d08ff2be02e0b2fd62efb58dee9028963d66774422f5434b1168112` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
-- [ ] **F12** (or **Fn+F12**) → recorded Linux entry → **ares-recovery** sign-in. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console); **Return to step 4** here, keeping that session open. Only now insert ARESTOOLS. If text covers the prompt, press Enter. Type exactly:
+Require `PASS tools manifest SHA256 3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
+- [ ] **F12** (or **Fn+F12**) → recorded Linux entry → **ares-recovery** sign-in. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console); **Return to step 4** here, keeping that session open. Only now insert ARESTOOLS. If text covers the prompt, press Enter. Type this entire 13-line block exactly; the continuation prompt is expected until the final quote:
 
 ```bash
-sudo bash -c 'set -e; mount -o ro LABEL=ARESTOOLS /mnt; trap "umount /mnt" EXIT; bash /mnt/ares-tools/at install'
+sudo bash -c 'set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin; umask 077
+trap "echo STOP bootstrap: verification or install refused" ERR
+p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
+mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
+cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
+test -z "$(find . ! -type d ! -type f -print -quit)"
+echo "3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd  SHA256SUMS" | sha256sum -c --strict
+cmp -s \
+  <(find . -type f -printf "%P\n" | sort) \
+  <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
+sha256sum -c --strict SHA256SUMS
+bash ./at install'
 ```
 
-At prompts enter photographed Crucial serial and record A's Micron serial. Require `PASS install` and the same manifest fingerprint. It installs root-only shared tools; it unmounts even on STOP. Do not try another mount path.
+The trusted system tools copy into a fresh private directory and check the literal SHA256SUMS fingerprint, exact file list and every hash **before any stick code executes**. Require `SHA256SUMS: OK` and every listed file's OK result before the serial prompts. Enter photographed Crucial serial and record A's Micron serial; require `PASS install` and the same fingerprint. It stages root-only shared tools and publishes atomically; the bootstrap unmounts even on STOP. After an interruption, preserve the screen and [export/get help](EMERGENCY.md#a-tools-command-stopped). Only after help resolves it, **Return to step 4** and repeat this exact block: installation resumes only an exactly matching interrupted operation. Never delete a partial installation/journal or try another mount path.
 
 ```bash
 sudo /var/lib/ares/at prepare
 ```
 
-Require `PASS prepare`, exact corrected stock checksum/serial/stateroot and `pin yes; pending none; updaters paused`. This pauses reviewed OS updaters, establishes idle, handles only permitted leftover work, repairs only booted stock and pins it. One/two stock serials are permitted; leave the old unpinned serial alone. A five-minute wait STOP names the blocker; keep session open and get help, without reboot/network/guessed repair. Run the **same prepare command again**; require `Already prepared; no OS mutations` and `PASS prepare`.
+Require `PASS prepare`, exact corrected stock checksum/serial/stateroot and `pin yes; pending none; updaters paused`. This journals intent before mutations, pauses reviewed OS updaters, establishes idle, handles only permitted leftover work, repairs only booted stock and pins it. After interruption it resumes only an exactly matching recorded operation; another state STOPs. Preserve diagnostics/get help before returning here; never delete the intent or unpin to bypass it. One/two stock serials are permitted; leave the old unpinned serial alone. A five-minute wait STOP names the blocker; keep session open and get help, without reboot/network/guessed repair. Run the **same prepare command again**; require `Already prepared; no OS mutations` and `PASS prepare`.
 - [ ] Now enable networking using stock's controls. Leave NVIDIA Flatpak sync enabled: offline notifications/unfinished app-runtime retry are expected, distinct from OS deployment work. Then:
 
 ```bash
@@ -88,7 +100,7 @@ sudo /var/lib/ares/at records
 sudo /var/lib/ares/at export
 ```
 
-Require `PASS title`, `PASS records`, `PASS export` and **SAFE TO REMOVE ARESTOOLS**; unplug. Title verifies entire prepared list/pins/pending/BLS unchanged after network. Compare installed disk/EFI identities with record C/A. Save corrected stock identity, resolved title, state/time; mark older titles INVALID. Full diagnostics remain in `/var/lib/ares/records`; export copies JSON with hash readback and unmounts. Never pull a busy/mounted stick.
+Require `PASS title`, `PASS records`, `PASS export` and **SAFE TO REMOVE ARESTOOLS**; unplug. Title verifies entire prepared list/pins/pending/BLS unchanged after network. Compare installed disk/EFI identities with record C/A. Save corrected stock identity, resolved title, state/time; mark older titles INVALID. Records remain in `/var/lib/ares/records`; STOP diagnostics persist privately in `/var/lib/ares/diagnostics`. Export copies both to `ares-records` on the stick (STOP files have a `diagnostic-` prefix), checks SHA256 readback and unmounts. Keep exported diagnostics private. Never pull a busy/mounted stick.
 
 **Record:** live mapping, installer plan/account/layout, firmware order, Windows comparison, both prepare results, title/records/export. **STOP → go to [Help](INSTALL-REFERENCE.md#help)**, preserving this session and screen. Return to step 4 after resolution. With all boxes PASS → [step 5](#5-prove-windows-and-corrected-stock). No authentication yet.
 

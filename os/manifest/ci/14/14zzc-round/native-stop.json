@@ -1,0 +1,71 @@
+{
+  "status": "STOP; native suite failed, no rerun or qualification",
+  "run": 41356040290,
+  "head": "b15d52f1a24c37fa4f4a3897919b88b591990c49",
+  "tests": 626,
+  "seconds": 218.621,
+  "unittest_errors": 18,
+  "distinct_error_methods": [
+    "test_resume_after_atomic_payload_publication (test_owner_setup_resume.InstallResumeTest.test_resume_after_atomic_payload_publication)",
+    "test_resume_after_each_payload_file_copy (test_owner_setup_resume.InstallResumeTest.test_resume_after_each_payload_file_copy)",
+    "test_resume_after_each_record_write (test_owner_setup_resume.InstallResumeTest.test_resume_after_each_record_write)",
+    "test_resume_after_entry_publication (test_owner_setup_resume.InstallResumeTest.test_resume_after_entry_publication)",
+    "test_unjournalled_or_unrecognized_partial_copy_is_never_deleted (test_owner_setup_resume.InstallResumeTest.test_unjournalled_or_unrecognized_partial_copy_is_never_deleted)"
+  ],
+  "passed_methods": 621,
+  "skips": 0,
+  "unchanged_30_second_timing_case_passed": true,
+  "full_native_acceptance": false,
+  "ci_invocation": "env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests -v",
+  "local_preflight_invocation": "python3 -B .work/14/14zzc/whole.py",
+  "production_entry": "/usr/bin/python3 -I -B owner.py",
+  "diagnosis": "The direct install fixture imports media.py into its USB payload; normal Python writes a bytecode cache before the second strict bundle check. The local -B invocation hid that fixture difference.",
+  "proven": "Isolated real import: bytecode enabled adds the cache and reproduces the exact refusal; -B adds nothing and preserves a valid bundle. No owner handler/device/credential command was run.",
+  "limitation": "The native fixture directory/file list was not retained; the exact native added pathname is inferred from the matching execution path and isolated reproduction.",
+  "bytecode_enabled": {
+    "status": "diagnostic complete",
+    "dont_write_bytecode": false,
+    "added_files": [
+      "__pycache__/media.cpython-312.pyc"
+    ],
+    "bundle_refusal": "Partial bundle or unexpected file",
+    "owner_handler_executed": false,
+    "devices_credentials_or_mutation_commands_used": false
+  },
+  "bytecode_disabled": {
+    "status": "diagnostic complete",
+    "dont_write_bytecode": true,
+    "added_files": [],
+    "bundle_refusal": null,
+    "owner_handler_executed": false,
+    "devices_credentials_or_mutation_commands_used": false
+  },
+  "vm_or_iso_inspection_reached": false,
+  "native_loop_and_ci_only_registry_steps_reached": false,
+  "sources": [
+    {
+      "sha256": "f13da92d9cc1fd4a508950b95bd7ac99949f014bf8f13514c551aedce8ea15ef",
+      "path": ".work/14/run-41356040290/native.log"
+    },
+    {
+      "sha256": "a8cf26141e34ca08b4b4c88628a219517f44c03941f20f253bffeaac11ca0b27",
+      "path": ".work/14/run-41356040290/receipt.json"
+    },
+    {
+      "sha256": "d702530de059f7dc5e4da2ea5817b7b4a74314d09a6f01f75cd0b8b821e0f14e",
+      "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "76bd1b29e9eb89d7c10eab4401d4d2ff63477d46addd3af77c91b2e0a199a61e",
+      "path": "os/tests/test_owner_setup_resume.py"
+    },
+    {
+      "sha256": "42456d5b99b28af1423bb804f7b6b9824653e7ca89a257bbe99ddcde2e110ea6",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
+      "path": "os/owner-tools/at"
+    }
+  ]
+}

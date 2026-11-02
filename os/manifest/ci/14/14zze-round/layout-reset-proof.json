@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "reset": "QMP system_reset",
+  "trial": "us",
+  "finished": "de",
+  "persistent_console_and_x11_unchanged": true,
+  "every_console_german": true,
+  "german_password_login": true,
+  "physical_foot_german": true,
+  "fresh_authenticated_abandon": true,
+  "guarded_reboot": true,
+  "tools_absent_at_reset": true
+}

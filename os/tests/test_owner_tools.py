@@ -1,11 +1,16 @@
 import copy
+import contextlib
 import importlib.util
 import json
 import pathlib
+import os
+import stat
 import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
+from owner_bundle_fixture import copy_bundle
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -19,6 +24,31 @@ def module(name):
 
 owner = module('owner')
 bundle = module('bundle')
+
+
+def fixture_bundle(destination, source=None):
+    fingerprint = copy_bundle(source or ROOT / 'os/owner-tools/payload', destination)
+    assert owner.checked_bundle(destination) == fingerprint
+    return fingerprint
+
+
+@contextlib.contextmanager
+def private_metadata(root):
+    """POSIX metadata model for private ordinary-file fixtures on DrvFS.
+
+    Bytes, paths, no-follow behaviour, atomic renames and fsync are real. Only
+    the mode/owner returned for this explicitly declared private tree change.
+    Permission-refusal tests exercise the production predicate separately.
+    """
+    root=pathlib.Path(root).absolute(); original=pathlib.Path.stat
+    def metadata(path,*args,**kwargs):
+        info=original(path,*args,**kwargs)
+        if path.is_absolute() and path.is_relative_to(root) and not stat.S_ISLNK(info.st_mode):
+            values={name:getattr(info,name) for name in dir(info) if name.startswith('st_')}
+            values.update(st_uid=os.geteuid(),st_mode=stat.S_IFMT(info.st_mode) | (0o700 if stat.S_ISDIR(info.st_mode) or path.name=='at' else 0o600))
+            return SimpleNamespace(**values)
+        return info
+    with patch.object(pathlib.Path,'stat',metadata): yield
 
 
 def stock():
@@ -157,7 +187,7 @@ class RefusalTest(unittest.TestCase):
     def test_bundle_tamper_partial_extra_link_and_traversal_refuse(self):
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
             path = pathlib.Path(temporary) / 'payload'
-            fingerprint = bundle.build(path)
+            fingerprint = fixture_bundle(path)
             self.assertEqual(owner.checked_bundle(path), fingerprint)
             (path / 'at').write_text('tampered')
             self.refuse(owner.checked_bundle, path)
@@ -175,7 +205,7 @@ class RefusalTest(unittest.TestCase):
     def test_manifest_shape_duplicate_paths_fields_and_order_refuse_without_mutation(self):
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
             path = pathlib.Path(temporary) / 'payload'
-            bundle.build(path)
+            fixture_bundle(path)
             entries = bundle.manifest()
             for bad in (entries + entries[:1], {'at': 'a' * 64},
                         [dict(path=row['path'], sha256=row['sha256']) for row in entries],
@@ -190,7 +220,7 @@ class RefusalTest(unittest.TestCase):
     def test_cleanup_only_uses_shared_pin_validation_without_pinning(self):
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
             path = pathlib.Path(temporary) / 'payload'
-            bundle.build(path)
+            fixture_bundle(path)
             scope = owner.program(path, 'pin-stock', 'PIN_STOCK')
             state = stock()
             def read(command, **kwargs):
@@ -198,6 +228,24 @@ class RefusalTest(unittest.TestCase):
             with patch('subprocess.check_output', side_effect=read), patch('subprocess.run') as run:
                 scope['pin_stock'](cleanup_only=True)
             run.assert_not_called()
+
+    def test_fixture_manifest_copy_ignores_source_cache_but_strict_check_refuses_it(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:
+            root = pathlib.Path(temporary)
+            source, destination = root / 'source', root / 'copy'
+            fingerprint = fixture_bundle(source)
+            cache = source / '__pycache__'
+            cache.mkdir()
+            (cache / 'x.pyc').write_bytes(b'stray fixture bytecode')
+            owner.media_module(source)  # Normal Python may add its own cache too.
+            self.assertEqual(fixture_bundle(destination, source), fingerprint)
+            expected = {row['path'] for row in json.loads((source / 'SHA256.json').read_text())}
+            self.assertEqual({p.relative_to(destination).as_posix() for p in destination.rglob('*') if p.is_file()},
+                             expected | {'SHA256.json', 'SHA256SUMS'})
+            self.refuse(owner.checked_bundle, source)
+            (destination / '__pycache__').mkdir()
+            (destination / '__pycache__/x.pyc').write_bytes(b'stray fixture bytecode')
+            self.refuse(owner.checked_bundle, destination)
 
 
 if __name__ == '__main__':

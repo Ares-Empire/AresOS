@@ -1,0 +1,36 @@
+{
+  "files": [
+    {
+      "sha256": "10a8828166727165045e8c68e0b8295d68a9f25882a18f219b8db6dccd040e1d",
+      "path": "os/manifest/ci/14/14zw-round/artifact-privacy.json"
+    },
+    {
+      "sha256": "5227e81af54833c892ae2af643beff781e682c412a7e2f0869fc63f929cf819f",
+      "path": "os/manifest/ci/14/14zw-round/closed.json"
+    },
+    {
+      "sha256": "739fc26ae1750db3748ee368b5adc09b81a78b07093786af58264b110789f225",
+      "path": "os/manifest/ci/14/14zw-round/local-checks.json"
+    },
+    {
+      "sha256": "ea73131650b6123fdf8af97bbac3c279c657fd7833c68f42383fb7db108c223d",
+      "path": "os/manifest/ci/14/14zw-round/local-privacy.json"
+    },
+    {
+      "sha256": "74d749be4ed4dcf8ba03e8fbdcd2393ca287efae1999f84ff41b1d99a020714e",
+      "path": "os/manifest/ci/14/14zw-round/privacy.json"
+    },
+    {
+      "sha256": "42073e7416f4e2feed986414ca677f7d7174a501df5ebb96dd6737321b6d18be",
+      "path": "os/manifest/ci/14/14zw-round/probe.json"
+    },
+    {
+      "sha256": "c0b4fcf0a4b181779098f54e8a9c57dcc49db39926a45d65a166d233f0dbbb07",
+      "path": "os/manifest/ci/14/14zw-round/qualification-stop.json"
+    },
+    {
+      "sha256": "75814302d3e628cc267f015a52fdc171b9c010bf00f23cfec93e9bbd4abbbfd7",
+      "path": "os/manifest/ci/14/14zw-round/retained-files.json"
+    }
+  ]
+}

@@ -4,11 +4,11 @@
     "path": "at"
   },
   {
-    "sha256": "fdba83a9a494d966b7806bb0eac566156b27ed5823f2d9550f9630a1dacec33b",
+    "sha256": "e3b548c1e59416ce91c3c50a0971c27a052a766e244bee3e565c3c9c7d45b949",
     "path": "media.py"
   },
   {
-    "sha256": "4c876fc58ad9bf1a144676019d2cf8b7ededea96eb868d92695d5020756b0ce2",
+    "sha256": "42456d5b99b28af1423bb804f7b6b9824653e7ca89a257bbe99ddcde2e110ea6",
     "path": "owner.py"
   },
   {
@@ -20,11 +20,11 @@
     "path": "release/default-stock.sh"
   },
   {
-    "sha256": "f5110c74466d53e8ee28620d326fd641746c1a6be488d3c0de9d21fdb7485a9c",
+    "sha256": "2e5b201038127a80f9cc02642017a6d010693ba367d5373173684ca7d6528e00",
     "path": "release/pause-stock-updates.sh"
   },
   {
-    "sha256": "bc079def58a73f2ffaf2085b64f9e02d72eb45cc76f64be60ad0e476483ecf4f",
+    "sha256": "32cc7ff61f5135b924a64ab851c862f0a95cb2e9b71144b6ae244e7aaa89a649",
     "path": "release/pin-stock.sh"
   },
   {

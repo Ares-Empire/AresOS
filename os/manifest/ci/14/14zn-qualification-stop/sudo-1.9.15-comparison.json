@@ -1,0 +1,14 @@
+[
+  {
+    "sha256": "c92701f318353fefd3d32b33efa2a7a2752a4a7a45b6665a0b18837277b48567",
+    "url": "https://raw.githubusercontent.com/sudo-project/sudo/SUDO_1_9_15/src/exec_pty.c",
+    "path": "sudo-1.9.15-exec_pty.c",
+    "identical_to_p5": true
+  },
+  {
+    "sha256": "f6b8c499611cdd6973878836fcf06440227df10839fa8ffc78130f4b1141cd1c",
+    "url": "https://raw.githubusercontent.com/sudo-project/sudo/SUDO_1_9_15/src/exec_iolog.c",
+    "path": "sudo-1.9.15-exec_iolog.c",
+    "identical_to_p5": true
+  }
+]

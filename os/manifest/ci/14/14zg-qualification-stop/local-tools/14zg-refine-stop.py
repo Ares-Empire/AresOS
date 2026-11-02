@@ -1,0 +1,6 @@
+import pathlib,json,hashlib,sys,re
+r=pathlib.Path.cwd();b=r/'.work/14/run-40617562735';e=b/'evidence/two-disk';p=b/'14zg-stop-observations.json';v=json.loads(p.read_text());sys.path.insert(0,str(r/'os/ci'));from owner_console import screen
+raw=(e/'after-first-network-title-completed-timeout-1.vcsa').read_bytes();full,line=screen(raw)
+v.update(scheduler_message_overlaid_root_prompt='root@bazzite:~# [  273.927657] sched: DL replenish lagged too much' in full,pass_title_on_screen='PASS title' in full,resync_enter_records=len(list(e.glob('after-first-network-title-completed-resync-*'))),account_login_completion=json.loads((e/'tools-stock-account-login-hidden-completed.json').read_text()),sudo_completion=json.loads((e/'tools-stock-sudo-hidden-completed.json').read_text()),interpretation='title record passed; cursor-line predicate refused; no fresh post-command idle grant/resync record; kernel message overlays a displayed root prompt',cause_limit='No new foreground process observation was recorded at this completed wait; physical shell idle at that instant is not independently proven')
+assert v['scheduler_message_overlaid_root_prompt'] and v['pass_title_on_screen'] and v['resync_enter_records']==0
+p.write_text(json.dumps(v,indent=2)+'\n',newline='\n')

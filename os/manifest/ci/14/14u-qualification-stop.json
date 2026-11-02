@@ -1,0 +1,210 @@
+{
+  "status": "STOP: owner install firmware mapping refusal, later framed-result timeout;6 unclassified artifact findings",
+  "checked_at": "2026-10-27T00:56:52.594506+00:00",
+  "qualified_head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+  "run": 40421596174,
+  "run_attempt": 1,
+  "conclusion": "failure",
+  "artifact": {
+    "sha256": "c9a5ded1a436ef30b8314518f3a5aee3cee3c7d4c6c47e2f01ff2b4d1e7f4758",
+    "path": "evidence.zip",
+    "artifact_id": 12701280757,
+    "bytes": 5451470,
+    "run": 40421596174,
+    "head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+    "status": "failure",
+    "members": 437,
+    "logs": {
+      "sha256": "42f8a4836dc77ef8d9f8ec33ac7ef63e04559f5f6a1bfc29aa78a85da6229991",
+      "path": "logs.zip"
+    },
+    "downloaded_at": "2026-10-27T00:52:23.087222+00:00"
+  },
+  "classified_probe10": {
+    "status": "passed",
+    "run": 40417291358,
+    "head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+    "scan": {
+      "sha256": "61912faaa380d6ed207d42618de1e0a50d0abf0d4e2b87d263f1c9633afa1253",
+      "path": ".work/14/gitleaks/14t-probe-evidence.json"
+    },
+    "findings": 509,
+    "iso_listing_findings": 507,
+    "kernel_certificate_findings": [
+      {
+        "certificate_label": "Fedora kernel signing key",
+        "fingerprint_hex_length": 40,
+        "line_sha256": "a86d89d3e5c82545ab1a88aaa8a05144f2969a08d956157d1129858ab04d3bbe",
+        "file": "evidence/two-disk/live-ui-probe-boot-console.txt",
+        "line": 497,
+        "rule": "generic-api-key",
+        "classification": "14u public kernel X.509 signing-certificate fingerprint"
+      },
+      {
+        "certificate_label": "Fedora kernel signing key",
+        "fingerprint_hex_length": 40,
+        "line_sha256": "c7fe0c4da26f1e3566ce0fe564457f5e54c64242e2f282a4e83e944f6e9686f9",
+        "file": "evidence/two-disk/live-ui-probe-boot-console.txt",
+        "line": 530,
+        "rule": "generic-api-key",
+        "classification": "14u public kernel X.509 signing-certificate fingerprint"
+      }
+    ],
+    "policy": "briefs/14u-console-fingerprint.md; whole line fullmatch in captured boot console only",
+    "ignore_changes": false,
+    "workflow_changes": false,
+    "raw_consoles_committed": false
+  },
+  "artifact_privacy": {
+    "status": "STOP",
+    "findings": 515,
+    "iso_listing_findings": 507,
+    "kernel_certificate_findings": [
+      {
+        "certificate_label": "Fedora kernel signing key",
+        "fingerprint_hex_length": 40,
+        "line_sha256": "994b7a4d2def60914af1cf799024c402dccc29edfd89ab3f8fe143c131bdfd02",
+        "file": "evidence/two-disk/protected-second-install-boot-console.txt",
+        "line": 491
+      },
+      {
+        "certificate_label": "Fedora kernel signing key",
+        "fingerprint_hex_length": 40,
+        "line_sha256": "6f56aaa6390f73d73e479429351ba85c0bf3cf243c7009a13ce8805298cc92be",
+        "file": "evidence/two-disk/protected-second-install-boot-console.txt",
+        "line": 524
+      }
+    ],
+    "unclassified_findings": [
+      {
+        "rule": "generic-api-key",
+        "file": "evidence/two-disk/offline-first-stock-boot-console.txt",
+        "start_line": 498,
+        "end_line": 498,
+        "whole_kernel_line_match": false
+      },
+      {
+        "rule": "generic-api-key",
+        "file": "evidence/two-disk/offline-first-stock-boot-console.txt",
+        "start_line": 509,
+        "end_line": 509,
+        "whole_kernel_line_match": false
+      },
+      {
+        "rule": "generic-api-key",
+        "file": "evidence/two-disk/tools-stock-boot-console.txt",
+        "start_line": 503,
+        "end_line": 503,
+        "whole_kernel_line_match": false
+      },
+      {
+        "rule": "generic-api-key",
+        "file": "evidence/two-disk/tools-stock-boot-console.txt",
+        "start_line": 521,
+        "end_line": 521,
+        "whole_kernel_line_match": false
+      },
+      {
+        "rule": "generic-api-key",
+        "file": "evidence/two-disk/stock-initialization-0-boot-console.txt",
+        "start_line": 509,
+        "end_line": 509,
+        "whole_kernel_line_match": false
+      },
+      {
+        "rule": "generic-api-key",
+        "file": "evidence/two-disk/stock-initialization-0-boot-console.txt",
+        "start_line": 527,
+        "end_line": 527,
+        "whole_kernel_line_match": false
+      }
+    ],
+    "matching_values_copied": false,
+    "ignore_changes": false,
+    "raw_consoles_committed": false
+  },
+  "native": {
+    "status": "passed",
+    "tests": 355,
+    "seconds": 29.196,
+    "skips": 0,
+    "device_checks": 20,
+    "all_device_checks_passed": true,
+    "helper_mutations": 0,
+    "protected_fixture_unchanged": true,
+    "cleanup": true
+  },
+  "offline_first_stock": {
+    "status": "passed",
+    "hardware_setup_finished": true,
+    "staged": false,
+    "rollback_queued": false,
+    "tools_attached": false,
+    "network_up": false
+  },
+  "owner_install_stop": "Linux firmware entry does not uniquely map to target EFI",
+  "later_harness_failure": "Timeout waiting for checksum-framed owner install result",
+  "efi_diagnostic": {
+    "status": "diagnostic only; not a firmware-audit exception",
+    "matching_raw_linux_load_options": [
+      {
+        "variable": "Boot000A",
+        "description": "Bazzite",
+        "partition": {
+          "number": 1,
+          "start_lba": 2048,
+          "sectors": 1228800,
+          "guid": "4fb134e0-52b2-413d-a5e0-d83b1dec6ffe"
+        },
+        "file": "\\EFI\\fedora\\shimx64.efi"
+      }
+    ],
+    "count": 1,
+    "guest_efibootmgr_v_stdout_retained": false,
+    "tool_stop": "Linux firmware entry does not uniquely map to target EFI",
+    "interpretation": "Raw firmware audit maps one Linux load option to target ESP; exact text consumed by disk_record unavailable, cause unresolved"
+  },
+  "independent_audits": {
+    "status": "passed independent replay of actual raw files and counters",
+    "run": 40421596174,
+    "head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+    "protected_captures": 7,
+    "zero_write_unmap_samples": 8,
+    "raw_varstores_decoded": 7,
+    "bootnext_exact_replays": 7,
+    "nvram_rule_exact_replays": 6,
+    "all_variable_delta_recomputations": 6,
+    "stages": [
+      "boot-3-pre-login-reset",
+      "offline-first-stock",
+      "offline-roundtrip-detached-windows",
+      "offline-roundtrip-unattended-windows",
+      "protected-second-install",
+      "tools-stock"
+    ]
+  },
+  "prompt_resync": {
+    "stage": "tools-install-ready",
+    "tty": "tty3",
+    "attempt": 1,
+    "time": "2026-10-27T00:34:12.027604+00:00",
+    "before_cursor_line": "",
+    "after_cursor_line": "root@bazzite:~#",
+    "enter_sent": true,
+    "after_time": "2026-10-27T00:34:13.657784+00:00",
+    "ready": true
+  },
+  "auth_cleanup": {
+    "status": "passed",
+    "secret": "GITHUB_TOKEN",
+    "removed": true,
+    "outside_workspace": true,
+    "owner_token_used": false
+  },
+  "pushes": 0,
+  "reruns": 0,
+  "acceptance_met": false,
+  "pr13_draft": true,
+  "reservation_restoration_condition_met": false,
+  "owner_budget_reset_required": true
+}

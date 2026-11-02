@@ -80,14 +80,18 @@ def export(host, store, fingerprint, checked_bundle, require):
     def inspect_records():
         destination = MOUNT / 'ares-records'
         require(not destination.is_symlink() and (not destination.exists() or destination.is_dir()), 'USB records path is not a directory')
-        paths = sorted(store.glob('*.json'))
-        for path in paths:
+        diagnostics = store.parent / 'diagnostics'
+        require(not diagnostics.is_symlink() and (not diagnostics.exists() or diagnostics.is_dir()), 'Invalid private diagnostic directory')
+        paths = [(p, p.name) for p in sorted(store.glob('*.json'))]
+        if diagnostics.exists():
+            paths += [(p, 'diagnostic-' + p.name) for p in sorted(diagnostics.glob('*.json'))]
+        for path, name in paths:
             require(path.is_file() and not path.is_symlink(), 'Private record is not an ordinary file')
-            target = destination / path.name
+            target = destination / name
             require(not target.is_symlink() and (not target.exists() or target.is_file()), 'USB record is not an ordinary file')
             if target.exists():
                 require(target.read_bytes() == path.read_bytes() or path.name in
-                    ('title.json', 'record-c.json', 'layout-pending.json', 'layout-completed.json'),
+                    ('title.json', 'record-c.json', 'layout-pending.json', 'layout-completed.json', 'layout-abandoned.json', 'prepare-intent.json'),
                     'USB has a different immutable record; preserve both and get help')
         return destination, paths
     try:
@@ -103,8 +107,8 @@ def export(host, store, fingerprint, checked_bundle, require):
         require(checked_bundle(MOUNT / 'ares-tools') == fingerprint, 'Tools bundle changed between mounts')
         destination, paths = inspect_records()
         destination.mkdir(exist_ok=True)
-        for path in paths:
-            target = destination / path.name
+        for path, name in paths:
+            target = destination / name
             shutil.copyfile(path, target)
             require(hashlib.sha256(target.read_bytes()).digest() == hashlib.sha256(path.read_bytes()).digest(), 'USB record copy differs')
         host.mutate('sync', '-f', str(destination))

@@ -1,0 +1,55 @@
+{
+  "status": "one qualification only; terminal failure; no rerun",
+  "pushed_head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+  "local_review_head": "e3f4c937a56b1c65687bcf8c2a3fa2ef099db426",
+  "existing_probe": 41301148135,
+  "qualification": 41305049425,
+  "qualification_confirmation": {
+    "returned_run_id": 41305049425,
+    "max_reads": 6,
+    "post_retried": false,
+    "observations": [
+      {
+        "attempt": 1,
+        "identity": {
+          "id": 41305049425,
+          "head_sha": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+          "head_branch": "pkg/14-owner-tools",
+          "event": "workflow_dispatch",
+          "display_title": "OS image",
+          "path": ".github/workflows/os-image.yml",
+          "run_attempt": 1
+        },
+        "status": "queued",
+        "conclusion": null,
+        "mismatch": {
+          "display_title": {
+            "expected": "Two-disk rehearsal (owner-tools)",
+            "actual": "OS image"
+          }
+        }
+      },
+      {
+        "attempt": 2,
+        "identity": {
+          "id": 41305049425,
+          "head_sha": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+          "head_branch": "pkg/14-owner-tools",
+          "event": "workflow_dispatch",
+          "display_title": "Two-disk rehearsal (owner-tools)",
+          "path": ".github/workflows/os-image.yml",
+          "run_attempt": 1
+        },
+        "status": "queued",
+        "conclusion": null,
+        "mismatch": {}
+      }
+    ],
+    "status": "confirmed"
+  },
+  "qualification_attempts": 1,
+  "new_pushes": 0,
+  "new_probes": 0,
+  "reruns": 0,
+  "closing_commit_local_only": true
+}

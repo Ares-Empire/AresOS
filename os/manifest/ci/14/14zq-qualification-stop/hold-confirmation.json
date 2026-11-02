@@ -1,0 +1,44 @@
+{
+  "status": "confirmed actual post-staging system helper; switch and refreshed title passed",
+  "run": 40844950597,
+  "head": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+  "observations": [
+    {
+      "sha256": "bd1a600edcb3d4f70766de286af0767a5b1adec159f1e3bdd244dd549d123cce",
+      "path": "evidence/two-disk/owner-switch-owner-diagnostics.json",
+      "trace_index": 41,
+      "process": {
+        "pid": 25368,
+        "exe": "/usr/bin/ostree",
+        "cmdline": [
+          "/usr/bin/ostree",
+          "admin",
+          "finalize-staged",
+          "--hold"
+        ],
+        "cgroup": "0::/system.slice/ostree-finalize-staged-hold.service\n",
+        "excluded_as_daemon": false,
+        "excluded_as_system_helper": true
+      }
+    },
+    {
+      "sha256": "a002765bde3532911d367dc2ca2427d61ccaeb7daae7336492575b3d636ec2f7",
+      "path": "evidence/two-disk/owner-switch-title-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 25368,
+        "exe": "/usr/bin/ostree",
+        "cmdline": [
+          "/usr/bin/ostree",
+          "admin",
+          "finalize-staged",
+          "--hold"
+        ],
+        "cgroup": "0::/system.slice/ostree-finalize-staged-hold.service\n",
+        "excluded_as_daemon": false,
+        "excluded_as_system_helper": true
+      }
+    }
+  ],
+  "q12_missing_pid_not_invented": true
+}

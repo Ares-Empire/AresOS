@@ -1,0 +1,116 @@
+{
+  "files": [
+    {
+      "sha256": "33b2ed6d665126b636b64b4733f5ab7d9b8a091e264dd9231459e50707f8b609",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "5d9672a1b3ba7e0dd3475e279d07fe4d7067947a625e08f9b5a4b5d0874c99aa",
+      "path": "basic-diagnostics.py"
+    },
+    {
+      "sha256": "b2ac1e2194773dd740e94a31c6b7482ae0818d2e63ff5446fd5100cfba019d6f",
+      "path": "cache-reclaim.json"
+    },
+    {
+      "sha256": "6ecfea800ccbbb1cb28896c6306067308b04f731504bc4ad81281f0abedad5ed",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
+      "path": "dispatch-watcher.py"
+    },
+    {
+      "sha256": "a05f210bec97e1b1512fac3a30b8b0585f4317d3f66184348d00971dd5c7b1ad",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "db23b90b062a11c051108583b9f6f8f6d647d3e1c24325ee25cb5479396f8724",
+      "path": "live-start.json"
+    },
+    {
+      "sha256": "68a43fce45d60e1fd5cdf6b9445e833e4f61c87a02aa8db6914740ba6f05aa4b",
+      "path": "local-privacy.py"
+    },
+    {
+      "sha256": "66ae398e22c8121f73ac83090c04ffce8d60deb0c2e0e34a582d3832bececb9b",
+      "path": "local-receipt.py"
+    },
+    {
+      "sha256": "3403a8e8aaf12d8fbd75df2fe42d2782c3daf5c3d4a691211de68fb07ebf53e2",
+      "path": "monitor.py"
+    },
+    {
+      "sha256": "85870079f10db491eeae06468323d2044a718d2454720426a590fd37ce5d1fa5",
+      "path": "native-timing-review.py"
+    },
+    {
+      "sha256": "260a74c94854f5958bf6182ee8cc3991bbe232d138f3fcfde0c03e25f46a1cd3",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "90831fce6e09860f6d4fa52739cf06f18a81239078180cb0d0ee519af2f0e58b",
+      "path": "probe-retry.py"
+    },
+    {
+      "sha256": "5c7c5a94ed2ea8943ae5bfb018c6f7363399aabf9def0ea1f2dc261e8bdee2cc",
+      "path": "probe-review.py"
+    },
+    {
+      "sha256": "e8e172e3eab640f96e07386cf9aa9bda9db0cbbfbd5a581004f155c08bcf060b",
+      "path": "probe-walk.py"
+    },
+    {
+      "sha256": "0a9233510917cb60d5b5bcc3d6fa765fbbc9a231a561f0f7b3e92a30a172e58b",
+      "path": "push-once.py"
+    },
+    {
+      "sha256": "75424452f09bdf1f066269d8362ecf6a9012bc6c395d40f48a36c690aa60e53c",
+      "path": "qualification-installer.py"
+    },
+    {
+      "sha256": "01e6c98c93507e63edc75e9e485212a02861d4fcbfd31412a42ab14a4bd278a4",
+      "path": "qualification-retry.py"
+    },
+    {
+      "sha256": "dc53f5d9ff18c47d99e973b46b3401a72f2118ffdc6dd0335864f6a07800561f",
+      "path": "qualification-review.py"
+    },
+    {
+      "sha256": "01ed29d27901817047f9203da65ed5d99df02da6aa25f31ff3a88c8de05d87b7",
+      "path": "qualification-walk.py"
+    },
+    {
+      "sha256": "224b5f5456468b90a7866b99592a30a39fe17fecf30ec1dd3ebf7fa7d1ad620e",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "7cd0afed58c1062d00bc76a930db4a8c94c837b86d06dddd13684f090d58d22c",
+      "path": "stdin-diagnosis.json"
+    },
+    {
+      "sha256": "eac078afe992786b55548824dd36cc79a076b317ae76518746b51d0cd2833472",
+      "path": "syntax-checks.py"
+    },
+    {
+      "sha256": "f5ed8e5f8807ab90249ab84365a3d6cde2418baa5c75ec9f67b3ed20abdd066d",
+      "path": "test_basic.py"
+    },
+    {
+      "sha256": "36555842551b5d26c2ba65ff34a1bacb27ef2232d289a71f55187dc9a693be10",
+      "path": "test_dispatch_control.py"
+    },
+    {
+      "sha256": "54d44db95ed29ba4c3f75f860c0f882222baddcdd4109c30e62975a5d0d3493d",
+      "path": "test_local_privacy.py"
+    },
+    {
+      "sha256": "8627b6641fb1841570738edf010360eff930343c9a0136fb661f0300253230fc",
+      "path": "walk.json"
+    },
+    {
+      "sha256": "bb31bc001e8372171d53198cb79a78bde805a5939afa56b7be28ba625a01dc17",
+      "path": "whole.py"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+test_all_remaining_host_paths_and_all_typed_characters (test_owner_walk.OwnerWalkTest.test_all_remaining_host_paths_and_all_typed_characters) ... ERROR
+test_file_image_creation_windows_copy_and_export_inspection_host_paths (test_owner_walk.OwnerWalkTest.test_file_image_creation_windows_copy_and_export_inspection_host_paths) ... ok
+test_live_offline_command_is_composed_and_checked (test_owner_walk.OwnerWalkTest.test_live_offline_command_is_composed_and_checked) ... ok
+test_only_the_exact_untouched_old_entry_is_temporarily_exempt (test_owner_walk.OwnerWalkTest.test_only_the_exact_untouched_old_entry_is_temporarily_exempt) ... ok
+test_qmp_hotplug_identity_removal_and_bad_hash_refuse_before_qmp (test_owner_walk.OwnerWalkTest.test_qmp_hotplug_identity_removal_and_bad_hash_refuse_before_qmp) ... ok
+test_real_guest_boot_and_marker_shutdown_adapters_preserve_parent_api (test_owner_walk.OwnerWalkTest.test_real_guest_boot_and_marker_shutdown_adapters_preserve_parent_api) ... ok
+test_retained_full_states_agree_and_keep_saved_serial (test_owner_walk.OwnerWalkTest.test_retained_full_states_agree_and_keep_saved_serial) ... ok
+
+======================================================================
+ERROR: test_all_remaining_host_paths_and_all_typed_characters (test_owner_walk.OwnerWalkTest.test_all_remaining_host_paths_and_all_typed_characters)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_owner_walk.py", line 251, in test_all_remaining_host_paths_and_all_typed_characters
+    result = walk()
+             ^^^^^^
+  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/tests/test_owner_walk.py", line 174, in walk
+    vm.qualification(audit, Media(), 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH')
+  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py", line 512, in qualification
+    console.login(password, 'tools-stock')
+  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py", line 290, in login
+    self.hidden(stage + '-password-prompt', dict(kind='login'), 'Password:')
+  File "/mnt/c/Users/pab/AresOS-14-owner-tools/os/ci/owner_vm.py", line 262, in hidden
+    assert value['reader'] and value['prompt_at_cursor'] and value['reader_echo_enabled'] is False
+           ~~~~~^^^^^^^^^^
+KeyError: 'reader'
+
+----------------------------------------------------------------------
+Ran 7 tests in 34.472s
+
+FAILED (errors=1)

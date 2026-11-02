@@ -37,7 +37,8 @@ class KeyboardReleaseTest(unittest.TestCase):
         runs = [dict(base, id=1, event='push', display_title='privacy', created_at='2026-10-25T00:00:00Z'),
                 dict(base, id=2, event='workflow_dispatch', display_title='Package 13 image release', created_at='2026-10-25T01:00:00Z'),
                 dict(base, id=3, event='pull_request', display_title='privacy', created_at='2026-10-25T02:00:00Z')]
-        job = dict(conclusion='success', started_at='2026-10-25T01:00:00Z', completed_at='2026-10-25T01:01:01Z')
+        job = dict(conclusion='success', started_at='2026-10-25T01:00:00Z', completed_at='2026-10-25T01:01:01Z',
+                   steps=[dict(name='Run fixture task',conclusion='success',started_at='2026-10-25T01:00:00Z',completed_at='2026-10-25T01:01:01Z')])
         def api(path):
             return dict(workflow_runs=runs) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])
         with patch.object(guard, 'api', side_effect=api):
@@ -59,7 +60,8 @@ class KeyboardReleaseTest(unittest.TestCase):
         self.addCleanup(guard.configure, '11c')
         run = dict(id=1, event='workflow_dispatch', head_sha='a'*40, run_attempt=1, status='completed',
                    conclusion='failure', created_at='2026-10-25T01:00:00Z', display_title='Package 13 image release')
-        step = dict(name=guard.PUBLISH_STEP, status='completed', conclusion='skipped')
+        step = dict(name=guard.PUBLISH_STEP, status='completed', conclusion='skipped',
+                    started_at='2026-10-25T01:00:00Z',completed_at='2026-10-25T01:01:00Z')
         job = dict(name='image',conclusion='failure', started_at='2026-10-25T01:00:00Z', completed_at='2026-10-25T01:01:00Z', steps=[step])
         def api(path):
             return dict(workflow_runs=[run]) if path.startswith('actions/runs?') else dict(total_count=1, jobs=[job])

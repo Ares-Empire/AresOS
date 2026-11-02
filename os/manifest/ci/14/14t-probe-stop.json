@@ -1,0 +1,136 @@
+{
+  "status": "STOP: evidence privacy found2 unclassified boot-console findings; no qualification or rerun",
+  "checked_at": "2026-10-26T23:30:12.866048+00:00",
+  "head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+  "run": 40417291358,
+  "run_attempt": 1,
+  "probe_status": "success",
+  "artifact": {
+    "sha256": "109ced78275a22d49a20bfa574d69fbc7eba99d8200efe176c53023f99baa946",
+    "path": "evidence.zip",
+    "artifact_id": 12697122720,
+    "bytes": 4732900,
+    "run": 40417291358,
+    "head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+    "status": "success",
+    "members": 331,
+    "logs": {
+      "sha256": "d24576f2d7531afe7f1d1a57de47517cfe19c9a5df0a5170d7e9d14f61eef223",
+      "path": "logs.zip"
+    },
+    "downloaded_at": "2026-10-26T23:28:47.783616+00:00"
+  },
+  "privacy": {
+    "status": "STOP",
+    "findings": 509,
+    "integrator14s_listing_findings": 507,
+    "unclassified_findings": [
+      {
+        "rule": "generic-api-key",
+        "file": "evidence/two-disk/live-ui-probe-boot-console.txt",
+        "start_line": 497,
+        "end_line": 497
+      },
+      {
+        "rule": "generic-api-key",
+        "file": "evidence/two-disk/live-ui-probe-boot-console.txt",
+        "start_line": 530,
+        "end_line": 530
+      }
+    ],
+    "secret_values_recorded": false,
+    "ignore_changes": false
+  },
+  "native": {
+    "status": "passed",
+    "tests": 355,
+    "seconds": 28.102,
+    "skips": 0,
+    "device_checks": 20,
+    "checks_passed": true,
+    "helper_mutations": 0,
+    "protected_fixture_unchanged": true,
+    "cleanup": true
+  },
+  "probe": {
+    "status": "passed",
+    "installed": false,
+    "both_orders": false,
+    "order": "protected-second",
+    "review_validated": true,
+    "detached_windows": true,
+    "target_reset": true,
+    "owner_auth_read_only": true,
+    "native_job_auth": true,
+    "guest_credential_share": false,
+    "signature_verified": true,
+    "firmware_rule": "11f-linux-position",
+    "stock_recipe_probe": true,
+    "failure_counter_probe": true,
+    "read_only_keyboard_proof": true,
+    "installed_keyboard_reader_probe": true,
+    "part_b_tools_probe": true,
+    "stock_idle_source_verified": true,
+    "bootnext_checked": true,
+    "bootloader_source_verified": true,
+    "offline_link": true,
+    "tools_hotplug": true,
+    "tools_absent_before_reboot": true,
+    "bundle_equality": true,
+    "host_walk": true,
+    "commit": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2"
+  },
+  "independent_audits": {
+    "status": "passed independent replay of actual raw files and counters",
+    "run": 40417291358,
+    "head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+    "protected_captures": 3,
+    "zero_write_unmap_samples": 4,
+    "raw_varstores_decoded": 3,
+    "bootnext_exact_replays": 3,
+    "nvram_rule_exact_replays": 2,
+    "all_variable_delta_recomputations": 2,
+    "stages": [
+      "live-ui-probe",
+      "probe-detached-windows"
+    ]
+  },
+  "exact_head_privacy": {
+    "checked_at": "2026-10-26T23:04:28.896993+00:00",
+    "head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+    "private_repository": true,
+    "source_hashes_match": true,
+    "runs": [
+      {
+        "run": 40416793839,
+        "head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+        "event": "pull_request",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true,
+        "log_zip_sha256": "e9f6862b7a977415046f5f1c98fa469e5a8894f4ee58582b1b845a59ec81cbd3"
+      },
+      {
+        "run": 40416787226,
+        "head": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+        "event": "push",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true,
+        "log_zip_sha256": "40d07d012eb4173dfaf2ad0559678a883a20a4f1b9203218a8033122aa1c3861"
+      }
+    ]
+  },
+  "qualification2_dispatched": false,
+  "pre_dispatch_pushes": 1,
+  "additional_pushes": 0,
+  "acceptance_met": false,
+  "pr13_draft": true,
+  "owner_budget_reset_required": true
+}

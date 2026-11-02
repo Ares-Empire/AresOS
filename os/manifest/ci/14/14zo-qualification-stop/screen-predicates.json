@@ -1,0 +1,50 @@
+[
+  {
+    "sha256": "c71c73f35fc5ea9bf44421797236f507c2726628035e601bc05ed5645ee21349",
+    "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-42-timeout-1.vcsa",
+    "geometry": [
+      50,
+      160,
+      16,
+      49
+    ],
+    "cursor_is_token_prompt": false,
+    "cursor_is_shell_prompt": true,
+    "pass_login_present": false,
+    "stop_line_present": true,
+    "decoded_scan_findings": 0,
+    "decoded_text_saved": false
+  },
+  {
+    "sha256": "973f0608da681f5a7b4f041b607458f3ca3731835de495c524f6a4760d4a192f",
+    "path": "evidence/two-disk/tools-before-reboot-title-ready-wait-21-timeout-1.vcsa",
+    "geometry": [
+      50,
+      160,
+      0,
+      49
+    ],
+    "cursor_is_token_prompt": false,
+    "cursor_is_shell_prompt": false,
+    "pass_login_present": false,
+    "stop_line_present": false,
+    "decoded_scan_findings": 0,
+    "decoded_text_saved": false
+  },
+  {
+    "sha256": "003855e77e3a663c99b21161c71fd8a23bee5b76fce0ed423b4d49f813c5ec1f",
+    "path": "evidence/two-disk/tools-install-ready-wait-7-timeout-1.vcsa",
+    "geometry": [
+      50,
+      160,
+      0,
+      49
+    ],
+    "cursor_is_token_prompt": false,
+    "cursor_is_shell_prompt": false,
+    "pass_login_present": false,
+    "stop_line_present": false,
+    "decoded_scan_findings": 0,
+    "decoded_text_saved": false
+  }
+]

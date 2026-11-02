@@ -1,0 +1,8 @@
+{
+  "sha256": "8132f9d56df699adce8a789805bdfc1dc73568454bf88e1b74fa1c8f9cf9880f",
+  "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-37-left-transport.json",
+  "verified_staged_source": true,
+  "observer_deadline_seconds": 180,
+  "serial_execution_deadline_seconds": 900,
+  "secret_in_source": false
+}

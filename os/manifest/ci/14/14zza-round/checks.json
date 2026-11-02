@@ -1,0 +1,111 @@
+{
+  "pre_dispatch_classifier": {
+    "tests": 14,
+    "seconds": 1.025,
+    "skips": 0
+  },
+  "pre_dispatch_controller": {
+    "tests": 4,
+    "seconds": 16.794,
+    "skips": 0
+  },
+  "post_review_classifier": {
+    "tests": 16,
+    "seconds": 1.019,
+    "skips": 0
+  },
+  "native": {
+    "tests": 597,
+    "seconds": 202.891,
+    "skips": 0,
+    "scan_findings": 0,
+    "timing": {
+      "status": "passed",
+      "run": 41305049425,
+      "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+      "test": "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "native_result": "ok; unchanged30-second bound",
+      "log": {
+        "sha256": "6f8b6ec179939a49c04ad025d6c24daf098fac7171508be1569c74c6c2059c2a",
+        "path": "native.log"
+      },
+      "line": 779,
+      "local_exception_applied_in_ci": false
+    }
+  },
+  "full_os_suite_repeated_locally": false,
+  "reason": "No implementation tree change; reused597-test probe30 native acceptance and re-ran597 natively in qualification19",
+  "fresh_iso_replay": {
+    "status": "passed",
+    "waits": [
+      10,
+      20,
+      30
+    ],
+    "max_attempts": 4,
+    "ci_inspector_changed": false,
+    "attempts": [
+      {
+        "attempt": 1,
+        "folder": ".work/14/14zza-qualification-replay-1",
+        "start": "2026-11-01T12:03:55.097611+00:00",
+        "exit_code": 0,
+        "end": "2026-11-01T12:05:20.894743+00:00",
+        "result": {
+          "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+          "path": ".work/14/bazzite-nvidia-open-stable-live-amd64.iso",
+          "status": "passed",
+          "kind": "actual installer_inspect.main replay before14zza qualification19 on probe30 head; local inspector replay only",
+          "bytes": 9068650496,
+          "official_checksum": "fresh public HTTPS GET; exact pin",
+          "iso_source": "all retained ISO bytes rehashed by actual inspection loop",
+          "adapters": "Windows system bsdtar, WSL unsquashfs, path spellings and Linux LF writes",
+          "localization_sources": 4,
+          "webui_sources": 102,
+          "ci_inspector_changed": false,
+          "download_attempts": [
+            {
+              "attempt": 1,
+              "offset": 0,
+              "range_requested": false,
+              "status": 200,
+              "bytes": 9068650496,
+              "stored_bytes": 9068650496,
+              "received_total": 9068650496,
+              "restarted": false,
+              "outcome": "complete-response",
+              "content-length": [
+                "9068650496"
+              ],
+              "content-range": [],
+              "content-encoding": [],
+              "applied_offset": 0
+            }
+          ],
+          "length_pin": 9068650496
+        }
+      }
+    ]
+  },
+  "strict": {
+    "prepared_login_helper_compiled": true,
+    "native_workflow_shells": 1,
+    "status": "passed",
+    "guest_scripts": 980,
+    "serial_wrappers": 980,
+    "stderr_policy": "any parse stderr, including warnings, refuses",
+    "embedded_python": 812,
+    "ci_release_shells": 12,
+    "ci_overlay_owner_python": 52,
+    "execution": "syntax/compile only; no guest, service, privilege or hardware operation"
+  },
+  "read_only_replay": {
+    "sha256": "5c8e3b0353e11d23b7ef29b2a469d4b107bfe3cdd9ccd1e32217965d4f1a65fc",
+    "path": ".work/14/14zza/read-only-replay.log"
+  },
+  "pinned_history_scan": {
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "path": ".work/14/gitleaks/14zza-history.json"
+  },
+  "no_skipped_or_weakened_assertions": true
+}

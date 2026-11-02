@@ -37,7 +37,8 @@ class ReadRetryTest(unittest.TestCase):
         runs = [dict(id=n, display_title='Two-disk rehearsal (full)', head_sha='a' * 40,
                      created_at=guard.START, status='completed', conclusion='success') for n in (1, 2)]
         jobs = dict(jobs=[dict(conclusion='success', started_at=guard.START,
-                              completed_at='2026-10-23T16:22:01Z'), dict(conclusion='skipped')])
+                              completed_at='2026-10-23T16:22:01Z',
+                              steps=[dict(name='Run fixture task',started_at=guard.START,completed_at='2026-10-23T16:22:01Z')]), dict(conclusion='skipped')])
         responses = [json.dumps(dict(total_count=len(runs), workflow_runs=runs)).encode(), json.dumps(jobs).encode(), json.dumps(jobs).encode()]
         with patch.object(guard.subprocess, 'check_output', side_effect=responses), patch.object(guard.time, 'sleep') as sleep, \
              contextlib.redirect_stderr(io.StringIO()):

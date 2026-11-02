@@ -1,0 +1,12 @@
+{
+  "push": 6,
+  "probe": 72,
+  "qualification": 160,
+  "closing_privacy": 12,
+  "pre_push": 250,
+  "before_probe": 244,
+  "before_qualification": 172,
+  "decision": "briefs/14r-no-closing-reservation.md",
+  "exception_month": "2026-10",
+  "merge_requires_privacy": true
+}

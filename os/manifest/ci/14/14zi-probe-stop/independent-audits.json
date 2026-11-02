@@ -1,0 +1,14 @@
+{
+  "status": "passed independent replay of actual raw files and counters",
+  "run": 40646962291,
+  "head": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+  "protected_captures": 2,
+  "zero_write_unmap_samples": 2,
+  "raw_varstores_decoded": 2,
+  "bootnext_exact_replays": 2,
+  "nvram_rule_exact_replays": 1,
+  "all_variable_delta_recomputations": 1,
+  "stages": [
+    "live-ui-probe"
+  ]
+}

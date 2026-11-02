@@ -11,12 +11,17 @@ import test_owner_tools as common
 
 owner, media, ROOT = common.owner, common.module('media'), common.ROOT
 FIXTURES = ROOT/'os/tests/fixtures/owner-tools'
+sys.path.insert(0,str(ROOT/'os/ci'))
 
 
 class FixtureHost(owner.Host):
     def __init__(self, tree, usb_root=None):
         super().__init__()
         self.tree, self.usb_root = tree, usb_root
+        if usb_root is not None:
+            for disk in tree['blockdevices']:
+                for volume in disk.get('children', []):
+                    if volume.get('label') == 'ARESTOOLS': volume['mountpoints'] = [str(usb_root)]
 
     def read(self, *command, **unused):
         self.trace.append(dict(command=list(command), mutation=False))
@@ -35,7 +40,8 @@ class FixtureHost(owner.Host):
         if command[0] == 'sfdisk':
             return json.dumps(dict(partitiontable=dict(label='gpt',device=command[-1],partitions=[])))
         if command == ('efibootmgr','-v'):
-            return 'Boot0001* Linux HD(1,GPT,10000001-1111-2222-3333-444444444444,0x800,0x12c000)/File(\\EFI\\fedora\\shimx64.efi)'
+            from owner_devices import fixture_firmware
+            return fixture_firmware('10000001-1111-2222-3333-444444444444',0x12c000)
         raise AssertionError('Unknown fixture query: '+repr(command))
 
     def mutate(self, *command, **unused):
@@ -98,7 +104,7 @@ class DevicesTest(unittest.TestCase):
                               (fixture('storage-flat.json'),'Unexpected lsblk tree shape')):
             with self.subTest(message=message), tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as temporary:
                 root = pathlib.Path(temporary); usb=root/'usb'; usb.mkdir()
-                payload = usb/'ares-tools'; common.bundle.build(payload)
+                payload = usb/'ares-tools'; common.fixture_bundle(payload)
                 home = root/'home'; host=FixtureHost(tree,usb)
                 before = {p.relative_to(root).as_posix():p.read_bytes() for p in root.rglob('*') if p.is_file()}
                 with patch.object(owner,'HOME',home), patch.object(owner,'Host',return_value=host), \
@@ -110,10 +116,10 @@ class DevicesTest(unittest.TestCase):
     def test_install_reaches_private_copy_with_real_tree_and_both_helpers(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as temporary:
             root=pathlib.Path(temporary); usb=root/'usb'; usb.mkdir()
-            payload=usb/'ares-tools'; fingerprint=common.bundle.build(payload)
+            payload=usb/'ares-tools'; fingerprint=common.fixture_bundle(payload)
             home=root/'home'; host=FixtureHost(fixture(),usb)
             with patch.object(owner,'HOME',home), patch.object(owner,'Host',return_value=host), \
-                 patch.object(owner.sys.stdin,'isatty',return_value=True), patch('builtins.input',side_effect=['TARGET','KEEP']):
+                 patch.object(owner.sys.stdin,'isatty',return_value=True), patch('builtins.input',side_effect=['TARGET','KEEP']),common.private_metadata(home):
                 result=owner.install(payload)
             self.assertIn('manifest SHA256 '+fingerprint,result)
             self.assertEqual(owner.checked_bundle(home/'tools'),fingerprint)

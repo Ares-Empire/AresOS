@@ -1,0 +1,15 @@
+{
+  "sha256": "6ca0f6d8c69cf73c70891a4c1dfffe3fbd36409ce9968fcb5e148c829ad06bfe",
+  "path": "evidence.zip",
+  "artifact_id": 12779038742,
+  "bytes": 5470322,
+  "run": 40596167369,
+  "head": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+  "status": "failure",
+  "members": 458,
+  "logs": {
+    "sha256": "cf2785b347c82c81132f7dd3b62a6a81e0c85bc14cc64ae8066d09dbe4fe2067",
+    "path": "logs.zip"
+  },
+  "downloaded_at": "2026-10-27T23:31:01.156340+00:00"
+}

@@ -1,0 +1,8 @@
+{
+  "original_sha256": "748860b254c8f97044c991e8255e961452be87f284a451472ab0068ea92a25fc",
+  "normalized_sha256": "a211926dce872c1634c309fc3d4f864e87f8de417e039557b5a8abf0029aaea0",
+  "path": ".work/14/14zzc/whole.py",
+  "original": ".work/14/14zzc/whole-before-normalize.py",
+  "status": "CRLF-to-LF only; identical decoded Python source and line count",
+  "test_logic_or_bounds_changed": false
+}

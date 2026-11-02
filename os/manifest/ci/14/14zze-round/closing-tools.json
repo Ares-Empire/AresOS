@@ -1,0 +1,23 @@
+{
+  "status": "local-only closing helpers",
+  "files": [
+    {
+      "sha256": "d3f179942bb20b4e69a8d5a6ebc20e8a27ad44f500dd9e1253b9249cea3023b8",
+      "local_sha256": "d3f179942bb20b4e69a8d5a6ebc20e8a27ad44f500dd9e1253b9249cea3023b8",
+      "path": ".work/14/14zze/archive-round.py",
+      "archive": "archive-round.py"
+    },
+    {
+      "sha256": "1d8dc41982ae0446898e91c6b131b4312b1ca525eb6597e03603184064c7ac7d",
+      "local_sha256": "1d8dc41982ae0446898e91c6b131b4312b1ca525eb6597e03603184064c7ac7d",
+      "path": ".work/14/14zze/close-report.py",
+      "archive": "close-report.py"
+    },
+    {
+      "sha256": "067a335a299781ee1af7cc6db8c403101f1e25b307d831f2580160511f287a1e",
+      "local_sha256": "067a335a299781ee1af7cc6db8c403101f1e25b307d831f2580160511f287a1e",
+      "path": ".work/14/14zze/commit-report.py",
+      "archive": "commit-report.py"
+    }
+  ]
+}

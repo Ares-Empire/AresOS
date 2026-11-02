@@ -1,0 +1,69 @@
+{
+  "status": "STOP:187 organization minutes cannot cover190-minute complete plan; local fixture tests only",
+  "dispatch_authorized": false,
+  "source_bindings": [
+    {
+      "sha256": "c296481aed388fa918a776c3a65309ec50e33eb57a8a716b55a25dde8c64b444",
+      "path": "briefs/14q-fixture-partuuid.md"
+    },
+    {
+      "sha256": "1c92e186914553c04ea643e1131c89574d4dd09c0fc716f89f6e25ae7f09c3f1",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
+      "sha256": "09fd4758513eda0446b403624346d3a814a2283e733a4267a09560f2a1cc3522",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "419a10f25c13f21f02a87047eb8c5f4ccf96167b6b1616da4123daf84f101a59",
+      "path": "os/tests/test_owner_devices_native.py"
+    },
+    {
+      "sha256": "a79ea60874126d04d9d82a0390aaac2da8e8d4e4d6fecd6b761b4f125c9d89dd",
+      "path": "os/tests/test_owner_guard.py"
+    },
+    {
+      "sha256": "a4db20027ecc75ace51c1805a362fa38a3a03a37a2b94ffd22d723585d8c8740",
+      "path": "os/tests/fixtures/owner-tools/blkid-p-gpt.txt"
+    },
+    {
+      "sha256": "61e60a134c0d19c5f1cf21851630cb7415f2cfd6886a1a1deeb2564e7756d1f8",
+      "path": "os/tests/fixtures/owner-tools/blkid-p-gpt-source.json"
+    },
+    {
+      "sha256": "a8b8886080a39719a68600d67d9b25285a24632415429c815b1ac4a97a927dff",
+      "path": "reviews/14-owner-tools/walk-host.py"
+    }
+  ],
+  "local_tests": {
+    "tests": 15,
+    "status": "passed",
+    "seconds": 10.914,
+    "skips": 0,
+    "command": "PYTHONPATH=os/tests python3 -m unittest test_owner_devices_native test_owner_guard -v"
+  },
+  "diagnosis": {
+    "contradictory_evidence": false,
+    "old_run_observed_GUID_not_retained": true,
+    "integrator_diagnosis": "blkid -p emits PART_ENTRY_UUID, not PARTUUID",
+    "real_low_level_output_fixture": "os/tests/fixtures/owner-tools/blkid-p-gpt.txt"
+  },
+  "unchanged": [
+    "owner tools and fingerprint",
+    "workflows and permissions",
+    "frozen release/runtime",
+    "privacy rules and ignores",
+    "package13 configuration"
+  ],
+  "not_run_after_budget_stop": [
+    "local whole suite",
+    "host stage walk and active walk source-binding refresh",
+    "14e/14f local replay",
+    "14i strict composed-command checks",
+    "fresh exact-head privacy",
+    "probe9",
+    "qualification2"
+  ],
+  "pushes": 0,
+  "acceptance_met": false
+}

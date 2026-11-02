@@ -32,6 +32,7 @@ def exfat(directory):
         loop = subprocess.check_output([*args, str(image)], text=True, timeout=10).strip()
         try:
             fixture.verify_loop(loop, image)
+            fixture.wait_loop_partitions(loop,image)
             if readonly:
                 owner_fuse.check(loop + 'p1')
             else:
@@ -86,7 +87,6 @@ def qemu(directory, image):
         '-drive', f'if=none,id=target,format=raw,file={directory / "target.raw"}',
         '-device', 'virtio-blk-pci,drive=target,id=target-device,addr=0x2',
         '-device', 'virtio-vga,addr=0x4', '-device', 'qemu-xhci,id=usb-controller,addr=0x5',
-        '-device', 'usb-kbd,bus=usb-controller.0,port=1',
         '-device', 'virtio-serial-pci,id=webui-bus,addr=0x7',
         '-chardev', f'socket,id=webui,path={directory / "webui.sock"},server=on,wait=off',
         '-device', 'virtserialport,bus=webui-bus.0,chardev=webui,name=ares.webui',
@@ -101,6 +101,8 @@ def qemu(directory, image):
             for name in ('qmp', 'serial', 'webui'):
                 sockets.append(connect(directory / (name + '.sock'), process))
             monitor = QMP(sockets[0]); monitor.command('qmp_capabilities')
+            tree = monitor.command('human-monitor-command', {'command-line': 'info qtree'})
+            assert 'i8042' in tree and 'ps2-kbd' in tree and 'usb-kbd' not in tree, 'STOP: q35 i8042 keyboard missing or USB keyboard present'
             monitor.command('set_link', dict(name='owner-net', up=False))
             assert monitor.command('query-status')['status'] == 'prelaunch'
             assert monitor.command('query-pci') and monitor.command('query-block')
@@ -125,7 +127,8 @@ def qemu(directory, image):
             while not (directory / 'marker.txt').exists() or 'MARKER_BOOT_COMPLETE' not in (directory / 'marker.txt').read_text():
                 assert process.poll() is None and time.monotonic() < deadline, 'STOP: OVMF marker did not boot'
                 time.sleep(0.1)
-            monitor.command('send-key', dict(keys=[dict(type='qcode', data='a')]))
+            monitor.command('send-key', dict(keys=[dict(type='qcode', data='a')], **{'hold-time':30}))
+            time.sleep(.12)
             monitor.command('screendump', dict(filename=str(directory / 'screen.ppm')))
             assert (directory / 'screen.ppm').stat().st_size > 100, 'STOP: QMP screenshot unavailable'
             monitor.command('quit'); process.wait(timeout=10)
@@ -135,7 +138,7 @@ def qemu(directory, image):
                 process.kill(); process.wait(timeout=10)
             for sock in sockets:
                 sock.close()
-    return dict(acceleration=accel, marker_booted=True, toy_usb_removed_before_firmware=True)
+    return dict(acceleration=accel, marker_booted=True, toy_usb_removed_before_firmware=True,keyboard='i8042/ps2-kbd; qtree verified')
 
 
 def main():
@@ -146,7 +149,7 @@ def main():
     directory = base / '14-host-capabilities'
     assert directory.parent == base and not directory.exists(), 'STOP: fresh capability directory required'
     needed = ('mount.exfat-fuse', 'mkfs.exfat', 'fsck.exfat', 'findmnt', 'blkid', 'mount', 'umount',
-              'losetup', 'sgdisk', 'qemu-system-x86_64', 'pwsh', 'tesseract', 'ntfs-3g')
+              'losetup', 'sgdisk', 'udevadm', 'partx', 'qemu-system-x86_64', 'pwsh', 'tesseract', 'ntfs-3g')
     for name in needed:
         assert shutil.which(name), 'STOP: missing host capability tool ' + name
     directory.mkdir()

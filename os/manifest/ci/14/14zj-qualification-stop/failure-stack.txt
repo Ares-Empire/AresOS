@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+2026-10-28T09:32:00.8927817Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 708, in <module>
+2026-10-28T09:32:00.8936268Z     main()
+2026-10-28T09:32:00.8937313Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 702, in main
+2026-10-28T09:32:00.8938421Z     qualification(audit, media, password, hashed)
+2026-10-28T09:32:00.8939432Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 512, in qualification
+2026-10-28T09:32:00.8940404Z     console.login(password, 'tools-stock')
+2026-10-28T09:32:00.8941310Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 293, in login
+2026-10-28T09:32:00.8942253Z     self.send_hidden(password, 'de' if wrong else None)
+2026-10-28T09:32:00.8943775Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 282, in send_hidden
+2026-10-28T09:32:00.8945021Z     raise AssertionError('Hidden reader did not leave its read; secret will not be retyped')
+2026-10-28T09:32:00.8946489Z AssertionError: Hidden reader did not leave its read; secret will not be retyped
+2026-10-28T09:32:00.9371407Z ##[error]Process completed with exit code 1.

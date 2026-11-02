@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "baseline": "824caf970a4bc7cfb18ece6322fb9bd70c540e1d",
+  "remote_tracking_head": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+  "protected_paths_unchanged": [
+    "os/owner-tools",
+    "docs/install-tools",
+    "docs/INSTALL.md",
+    "docs/EMERGENCY.md",
+    "os/release",
+    "os/config",
+    "os/manifest/base.json",
+    "os/manifest/release.json",
+    ".github/workflows",
+    "os/ci/rehearsal-packages.json",
+    ".gitleaksignore",
+    ".gitleaks.toml"
+  ],
+  "owner_payload_unchanged": true,
+  "fixture_and_private_source_hashes_match": true,
+  "local_only": true,
+  "pushes": 0,
+  "dispatches": 0,
+  "merges": 0,
+  "privileged_host_actions": 0,
+  "package_minutes_unchanged": 1019,
+  "minute_cap_unchanged": 1200,
+  "dispatch_caps_unchanged": {
+    "probe": 19,
+    "owner-tools": 8
+  },
+  "closing_reservation_unchanged": 0,
+  "org_reserve_unchanged": 0
+}

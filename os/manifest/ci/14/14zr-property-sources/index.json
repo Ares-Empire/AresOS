@@ -1,0 +1,224 @@
+{
+  "versions": {
+    "v258": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+    "v259.9": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+  },
+  "sources": [
+    {
+      "sha256": "4039fa6f5da0eddf1ec3e4626514d157789eba26b4036d2858321b7ec2e2cdb9",
+      "path": "v258__src_login_loginctl.c",
+      "upstream_path": "src/login/loginctl.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/login/loginctl.c"
+    },
+    {
+      "sha256": "44bc76ca4383309fbf0a6baeb919c374d227963c7b250a9a04cae6ad49e7653e",
+      "path": "v258__src_systemctl_systemctl.c",
+      "upstream_path": "src/systemctl/systemctl.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/systemctl/systemctl.c"
+    },
+    {
+      "sha256": "9e0c60d3cad690c4329100296decc75084b43189fa8d41b0c93251e613024e2c",
+      "path": "v258__src_busctl_busctl.c",
+      "upstream_path": "src/busctl/busctl.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/busctl/busctl.c"
+    },
+    {
+      "sha256": "405ed85acb2927cb9df17885109c2f44f674dc5adb0eef2f06abdbc5835ef242",
+      "path": "v258__src_locale_localectl.c",
+      "upstream_path": "src/locale/localectl.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/locale/localectl.c"
+    },
+    {
+      "sha256": "03df977d247169791b8439e4da4447bfd8cc10e7b59c16ecc33503ce55e79e1c",
+      "path": "v258__src_shared_bus-print-properties.c",
+      "upstream_path": "src/shared/bus-print-properties.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/shared/bus-print-properties.c"
+    },
+    {
+      "sha256": "eb29f8b17545213f6000fa46e0da3df61fc5e35f94cdb8492882a7813eb082c3",
+      "path": "v258__src_run_run.c",
+      "upstream_path": "src/run/run.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/run/run.c"
+    },
+    {
+      "sha256": "09d2d7fd37c65bf20d73b24ec6a3622ec010995881d8f04cf464fdc11139a0b5",
+      "path": "v258__src_shared_bus-unit-util.c",
+      "upstream_path": "src/shared/bus-unit-util.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/shared/bus-unit-util.c"
+    },
+    {
+      "sha256": "eb00ef31ace4f15fc3b33b4d4fb0cc2030b03b79bc7e53b6f370cbb850f66391",
+      "path": "v258__src_journal_journalctl.c",
+      "upstream_path": "src/journal/journalctl.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/journal/journalctl.c"
+    },
+    {
+      "sha256": "0ca19fa9d4b586b6dcd9cba4b2a956cdd313bd1ea454ea57f79cd19a1f09679e",
+      "path": "v258__src_journal_journalctl-filter.c",
+      "upstream_path": "src/journal/journalctl-filter.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/journal/journalctl-filter.c"
+    },
+    {
+      "sha256": "d81dc8bfec7452694c8def5522addb1d608370d5de05e342de3bcfa207ecb5b8",
+      "path": "v258__src_shared_journal-util.c",
+      "upstream_path": "src/shared/journal-util.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/shared/journal-util.c"
+    },
+    {
+      "sha256": "7038f049b1d6e749d57c3a67ab559d207ad154e5317b6f3358ac15a854519ac1",
+      "path": "v258__man_journalctl.xml",
+      "upstream_path": "man/journalctl.xml",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/man/journalctl.xml"
+    },
+    {
+      "sha256": "ff2e3cebc8c6fe185a3ad1113363c8b3357683f25a06c0cfe3b2a2f418c08091",
+      "path": "v259.9__src_login_loginctl.c",
+      "upstream_path": "src/login/loginctl.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/login/loginctl.c"
+    },
+    {
+      "sha256": "8b4d160e17d6fbd7d1a887e9c083d2efcefbd27ac6c4bfa0736a32c13bc7d005",
+      "path": "v259.9__src_systemctl_systemctl.c",
+      "upstream_path": "src/systemctl/systemctl.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/systemctl/systemctl.c"
+    },
+    {
+      "sha256": "4c463c521e49bf7b9b107d21bd7e154b56b7a0482881a4f213c64576d1f878fb",
+      "path": "v259.9__src_busctl_busctl.c",
+      "upstream_path": "src/busctl/busctl.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/busctl/busctl.c"
+    },
+    {
+      "sha256": "b10fcfa1dd5a560873273f6a56b2904b836d7d7e5125128b5b623d94cc37085f",
+      "path": "v259.9__src_locale_localectl.c",
+      "upstream_path": "src/locale/localectl.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/locale/localectl.c"
+    },
+    {
+      "sha256": "f858a20f101998c2fcb97571364b5caee070d78debe387d60edb186d7c6059d9",
+      "path": "v259.9__src_shared_bus-print-properties.c",
+      "upstream_path": "src/shared/bus-print-properties.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/shared/bus-print-properties.c"
+    },
+    {
+      "sha256": "ba1b6d0ce030bc71b50c8e48d31cf760dd0d19a8f6d9d4060b5f13f15c7f78f8",
+      "path": "v259.9__src_run_run.c",
+      "upstream_path": "src/run/run.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/run/run.c"
+    },
+    {
+      "sha256": "b7acfcd6f2339182716917eeeb1babf65cfbd517b117277f802bd9394d32a0a8",
+      "path": "v259.9__src_shared_bus-unit-util.c",
+      "upstream_path": "src/shared/bus-unit-util.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/shared/bus-unit-util.c"
+    },
+    {
+      "sha256": "f87729cf9e03dcc1d15aa513c6f690dfa1cc5384ee63ddc4278bdd8f4377ad50",
+      "path": "v259.9__src_journal_journalctl.c",
+      "upstream_path": "src/journal/journalctl.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/journal/journalctl.c"
+    },
+    {
+      "sha256": "0b651e069a1fb1a589d9a3b8e6b35ba91fe0775975766a115c744cc30a351939",
+      "path": "v259.9__src_journal_journalctl-filter.c",
+      "upstream_path": "src/journal/journalctl-filter.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/journal/journalctl-filter.c"
+    },
+    {
+      "sha256": "d81dc8bfec7452694c8def5522addb1d608370d5de05e342de3bcfa207ecb5b8",
+      "path": "v259.9__src_shared_journal-util.c",
+      "upstream_path": "src/shared/journal-util.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/shared/journal-util.c"
+    },
+    {
+      "sha256": "d54bbede45d5b1e3dc856da9624649ef8cb0829731597c212be303a76a1edbdd",
+      "path": "v259.9__man_journalctl.xml",
+      "upstream_path": "man/journalctl.xml",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/man/journalctl.xml"
+    },
+    {
+      "sha256": "584a9a521db4436b57c8cb54b79ff19d197d2162b3410452975a9fc1469fdd69",
+      "path": "v258__src_shared_logs-show.c",
+      "upstream_path": "src/shared/logs-show.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/shared/logs-show.c"
+    },
+    {
+      "sha256": "7ddd224eea6e900abbee75c97469c6120621ff2153ca64e302d261ed9d29b098",
+      "path": "v258__src_login_logind-session-dbus.c",
+      "upstream_path": "src/login/logind-session-dbus.c",
+      "commit": "781d9d0789379d1ea1f2ecefb804d41e9c8b6c38",
+      "tag": "v258",
+      "url": "https://github.com/systemd/systemd/blob/781d9d0789379d1ea1f2ecefb804d41e9c8b6c38/src/login/logind-session-dbus.c"
+    },
+    {
+      "sha256": "2fceb4c15be21421483afd0a2022a135e11283e8282deccdfb5a37dcb3c0c2d5",
+      "path": "v259.9__src_shared_logs-show.c",
+      "upstream_path": "src/shared/logs-show.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/shared/logs-show.c"
+    },
+    {
+      "sha256": "40414c7ec3a23d83801124843c8d2c0cc4a0093f7e99b56aad8f031c7acca41c",
+      "path": "v259.9__src_login_logind-session-dbus.c",
+      "upstream_path": "src/login/logind-session-dbus.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168",
+      "tag": "v259.9",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/login/logind-session-dbus.c"
+    }
+  ],
+  "image_version": "259.9-1.fc44",
+  "requested_audit_version": "258",
+  "image_provenance": "os/manifest/ci/14/parser-sources/packages.json",
+  "difference": "Audit both requested258 and actual pinned259.9; no image change",
+  "archive": {
+    "sha256": "f87d2d57fb4b019e123a92ccc7e0a58be240eb160caa55fb862b63e307b9153c",
+    "path": "sources.zip"
+  }
+}

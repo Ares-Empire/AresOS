@@ -1,0 +1,76 @@
+{
+  "files": [
+    {
+      "sha256": "0a4b8c0f4320b9acd0f1ad6b55b68d027ce5733e9823c0e152e98a7314562956",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "a36b2707da1e6295222031f50043cf1cb27b2ffe8f128d5baa3fd5f0db67f0bd",
+      "path": "baseline.json"
+    },
+    {
+      "sha256": "1ffb2b03de4add00f5c73a422c0b20cfd9261a7d87c7df5bf2f87aa6c68ba3b1",
+      "path": "controller-tests.txt"
+    },
+    {
+      "sha256": "e84c6769ff4dfc3f3367821d4eb9c25ddf8ca959f4f112896988e93c82608485",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
+      "path": "dispatch-watcher.py"
+    },
+    {
+      "sha256": "fa38bb70581fe31b3341e922ea8d0adbbc1e714902d74ec29c2b59608deec0a8",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "cdcc0c1cf43903bce4ad4fd0e9057f51ecb5bc2a205d88fa3ea41e3c15a3d1b6",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "5d6a92f2d6f12effc5f0a03100ba152b8f1ce830b41e0e1b128f6972edba83f0",
+      "path": "iso-download.json"
+    },
+    {
+      "sha256": "c97a9b29e2562b9fd60d246faba26c7f717f20cea7243ba390187d8222acc5c9",
+      "path": "local-retry.py"
+    },
+    {
+      "sha256": "9af6cd92aeec613bf1c1adf5c8e4f053ddd25075dee2f1128b0a1b737970aa35",
+      "path": "no-overlap.json"
+    },
+    {
+      "sha256": "09606d8cf566eba928bbcc52f4ebb3eabe392af3638eceb905e6593d7e1ee823",
+      "path": "official-CHECKSUM.txt"
+    },
+    {
+      "sha256": "a63dac012977c32d9a3d60c4c442b3eea413a04dc1fdc29c86239ee35f0fd1d4",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "b2a84c249e5b339fc25dbadac8b03d9cace9997c996794f2c5e58a249a26cbf8",
+      "path": "push-once.py"
+    },
+    {
+      "sha256": "847d1832f1b297c726b27cf37768b5b825b4ceb9a240b7443faf512835368f4c",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "1c6c4f1eda01a1b3c7db8841e4b470b2b376abf9354ca45ec92ecc7570b2295e",
+      "path": "replay-attempts.json"
+    },
+    {
+      "sha256": "52711bce559f71a89cfffa8862e7102b362ff28565eb96f3248702125b386d64",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "a98479c401cb5f4ab024873df37144f9fa9ba2a9fe30abe56bbe2b2de652f2c7",
+      "path": "test_dispatch_control.py"
+    },
+    {
+      "sha256": "adb2b706792e288b12f76e24f7b9dddf33eaf5b1baf922a8e3cf35fff332bdee",
+      "path": "watcher-tests.txt"
+    }
+  ]
+}

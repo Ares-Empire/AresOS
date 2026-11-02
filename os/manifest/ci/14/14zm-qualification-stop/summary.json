@@ -1,0 +1,414 @@
+{
+  "status": "STOP qualification9; no rerun; acceptance unmet",
+  "brief": "briefs/14zm-host-timing-limit.md",
+  "head": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+  "probe_run": 40763979290,
+  "qualification_run": 40768498320,
+  "observation": {
+    "status": "STOP; observations only, cause unresolved; no fix/rerun",
+    "run": 40768498320,
+    "head": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+    "stage": "private-owner-login / hidden token completion",
+    "native_tests": 479,
+    "native_seconds": 93.063,
+    "native_skips": 0,
+    "hidden_completed_before_stop": 4,
+    "passed_owner_diagnostics": 9,
+    "staged_transfers": 107,
+    "all_staged_sha_syntax_verified": true,
+    "readiness": {
+      "ready": true,
+      "physical_echo_enabled": false,
+      "reader_echo_enabled": false,
+      "prompt_at_cursor": true,
+      "observation": {
+        "reason": "Expected foreground reader",
+        "foreground_chain": [
+          {
+            "pid": 4444,
+            "comm": "sudo",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 3108,
+            "pgrp": 4444,
+            "session": 3108,
+            "tty": 1027,
+            "tpgid": 4444
+          },
+          {
+            "pid": 5195,
+            "comm": "sudo",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 4444,
+            "pgrp": 5195,
+            "session": 5195,
+            "tty": 34817,
+            "tpgid": 7606
+          },
+          {
+            "pid": 5196,
+            "comm": "bash",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 5195,
+            "pgrp": 5196,
+            "session": 5195,
+            "tty": 34817,
+            "tpgid": 7606
+          },
+          {
+            "pid": 7606,
+            "comm": "sudo",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 5196,
+            "pgrp": 7606,
+            "session": 5195,
+            "tty": 34817,
+            "tpgid": 7606
+          },
+          {
+            "pid": 7608,
+            "comm": "sudo",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 7606,
+            "pgrp": 7608,
+            "session": 7608,
+            "tty": 34818,
+            "tpgid": 7609
+          },
+          {
+            "pid": 7609,
+            "comm": "python3",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 7608,
+            "pgrp": 7609,
+            "session": 7608,
+            "tty": 34818,
+            "tpgid": 7609
+          }
+        ]
+      },
+      "reader": {
+        "pid": 7609,
+        "ppid": 7608,
+        "pgrp": 7609,
+        "session": 7608,
+        "tty": 34818,
+        "tpgid": 7609,
+        "start": "19336",
+        "exe": "/usr/bin/python3.14",
+        "tty_path": "/dev/pts/2",
+        "physical": 1027,
+        "origin_chain": [
+          {
+            "pid": 4444,
+            "ppid": 3108,
+            "pgrp": 4444,
+            "session": 3108,
+            "tty": 1027,
+            "tpgid": 4444,
+            "start": "11127",
+            "exe": "/usr/bin/sudo"
+          },
+          {
+            "pid": 5195,
+            "ppid": 4444,
+            "pgrp": 5195,
+            "session": 5195,
+            "tty": 34817,
+            "tpgid": 7606,
+            "start": "12221",
+            "exe": "/usr/bin/sudo"
+          },
+          {
+            "pid": 5196,
+            "ppid": 5195,
+            "pgrp": 5196,
+            "session": 5195,
+            "tty": 34817,
+            "tpgid": 7606,
+            "start": "12221",
+            "exe": "/usr/bin/bash"
+          },
+          {
+            "pid": 7606,
+            "ppid": 5196,
+            "pgrp": 7606,
+            "session": 5195,
+            "tty": 34817,
+            "tpgid": 7606,
+            "start": "19332",
+            "exe": "/usr/bin/sudo"
+          },
+          {
+            "pid": 7608,
+            "ppid": 7606,
+            "pgrp": 7608,
+            "session": 7608,
+            "tty": 34818,
+            "tpgid": 7609,
+            "start": "19336",
+            "exe": "/usr/bin/sudo"
+          },
+          {
+            "pid": 7609,
+            "ppid": 7608,
+            "pgrp": 7609,
+            "session": 7608,
+            "tty": 34818,
+            "tpgid": 7609,
+            "start": "19336",
+            "exe": "/usr/bin/python3.14"
+          }
+        ],
+        "return_shells": [
+          {
+            "pid": 3108,
+            "ppid": 2151,
+            "pgrp": 3108,
+            "session": 3108,
+            "tty": 1027,
+            "tpgid": 4444,
+            "start": "9486",
+            "exe": "/usr/bin/bash"
+          }
+        ]
+      }
+    },
+    "completion": {
+      "ready": false,
+      "reader_left": false,
+      "shell_idle": false,
+      "prompt_at_cursor": false,
+      "owner_result": null,
+      "handoff": false,
+      "rejected": false,
+      "reason": "Expected foreground reader",
+      "observation": {
+        "reason": "Expected foreground reader",
+        "foreground_chain": [
+          {
+            "pid": 4444,
+            "comm": "sudo",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 3108,
+            "pgrp": 4444,
+            "session": 3108,
+            "tty": 1027,
+            "tpgid": 4444
+          },
+          {
+            "pid": 5195,
+            "comm": "sudo",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 4444,
+            "pgrp": 5195,
+            "session": 5195,
+            "tty": 34817,
+            "tpgid": 7606
+          },
+          {
+            "pid": 5196,
+            "comm": "bash",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 5195,
+            "pgrp": 5196,
+            "session": 5195,
+            "tty": 34817,
+            "tpgid": 7606
+          },
+          {
+            "pid": 7606,
+            "comm": "sudo",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 5196,
+            "pgrp": 7606,
+            "session": 5195,
+            "tty": 34817,
+            "tpgid": 7606
+          },
+          {
+            "pid": 7608,
+            "comm": "sudo",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 7606,
+            "pgrp": 7608,
+            "session": 7608,
+            "tty": 34818,
+            "tpgid": 7609
+          },
+          {
+            "pid": 7609,
+            "comm": "python3",
+            "argv": [
+              "[redacted]"
+            ],
+            "argv_redacted": true,
+            "ppid": 7608,
+            "pgrp": 7609,
+            "session": 7608,
+            "tty": 34818,
+            "tpgid": 7609
+          }
+        ]
+      },
+      "completion_uses_echo": false,
+      "value_recorded": false
+    },
+    "screen": {
+      "sha256": "6bbc4dbce4278ab695b97006cc52a48be448350b455110ec96880606c0b7b08e",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-37-left-timeout-1.vcsa",
+      "geometry": [
+        50,
+        160,
+        26,
+        49
+      ],
+      "cursor_is_exact_token_prompt": true,
+      "cursor_ends_token_prompt": true,
+      "cursor_has_shell_prompt": false,
+      "pass_login_present": false,
+      "stop_line_present": false,
+      "decoded_privacy_findings": 0,
+      "decoded_text_saved": false
+    },
+    "owner_command_diagnostics_for_failed_login_exported": false,
+    "later_signature_switch_aresos_layout_rollback_keep_stock_not_reached": true
+  },
+  "passed_owner_records": [
+    {
+      "sha256": "19d47661f24db22f4f4da7bc6f2d0378d14ce38fcaadcac5214ed1ce0bb18680",
+      "path": "evidence/two-disk/after-first-network-records-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "records"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "33c42b6c5293f5594b1f676a91b168ddfceda5de69d2f58ff62fa3a81ade16ed",
+      "path": "evidence/two-disk/after-first-network-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "1b736c42517f30dc6ffff753e40e2d334d318e28998269bfd460f4d47c1fea9d",
+      "path": "evidence/two-disk/corrected-stock-records-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "records"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/corrected-stock-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/tools-before-reboot-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "9f0f20a08620253e5346bca8d444b2096914e6e3ea8c29860135020f02a2108f",
+      "path": "evidence/two-disk/tools-install-owner-diagnostics.json",
+      "status": "passed",
+      "command": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "4a339af46f500ffe31dafdea9e53ac9e4c28979e94ba79da7652b834e4988064",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "mutations": 4
+    },
+    {
+      "sha256": "09e035f9ffbbf4550fb40e3f0bce263e5da4e285a281402ccef1c5f9a28f53a4",
+      "path": "evidence/two-disk/tools-prepare-rerun-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "d573a0bae5004bb5dbe8c715423edfb8bd7c98d451316596c84cdb11f89daf40",
+      "path": "evidence/two-disk/tools-record-export-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "export"
+      ],
+      "mutations": 5
+    }
+  ],
+  "paused_stop_observed": true,
+  "stage": "corrected-stock / private-owner-login token-read completion",
+  "diagnosis": "same expected python reader remains foreground at token prompt; input arrival and cause are unproved; no result/idle shell, so completion refused",
+  "not_reached": [
+    "owner signature verification",
+    "switch to AresOS",
+    "AresOS boot",
+    "layout begin/proof/revert/finish",
+    "rollback",
+    "keep-stock",
+    "final Windows checks"
+  ],
+  "source_code_or_test_or_workflow_or_privacy_changes": false,
+  "actions_dispatches_this_round": {
+    "probe": 1,
+    "qualification": 1
+  },
+  "workflow_reruns": 0,
+  "pushes": 1,
+  "acceptance_met": false,
+  "closing_reservation": 0,
+  "organization_reserve": 0,
+  "pr_ready": false,
+  "raw_diagnostics_committed": false
+}

@@ -1,0 +1,1775 @@
+[
+  {
+    "sha256": "41610a4dd7596116d820029e9d1c01734ddf3c514c7b32a1d91d2c65ec8a4523",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/first-stock-before-repair-rpm-ostree-status.json",
+    "kind": "first-stock-before-repair rpm-ostree-status",
+    "value": {
+      "deployments": [
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 1,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": true,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": false,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        }
+      ],
+      "transaction": null,
+      "cached-update": null,
+      "update-driver": null
+    }
+  },
+  {
+    "sha256": "2293cce0b0fb4e5191be07df8faea865955ea37e56b79ee8f8e33d585e49799d",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/first-stock-before-repair-bootc-status.json",
+    "kind": "first-stock-before-repair bootc-status",
+    "value": {
+      "apiVersion": "org.containers.bootc/v1",
+      "kind": "BootcHost",
+      "metadata": {
+        "name": "host"
+      },
+      "spec": {
+        "bootOrder": "default",
+        "image": {
+          "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "signature": "containerPolicy",
+          "transport": "registry"
+        }
+      },
+      "status": {
+        "booted": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 1,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "readOnly": false,
+        "rollback": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": false,
+          "store": "ostreeContainer"
+        },
+        "rollbackQueued": false,
+        "staged": null,
+        "type": "bootcHost",
+        "usrOverlay": null
+      }
+    }
+  },
+  {
+    "sha256": "1d6690f3f36a6dddce48a9fcb48aa3a6ab81134ab00e9c0152029618e2504ad6",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/first-stock-before-repair-resolved-bls.json",
+    "kind": "first-stock-before-repair resolved-bls",
+    "value": [
+      {
+        "file": "/boot/loader/entries/ostree-1.conf",
+        "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0"
+      },
+      {
+        "file": "/boot/loader/entries/ostree-2.conf",
+        "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+      }
+    ]
+  },
+  {
+    "sha256": "e3015d17433ad5f625f1b16b68280157dba000567e8d3587198d04401f6a83cf",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/after-pin-rpm-ostree-status.json",
+    "kind": "after-pin rpm-ostree-status",
+    "value": {
+      "deployments": [
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": true,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 1,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": true,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": false,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        }
+      ],
+      "transaction": null,
+      "cached-update": null,
+      "update-driver": null
+    }
+  },
+  {
+    "sha256": "0923b6bf41f578b130345b07f6851fa2ac3f28ff10ed6bb5cd6b35fc5cf34f03",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/after-pin-bootc-status.json",
+    "kind": "after-pin bootc-status",
+    "value": {
+      "apiVersion": "org.containers.bootc/v1",
+      "kind": "BootcHost",
+      "metadata": {
+        "name": "host"
+      },
+      "spec": {
+        "bootOrder": "default",
+        "image": {
+          "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "signature": "containerPolicy",
+          "transport": "registry"
+        }
+      },
+      "status": {
+        "booted": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 1,
+            "stateroot": "default"
+          },
+          "pinned": true,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "readOnly": false,
+        "rollback": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": false,
+          "store": "ostreeContainer"
+        },
+        "rollbackQueued": false,
+        "staged": null,
+        "type": "bootcHost",
+        "usrOverlay": null
+      }
+    }
+  },
+  {
+    "sha256": "1c459d229215e650a556861e21a0aefe9ef188af2804fefa198c53ae609a9ec0",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/after-pin-resolved-bls.json",
+    "kind": "after-pin resolved-bls",
+    "value": [
+      {
+        "file": "/boot/loader/entries/ostree-1.conf",
+        "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0"
+      },
+      {
+        "file": "/boot/loader/entries/ostree-2.conf",
+        "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+      }
+    ]
+  },
+  {
+    "sha256": "87e879fc5e8b0198e7c6782b3a2ab7eec701060d312154df04eff44f720bb8ca",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/after-switch-staged-rpm-ostree-status.json",
+    "kind": "after-switch-staged rpm-ostree-status",
+    "value": {
+      "deployments": [
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "requested-base-local-replacements": [],
+          "id": "default-42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": true,
+          "booted": false,
+          "container-image-reference": "ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": true,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 1,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": true,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": false,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        }
+      ],
+      "transaction": null,
+      "cached-update": null,
+      "update-driver": null
+    }
+  },
+  {
+    "sha256": "a5ce21e3bcf11f72fcb18c56dcdeccc435219a0ce064e10d165783cbf2384e13",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/after-switch-staged-bootc-status.json",
+    "kind": "after-switch-staged bootc-status",
+    "value": {
+      "apiVersion": "org.containers.bootc/v1",
+      "kind": "BootcHost",
+      "metadata": {
+        "name": "host"
+      },
+      "spec": {
+        "bootOrder": "default",
+        "image": {
+          "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "transport": "registry"
+        }
+      },
+      "status": {
+        "booted": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 1,
+            "stateroot": "default"
+          },
+          "pinned": true,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "readOnly": false,
+        "rollback": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": false,
+          "store": "ostreeContainer"
+        },
+        "rollbackQueued": false,
+        "staged": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": false,
+          "store": "ostreeContainer"
+        },
+        "type": "bootcHost",
+        "usrOverlay": null
+      }
+    }
+  },
+  {
+    "sha256": "1c459d229215e650a556861e21a0aefe9ef188af2804fefa198c53ae609a9ec0",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/after-switch-staged-resolved-bls.json",
+    "kind": "after-switch-staged resolved-bls",
+    "value": [
+      {
+        "file": "/boot/loader/entries/ostree-1.conf",
+        "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0"
+      },
+      {
+        "file": "/boot/loader/entries/ostree-2.conf",
+        "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+      }
+    ]
+  },
+  {
+    "sha256": "6e88e53a29ebf9484d7bc989a0f57caa630078d685548fa5cee9de3127f97905",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-rpm-ostree-status.json",
+    "kind": "aresos rpm-ostree-status",
+    "value": {
+      "deployments": [
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "requested-base-local-replacements": [],
+          "id": "default-42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": true,
+          "container-image-reference": "ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": true,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 1,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": false,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        }
+      ],
+      "transaction": null,
+      "cached-update": null,
+      "update-driver": null
+    }
+  },
+  {
+    "sha256": "0a6b753a59f3f4e12a13b0be543464578e8f61addd1fa4c71b70c0805cfd4dd5",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-bootc-status.json",
+    "kind": "aresos bootc-status",
+    "value": {
+      "apiVersion": "org.containers.bootc/v1",
+      "kind": "BootcHost",
+      "metadata": {
+        "name": "host"
+      },
+      "spec": {
+        "bootOrder": "default",
+        "image": {
+          "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "transport": "registry"
+        }
+      },
+      "status": {
+        "booted": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "readOnly": false,
+        "rollback": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 1,
+            "stateroot": "default"
+          },
+          "pinned": true,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "rollbackQueued": false,
+        "staged": null,
+        "type": "bootcHost",
+        "usrOverlay": null
+      }
+    }
+  },
+  {
+    "sha256": "d0a7b8bc5f9203e47b94e4d8ec0aba7148be02bfa3debcdd2395e9a4c45de605",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-resolved-bls.json",
+    "kind": "aresos resolved-bls",
+    "value": [
+      {
+        "file": "/boot/loader/entries/ostree-1.conf",
+        "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+      },
+      {
+        "file": "/boot/loader/entries/ostree-2.conf",
+        "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0"
+      }
+    ]
+  },
+  {
+    "sha256": "6e88e53a29ebf9484d7bc989a0f57caa630078d685548fa5cee9de3127f97905",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-us-rpm-ostree-status.json",
+    "kind": "aresos-us rpm-ostree-status",
+    "value": {
+      "deployments": [
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "requested-base-local-replacements": [],
+          "id": "default-42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": true,
+          "container-image-reference": "ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": true,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 1,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": false,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        }
+      ],
+      "transaction": null,
+      "cached-update": null,
+      "update-driver": null
+    }
+  },
+  {
+    "sha256": "0a6b753a59f3f4e12a13b0be543464578e8f61addd1fa4c71b70c0805cfd4dd5",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-us-bootc-status.json",
+    "kind": "aresos-us bootc-status",
+    "value": {
+      "apiVersion": "org.containers.bootc/v1",
+      "kind": "BootcHost",
+      "metadata": {
+        "name": "host"
+      },
+      "spec": {
+        "bootOrder": "default",
+        "image": {
+          "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "transport": "registry"
+        }
+      },
+      "status": {
+        "booted": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "readOnly": false,
+        "rollback": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 1,
+            "stateroot": "default"
+          },
+          "pinned": true,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "rollbackQueued": false,
+        "staged": null,
+        "type": "bootcHost",
+        "usrOverlay": null
+      }
+    }
+  },
+  {
+    "sha256": "d0a7b8bc5f9203e47b94e4d8ec0aba7148be02bfa3debcdd2395e9a4c45de605",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-us-resolved-bls.json",
+    "kind": "aresos-us resolved-bls",
+    "value": [
+      {
+        "file": "/boot/loader/entries/ostree-1.conf",
+        "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+      },
+      {
+        "file": "/boot/loader/entries/ostree-2.conf",
+        "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0"
+      }
+    ]
+  },
+  {
+    "sha256": "6e88e53a29ebf9484d7bc989a0f57caa630078d685548fa5cee9de3127f97905",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-back-de-rpm-ostree-status.json",
+    "kind": "aresos-back-de rpm-ostree-status",
+    "value": {
+      "deployments": [
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "requested-base-local-replacements": [],
+          "id": "default-42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": true,
+          "container-image-reference": "ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": true,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 1,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": false,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        }
+      ],
+      "transaction": null,
+      "cached-update": null,
+      "update-driver": null
+    }
+  },
+  {
+    "sha256": "0a6b753a59f3f4e12a13b0be543464578e8f61addd1fa4c71b70c0805cfd4dd5",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-back-de-bootc-status.json",
+    "kind": "aresos-back-de bootc-status",
+    "value": {
+      "apiVersion": "org.containers.bootc/v1",
+      "kind": "BootcHost",
+      "metadata": {
+        "name": "host"
+      },
+      "spec": {
+        "bootOrder": "default",
+        "image": {
+          "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "transport": "registry"
+        }
+      },
+      "status": {
+        "booted": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "readOnly": false,
+        "rollback": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 1,
+            "stateroot": "default"
+          },
+          "pinned": true,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "rollbackQueued": false,
+        "staged": null,
+        "type": "bootcHost",
+        "usrOverlay": null
+      }
+    }
+  },
+  {
+    "sha256": "d0a7b8bc5f9203e47b94e4d8ec0aba7148be02bfa3debcdd2395e9a4c45de605",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-back-de-resolved-bls.json",
+    "kind": "aresos-back-de resolved-bls",
+    "value": [
+      {
+        "file": "/boot/loader/entries/ostree-1.conf",
+        "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+      },
+      {
+        "file": "/boot/loader/entries/ostree-2.conf",
+        "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0"
+      }
+    ]
+  },
+  {
+    "sha256": "53920c373342d29ee25015af101b354cd60884199fa56d07eef5331ebd906c03",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/after-rollback-queued-rpm-ostree-status.json",
+    "kind": "after-rollback-queued rpm-ostree-status",
+    "value": {
+      "deployments": [
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": true,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 1,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": false,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "requested-base-local-replacements": [],
+          "id": "default-42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": true,
+          "container-image-reference": "ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "packages": [],
+          "base-local-replacements": []
+        }
+      ],
+      "transaction": null,
+      "cached-update": null,
+      "update-driver": null
+    }
+  },
+  {
+    "sha256": "a1433466e61783c534850e3a6808779e32f4026ef5a718da96cdf824835aef53",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/after-rollback-queued-bootc-status.json",
+    "kind": "after-rollback-queued bootc-status",
+    "value": {
+      "apiVersion": "org.containers.bootc/v1",
+      "kind": "BootcHost",
+      "metadata": {
+        "name": "host"
+      },
+      "spec": {
+        "bootOrder": "rollback",
+        "image": {
+          "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "transport": "registry"
+        }
+      },
+      "status": {
+        "booted": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "readOnly": false,
+        "rollback": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 1,
+            "stateroot": "default"
+          },
+          "pinned": true,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "rollbackQueued": true,
+        "staged": null,
+        "type": "bootcHost",
+        "usrOverlay": null
+      }
+    }
+  },
+  {
+    "sha256": "c7b50dc80e04f76b11b381de270703b62e57015c1e40291e9efa9c7d28afc036",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/after-rollback-queued-resolved-bls.json",
+    "kind": "after-rollback-queued resolved-bls",
+    "value": [
+      {
+        "file": "/boot/loader/entries/ostree-1.conf",
+        "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0"
+      },
+      {
+        "file": "/boot/loader/entries/ostree-2.conf",
+        "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+      }
+    ]
+  },
+  {
+    "sha256": "106485c6ac305446ddac4e52177cf272eeef5bb7d10df4468a49729e58a6f868",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/rollback-rpm-ostree-status.json",
+    "kind": "rollback rpm-ostree-status",
+    "value": {
+      "deployments": [
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": true,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 1,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": true,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+          "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "requested-base-local-replacements": [],
+          "id": "default-42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": false,
+          "container-image-reference": "ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+          "packages": [],
+          "base-local-replacements": []
+        }
+      ],
+      "transaction": null,
+      "cached-update": null,
+      "update-driver": null
+    }
+  },
+  {
+    "sha256": "6f70cc20702bff08b2b8db939fd6b83c1c260df663876603c217e843922b8518",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/rollback-bootc-status.json",
+    "kind": "rollback bootc-status",
+    "value": {
+      "apiVersion": "org.containers.bootc/v1",
+      "kind": "BootcHost",
+      "metadata": {
+        "name": "host"
+      },
+      "spec": {
+        "bootOrder": "default",
+        "image": {
+          "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "signature": "containerPolicy",
+          "transport": "registry"
+        }
+      },
+      "status": {
+        "booted": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 1,
+            "stateroot": "default"
+          },
+          "pinned": true,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "readOnly": false,
+        "rollback": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "rollbackQueued": false,
+        "staged": null,
+        "type": "bootcHost",
+        "usrOverlay": null
+      }
+    }
+  },
+  {
+    "sha256": "c7b50dc80e04f76b11b381de270703b62e57015c1e40291e9efa9c7d28afc036",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/rollback-resolved-bls.json",
+    "kind": "rollback resolved-bls",
+    "value": [
+      {
+        "file": "/boot/loader/entries/ostree-1.conf",
+        "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0"
+      },
+      {
+        "file": "/boot/loader/entries/ostree-2.conf",
+        "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+      }
+    ]
+  },
+  {
+    "sha256": "2d17cde73a32a106ca267342c29871e6240df4293e1a411d614f9995e726dbdb",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/first-stock-diagnostic-keyboard.json",
+    "kind": "first-stock-diagnostic keyboard",
+    "value": {
+      "localed": {
+        "type": "a{sv}",
+        "data": [
+          {
+            "Locale": {
+              "type": "as",
+              "data": [
+                "LANG=en_US.UTF-8"
+              ]
+            },
+            "X11Layout": {
+              "type": "s",
+              "data": "de"
+            },
+            "X11Model": {
+              "type": "s",
+              "data": "pc105"
+            },
+            "X11Variant": {
+              "type": "s",
+              "data": ""
+            },
+            "X11Options": {
+              "type": "s",
+              "data": ""
+            },
+            "VConsoleKeymap": {
+              "type": "s",
+              "data": "de"
+            },
+            "VConsoleKeymapToggle": {
+              "type": "s",
+              "data": ""
+            }
+          }
+        ]
+      },
+      "loaded_map": "keycode  21 = +z              \nkeycode  44 = +y              \n",
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1"
+    },
+    "projection": "localed and cmdline verbatim; loaded_map only original keycode21/44 rows"
+  },
+  {
+    "sha256": "db0817c5e0c342012300bf0a1a79386a04533616df7a396d383591282f094310",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-keyboard.json",
+    "kind": "aresos keyboard",
+    "value": {
+      "localed": {
+        "type": "a{sv}",
+        "data": [
+          {
+            "Locale": {
+              "type": "as",
+              "data": [
+                "LANG=en_US.UTF-8"
+              ]
+            },
+            "X11Layout": {
+              "type": "s",
+              "data": "de"
+            },
+            "X11Model": {
+              "type": "s",
+              "data": "pc105"
+            },
+            "X11Variant": {
+              "type": "s",
+              "data": ""
+            },
+            "X11Options": {
+              "type": "s",
+              "data": ""
+            },
+            "VConsoleKeymap": {
+              "type": "s",
+              "data": "de"
+            },
+            "VConsoleKeymapToggle": {
+              "type": "s",
+              "data": ""
+            }
+          }
+        ]
+      },
+      "loaded_map": "keycode  21 = +z              \nkeycode  44 = +y              \n",
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+    },
+    "projection": "localed and cmdline verbatim; loaded_map only original keycode21/44 rows"
+  },
+  {
+    "sha256": "11f07b93b60980240e2b899bacbaec4a778b27066ea72bd13b80262175671aa9",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-us-keyboard.json",
+    "kind": "aresos-us keyboard",
+    "value": {
+      "localed": {
+        "type": "a{sv}",
+        "data": [
+          {
+            "Locale": {
+              "type": "as",
+              "data": [
+                "LANG=en_US.UTF-8"
+              ]
+            },
+            "X11Layout": {
+              "type": "s",
+              "data": "us"
+            },
+            "X11Model": {
+              "type": "s",
+              "data": "pc105"
+            },
+            "X11Variant": {
+              "type": "s",
+              "data": ""
+            },
+            "X11Options": {
+              "type": "s",
+              "data": ""
+            },
+            "VConsoleKeymap": {
+              "type": "s",
+              "data": "us"
+            },
+            "VConsoleKeymapToggle": {
+              "type": "s",
+              "data": ""
+            }
+          }
+        ]
+      },
+      "loaded_map": "keycode  21 = +y              \nkeycode  44 = +z              \n",
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+    },
+    "projection": "localed and cmdline verbatim; loaded_map only original keycode21/44 rows"
+  },
+  {
+    "sha256": "f1cd54a4fc4e64e607097dafe89dada17e32c526fb2a88c8ecbbe617f9789f2e",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-back-de-keyboard.json",
+    "kind": "aresos-back-de keyboard",
+    "value": {
+      "localed": {
+        "type": "a{sv}",
+        "data": [
+          {
+            "Locale": {
+              "type": "as",
+              "data": [
+                "LANG=en_US.UTF-8"
+              ]
+            },
+            "X11Layout": {
+              "type": "s",
+              "data": "de"
+            },
+            "X11Model": {
+              "type": "s",
+              "data": "pc105"
+            },
+            "X11Variant": {
+              "type": "s",
+              "data": ""
+            },
+            "X11Options": {
+              "type": "s",
+              "data": ""
+            },
+            "VConsoleKeymap": {
+              "type": "s",
+              "data": "de"
+            },
+            "VConsoleKeymapToggle": {
+              "type": "s",
+              "data": ""
+            }
+          }
+        ]
+      },
+      "loaded_map": "keycode  21 = +z              \nkeycode  44 = +y              \n",
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+    },
+    "projection": "localed and cmdline verbatim; loaded_map only original keycode21/44 rows"
+  },
+  {
+    "sha256": "db0817c5e0c342012300bf0a1a79386a04533616df7a396d383591282f094310",
+    "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/rollback-keyboard.json",
+    "kind": "rollback keyboard",
+    "value": {
+      "localed": {
+        "type": "a{sv}",
+        "data": [
+          {
+            "Locale": {
+              "type": "as",
+              "data": [
+                "LANG=en_US.UTF-8"
+              ]
+            },
+            "X11Layout": {
+              "type": "s",
+              "data": "de"
+            },
+            "X11Model": {
+              "type": "s",
+              "data": "pc105"
+            },
+            "X11Variant": {
+              "type": "s",
+              "data": ""
+            },
+            "X11Options": {
+              "type": "s",
+              "data": ""
+            },
+            "VConsoleKeymap": {
+              "type": "s",
+              "data": "de"
+            },
+            "VConsoleKeymapToggle": {
+              "type": "s",
+              "data": ""
+            }
+          }
+        ]
+      },
+      "loaded_map": "keycode  21 = +z              \nkeycode  44 = +y              \n",
+      "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=b9200279-9588-4f58-b8cd-7fdb56fc31db rootflags=subvol=root rw bluetooth.disable_ertm=1"
+    },
+    "projection": "localed and cmdline verbatim; loaded_map only original keycode21/44 rows"
+  },
+  {
+    "sha256": "41610a4dd7596116d820029e9d1c01734ddf3c514c7b32a1d91d2c65ec8a4523",
+    "path": ".work/14/run-40543952228/evidence/two-disk/tools-stock-before-prepare-rpm-ostree-status.json",
+    "kind": "qualification3 before-prepare rpm-ostree-status",
+    "value": {
+      "deployments": [
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 1,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": true,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        },
+        {
+          "unlocked": "none",
+          "requested-local-packages": [],
+          "base-removals": [],
+          "pinned": false,
+          "osname": "default",
+          "base-remote-replacements": {},
+          "regenerate-initramfs": false,
+          "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+          "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+          "requested-base-local-replacements": [],
+          "id": "default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0",
+          "version": "44.20261012.1",
+          "requested-local-fileoverride-packages": [],
+          "requested-base-removals": [],
+          "requested-packages": [],
+          "serial": 0,
+          "timestamp": 1791849998,
+          "staged": false,
+          "booted": false,
+          "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "packages": [],
+          "base-local-replacements": []
+        }
+      ],
+      "transaction": null,
+      "cached-update": null,
+      "update-driver": null
+    }
+  },
+  {
+    "sha256": "2293cce0b0fb4e5191be07df8faea865955ea37e56b79ee8f8e33d585e49799d",
+    "path": ".work/14/run-40543952228/evidence/two-disk/tools-stock-before-prepare-bootc-status.json",
+    "kind": "qualification3 before-prepare bootc-status",
+    "value": {
+      "apiVersion": "org.containers.bootc/v1",
+      "kind": "BootcHost",
+      "metadata": {
+        "name": "host"
+      },
+      "spec": {
+        "bootOrder": "default",
+        "image": {
+          "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+          "signature": "containerPolicy",
+          "transport": "registry"
+        }
+      },
+      "status": {
+        "booted": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 1,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": true,
+          "store": "ostreeContainer"
+        },
+        "readOnly": false,
+        "rollback": {
+          "cachedUpdate": null,
+          "composefs": null,
+          "downloadOnly": false,
+          "image": {
+            "architecture": "amd64",
+            "image": {
+              "image": "ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+              "signature": "containerPolicy",
+              "transport": "registry"
+            },
+            "imageDigest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+            "timestamp": "2026-10-13T00:06:38Z",
+            "version": "44.20261012.1"
+          },
+          "incompatible": false,
+          "ostree": {
+            "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+            "deploySerial": 0,
+            "stateroot": "default"
+          },
+          "pinned": false,
+          "softRebootCapable": false,
+          "store": "ostreeContainer"
+        },
+        "rollbackQueued": false,
+        "staged": null,
+        "type": "bootcHost",
+        "usrOverlay": null
+      }
+    }
+  },
+  {
+    "sha256": "84ed2eb451369504526a313e2a01ba2414b4cff5be9653ea838de13da9b7e092",
+    "path": ".work/14/run-40543952228/evidence/two-disk/tools-stock-before-prepare-resolved-bls.json",
+    "kind": "qualification3 before-prepare resolved-bls",
+    "value": [
+      {
+        "file": "/boot/loader/entries/ostree-1.conf",
+        "content": "title Bazzite (ostree:1)\nversion 1\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1 console=tty0 console=ttyS0,115200n8 root=UUID=1c1c30fc-20c3-4bae-952e-2ddc8f709c33 vconsole.keymap=de rootflags=subvol=root rw\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.0"
+      },
+      {
+        "file": "/boot/loader/entries/ostree-2.conf",
+        "content": "title Bazzite (ostree:0)\nversion 2\noptions ostree=/ostree/boot.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=1c1c30fc-20c3-4bae-952e-2ddc8f709c33 vconsole.keymap=de rootflags=subvol=root rw bluetooth.disable_ertm=1\nlinux /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64\ninitrd /ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/initramfs-7.2.9-ogc3.1.fc44.x86_64.img\n",
+        "deployment": "/sysroot/ostree/deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+      }
+    ]
+  },
+  {
+    "sha256": "97de0ec81532fcca612d254bb9bcf4d67efb18ebc79c2590bcc9e2fc5b447ebf",
+    "path": ".work/14/run-40543952228/evidence/two-disk/tools-install-owner-diagnostics.json",
+    "kind": "qualification3 install read-only trace",
+    "value": [
+      {
+        "command": [
+          "lsblk",
+          "--json",
+          "--tree",
+          "--paths",
+          "--output",
+          "PATH,TYPE,TRAN,RM,LABEL,FSTYPE,UUID,MOUNTPOINTS"
+        ],
+        "returncode": 0,
+        "stdout": "{\n   \"blockdevices\": [\n      {\n         \"path\": \"/dev/sda\",\n         \"type\": \"disk\",\n         \"tran\": \"usb\",\n         \"rm\": true,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": [],\n         \"children\": [\n            {\n               \"path\": \"/dev/sda1\",\n               \"type\": \"part\",\n               \"tran\": null,\n               \"rm\": true,\n               \"label\": \"ARESTOOLS\",\n               \"fstype\": \"exfat\",\n               \"uuid\": \"7FF2-F905\",\n               \"mountpoints\": [\n                   \"/var/mnt\"\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/sr0\",\n         \"type\": \"rom\",\n         \"tran\": \"sata\",\n         \"rm\": true,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": []\n      },{\n         \"path\": \"/dev/zram0\",\n         \"type\": \"disk\",\n         \"tran\": null,\n         \"rm\": false,\n         \"label\": \"zram0\",\n         \"fstype\": \"swap\",\n         \"uuid\": \"6ada014b-52ad-412f-a52e-5e6b206e6229\",\n         \"mountpoints\": [\n             \"[SWAP]\"\n         ]\n      },{\n         \"path\": \"/dev/vda\",\n         \"type\": \"disk\",\n         \"tran\": \"virtio\",\n         \"rm\": false,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": [],\n         \"children\": [\n            {\n               \"path\": \"/dev/vda1\",\n               \"type\": \"part\",\n               \"tran\": \"virtio\",\n               \"rm\": false,\n               \"label\": null,\n               \"fstype\": \"vfat\",\n               \"uuid\": \"9F92-3985\",\n               \"mountpoints\": [\n                   \"/boot/efi\"\n               ]\n            },{\n               \"path\": \"/dev/vda2\",\n               \"type\": \"part\",\n               \"tran\": \"virtio\",\n               \"rm\": false,\n               \"label\": \"bazzite_xboot\",\n               \"fstype\": \"ext4\",\n               \"uuid\": \"dad536c8-f691-4b09-ac53-b4be1712b2ae\",\n               \"mountpoints\": [\n                   \"/boot\"\n               ]\n            },{\n               \"path\": \"/dev/vda3\",\n               \"type\": \"part\",\n               \"tran\": \"virtio\",\n               \"rm\": false,\n               \"label\": \"bazzite\",\n               \"fstype\": \"btrfs\",\n               \"uuid\": \"1c1c30fc-20c3-4bae-952e-2ddc8f709c33\",\n               \"mountpoints\": [\n                   \"/var/home\", \"/var\", \"/sysroot/ostree/deploy/default/var\", \"/sysroot\", \"/etc\"\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/vdb\",\n         \"type\": \"disk\",\n         \"tran\": \"virtio\",\n         \"rm\": false,\n         \"label\": null,\n         \"fstype\": null,\n         \"uuid\": null,\n         \"mountpoints\": [],\n         \"children\": [\n            {\n               \"path\": \"/dev/vdb1\",\n               \"type\": \"part\",\n               \"tran\": \"virtio\",\n               \"rm\": false,\n               \"label\": \"WIN_ESP\",\n               \"fstype\": \"vfat\",\n               \"uuid\": \"900C-3F89\",\n               \"mountpoints\": []\n            },{\n               \"path\": \"/dev/vdb2\",\n               \"type\": \"part\",\n               \"tran\": \"virtio\",\n               \"rm\": false,\n               \"label\": null,\n               \"fstype\": null,\n               \"uuid\": null,\n               \"mountpoints\": []\n            },{\n               \"path\": \"/dev/vdb3\",\n               \"type\": \"part\",\n               \"tran\": \"virtio\",\n               \"rm\": false,\n               \"label\": \"WINDOWS_KEEP\",\n               \"fstype\": \"ntfs\",\n               \"uuid\": \"65D0F88A4ABE069D\",\n               \"mountpoints\": []\n            },{\n               \"path\": \"/dev/vdb4\",\n               \"type\": \"part\",\n               \"tran\": \"virtio\",\n               \"rm\": false,\n               \"label\": \"RECOVERY_KEEP\",\n               \"fstype\": \"ntfs\",\n               \"uuid\": \"53CCA67D3F83077B\",\n               \"mountpoints\": []\n            }\n         ]\n      }\n   ]\n}\n",
+        "stderr": "",
+        "mutation": false
+      },
+      {
+        "command": [
+          "findmnt",
+          "--json",
+          "--list",
+          "--target",
+          "/var/mnt/ares-tools",
+          "--output",
+          "SOURCE,TARGET,FSTYPE"
+        ],
+        "returncode": 0,
+        "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/sda1\",\n         \"target\": \"/var/mnt\",\n         \"fstype\": \"exfat\"\n      }\n   ]\n}\n",
+        "stderr": "",
+        "mutation": false
+      },
+      {
+        "command": [
+          "lsblk",
+          "--json",
+          "--tree",
+          "--bytes",
+          "--output",
+          "PATH,TYPE,MODEL,SERIAL,SIZE,PTUUID,PARTUUID,PARTTYPE,START,LOG-SEC,MOUNTPOINTS"
+        ],
+        "returncode": 0,
+        "stdout": "{\n   \"blockdevices\": [\n      {\n         \"path\": \"/dev/sda\",\n         \"type\": \"disk\",\n         \"model\": \"QEMU HARDDISK\",\n         \"serial\": \"1-0000:00:05.0-2\",\n         \"size\": 134217728,\n         \"ptuuid\": \"a858c714-28c2-43fd-9fb9-178c2a3d3981\",\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": [],\n         \"children\": [\n            {\n               \"path\": \"/dev/sda1\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 133152256,\n               \"ptuuid\": \"a858c714-28c2-43fd-9fb9-178c2a3d3981\",\n               \"partuuid\": \"1dac7894-7b45-4a59-9eae-2cea757855a4\",\n               \"parttype\": \"ebd0a0a2-b9e5-4433-87c0-68b6b72699c7\",\n               \"start\": 2048,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/var/mnt\"\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/sr0\",\n         \"type\": \"rom\",\n         \"model\": \"QEMU DVD-ROM\",\n         \"serial\": \"QM00005\",\n         \"size\": 1073741312,\n         \"ptuuid\": null,\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": []\n      },{\n         \"path\": \"/dev/zram0\",\n         \"type\": \"disk\",\n         \"model\": null,\n         \"serial\": null,\n         \"size\": 3094872064,\n         \"ptuuid\": null,\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 4096,\n         \"mountpoints\": [\n             \"[SWAP]\"\n         ]\n      },{\n         \"path\": \"/dev/vda\",\n         \"type\": \"disk\",\n         \"model\": null,\n         \"serial\": \"CRUCIAL-TARGET\",\n         \"size\": 52613349376,\n         \"ptuuid\": \"c44e33d3-e628-4f80-a5a2-c16aa277189a\",\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": [],\n         \"children\": [\n            {\n               \"path\": \"/dev/vda1\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 629145600,\n               \"ptuuid\": \"c44e33d3-e628-4f80-a5a2-c16aa277189a\",\n               \"partuuid\": \"88420aef-f1fd-4814-8381-339d03f60a65\",\n               \"parttype\": \"c12a7328-f81f-11d2-ba4b-00a0c93ec93b\",\n               \"start\": 2048,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/boot/efi\"\n               ]\n            },{\n               \"path\": \"/dev/vda2\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 2147483648,\n               \"ptuuid\": \"c44e33d3-e628-4f80-a5a2-c16aa277189a\",\n               \"partuuid\": \"46803ee6-9d61-4c73-a827-be8e165839ee\",\n               \"parttype\": \"0fc63daf-8483-4772-8e79-3d69d8477de4\",\n               \"start\": 1230848,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/boot\"\n               ]\n            },{\n               \"path\": \"/dev/vda3\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 49834622976,\n               \"ptuuid\": \"c44e33d3-e628-4f80-a5a2-c16aa277189a\",\n               \"partuuid\": \"6d998e0a-119d-4d57-b978-00dfcdc7bbf7\",\n               \"parttype\": \"0fc63daf-8483-4772-8e79-3d69d8477de4\",\n               \"start\": 5425152,\n               \"log-sec\": 512,\n               \"mountpoints\": [\n                   \"/var/home\", \"/var\", \"/sysroot/ostree/deploy/default/var\", \"/sysroot\", \"/etc\"\n               ]\n            }\n         ]\n      },{\n         \"path\": \"/dev/vdb\",\n         \"type\": \"disk\",\n         \"model\": null,\n         \"serial\": \"MICRON-KEEP\",\n         \"size\": 53687091200,\n         \"ptuuid\": \"882f015e-7b9b-4e7f-a770-462576fa7631\",\n         \"partuuid\": null,\n         \"parttype\": null,\n         \"start\": null,\n         \"log-sec\": 512,\n         \"mountpoints\": [],\n         \"children\": [\n            {\n               \"path\": \"/dev/vdb1\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 272629760,\n               \"ptuuid\": \"882f015e-7b9b-4e7f-a770-462576fa7631\",\n               \"partuuid\": \"20d4509a-0f19-4bc0-8478-2274d7eac018\",\n               \"parttype\": \"c12a7328-f81f-11d2-ba4b-00a0c93ec93b\",\n               \"start\": 2048,\n               \"log-sec\": 512,\n               \"mountpoints\": []\n            },{\n               \"path\": \"/dev/vdb2\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 16777216,\n               \"ptuuid\": \"882f015e-7b9b-4e7f-a770-462576fa7631\",\n               \"partuuid\": \"b3373d65-f78d-49cf-a44d-6cdcaf1ad2aa\",\n               \"parttype\": \"e3c9e316-0b5c-4db8-817d-f92df00215ae\",\n               \"start\": 534528,\n               \"log-sec\": 512,\n               \"mountpoints\": []\n            },{\n               \"path\": \"/dev/vdb3\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 52322876928,\n               \"ptuuid\": \"882f015e-7b9b-4e7f-a770-462576fa7631\",\n               \"partuuid\": \"b030b0a1-ed10-4eaa-b4ba-de5778964430\",\n               \"parttype\": \"ebd0a0a2-b9e5-4433-87c0-68b6b72699c7\",\n               \"start\": 567296,\n               \"log-sec\": 512,\n               \"mountpoints\": []\n            },{\n               \"path\": \"/dev/vdb4\",\n               \"type\": \"part\",\n               \"model\": null,\n               \"serial\": null,\n               \"size\": 1073724928,\n               \"ptuuid\": \"882f015e-7b9b-4e7f-a770-462576fa7631\",\n               \"partuuid\": \"c8d7d6d4-bc06-4681-866a-69fb8b744b47\",\n               \"parttype\": \"de94bba4-06d1-4d40-a16a-bfd50179d6ac\",\n               \"start\": 102760448,\n               \"log-sec\": 512,\n               \"mountpoints\": []\n            }\n         ]\n      }\n   ]\n}\n",
+        "stderr": "",
+        "mutation": false
+      },
+      {
+        "command": [
+          "findmnt",
+          "--json",
+          "--list",
+          "--mountpoint",
+          "/boot/efi",
+          "--output",
+          "SOURCE,TARGET,FSTYPE"
+        ],
+        "returncode": 0,
+        "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/vda1\",\n         \"target\": \"/boot/efi\",\n         \"fstype\": \"vfat\"\n      }\n   ]\n}\n",
+        "stderr": "",
+        "mutation": false
+      },
+      {
+        "command": [
+          "findmnt",
+          "--json",
+          "--list",
+          "--mountpoint",
+          "/boot",
+          "--output",
+          "SOURCE,TARGET,FSTYPE"
+        ],
+        "returncode": 0,
+        "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/vda2\",\n         \"target\": \"/boot\",\n         \"fstype\": \"ext4\"\n      }\n   ]\n}\n",
+        "stderr": "",
+        "mutation": false
+      },
+      {
+        "command": [
+          "findmnt",
+          "--json",
+          "--list",
+          "--mountpoint",
+          "/sysroot",
+          "--output",
+          "SOURCE,TARGET,FSTYPE"
+        ],
+        "returncode": 0,
+        "stdout": "{\n   \"filesystems\": [\n      {\n         \"source\": \"/dev/vda3[/root]\",\n         \"target\": \"/sysroot\",\n         \"fstype\": \"btrfs\"\n      }\n   ]\n}\n",
+        "stderr": "",
+        "mutation": false
+      },
+      {
+        "command": [
+          "efibootmgr",
+          "-v"
+        ],
+        "returncode": 0,
+        "stdout": "BootCurrent: 000A\nTimeout: 0 seconds\nBootOrder: 0000,000A,0001,0005,0006,0007,0008,0009,0002,0003\nBoot0000* Windows Boot Manager\tHD(1,GPT,20d4509a-0f19-4bc0-8478-2274d7eac018,0x800,0x82000)/\\EFI\\Microsoft\\Boot\\bootmgfw.efi\n      dp: 04 01 2a 00 01 00 00 00 00 08 00 00 00 00 00 00 00 20 08 00 00 00 00 00 9a 50 d4 20 19 0f c0 4b 84 78 22 74 d7 ea c0 18 02 02 / 04 04 46 00 5c 00 45 00 46 00 49 00 5c 00 4d 00 69 00 63 00 72 00 6f 00 73 00 6f 00 66 00 74 00 5c 00 42 00 6f 00 6f 00 74 00 5c 00 62 00 6f 00 6f 00 74 00 6d 00 67 00 66 00 77 00 2e 00 65 00 66 00 69 00 00 00 / 7f ff 04 00\nBoot0001* UiApp\tFvVol(7cb8bdc9-f8eb-4f34-aaea-3ee4af6516a1)/FvFile(462caa21-7614-4503-836e-8ab6f4662331)\n      dp: 04 07 14 00 c9 bd b8 7c eb f8 34 4f aa ea 3e e4 af 65 16 a1 / 04 06 14 00 21 aa 2c 46 14 76 03 45 83 6e 8a b6 f4 66 23 31 / 7f ff 04 00\nBoot0002* UEFI Misc Device\tPciRoot(0x0)/Pci(0x2,0x0){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 02 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0003* UEFI Misc Device 2\tPciRoot(0x0)/Pci(0x3,0x0){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 03 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0005* UEFI PXEv4 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv4(0.0.0.0,0,DHCP,0.0.0.0,0.0.0.0,0.0.0.0){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0c 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0006* UEFI PXEv6 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv6([::],0,Static,[::],[::],64){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0d 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0007* UEFI HTTPv4 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv4(0.0.0.0,0,DHCP,0.0.0.0,0.0.0.0,0.0.0.0)/Uri(){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0c 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 03 18 04 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0008* UEFI HTTPv6 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv6([::],0,Static,[::],[::],64)/Uri(){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0d 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 03 18 04 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0009* EFI Internal Shell\tFvVol(7cb8bdc9-f8eb-4f34-aaea-3ee4af6516a1)/FvFile(7c04a583-9e3e-4f1c-ad65-e05268d0b4d1)\n      dp: 04 07 14 00 c9 bd b8 7c eb f8 34 4f aa ea 3e e4 af 65 16 a1 / 04 06 14 00 83 a5 04 7c 3e 9e 1c 4f ad 65 e0 52 68 d0 b4 d1 / 7f ff 04 00\nBoot000A* Bazzite\tHD(1,GPT,88420aef-f1fd-4814-8381-339d03f60a65,0x800,0x12c000)/\\EFI\\fedora\\shimx64.efi\n      dp: 04 01 2a 00 01 00 00 00 00 08 00 00 00 00 00 00 00 c0 12 00 00 00 00 00 ef 0a 42 88 fd f1 14 48 83 81 33 9d 03 f6 0a 65 02 02 / 04 04 34 00 5c 00 45 00 46 00 49 00 5c 00 66 00 65 00 64 00 6f 00 72 00 61 00 5c 00 73 00 68 00 69 00 6d 00 78 00 36 00 34 00 2e 00 65 00 66 00 69 00 00 00 / 7f ff 04 00\n",
+        "stderr": "",
+        "mutation": false
+      },
+      {
+        "command": [
+          "efibootmgr",
+          "-v"
+        ],
+        "returncode": 0,
+        "stdout": "BootCurrent: 000A\nTimeout: 0 seconds\nBootOrder: 0000,000A,0001,0005,0006,0007,0008,0009,0002,0003\nBoot0000* Windows Boot Manager\tHD(1,GPT,20d4509a-0f19-4bc0-8478-2274d7eac018,0x800,0x82000)/\\EFI\\Microsoft\\Boot\\bootmgfw.efi\n      dp: 04 01 2a 00 01 00 00 00 00 08 00 00 00 00 00 00 00 20 08 00 00 00 00 00 9a 50 d4 20 19 0f c0 4b 84 78 22 74 d7 ea c0 18 02 02 / 04 04 46 00 5c 00 45 00 46 00 49 00 5c 00 4d 00 69 00 63 00 72 00 6f 00 73 00 6f 00 66 00 74 00 5c 00 42 00 6f 00 6f 00 74 00 5c 00 62 00 6f 00 6f 00 74 00 6d 00 67 00 66 00 77 00 2e 00 65 00 66 00 69 00 00 00 / 7f ff 04 00\nBoot0001* UiApp\tFvVol(7cb8bdc9-f8eb-4f34-aaea-3ee4af6516a1)/FvFile(462caa21-7614-4503-836e-8ab6f4662331)\n      dp: 04 07 14 00 c9 bd b8 7c eb f8 34 4f aa ea 3e e4 af 65 16 a1 / 04 06 14 00 21 aa 2c 46 14 76 03 45 83 6e 8a b6 f4 66 23 31 / 7f ff 04 00\nBoot0002* UEFI Misc Device\tPciRoot(0x0)/Pci(0x2,0x0){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 02 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0003* UEFI Misc Device 2\tPciRoot(0x0)/Pci(0x3,0x0){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 03 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0005* UEFI PXEv4 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv4(0.0.0.0,0,DHCP,0.0.0.0,0.0.0.0,0.0.0.0){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0c 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0006* UEFI PXEv6 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv6([::],0,Static,[::],[::],64){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0d 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0007* UEFI HTTPv4 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv4(0.0.0.0,0,DHCP,0.0.0.0,0.0.0.0,0.0.0.0)/Uri(){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0c 1b 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 03 18 04 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0008* UEFI HTTPv6 (MAC:525400123456)\tPciRoot(0x0)/Pci(0x1,0x0)/MAC(525400123456,1)/IPv6([::],0,Static,[::],[::],64)/Uri(){auto_created_boot_option}\n      dp: 02 01 0c 00 d0 41 03 0a 00 00 00 00 / 01 01 06 00 00 01 / 03 0b 25 00 52 54 00 12 34 56 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 / 03 0d 3c 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 / 03 18 04 00 / 7f ff 04 00\n    data: 4e ac 08 81 11 9f 59 4d 85 0e e2 1a 52 2c 59 b2\nBoot0009* EFI Internal Shell\tFvVol(7cb8bdc9-f8eb-4f34-aaea-3ee4af6516a1)/FvFile(7c04a583-9e3e-4f1c-ad65-e05268d0b4d1)\n      dp: 04 07 14 00 c9 bd b8 7c eb f8 34 4f aa ea 3e e4 af 65 16 a1 / 04 06 14 00 83 a5 04 7c 3e 9e 1c 4f ad 65 e0 52 68 d0 b4 d1 / 7f ff 04 00\nBoot000A* Bazzite\tHD(1,GPT,88420aef-f1fd-4814-8381-339d03f60a65,0x800,0x12c000)/\\EFI\\fedora\\shimx64.efi\n      dp: 04 01 2a 00 01 00 00 00 00 08 00 00 00 00 00 00 00 c0 12 00 00 00 00 00 ef 0a 42 88 fd f1 14 48 83 81 33 9d 03 f6 0a 65 02 02 / 04 04 34 00 5c 00 45 00 46 00 49 00 5c 00 66 00 65 00 64 00 6f 00 72 00 61 00 5c 00 73 00 68 00 69 00 6d 00 78 00 36 00 34 00 2e 00 65 00 66 00 69 00 00 00 / 7f ff 04 00\n",
+        "stderr": "",
+        "mutation": false
+      }
+    ]
+  }
+]

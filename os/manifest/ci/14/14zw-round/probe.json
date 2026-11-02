@@ -1,0 +1,192 @@
+{
+  "status": "passed independent probe acceptance inspection",
+  "run": 41264222963,
+  "head": "75a2c638cecff042b528eb07e3089eda9129de02",
+  "artifact": {
+    "sha256": "0384cce4db69657b0d3c6ee95bd5c5c53000ab325da48df4bb83ab2244ebddf3",
+    "path": "evidence.zip",
+    "artifact_id": 13067620121,
+    "bytes": 4782778,
+    "run": 41264222963,
+    "head": "75a2c638cecff042b528eb07e3089eda9129de02",
+    "status": "success",
+    "members": 397,
+    "logs": {
+      "sha256": "792ddd8a06e7881514ac9712404aa9a97cbe64e2f1b39ce44f8f5e96df2e08a9",
+      "path": "logs.zip"
+    },
+    "downloaded_at": "2026-11-01T02:40:31.414380+00:00"
+  },
+  "probe": {
+    "status": "passed",
+    "installed": false,
+    "both_orders": false,
+    "order": "protected-second",
+    "review_validated": true,
+    "detached_windows": true,
+    "target_reset": true,
+    "owner_auth_read_only": true,
+    "native_job_auth": true,
+    "guest_credential_share": false,
+    "signature_verified": true,
+    "firmware_rule": "11f-linux-position",
+    "stock_recipe_probe": true,
+    "failure_counter_probe": true,
+    "read_only_keyboard_proof": true,
+    "installed_keyboard_reader_probe": true,
+    "part_b_tools_probe": true,
+    "stock_idle_source_verified": true,
+    "bootnext_checked": true,
+    "bootloader_source_verified": true,
+    "offline_link": true,
+    "tools_hotplug": true,
+    "tools_absent_before_reboot": true,
+    "bundle_equality": true,
+    "host_walk": true,
+    "commit": "75a2c638cecff042b528eb07e3089eda9129de02"
+  },
+  "key_counter": {
+    "status": "passed",
+    "counts_only": true,
+    "autorepeat": {
+      "delay_ms": 250,
+      "period_ms": 33
+    },
+    "counts": {
+      "press": 0,
+      "release": 0,
+      "repeat": 0,
+      "syn_dropped": 0
+    },
+    "codes_recorded": false,
+    "values_recorded": false,
+    "keys_released": true,
+    "seconds": 14.374,
+    "complete": true,
+    "device": "/dev/input/event1",
+    "pid": 12046
+  },
+  "key_checkpoint": {
+    "status": "passed",
+    "sequence": 1,
+    "counts_only": true,
+    "counts": {
+      "press": 0,
+      "release": 0,
+      "repeat": 0,
+      "syn_dropped": 0
+    },
+    "keys_released": true,
+    "complete": true,
+    "codes_recorded": false,
+    "values_recorded": false
+  },
+  "unicode_console": {
+    "status": "passed",
+    "getter_only": true,
+    "unicode_cells": 8000
+  },
+  "keyboard_timings": [
+    {
+      "hold_ms": 30,
+      "minimum_gap_ms": 120.0
+    },
+    {
+      "hold_ms": 30,
+      "minimum_gap_ms": 120.0
+    },
+    {
+      "hold_ms": 30,
+      "minimum_gap_ms": 120.0
+    }
+  ],
+  "native_tests": 569,
+  "native_seconds": 172.805,
+  "native_skips": 0,
+  "loop_checks": 20,
+  "loop_helper_mutations": 0,
+  "fixture_protected_unchanged": true,
+  "fixture_cleanup": true,
+  "iso": {
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "downloaded_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "official_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "filename": "bazzite-nvidia-open-stable-live-amd64.iso",
+    "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+    "pinned_bytes": 9068650496,
+    "bytes": 9068650496,
+    "max_attempts": 6,
+    "attempts": [
+      {
+        "attempt": 1,
+        "offset": 0,
+        "range_requested": false,
+        "status": 200,
+        "bytes": 9068650496,
+        "stored_bytes": 9068650496,
+        "received_total": 9068650496,
+        "restarted": false,
+        "outcome": "complete-response",
+        "content-length": [
+          "9068650496"
+        ],
+        "content-range": [],
+        "content-encoding": [],
+        "applied_offset": 0
+      }
+    ],
+    "status": "passed"
+  },
+  "staged_transfers": 37,
+  "staged_sha_and_syntax_verified": true,
+  "privacy": {
+    "status": "passed",
+    "run": 41264222963,
+    "head": "75a2c638cecff042b528eb07e3089eda9129de02",
+    "scan": {
+      "sha256": "2894c1aa892375915cb715b76ea9fd57a4151690665486f4820b84fbe591cb0d",
+      "path": ".work/14/gitleaks/14zw-probe-artifact.json"
+    },
+    "findings": 509,
+    "iso_listing_findings": 507,
+    "kernel_certificate_findings": [
+      {
+        "sha256": "eb024f15a7d3286eb67a6f7be7764d7f1b29cd1ce77a8534ec94b4c653e28785",
+        "certificate_label": "Fedora kernel signing key",
+        "fingerprint_hex_length": 40,
+        "path": "evidence/two-disk/live-ui-probe-boot-console.txt",
+        "line": 491,
+        "rule": "generic-api-key",
+        "classification": "14v public kernel X.509 certificate fingerprint"
+      },
+      {
+        "sha256": "fa18da12ea089e3840b553efa8fed995f549764346517c4f1f3413128e9a5eee",
+        "certificate_label": "Fedora kernel signing key",
+        "fingerprint_hex_length": 40,
+        "path": "evidence/two-disk/live-ui-probe-boot-console.txt",
+        "line": 517,
+        "rule": "generic-api-key",
+        "classification": "14v public kernel X.509 certificate fingerprint"
+      }
+    ],
+    "policy": "briefs/14s-loop-node-race.md and briefs/14v-efibootmgr-format.md; exact whole source line in captured boot console only",
+    "ignore_changes": false,
+    "workflow_changes": false,
+    "raw_consoles_committed": false
+  },
+  "independent_audits": {
+    "status": "passed independent replay of actual raw files and counters",
+    "run": 41264222963,
+    "head": "75a2c638cecff042b528eb07e3089eda9129de02",
+    "protected_captures": 3,
+    "zero_write_unmap_samples": 4,
+    "raw_varstores_decoded": 3,
+    "bootnext_exact_replays": 3,
+    "nvram_rule_exact_replays": 2,
+    "all_variable_delta_recomputations": 2,
+    "stages": [
+      "live-ui-probe",
+      "probe-detached-windows"
+    ]
+  }
+}

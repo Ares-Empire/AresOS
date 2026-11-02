@@ -1,0 +1,36 @@
+{
+  "sha256": "e2909f53d780906f55232a2a88f856d71d80a1bcf41d27335fa1bce5bd4e24d4",
+  "script": "set -e\nresult=$(mktemp /run/aresos-json.XXXXXX)\ntrap 'rm -f \"$result\"' EXIT\n{\npython3 -c 'import json,pathlib,stat,time\nfolders=('\"'\"'/var/lib/ares/records'\"'\"', '\"'\"'/run/ares-owner-diagnostics'\"'\"')\ndef records():\n    found=[]\n    for folder in folders:\n        root=pathlib.Path(folder)\n        if not root.exists():\n            assert not root.is_symlink(), '\"'\"'Diagnostic directory is a broken link'\"'\"'\n            continue\n        info=root.lstat()\n        assert stat.S_ISDIR(info.st_mode) and not root.is_symlink() and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o700, '\"'\"'Diagnostics are not private'\"'\"'\n        for p in root.glob('\"'\"'*.json'\"'\"'):\n            info=p.lstat()\n            assert stat.S_ISREG(info.st_mode) and not p.is_symlink() and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o600, '\"'\"'Diagnostic record is not private'\"'\"'\n            found.append(p)\n    return found\nbefore=set(['\"'\"'/var/lib/ares/records/disks.json'\"'\"', '\"'\"'/var/lib/ares/records/20261027T185801.036427Z-install.json'\"'\"', '\"'\"'/var/lib/ares/records/prepared.json'\"'\"', '\"'\"'/var/lib/ares/records/20261027T185828.633625Z-prepare.json'\"'\"', '\"'\"'/var/lib/ares/records/20261027T185901.115672Z-prepare.json'\"'\"', '\"'\"'/var/lib/ares/records/network-verified.json'\"'\"', '\"'\"'/var/lib/ares/records/20261027T200013.706948Z-title.json'\"'\"', '\"'\"'/var/lib/ares/records/20261027T200031.692977Z-records.json'\"'\"', '\"'\"'/var/lib/ares/records/20261027T200058.754698Z-export.json'\"'\"', '\"'\"'/var/lib/ares/records/20261027T200140.986443Z-title.json'\"'\"', '\"'\"'/var/lib/ares/records/20261027T200536.679124Z-title.json'\"'\"', '\"'\"'/var/lib/ares/records/record-c.json'\"'\"', '\"'\"'/var/lib/ares/records/title.json'\"'\"', '\"'\"'/var/lib/ares/records/20261027T200554.126371Z-records.json'\"'\"'])\ndeadline=time.monotonic()+1800\nwhile time.monotonic()<deadline:\n    paths=[p for p in records() if str(p) not in before and p.name.endswith('\"'\"'-login.json'\"'\"')]\n    if paths:\n        assert len(paths)==1, '\"'\"'Ambiguous owner command records'\"'\"'\n        result=json.loads(paths[0].read_text())\n        assert result['\"'\"'status'\"'\"'] in ('\"'\"'passed'\"'\"','\"'\"'stopped'\"'\"')\n        print(json.dumps(result));break\n    time.sleep(.5)\nelse: raise SystemExit('\"'\"'Owner command did not finish'\"'\"')\n'\n} > \"$result\"\npython3 - \"$result\" <<'ARESOS_JSON_EXPORT'\nimport base64, hashlib, json, pathlib, sys\nraw = pathlib.Path(sys.argv[1]).read_bytes()\njson.loads(raw)\nprint('\\nARESOS_EXPORT_START')\nprint(base64.encodebytes(raw).decode(), end='')\nprint('ARESOS_EXPORT_END')\nprint('ARESOS_EXPORT_SHA256 ' + hashlib.sha256(raw).hexdigest() + '  guest.json')\nARESOS_JSON_EXPORT\n",
+  "wire_sha256": "ec52201ce5c72e95214b857b5b2913b3b5c61fb1c7b4c747f4f1161835fbdd47",
+  "framed_bytes": 2652,
+  "wire_bytes": 3633,
+  "max_wire_line_bytes": 1024,
+  "before": [
+    "/var/lib/ares/records/disks.json",
+    "/var/lib/ares/records/20261027T185801.036427Z-install.json",
+    "/var/lib/ares/records/prepared.json",
+    "/var/lib/ares/records/20261027T185828.633625Z-prepare.json",
+    "/var/lib/ares/records/20261027T185901.115672Z-prepare.json",
+    "/var/lib/ares/records/network-verified.json",
+    "/var/lib/ares/records/20261027T200013.706948Z-title.json",
+    "/var/lib/ares/records/20261027T200031.692977Z-records.json",
+    "/var/lib/ares/records/20261027T200058.754698Z-export.json",
+    "/var/lib/ares/records/20261027T200140.986443Z-title.json",
+    "/var/lib/ares/records/20261027T200536.679124Z-title.json",
+    "/var/lib/ares/records/record-c.json",
+    "/var/lib/ares/records/title.json",
+    "/var/lib/ares/records/20261027T200554.126371Z-records.json"
+  ],
+  "retained_transcript": {
+    "sha256": "411b790c7ef7d529fc4a2fb32734cd4d931bb25284b9adfe024a4f9f7d8419bd",
+    "bytes": 116,
+    "base64": "G1s/MjAwNGwNDQobWz8yMDA0aD4gG1s/MjAwNGwNDQobWz8yMDA0aD4gG1s/MjAwNGwNDQobWz8yMDA0aD4gG1s/MjAwNGwNDQobWz8yMDA0aD4gG1s/MjAwNGwNDQobWz8yMDA0aD4gG1s/MjAwNGwNDQo="
+  },
+  "source": {
+    "sha256": "fa66f7e99a2dd4961f9fb4e47bea3de5bf752c01ff35a709bd3c894e62188586",
+    "path": ".work/14/run-40566496658/evidence.zip",
+    "run": 40566496658,
+    "source_commit": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+    "kind": "exact reconstruction from retained path-list and unchanged framing source; UART received input was not retained"
+  }
+}

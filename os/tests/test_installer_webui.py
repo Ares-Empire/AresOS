@@ -16,13 +16,14 @@ class DownloadCompletenessTest(unittest.TestCase):
         root = pathlib.Path(__file__).resolve().parents[2]
         observed = json.loads((root / 'os/manifest/ci/11b/probe-4/installer/iso-download.json').read_text())
         with self.assertRaisesRegex(IOError, 'Incomplete ISO transfer'):
-            validate_download(observed, dict(sha256=observed['sha256']))
+            length = next(v for k, v in observed['headers'].items() if k.lower() == 'content-length')
+            validate_download(observed, dict(sha256=observed['sha256'], bytes=int(length)))
 
     def test_complete_transfer_still_requires_the_exact_pin(self):
-        observed = dict(headers={'content-length': '10'}, bytes=10, downloaded_sha256='a' * 64)
-        validate_download(observed, dict(sha256='a' * 64))
+        observed = dict(bytes=10, downloaded_sha256='a' * 64, official_sha256='a' * 64)
+        validate_download(observed, dict(sha256='a' * 64, bytes=10))
         with self.assertRaisesRegex(AssertionError, 'Downloaded ISO differs: STOP'):
-            validate_download(observed, dict(sha256='b' * 64))
+            validate_download(observed, dict(sha256='b' * 64, bytes=10))
 
 
 class ReviewBoundaryTest(unittest.TestCase):
@@ -106,7 +107,8 @@ class ProbeAuthorizationTest(unittest.TestCase):
                 require_probe(wrong, 'a' * 40)
 
     def test_minute_ledger_rounds_each_executed_job_up(self):
-        job = dict(conclusion='success', started_at='2026-10-22T23:40:00Z', completed_at='2026-10-22T23:41:01Z')
+        job = dict(conclusion='success', started_at='2026-10-22T23:40:00Z', completed_at='2026-10-22T23:41:01Z',
+                   steps=[dict(started_at='2026-10-22T23:40:00Z',completed_at='2026-10-22T23:41:01Z')])
         self.assertEqual(job_minutes(job), 2)
         job['conclusion'] = 'skipped'
         self.assertEqual(job_minutes(job), 0)

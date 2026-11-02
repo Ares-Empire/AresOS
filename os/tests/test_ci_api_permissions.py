@@ -71,6 +71,7 @@ def api_requirements(sources):
         if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in ('api', 'read_only'))
     expected_calls = collections.Counter({
         ('read_only', 'path'): 1,  # organization_budget, never the CI path
+        ('read_only', 'budget_path'): 1,  # same host-only organization_budget
         ('read_only', "f'repos/{REPOSITORY}/{path}'"): 2,
         ('read_only', 'f"repos/{REPOSITORY}/actions/artifacts/{artifact[\'id\']}/zip"'): 1,
         ('api', 'RUN_HISTORY_PATH'): 1,
@@ -91,6 +92,10 @@ def api_requirements(sources):
     host_only, = [n for n in ast.walk(guard) if isinstance(n, ast.If)
                   and ast.dump(n.test) == ast.dump(ast.parse("PACKAGE in ('13', '14') and not ci", mode="eval").body)]
     assert len(billing_calls) == 1 and billing_calls[0] in list(ast.walk(host_only)), 'Billing must stay outside CI'
+    billing, = [n for n in guard.body if isinstance(n, ast.FunctionDef) and n.name == 'organization_budget']
+    budget_get, = [n for n in ast.walk(guard) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+                  and n.func.id == 'read_only' and ast.unparse(n.args[0]) == 'budget_path']
+    assert budget_get in list(ast.walk(billing)), 'Budget GET must stay in host-only billing helper'
     result = {'verify_release.py': {'actions'}, 'registry_auth.py': {'packages'},
               'rehearsal_guard.py': {'actions'}}
     for name, text in sources.items():

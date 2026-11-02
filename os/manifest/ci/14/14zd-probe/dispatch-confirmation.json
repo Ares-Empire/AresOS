@@ -1,0 +1,43 @@
+{
+  "returned_run_id": 40592552658,
+  "max_reads": 6,
+  "post_retried": false,
+  "observations": [
+    {
+      "attempt": 1,
+      "identity": {
+        "id": 40592552658,
+        "head_sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+        "head_branch": "pkg/14-owner-tools",
+        "event": "workflow_dispatch",
+        "display_title": "OS image",
+        "path": ".github/workflows/os-image.yml",
+        "run_attempt": 1
+      },
+      "status": "queued",
+      "conclusion": null,
+      "mismatch": {
+        "display_title": {
+          "expected": "Two-disk rehearsal (probe)",
+          "actual": "OS image"
+        }
+      }
+    },
+    {
+      "attempt": 2,
+      "identity": {
+        "id": 40592552658,
+        "head_sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+        "head_branch": "pkg/14-owner-tools",
+        "event": "workflow_dispatch",
+        "display_title": "Two-disk rehearsal (probe)",
+        "path": ".github/workflows/os-image.yml",
+        "run_attempt": 1
+      },
+      "status": "queued",
+      "conclusion": null,
+      "mismatch": {}
+    }
+  ],
+  "status": "confirmed"
+}

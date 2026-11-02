@@ -1,0 +1,11 @@
+{
+  "checked_at": "2026-10-28T07:43:03.294723+00:00",
+  "kind": "read-only Restart Manager snapshot after readers/replays exited",
+  "paths": [
+    ".work/14/14zj-replay-1/evidence/iso-download.json",
+    ".work/14/14zj-replay-2/evidence/iso-download.json"
+  ],
+  "holders": [],
+  "processes_stopped": false,
+  "windows_settings_changed": false
+}

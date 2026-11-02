@@ -1,0 +1,136 @@
+{
+  "artifact_sha256": "a60611cdc103d29ed9ad1f42c64e1e095c7a465a63443657dd63c464268f8ba3",
+  "raw_files": [
+    {
+      "sha256": "cb770ae329f260bef30242b62ad060f4ce5303be47bd83e3a9fd894f020a6e75",
+      "path": "evidence/two-disk/after-first-network-records-owner-diagnostics.json",
+      "status": "passed",
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "33c42b6c5293f5594b1f676a91b168ddfceda5de69d2f58ff62fa3a81ade16ed",
+      "path": "evidence/two-disk/after-first-network-title-owner-diagnostics.json",
+      "status": "passed",
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "4a970786a7882527da43cc3baafc068a2d45c615eca16696b82c710f178a0154",
+      "path": "evidence/two-disk/corrected-stock-records-owner-diagnostics.json",
+      "status": "passed",
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/corrected-stock-title-owner-diagnostics.json",
+      "status": "passed",
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "fda2ea3597e5784212a14142b8e2dc91f8efda2658fa517f1cbdbe703490d69a",
+      "path": "evidence/two-disk/tools-before-reboot-title-owner-diagnostics.json",
+      "status": "passed",
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "fa3e278d4637b2ad9186c750455d45a1943e41cc042f0019f1be81879cb2a9bb",
+      "path": "evidence/two-disk/tools-install-owner-diagnostics.json",
+      "status": "passed",
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "c780e13204e60820d022632b2b85625ac86097e45d493a80f4eaf73dcdcc8fbb",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "status": "passed",
+      "host_trace_mutations": 4
+    },
+    {
+      "sha256": "1022a20b75743c743a14bb07d101e23e70c5777d30d9a68028b31565ffa129ed",
+      "path": "evidence/two-disk/tools-prepare-rerun-owner-diagnostics.json",
+      "status": "passed",
+      "host_trace_mutations": 0
+    },
+    {
+      "sha256": "6264a36b547ef62ba5f268e6fa810dd6288bb87d789085a60402353bea67609a",
+      "path": "evidence/two-disk/tools-record-export-owner-diagnostics.json",
+      "status": "passed",
+      "host_trace_mutations": 5
+    },
+    {
+      "sha256": "57367f3492a7564d5ca13ec32efed7dc5afbfc208a25a51f826c313eded2b3ff",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-transport.json"
+    },
+    {
+      "sha256": "a4134e3ec032638a629c23d34b34c45a1ec9f0df4ea7f9cba7cbb58c731f7129",
+      "path": "evidence/two-disk/private-owner-login-hidden-input.json"
+    },
+    {
+      "sha256": "a17b1f14a19ede940643bc0abd7a4258fd354ab069cf098c3c1e3bd0764bfacb",
+      "path": "evidence/two-disk/private-owner-login-hidden-input.txt"
+    },
+    {
+      "sha256": "41dabf1bdbcb282b939f89173eb1057e2fcedf73ec079f06ab0c303fa762453f",
+      "path": "evidence/two-disk/private-owner-login-input-ready-wait-32-sample-1-transport.json"
+    },
+    {
+      "sha256": "baa7ec6df37124efa0cda5ae97ddfe77c505f68752e8760cf742c9ce2f8a9798",
+      "path": "evidence/two-disk/private-owner-login-input-ready-wait-32-sample-1.json"
+    },
+    {
+      "sha256": "57a8e5f96e5cd3fecdeb638416629f7a5d8a94b0cf715bd0eb078fd2474fff56",
+      "path": "evidence/two-disk/private-owner-login-input-ready-wait-32-sample-1.txt"
+    },
+    {
+      "sha256": "a797ded261e02ffbf37ce636ec5f5ec4fd087b8c6a69a5c8d2ecd30c1e144a4b",
+      "path": "evidence/two-disk/private-owner-login-physical-idle-timeout-1.json"
+    },
+    {
+      "sha256": "63df235554d03b43788e97bfdfb7ba5c45dfa6eefaad8c074aa468c06ba84484",
+      "path": "evidence/two-disk/private-owner-login-physical-idle-timeout-1.vcsa"
+    },
+    {
+      "sha256": "4925b4933ebef5717c628b50a17d4c1c486683f00b275d87cd8ea7767d9a403f",
+      "path": "evidence/two-disk/private-owner-login-physical-idle-transport.json"
+    },
+    {
+      "sha256": "3626614753dae932d2bf4d3c94e5d427697c897d7ec5973db5b16a9d03fc4576",
+      "path": "evidence/two-disk/private-owner-login-physical-idle.json"
+    },
+    {
+      "sha256": "b3fc7c4335ab32d7abf0c2ad0ece205e8bc480dac26f109e1cd9d49f5980949a",
+      "path": "evidence/two-disk/private-owner-login-physical-idle.txt"
+    },
+    {
+      "sha256": "9de5c93f4e2548601934eda6596b7c4303af8eba50fde150599a537a7d91c359",
+      "path": "evidence/two-disk/private-owner-login-ready-wait-31-sample-1-transport.json"
+    },
+    {
+      "sha256": "e9964ef87e4700f5d6a3f1caf08f0316dbd1dbb7acd0e74d323fb408001ebbfb",
+      "path": "evidence/two-disk/private-owner-login-ready-wait-31-sample-1.json"
+    },
+    {
+      "sha256": "1f44a7109bbe543f942359d683a006220446a037a1fec2e524805b80c1515002",
+      "path": "evidence/two-disk/private-owner-login-ready-wait-31-sample-1.txt"
+    },
+    {
+      "sha256": "6470ca2e358db8b2fe942aa1e29b12022830b9d3b4f651bafbb4515b2f5a5f7c",
+      "path": "evidence/two-disk/private-owner-login-serial-resync.json"
+    },
+    {
+      "sha256": "d1c186843e49e0efbb8e33afa8589edcc6e220b78f7191b0dc400861ce9a52fa",
+      "path": "evidence/two-disk/tools-before-reboot-title-ready-wait-19-resync-1.json"
+    },
+    {
+      "sha256": "7530d6f8a040b2f228316f1a68ca822c0d4dbd259dde75cf7f00242ef3bf4373",
+      "path": "evidence/two-disk/tools-install-ready-wait-5-resync-1.json"
+    },
+    {
+      "sha256": "695277c9fbaee8174bca96d7f7e34763c3c9905bff89dabe641c00e3d0a6c7a7",
+      "path": "evidence/two-disk/before-first-network-deployments.json"
+    },
+    {
+      "sha256": "695277c9fbaee8174bca96d7f7e34763c3c9905bff89dabe641c00e3d0a6c7a7",
+      "path": "evidence/two-disk/after-first-network-deployments.json"
+    }
+  ],
+  "raw_consoles_or_vcsa_committed": false
+}

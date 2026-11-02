@@ -168,6 +168,8 @@ jobs:
           skopeo inspect --raw "docker://$image" > evidence/base-oci-manifest.json
           df -B1 / | tee evidence/runner-disk.txt
       - name: Resolve all privileged host tools before credentials
+        env:
+          REHEARSAL_MODE: release-13
         run: python3 os/ci/build_tools.py resolve evidence/build-tools.json
       - name: Authorize only the historical private image read for comparison
         if: github.event_name == 'workflow_dispatch' && inputs.release_13 && github.ref_name == 'pkg/13-keyboard-layout'
@@ -185,6 +187,8 @@ jobs:
           python3 os/ci/build_tools.py launch "$PWD/evidence/build-tools.json"
       - name: Remove historical image credentials
         if: always()
+        env:
+          REHEARSAL_MODE: release-13
         run: sudo -E python3 os/ci/rehearsal_auth.py cleanup
       - name: Build isolated test overlay and prove release excludes it
         run: |
@@ -325,7 +329,7 @@ jobs:
     name: Pinned live ISO inspection and two-disk rehearsal
     if: github.event_name == 'workflow_dispatch' && inputs.rehearsal != ''
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 130 || 40 }}
+    timeout-minutes: ${{ inputs.rehearsal == 'owner-tools' && 240 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}
     permissions:
       contents: read
       packages: read
@@ -339,7 +343,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
           PROBE_RUN: ${{ inputs.probe_run }}
-        run: python3 os/ci/rehearsal_guard.py '${{ (github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/14-owner-tools') && inputs.rehearsal == 'probe' && 'probe-budget-ci' || 'ci' }}' '${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 130 || 42 }}'
+        run: python3 os/ci/rehearsal_guard.py '${{ (github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/14-owner-tools') && inputs.rehearsal == 'probe' && 'probe-budget-ci' || 'ci' }}' '${{ inputs.rehearsal == 'owner-tools' && 240 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 72 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 42 }}'
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
@@ -358,20 +362,23 @@ jobs:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/owner_capabilities.py
       - name: Qualify tools, regressions, rewritten release identity and private access
-        timeout-minutes: 15
+        timeout-minutes: 35
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: |
           set -euo pipefail
           python3 -m venv --system-site-packages .work/browser-env
-          .work/browser-env/bin/pip install playwright==1.58.0
+          .work/browser-env/bin/pip --retries 5 --timeout 60 install playwright==1.58.0
           export PLAYWRIGHT_BROWSERS_PATH="$PWD/.work/browsers"
+          printf 'Acquire::Retries "3";\n' | sudo tee /etc/apt/apt.conf.d/80ares-playwright-retries >/dev/null
           .work/browser-env/bin/playwright install --with-deps chromium
           .work/browser-env/bin/python -c 'import crypt, PIL, playwright.sync_api'
           dpkg-query -W > evidence/rehearsal-host-packages.txt
           env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests -v
           if test "$GITHUB_REF_NAME" = pkg/14-owner-tools; then
             sudo -E env -u GH_TOKEN python3 os/ci/owner_devices.py
+            sudo -E env -u GH_TOKEN python3 os/ci/owner_counter_kernel.py
           fi
           pwsh -NoProfile -File os/tests/owner-tools.Tests.ps1 -Bundle os/owner-tools/payload -Work .work/owner-tools-unit-copy
           python3 -m py_compile os/ci/*.py os/ci/overlay/*.py os/owner-tools/*.py
@@ -384,7 +391,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: probe
-        run: python3 os/ci/rehearsal_guard.py ci 42
+        run: python3 os/ci/rehearsal_guard.py ci '${{ github.ref_name == 'pkg/14-owner-tools' && 72 || 42 }}'
       - name: Create runner-temporary pinned-image credentials
         if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools' && (inputs.rehearsal == 'probe' || inputs.rehearsal == 'part-b')
         env:
@@ -427,7 +434,7 @@ jobs:
           python3 os/ci/installer_inspect.py
       - name: Prepare disposable file disks and qualify the real live environment
         if: inputs.rehearsal != 'inspect'
-        timeout-minutes: ${{ (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard' || inputs.rehearsal == 'owner-tools') && 106 || 80 }}
+        timeout-minutes: ${{ inputs.rehearsal == 'owner-tools' && 200 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 106 || 80 }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
@@ -455,9 +462,13 @@ jobs:
           fi
       - name: Remove owner registry credentials
         if: always() && github.ref_name != 'pkg/13-keyboard-layout' && github.ref_name != 'pkg/14-owner-tools'
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/rehearsal_auth.py cleanup
       - name: Remove package 13 job-token credentials
         if: always() && (github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/14-owner-tools')
+        env:
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/registry_auth.py cleanup
       - name: Bound retained evidence
         if: always()

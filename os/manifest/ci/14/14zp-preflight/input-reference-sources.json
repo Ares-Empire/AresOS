@@ -1,0 +1,48 @@
+{
+  "kind": "public Linux ABI/reference sources, pinned sudo1.9.17p2 source, actual retained Q11 owner-length evidence",
+  "sources": [
+    {
+      "sha256": "1a10eca426409b7cb8fa2b5f8575383ad0cf93509c87b9e53a58c64857704eb9",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.17/drivers/tty/n_tty.c",
+      "path": "linux-n_tty.c"
+    },
+    {
+      "sha256": "d6153e0e1bc1c582ed1f7c6ec19daf86f937f38f4b51dcc246d2a88a52f61041",
+      "path": "vc_screen.c",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux/+/v6.17/drivers/tty/vt/vc_screen.c?format=TEXT"
+    },
+    {
+      "sha256": "5e3990047dfeabf7bdfd526628f26b11ed1130fa1097d0d8328779492a27ce05",
+      "path": "src-tgetpass.c",
+      "url": "https://github.com/sudo-project/sudo/blob/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/src/tgetpass.c"
+    },
+    {
+      "sha256": "3f0969da81b3df31f59c25db8cacdbe2720223e53ff2a6a44a532749310ffbc4",
+      "path": "lib-util-term.c",
+      "url": "https://github.com/sudo-project/sudo/blob/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/lib/util/term.c"
+    },
+    {
+      "sha256": "ffa4bacac0eb826e8a8094497d1d589a5c1cc33dfe7a3219bb954a81557b7b8d",
+      "path": "pam-misc_conv.c",
+      "url": "https://github.com/linux-pam/linux-pam/blob/v1.7.1/libpam_misc/misc_conv.c",
+      "kind": "Linux-PAM conversation reference, not a claim of exact guest package version"
+    }
+  ],
+  "owner_length_evidence": {
+    "sha256": "22c8145601d60cae527174c6a92227b500c8b8a90762ee47932c2e7d9987da72",
+    "path": "os/manifest/ci/14/14zo-qualification-stop/owner-length-token-proof.json",
+    "value_recorded": false,
+    "length": 40,
+    "sent_events": 110,
+    "received_events": 110,
+    "repeats": 0,
+    "syn_dropped": 0,
+    "outcome": "existing registry-refusal STOP; hidden read returned"
+  },
+  "clear_contract": "Canonical VKILL21 discards the incomplete line; expected reader stays in read0 with no Enter; counter verifies Ctrl-U and all keys released. No queued bytes read.",
+  "unicode_contract": "VCSA glyph slots differ from Unicode; VCSU returns native32-bit codepoints without attributes/header. Stable VCSA geometry bounds the cursor slice. Actual guest getter is mandatory in probe.",
+  "sudo_contract": "Pinned tgetpass uses noecho (cbreak only for pwfeedback), reads one byte at a time, accepts CR or LF. Canonical VKILL is mandatory only for clear/retype; a noncanonical reader cannot receive that retry.",
+  "diagnosis": "Integrator14zp classifies Q11 public-command duplication as autorepeat from late100ms releases; Q9/Q10 corruption remains unproved",
+  "guest_keyboard_settings_changed": false,
+  "reference_kernel_is_not_a_claim_of_matching_guest_fork": true
+}

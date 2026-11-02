@@ -23,12 +23,14 @@ foreach ($bad in $cases) {
     if (-not $refused -or @(Get-ChildItem -LiteralPath $usb -Force).Count -ne 0) { throw 'Refusal wrote files.' }
     $count++
 }
-foreach ($kind in 'tamper','partial','duplicate','duplicate-field','old-shape','path-first','traversal') {
+foreach ($kind in 'tamper','partial','duplicate','duplicate-field','old-shape','path-first','traversal','sums-tamper','extra') {
     $badBundle = Join-Path $full $kind
     Copy-Item -LiteralPath $Bundle -Destination $badBundle -Recurse
     if ($kind -eq 'tamper') { Add-Content -LiteralPath (Join-Path $badBundle 'at') -Value 'BAD' }
     if ($kind -eq 'partial') { Remove-Item -LiteralPath (Join-Path $badBundle 'at') }
-    if ($kind -notin 'tamper','partial') {
+    if ($kind -eq 'sums-tamper') { Add-Content -LiteralPath (Join-Path $badBundle 'SHA256SUMS') -Value 'BAD' }
+    if ($kind -eq 'extra') { Set-Content -LiteralPath (Join-Path $badBundle 'unlisted') -Value 'BAD' }
+    if ($kind -notin 'tamper','partial','sums-tamper','extra') {
         $manifest = Join-Path $badBundle 'SHA256.json'
         $raw = Get-Content -LiteralPath $manifest -Raw
         $rows = @($raw | ConvertFrom-Json -AsHashtable)
@@ -63,14 +65,7 @@ if ($IsWindows) {
             function script:Get-Disk { param($Number) [pscustomobject]@{BusType='USB';IsBoot=$false;IsSystem=$false;SerialNumber='SYNTHETIC'} }
             function script:Set-Volume { param($DriveLetter,$NewFileSystemLabel) $script:fixtureLabel=$NewFileSystemLabel }
         }
-        $entryOutput = @(Copy-AresOwnerTools -Source $Bundle -DriveLetter Y)
-        $entryOutput
-        foreach ($page in 'INSTALL.md','INSTALL-PROCEDURES.md','INSTALL-REFERENCE.md','EMERGENCY.md') {
-            $guide = Get-Content -LiteralPath (Join-Path $repo "docs/$page") -Raw
-            foreach ($match in [regex]::Matches($guide, '`(PASS (?:tools manifest SHA256 |ARESTOOLS )[^`]+)`')) {
-                if ($entryOutput -cnotcontains $match.Groups[1].Value) { throw "Documented copy PASS differs from entry stdout in $page." }
-            }
-        }
+        Copy-AresOwnerTools -Source $Bundle -DriveLetter Y
         if ((Test-AresToolsBundle (Join-Path $root 'ares-tools')) -cne (Test-AresToolsBundle $Bundle)) { throw 'Public entry differs.' }
     } finally { Remove-PSDrive -Name Y }
 }

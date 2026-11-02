@@ -1,0 +1,44 @@
+{
+  "files": [
+    {
+      "sha256": "65809971627b28c9f0607f70f53d0c8457388958dcc71c5e4ad11e6d9d15d921",
+      "path": "os/manifest/ci/14/14zz-round/accounting.json"
+    },
+    {
+      "sha256": "b00135c01e5a2c2970fae8149a6b5c7e31fa5d7ef9bc64d41b1d3ca137910279",
+      "path": "os/manifest/ci/14/14zz-round/artifact-review.json"
+    },
+    {
+      "sha256": "e5e09eed767a13a3d1b52612af60a7b1a4a2a58a3c8c78c50bf246c4aaa9b647",
+      "path": "os/manifest/ci/14/14zz-round/independent-audits.json"
+    },
+    {
+      "sha256": "b6800456373daf0483865b7593becea9896fbfa8a7ae2509aa614a21b6b81e38",
+      "path": "os/manifest/ci/14/14zz-round/kernel-proof.json"
+    },
+    {
+      "sha256": "1fa28da163fa8fa77fc01d935187140ee69dc7930b7bbbff224bda4ece32c230",
+      "path": "os/manifest/ci/14/14zz-round/ledger.json"
+    },
+    {
+      "sha256": "7799475ef2af3b381e3866a982e94eed5813af6a97293c7219748df9ed60aa28",
+      "path": "os/manifest/ci/14/14zz-round/local-and-native.json"
+    },
+    {
+      "sha256": "2efee7cc3d22c883de2278726b93476942b60c6735c853ac9f565647bf55dbb4",
+      "path": "os/manifest/ci/14/14zz-round/local-privacy.json"
+    },
+    {
+      "sha256": "aae90f85071264be4fb33800fa20bc53c708c61204c57f264e4c257a844782fa",
+      "path": "os/manifest/ci/14/14zz-round/log-review.json"
+    },
+    {
+      "sha256": "ca6835da481a7f403eef0b671c5aade73d964249344a04d5eb2e78080815c5b1",
+      "path": "os/manifest/ci/14/14zz-round/privacy-and-dispatch.json"
+    },
+    {
+      "sha256": "b83162f32773987ed6952122706b09514077fc6a7d7e89c702166c99e86f99e4",
+      "path": "os/manifest/ci/14/14zz-round/round.json"
+    }
+  ]
+}

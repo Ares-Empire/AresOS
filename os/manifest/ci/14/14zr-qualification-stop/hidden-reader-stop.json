@@ -1,0 +1,182 @@
+{
+  "status": "STOP; Return withheld; no retry",
+  "run": 40866713472,
+  "head": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+  "before": {
+    "ready": true,
+    "canonical": true,
+    "echo_enabled": false,
+    "vkill": 21,
+    "syscall_number": 0,
+    "value_recorded": false,
+    "queue_contents_read": false,
+    "observation": {
+      "reason": "Expected foreground reader",
+      "foreground_chain": [
+        {
+          "pid": 13852,
+          "comm": "login",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 1,
+          "pgrp": 13852,
+          "session": 13852,
+          "tty": 1028,
+          "tpgid": 13852
+        }
+      ]
+    }
+  },
+  "after": {
+    "ready": false,
+    "canonical": false,
+    "echo_enabled": null,
+    "vkill": null,
+    "syscall_number": null,
+    "value_recorded": false,
+    "queue_contents_read": false,
+    "observation": {
+      "reason": "Unexpected foreground reader",
+      "foreground_chain": [
+        {
+          "pid": 20186,
+          "comm": "[redacted]",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 1,
+          "pgrp": 20186,
+          "session": 20186,
+          "tty": 1028,
+          "tpgid": 20186
+        }
+      ]
+    }
+  },
+  "pre_enter_stop": {
+    "status": "stopped",
+    "enter_sent": false,
+    "attempts": [
+      {
+        "attempt": 1,
+        "sent": {
+          "length": 30,
+          "key_event_count": 64,
+          "key_chord_count": 30,
+          "last_key_was_ret": false,
+          "non_default_mapping_classes": [
+            "layout_differs_from_us",
+            "non_ascii",
+            "shift"
+          ],
+          "timing": {
+            "hold_ms": 30,
+            "minimum_gap_ms": 120.0
+          }
+        },
+        "comparison": {
+          "sent_events": 64,
+          "received_events": 64,
+          "press": 32,
+          "release": 32,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": true
+        }
+      }
+    ],
+    "clear": null,
+    "value_recorded": false
+  },
+  "diagnostics": {
+    "kind": "hidden-read-diagnostics",
+    "read_only": true,
+    "value_recorded": false,
+    "queue_contents_read": false,
+    "syscall_arguments_recorded": false,
+    "active_vt": "tty4",
+    "python_version": "3.14.8",
+    "sudo_version": "1.9.17p2",
+    "terminals": [
+      {
+        "path": "/dev/tty3",
+        "device": 1027,
+        "termios": {
+          "ICANON": false,
+          "ECHO": false,
+          "ICRNL": false,
+          "IXON": false,
+          "IEXTEN": false,
+          "ISIG": false
+        },
+        "TIOCINQ": 0,
+        "TIOCOUTQ": 0,
+        "KDGKBMODE": 3,
+        "KDGETLED": 0,
+        "KDGKBLED": 0
+      },
+      {
+        "path": "/dev/tty4",
+        "device": 1028,
+        "termios": {
+          "ICANON": false,
+          "ECHO": false,
+          "ICRNL": true,
+          "IXON": true,
+          "IEXTEN": false,
+          "ISIG": false
+        },
+        "TIOCINQ": 0,
+        "TIOCOUTQ": 0,
+        "KDGKBMODE": 3,
+        "KDGETLED": 0,
+        "KDGKBLED": 0
+      }
+    ],
+    "processes": [
+      {
+        "pid": 13852,
+        "stat_error": {
+          "kind": "FileNotFoundError",
+          "errno": 2
+        },
+        "wchan_error": {
+          "kind": "FileNotFoundError",
+          "errno": 2
+        },
+        "syscall_error": {
+          "kind": "FileNotFoundError",
+          "errno": 2
+        }
+      },
+      {
+        "pid": 20186,
+        "state": "S",
+        "wchan": "poll_schedule_timeout.constprop.0",
+        "syscall_number": 270
+      }
+    ],
+    "phase": "input-refused",
+    "typed": {
+      "length": 30,
+      "key_event_count": 64,
+      "key_chord_count": 30,
+      "last_key_was_ret": false,
+      "non_default_mapping_classes": [
+        "layout_differs_from_us",
+        "non_ascii",
+        "shift"
+      ],
+      "timing": {
+        "hold_ms": 30,
+        "minimum_gap_ms": 120.0
+      }
+    },
+    "token": false
+  },
+  "cause_proven": "original foreground login PID disappeared during the typing/serial-observation interval; replacement foreground did not match the verified reader",
+  "exit_cause_not_proven": true
+}

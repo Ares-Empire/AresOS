@@ -1,0 +1,59 @@
+{
+  "status": "STOP: malformed job timestamps accepted by guard; exact package cost untrusted",
+  "probe_run": 41290621860,
+  "probe_job": 124800927513,
+  "job_started_at": "2026-11-01T09:51:55Z",
+  "job_completed_at": "2026-11-01T09:17:30Z",
+  "first_step_started_at": "2026-11-01T08:51:56Z",
+  "last_step_completed_at": "2026-11-01T09:17:28Z",
+  "job_duration_seconds": -2065.0,
+  "guard_clamped_probe_minutes": 1,
+  "step_span_inferred_probe_minutes": 26,
+  "qualification_run": 41292826573,
+  "qualification_job": 124807434083,
+  "qualification_started_at": "2026-11-01T09:22:04Z",
+  "qualification_completed_at": "2026-11-01T09:26:08Z",
+  "valid_qualification_minutes": 5,
+  "previous_accepted_consumed_minutes": 1967,
+  "raw_guard_reported_consumed_minutes": 1973,
+  "exact_consumed_minutes": null,
+  "step_span_inferred_total_minutes": 1998,
+  "conservative_consumed_upper_bound": 2044,
+  "original_round_reservation_upper_bound": 2199,
+  "package_cap": 2750,
+  "organization_free_minutes": 1713,
+  "organization_reserve": 150,
+  "insufficient_minutes": false,
+  "no_automatic_timestamp_correction": true,
+  "guard_code_unchanged": true,
+  "cancellation": {
+    "run": 41292826573,
+    "head": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+    "attempts": 1,
+    "reason": "STOP: probe job has completed_at before started_at; guard max(1,ceil(negative duration)) silently undercounts; no further qualification before trustworthy ledger",
+    "requested_at": "2026-11-01T09:25:51.201159+00:00",
+    "returncode": 0,
+    "stdout": "✓ Request to cancel workflow 41292826573 submitted.\n",
+    "stderr": ""
+  },
+  "qualification_vm_skipped": true,
+  "qualification_native_skipped": true,
+  "raw_sources": [
+    {
+      "sha256": "8355d9c8c0d9fd37f9417d3157bb8c6507f1c7334c106a779e001a45b3535577",
+      "path": ".work/14/14zy/probe-job-direct.json"
+    },
+    {
+      "sha256": "6bf216b07e6e316c8107230d1d4bfe5646ba51ae6a61320a887cd7a798d630b0",
+      "path": ".work/14/14zy/probe-jobs-repeat.json"
+    },
+    {
+      "sha256": "2b0502fdf3ec987433c465d6f530e0fac385cea53dd2b20e496a6d33f44d4ce7",
+      "path": ".work/14/14zy/basic-41290621860/run.json"
+    },
+    {
+      "sha256": "c60bd5af8f24f70881a4333093e334e31f8406e0d9f5f24421ebc4fa68d1803a",
+      "path": ".work/14/14zy/qualification-job-direct.json"
+    }
+  ]
+}

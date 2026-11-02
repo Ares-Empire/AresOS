@@ -1,0 +1,468 @@
+{
+  "trusted_bootstrap": true,
+  "abandoned_trial_reset": true,
+  "visible_command_blocks": 97,
+  "status": "passed",
+  "kind": "local synthetic guest responses; no VM qualification",
+  "stages": [
+    "stock",
+    "tools-stock",
+    "corrected-stock",
+    "layout-reset-trial",
+    "layout-reset-recovery",
+    "aresos",
+    "aresos-intl",
+    "aresos-back-de",
+    "rollback-stock",
+    "default-stock"
+  ],
+  "markers": [
+    "offline-roundtrip-unattended-windows",
+    "offline-roundtrip-detached-windows",
+    "prepared-unattended-windows",
+    "final-unattended-windows",
+    "final-detached-windows"
+  ],
+  "cluttered_prompt_waits": 154,
+  "idle_authorized_resyncs": 154,
+  "hidden_pairs": 27,
+  "public_handoffs": 3,
+  "health_boundaries": 98,
+  "composed_guest_commands": 1152,
+  "strict_bash_syntax": true,
+  "uncovered_waits": [],
+  "keyboard": "real public_typing/physical_input/type_text/physical_keys/Guest.keys; only QMP send recorded; physical redraw simulated",
+  "physical_typing_cases": [
+    {
+      "stage": "corrected-stock-console",
+      "boot": "corrected-stock",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "layout-reset-trial-console",
+      "boot": "layout-reset-trial",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "layout-reset-trial-foot",
+      "boot": "layout-reset-trial",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "layout-reset-recovery-console",
+      "boot": "layout-reset-recovery",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "layout-reset-recovery-foot",
+      "boot": "layout-reset-recovery",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-console",
+      "boot": "aresos",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-foot",
+      "boot": "aresos",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-intl-console",
+      "boot": "aresos-intl",
+      "profile": "us-intl",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "alt_r",
+          "y"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-intl-foot",
+      "boot": "aresos-intl",
+      "profile": "us-intl",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "alt_r",
+          "y"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-back-de-console",
+      "boot": "aresos-back-de",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "aresos-back-de-foot",
+      "boot": "aresos-back-de",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "rollback-stock-console",
+      "boot": "rollback-stock",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    },
+    {
+      "stage": "default-stock-console",
+      "boot": "default-stock",
+      "profile": "de",
+      "text": "yz-/!\u00fc\n",
+      "key_events": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ],
+        [
+          "ret"
+        ]
+      ],
+      "hold_ms": 30,
+      "minimum_gap_ms": 120
+    }
+  ],
+  "clutter": "Q15 exact geometry/content shape after tools-stock; synthetic healthy kernel journal. The historical VCSA remains clutter only and never grants authority.",
+  "pending": "Actual PS2 event delivery, FUSE hotplug and health timing need November native/VM runs"
+}

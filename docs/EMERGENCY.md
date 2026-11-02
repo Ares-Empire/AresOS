@@ -24,7 +24,17 @@ Every deployment reorder invalidates old titles, even before reboot. Both entrie
 
 **Action:** during a layout trial, return to the original open tty3 administrator session with **Ctrl+Alt+F3 (Ctrl = Strg)** or **Ctrl+Alt+Fn+F3 (Ctrl = Strg)** and [revert the trial](INSTALL-PROCEDURES.md#layout-revert).
 Otherwise use **F12** (or **Fn+F12**) → Windows → help. AresOS uses its current layout; backup stock always uses the installer’s German layout. Do not change the password to guess your way through.
-**After `PASS layout revert` on AresOS:** [complete fresh-login proof and finish](INSTALL-PROCEDURES.md#layout-recovery-proof), then [layout completion](INSTALL-PROCEDURES.md#layout-completion) and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery). **STOP → go to [Help](INSTALL-REFERENCE.md#help)** if the original session is unavailable or proof fails; keep the layout trial pending until help restores that recovery route. Do not resume the initial stock checks for this layout recovery.
+**After `PASS layout revert` on AresOS:** [complete fresh-login proof and finish](INSTALL-PROCEDURES.md#layout-recovery-proof), then [layout completion](INSTALL-PROCEDURES.md#layout-completion) and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery). If the original session was lost, use [abandoned-trial recovery](INSTALL-PROCEDURES.md#abandoned-layout-trial). **STOP → go to [Help](INSTALL-REFERENCE.md#help)** if login/proof fails; no forced restart or password change. Do not resume the initial stock checks for this layout recovery.
+
+## Crashed or restarted during a keyboard layout trial
+
+**Action:** log in using the **last confirmed layout**, not the unfinished trial; retained stock uses its own installer German. Make a fresh physical **tty3 ares-recovery password login → sudo -i**, using [console entry](INSTALL-REFERENCE.md#console), then run `sudo /var/lib/ares/at layout abandon` (require `PASS layout abandon`).
+Begin/revert change only the running console; only finish persists a layout. Save the refreshed title. [Finish abandoned-trial recovery](INSTALL-PROCEDURES.md#abandoned-layout-trial): on AresOS, check and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery); on retained stock, complete [keep-stock](INSTALL-PROCEDURES.md#keep-stock) before that return. **STOP → go to [Help](INSTALL-REFERENCE.md#help)** on any missing/failed result or unknown layout. Do not force a reset to test this route.
+
+## A tools command stopped
+
+**Action:** keep the entire screen and available administrator session open. If Linux is responsive, the installed tools are available and exporting is safe, insert ARESTOOLS after sign-in and run `sudo /var/lib/ares/at export`; require `PASS export` and **SAFE TO REMOVE ARESTOOLS**, then unplug.
+Export includes private records and persistent STOP diagnostics from `/var/lib/ares/diagnostics`, copied as `diagnostic-` files with hash readback. Preserve them off-device; share no secrets. If the tools are unavailable (including bootstrap failure), export STOPs, or safe removal is absent, keep the error/photo privately and get help without pulling a mounted stick. **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; Return to the failed recorded step only after resolution ([step 4](INSTALL.md#4-install-and-prepare-corrected-stock) for install/prepare, [step 8](INSTALL.md#8-everyday-boot-and-recovery) for later recovery). Never delete journals, retry another target or restart to clear a STOP.
 
 ## Text covers the prompt after stick hotplug or removal
 

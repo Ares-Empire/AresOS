@@ -1,0 +1,63 @@
+{
+  "mechanism": "confirmed by pinned3.14.8 source and real two-PTY TCSAFLUSH reproduction",
+  "getpass": {
+    "sha256": "f1e8b3ea2cc5f2ca15e5568b3e53d355c313da3b2891447a36edad2537b6b077",
+    "url": "https://raw.githubusercontent.com/python/cpython/v3.14.8/Lib/getpass.py",
+    "guest_rpm": "python3.14-3.14.8-1.fc44.src.rpm",
+    "ordering": "TCSAFLUSH before _raw_input writes the prompt; restore termios before newline/return",
+    "third_party_module_committed": false
+  },
+  "old_harness": [
+    {
+      "sha256": "a136050c720c8e4f454e9ca48026354e4ac360fce37b835e5ceb8a9b590d6c49",
+      "path": "os/ci/owner_vm.py:Console.hidden",
+      "head": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+      "physical_tty_termios": true,
+      "inner_pts_echo_checked": false,
+      "cursor_prompt_required": false
+    },
+    {
+      "sha256": "64e67f98ea1a6533ef31d274e716f4ead029a5a0867fbff175cd85a99757dd5c",
+      "path": "os/ci/owner_vm.py:Console.hidden",
+      "head": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+      "physical_tty_termios": true,
+      "inner_pts_echo_checked": false,
+      "cursor_prompt_required": false
+    }
+  ],
+  "qualification4": {
+    "run": 40566496658,
+    "hidden_ready": true,
+    "serial_incomplete": {
+      "sha256": "411b790c7ef7d529fc4a2fb32734cd4d931bb25284b9adfe024a4f9f7d8419bd",
+      "path": "evidence/two-disk/private-owner-login-owner-result-incomplete.txt",
+      "bytes": 116,
+      "continuation_prompt_present": true,
+      "completion_absent": true
+    },
+    "conclusion": "Same unsound hidden readiness exists, but an independent serial framing failure is retained; actual input flush cannot be proved from qualification4."
+  },
+  "qualification7": {
+    "run": 40630352782,
+    "hidden_ready": true,
+    "physical_echo_enabled": false,
+    "last_foreground_comm": "python3",
+    "inner_pts": 34818,
+    "vcsa": {
+      "sha256": "63df235554d03b43788e97bfdfb7ba5c45dfa6eefaad8c074aa468c06ba84484",
+      "path": "evidence/two-disk/private-owner-login-physical-idle-timeout-1.vcsa",
+      "geometry": [
+        50,
+        160,
+        26,
+        49
+      ],
+      "last_prompt": "Read-only token (hidden):",
+      "decoded_privacy_findings": 0
+    },
+    "conclusion": "Consistent with early/flushed input; serial transport completed. No inner termios or prompt-at-send sample was retained, so the historical flush timing is not directly observed."
+  },
+  "secret_values_read_from_credentials": false,
+  "decoded_text_saved": false,
+  "raw_consoles_committed": false
+}

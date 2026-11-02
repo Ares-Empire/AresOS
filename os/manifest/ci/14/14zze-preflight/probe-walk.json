@@ -1,0 +1,28 @@
+{
+  "status": "passed stand-in probe path; not VM acceptance",
+  "commands": 7,
+  "vt_selection_restored": true,
+  "event_counter_checkpoint_exercised": true,
+  "unicode_getter_exercised": true,
+  "media_hotplug_after_checks": true,
+  "bundle_fingerprint": "3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd",
+  "sources": [
+    {
+      "sha256": "f26078d31ff5ecf2b031799d4d98fc6ae6c3727f024675dd86edfc30426932f3",
+      "path": ".gitattributes"
+    },
+    {
+      "sha256": "4e9a8d90ea7063a60ef7e408192e117de8b9372db6ddc78b9d54648f7d286e4c",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "86387f41c01cd256360953e62229af7e433220488d189cc68810d16e751aece1",
+      "path": "os/ci/owner_key_counter.py"
+    },
+    {
+      "sha256": "69950a544dc8ce4c3ccc57f88253e6f60788b036e4f1b5d307103c57e52a726f",
+      "path": "os/ci/owner_hidden.py"
+    }
+  ],
+  "binding_format": "git-checkout-bytes-v1"
+}

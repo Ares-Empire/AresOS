@@ -1,0 +1,20 @@
+{
+  "files": [
+    {
+      "sha256": "20e3d4d038c7f74ed66707821728bc229099377dcaf252cacdef59d6cb31e1ef",
+      "path": "login-utils_login.c.gz"
+    },
+    {
+      "sha256": "1ba43708e394a41b4351ff865aa9d62c80209b26c414f34862439c9916fb1503",
+      "path": "login.defs.gz"
+    },
+    {
+      "sha256": "a0868b1efe5c25818784ec627d4fe7f5a62821fee882c85eb6673908557f93b2",
+      "path": "term-utils_agetty.c.gz"
+    },
+    {
+      "sha256": "9fb8dd3843341b80fb9a3d675c4014dfad2d51e6ae82600b040be466a70cd23b",
+      "path": "timeout-proof.json"
+    }
+  ]
+}

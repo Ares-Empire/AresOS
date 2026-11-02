@@ -1,0 +1,36 @@
+{
+  "status": "STOP: local artifact classifier requires a closing quote in redacted Match after approved complete source line passed",
+  "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+  "probe_run": 41301148135,
+  "probe_conclusion": "success",
+  "qualification19_dispatched": false,
+  "acceptance_met": false,
+  "pr13_ready": false,
+  "owner_tool_or_console_bug": false,
+  "local_review_bug": true,
+  "classification_override": false,
+  "actions_reruns": 0,
+  "pushes": 1,
+  "closing_commit_local_only": true,
+  "minute_cap": 2750,
+  "consumed_minutes": 2022,
+  "dispatch_counts": {
+    "probe": 30,
+    "owner-tools": 18
+  },
+  "dispatch_caps": {
+    "probe": 32,
+    "owner-tools": 21
+  },
+  "organization_free_minutes": 1689,
+  "reserve": 150,
+  "push_reservation": 0,
+  "closing_reservation": 0,
+  "additional_rounds_lower_bound": 1,
+  "additional_rounds_upper_bound": null,
+  "further_dispatch_authorized": false,
+  "next_action": "Owner/integrator to settle local reviewer Match-shape refusal; any future round still needs its own fresh guards and same-head probe/qualification",
+  "qualification_typing_stop": false,
+  "serial_plan_triggered": false,
+  "no_owner_script_payload_image_vm_workflow_or_privacy_rule_change": true
+}

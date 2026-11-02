@@ -1,4 +1,5 @@
 import json
+import hashlib
 import pathlib
 import re
 import tempfile
@@ -17,9 +18,19 @@ def fingerprint_documents():
     documents={name:(ROOT/'docs'/name).read_text() for name in OWNER_PAGES}
     # Reports explicitly retain historical receipts below their current delta.
     # Check the live sections without rewriting those superseded fingerprints.
-    for package,boundary in (('14-owner-tools','## 14m '),('15-owner-path','## 15b ')):
+    for package,boundary in (('14-owner-tools','## 14zze '),('15-owner-path','## 15c ')):
         documents[package+' current report']=(ROOT/'reviews'/package/'REPORT.md').read_text().split(boundary,1)[0]
     return documents
+
+
+def check_bootstrap(guide, commands):
+    """The literal owner block is exactly what package 14's tamper tests run."""
+    fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
+    expected=common.module('bootstrap').command(fingerprint).encode('utf-8')
+    blocks=re.findall(rb'```bash\n(.*?)\n```',guide,re.S)
+    copies=[block for block in blocks if block.startswith(b'sudo bash -c ')]
+    if copies != [expected] or commands['install'].encode('utf-8') != expected or len(expected.splitlines()) != 13:
+        raise AssertionError('Trusted bootstrap differs from the tested 13-line block')
 
 
 def check_fingerprints(documents, fingerprint):
@@ -55,18 +66,23 @@ def check_inline_commands(guide, commands):
     allowed = set(commands.values())
     verbs = set(commands) | {'layout'}
     fenced = False
-    for number, line in enumerate(guide.splitlines(), 1):
+    outside = []
+    for line in guide.splitlines():
         if line.lstrip().startswith('```'):
             fenced = not fenced
-            continue
-        if fenced:
-            continue
-        for code in re.findall(r'(?<!`)`([^`]+)`(?!`)', line):
-            words = code.split()
-            first = words[1] if len(words) > 1 and words[0] == 'sudo' else words[0]
-            if '/var/lib/ares/at' in code or '/mnt/ares-tools/at' in code or first in verbs:
-                if code not in allowed:
-                    raise AssertionError(f'Noncanonical inline owner command at line {number}: {code}')
+            outside.append('')
+        else:
+            outside.append('' if fenced else line)
+    text = '\n'.join(outside)
+    for match in re.finditer(r'(?<!`)`([^`]+)`(?!`)', text):
+        code = match[1]
+        words = code.split()
+        first = words[1] if len(words) > 1 and words[0] == 'sudo' else words[0]
+        if ('/var/lib/ares/at' in code or '/mnt/ares-tools/at' in code or first in verbs
+                or words[:3] == ['sudo', 'bash', '-c']):
+            if code not in allowed:
+                number = text[:match.start()].count('\n') + 1
+                raise AssertionError(f'Noncanonical inline owner command at line {number}: {code}')
 
 
 class EqualityTest(unittest.TestCase):
@@ -94,9 +110,19 @@ class EqualityTest(unittest.TestCase):
             self.assertEqual(common.owner.checked_bundle(other), fingerprint)
         self.assertIn(fingerprint, (ROOT/'docs/INSTALL.md').read_text())
         check_fingerprints(fingerprint_documents(),fingerprint)
-        inventory=json.loads((ROOT/'os/manifest/ci/14/14n-replay/fingerprint-references.json').read_text())
-        self.assertEqual(inventory['current']['sha256'],fingerprint)
+        self.assertEqual(hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest(),fingerprint)
         self.assertIn('-I -B', (ROOT/'os/owner-tools/at').read_text())
+
+    def test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests(self):
+        commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        guide=(ROOT/'docs/INSTALL.md').read_bytes()
+        check_bootstrap(guide,commands)
+        for before,after in ((b'ro,nodev,nosuid,noexec',b'ro'),
+                             (b'sha256sum -c --strict SHA256SUMS',b'true'),
+                             (b'bash ./at install',b'bash ./at install ')):
+            self.assertIn(before,guide)
+            with self.subTest(mutation=before), self.assertRaisesRegex(AssertionError,'Trusted bootstrap differs'):
+                check_bootstrap(guide.replace(before,after,1),commands)
 
     def test_extra_stale_fingerprint_is_rejected_in_every_owner_page(self):
         fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
@@ -119,7 +145,8 @@ class EqualityTest(unittest.TestCase):
 
     def test_every_owner_command_equals_the_command_physically_typed_by_ci(self):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
-        typed={text.rstrip('\n') for text,profile in walk.walk()['typed']}
+        result=walk.walk()
+        typed={text.rstrip('\n') for text,profile in result['visible_blocks']}
         guide='\n'.join((ROOT/name).read_text() for name in
             ('docs/INSTALL.md', 'docs/INSTALL-PROCEDURES.md'))
         for command in commands.values():
@@ -127,7 +154,11 @@ class EqualityTest(unittest.TestCase):
             self.assertIn(command, guide)
         allowed=set(commands.values())
         for block in re.findall(r'```bash\n(.*?)\n```',guide,re.S):
-            for line in block.splitlines(): self.assertIn(line, allowed)
+            if block not in allowed:
+                for line in block.splitlines(): self.assertIn(line, allowed)
+        self.assertEqual(sum(text.rstrip('\n')==commands['install'] for text,profile in result['visible_blocks']),1)
+        self.assertIn('layout-reset-trial-QMP-system-reset',result['checks'])
+        self.assertIn(commands['layout-abandon'],typed)
         for name in OWNER_PAGES:
             check_inline_commands((ROOT/'docs'/name).read_text(), commands)
         for name,source in common.bundle.PAYLOAD.items():

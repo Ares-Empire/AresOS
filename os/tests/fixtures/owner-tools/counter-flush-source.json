@@ -1,0 +1,7 @@
+{
+  "source_commit": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+  "source_sha256": "a1df0e51564b4ae961c8a535fe333b52853ecbc2e2e98d91738ac3f41bd56547",
+  "source_path": "os/ci/owner_key_counter.py",
+  "sha256": "684b921c71889d96af9a6deb7811f5d581dd3f697efca59527cd06300660f37f",
+  "path": "os/tests/fixtures/owner-tools/counter-14zx-released.py"
+}

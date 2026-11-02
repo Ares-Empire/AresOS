@@ -1,0 +1,22 @@
+{
+  "status": "passed same-script before/after independent comparison",
+  "script_sha256": "69994b11a0924ea39d572426aef7e4d028f8529c688f48385b3f0cd771347607",
+  "script_bytes": 598,
+  "old_run": 40646962291,
+  "new_run": 40655273119,
+  "old_syntax_ack_accepted": false,
+  "new_syntax_ack_accepted": true,
+  "new_guest_sha_verified": true,
+  "new_all_ack_phases_passed": true,
+  "no_retry_introduced": true,
+  "sources": [
+    {
+      "sha256": "ee805d4f08723ae29d57eeac0af312ba1d99a2da5b8d68f4a5493a4058646e53",
+      "path": ".work/14/run-40646962291/evidence/two-disk/webui-probe-server-transport.json"
+    },
+    {
+      "sha256": "de00a8b632b079284517bf5e0c22f5c75645cd8189d4d871e315dd3b484eeb8c",
+      "path": ".work/14/run-40655273119/evidence/two-disk/webui-probe-server-transport.json"
+    }
+  ]
+}

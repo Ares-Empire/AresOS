@@ -1,0 +1,7 @@
+test_one_post_and_delayed_direct_confirmation_never_reads_history_or_reposts (__main__.ControlTest.test_one_post_and_delayed_direct_confirmation_never_reads_history_or_reposts) ... ok
+test_other_dispatch_mode_refused_before_any_post (__main__.ControlTest.test_other_dispatch_mode_refused_before_any_post) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.002s
+
+OK

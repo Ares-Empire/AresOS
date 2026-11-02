@@ -1,0 +1,39 @@
+{
+  "status": "passed after local import-path correction; unchanged reviewer source",
+  "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+  "run": 41374876561,
+  "command": "python -u -X utf8 .work/14/14zze/post-run.py owner-tools 41374876561",
+  "pythonpath": "os/ci",
+  "first_local_result": "ModuleNotFoundError keyboard_vm; no CI stop",
+  "final_result": "complete independent review passed",
+  "source": [
+    {
+      "sha256": "b1171ec1dde6bb8a011d31dee17c8b6f8e624ecdaa8771117fc807f379e18aed",
+      "path": "os/ci/keyboard_vm.py"
+    }
+  ],
+  "actions_rerun": false,
+  "pushed_source_changed": false,
+  "logs": [
+    {
+      "sha256": "816b8a83cbe502472dcdad35bb3911de68f23f39d3685ae9c6f1c7c3e68958fc",
+      "path": ".work/14/14zze/qualification-review.log"
+    },
+    {
+      "sha256": "1bb54e3185defffe3b4a5cb47fb8861e408b01d053868317876941fc020fcb59",
+      "path": ".work/14/14zze/qualification-review-retry.log"
+    },
+    {
+      "sha256": "1134f126f87e60439139c15eb983b9b19ee77620b87f368ee1181092e765b0f0",
+      "path": ".work/14/14zze/final-checkout-regressions.log"
+    },
+    {
+      "sha256": "9f9517d78a5e5ec887a1bd9d77f06d1c95ef32724caa30e59b13b2602d22f175",
+      "path": ".work/14/14zze/qualification-strict.log"
+    },
+    {
+      "sha256": "5c8e3b0353e11d23b7ef29b2a469d4b107bfe3cdd9ccd1e32217965d4f1a65fc",
+      "path": ".work/14/14zze/qualification-read-only-replay.log"
+    }
+  ]
+}

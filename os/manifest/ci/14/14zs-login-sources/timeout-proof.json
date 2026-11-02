@@ -1,0 +1,104 @@
+{
+  "status": "pinned ISO has no active timeout override; util-linux2.41.5 default60, one alarm across authentication retries; Q14 timing supports expiry, signal itself not retained",
+  "sources": [
+    {
+      "sha256": "c367d28684d4be56526a67525d3bc4c84de01bc26d69f4962feec753f9d09c65",
+      "path": "login-utils_login.c",
+      "url": "https://github.com/util-linux/util-linux/blob/230de59ffbee328506d92d3534e66d56de1afe5d/login-utils/login.c"
+    },
+    {
+      "sha256": "d6a26ddf43d49c7f7150ace5a981f64054d0191347f38e5162e7ed0b468e7e6f",
+      "path": "term-utils_agetty.c",
+      "url": "https://github.com/util-linux/util-linux/blob/230de59ffbee328506d92d3534e66d56de1afe5d/term-utils/agetty.c"
+    }
+  ],
+  "configuration": {
+    "sha256": "33af2d813e701a8a4cdd51012be216b7cf0827dd9815acafdec6be3e3f3dd0b3",
+    "path": "login.defs",
+    "active_timeout_definitions": []
+  },
+  "q14": {
+    "run": 40866713472,
+    "known_login_pid": 13852,
+    "replacement_foreground_pid": 20186,
+    "secret_key_events_sent": 64,
+    "possible_non_hidden_events": {
+      "minimum": 0,
+      "maximum": 64
+    },
+    "event_time_visibility_observer_present": false,
+    "visual_artifacts_secret_tainted": true,
+    "private_only": true,
+    "never_commit_raw_visuals": true,
+    "stage_timestamps": [
+      {
+        "at": "2026-10-29T12:43:45.1565745Z",
+        "stages": [
+          "layout-reverted-login"
+        ]
+      }
+    ],
+    "receipts": [
+      {
+        "sha256": "a5adf51ee6478d95e8185b89e01c7f14c9139614d0bc81190b7df6ed8ccf8a0e",
+        "path": "two-disk/layout-plain-us-username-echo-104.json",
+        "zip_time_utc": "2026-10-29T12:41:54Z",
+        "resolution_seconds": 2
+      },
+      {
+        "sha256": "a9d634835e40c48e6e07c002f0beeb5c932ab4dcf0238eace80f35630ff16814",
+        "path": "two-disk/layout-plain-us-password-prompt-read-wait-105.json",
+        "zip_time_utc": "2026-10-29T12:41:58Z",
+        "resolution_seconds": 2
+      },
+      {
+        "sha256": "a5adf51ee6478d95e8185b89e01c7f14c9139614d0bc81190b7df6ed8ccf8a0e",
+        "path": "two-disk/layout-reverted-login-username-echo-111.json",
+        "zip_time_utc": "2026-10-29T12:42:40Z",
+        "resolution_seconds": 2
+      },
+      {
+        "sha256": "a9d634835e40c48e6e07c002f0beeb5c932ab4dcf0238eace80f35630ff16814",
+        "path": "two-disk/layout-reverted-login-password-prompt-read-wait-112.json",
+        "zip_time_utc": "2026-10-29T12:42:44Z",
+        "resolution_seconds": 2
+      },
+      {
+        "sha256": "8dab3c83fe25419b8530768de322178f65756252831d620e2542777eda0a7d57",
+        "path": "two-disk/layout-reverted-login-password-prompt-read-wait-112-input-guard-before-value-1.json",
+        "zip_time_utc": "2026-10-29T12:42:50Z",
+        "resolution_seconds": 2
+      },
+      {
+        "sha256": "234e93a3329872f8e71bf7522041cb925003cdc6125634f90ef9e5b1b469ac52",
+        "path": "two-disk/layout-reverted-login-password-prompt-read-wait-112-key-counter-sample-1.json",
+        "zip_time_utc": "2026-10-29T12:42:56Z",
+        "resolution_seconds": 2
+      },
+      {
+        "sha256": "089b2938bb8f7f79b5f6f5579ff7775354831782ca51e40efe4323f9b7e78858",
+        "path": "two-disk/layout-reverted-login-password-prompt-read-wait-112-input-guard-before-enter-1.json",
+        "zip_time_utc": "2026-10-29T12:43:04Z",
+        "resolution_seconds": 2
+      }
+    ],
+    "same_login_reused_after_rejection": true,
+    "first_hidden_prompt_to_replacement_receipt_seconds": 66.0
+  },
+  "binary_defaults": {
+    "LOGIN_TIMEOUT": 60,
+    "source": "login.c:91,1344-1354; cancelled only at successful login:1504"
+  },
+  "binaries": [
+    {
+      "sha256": "550d5232eef6a1f626e3d6c7afe90ae41213a871620d27a04fb27f145b95c29d",
+      "path": "/usr/bin/login",
+      "bytes": 48880
+    },
+    {
+      "sha256": "8a9894943c4871fa605c2feab4c395e0a46a7f5891c4a2e48ab30c8eee607c0e",
+      "path": "/usr/bin/agetty",
+      "bytes": 66560
+    }
+  ]
+}

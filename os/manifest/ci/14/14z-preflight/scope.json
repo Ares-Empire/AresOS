@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "owner_change": "firmware_entry and new device_path only; AST equality for all other code",
+  "frozen_runtime_unchanged": true,
+  "harness_audit_unchanged": true,
+  "workflow_unchanged": true,
+  "privacy_unchanged": true,
+  "guide_change": "current bundle fingerprint only",
+  "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
+  "path": "os/owner-tools/payload/SHA256.json"
+}

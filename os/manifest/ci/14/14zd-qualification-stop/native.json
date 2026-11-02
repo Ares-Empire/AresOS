@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "tests": 422,
+  "seconds": 43.872,
+  "skips": 0,
+  "local_host_limits_resolved": 8,
+  "loop_checks": 20,
+  "helper_mutations": 0,
+  "fixture_protected_unchanged": true,
+  "fixture_cleanup": true
+}

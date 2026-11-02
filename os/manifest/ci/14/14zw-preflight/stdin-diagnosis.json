@@ -1,0 +1,20 @@
+{
+  "status": "proved local Windows text-mode newline conversion",
+  "checker_invoked": false,
+  "terms_read_or_recorded": false,
+  "push_attempted": false,
+  "observations": [
+    {
+      "kind": "Windows text stdin",
+      "remote_sha_length": 41,
+      "trailing_cr": true,
+      "valid_sha": false
+    },
+    {
+      "kind": "binary LF stdin",
+      "remote_sha_length": 40,
+      "trailing_cr": false,
+      "valid_sha": true
+    }
+  ]
+}

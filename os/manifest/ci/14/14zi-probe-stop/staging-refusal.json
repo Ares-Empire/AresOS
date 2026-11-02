@@ -1,0 +1,66 @@
+{
+  "sha256": "69994b11a0924ea39d572426aef7e4d028f8529c688f48385b3f0cd771347607",
+  "bytes": 598,
+  "chunks": 7,
+  "staged": true,
+  "verified": false,
+  "transfer_timeout": 120,
+  "execution_timeout": 240,
+  "steps": [
+    {
+      "index": 0,
+      "phase": "root",
+      "status": "passed"
+    },
+    {
+      "index": 1,
+      "phase": "create",
+      "status": "passed"
+    },
+    {
+      "index": 2,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 3,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 4,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 5,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 6,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 7,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 8,
+      "phase": "chunk",
+      "status": "passed"
+    },
+    {
+      "index": 9,
+      "phase": "integrity",
+      "status": "passed"
+    },
+    {
+      "index": 10,
+      "phase": "syntax",
+      "status": "no acknowledgement; STOP; no retry"
+    }
+  ]
+}

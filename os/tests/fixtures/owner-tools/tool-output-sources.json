@@ -1,0 +1,52 @@
+[
+  {
+    "sha256": "c039cafb54189eae97cc7c950aee97326faf4645acf11af1f4a347268d3c3919",
+    "path": "os/tests/fixtures/owner-tools/efibootmgr18-efivar39.txt",
+    "kind": "source-rendered reconstruction, NOT retained guest stdout",
+    "source": {
+      "sha256": "e78149855c2018dc2d5964e3b668552ec48dd18d2637b03943fff188ff6625c0",
+      "path": ".work/14/run-40421596174/evidence/two-disk/tools-stock-vars.fd",
+      "run": 40421596174,
+      "variable": "Boot000A"
+    },
+    "formatters": [
+      "efivar39 _format_media_dn + format_ucs2 + efidp_format_device_path",
+      "efibootmgr18 show_vars + show_var_path"
+    ],
+    "optional_data_bytes": 0
+  },
+  {
+    "sha256": "ff1950fc39761d227d55cf7beb2c725278725476aab829f4dff7cd6ad29544af",
+    "path": "os/tests/fixtures/owner-tools/dumpkeys-de.json",
+    "kind": "verbatim keycode21/44 lines, all columns; projection of retained real command output",
+    "source": {
+      "sha256": "7db982e96a706000a4b1145f17ca82a0b2b4e75aade163fc34ad79674be4b1fd",
+      "path": "os/manifest/ci/13/qualification-1/evidence/two-disk/first-stock-diagnostic-keyboard.json"
+    }
+  },
+  {
+    "sha256": "b35d1bc9f91a3bf08b036110bc259e1b3e9380588405233be17109d122b60a12",
+    "path": "os/tests/fixtures/owner-tools/dumpkeys-us.json",
+    "kind": "verbatim keycode21/44 lines, all columns; projection of retained real command output",
+    "source": {
+      "sha256": "11f07b93b60980240e2b899bacbaec4a778b27066ea72bd13b80262175671aa9",
+      "path": "os/manifest/ci/13/qualification-3/evidence/two-disk/aresos-us-keyboard.json"
+    }
+  },
+  {
+    "sha256": "d7d069cff7c7cbb8ee86958369ddfec7990b6873d7264c3b7c021a017acbf73f",
+    "path": "os/tests/fixtures/owner-tools/efibootmgr18-qualification3.txt",
+    "kind": "verbatim real qualification3 efibootmgr -v stdout, not reconstructed",
+    "source": {
+      "sha256": "97de0ec81532fcca612d254bb9bcf4d67efb18ebc79c2590bcc9e2fc5b447ebf",
+      "path": ".work/14/run-40543952228/evidence/two-disk/tools-install-owner-diagnostics.json",
+      "run": 40543952228
+    },
+    "target_esp_guid": "88420aef-f1fd-4814-8381-339d03f60a65"
+  },
+  {
+    "sha256": "fe27c5cdbe4cadf8528effe599fdb58b1194284d23224c93ba6f04913f6d9308",
+    "path": "os/tests/fixtures/owner-tools/retained-parsers.json",
+    "kind": "33 real captured/projection values; per-source hashes and projection notes inside"
+  }
+]

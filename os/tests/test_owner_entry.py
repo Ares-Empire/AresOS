@@ -39,7 +39,7 @@ def entry_stdout():
     for name,command in commands.items():
         with tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as temporary, contextlib.ExitStack() as stack:
             root=pathlib.Path(temporary); home=root/'home'; home.mkdir()
-            payload=home/'tools'; common.bundle.build(payload)
+            payload=home/'tools'; common.fixture_bundle(payload)
             records=home/'records'; records.mkdir()
             owner=common.module('owner')
             host=ShimHost(root)
@@ -53,6 +53,7 @@ def entry_stdout():
                 return info
             stack.enter_context(patch.object(owner,'__file__',str(payload/'owner.py')))
             stack.enter_context(patch.object(owner,'HOME',home))
+            stack.enter_context(patch.object(owner,'STOP_RECORDS',home/'diagnostics'))
             stack.enter_context(patch.object(owner.os,'geteuid',return_value=0))
             stack.enter_context(patch.object(pathlib.Path,'stat',fixture_stat))
             def private(path): check.assertIn(path,(payload,records))
@@ -71,7 +72,7 @@ def entry_stdout():
             check.assertEqual(passes,['PASS '+' '.join(argv)])
             check.assertIn('Full diagnostics: /var/lib/ares/records (private)',captured[name])
             method={'rollback':'recover','keep-stock':'recover'}.get(argv[0],argv[0])
-            expected=([payload] if method=='install' else [True] if argv[0]=='keep-stock' else argv[1:])
+            expected=([payload,host] if method=='install' else [True] if argv[0]=='keep-stock' else argv[1:])
             handlers[method].assert_called_once_with(*expected)
             for key,handler in handlers.items():
                 if key!=method: handler.assert_not_called()

@@ -1,0 +1,17 @@
+test_host_reservation_cannot_drop_probe_or_qualification_bound (test_owner_guard.GuardTest.test_host_reservation_cannot_drop_probe_or_qualification_bound) ... ok
+test_missing_or_altered_closing_decision_refuses (test_owner_guard.GuardTest.test_missing_or_altered_closing_decision_refuses) ... ok
+test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback (test_owner_guard.GuardTest.test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback) ... ok
+test_october_reservation_drops_only_closing_privacy (test_owner_guard.GuardTest.test_october_reservation_drops_only_closing_privacy) ... ok
+test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun (test_owner_guard.GuardTest.test_package14_counts_all_dispatches_and_privacy_and_refuses_overrun) ... ok
+test_pinned_qmp_contract_and_firmware_audit_are_not_widened (test_owner_guard.GuardTest.test_pinned_qmp_contract_and_firmware_audit_are_not_widened) ... ok
+test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media (test_owner_guard.GuardTest.test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media) ... ok
+test_zero_closing_reservation_expires_and_restored_twelve_works (test_owner_guard.GuardTest.test_zero_closing_reservation_expires_and_restored_twelve_works) ... ok
+test_all_remaining_ci_calls_have_declared_permissions_and_history (test_ci_api_permissions.CiApiPermissionsTest.test_all_remaining_ci_calls_have_declared_permissions_and_history) ... ok
+test_missing_job_permissions_fail_closed (test_ci_api_permissions.CiApiPermissionsTest.test_missing_job_permissions_fail_closed) ... ok
+test_new_api_endpoint_caller_or_write_refuses (test_ci_api_permissions.CiApiPermissionsTest.test_new_api_endpoint_caller_or_write_refuses) ... ok
+test_shallow_checkout_in_either_verifier_job_refuses (test_ci_api_permissions.CiApiPermissionsTest.test_shallow_checkout_in_either_verifier_job_refuses) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 2.503s
+
+OK

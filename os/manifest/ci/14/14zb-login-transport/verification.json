@@ -1,0 +1,159 @@
+{
+  "status": "local checks complete; eight unchanged native host limits; NOT VM qualified",
+  "transport_tests": {
+    "tests": 19,
+    "status": "passed",
+    "seconds": 51.805
+  },
+  "console_tests": {
+    "tests": 12,
+    "status": "passed",
+    "seconds": 1.568
+  },
+  "host_walk": {
+    "tests": 203,
+    "status": "passed",
+    "seconds": 212.202,
+    "source_bindings": 103
+  },
+  "whole_suite": {
+    "tests": 422,
+    "seconds": 390.648,
+    "passed_distinct": 414,
+    "failures": 2,
+    "errors": 9,
+    "skips": 0,
+    "exit": 1,
+    "native_host_limits": [
+      {
+        "test": "test_greeter.test_active_service_without_drawing_hits_deadline",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_greeter.test_black_cursor_and_flat_background_are_not_rendered_greeters",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_greeter.test_capture_waits_for_drawing_and_keeps_ready_evidence",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_inherited_homebrew.test_absent_inherited_installation_is_not_created",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_inherited_homebrew.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_inherited_homebrew.test_preserves_existing_acl_entries_and_restrictive_mask",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_sysusers.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_rehearsal_auth.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload",
+        "reason": "DrvFS exposes mode0777 rather than required0600"
+      }
+    ]
+  },
+  "initial_whole_suite": {
+    "tests": 422,
+    "seconds": 407.256,
+    "failures": 2,
+    "errors": 10,
+    "additional_defect": "new wait wrapper used a keyword against existing positional stand-in; preserved positional contract; original timeout/redaction test and final suite rerun"
+  },
+  "read_only_replay": "actual verify_release and53 offline/source checks passed; no CI assertion patched; existing14f CI-only credential steps remain deferred to CI",
+  "actions": {
+    "pushes": 0,
+    "dispatches": 0,
+    "reruns": 0,
+    "images": 0,
+    "publications": 0
+  },
+  "ledger": {
+    "consumed": 647,
+    "minute_cap": 800,
+    "probes": "14/14",
+    "qualifications": "4/4",
+    "active_reservation": 0,
+    "billing_refreshed": false,
+    "budget_mutated": false
+  },
+  "log_view_policy": "LF; absolute local workspace paths redacted to<WORKTREE>; all other output preserved; original byte hashes point to ignored local logs",
+  "original_logs": [
+    {
+      "sha256": "5845d52a878bdeab6714cd96ba62e1f8a0adbabe5edf5ef75b374f4dfb23d91a",
+      "path": ".work/14/14zb-staging-tests.log"
+    },
+    {
+      "sha256": "e29984c3d1785afca74d171a9e51eeb399351479879cfcb9f98c3be53b1ad7e0",
+      "path": ".work/14/14zb-console-tests.log"
+    },
+    {
+      "sha256": "dfdb70ef3f218c854437162d75a463b93cd54b765077672a0ae03d6960c22718",
+      "path": ".work/14/14zb-postfix-host-walk.log"
+    },
+    {
+      "sha256": "bf5acee6f23bd1221aecf24d9cd0964f571020f85a09f0a3a2f7fd01d86c1dfe",
+      "path": ".work/14/14zb-whole-suite.log"
+    },
+    {
+      "sha256": "7c6973bc3a3865e2d8f8ae96ee00f94f67f6c198a7c10c1d132e766e6f415067",
+      "path": ".work/14/14zb-initial-whole-suite.log"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": ".work/14/14zb-release-replay.log"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": ".work/14/14zb-zero-cost-replay.log"
+    }
+  ],
+  "logs": [
+    {
+      "sha256": "5845d52a878bdeab6714cd96ba62e1f8a0adbabe5edf5ef75b374f4dfb23d91a",
+      "path": "os/manifest/ci/14/14zb-login-transport/transport-tests.txt"
+    },
+    {
+      "sha256": "e29984c3d1785afca74d171a9e51eeb399351479879cfcb9f98c3be53b1ad7e0",
+      "path": "os/manifest/ci/14/14zb-login-transport/console-tests.txt"
+    },
+    {
+      "sha256": "dfdb70ef3f218c854437162d75a463b93cd54b765077672a0ae03d6960c22718",
+      "path": "os/manifest/ci/14/14zb-login-transport/host-walk-tests.txt"
+    },
+    {
+      "sha256": "4474595bb27701420f3789f4accbaddc80262a8d48ecc6cebfb7ba98cf23aaff",
+      "path": "os/manifest/ci/14/14zb-login-transport/whole-suite.txt"
+    },
+    {
+      "sha256": "57fa42fa3f018bc5131e7c0ac1908d1c85519054faecafe06f526cdb47eae0b4",
+      "path": "os/manifest/ci/14/14zb-login-transport/initial-whole-suite.txt"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": "os/manifest/ci/14/14zb-login-transport/release-replay.txt"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": "os/manifest/ci/14/14zb-login-transport/zero-cost-replay.txt"
+    },
+    {
+      "sha256": "c17316896011ea7b245bf67960e00eb964d9160a4f7829b17fc3e13989b7ef7c",
+      "path": "os/manifest/ci/14/14zb-login-transport/observe.py"
+    },
+    {
+      "sha256": "d80c9a54e5c9b96fa0a4b92212760d564cbfea5f76960b1711a33a49fe92f242",
+      "path": "os/manifest/ci/14/14zb-login-transport/read-only-replay.py"
+    },
+    {
+      "sha256": "44db28374793bcce78d2d6f4b17e5e9171e172a237d2468a2e27d2cfd512f4cc",
+      "path": "os/manifest/ci/14/14zb-login-transport/strict-syntax.py"
+    }
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "files": [
+    {
+      "sha256": "014fbee0ce79375152cf8b160e0fc9759f16558430273a11bb5e43a131f71f3e",
+      "path": "docs/INSTALL.md"
+    },
+    {
+      "sha256": "05c4ee1f34b9f19fb348a90a4326773ae4062e91342b751679c4b805e16920d5",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
+      "sha256": "fd2ccfe363cd52922f068f5d68641ee3160b8e91ba0a82bb83294ba36733caa0",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "777e90047ef792dd51ed792964e8420e0da3f210e8b0af20f3e030d034d8ede5",
+      "path": "os/manifest/ci/14/14v-preflight/fingerprint-references.json"
+    },
+    {
+      "sha256": "21fbf89e96e8281f843db3e9f6eae57c0dcc64ff5f66a78467e410f6adec91eb",
+      "path": "os/manifest/ci/14/14v-preflight/installer-adapter.py"
+    },
+    {
+      "sha256": "123e15df901a3b778424be700ea004e968a94092909a05549427e8aa0876f6eb",
+      "path": "os/manifest/ci/14/14v-preflight/installer-result.json"
+    },
+    {
+      "sha256": "908aa184256b133e3b4e204960d14b5c8c62ab381465588c5c2a928d11d625b3",
+      "path": "os/manifest/ci/14/14v-preflight/preparation.json"
+    },
+    {
+      "sha256": "59a383c5539f359d7dedaebfbca5c06941db8443ced6efc001fa8ee18b1160d2",
+      "path": "os/manifest/ci/14/14v-preflight/privacy.json"
+    },
+    {
+      "sha256": "1e5c4219c8c1d53a39ed28da43e91360c5e20f4e261dba66b99ffc08945a6268",
+      "path": "os/manifest/ci/14/14v-preflight/probe-artifact-classification.json"
+    },
+    {
+      "sha256": "f54ca82d702f25dc669d00f398986caa64a3d55b94938ecd289f393a623ebbcb",
+      "path": "os/manifest/ci/14/14v-preflight/qualification-artifact-classification.json"
+    },
+    {
+      "sha256": "f88124217273758384d8b6aa789e595e759ad9fc095ce428a386cdda29560bf8",
+      "path": "os/manifest/ci/14/14v-preflight/read-only-replay.py"
+    },
+    {
+      "sha256": "5b5c1070bf14adba5088b5022722f7327e76afba5e904001c5363d260d7a5b0e",
+      "path": "os/manifest/ci/14/14v-preflight/replay.json"
+    },
+    {
+      "sha256": "c66822c5fddc17841c49dbba3af7edd0ce8d355b9f39cf8930b9ebf25ced3ea7",
+      "path": "os/manifest/ci/14/14v-preflight/strict-checks.py"
+    },
+    {
+      "sha256": "1622632b8a7fce6ce268bafd3e2ae0be3d8fe1d165e8399d87d0984a4e9ad57f",
+      "path": "os/manifest/ci/14/14v-preflight/syntax.json"
+    },
+    {
+      "sha256": "6100069b60561ccac0eb8bf5f63818dd1c9bd27576e7a275c178406fef7d3c55",
+      "path": "os/manifest/ci/14/host-walk/guest-commands.json"
+    },
+    {
+      "sha256": "9fe283afcd1176403b366445857167389fe4148f3ced3483b297a1f311cd3acb",
+      "path": "os/manifest/ci/14/host-walk/result.json"
+    },
+    {
+      "sha256": "7c2449923d7c6d27efab1794d771f8a9136cf241e97c71d3a223c07a8b25d407",
+      "path": "os/manifest/ci/14/parser-sources/README.md"
+    },
+    {
+      "sha256": "05d311d4bd78efb08446d713faee09fb37ed4468097041ad5927cc7639937dc3",
+      "path": "os/manifest/ci/14/parser-sources/index.json"
+    },
+    {
+      "sha256": "8c26de99d74aa06c030d1b0a270340ac435de8ac7cfd6f13f33b1866e9af8467",
+      "path": "os/manifest/ci/14/parser-sources/packages.json"
+    },
+    {
+      "sha256": "554849aa8e9328e71e0890bc54e035380ad0d770dff4e20848f0ef103fca40fa",
+      "path": "os/manifest/ci/14/parser-sources/source-files.zip"
+    },
+    {
+      "sha256": "c8cf42ccc4bc50adf37861d6fb238784c3185e912d4558848f019373963b85a9",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "effdc5d9b91eff608b456a69a53843b52b9bcb3683093760b5016119f2f000b7",
+      "path": "os/owner-tools/payload/SHA256.json"
+    },
+    {
+      "sha256": "c8cf42ccc4bc50adf37861d6fb238784c3185e912d4558848f019373963b85a9",
+      "path": "os/owner-tools/payload/owner.py"
+    },
+    {
+      "sha256": "ff1950fc39761d227d55cf7beb2c725278725476aab829f4dff7cd6ad29544af",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-de.json"
+    },
+    {
+      "sha256": "b35d1bc9f91a3bf08b036110bc259e1b3e9380588405233be17109d122b60a12",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-us.json"
+    },
+    {
+      "sha256": "c039cafb54189eae97cc7c950aee97326faf4645acf11af1f4a347268d3c3919",
+      "path": "os/tests/fixtures/owner-tools/efibootmgr18-efivar39.txt"
+    },
+    {
+      "sha256": "c8aac116f1773c05725547b1dff4347dbb05f68a2eafc8e5af21b4d6ef47ce49",
+      "path": "os/tests/fixtures/owner-tools/tool-output-sources.json"
+    },
+    {
+      "sha256": "53229c4b45ce17b5240ffd18999716bec708b32989ade08a18ba93854e92a272",
+      "path": "os/tests/owner_shim.py"
+    },
+    {
+      "sha256": "e48a5c6f1ddece5d6f2e89ded5f6a001f5f5d62011fef699157aaedb42918bf3",
+      "path": "os/tests/test_owner_artifact_class.py"
+    },
+    {
+      "sha256": "7b19f021a629ac194a634f77aef19a8c74b73be4f58a392323ff8cac35a7d0c4",
+      "path": "os/tests/test_owner_devices.py"
+    },
+    {
+      "sha256": "19c61c44cae25477eff410624f655681ae9961ab7468f80f0ca963080eb7bbfe",
+      "path": "os/tests/test_owner_devices_native.py"
+    },
+    {
+      "sha256": "ab12b21a8b489a549443faad48a0c6e4b496eb9051b2207e020d96faedd95e47",
+      "path": "os/tests/test_owner_diagnostics.py"
+    },
+    {
+      "sha256": "2ef0047e59f2a3ea8141dc102bdad6e3da36d45ee9ed5f16bd7ba8e52b0b6aaf",
+      "path": "os/tests/test_owner_entry.py"
+    },
+    {
+      "sha256": "cc53b7354f74df63127a79743e98f1240664efb68da670675ec2fa04d3c34060",
+      "path": "os/tests/test_owner_firmware.py"
+    },
+    {
+      "sha256": "55ceab24b75a7258563f17d3ebb315bd023aa06b1cbb914a3f7ef7cb26e18178",
+      "path": "os/tests/test_owner_format_audit.py"
+    },
+    {
+      "sha256": "75c5ffa4721f65dd206603c0b89dca349ea6629d91dbc2182aa23cc6ec22825d",
+      "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "df1f05702e127db46891c85af8fd200cf6f07399f1d9c74aa6434667b6591404",
+      "path": "reviews/14-owner-tools/BUDGET.json"
+    },
+    {
+      "sha256": "d5e328ed46e9304129c8897a5096f6df658d5cfe37d34002ed6c806dfa5f412c",
+      "path": "reviews/14-owner-tools/REPORT.md"
+    },
+    {
+      "sha256": "c0fdfdb09b769659421d2ba5c0205d8164bc9073ce9138880f73ab2e8cf3e4a9",
+      "path": "reviews/14-owner-tools/classify-artifacts.py"
+    },
+    {
+      "sha256": "46542d2905abc0c05142e445b6dd5bb8fd0a794b7cbfd1d91c4e4079d5ffa42f",
+      "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
+    },
+    {
+      "sha256": "cc1583a8c3bce980b1c303e65fea723f48151afc8a0232cf81ea779154378e5d",
+      "path": "reviews/14-owner-tools/walk-host.py"
+    }
+  ]
+}

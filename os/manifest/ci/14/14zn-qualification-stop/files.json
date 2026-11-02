@@ -1,0 +1,88 @@
+{
+  "files": [
+    {
+      "sha256": "19ecffa0c0d43e41935f2d6329631ac80a18c92b65b35c9bdfb64d72c3e12855",
+      "path": "closed-ledger.json"
+    },
+    {
+      "sha256": "3c4c6d4e7092a82c9bd8dc5e6a5e6bd95f9c4414bbce5a5b4b4cf63b9d71e950",
+      "path": "diagnostics.json"
+    },
+    {
+      "sha256": "2b13289d3bc60c6ce0e696e2d8f7bde2cef6d3a69d8b802a081295d39600d718",
+      "path": "hidden-completion.json"
+    },
+    {
+      "sha256": "48bdc8ee6190314184ac912533df049a13f853147e13b94f957f9244821ac6ac",
+      "path": "hidden-readiness.json"
+    },
+    {
+      "sha256": "5d5c8ac9c403f50bda555d9c813520b257ef7b0552edfa482862d67134f2b8a0",
+      "path": "linux-reference-sources.json"
+    },
+    {
+      "sha256": "f5fceb213f1a61816775efd1bf7a9da15cb69050a812aef6078f162bc8cd58ff",
+      "path": "privacy-ci.json"
+    },
+    {
+      "sha256": "55c75950cea2691e93735244fa9c60240b5f9b1211d3bb390d3ed1877d8b2dbd",
+      "path": "probe-guard.json"
+    },
+    {
+      "sha256": "d8acf71b72e260ccb8a93438e94ad67852149409c3192b97489edb0b6db14027",
+      "path": "probe-native-timing.json"
+    },
+    {
+      "sha256": "2e012f543dd3d6acbdb9f7cf93c01ed608d6ff4166623e64e641f95294742b24",
+      "path": "probe-privacy.json"
+    },
+    {
+      "sha256": "a750b8337de200dfa3d944c39c321db218453ba681c930ee4b6652a4f7ac72f0",
+      "path": "probe-proof.json"
+    },
+    {
+      "sha256": "47ab84fffadc780f2919fe67bdef10f17ea08376a2432cb606c2ff6103e8d79c",
+      "path": "push.json"
+    },
+    {
+      "sha256": "bcce5eb5cdb567ba0678460bbe2b914cf3cc1f2a902e71fdb8542927512dc500",
+      "path": "qualification-artifact.json"
+    },
+    {
+      "sha256": "0bb6a445096087388e0ddfe37a5d72ccd049c4b451954526fbbfd757760449cb",
+      "path": "qualification-audits.json"
+    },
+    {
+      "sha256": "e04f86ed0278a9abe546df4ef4adc7eb4c6f1d712d94e7c62d263443652dba02",
+      "path": "qualification-guard.json"
+    },
+    {
+      "sha256": "780c32191a8019d2906a019b573a09497f69d6cdc5c3043e2e78e2417de819fe",
+      "path": "qualification-local-replay.json"
+    },
+    {
+      "sha256": "9d776595a1123ccb4fdd087c41a3a526efe22db19684ee5e3d622b771836901b",
+      "path": "qualification-native-timing.json"
+    },
+    {
+      "sha256": "50f8f357aca52be2ccc1ecd606e514057ddb69cd2416273ee08fb2fb974d9004",
+      "path": "qualification-privacy.json"
+    },
+    {
+      "sha256": "23982c1e0a49abdfb85880143a2fb4bd86b584d52fc0ed2c78ef1d543d51eda0",
+      "path": "screen-predicates.json"
+    },
+    {
+      "sha256": "0ba1fbb8df407be14f6c08eeaf39867e05c40e3dd395215a78d63f96e7d12864",
+      "path": "sudo-1.9.15-comparison.json"
+    },
+    {
+      "sha256": "8769562af4f850daa1f2ad7210d296fe48a6e224b20163ac5e683260bede78a5",
+      "path": "summary.json"
+    },
+    {
+      "sha256": "f663e7c82f8c42161416886f683de3e09b57c1666aa301ce519e426db27bb32f",
+      "path": "token-deadline.json"
+    }
+  ]
+}

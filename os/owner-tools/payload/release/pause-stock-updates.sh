@@ -87,6 +87,11 @@ def pause_units():
     return scopes, receipt
 
 
+def deployment_client(process):
+    return not (process['excluded_as_daemon'] is True
+                or process.get('excluded_as_system_helper', False) is True)
+
+
 def deployment_processes(root=pathlib.Path('/proc')):
     processes = []
     for process in sorted(root.iterdir(), key=lambda p: int(p.name) if p.name.isdigit() else -1):
@@ -104,8 +109,15 @@ def deployment_processes(root=pathlib.Path('/proc')):
         paths = [line.split(':', 2)[2] for line in cgroup.splitlines()]
         daemon = pathlib.Path(executable.removesuffix(' (deleted)')).name == 'rpm-ostree' and cmdline[1:] == ['start-daemon'] and any(path == '/system.slice/rpm-ostreed.service' or
                      path.startswith('/system.slice/rpm-ostreed.service/') for path in paths)
+        # The pinned ostree unit holds /boot open after staging. The shutdown
+        # finalizers themselves still count as clients; only this exact hold
+        # command in its exact system-service cgroup is an idle helper.
+        helper = (executable == '/usr/bin/ostree'
+                  and cmdline == ['/usr/bin/ostree', 'admin', 'finalize-staged', '--hold']
+                  and cgroup.splitlines() == ['0::/system.slice/ostree-finalize-staged-hold.service'])
         processes.append(dict(pid=int(process.name), exe=executable, cmdline=cmdline,
-                              cgroup=cgroup, excluded_as_daemon=daemon))
+                              cgroup=cgroup, excluded_as_daemon=daemon,
+                              excluded_as_system_helper=helper))
     return processes
 
 
@@ -133,7 +145,7 @@ def pause_stock():
             assert transaction is None or (isinstance(transaction, list) and len(transaction) == 3 and
                    all(isinstance(value, str) for value in transaction)), 'Unexpected rpm-ostree transaction shape'
             decision['processes'] = deployment_processes()
-            decision['clients_idle'] = not any(not p['excluded_as_daemon'] for p in decision['processes'])
+            decision['clients_idle'] = not any(deployment_client(p) for p in decision['processes'])
             if decision['units_inactive'] and not decision['transaction_idle'] and not decision['cancel']['ran']:
                 remaining = deadline - time.monotonic()
                 assert remaining > 0, 'Idle deadline reached before cancellation'

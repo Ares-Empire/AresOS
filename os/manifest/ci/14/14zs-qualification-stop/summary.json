@@ -1,0 +1,50 @@
+{
+  "status": "STOP after passed corrected-stock records; physical prompt-readiness deadline after two authorized Enter resyncs",
+  "head": "65edb1195b12cade6f62d9952f70f5920ad13631",
+  "probe26": 40892685683,
+  "qualification15": 40897501964,
+  "native_probe": {
+    "tests": 540,
+    "seconds": 120.924,
+    "skips": 0
+  },
+  "native_qualification": {
+    "tests": 540,
+    "seconds": 131.362,
+    "skips": 0
+  },
+  "completed_physical_logins": 2,
+  "login_elapsed_seconds": [
+    8.933182459999998,
+    8.912992063000004
+  ],
+  "login_timeout_seconds": 60,
+  "half_budget_seconds": 30,
+  "reader_replacements": 0,
+  "non_hidden_or_unknown_secret_events": 0,
+  "hidden_windows": 4,
+  "all_observed_hidden_counts_match": true,
+  "owner_records_passed": 9,
+  "unexpected_owner_stops": 0,
+  "authorized_prompt_resyncs": 2,
+  "raw_vcsa_timeouts": 3,
+  "underlying_prompt_cause_proven": false,
+  "acceptance_met": false,
+  "pr_ready": false,
+  "pushes": 1,
+  "reruns": 0,
+  "closing_reservation": 0,
+  "reserve": 0,
+  "product_fix_after_stop": false,
+  "not_reached": [
+    "private owner login and dummy-token path",
+    "verify and switch",
+    "AresOS boot/login",
+    "plain-US failure and revert",
+    "US International proof/finish",
+    "final German proof/finish",
+    "rollback",
+    "keep-stock",
+    "final Windows checks"
+  ]
+}

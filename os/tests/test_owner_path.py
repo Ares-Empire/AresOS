@@ -208,9 +208,42 @@ def check_context_returns(texts):
     for block in (reverted, proof, finished):
         if 'INSTALL.md#5-' in block or 'INSTALL.md#7-' in block:
             raise AssertionError('Layout recovery must retain its AresOS context')
+    abandoned = section(procedures, 'abandoned-layout-trial')
+    if (commands['layout-abandon'] not in abandoned or pass_line('layout-abandon') not in abandoned
+            or 'fresh physical tty3' not in abandoned or 'last confirmed layout' not in abandoned):
+        raise AssertionError('Abandon needs confirmed layout and a fresh physical login')
+    ares, stock = abandoned.split('**Return by booted OS:**', 1)[1].split('On **retained stock**', 1)
+    if (commands['check'] not in ares or 'INSTALL.md#8-everyday-boot-and-recovery' not in ares
+            or '(#keep-stock)' in ares or '[return to keep-stock](#keep-stock)' not in stock):
+        raise AssertionError('Abandon must retain the booted OS return route')
+    if any(command in abandoned for command in (commands['layout-proof'], commands['layout-finish'])):
+        raise AssertionError('Abandon must not finish a cleared trial')
 
 
 class OwnerPathTest(unittest.TestCase):
+    def test_abandoned_trial_card_uses_confirmed_layout_fresh_login_and_exact_pass(self):
+        texts = documents()
+        card = section(texts['EMERGENCY.md'], 'crashed-or-restarted-during-a-keyboard-layout-trial')
+        for value in ('last confirmed layout', 'fresh physical', 'ares-recovery password login',
+                      'sudo /var/lib/ares/at layout abandon', pass_line('layout-abandon'),
+                      'INSTALL-PROCEDURES.md#abandoned-layout-trial', 'INSTALL-PROCEDURES.md#keep-stock'):
+            self.assertIn(value, card)
+        check_context_returns(texts)
+        before = 'run `sudo /var/lib/ares/at check` (require `PASS check`), prove confirmed-layout password/text typing, then [Return to step 8](INSTALL.md#8-everyday-boot-and-recovery)'
+        self.assertIn(before, texts['INSTALL-PROCEDURES.md'])
+        texts['INSTALL-PROCEDURES.md'] = texts['INSTALL-PROCEDURES.md'].replace(
+            before, '[return to keep-stock](#keep-stock)', 1)
+        with self.assertRaisesRegex(AssertionError, 'Abandon must retain'):
+            check_context_returns(texts)
+
+    def test_tools_stop_exports_persistent_diagnostics_without_authorizing_retry(self):
+        card = section(documents()['EMERGENCY.md'], 'a-tools-command-stopped')
+        for value in ('keep the entire screen', 'administrator session open',
+                      'sudo /var/lib/ares/at export', pass_line('export'),
+                      '/var/lib/ares/diagnostics', 'diagnostic-', 'SAFE TO REMOVE',
+                      'bootstrap failure', 'Return to the failed recorded step only after resolution'):
+            self.assertIn(value, card)
+
     def test_everyday_boot_order_record_b_returns_to_step_8(self):
         texts = documents()
         self.assertIn('record B', section(texts['INSTALL.md'], '8-everyday-boot-and-recovery'))
@@ -321,7 +354,8 @@ class OwnerPathTest(unittest.TestCase):
         card = documents()['EMERGENCY.md']
         preparation = card.index('## References and preparation')
         symptoms = ('Frozen laptop', 'Failed first switch boot', 'Stale or missing stock title',
-                    'Password not accepted', 'Text covers the prompt after stick hotplug or removal',
+                    'Password not accepted', 'Crashed or restarted during a keyboard layout trial',
+                    'A tools command stopped', 'Text covers the prompt after stick hotplug or removal',
                     'Forgotten tools stick at power-on', 'Battery warning sign',
                     'Windows missing or not starting', 'Leaving AresOS permanently')
         self.assertNotIn('## ', card[:card.index('## ' + symptoms[0])])
@@ -378,8 +412,14 @@ class OwnerPathTest(unittest.TestCase):
         status = documents()['INSTALL-STATUS.md']
         for phrase in ('NOT RELEASED', 'FnLock states', 'Damaged-battery', 'Unaided-reader',
                        'Expendable-media', 'protected-second', 'not qualified protected-first',
-                       'US-then-stock rollback was not run', '1 November'):
+                       'US-then-stock rollback was not run', 'Qualification 21 PASSED'):
             self.assertIn(phrase, status)
+        owner = next(line for line in status.splitlines() if line.startswith('| Package 14 owner tools |'))
+        self.assertIn('**R13 tested; protected-second**', owner)
+        for phrase in ('3fd7916', '41374876561', 'mid-trial', 'German', 'abandon'):
+            self.assertIn(phrase, owner)
+        self.assertNotIn('before first tools command', owner)
+        self.assertIn('not that exact STOP/export/reboot sequence in a VM', status)
 
 
 if __name__ == '__main__':

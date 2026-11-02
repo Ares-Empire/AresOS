@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "hardware_setup_finished": true,
+  "staged": false,
+  "rollback_queued": false,
+  "tools_attached": false,
+  "network_up": false
+}

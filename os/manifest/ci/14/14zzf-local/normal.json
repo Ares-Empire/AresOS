@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "mode": "normal",
+  "command": [
+    "python3",
+    "-m",
+    "unittest",
+    "-v",
+    "test_owner_export",
+    "test_owner_diagnostics",
+    "test_owner_entry",
+    "test_owner_tools"
+  ],
+  "modules": [
+    "test_owner_export",
+    "test_owner_diagnostics",
+    "test_owner_entry",
+    "test_owner_tools"
+  ],
+  "seconds": 73.403,
+  "bytecode_environment": "PYTHONDONTWRITEBYTECODE unset",
+  "payload_fingerprint": "3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd",
+  "log": {
+    "sha256": "4d8149e6f1385e0831060b9bb361251d9db325ea855969b6bb336a14d555ebdd",
+    "path": "normal.txt"
+  },
+  "tests": 27,
+  "test_seconds": 72.452,
+  "skips": 0,
+  "errors": 0,
+  "failures": 0,
+  "log_sanitization": "only absolute worktree prefix replaced with <worktree>"
+}

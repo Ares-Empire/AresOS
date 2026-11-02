@@ -4,6 +4,37 @@ import hashlib
 import re
 
 
+class IncompleteKernelLine(ValueError):
+    pass
+
+
+def strip_kernel_lines(transcript):
+    """Filter complete printk records without guessing missing bytes.
+
+    A record can interrupt any userspace byte. Keep the original transcript
+    separately; a partial record must wait for its newline, never grant input.
+    """
+    clean = re.sub(r'\[\s*\d+\.\d+\] [^\r\n]*\r?\n', '', transcript)
+    if re.search(r'\[\s*\d+\.\d+\] [^\r\n]*\r?\Z', clean):
+        raise IncompleteKernelLine('Incomplete kernel console record')
+    return clean
+
+
+def serial_search(pattern, transcript):
+    clean = strip_kernel_lines(transcript)
+    if hasattr(pattern, 'serial_ack'):
+        return clean, pattern.search(clean)
+    assert 'ARESOS_ACK:' not in clean, 'Unexpected or duplicate serial ACK; STOP'
+    return clean, re.search(pattern, clean)
+
+
+def command_status(transcript):
+    clean = strip_kernel_lines(transcript)
+    matches = re.findall(r'\r?\nARESOS_CMD_DONE:(0|[1-9][0-9]{0,2})\r?\n', clean)
+    assert len(matches) == 1 and int(matches[0]) <= 255, 'Missing, duplicate or malformed command completion; STOP'
+    return int(matches[0])
+
+
 def encode_command(script):
     encoded = base64.b64encode(script.encode()).decode()
     lines = '\n'.join(encoded[n:n + 1024] for n in range(0, len(encoded), 1024))
@@ -17,7 +48,7 @@ def decode_export(transcript):
     # Kernel printk shares the serial UART and can interrupt a base64 line.
     # Remove only recognizable kernel records; the guest checksum guards every
     # decoded byte against missing data or any other console interference.
-    clean = re.sub(r'\[\s*\d+\.\d+\][^\r\n]*(?:\r?\n|\r)', '', transcript)
+    clean = strip_kernel_lines(transcript)
     frame = re.search(r'\r?\nARESOS_EXPORT_START\r?\n(.*?)\r?\nARESOS_EXPORT_END\r?\n'
                       r'ARESOS_EXPORT_SHA256[ \t]+([0-9a-f]{64})[ \t]+[^\r\n]+\r?\n', clean, re.S)
     if frame is None:

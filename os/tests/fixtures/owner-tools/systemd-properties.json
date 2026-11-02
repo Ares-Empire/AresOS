@@ -1,0 +1,61 @@
+{
+  "provenance": "Source-format literal property selection, string/u32/boolean/u64 Key=Value formatter from systemd258 and259.9; session values modelled, not claimed VM output",
+  "sources": "os/manifest/ci/14/14zr-property-sources/index.json",
+  "loginctl": [
+    {
+      "options": [
+        "--property=Id,TTY,Audit,Scope"
+      ],
+      "stdout": ""
+    },
+    {
+      "options": [
+        "--property=Service,Type,Remote,Name,User"
+      ],
+      "stdout": ""
+    },
+    {
+      "options": [
+        "--property=Id",
+        "--property=TTY",
+        "--property=Audit",
+        "--property=Scope"
+      ],
+      "stdout": "Id=7\nTTY=tty3\nScope=session-7.scope\nAudit=7\n"
+    },
+    {
+      "options": [
+        "--property=Service",
+        "--property=Type",
+        "--property=Remote",
+        "--property=Name",
+        "--property=User"
+      ],
+      "stdout": "User=1000\nName=ares-recovery\nRemote=no\nService=login\nType=tty\n"
+    },
+    {
+      "options": [
+        "--property=TimestampMonotonic"
+      ],
+      "stdout": "TimestampMonotonic=123456789\n"
+    }
+  ],
+  "systemctl": {
+    "options": [
+      "--property=LoadState,ActiveState,SubState"
+    ],
+    "stdout": "LoadState=masked\nActiveState=inactive\nSubState=dead\n"
+  },
+  "busctl": {
+    "command": "get-property",
+    "stdout": "s \"de\"\n",
+    "json_properties_getall": "a{sv} variants retained in test_owner_format_audit.py"
+  },
+  "localectl": {
+    "command": "set-keymap",
+    "property_option": false
+  },
+  "systemd_run": {
+    "property_option": "NAME=VALUE unit assignment, not a selector"
+  }
+}

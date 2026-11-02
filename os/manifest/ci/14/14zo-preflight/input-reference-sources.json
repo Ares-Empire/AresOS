@@ -1,0 +1,49 @@
+{
+  "status": "reference ABI and matching upstream QEMU base sources reviewed; retained actual pinned-run keyboard identity",
+  "sources": [
+    {
+      "sha256": "7fe6e540926cca50aff9eaf764347c2686092c95cf4ed930db73b59ceda43d64",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.17/include/uapi/linux/input.h",
+      "path": "input.h"
+    },
+    {
+      "sha256": "3a637ac0670b1ebce893bb48f12ec4f25f8d15756b30817d97193ac640b013ff",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.17/include/uapi/linux/input-event-codes.h",
+      "path": "input-event-codes.h"
+    },
+    {
+      "sha256": "f79c3810f2a5ac617f3c812c7fe3c9ee73fc9a931412b606abc2e79b4ba879e8",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.17/Documentation/input/event-codes.rst",
+      "path": "event-codes.rst"
+    },
+    {
+      "sha256": "6e6a2bbe6ca08c53693794c151a64b60960f6dd5986423db7a5d85ef8681f0b1",
+      "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/input/hid.c",
+      "path": "hid.c"
+    },
+    {
+      "sha256": "706a9cf2ad29f85b6343fdcb5eb2aa729799e70183f515d1c0a7487d25f93471",
+      "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/usb/dev-hid.c",
+      "path": "dev-hid.c"
+    },
+    {
+      "sha256": "bfe5028ed2fbb28a0ac4f3ac04c1495e0db0459243448abf139a6748e0c5f028",
+      "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/include/hw/input/hid.h",
+      "path": "hid.h"
+    }
+  ],
+  "retained_device": {
+    "sha256": "8cb607ba470ce30084a6569461967ab17d32d67253beeb17bf8fc07c78c9bcc1",
+    "path": ".work/14/run-40788594413/evidence/two-disk/corrected-stock-boot-console.txt",
+    "lines": [
+      {
+        "line": 557,
+        "text": "[    1.888943] input: QEMU QEMU USB Keyboard as /devices/pci0000:00/0000:00:05.0/usb1/1-1/1-1:1.0/0003:0627:0001.0001/input/input5"
+      }
+    ]
+  },
+  "pinned_qemu_package": "1:8.2.2+ds-0ubuntu1.18",
+  "limitations": "Upstream8.2.2 reference source is distinguished from the Ubuntu1.18 package patches; no claim of proven HID loss",
+  "event_protocol": "x86-64 input_event24 bytes; EV_KEY0/1/2 release/press/repeat; SYN_DROPPED invalidates completeness through next SYN_REPORT",
+  "ioctls": "EVIOCGID,EVIOCGREP,EVIOCGKEY getters only; no grab or setter; startup requires all keys released"
+}
