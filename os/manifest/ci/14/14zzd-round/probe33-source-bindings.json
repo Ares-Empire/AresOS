@@ -1,0 +1,28 @@
+{
+  "files": [
+    {
+      "sha256": "12c9868929bcf4a3310444bcd7787cdf393215544ef9ac7d8cc55f02964ea74c",
+      "path": ".work/14/14zzd/basic-41363231606/artifacts.json"
+    },
+    {
+      "sha256": "191dfe9f717639a01842ebe9db143fd10e833e4e2e95d0980433f6bd701bca95",
+      "path": ".work/14/14zzd/basic-41363231606/jobs.json"
+    },
+    {
+      "sha256": "bb1573db457eb8e0041496de6e82e1c3d66efc0e922499d71c7b987ea6ecc7fd",
+      "path": ".work/14/14zzd/basic-41363231606/log-privacy.json"
+    },
+    {
+      "sha256": "b5b74fadcb4f9601dc99611a447b0fd2922a52c65b2f8a62bee0c3fe4ef3fc65",
+      "path": ".work/14/14zzd/basic-41363231606/logs.zip"
+    },
+    {
+      "sha256": "a2fa9183f4a3851bff9e04bd7ed676a3cc5c272ac4409cb87820acd2e82fd528",
+      "path": ".work/14/14zzd/basic-41363231606/receipt.json"
+    },
+    {
+      "sha256": "f60082498648d856eefdc49d9448054580ae12f8051d50e10c45f025dc71a348",
+      "path": ".work/14/14zzd/basic-41363231606/run.json"
+    }
+  ]
+}

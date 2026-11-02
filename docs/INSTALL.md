@@ -510,7 +510,7 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
 
 - **OPEN — package 14 physical gates:** Fedora Media Writer 5.3.2 restore German click path, reviewed bundle copy/eject, novice offline round trip, root-only shared tools across stock/AresOS, and tools-stick hotplug/export/unplug. A forgotten data-only stick at power-on is physically untested; it is never an accepted firmware-audit exception.
 - **OPEN — NVIDIA deferred runtime (14b):** after first network, confirm the enabled sync finishes for the real GPU and the entire deployment/pin/pending/BLS state stays unchanged. Virtio graphics cannot exercise its NVIDIA condition. Never mask or delay it.
-- **VM review round STOP — package 14:** Qualification 20 remains the last accepted complete VM route. The 14zzc review-fix round stopped; the new head has not met acceptance. See the [14 REPORT](../reviews/14-owner-tools/REPORT.md) for exact runs and evidence. Physical installation remains **NOT RELEASED**; every laptop/media/followability gate stays open.
+- **VM review round STOP — package 14:** Qualification 20 remains the last accepted complete VM route. The 14zzd fixture round stopped; the new head has not met acceptance. See the [14 REPORT](../reviews/14-owner-tools/REPORT.md) for exact runs and evidence. Physical installation remains **NOT RELEASED**; every laptop/media/followability gate stays open.
 
 
 - **OPEN — 14b NVIDIA Flatpak sync on the real GPU:** after the qualified
@@ -519,7 +519,7 @@ Never extend C: or edit Micron for undo. An unused Linux firmware entry can stay
   prepared deployment list, pins, pending/transaction state and BLS entries are
   unchanged. The source permits this Flatpak-only deferred work; virtual graphics
   makes its NVIDIA condition false, so a VM cannot close this physical gate.
-- **VM review round STOP — package 14:** Qualification 20 remains the last accepted complete VM route. The 14zzc review-fix round stopped; the new head has not met acceptance. See the [14 REPORT](../reviews/14-owner-tools/REPORT.md) for exact runs and evidence. Physical installation remains **NOT RELEASED**; every laptop/media/followability gate stays open.
+- **VM review round STOP — package 14:** Qualification 20 remains the last accepted complete VM route. The 14zzd fixture round stopped; the new head has not met acceptance. See the [14 REPORT](../reviews/14-owner-tools/REPORT.md) for exact runs and evidence. Physical installation remains **NOT RELEASED**; every laptop/media/followability gate stays open.
 
 - **OWNER DECISION / guide-only (13g, 2026-10-25) — recovery layout exception:**
   later AresOS layout changes affect only its running deployment. Retained

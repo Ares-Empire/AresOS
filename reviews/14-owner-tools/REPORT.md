@@ -1,12 +1,12 @@
 # 14: checked owner tools
 
-## 14zzd REPORT: manifest-only fixtures; probe 33 / qualification 21 pending
+## 14zzd REPORT: manifest-only fixtures; STOP, no rerun
 
-**Disposition:** local checks completed with the established laptop limitations.
-One fast-forward push through the installed local privacy hook is authorized;
-probe 33 and, only after its complete acceptance and a fresh guard, qualification
-21 must use that same head. No rerun is authorized. PR #13 remains draft pending
-acceptance. The closing report will be committed locally only.
+**Disposition:** [probe 33](https://github.com/Ares-Empire/AresOS/actions/runs/41363231606) **failure**, once on pushed head `dda72ed8a5bdb038d953f950f76c66fc37297115`. **Acceptance is not
+met**: probe 33 passed all 627 native tests, then owner_vm.main refused Host walk is stale before guest boot. Read-only Git checkout-filter replay proves the PowerShell test source binding is LF while its declared checkout is CRLF. Qualification 21 was not dispatched. No further push, probe, qualification or rerun was attempted.
+PR #13 remains draft. This STOP report, ledger and curated diagnostics receipts
+are committed **locally only**. No merge, image build or publication occurred.
+Physical release is **NOT RELEASED**.
 
 ### Done
 
@@ -76,8 +76,8 @@ the master, canonical extraction, results and failed partials remain retained.
 
 Source, command, result and private controller bindings are recorded in
 `os/manifest/ci/14/14zzd-preflight/preparation.json`. Pinned local gitleaks 8.21.2
-must report zero over pending files and full history before the push; the exact
-range and actual push must pass the installed aresync hook without bypass.
+reported zero over pending files and full history before the push. The exact
+range and actual push passed the installed aresync hook without bypass.
 
 ### Sizing / budget
 
@@ -86,15 +86,70 @@ qualifications**. Organization free minutes: **1401**, reserve **150**. The last
 dispatch comparison is +9 package / +9 organization. Planned reservation is
 72+240=312; 2310+312=**2622 <=2750**. Unchanged retained timing projection fits
 VM 200 / qualification 240. November remains free-minutes-only, no paid budget
-read, zero local-hook privacy reservations. Ledger and billing will be rechecked
-immediately before every dispatch.
+read, zero local-hook privacy reservations. Ledger and billing were rechecked
+immediately before the only dispatch.
+
+### Actual November round / independent review
+
+[probe 33](https://github.com/Ares-Empire/AresOS/actions/runs/41363231606) **failure**. No run was rerun.
+
+Native **627 tests passed in 163.918 s**, zero failures/errors/skips. The unchanged
+30-second test explicitly passed. The real native loop-image test passed all
+twenty checks, with zero helper mutations, protected fixture unchanged, all
+mounts unmounted and loops detached. The deterministic real-kernel counter test
+proved the old counting-fd query loses the press and the separate-client fix
+preserves both events. Host capabilities, all four CI-only credential checks,
+and ISO length/pin/fresh-checksum verification passed.
+
+Artifact scan: 507 findings, comprising 507 exact pinned public ISO listing lines and 0 exact whole-line public kernel X.509 messages. Every occurrence is recorded by file, line, source-line SHA and approved-token cross-check in probe33-artifact-review.json. No ignore/rule/workflow changes.
+
+Every completed job log was scanned; 4 findings were the exact pinned cosign-installer checksum class. Unknown findings: zero.
+
+Complete closing history: **155/155 IDs**. Package minutes **2326 / 2750**; added **16** this round. Counts **33 probes / 20 qualifications** (last caps 34/21). Organization free **1385**, reserve **150**. The saved last-dispatch package/organization comparison passed; the complete per-job charge rules and response hashes are in ledger.json. November remains free-minutes-only: no paid budget read or paid overflow; local-hook privacy reservations stay zero. No further dispatch is authorized.
+
+Actual receipts are in `os/manifest/ci/14/14zzd-round/round.json`. Raw consoles,
+VCSA, screenshots, varstores and owner diagnostics remain only in private retained
+artifacts/local evidence; they are not committed. The whole report's outstanding
+physical release gates and the existing For package 15 list still apply.
+
+### STOP diagnosis: Git checkout bytes were not covered locally
+
+`owner_vm.main` refused `Host walk is stale` at line 1090, before Media.create,
+any guest boot or live probe. Disposable file disks had been prepared; no guest
+evidence/two-disk directory exists. The strict source-byte predicate was kept.
+
+Read-only replay against the exact pushed tree checked all **195** host source
+rows with `git show HEAD:path`; all match their bound Git-blob hashes. Replaying
+`git cat-file --filters --path=path HEAD:path` found **one** mismatch:
+`os/tests/owner-tools.Tests.ps1`. Its bound blob has 4,889 bytes, LF only; the
+declared `.gitattributes` rule `*.ps1 text eol=crlf` yields 4,961 checkout bytes,
+including 72 CRLF line endings. The content differs only by newline expansion.
+The Windows working file remained LF, so both the local working-byte check and
+Git-blob check missed the Linux checkout form.
+
+Existing Linux Git 2.43.0 independently produced the same expanded bytes and
+hash from a repository-local, isolated two-file fixture containing the exact
+pushed attributes and PowerShell blob. Its first direct attempt could not read
+the linked worktree's Windows absolute gitdir; no original Git metadata was
+changed. Diagnostic commands/results are retained in stop-diagnosis.json and
+linux-checkout-proof.json with their helper sources.
+
+**Proven:** the pushed binding fails under its declared checkout filters, for
+exactly that source row. **Inferred:** this explains the native assertion. The
+assertion exported neither its failing path nor runtime hash, so the individual
+native row cannot be independently read back. The other 194 rows pass the same
+checkout-filter replay. This was a local preflight verification defect, not a
+relaxation of the strict bundle validator. No pushed-tree fix, new push, probe
+34, qualification 21 or Actions rerun was attempted.
 
 ### Not verified / JUDGMENT-CALL / PLAN-GAP / open questions
 
-Fresh same-head native and VM acceptance are pending. All prior physical
+This round stopped without fresh VM acceptance. All prior physical
 release and followability gates remain open; the product is **NOT RELEASED**.
 The fixture correction does not claim laptop qualification or change a product
-decision. No new PLAN-GAP is identified by the completed local checks.
+decision. Fresh live probe, complete owner route and review-fix VM acceptance
+were not reached. The checkout-byte verification gap needs a future authorized
+round; no additional run is authorized here. PR #13 remains draft.
 
 ## 14zzc REPORT: review fixes implemented; STOP, no rerun
 
