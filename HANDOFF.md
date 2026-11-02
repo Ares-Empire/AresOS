@@ -57,7 +57,8 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - merge `origin/main` with `--no-ff`
   - the new bootstrap block, fingerprint `3e2c78eb…`, `layout abandon`, card entries and the qualification 21 status
   - equality tests, then one push, and mark PR #14 ready
-- **Then:** a package review of 15. It also checks the council delta's November runtime conditions against qualification 21. Then the owner's "merge", then the physical install (SSD return deadline about 2026-11-09).
+- **Then:** a package review of 15. It also checks the council delta's November runtime conditions against qualification 21. Then the merge, then the physical install (SSD return deadline about 2026-11-09).
+- **Owner permission (2026-11-02):** "you can merge once its safe to merge, this is permission." Merge PR #14 once its review (and any fix re-check) says SAFE. Still bring the owner any Codex JUDGMENT-CALL that changes the owner's install steps first.
 
 ### Package 14: owner tools (PR #13, draft)
 
