@@ -236,7 +236,7 @@ class SessionTest(unittest.TestCase):
             console.become_root('synthetic-password', 'guide')
         self.assertEqual(typed, ['sudo -k','\n','sudo -i','\n', 'synthetic-password\n'])
         self.assertTrue(console.root)
-        guide = (ROOT/'docs/INSTALL.md').read_text()
+        guide = '\n'.join((ROOT/'docs'/name).read_text() for name in ('INSTALL.md','INSTALL-PROCEDURES.md'))
         self.assertIn('sudo -i', guide)
         for command in vm.COMMANDS.values(): self.assertIn(command, guide)
         self.assertEqual(vm.COMMANDS['layout-us'], 'sudo /var/lib/ares/at layout begin us')

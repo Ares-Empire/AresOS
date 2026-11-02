@@ -1,149 +1,72 @@
-# If something goes wrong
+# AresOS emergency card
 
-The AresOS emergency card. **Keep it on your phone.** If AresOS is broken, you can't read it on the laptop.
+Keep this on your phone. Pick the symptom below. **Ctrl = Strg**; Super = Windows-logo key.
 
-This card applies once AresOS is installed. Physical installation is still **not released** (see [INSTALL.md](INSTALL.md)). The exact commands live in INSTALL.md. 11k passed automated Part A in both drive orders with the earlier Windows-first timing. [11n](../reviews/11-two-disk-rehearsal/REPORT.md#11n-safe-switch-test-prerequisites-and-continued-qualification-2026-10-24) passed the revised first-login → Windows-first sequence and GRUB stock recovery/promotion/second stock boot in a protected-second VM, with every reached protected-disk/NVRAM/BootNext audit passing and final zero writes. Physical media, laptop, loaded keyboard/actual typing, manual menu and followability gates remain open. Do not guess menu positions or bypass a STOP; prefer F12 → Windows and getting help.
+## Frozen laptop
 
-## Stock preparation stops before the switch
+**Action:** try **Super+Ctrl+Esc (Ctrl = Strg)** for a normal-user terminal.
+If nothing responds, briefly press power and wait one minute. Still on? Hold power until off (unsaved work can be lost), then repeatedly tap **F12** (or **Fn+F12**) → **Windows Boot Manager**. Never force off during a firmware/BIOS update; get help instead.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)** if Windows is missing or will not start. Return to [step 7](INSTALL.md#7-check-the-first-aresos-session) only after help clears the failure.
 
-Qualification 21 passed the complete protected-second VM owner route and all safety audits, including trusted bootstrap, unplanned trial reset, German recovery login, layout abandon, the original layout proofs, rollback, keep-stock and final Windows markers. See the [14 REPORT](../reviews/14-owner-tools/REPORT.md) for exact runs and evidence. Physical installation remains **NOT RELEASED**; every laptop/media/followability gate stays open.
+## Failed first switch boot
 
-An NVIDIA Flatpak runtime notification while offline is expected. Leave its
-sync enabled; it retries after networking becomes available. That notification
-alone is not an OS deployment STOP. Keep networking off until the checked OS
-updater pause; do not disable the sync to hide it. Completion and unchanged
-deployments still need the physical check in INSTALL's release gate.
+**Action:** restart → **F12** (or **Fn+F12**) → **Windows Boot Manager** → get help.
+The staged stock title is provisional. Do not try a GRUB row, repeat the switch or repair boot files.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)**; return to [step 6](INSTALL.md#6-switch-to-aresos) only after help and the step 5 proof are complete.
 
-Keep the live install and first stock boot **offline** through the Windows
-round trip. Follow INSTALL's [tools-stick/prepare route](INSTALL.md#pause-and-retain-stock-before-the-windows-comparison).
-Restore only the former installer USB with Fedora Media Writer 5.3.2; never the
-recovery stick. Copy the reviewed bundle in Windows, safely eject/unplug before
-record B or restarting. After **F12 → Linux → ares-recovery sign-in**, plug in
-the tools stick and use INSTALL's checked bootstrap, then `sudo /var/lib/ares/at prepare`.
-Require PASS (exact identity, pin, pending none), rerun with no mutations, then
-network on → `sudo /var/lib/ares/at title` → `sudo /var/lib/ares/at records`.
-A STOP means keep this session open, preserve diagnostics and get help. STOP diagnostics persist root-only under `/var/lib/ares/diagnostics` and go through the checked `export` route with records.
+## Stale or missing stock title
 
-Lost the original layout-trial session: fresh physical **ares-recovery** login, then `sudo /var/lib/ares/at layout abandon`; require `PASS layout abandon`, save its refreshed title, then `sudo /var/lib/ares/at reboot`; Windows stays default, so use F12 and the recorded Linux entry for one Linux boot. Unfinished trials do not change the next boot's finished layout; stock keeps its own installer setting.
+**Action:** do not choose a GRUB row. Use **F12** (or **Fn+F12**) → Windows → help.
+Every deployment reorder invalidates old titles, even before reboot. Both entries can say Bazzite; position and checksum alone do not identify stock.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)**. Return to [step 5](INSTALL.md#5-prove-windows-and-corrected-stock) before any authentication or switching.
 
-**Every shutdown/restart: stick absent.** Export with `sudo /var/lib/ares/at export`,
-require SAFE TO REMOVE, unplug. Later commands recheck the installed manifest;
-the stick isn't needed across boots. If forgotten at power-on, nothing breaks:
-never choose it in F12, unplug it and continue; Windows stays first. That
-physical case is untested, never an accepted USB firmware-audit exception.
+## Password not accepted
 
-Stock hardware setup can leave two stock entries of the same checksum before
-the switch. The keyboard block repairs the booted serial only, then pin retains
-that corrected serial. The older unpinned serial stays untouched temporarily;
-do not boot it or remove it. Switch finalization on the first AresOS boot should
-leave exactly AresOS plus the corrected pinned stock. Normal rollback reorders
-that pair; it does not bring the old serial back. A surviving old stock serial,
-an unexpected list, or failure before the final pair/menu title is confirmed
-means F12 → Windows and get help. 13f proved the full switch/rollback lifecycle,
-loaded layouts and physical tty3/foot text in a protected-second VM. The old
-unpinned stock serial was still present while the switch was staged, then was
-absent from the final pair. Both final entry labels say **Bazzite**:
+**Action:** during a layout trial, return to the original open tty3 administrator session with **Ctrl+Alt+F3 (Ctrl = Strg)** or **Ctrl+Alt+Fn+F3 (Ctrl = Strg)** and [revert the trial](INSTALL-PROCEDURES.md#layout-revert).
+Otherwise use **F12** (or **Fn+F12**) → Windows → help. AresOS uses its current layout; backup stock always uses the installer’s German layout. Do not change the password to guess your way through.
+**After `PASS layout revert` on AresOS:** [complete fresh-login proof and finish](INSTALL-PROCEDURES.md#layout-recovery-proof), then [layout completion](INSTALL-PROCEDURES.md#layout-completion) and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery). If the original session was lost, use [abandoned-trial recovery](INSTALL-PROCEDURES.md#abandoned-layout-trial). **STOP → go to [Help](INSTALL-REFERENCE.md#help)** if login/proof fails; no forced restart or password change. Do not resume the initial stock checks for this layout recovery.
 
-| Observed state | AresOS | Corrected pinned stock |
-| --- | --- | --- |
-| AresOS booted after switch | `Bazzite (ostree:0)` | `Bazzite (ostree:1)` |
-| Rollback queued, before reboot; also stock booted afterward | `Bazzite (ostree:1)` | `Bazzite (ostree:0)` |
+## Crashed or restarted during a keyboard layout trial
 
-**Any deployment reorder invalidates the previous stock title immediately.**
-This includes a staged switch, **queuing rollback before reboot**, pending-update
-cleanup and setting the Linux default. Familiar Bazzite labels do not make the
-old title safe: after rollback is queued, the old stock `(ostree:1)` can name
-AresOS instead. Before rebooting, use INSTALL's
-[stock-title checkpoint](INSTALL.md#refresh-the-recorded-stock-title-before-reboot)
-as `ares-recovery` with `sudo -i`, using `sudo /var/lib/ares/at title`; resolve the BLS target by the saved stock
-**checksum, serial and stateroot**, then record the current exact title/state.
-Mark the old title INVALID. A missing refresh means **F12 → Windows and help**,
-even if the menu looks unchanged. Do not choose just by these example digits
-or assume an entry says “AresOS.”
+**Action:** identify the interrupted action from your record. **Begin/revert:** after restart, try the **last confirmed layout once**; a failed login → Help. **Finish invoked, but no `PASS layout finish`:** the console may already use the proven new layout. Try the last confirmed layout **once**; only if login fails, try the recorded, proven new layout **once**. After two failed logins, **STOP → go to [Help](INSTALL-REFERENCE.md#help)**. Failed attempts before this route, unknown profiles/policy or any lockout warning → Help before starting. [Attempt-limit source and precautions](INSTALL-REFERENCE.md#layout-recovery-login-limit). Retained stock uses its own installer German.
+Use a **fresh physical tty3 ares-recovery password login** for that bounded route ([TTY entry/exit](INSTALL-REFERENCE.md#console)); after that one successful login, run `sudo -i` in the same session using the successful map. If sudo rejects the password, stop at Help without a retry. Run `sudo /var/lib/ares/at layout abandon` once (require `PASS layout abandon`) and save the refreshed title.
+**After `PASS layout abandon`:** [Finish abandoned-trial recovery](INSTALL-PROCEDURES.md#abandon-completion); do not run abandon again. If an accidental repeat says `Missing private layout-pending record` **and you already recorded that PASS**, use the same completion link. Every other refusal → **STOP → go to [Help](INSTALL-REFERENCE.md#help)**. On AresOS, check and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery); on retained stock, complete [keep-stock](INSTALL-PROCEDURES.md#keep-stock) before that return. Do not force a reset to test this route.
 
-The first-switch staged title is provisional because finalization can change
-it again. Before your own first successful AresOS boot confirms the final pair
-and refreshes the title, **F12 → Windows and help is still required** if
-switching fails: the staged list can contain both stock serials. Physical
-installation, actual laptop keyboard/menu interaction and live KDE/KWrite
-followability remain **NOT RELEASED**. See the [13f REPORT](../reviews/13-keyboard-layout/REPORT.md#13f--physical-typer-coverage-and-one-final-qualification).
+## A tools command stopped
 
-## Which keyboard layout to use for recovery
+**Action:** keep the entire screen and available administrator session open. If Linux is responsive, the installed tools are available and exporting is safe, insert ARESTOOLS after sign-in and run `sudo /var/lib/ares/at export`; require `PASS export` and **SAFE TO REMOVE ARESTOOLS**, then unplug.
+Export includes private records and persistent STOP diagnostics from `/var/lib/ares/diagnostics`, copied as `diagnostic-` files with hash readback. Preserve them off-device; share no secrets. If the tools are unavailable (including bootstrap failure), export STOPs, or safe removal is absent, keep the error/photo privately and get help without pulling a mounted stick. **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; Return to the failed recorded step only after resolution ([step 4](INSTALL.md#4-install-and-prepare-corrected-stock) for install/prepare, [step 8](INSTALL.md#8-everyday-boot-and-recovery) for later recovery). Never delete journals, retry another target or restart to clear a STOP.
 
-**Owner decision, 2026-10-25:** backup Bazzite keeps the **layout chosen in the
-installer — German in this guide**. Changing AresOS to US or another layout does
-**not** change that frozen backup. On AresOS tty3, log in as `ares-recovery`
-using AresOS's current layout; after booting backup Bazzite, type that same
-account's password using the **installer layout**. No mechanism copies later
-layout settings into stock. Do not treat different physical password keys as
-proof the password changed, or alter the backup to make it follow AresOS.
+## Text covers the prompt after stick hotplug or removal
 
-The VM checked **de → us → de, then rollback to de**. **US in AresOS followed
-directly by rollback was not run**; the backup-layout exception follows bootc's
-per-deployment `/etc` and is source-verified, not runtime-verified. The approved
-exception and later-layout steps are in
-[INSTALL](INSTALL.md#change-the-aresos-layout-later-recovery-keeps-the-installer-layout).
+**Action:** press **Enter** once to get the prompt back. Do not retype a running command.
+If no prompt returns or a command prints STOP, preserve the screen and keep the session open.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)**. Return to [step 4](INSTALL.md#4-install-and-prepare-corrected-stock), or your recorded later step, only after the command’s result is known.
 
-## The three rules
+## Forgotten tools stick at power-on
 
-1. **F12 → Windows Boot Manager is your way back.** AresOS lives on its own SSD and is built never to write to the Windows SSD, so Windows should keep starting on its own. That's the intended return route, checked with your install records. It isn't a guarantee: if Windows Boot Manager is missing or Windows doesn't start, stop and get help.
-2. **When unsure, stop.** Take a photo of the screen and get help.
-3. **Never "fix" with destructive tools:**
-   - don't format or erase a drive
-   - don't delete boot entries or AresOS versions
-   - don't reset the firmware (BIOS) to defaults or clear the TPM
-   - don't run Windows boot-repair commands
+**Action:** do not select the stick in F12. Unplug it and continue to the recorded internal boot entry.
+Plug ARESTOOLS in again only after Linux is up and you are signed in. Export/unmount and unplug before every restart.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)** on an unfamiliar boot screen. Return to [step 5](INSTALL.md#5-prove-windows-and-corrected-stock) to verify the Windows proof before continuing.
 
-## Two different menus
+## Battery warning sign
 
-- **F12 menu (the laptop's own menu):** tap F12 right after pressing the power button. It lists **Windows Boot Manager** and the Linux entry (possibly called Fedora or Bazzite). It picks which SSD starts, for this one start only. Automatic entries for unplugged devices, such as the installer stick, may disappear; that is normal. A missing Windows Boot Manager still means stop.
-- **Boot menu (GRUB, on the AresOS SSD):** appears only after **F12 → the recorded Linux entry**. Both AresOS and stock can be labelled **Bazzite**. Use only the stock title resolved from the saved checksum **and serial** after the latest reorder and recorded before reboot. Do not count staged JSON rows or reuse the title saved after the original switch: queuing rollback already invalidates it. If the record is stale, missing or unclear, use F12 → Windows and get help, even when both menu labels look familiar.
+**Action:** stop using the laptop. If running or charging, disconnect the **external charger only if safe without touching a hot or swollen case**. Move it away from anything flammable only if safe; otherwise keep clear and move nearby flammable items away if safe.
+**Already open, battery disconnected:** leave battery and internal connectors untouched; keep charger/battery disconnected. Do not press, handle, remove, reconnect or charge a damaged battery, or power on. Bulging, swelling, cracks, dents, leakage, unusual heat/smell or doubt requires Lenovo or a qualified repairer; no further use or fitting until service clearance. [Lenovo safety source used](INSTALL-REFERENCE.md#battery-safety-sources).
+**STOP → go to Lenovo/qualified repairer, then [Help](INSTALL-REFERENCE.md#help)**. Return to [step 3](INSTALL.md#3-fit-and-identify-both-drives) only after repair clearance.
 
-Immediately after installation Linux is the default, including stock's one-time hardware-setup reboot and offline login. **Windows becomes the default in INSTALL §4's F2 → Windows first → Save and Exit before the restore/copy round trip, with a successful unattended Windows check.** From then on, pressing nothing starts Windows; F12 selects one Linux start.
+## Windows missing or not starting
 
-## Find your situation
+**Action:** stop; get help on your phone. Do not reset firmware/TPM, delete entries, format or run boot repair.
+Keep WINDOWS RECOVERY preserved; use its repair options only with help.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)**. Return to [step 1](INSTALL.md#1-backups-recovery-and-windows-preparation) after resolution.
 
-| What's happening | What to do |
-|---|---|
-| **I want Windows.** | F12 → **Windows Boot Manager**. ([INSTALL §8](INSTALL.md#8-choose-the-os-at-startup)) |
-| **AresOS runs, but the game or desktop is stuck.** | Press **Super+Ctrl+Esc** (Super is the Windows-logo key). It opens a terminal **without administrator rights**. Commands there can still change or delete your own files, so only type what a guide or Claude gives you. If no terminal opens, use the next row. |
-| **AresOS is broken, and I need to fix it or undo it.** | Press **Ctrl+Alt+F3**, log in as **`ares-recovery` using the current AresOS layout**, and run **`sudo -i`**. Follow [INSTALL §6, "Roll back"](INSTALL.md#roll-back-to-the-retained-stock-deployment): run `sudo /var/lib/ares/at rollback` then `sudo /var/lib/ares/at title`, inspect identity, invalidate/refresh the stock title **before reboot**, then `sudo /var/lib/ares/at reboot` → **F12 → the recorded Linux entry**. At stock's greeter sign in as **`ares-recovery` using the installer layout**. Windows stays the firmware default. If you stay in the current session instead, exit any root shell, run `sudo -k`, then `exit`; wait for the login prompt before Ctrl+Alt+F1. |
-| **Nothing responds at all.** | First **press the power button briefly** (don't hold it) and wait about a minute: AresOS may still shut down cleanly. If it stays on, **hold the power button until the laptop turns off**. A forced power-off can lose unsaved work. **Never do this while a firmware/BIOS update screen is showing.** Then F12 → Windows Boot Manager. |
-| **AresOS doesn't even reach the text screen.** | **F12 → the recorded Linux entry** opens GRUB (if hidden: **Esc** once, then **↓**). Use the stock title resolved by checksum/serial **after the latest reorder**, not a stale original-switch title. A failed first switch boot or missing refreshed record means **F12 → Windows and help**. With a valid matching record, select stock, sign in as **`ares-recovery` using the installer layout**, and run `sudo -i`. Follow ["Keep recovered stock as the default"](INSTALL.md#keep-recovered-stock-as-the-default): `sudo /var/lib/ares/at keep-stock` then `sudo /var/lib/ares/at title` → inspect → refresh title before reboot → `sudo /var/lib/ares/at reboot` → **F12 → the recorded Linux entry**, then no GRUB selection. Sign in as `ares-recovery` with the installer layout and verify stock again. Physical menu/followability is still an **open release gate**; stop at any difference. Windows remains the firmware default. |
-| **Windows doesn't start, or F12 doesn't list Windows Boot Manager.** | Don't repair, reset or format anything. Stop and get help from another device. The **WINDOWS RECOVERY — KEEP** stick is the last resort; don't use its repair options without help. |
-| **I'm done with AresOS.** | Just stop using it. Make Windows Boot Manager the default again and leave the SSD in. Nothing needs erasing. ([INSTALL §9](INSTALL.md#9-undo-return-to-everyday-windows)) |
+## Leaving AresOS permanently
 
-## Getting help from Claude
+**Action:** revoke the private-pull token from Windows or your phone, even if Linux cannot boot.
+Use [step 9](INSTALL.md#9-retire-access-and-return-to-windows), whether leaving Crucial installed, removing it or erasing it. Deleting local files or partitions does not revoke access.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)** if the token cannot be identified/deleted. Return to [step 9](INSTALL.md#9-retire-access-and-return-to-windows).
 
-If Windows works, start it (F12 → Windows Boot Manager), open a terminal, then run:
+## References and preparation
 
-```powershell
-cd C:\Users\pab\AresOS
-claude
-```
-
-If Windows doesn't start, use Claude on your phone. Either way, describe what you saw and when, and share the screen photos. A help button inside AresOS that opens Claude directly is planned for later.
-
-## Keep these safe (not only on the laptop)
-
-- The **`ares-recovery` password**. Without it, the text-screen route above doesn't work.
-- Your **install record** from INSTALL.md: drive identities, corrected stock checksum/serial/stateroot, installer keyboard layout, and the latest identity-resolved stock title with transaction state/time. Any deployment reorder invalidates an earlier title.
-- The two USB sticks (installer becomes ARESTOOLS after installation): **WINDOWS RECOVERY — KEEP** in a drawer, and the installer stick.
-
-## Taking the AresOS SSD out
-
-This is the last step, not the first, and it's rarely needed: [INSTALL §9](INSTALL.md#9-undo-return-to-everyday-windows) shows that the normal undo leaves the SSD in. Remove it only through §9's full procedure. That means backups verified first, Windows starting on its own with its checks passing, and every battery-safety step. **If those checks can't pass, leave the SSD in and get help.** Taking it out doesn't undo every change: firmware boot entries or settings may still need tidying.
-
-The running deployment's system keyboard setting is `localectl`; see INSTALL's
-initial repair and later-layout steps. The retained backup keeps the installer
-layout. A keymap or identity STOP requires help before any reboot or switch.
-
-For a layout trial keep the original **tty3 ares-recovery → sudo -i** open.
-`sudo /var/lib/ares/at layout begin us-intl` → fresh tty4 password login →
-`sudo -k; sudo /var/lib/ares/at layout proof` → physical `yz-/!ü` → log out tty4
-→ original tty3 `sudo /var/lib/ares/at layout finish`. On any typing/login
-failure, original tty3 `sudo /var/lib/ares/at layout revert`, then fresh tty4
-login/proof with the old layout and original tty3 finish. No reboot while
-pending. After finish/title, guarded reboot → **F12 → Linux** → fresh
-`ares-recovery` login with the new layout → `sudo /var/lib/ares/at check` and
-physical console/foot typing. Backup stock keeps the installer layout.
+The sole [current gate/status table](INSTALL-STATUS.md#current-gates) governs release. [Console entry/exit and FnLock](INSTALL-REFERENCE.md#console), [checked recovery menu and rollback](INSTALL-PROCEDURES.md#recovery-menu), [stock preparation](INSTALL.md#4-install-and-prepare-corrected-stock), and [private records](INSTALL-RECORD.md) contain the longer procedures. Preparation and evidence are outside this card’s symptom actions. Return to [step 1](INSTALL.md#1-backups-recovery-and-windows-preparation) for a new trial.

@@ -4,9 +4,11 @@ Mandatory companion to [INSTALL](INSTALL.md), checked **2026-10-22**. Keep all o
 
 These commands query layout/firmware; they do not partition, mount, repair, format or change boot entries. Saving JSON writes ordinary files; Windows PowerShell's native-code compilation may create temporary files. The helper temporarily enables a process privilege to read firmware and restores it. **Agents never run its hardware queries on this laptop.** Errors mean stop.
 
+**Before B/C/D, write the calling procedure and checklist step beside the record stage.** A stage such as after-aresos does not identify which Linux deployment is now default. The [return-by-calling-context table](#return-by-calling-context) takes precedence over a stage-only return.
+
 ## A. Save the Windows baseline
 
-After INSTALL §1, boot **F12 → Windows Boot Manager**, USBs absent. Open **Terminal (Administrator) → Windows PowerShell**. Use only the reviewed repository copy; if importing is blocked, stop rather than change execution policy.
+During INSTALL step 1, boot **F12 → Windows Boot Manager**, USBs absent. Open **Terminal (Administrator) → Windows PowerShell**. Use only the reviewed repository copy; if importing is blocked, stop rather than change execution policy.
 
 ```powershell
 $ErrorActionPreference = 'Stop'
@@ -23,6 +25,8 @@ $before | ConvertTo-Json -Depth 6 | Tee-Object -FilePath $aresBaseline
 Require the Micron model/serial, a GPT disk GUID, and every Windows partition with GUID/type/start/end. The helper follows C: to its disk and checks this Windows boot targets an EFI partition **on that disk** using `\EFI\Microsoft\Boot\bootmgfw.efi`. Mark that row **original Windows EFI — KEEP**. Blank IDs or a different disk means stop.
 
 Copy the folder off-device before fitting/installing. Disconnect that copy device before any writer/installer. Never regenerate the baseline after a change. A full **Datenträgerverwaltung** screenshot is useful, but its hidden MSR partition is included only in the command inventory. [W1]
+
+**Return to step 1:** [backups/baseline](INSTALL.md#1-backups-recovery-and-windows-preparation). Any error → **STOP → [Help](INSTALL-REFERENCE.md#help)**.
 
 ## B. Compare Windows after each stage
 
@@ -63,9 +67,11 @@ A comparison failure stops installation/undo: keep the output for review, never 
 
 The comparison allows disk/partition numbers, labels, firmware entry number and C: free space to change. It rejects any disk identity/size/sector-size change, partition addition/deletion/type/GUID/boundary change, C: identity change or different Windows boot target. **It does not hash filesystem contents or prove no files changed.** The offline two-disk write audit remains a release requirement.
 
+**Return by caller:** [choose your recorded calling procedure](#return-by-calling-context), including keep-stock; any error → **STOP → [Help](INSTALL-REFERENCE.md#help)**. Never replace the original baseline.
+
 ## C. Identify both drives in live Linux
 
-**Before opening Konsole**, set/test the live KDE desktop's German layout as in [INSTALL §4](INSTALL.md#4-install-bazzite-on-crucial-only), including `y z / - " $` in a text editor. This is separate from the installer's target keyboard setting. Repeat after a live reboot; check it in installed KDE too. In GParted Live choose German at startup and test those characters in a text editor before **Terminal**. The release must verify the menus and commands exist. Never click/mount a Windows volume to find them.
+**Before opening Konsole**, set/test the live KDE desktop's German layout as in [INSTALL §4](INSTALL.md#4-install-and-prepare-corrected-stock), including `y z / - " $` in a text editor. This is separate from the installer's target keyboard setting. Repeat after a live reboot; check it in installed KDE too. In GParted Live choose German at startup and test those characters in a text editor before **Terminal**. The release must verify the menus and commands exist. Never click/mount a Windows volume to find them.
 
 Keep the complete output below. The first command shows relationships; the second retains exact IDs with **PKNAME = parent device**. A narrow window may clip the tree; maximise it and use the complete pairs record for full model/serial/IDs. [L1]
 
@@ -161,7 +167,7 @@ Write **PASS** or **FAIL** beside each required comparison; any blank/FAIL block
 ### Recovery-title history — refresh before every affected reboot
 
 Keep the complete output from INSTALL's
-[stock-title checkpoint](INSTALL.md#refresh-the-recorded-stock-title-before-reboot).
+[stock-title checkpoint](INSTALL.md#5-prove-windows-and-corrected-stock).
 Resolve the BLS target by the saved corrected stock **checksum, serial and
 stateroot**, then copy that file's exact title. A checksum alone cannot separate
 the two pre-finalization stock serials. Never infer a title from JSON row count
@@ -188,15 +194,35 @@ Record the **installer layout separately from the current AresOS layout**.
 Backup Bazzite keeps the former; type its recovery password with that layout.
 The VM restored German before rollback; US-then-rollback was not performed.
 
+**Return by caller:** [choose your recorded calling procedure](#return-by-calling-context), including keep-stock. Any blank/FAIL → **STOP → [Help](INSTALL-REFERENCE.md#help)**.
+
 ## D. Before erasing Crucial from live media
 
-First complete INSTALL §9's successful direct Windows boot and record B (**before-undo**); keep that exact timestamped JSON independently. In live GParted repeat C, requiring **both internal disks unmounted** and every recorded Crucial partition/boundary still accounted for. Unknown additional partitions/data mean stop.
+First complete INSTALL step 9's token retirement and successful direct Windows boot and record B (**before-undo**); keep that exact timestamped JSON independently. In live GParted repeat C, requiring **both internal disks unmounted** and every recorded Crucial partition/boundary still accounted for. Unknown additional partitions/data mean stop.
 
-Find the **Boot.Entry saved by that Windows session** in current `efibootmgr -v`. Its GPT partition GUID and `File(...)` must still identify the original Micron EFI and `\EFI\Microsoft\Boot\bootmgfw.efi`. Locate that GUID's device with `lsblk`, then compare its `sfdisk` Start/End with the saved Boot.StartSector/EndSector. Do not mistake `HD(...)`'s hexadecimal start/size for decimal start/end; no conversion is required using the partition listing. The live USB's BootCurrent is not evidence about Windows. A missing/changed target, ambiguous path, Windows booting from Crucial, missing baseline or changed layout means **erase nothing**. Return to INSTALL §9 only when all checks pass.
+Find the **Boot.Entry saved by that Windows session** in current `efibootmgr -v`. Its GPT partition GUID and `File(...)` must still identify the original Micron EFI and `\EFI\Microsoft\Boot\bootmgfw.efi`. Locate that GUID's device with `lsblk`, then compare its `sfdisk` Start/End with the saved Boot.StartSector/EndSector. Do not mistake `HD(...)`'s hexadecimal start/size for decimal start/end; no conversion is required using the partition listing. The live USB's BootCurrent is not evidence about Windows. A missing/changed target, ambiguous path, Windows booting from Crucial, missing baseline or changed layout means **erase nothing**. Only a separately authorized erasure caller performs D; after PASS, use the calling-context return below.
+
+**Return by caller:** [choose your recorded calling procedure](#return-by-calling-context), including keep-stock if that caller was retained. **STOP → [Help](INSTALL-REFERENCE.md#help)** on any failure.
+
+## Return by calling context
+
+Use your **calling procedure first**, then its stage. Do not use an installation-stage return while completing keep-stock. Unknown/missing caller → **STOP → [Help](INSTALL-REFERENCE.md#help)**; recover that context before continuing. For B, C and D, use the same table:
+
+| Recorded calling context | Return after successful record | Next checkpoint |
+| --- | --- | --- |
+| keep-stock | [Return to keep-stock completion](INSTALL-PROCEDURES.md#keep-stock-records-complete) | Confirm stock-default and Windows records, then Return to step 8. |
+| everyday boot-order restoration | [Return to step 8](INSTALL.md#8-everyday-boot-and-recovery) | Confirm unattended Windows and record B, then continue everyday boot/recovery. |
+| initial after-fit | [Return to step 3](INSTALL.md#3-fit-and-identify-both-drives) | Continue only the fitting comparison. |
+| initial first after-bazzite | [Return to step 4](INSTALL.md#4-install-and-prepare-corrected-stock) | Complete the tools round trip. |
+| initial prepared after-bazzite | [Return to step 5](INSTALL.md#5-prove-windows-and-corrected-stock) | Mandatory Windows/corrected-stock proof. |
+| initial live mapping | [Return to step 4](INSTALL.md#4-install-and-prepare-corrected-stock) | Same-session installer plan. |
+| initial after-aresos | [Return to step 7](INSTALL.md#7-check-the-first-aresos-session) | Initial AresOS check only. |
+| undo erasure | [Return to the erasure procedure](INSTALL-PROCEDURES.md#optional-removal-or-erasure) | Complete only separately authorized erasure, then Return to step 9. |
+| undo Windows confirmation | [Return to step 9](INSTALL.md#9-retire-access-and-return-to-windows) | Final independent Windows proof. |
 
 ## Sources and limits
 
-Checked **2026-10-22** for this revision. No real disk/firmware query, installation or USB write was performed. Hardware and novice trials remain [release gates](INSTALL.md#maintainer-release-gate).
+Checked **2026-10-22** for this revision. No real disk/firmware query, installation or USB write was performed. Hardware and novice trials remain [release gates](INSTALL-STATUS.md#current-gates).
 
 - **W1:** Microsoft [Get-Disk](https://learn.microsoft.com/en-us/powershell/module/storage/get-disk), [Get-Partition](https://learn.microsoft.com/en-us/powershell/module/storage/get-partition), [MSFT_Disk](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/msft-disk), [MSFT_Partition](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/msft-partition) and [GPT FAQ / hidden MSR](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-and-gpt-faq?view=windows-11).
 - **W2:** Microsoft [WindowsPrincipal.IsInRole](https://learn.microsoft.com/en-us/dotnet/api/system.security.principal.windowsprincipal.isinrole), checked 2026-10-22: Administrator role check uses the current token; an unelevated UAC token returns false without prompting for elevation.
@@ -209,3 +235,5 @@ Checked **2026-10-22** for this revision. No real disk/firmware query, installat
 [L1]: https://github.com/util-linux/util-linux
 [B1]: https://docs.bazzite.gg/img/live-installer-drive.png
 [U1]: https://uefi.org/specs/UEFI/2.9_A/03_Boot_Manager.html#load-options
+
+**Return to step 1:** [start/checklist](INSTALL.md#1-backups-recovery-and-windows-preparation).

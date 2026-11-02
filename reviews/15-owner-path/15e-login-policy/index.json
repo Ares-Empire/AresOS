@@ -1,0 +1,95 @@
+{
+  "image": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+  "base": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "source": "Read-only public OCI source inspection; no image code, container, VM or host PAM query executed",
+  "manifest": {
+    "sha256": "ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+    "path": "os/manifest/ci/06c/image-full-1/base-oci-manifest.json"
+  },
+  "files": [
+    {
+      "sha256": "662303cf89938c12d95a7fc59d92cbe76c398312527fa908894fb319809093b3",
+      "layer_sha256": "1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+      "path": "reviews/15-owner-path/15e-login-policy/faillock.conf",
+      "member": "etc/security/faillock.conf",
+      "ostree_object": "sysroot/ostree/repo/objects/85/a8e0bc98566590b1903c0c3aa2e0f543e129fd7193beda1c756c8cc61df55b.file",
+      "bytes": 2207
+    },
+    {
+      "sha256": "73197004d2b3cfedb7cd7b597456b49b50e3ffe756c5c9b292eb0225e03eee68",
+      "layer_sha256": "1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+      "path": "reviews/15-owner-path/15e-login-policy/authselect.conf",
+      "member": "etc/authselect/authselect.conf",
+      "ostree_object": "sysroot/ostree/repo/objects/5a/e2fccd1efd208a62dfdc68a4f53e10df4810f18f3831a7b52c6d5775cd2bfe.file",
+      "bytes": 37
+    },
+    {
+      "sha256": "2e53f704372b6c7fb69cdc4dfd6c27456d642c83feff8b1588fa1f9cb1126cd0",
+      "layer_sha256": "1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+      "path": "reviews/15-owner-path/15e-login-policy/system-auth",
+      "member": "etc/authselect/system-auth",
+      "ostree_object": "sysroot/ostree/repo/objects/17/eb0c3d997045cf030bc325171eb594d4cd7543eb453fbca83efcabbc13695f.file",
+      "bytes": 1272
+    },
+    {
+      "sha256": "2e53f704372b6c7fb69cdc4dfd6c27456d642c83feff8b1588fa1f9cb1126cd0",
+      "layer_sha256": "1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+      "path": "reviews/15-owner-path/15e-login-policy/password-auth",
+      "member": "etc/authselect/password-auth",
+      "ostree_object": "sysroot/ostree/repo/objects/17/eb0c3d997045cf030bc325171eb594d4cd7543eb453fbca83efcabbc13695f.file",
+      "bytes": 1272
+    },
+    {
+      "sha256": "c1ecd4d1a5b5de7d26e3336cd33551d1d65e13751b5f46405183472895838a9d",
+      "layer_sha256": "1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+      "path": "reviews/15-owner-path/15e-login-policy/postlogin",
+      "member": "etc/authselect/postlogin",
+      "ostree_object": "sysroot/ostree/repo/objects/16/4a676cf291c3afb55f3201561fc7b7124b06675aa215bb8c2a14943decd514.file",
+      "bytes": 534
+    },
+    {
+      "sha256": "9c730de7207b901279091b7ca040a75fd42714a3bb224d97614aabc2750d187d",
+      "layer_sha256": "1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+      "path": "reviews/15-owner-path/15e-login-policy/login.pam",
+      "member": "etc/pam.d/login",
+      "ostree_object": "sysroot/ostree/repo/objects/e0/53df49b8f4ed6977d6c45a209800ff3df6e27a64fb428af725064f2ba7a715.file",
+      "bytes": 676
+    },
+    {
+      "sha256": "fb766aab394fc417c72f07365ea29f9ba65bb101991293a14a6e81aed6202f77",
+      "layer_sha256": "1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+      "path": "reviews/15-owner-path/15e-login-policy/sudo.pam",
+      "member": "etc/pam.d/sudo",
+      "ostree_object": "sysroot/ostree/repo/objects/02/9cf1b2beffb6dca6a216953db3ac4f067aea7beaabfffa9eff5ba473d54d11.file",
+      "bytes": 238
+    },
+    {
+      "sha256": "268616ef041372c9cdc170df1b4deea85cbf67928b17451759bfd24ac689b803",
+      "layer_sha256": "1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+      "path": "reviews/15-owner-path/15e-login-policy/sudo-i.pam",
+      "member": "etc/pam.d/sudo-i",
+      "ostree_object": "sysroot/ostree/repo/objects/0e/95b25e544a040d3ed220ab1ac7e38ba86e07645c14058540f6232adce0c514.file",
+      "bytes": 178
+    }
+  ],
+  "links": {
+    "etc/pam.d/system-auth": "/etc/authselect/system-auth",
+    "etc/pam.d/password-auth": "/etc/authselect/password-auth",
+    "etc/pam.d/postlogin": "/etc/authselect/postlogin"
+  },
+  "policy": {
+    "authselect_profile": "local",
+    "pam_faillock_in_generated_login_stack": false,
+    "shipped_faillock_default_deny": 3,
+    "shipped_faillock_default_fail_interval_seconds": 900,
+    "shipped_faillock_default_unlock_time_seconds": 600,
+    "recovery_attempt_limit": 2
+  },
+  "inheritance": [
+    "os/Containerfile pins this base; added package lock contains no PAM/authselect package",
+    "os/config has no PAM/authselect replacement; os/build.sh does not change these settings",
+    "os/Containerfile.keyboard preserves that release and changes only the two keyboard/session files",
+    "os/manifest/release.json records the current R13 inheritance and two-file image comparison"
+  ],
+  "limit": "Image-source baseline, not evidence that a particular installed /etc was unchanged by an installer or owner; prior failures or policy uncertainty require Help"
+}
