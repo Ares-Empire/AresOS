@@ -58,7 +58,20 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - the new bootstrap block, fingerprint `3e2c78eb…`, `layout abandon`, card entries and the qualification 21 status
   - equality tests, then one push, and mark PR #14 ready
 - **Then:** a package review of 15. It also checks the council delta's November runtime conditions against qualification 21. Then the merge, then the physical install (SSD return deadline about 2026-11-09).
-- **Owner permission (2026-11-02):** "you can merge once its safe to merge, this is permission." Merge PR #14 once its review (and any fix re-check) says SAFE. Still bring the owner any Codex JUDGMENT-CALL that changes the owner's install steps first.
+- **Owner permission (2026-11-02):** "you can merge once its safe to merge, this is permission."
+- **15d and 15e:**
+  - REVIEW-3 was CHANGES-NEEDED: a second abandon, and an interrupted finish that may have persisted the new map. The mounted-child runtime check is kept OPEN.
+  - 15e fixed the documents only. REVIEW-4: **SAFE**.
+- **PR #14 MERGED 2026-11-02** as squash `2f4c0d9`.
+
+### Next: the release decision (owner)
+
+- `docs/INSTALL-STATUS.md` keeps the physical install NOT RELEASED until physical and novice gates close "before opening the laptop, writing installation media or installing". Most of those can only close on the laptop.
+- **Proposed:** a staged release with the owner as first reader and Claude checking each stage's records:
+  - **A:** steps 1–2 (Windows prep, recovery stick, record A, installer stick write and test boot)
+  - **B:** step 3, fitting, by about 2026-11-09
+  - **C:** steps 4 onward, after a small native mounted-protected-child probe package
+- Waiting for the owner's answer.
 
 ### Package 14: owner tools (PR #13, draft)
 

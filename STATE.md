@@ -4,6 +4,12 @@ Updated 2026-11-02. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Done (on main)
 
+- **Owner checklist and emergency card** (PR #14, briefs 15–15e, merged 2026-11-02 as `2f4c0d9`, under the owner's standing permission to merge once SAFE):
+  - One numbered install checklist (`docs/INSTALL.md`), plus procedures, reference, records and a symptom-first `docs/EMERGENCY.md`.
+  - All of it is aligned byte-for-byte with package 14's final tools: the 13-line bootstrap, every PASS line, `layout abandon` with a bounded interrupted-finish login route (below faillock's documented deny=3), resume, and the export with diagnostics.
+  - Reviews REVIEW to REVIEW-4: SAFE.
+  - `docs/INSTALL-STATUS.md` is the single release authority. **Physical installation: NOT RELEASED**, and its physical gates are open. The mounted-protected-child runtime refusal check is OPEN (synthetic evidence only).
+
 - **Checked owner tools** (PR #13, briefs 14–14zzf, merged 2026-11-02 as `79a67d2`): the root-only `at` tools the owner runs from the ARESTOOLS stick. They cover:
   - a trusted bootstrap: system tools check the literal `SHA256SUMS` fingerprint `3e2c78eb…` and every file before any stick code runs
   - `install` and `prepare`, with resume
@@ -72,7 +78,10 @@ Updated 2026-11-02. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Next, in order
 
-1. **Close the remaining install gates.** Package 14 is merged. Package 15 (guide and emergency card, PR #14) is taking in 14's final version (brief 15d). Then come its review and the owner's merge, then the physical install.
+1. **Release the physical install.** Packages 14 and 15 are merged.
+   - **Owner decision needed:** how the physical gates in `docs/INSTALL-STATUS.md` close. As written, they must close before even writing media, but most can only be closed on the laptop.
+   - Claude's proposal is a staged release with the owner as first reader. A native mounted-protected-child probe goes in before the install stage.
+   - SSD return deadline: about 2026-11-09.
 2. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
