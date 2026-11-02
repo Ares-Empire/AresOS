@@ -76,7 +76,8 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - adds the native mounted-protected-child refusal check
   - wires a probe-only dispatch (cap 120 minutes, 2 probes)
   - one push, a PR, one probe
-- **Merge permission for 16:** not yet asked. The 2026-11-02 permission was given for package 15.
+- **Merge permission for 16 (owner, 2026-11-02): "yes approved"**, so merge once its review says SAFE.
+- **Stage A help:** Claude copied the verified ISO (776b76f3…, equal to the pin and the fresh official checksum) and FedoraMediaWriter-win64-5.3.2.exe (f53e0c11…, equal to the pin and the GitHub digest) into Downloads. The owner installs the writer and writes the sticks themselves.
 
 ### Package 14: owner tools (PR #13, draft)
 
