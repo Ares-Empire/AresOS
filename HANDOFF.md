@@ -42,11 +42,10 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 - **14zzd** built the fixtures from the manifest and pushed `dda72ed`. Probe 33 passed all 627 native tests, then STOPPED with "Host walk is stale".
   - Cause: a CRLF-declared PowerShell test source was bound to its LF blob hash. All 195 blobs match, so it's an end-of-line binding bug only.
   - Package ledger: 2326/2750 minutes.
-- **14zze** (running; log `../AresOS-14zze.log`, summary `../AresOS-14zze.last.md`):
-  - bind sources to Git's checked-out bytes
-  - one push
-  - probe 34 and qualification 21; these are the last allowances
-  - Then the reviewer re-checks only the fixes, then the owner's "merge", then package 15.
+- **14zze** bound the sources to Git's checkout bytes and pushed `3fd7916`.
+  - **PROBE 34 AND QUALIFICATION 21 PASSED,** with 630 native tests each. The qualification included the mid-trial `system_reset`, the German login and `layout abandon`. VM acceptance is met.
+  - The closing report `ae90dd3` is pushed. Package ledger: 2474/2750 minutes. All dispatch allowances are used (34/21).
+- **The fix re-check is running:** a fresh read-only reviewer writes `reviews/14-owner-tools/REVIEW-2.md` (log `../AresOS-14-review2.log`). Then the owner's "merge", then package 15.
 
 ### Package 14: owner tools (PR #13, draft)
 
