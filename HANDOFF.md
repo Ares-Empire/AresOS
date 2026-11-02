@@ -39,11 +39,13 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 - **14zzc** implemented all five fixes and pushed `b15d52f`. The new bootstrap fingerprint is `3e2c78eb…`. A layout trial now changes only the runtime map, and `layout abandon` was added. The qualification gained a mid-trial `system_reset` stage.
   - Probe 32 FAILED in its native suite: test fixtures copied a source tree that contained CI-written `__pycache__`. Production is unaffected (`-I -B`, read-only stick).
   - Package ledger: 2310/2750 minutes.
-- **14zzd** (running; log `../AresOS-14zzd.log`, summary `../AresOS-14zzd.last.md`):
-  - build fixtures from the manifest
-  - probe cap 34
+- **14zzd** built the fixtures from the manifest and pushed `dda72ed`. Probe 33 passed all 627 native tests, then STOPPED with "Host walk is stale".
+  - Cause: a CRLF-declared PowerShell test source was bound to its LF blob hash. All 195 blobs match, so it's an end-of-line binding bug only.
+  - Package ledger: 2326/2750 minutes.
+- **14zze** (running; log `../AresOS-14zze.log`, summary `../AresOS-14zze.last.md`):
+  - bind sources to Git's checked-out bytes
   - one push
-  - probe 33 and qualification 21
+  - probe 34 and qualification 21; these are the last allowances
   - Then the reviewer re-checks only the fixes, then the owner's "merge", then package 15.
 
 ### Package 14: owner tools (PR #13, draft)
