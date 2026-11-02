@@ -1,5 +1,67 @@
 # 14: checked owner tools
 
+## 14zzf REPORT: real-entry STOP, export and reboot-boundary survival
+
+**Done:** replaced the unrelated-directory "reboot model" in
+`test_owner_export.py` with the real owner `__main__` sequence. Three isolated
+`python3 -I -B` processes run the controlled `records unexpected` STOP, checked
+`export`, and checked `export` after the reboot boundary. The exact diagnostic
+must first exist under `var/lib/ares/diagnostics`; the STOP performs only the
+read-only firmware query. Both fixture bundles contain manifest entries only.
+After the first export all tool processes have exited; the entire mapped `/run`
+tree (including the real media mount directory) is removed and recreated
+empty. The stick's diagnostic bytes are checked before and after the fresh
+export, against the original persistent bytes. Two real export success records,
+SHA readback and safe-unmount results are required.
+
+`owner_export_fixture.py` relocates only the filesystem root prefix, before
+loading the unchanged payload entry point. It never overrides HOME,
+STOP_RECORDS, media.MOUNT, the recorder or export methods. Root/POSIX metadata
+on unprivileged DrvFS and device/mount/sync/firmware command results are explicit
+host stand-ins; real files, JSON, atomic writes, fsync, private-path checks,
+manifest verification, copying and readback execute. Unknown host commands
+refuse. No real mount, device, firmware or privilege operation occurs.
+
+**Verified:** with PYTHONDONTWRITEBYTECODE unset, WSL Python 3.12.3 ran
+`python3 -m unittest -v test_owner_export test_owner_diagnostics test_owner_entry test_owner_tools`:
+**27 tests / 72.452 s, PASS, zero skips**. The same command with `-B`:
+**27 tests / 71.217 s, PASS, zero skips**. The owner subprocesses retain the
+production launcher's `-I -B` in both suite modes.
+
+The unchanged regression ran against exact pre-14zzc payload commit
+`bd855274143e564f832c873cf9d0c134fe340e29`: **one expected failure**, no errors or
+skips, `0 != 1: STOP diagnostic missing from persistent /var/lib/ares/diagnostics`.
+The preceding assertions prove a stopped diagnostic really was written. This
+historical payload has its original JSON-only manifest; its fixture copier
+copies precisely those historical entries, without adding the later SUMS file
+or rewriting production code. See [local receipts and negative-control log](../../os/manifest/ci/14/14zzf-local/result.json).
+
+During fixture bring-up, two local attempts exposed Python 3.12 Path subclass
+construction errors in the test adapter; those were corrected before the final
+module runs. The negative-control driver initially encountered the Windows
+worktree gitfile from WSL and the historical absence of SHA256SUMS; using the
+existing Windows Git read-only and the exact historical manifest resolved both.
+These were fixture/driver errors; no payload defect was found.
+
+The reviewed payload and every source copy remain unchanged; fingerprint:
+`3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd`.
+Pinned gitleaks 8.21.2 full-history and pending-file scans: **zero findings**.
+`git diff --check` passed. Delivery is one fast-forward push through the actual
+privacy hook, without bypass. No Actions dispatch or new VM claim.
+
+**Corrected claim / not verified:** qualification 21 exported records before its
+deliberate STOPs; it did **not** test STOP → export → reboot survival. The local
+regression proves that exact diagnostic sequence across fresh processes and
+loss of all mapped `/run` state. The existing VM evidence proves the checked
+export route and `/var/lib/ares` persistence across actual reboots. There is no
+new physical or VM reboot test. The historical qualification/source bindings
+continue to identify `3fd7916`, not this test-only follow-up. Physical release
+and followability gates remain open; **NOT RELEASED**.
+
+**JUDGMENT-CALL / PLAN-GAP / open questions:** none. Review findings 1, 2, 3 and 5
+remain closed; finding 4 now has the requested local regression and corrected
+evidence claim for integrator re-check. No merge or release/publication.
+
 ## 14zze REPORT: checkout-byte bindings; probe 34 and qualification 21 passed
 
 **Disposition:** [probe 34](https://github.com/Ares-Empire/AresOS/actions/runs/41371893590) **success**, [qualification 21](https://github.com/Ares-Empire/AresOS/actions/runs/41374876561) **success**, once each on pushed head `3fd79165fa96406948c17ea90f94f943cd9bc201`. Independent complete
@@ -114,7 +176,7 @@ Artifact scan: 531 findings, comprising 507 exact pinned public ISO listing line
 Every completed job log was scanned; 4 findings were the exact pinned cosign-installer checksum class. Unknown findings: zero.
 
 Qualification 21 passed the real bootstrap/private-copy install, prepare and
-zero-mutation rerun, persistent diagnostic/export route, offline and network
+zero-mutation rerun, checked records export, offline and network
 boundaries, signature/private login, switch and all original layout proofs,
 rollback, keep-stock and final attached/detached Windows markers. The extra
 plain-US pending trial received QMP system_reset without a guest shutdown.
@@ -123,6 +185,13 @@ physical foot typing, then layout abandon and guarded reboot. Independent
 review rechecked raw maps, persisted console/X11 equality, fresh-login receipts,
 exact reset origin and absent tools stick. Protected-disk, BootNext, NVRAM,
 detached-device and firmware audits remain unchanged and passed.
+
+Correction for review finding 4 (14zzf): qualification 21 did **not** exercise
+STOP → export → reboot survival of that exact diagnostic. Its export preceded
+the deliberate STOPs. The VM proves the checked export route and `/var/lib/ares`
+persistence across reboots; the local 14zzf real-entry regression separately
+proves the STOP/export sequence with the entire mapped `/run` removed and fresh
+processes. These are distinct evidence, not a new VM survival claim.
 
 The fresh qualification ISO replay passed on its first attempt; read-only
 release/git/GH and all 53 retained-input checks plus strict syntax were replayed

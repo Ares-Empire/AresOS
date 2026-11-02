@@ -1,0 +1,14 @@
+test_real_stop_export_reboot_and_fresh_export_preserve_exact_diagnostic (test_owner_export.ExportSurvivalTest.test_real_stop_export_reboot_and_fresh_export_preserve_exact_diagnostic) ... FAIL
+
+======================================================================
+FAIL: test_real_stop_export_reboot_and_fresh_export_preserve_exact_diagnostic (test_owner_export.ExportSurvivalTest.test_real_stop_export_reboot_and_fresh_export_preserve_exact_diagnostic)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/os/tests/test_owner_export.py", line 111, in test_real_stop_export_reboot_and_fresh_export_preserve_exact_diagnostic
+    self.assertEqual(len(diagnostics), 1,
+AssertionError: 0 != 1 : STOP diagnostic missing from persistent /var/lib/ares/diagnostics
+
+----------------------------------------------------------------------
+Ran 1 test in 2.544s
+
+FAILED (failures=1)
