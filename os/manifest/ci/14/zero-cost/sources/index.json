@@ -1,0 +1,164 @@
+[
+  {
+    "sha256": "ee52f89348cf6923f926e0ee18896f4a77f081cfb9bec96ce6fe90d66e96139b",
+    "file": "bazzite-system_files_desktop_shared_usr_lib_systemd_system_bazzite-hardware-setup.service",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/lib/systemd/system/bazzite-hardware-setup.service",
+    "bytes": 324
+  },
+  {
+    "sha256": "b3f3d6dcba56b7226b4a29e4557aa78174973794b4bde67caff21eb8a6551507",
+    "file": "bazzite-system_files_desktop_shared_usr_libexec_bazzite-hardware-setup",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/libexec/bazzite-hardware-setup",
+    "bytes": 11126
+  },
+  {
+    "sha256": "fd88a8e2ecdca8867eb0c5a1c0f22775e3789f56c4b8346f10a6ea3f59df9d5b",
+    "file": "bazzite-system_files_desktop_shared_usr_lib_systemd_system_bazzite-flatpak-manager.service",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/lib/systemd/system/bazzite-flatpak-manager.service",
+    "bytes": 242
+  },
+  {
+    "sha256": "3a5f5c7dd5c3b25ae22443a68818725641494e6af21f4f331f260151c4670731",
+    "file": "bazzite-system_files_desktop_shared_usr_libexec_bazzite-flatpak-manager",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/libexec/bazzite-flatpak-manager",
+    "bytes": 4358
+  },
+  {
+    "sha256": "8bec1ef2e76b5a59743ed6969d3ff577e484424b406023e8e8fea4c55889f1fa",
+    "file": "bazzite-system_files_desktop_shared_usr_lib_systemd_user_bazzite-user-setup.service",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/lib/systemd/user/bazzite-user-setup.service",
+    "bytes": 177
+  },
+  {
+    "sha256": "7f47d95cad0163ed7f166d32ff52e3abed68c4ebe9596b4aecdf4f72932725fb",
+    "file": "bazzite-system_files_desktop_shared_usr_libexec_bazzite-user-setup",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/libexec/bazzite-user-setup",
+    "bytes": 11944
+  },
+  {
+    "sha256": "8d647eb3a5ca7ec9e463723a1f0b2e18a249626b4b1f388a2b146dd4fa291618",
+    "file": "bazzite-installer_system_files_shared_usr_share_anaconda_post-scripts_install-flatpaks.ks",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/installer/system_files/shared/usr/share/anaconda/post-scripts/install-flatpaks.ks",
+    "bytes": 333
+  },
+  {
+    "sha256": "46687ade0ee4621a48ef41d745f935e082c2252a4394c67b6716244d122f5a00",
+    "file": "bazzite-installer_system_files_shared_usr_share_anaconda_post-scripts_disable-fedora-flatpak.ks",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/installer/system_files/shared/usr/share/anaconda/post-scripts/disable-fedora-flatpak.ks",
+    "bytes": 139
+  },
+  {
+    "sha256": "dfe5cc144792138239ea630b1a9e9c6f743cb4d438dad7d74c8691597cbdf975",
+    "file": "anaconda-pyanaconda_modules_network_installation.py",
+    "url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/network/installation.py",
+    "bytes": 15109
+  },
+  {
+    "sha256": "01ba8a28bf2da7751b2e1ed52536f3b3429f64bc8f33a81e16f3f070d3120c6f",
+    "file": "anaconda-pyanaconda_modules_network_network.py",
+    "url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/network/network.py",
+    "bytes": 32630
+  },
+  {
+    "sha256": "893d7c0a7e937bc1caee63603c1909db5e96fee00a77a1ac38afe2cd22488054",
+    "file": "anaconda-pyanaconda_modules_payloads_payload_rpm_ostree_flatpak_installation.py",
+    "url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/payloads/payload/rpm_ostree/flatpak_installation.py",
+    "bytes": 2364
+  },
+  {
+    "sha256": "563f83cc2eabede8a82afc147072f433b0442790389a5554ee77cf4420cfa0db",
+    "file": "mediawriter-src_app_qml_RestorePage.qml",
+    "url": "https://raw.githubusercontent.com/FedoraQt/MediaWriter/5.3.2/src/app/qml/RestorePage.qml",
+    "bytes": 6056
+  },
+  {
+    "sha256": "796291215961d2c5f3776d9e120b1350802122bc0288b7bf5b29600c34702847",
+    "file": "mediawriter-src_helper_win_restorejob.cpp",
+    "url": "https://raw.githubusercontent.com/FedoraQt/MediaWriter/5.3.2/src/helper/win/restorejob.cpp",
+    "bytes": 7232
+  },
+  {
+    "sha256": "0a2eebbf1eccd9ac47b18ffe5ebc3921179a598d66908db81161f85878283ce3",
+    "file": "mediawriter-po_mediawriter_de.po",
+    "url": "https://raw.githubusercontent.com/FedoraQt/MediaWriter/5.3.2/po/mediawriter_de.po",
+    "bytes": 46089
+  },
+  {
+    "sha256": "86dc36a452550fdd2e57ec04afa89ab456b8647cd7f91e37fe0b3f73333a8c6e",
+    "file": "mediawriter-src_app_main.cpp",
+    "url": "https://raw.githubusercontent.com/FedoraQt/MediaWriter/5.3.2/src/app/main.cpp",
+    "bytes": 3083
+  },
+  {
+    "sha256": "0fd86be2917101691f36ff7faa59d17153e83f6b42824c5ced67fb991a89ef54",
+    "file": "bazzite-system_files_nvidia_shared_usr_lib_systemd_system_ublue-nvidia-flatpak-runtime-sync.service",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/nvidia/shared/usr/lib/systemd/system/ublue-nvidia-flatpak-runtime-sync.service",
+    "bytes": 528
+  },
+  {
+    "sha256": "c2819e44ace1a2031914ff9168426be760049135c866f59a0b63ae3e157024a8",
+    "file": "bazzite-system_files_nvidia_shared_usr_libexec_ublue-nvidia-flatpak-runtime-sync",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/nvidia/shared/usr/libexec/ublue-nvidia-flatpak-runtime-sync",
+    "bytes": 1301
+  },
+  {
+    "sha256": "c8bb96e48b22ad7c6aa212a5baa15219f38f3e017968dcc63d68c3009596841d",
+    "file": "bazzite-system_files_desktop_shared_usr_libexec_bazzite-privileged-user-setup",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/system_files/desktop/shared/usr/libexec/bazzite-privileged-user-setup",
+    "bytes": 132
+  },
+  {
+    "sha256": "43f1570a4a4b396f79cb5e82b52c9ee85b6a0039c9097165e5303dc601f6c58d",
+    "file": "anaconda-pyanaconda_modules_payloads_payload_rpm_ostree_rpm_ostree.py",
+    "url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/payloads/payload/rpm_ostree/rpm_ostree.py",
+    "bytes": 9346
+  },
+  {
+    "sha256": "775e7e988c3eeb134afb23480a254bd62c7992b2e9bdc0ae546f4356aacfb48e",
+    "file": "anaconda-pyanaconda_modules_payloads_payload_rpm_ostree_flatpak_manager.py",
+    "url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/payloads/payload/rpm_ostree/flatpak_manager.py",
+    "bytes": 13146
+  },
+  {
+    "sha256": "b98917b734f54c212b854e0e90bf23e2e946b05b199187087feb935f1c7b0698",
+    "file": "anaconda-pyanaconda_modules_payloads_source_rpm_ostree_container_rpm_ostree_container.py",
+    "url": "https://raw.githubusercontent.com/rhinstaller/anaconda/anaconda-44.30/pyanaconda/modules/payloads/source/rpm_ostree_container/rpm_ostree_container.py",
+    "bytes": 3933
+  },
+  {
+    "sha256": "b561b615de0b59166537eb39cc193de4f9cb2acda75912b61160ad06c365d980",
+    "file": "bazzite-installer_Containerfile",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/installer/Containerfile",
+    "bytes": 570
+  },
+  {
+    "sha256": "1dc47eb6b7981bd711fc7cc6a5dfc01fd5ef1ba94d8d46aea2e29c690ba83ece",
+    "file": "bazzite-installer_build.sh",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/installer/build.sh",
+    "bytes": 4254
+  },
+  {
+    "sha256": "96493fa210a46a19953b962f85a1111d2a53f49457ae3f6e9def2ceb15ea0d35",
+    "file": "bazzite-installer_kde_flatpaks_flatpaks",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/installer/kde_flatpaks/flatpaks",
+    "bytes": 884
+  },
+  {
+    "sha256": "e67cff7398a8a045745ed0cdb34c7e0741e41dc6e09024c521d8eef2d501e888",
+    "file": "bazzite-installer_titanoboa_hook_postrootfs.sh",
+    "url": "https://raw.githubusercontent.com/ublue-os/bazzite/2fab72cbc9a3257d80c607e173f22527aea3b39b/installer/titanoboa_hook_postrootfs.sh",
+    "bytes": 10892
+  },
+  {
+    "sha256": "48a7ebd10cc7401cf6b4c331af1337ca3880beb93a5db970876ac93652975136",
+    "file": "mediawriter-src_app_qml_MainPage.qml",
+    "url": "https://raw.githubusercontent.com/FedoraQt/MediaWriter/5.3.2/src/app/qml/MainPage.qml",
+    "bytes": 2520
+  },
+  {
+    "sha256": "4ba70eac7a95ea5b6e0f6913fcfc9313775e9795e7fc5fbaea49ffc75260cd06",
+    "file": "mediawriter-src_lib_libwindisk_windisk.cpp",
+    "url": "https://raw.githubusercontent.com/FedoraQt/MediaWriter/5.3.2/src/lib/libwindisk/windisk.cpp",
+    "bytes": 58712
+  }
+]

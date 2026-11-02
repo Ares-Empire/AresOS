@@ -1,0 +1,55 @@
+{
+  "status": "pinned image getpass byte-identical to3.14.8; read-only source comparison",
+  "image_reference": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "image_member": {
+    "sha256": "f1e8b3ea2cc5f2ca15e5568b3e53d355c313da3b2891447a36edad2537b6b077",
+    "path": "var/lib/containers/storage/overlay/1c9a0096879569850087a29cab3c96657c8ef63eb09fcf56925bd77b6f4ee092/diff/usr/lib64/python3.14/getpass.py",
+    "in_image_layer_ancestry": true
+  },
+  "sources": [
+    {
+      "sha256": "f1e8b3ea2cc5f2ca15e5568b3e53d355c313da3b2891447a36edad2537b6b077",
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.14.8/Lib/getpass.py",
+      "local_path": "getpass-3.14.8.py"
+    },
+    {
+      "sha256": "e74fd445337ff503223dd8aa4bdd7d04917067d00c796a10bedb7a1381a4960a",
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.12.0/Lib/getpass.py",
+      "local_path": "getpass-3.12.py"
+    },
+    {
+      "sha256": "8d8bcbafeb9a1eec2ade91cfca7670735af42a94ff152903c2c034d870c81503",
+      "url": "https://raw.githubusercontent.com/sudo-project/sudo/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/src/exec_pty.c",
+      "local_path": "sudo-1.9.17p2-exec_pty.c"
+    },
+    {
+      "sha256": "c92701f318353fefd3d32b33efa2a7a2752a4a7a45b6665a0b18837277b48567",
+      "url": "https://raw.githubusercontent.com/sudo-project/sudo/SUDO_1_9_15p5/src/exec_pty.c",
+      "local_path": "sudo-1.9.15p5-exec_pty.c"
+    },
+    {
+      "sha256": "edec774ab857bba7971b66b1aede339a38811ae2ba9538e4087e86a6d47c908b",
+      "url": "https://raw.githubusercontent.com/sudo-project/sudo/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/NEWS",
+      "local_path": "sudo-NEWS"
+    },
+    {
+      "sha256": "f6b8c499611cdd6973878836fcf06440227df10839fa8ffc78130f4b1141cd1c",
+      "url": "https://raw.githubusercontent.com/sudo-project/sudo/d1b48c651cec19fe37d1f0d3299d2283fb0f88e4/src/exec_iolog.c",
+      "local_path": "sudo-1.9.17p2-exec_iolog.c"
+    },
+    {
+      "sha256": "f6b8c499611cdd6973878836fcf06440227df10839fa8ffc78130f4b1141cd1c",
+      "url": "https://raw.githubusercontent.com/sudo-project/sudo/SUDO_1_9_15p5/src/exec_iolog.c",
+      "local_path": "sudo-1.9.15p5-exec_iolog.c"
+    }
+  ],
+  "sudo_rpm": {
+    "1000": "sudo",
+    "1001": "1.9.17",
+    "1002": "10.p2.fc44",
+    "1022": "x86_64",
+    "1044": "sudo-1.9.17-10.p2.fc44.src.rpm"
+  },
+  "python_rpm": "python3.14-3.14.8-1.fc44",
+  "no_image_executable_run": true
+}

@@ -1,0 +1,9 @@
+test_existing_attempt_nonce_refuses_before_post (test_14zg_control.ControlTest.test_existing_attempt_nonce_refuses_before_post) ... ok
+test_modes_outside_this_round_refuse_before_any_read_or_post (test_14zg_control.ControlTest.test_modes_outside_this_round_refuse_before_any_read_or_post) ... ok
+test_probe_and_qualification_each_post_once_then_use_delayed_direct_confirmation (test_14zg_control.ControlTest.test_probe_and_qualification_each_post_once_then_use_delayed_direct_confirmation) ... ok
+test_stale_budget_wrong_amount_or_prevention_refuses_before_post (test_14zg_control.ControlTest.test_stale_budget_wrong_amount_or_prevention_refuses_before_post) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.005s
+
+OK

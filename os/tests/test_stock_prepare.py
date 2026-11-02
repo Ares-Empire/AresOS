@@ -88,8 +88,10 @@ class StockPinTest(unittest.TestCase):
     def test_pin_always_runs_exact_pause_prefix_and_docs_use_the_same_recipe(self):
         self.assertTrue(PIN.read_text().startswith(PAUSE.read_text()))
         docs=(ROOT/'docs/INSTALL.md').read_text(encoding='utf-8')
-        self.assertIn(PIN.read_text().strip(),docs)
-        self.assertLess(docs.index(PIN.read_text().strip()),docs.index('## 5.'))
+        self.assertIn('sudo /var/lib/ares/at prepare',docs)
+        payload=ROOT/'os/owner-tools/payload/release/pin-stock.sh'
+        self.assertEqual(payload.read_bytes(),PIN.read_bytes())
+        self.assertLess(docs.index('sudo /var/lib/ares/at prepare'),docs.index('## 5.'))
 
 class StockPauseTest(unittest.TestCase):
     def environment(self,busy=False):

@@ -1,0 +1,16 @@
+{
+  "status": "expected failure at persistent-path assertion",
+  "source_commit": "bd855274143e564f832c873cf9d0c134fe340e29",
+  "payload_fingerprint": "320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6",
+  "historical_manifest_format": "SHA256.json only; exact manifest entries",
+  "tests": 1,
+  "failures": 1,
+  "errors": 0,
+  "skips": 0,
+  "production_code_rewritten": false,
+  "failure": "STOP diagnostic missing from persistent /var/lib/ares/diagnostics",
+  "log": {
+    "sha256": "993b89eada8d6b77b2083933ab4940127e136a757f85ef5f831df69cf6390180",
+    "path": "pre-14zzc-negative.txt"
+  }
+}

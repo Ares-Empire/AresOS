@@ -1,0 +1,54 @@
+{
+  "sha256": "ea9e205c356b261c1d8876d430e811a4f906b9e169ea8ca22af35ca35101f8c0",
+  "path": "evidence/two-disk/owner-switch-owner-diagnostics.json",
+  "status": "STOP after successful switch script, during title idle gate",
+  "error": "rpm-ostree/bootc/ostree client active",
+  "mutation": {
+    "script": "switch",
+    "returncode": 0,
+    "mutation": true
+  },
+  "script_stderr": "Deploying...done (53 seconds)\n",
+  "deployments": [
+    {
+      "checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+      "serial": 0,
+      "osname": "default",
+      "booted": false,
+      "pinned": false,
+      "staged": true,
+      "container-image-reference": "ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+      "container-image-reference-digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb"
+    },
+    {
+      "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "serial": 1,
+      "osname": "default",
+      "booted": true,
+      "pinned": true,
+      "staged": false,
+      "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+    },
+    {
+      "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      "serial": 0,
+      "osname": "default",
+      "booted": false,
+      "pinned": false,
+      "staged": false,
+      "container-image-reference": "ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable",
+      "container-image-reference-digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151"
+    }
+  ],
+  "transaction": null,
+  "rollback_queued": false,
+  "bootc_staged_checksum": "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+  "bootc_staged_digest": "sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+  "bootc_staged_reference": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+  "process_snapshot_recorded": false,
+  "active_client_identity": "not retained; unproved",
+  "new_title_record_saved": false,
+  "owner_switch_pass": false,
+  "reboot_after_stop": false
+}

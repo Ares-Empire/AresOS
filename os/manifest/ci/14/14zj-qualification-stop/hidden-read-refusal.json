@@ -1,0 +1,83 @@
+{
+  "status": "STOP hidden-read completion false negative; no secret retype/no rerun",
+  "run": 40658792992,
+  "head": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+  "readiness": {
+    "ready": true,
+    "physical_echo_enabled": false,
+    "reader_echo_enabled": false,
+    "prompt_at_cursor": true,
+    "observation": {
+      "reason": "Expected foreground reader",
+      "foreground_chain": [
+        {
+          "pid": 1962,
+          "comm": "login",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 1,
+          "pgrp": 1962,
+          "session": 1962,
+          "tty": 1027,
+          "tpgid": 1962
+        }
+      ]
+    },
+    "reader": {
+      "pid": 1962,
+      "ppid": 1,
+      "pgrp": 1962,
+      "session": 1962,
+      "tty": 1027,
+      "tpgid": 1962,
+      "start": "5050",
+      "exe": "/usr/bin/login",
+      "tty_path": "/dev/tty3",
+      "physical": 1027
+    }
+  },
+  "completion": {
+    "ready": false,
+    "reason": "Foreground interactive bash",
+    "observation": {
+      "reason": "Foreground interactive bash",
+      "foreground_chain": [
+        {
+          "pid": 2926,
+          "comm": "bash",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 1962,
+          "pgrp": 2926,
+          "session": 2926,
+          "tty": 1027,
+          "tpgid": 2926
+        }
+      ]
+    },
+    "value_recorded": false
+  },
+  "vcsa": {
+    "sha256": "fbb69f3ca62f9dbd8792fd6cec0cd806017857f684ac57ef5ce13e4a9e4ad61c",
+    "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2-left-timeout-1.vcsa",
+    "geometry": [
+      50,
+      160,
+      25,
+      28
+    ],
+    "cursor_is_shell_prompt": true,
+    "cursor_is_password_prompt": false,
+    "login_incorrect_visible": false,
+    "decoded_privacy_findings": 0,
+    "decoded_text_saved": false
+  },
+  "interpretation": "The current foreground is Bash2926 whose parent is the original login1962; original login remains, same physical tty stays echo-off for readline, so hidden_left does not accept its existing exit/exec/echo/sudo-relay alternatives. Secret sent once; no private token stage reached.",
+  "cause_is_not_serial_ack_failure": true,
+  "private_login_stage_reached": false,
+  "source_changed_after_stop": false
+}

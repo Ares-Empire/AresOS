@@ -1,0 +1,7 @@
+test_package_hash_manifests_put_hashes_before_paths (test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths) ... ok
+test_reviewed_windows_payload_is_exact_generated_ci_payload (test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 3.494s
+
+OK

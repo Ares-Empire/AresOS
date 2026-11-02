@@ -1,0 +1,21 @@
+{
+  "status": "passed independent replay of actual raw files and counters",
+  "run": 40768498320,
+  "head": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+  "protected_captures": 9,
+  "zero_write_unmap_samples": 10,
+  "raw_varstores_decoded": 9,
+  "bootnext_exact_replays": 9,
+  "nvram_rule_exact_replays": 8,
+  "all_variable_delta_recomputations": 8,
+  "stages": [
+    "boot-3-pre-login-reset",
+    "corrected-stock",
+    "offline-first-stock",
+    "offline-roundtrip-detached-windows",
+    "offline-roundtrip-unattended-windows",
+    "prepared-unattended-windows",
+    "protected-second-install",
+    "tools-stock"
+  ]
+}

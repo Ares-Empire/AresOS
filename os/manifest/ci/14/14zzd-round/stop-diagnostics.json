@@ -1,0 +1,47 @@
+{
+  "status": "curated STOP only; raw artifacts retained privately",
+  "files": [
+    {
+      "sha256": "41f3545e6693fcf5f29b8083e4ffaf4d64c559ff9155dbd5c0017bc636521197",
+      "path": ".work/14/14zzd/stop-diagnosis.json",
+      "archive": "stop-diagnosis.json"
+    },
+    {
+      "sha256": "b547bd338a4f7d74115131ded57b80d14bae659093ac5cd80529ee2e0e9a43d3",
+      "path": ".work/14/14zzd/linux-checkout-proof.json",
+      "archive": "linux-checkout-proof.json"
+    },
+    {
+      "sha256": "4f3d4941de8e7916b1c87ad658e463112908c65e1357ae3d9e0566f648ab1356",
+      "path": ".work/14/14zzd/partial-native-proof.json",
+      "archive": "partial-native-proof.json"
+    },
+    {
+      "sha256": "6c23d4e96aaededf87e9c7f5bb4b8819c0a57d60d51ddef1c096710523b42d51",
+      "path": ".work/14/14zzd/diagnose-stop.py",
+      "archive": "diagnose-stop.py"
+    },
+    {
+      "sha256": "2239af23709254c4ff11df610d6d3419ca4f9199cdefed3ebdc6acc4e3ed125f",
+      "path": ".work/14/14zzd/partial-native.py",
+      "archive": "partial-native.py"
+    },
+    {
+      "sha256": "9bcc8ad0673575b830e4c7c936687703058b1c981fdf4a4d2597608d2d992a62",
+      "path": ".work/14/14zzd/linux-checkout-proof.py",
+      "archive": "linux-checkout-proof.py"
+    },
+    {
+      "sha256": "1df924d448343f19ad65fd53d8e8fe92d0c9074cd7dfb02281776c403e5e5eef",
+      "path": ".work/14/14zzd/prepare-linux-filter.py",
+      "archive": "prepare-linux-filter.py"
+    }
+  ],
+  "pr": {
+    "headRefOid": "dda72ed8a5bdb038d953f950f76c66fc37297115",
+    "isDraft": true,
+    "state": "OPEN"
+  },
+  "qualification_dispatched": false,
+  "reruns": 0
+}

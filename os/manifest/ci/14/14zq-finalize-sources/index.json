@@ -1,0 +1,175 @@
+{
+  "status": "read-only pinned squashfs unit verification",
+  "squashfs": {
+    "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+    "path": ".work/14/14zd-replay-1/work/squashfs.img"
+  },
+  "rpmdb": {
+    "sha256": "5e5d7aa4d67d30e72c59d0e173d91d117cc1f00bd4f3a606804b4a944d05d424",
+    "path": ".work/14/14v/rpmdb.sqlite"
+  },
+  "units": [
+    {
+      "sha256": "93ff7ecf00f38b6fab73114cdcc0e7948fa4b6362435e1957ce2502d17e10787",
+      "path": "usr/lib/systemd/system/ostree-finalize-staged-hold.service",
+      "unit": "ostree-finalize-staged-hold.service",
+      "exec_start": [
+        "+/usr/bin/ostree admin finalize-staged --hold"
+      ],
+      "exec_stop": [],
+      "dependencies": [
+        "ConditionPathExists=/run/ostree-booted",
+        "After=local-fs.target",
+        "Before=basic.target final.target",
+        "Type=exec"
+      ],
+      "cgroup": "/system.slice/ostree-finalize-staged-hold.service",
+      "cgroup_basis": "default non-template system service; no Slice override in unit"
+    },
+    {
+      "sha256": "d2a4d60f65e86ae4045324c45bf5dff3cc24803e5e39b46c4e22c1c262cbb825",
+      "path": "usr/lib/systemd/system/ostree-finalize-staged.service",
+      "unit": "ostree-finalize-staged.service",
+      "exec_start": [],
+      "exec_stop": [
+        "/usr/bin/ostree admin finalize-staged"
+      ],
+      "dependencies": [
+        "ConditionPathExists=/run/ostree-booted",
+        "After=local-fs.target",
+        "Before=basic.target final.target",
+        "After=systemd-journal-flush.service",
+        "Conflicts=final.target",
+        "Wants=ostree-finalize-staged-hold.service",
+        "After=ostree-finalize-staged-hold.service",
+        "Type=oneshot",
+        "RemainAfterExit=yes"
+      ],
+      "cgroup": "/system.slice/ostree-finalize-staged.service",
+      "cgroup_basis": "default non-template system service; no Slice override in unit"
+    },
+    {
+      "sha256": "fb2bc51cc08026df8a9025b82b3b3cb58af4759119428cec100e50d9f9cea6d3",
+      "path": "usr/lib/systemd/system/bootc-finalize-staged.service",
+      "unit": "bootc-finalize-staged.service",
+      "exec_start": [],
+      "exec_stop": [
+        "/usr/bin/bootc composefs-finalize-staged"
+      ],
+      "dependencies": [
+        "After=local-fs.target",
+        "Before=basic.target final.target",
+        "After=systemd-journal-flush.service",
+        "Conflicts=final.target",
+        "Type=oneshot",
+        "RemainAfterExit=yes"
+      ],
+      "cgroup": "/system.slice/bootc-finalize-staged.service",
+      "cgroup_basis": "default non-template system service; no Slice override in unit"
+    }
+  ],
+  "packages": [
+    {
+      "name": "ostree",
+      "version": "2026.4",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "ostree-2026.4-1.fc44.src.rpm"
+    },
+    {
+      "name": "ostree-libs",
+      "version": "2026.4",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "ostree-2026.4-1.fc44.src.rpm"
+    },
+    {
+      "name": "bootc",
+      "version": "1.16.13",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "bootc-1.16.13-1.fc44.src.rpm"
+    },
+    {
+      "name": "systemd",
+      "version": "259.9",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "systemd-259.9-1.fc44.src.rpm"
+    }
+  ],
+  "trigger_and_dependency_paths": [
+    "-rw-r--r-- root/root              1829 1970-01-01 01:00 squashfs-root/usr/lib/systemd/system/bootc-finalize-staged.service",
+    "-rw-r--r-- root/root              1337 1970-01-01 01:00 squashfs-root/usr/lib/systemd/system/ostree-finalize-staged-hold.service",
+    "-rw-r--r-- root/root              2036 1970-01-01 01:00 squashfs-root/usr/lib/systemd/system/ostree-finalize-staged.service"
+  ],
+  "dropins": [
+    {
+      "sha256": "ae6b234f92bc22f1201a7572b59b454c9809f33c80d13f361b9674e1801acc37",
+      "path": "usr/lib/systemd/system/service.d/10-timeout-abort.conf",
+      "local": "dropin-0.conf"
+    }
+  ],
+  "path_units_present": false,
+  "trigger_note": "No finalize-staged .path unit in pinned listing; inspect upstream programmatic service start",
+  "retained_q12_process_snapshot": "No post-staging client list retained; only rpm-ostreed PID12599 from earlier prepare",
+  "systemd_reference": "https://www.freedesktop.org/software/systemd/man/259/systemd.slice.html",
+  "upstream": {
+    "sources": [
+      {
+        "sha256": "e018b3af47e85b507f1c31dc1c73f0d47c73459bd63292960db46d11728ddab9",
+        "path": "src_libostree_ostree-sysroot-deploy.c",
+        "url": "https://github.com/ostreedev/ostree/blob/4f4445a8912f70c604fa84a057a8f4e904e35a24/src/libostree/ostree-sysroot-deploy.c",
+        "commit": "4f4445a8912f70c604fa84a057a8f4e904e35a24",
+        "tag": "v2026.4"
+      },
+      {
+        "sha256": "aeff751a4415d062459a87d234f54a45899b51bc5adae2ed847cbd353be35e57",
+        "path": "src_ostree_ot-admin-builtin-finalize-staged.c",
+        "url": "https://github.com/ostreedev/ostree/blob/4f4445a8912f70c604fa84a057a8f4e904e35a24/src/ostree/ot-admin-builtin-finalize-staged.c",
+        "commit": "4f4445a8912f70c604fa84a057a8f4e904e35a24",
+        "tag": "v2026.4"
+      },
+      {
+        "sha256": "93ff7ecf00f38b6fab73114cdcc0e7948fa4b6362435e1957ce2502d17e10787",
+        "path": "src_boot_ostree-finalize-staged-hold.service",
+        "url": "https://github.com/ostreedev/ostree/blob/4f4445a8912f70c604fa84a057a8f4e904e35a24/src/boot/ostree-finalize-staged-hold.service",
+        "commit": "4f4445a8912f70c604fa84a057a8f4e904e35a24",
+        "tag": "v2026.4"
+      },
+      {
+        "sha256": "d2a4d60f65e86ae4045324c45bf5dff3cc24803e5e39b46c4e22c1c262cbb825",
+        "path": "src_boot_ostree-finalize-staged.service",
+        "url": "https://github.com/ostreedev/ostree/blob/4f4445a8912f70c604fa84a057a8f4e904e35a24/src/boot/ostree-finalize-staged.service",
+        "commit": "4f4445a8912f70c604fa84a057a8f4e904e35a24",
+        "tag": "v2026.4"
+      }
+    ]
+  },
+  "missing_retained_process_snapshot": "No post-staging PID/argv/cgroup in Q12 artifact; unit-derived hold fixture is explicitly not a retained process observation",
+  "fresh_iso_replay_unit_equality": {
+    "status": "passed",
+    "attempt": 2,
+    "iso": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "units": [
+      {
+        "sha256": "93ff7ecf00f38b6fab73114cdcc0e7948fa4b6362435e1957ce2502d17e10787",
+        "path": "usr/lib/systemd/system/ostree-finalize-staged-hold.service"
+      },
+      {
+        "sha256": "d2a4d60f65e86ae4045324c45bf5dff3cc24803e5e39b46c4e22c1c262cbb825",
+        "path": "usr/lib/systemd/system/ostree-finalize-staged.service"
+      },
+      {
+        "sha256": "fb2bc51cc08026df8a9025b82b3b3cb58af4759119428cec100e50d9f9cea6d3",
+        "path": "usr/lib/systemd/system/bootc-finalize-staged.service"
+      }
+    ]
+  },
+  "hold_executable": {
+    "path": "usr/bin/ostree",
+    "type": "regular executable, not symlink",
+    "bytes": 353504,
+    "source": "read-only unsquashfs -ll from pinned ISO"
+  }
+}

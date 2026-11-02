@@ -1,0 +1,78 @@
+{
+  "status": "STOP",
+  "reason": "Mandatory PR privacy run absent and push personal-term scan skipped",
+  "checked_at": "2026-11-01T00:42:38.766628+00:00",
+  "head": "becfb2221ce0436e97ed117bd7be1028ad3e7648",
+  "repository_private": true,
+  "main": {
+    "sha": "fabd476e39145feace9480c2301b6a2cb0419d6d",
+    "committed_at": "2026-11-01T00:00:43Z",
+    "change": "D .github/workflows/privacy-check.yml",
+    "workflows": [
+      ".github/workflows/os-image.yml"
+    ]
+  },
+  "pull_request": {
+    "number": 13,
+    "state": "open",
+    "draft": true,
+    "mergeable": true,
+    "mergeable_state": "clean",
+    "merge_sha": "7853858fa9d704d821caf21fc411938cd0a8d060",
+    "workflows": [
+      ".github/workflows/os-image.yml"
+    ]
+  },
+  "branch_privacy_workflow": {
+    "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2",
+    "path": ".github/workflows/privacy-check.yml"
+  },
+  "exact_head_privacy_runs": [
+    {
+      "run": 41257409190,
+      "event": "push",
+      "conclusion": "success",
+      "attempt": 1,
+      "steps": {
+        "No secrets (gitleaks)": "success",
+        "Only private commit emails": "success",
+        "No personal terms": "success"
+      },
+      "personal_terms_not_skipped": false,
+      "actual_personal_terms_scan_executed": false,
+      "personal_terms_skipped_warnings": [
+        {
+          "sha256": "3ce22707d8d163ab743fbbad32d86765a40f95ce6b3e393e21b122c1aecd3e40",
+          "path": "0_scan.txt",
+          "line": 184
+        },
+        {
+          "sha256": "364080186968738cc2ff7db178ce6bb2428d92653db17c6ff4113043c9bd4523",
+          "path": "scan/5_No personal terms.txt",
+          "line": 14
+        }
+      ],
+      "logs": {
+        "sha256": "ea2912954244f95861d05a0e79329f7250790ef4071ad0d78c456bf7c25d3fdd",
+        "path": "push-logs.zip"
+      }
+    }
+  ],
+  "required_events": [
+    "push",
+    "pull_request"
+  ],
+  "observed_events": [
+    "push"
+  ],
+  "owner_tool_bug": false,
+  "console_emulation_failure": false,
+  "classification": "privacy gate / repository policy PLAN-GAP",
+  "pushes": 1,
+  "workflow_dispatches": 0,
+  "reruns": 0,
+  "workflow_changes": false,
+  "ignore_changes": false,
+  "no_bypass_or_replacement_dispatch": true,
+  "proposal_serial_stages_needed": false
+}

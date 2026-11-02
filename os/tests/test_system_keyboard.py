@@ -84,7 +84,8 @@ class SystemKeyboardTest(unittest.TestCase):
 
     def test_owner_block_equals_script(self):
         guide = (ROOT / 'docs/INSTALL.md').read_text()
-        self.assertIn('```bash\n' + (ROOT / 'os/release/system-keyboard.sh').read_text().rstrip() + '\n```', guide)
+        self.assertIn('sudo /var/lib/ares/at prepare', guide)
+        self.assertEqual((ROOT/'os/owner-tools/payload/release/system-keyboard.sh').read_bytes(), (ROOT/'os/release/system-keyboard.sh').read_bytes())
 
     def test_session_uses_system_layout_variant_options_and_clears_stale_defaults(self):
         for layout, variant, options in (('de', '', ''), ('us', 'intl', 'compose:ralt'), ('de,us', ',intl', 'grp:alt_shift_toggle')):

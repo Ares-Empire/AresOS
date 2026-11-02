@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+  "kind": "aresync local exact-range pre-push and actual git push hook",
+  "checker": {
+    "hook": {
+      "sha256": "7d1ee97830ad31f4c9c7bd2a761d741318f3e5c41cf71eecd0d906db741f0aca",
+      "path": "repository git hooks/pre-push"
+    },
+    "checker": {
+      "sha256": "dd5e33e544b37f9990613e2a4f15039fc2a8733ce6e4a1315e46518b8e49c7ca",
+      "path": "aresync/privacy-check.sh"
+    },
+    "gitleaks": {
+      "sha256": "17157e2ee8b76fc8b1d8bee607a250e34b8a8023c8bc81822d4b5ee4d78fcb7c",
+      "path": "hook-resolved gitleaks",
+      "version": "8.30.1"
+    },
+    "core_hooks_path_override": false
+  },
+  "exit_code": 0,
+  "personal_terms_skipped_warning_absent": true,
+  "standard_stdin": "refs/heads/pkg/14-owner-tools 3fd79165fa96406948c17ea90f94f943cd9bc201 refs/heads/pkg/14-owner-tools dda72ed8a5bdb038d953f950f76c66fc37297115\n",
+  "commits_checked": [
+    "3fd79165fa96406948c17ea90f94f943cd9bc201",
+    "c0051ab772eaa8c1817a3c5d98408be8e331a196",
+    "a47fcb081ba5a5ffe29d9f82ad2503d58134907b"
+  ],
+  "no_verify": false,
+  "github_privacy_runs_required": false
+}

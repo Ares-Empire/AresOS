@@ -1,0 +1,134 @@
+{
+  "rpmdb": {
+    "sha256": "5e5d7aa4d67d30e72c59d0e173d91d117cc1f00bd4f3a606804b4a944d05d424",
+    "path": ".work/14/14v/rpmdb.sqlite",
+    "source": "pinned ISO squashfs usr/lib/sysimage/rpm-ostree-base-db/rpmdb.sqlite"
+  },
+  "packages": [
+    {
+      "name": "efibootmgr",
+      "version": "18",
+      "release": "11.fc44",
+      "arch": "x86_64",
+      "source_rpm": "efibootmgr-18-11.fc44.src.rpm"
+    },
+    {
+      "name": "efivar-libs",
+      "version": "39",
+      "release": "12.fc44",
+      "arch": "x86_64",
+      "source_rpm": "efivar-39-12.fc44.src.rpm"
+    },
+    {
+      "name": "util-linux",
+      "version": "2.41.5",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "util-linux-2.41.5-1.fc44.src.rpm"
+    },
+    {
+      "name": "util-linux-core",
+      "version": "2.41.5",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "util-linux-2.41.5-1.fc44.src.rpm"
+    },
+    {
+      "name": "systemd",
+      "version": "259.9",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "systemd-259.9-1.fc44.src.rpm"
+    },
+    {
+      "name": "coreutils",
+      "version": "9.10",
+      "release": "5.fc44",
+      "arch": "x86_64",
+      "source_rpm": "coreutils-9.10-5.fc44.src.rpm"
+    },
+    {
+      "name": "glibc",
+      "version": "2.43",
+      "release": "9.fc44",
+      "arch": "x86_64",
+      "source_rpm": "glibc-2.43-9.fc44.src.rpm"
+    },
+    {
+      "name": "kbd",
+      "version": "2.9.0",
+      "release": "4.fc44",
+      "arch": "x86_64",
+      "source_rpm": "kbd-2.9.0-4.fc44.src.rpm"
+    },
+    {
+      "name": "flatpak",
+      "version": "1.18.4",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "flatpak-1.18.4-1.fc44.src.rpm"
+    },
+    {
+      "name": "bootc",
+      "version": "1.16.13",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "bootc-1.16.13-1.fc44.src.rpm"
+    },
+    {
+      "name": "ostree",
+      "version": "2026.4",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "ostree-2026.4-1.fc44.src.rpm"
+    },
+    {
+      "name": "rpm-ostree",
+      "version": "2026.3",
+      "release": "2.fc44",
+      "arch": "x86_64",
+      "source_rpm": "rpm-ostree-2026.3-2.fc44.src.rpm"
+    },
+    {
+      "name": "shadow-utils",
+      "version": "4.19.0",
+      "release": "7.fc44",
+      "arch": "x86_64",
+      "source_rpm": "shadow-utils-4.19.0-7.fc44.src.rpm"
+    },
+    {
+      "name": "python3",
+      "version": "3.14.8",
+      "release": "1.fc44",
+      "arch": "x86_64",
+      "source_rpm": "python3.14-3.14.8-1.fc44.src.rpm"
+    },
+    {
+      "name": "bash",
+      "version": "5.3.9",
+      "release": "3.fc44",
+      "arch": "x86_64",
+      "source_rpm": "bash-5.3.9-3.fc44.src.rpm"
+    }
+  ],
+  "frozen_base": {
+    "reference": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+    "manifest": {
+      "sha256": "ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+      "path": "os/manifest/ci/06/image-6/base-oci-manifest.json"
+    },
+    "layer": {
+      "sha256": "1af49583f914d3126b3003bfd81a81bda44b24b62b5554cc26579e7fc7f96962",
+      "path": ".work/14/base-unpackaged-layer.tar.gz",
+      "member": "usr/lib/sysimage/rpm-ostree-base-db/rpmdb.sqlite",
+      "hardlink_target": "sysroot/ostree/repo/objects/68/846cdf84b4552d48e6fdfecdfe84012ff6e3ca7e68671528c725a1d81fcd9d.file",
+      "bytes": 324644312
+    },
+    "rpmdb": {
+      "sha256": "5e5d7aa4d67d30e72c59d0e173d91d117cc1f00bd4f3a606804b4a944d05d424",
+      "path": ".work/14/14v/base-rpmdb.sqlite",
+      "bytes": 99921920
+    },
+    "byte_identical_to_iso": true
+  }
+}

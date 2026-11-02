@@ -1,0 +1,31 @@
+{
+  "received": {
+    "status": "passed",
+    "counts_only": true,
+    "autorepeat": {
+      "delay_ms": 250,
+      "period_ms": 33
+    },
+    "counts": {
+      "press": 55,
+      "release": 55,
+      "repeat": 0,
+      "syn_dropped": 0
+    },
+    "codes_recorded": false,
+    "values_recorded": false,
+    "seconds": 11.128,
+    "complete": true,
+    "device": "/dev/input/event4",
+    "pid": 8567
+  },
+  "comparison": {
+    "sent_events": 110,
+    "received_events": 110,
+    "press": 55,
+    "release": 55,
+    "repeat": 0,
+    "syn_dropped": 0,
+    "matches": true
+  }
+}

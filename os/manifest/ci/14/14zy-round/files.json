@@ -1,0 +1,48 @@
+{
+  "files": [
+    {
+      "sha256": "7e1fb764e65e82907f1f47273e6e0cb6d61e15177f0c657897736d347291a0cc",
+      "path": "os/manifest/ci/14/14zy-round/artifact-privacy.json"
+    },
+    {
+      "sha256": "fa7f357b8f54be412525011bb27fad704a54a14371a21ae32a49dbf4415159b0",
+      "path": "os/manifest/ci/14/14zy-round/budget-timing-stop.json"
+    },
+    {
+      "sha256": "63ae588546b901df67e9820e1368f817a921ea50a4026f08189f22ea3bc281d2",
+      "path": "os/manifest/ci/14/14zy-round/closed.json"
+    },
+    {
+      "sha256": "0fc5ae4066b18a275c7dbac53307ea6ad4f9c234b817e75a0385bb89380ac24a",
+      "path": "os/manifest/ci/14/14zy-round/kernel-proof.json"
+    },
+    {
+      "sha256": "278983ba23a2f73be305a581587e1828b1e015eca917078d7c58c0ac87272480",
+      "path": "os/manifest/ci/14/14zy-round/local-and-native-checks.json"
+    },
+    {
+      "sha256": "36ad88ea8aedaf287a0fe267a86cb9cf14b4885d70bb555257edffedd2fc0a4a",
+      "path": "os/manifest/ci/14/14zy-round/local-privacy.json"
+    },
+    {
+      "sha256": "c3ba1d20d11b0e6ad98d4b73d9b1b6bc18e2b1baa4b6103e01eb85d4e7a08a38",
+      "path": "os/manifest/ci/14/14zy-round/privacy.json"
+    },
+    {
+      "sha256": "ba3aadd678498afe70d877f3779851ac2cc41df5da6b86dbbeabc7323b3e145a",
+      "path": "os/manifest/ci/14/14zy-round/probe.json"
+    },
+    {
+      "sha256": "856af20f42de53d1353c2e20b554ce6c13a581f7d6c806b5607af30ce835c644",
+      "path": "os/manifest/ci/14/14zy-round/qualification-stop.json"
+    },
+    {
+      "sha256": "84e2be6fd4d2f1fd754d9e62a9a1019c5e1ae147db817001e4c85391368f66e1",
+      "path": "os/manifest/ci/14/14zy-round/retained-files.json"
+    },
+    {
+      "sha256": "0767f5844a7f2f3ef271ce38624c262c04bb24346ffb23c6820e05d37d02a8d7",
+      "path": "os/manifest/ci/14/14zy-round/unapproved-log-findings.json"
+    }
+  ]
+}

@@ -66,7 +66,8 @@ class GrubSelectionTest(unittest.TestCase):
         reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
         script = (ROOT / 'os/release/switch.sh').read_text().replace('@REFERENCE@', reference).strip()
         docs = (ROOT / 'docs/INSTALL.md').read_text(encoding='utf-8')
-        self.assertEqual(docs.count('```bash\n' + script + '\n```'), 1)
+        self.assertEqual(docs.count('```bash\nsudo /var/lib/ares/at switch\n```'), 1)
+        self.assertEqual((ROOT/'os/owner-tools/payload/release/switch.sh').read_bytes(), (ROOT/'os/release/switch.sh').read_bytes())
         self.assertIn('rollbackQueued', script)
         self.assertIn('getent passwd 1001', script)
 

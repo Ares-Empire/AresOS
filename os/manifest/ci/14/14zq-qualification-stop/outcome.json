@@ -1,0 +1,3626 @@
+{
+  "status": "read-only retained outcome review; no rerun",
+  "run": 40844950597,
+  "head": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+  "owner_records": [
+    {
+      "sha256": "387e032b299567df87c9b0d2ee0d15aa434b6799cb5ce42c8c21675cebd14d07",
+      "path": "evidence/two-disk/after-first-network-records-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "records"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "0eaaf9e56138847295847b0891322adc7c192d8c4b56e3a366071318f8bef2e3",
+      "path": "evidence/two-disk/after-first-network-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "5ba23a39840aa2ca89ab46d48cf42b64e569190ca11cbbd8b0ad2bd1bdc95e29",
+      "path": "evidence/two-disk/aresos-check-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "check"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "0df1362662b14cf20c93326d110a5855dcc9ffd116a0cabec9de7d9c2634c290",
+      "path": "evidence/two-disk/corrected-stock-records-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "records"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "b8d49d5164b29d2675826ceedccc32364a4742d96815c635ad0f021cc7a959ae",
+      "path": "evidence/two-disk/corrected-stock-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "8b7bbd1be9b02cfb8b09adc01af3c3ebed1a117374a0236f628f8ac0dfd5cef3",
+      "path": "evidence/two-disk/layout-us-begin-owner-diagnostics.json",
+      "status": "stopped",
+      "command": [
+        "layout",
+        "begin",
+        "us"
+      ],
+      "error": "Use a physical tty3/tty4 recovery login",
+      "mutations": 0
+    },
+    {
+      "sha256": "f021124874b7a5418611dd34c78ddd7594a8b2c2ca0acd390e51d3dcfe42c7f9",
+      "path": "evidence/two-disk/owner-logind-diagnostics-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "logs"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "67fb9fde434765109bf53698017285eaadc4f87c8e9bf01264d2c0c282e41d3d",
+      "path": "evidence/two-disk/owner-signature-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "verify"
+      ],
+      "error": null,
+      "mutations": 1
+    },
+    {
+      "sha256": "bd1a600edcb3d4f70766de286af0767a5b1adec159f1e3bdd244dd549d123cce",
+      "path": "evidence/two-disk/owner-switch-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "switch"
+      ],
+      "error": null,
+      "mutations": 1
+    },
+    {
+      "sha256": "a002765bde3532911d367dc2ca2427d61ccaeb7daae7336492575b3d636ec2f7",
+      "path": "evidence/two-disk/owner-switch-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "55aefde4583a301f002bb109e1bfb8efb2a2cc5ffb0895031feac89679b766bc",
+      "path": "evidence/two-disk/private-owner-dummy-login-owner-diagnostics.json",
+      "status": "stopped",
+      "command": [
+        "login"
+      ],
+      "error": "Private release read failed; check read:packages permission/expiry and network; no credential was written",
+      "mutations": 0
+    },
+    {
+      "sha256": "d811da4c2cc255b011385f549ab5c5c5260e447fef329d744a219749bcca3cbc",
+      "path": "evidence/two-disk/private-owner-login-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "login"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "c20bad4a9f6e2abe335054e36ef115325c3fcdaa3c278555f301d493464b28d3",
+      "path": "evidence/two-disk/tools-before-reboot-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "e21f9578a18bbb29f73aa213267408abdda887f1d4fb3426a014ff6d97f36bc1",
+      "path": "evidence/two-disk/tools-install-owner-diagnostics.json",
+      "status": "passed",
+      "command": null,
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "225a01a321dd24344ffacba2a351d01df62bd097dd569dc586656a26efd91e22",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "error": null,
+      "mutations": 4
+    },
+    {
+      "sha256": "344cf402f26ce427cbd288972176ac1dede9fae8160090222caa25d8edb45554",
+      "path": "evidence/two-disk/tools-prepare-rerun-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "error": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "64c79707932cdbd3b2451b91f443131bad81f5354d09823d7d7318ee92dc9a85",
+      "path": "evidence/two-disk/tools-record-export-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "export"
+      ],
+      "error": null,
+      "mutations": 5
+    }
+  ],
+  "process_observations": [
+    {
+      "sha256": "387e032b299567df87c9b0d2ee0d15aa434b6799cb5ce42c8c21675cebd14d07",
+      "path": "evidence/two-disk/after-first-network-records-owner-diagnostics.json",
+      "trace_index": 9,
+      "process": {
+        "pid": 12598,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "0eaaf9e56138847295847b0891322adc7c192d8c4b56e3a366071318f8bef2e3",
+      "path": "evidence/two-disk/after-first-network-title-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 12598,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "5ba23a39840aa2ca89ab46d48cf42b64e569190ca11cbbd8b0ad2bd1bdc95e29",
+      "path": "evidence/two-disk/aresos-check-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 1269,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "5ba23a39840aa2ca89ab46d48cf42b64e569190ca11cbbd8b0ad2bd1bdc95e29",
+      "path": "evidence/two-disk/aresos-check-owner-diagnostics.json",
+      "trace_index": 18,
+      "process": {
+        "pid": 1269,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "0df1362662b14cf20c93326d110a5855dcc9ffd116a0cabec9de7d9c2634c290",
+      "path": "evidence/two-disk/corrected-stock-records-owner-diagnostics.json",
+      "trace_index": 9,
+      "process": {
+        "pid": 1188,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "b8d49d5164b29d2675826ceedccc32364a4742d96815c635ad0f021cc7a959ae",
+      "path": "evidence/two-disk/corrected-stock-title-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 1188,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "8b7bbd1be9b02cfb8b09adc01af3c3ebed1a117374a0236f628f8ac0dfd5cef3",
+      "path": "evidence/two-disk/layout-us-begin-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 13222,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "67fb9fde434765109bf53698017285eaadc4f87c8e9bf01264d2c0c282e41d3d",
+      "path": "evidence/two-disk/owner-signature-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 24564,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "bd1a600edcb3d4f70766de286af0767a5b1adec159f1e3bdd244dd549d123cce",
+      "path": "evidence/two-disk/owner-switch-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 24564,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "bd1a600edcb3d4f70766de286af0767a5b1adec159f1e3bdd244dd549d123cce",
+      "path": "evidence/two-disk/owner-switch-owner-diagnostics.json",
+      "trace_index": 41,
+      "process": {
+        "pid": 25368,
+        "exe": "/usr/bin/ostree",
+        "cmdline": [
+          "/usr/bin/ostree",
+          "admin",
+          "finalize-staged",
+          "--hold"
+        ],
+        "cgroup": "0::/system.slice/ostree-finalize-staged-hold.service\n",
+        "excluded_as_daemon": false,
+        "excluded_as_system_helper": true
+      }
+    },
+    {
+      "sha256": "bd1a600edcb3d4f70766de286af0767a5b1adec159f1e3bdd244dd549d123cce",
+      "path": "evidence/two-disk/owner-switch-owner-diagnostics.json",
+      "trace_index": 41,
+      "process": {
+        "pid": 25386,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "a002765bde3532911d367dc2ca2427d61ccaeb7daae7336492575b3d636ec2f7",
+      "path": "evidence/two-disk/owner-switch-title-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 25368,
+        "exe": "/usr/bin/ostree",
+        "cmdline": [
+          "/usr/bin/ostree",
+          "admin",
+          "finalize-staged",
+          "--hold"
+        ],
+        "cgroup": "0::/system.slice/ostree-finalize-staged-hold.service\n",
+        "excluded_as_daemon": false,
+        "excluded_as_system_helper": true
+      }
+    },
+    {
+      "sha256": "a002765bde3532911d367dc2ca2427d61ccaeb7daae7336492575b3d636ec2f7",
+      "path": "evidence/two-disk/owner-switch-title-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 25596,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "55aefde4583a301f002bb109e1bfb8efb2a2cc5ffb0895031feac89679b766bc",
+      "path": "evidence/two-disk/private-owner-dummy-login-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 1188,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "d811da4c2cc255b011385f549ab5c5c5260e447fef329d744a219749bcca3cbc",
+      "path": "evidence/two-disk/private-owner-login-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 18864,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "c20bad4a9f6e2abe335054e36ef115325c3fcdaa3c278555f301d493464b28d3",
+      "path": "evidence/two-disk/tools-before-reboot-title-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 16128,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "225a01a321dd24344ffacba2a351d01df62bd097dd569dc586656a26efd91e22",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "trace_index": 9,
+      "process": {
+        "pid": 12598,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "225a01a321dd24344ffacba2a351d01df62bd097dd569dc586656a26efd91e22",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "trace_index": 24,
+      "process": {
+        "pid": 12598,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    },
+    {
+      "sha256": "344cf402f26ce427cbd288972176ac1dede9fae8160090222caa25d8edb45554",
+      "path": "evidence/two-disk/tools-prepare-rerun-owner-diagnostics.json",
+      "trace_index": 9,
+      "process": {
+        "pid": 12598,
+        "exe": "/usr/bin/rpm-ostree",
+        "cmdline": [
+          "rpm-ostree",
+          "start-daemon"
+        ],
+        "cgroup": "0::/system.slice/rpm-ostreed.service\n",
+        "excluded_as_daemon": true,
+        "excluded_as_system_helper": false
+      }
+    }
+  ],
+  "actual_hold_observations": [
+    {
+      "sha256": "bd1a600edcb3d4f70766de286af0767a5b1adec159f1e3bdd244dd549d123cce",
+      "path": "evidence/two-disk/owner-switch-owner-diagnostics.json",
+      "trace_index": 41,
+      "process": {
+        "pid": 25368,
+        "exe": "/usr/bin/ostree",
+        "cmdline": [
+          "/usr/bin/ostree",
+          "admin",
+          "finalize-staged",
+          "--hold"
+        ],
+        "cgroup": "0::/system.slice/ostree-finalize-staged-hold.service\n",
+        "excluded_as_daemon": false,
+        "excluded_as_system_helper": true
+      }
+    },
+    {
+      "sha256": "a002765bde3532911d367dc2ca2427d61ccaeb7daae7336492575b3d636ec2f7",
+      "path": "evidence/two-disk/owner-switch-title-owner-diagnostics.json",
+      "trace_index": 2,
+      "process": {
+        "pid": 25368,
+        "exe": "/usr/bin/ostree",
+        "cmdline": [
+          "/usr/bin/ostree",
+          "admin",
+          "finalize-staged",
+          "--hold"
+        ],
+        "cgroup": "0::/system.slice/ostree-finalize-staged-hold.service\n",
+        "excluded_as_daemon": false,
+        "excluded_as_system_helper": true
+      }
+    }
+  ],
+  "counters": [
+    {
+      "sha256": "f453486e593b5e2598e130b2d71549112978bb3cca574cfbc68cd0a738405741",
+      "path": "evidence/two-disk/aresos-password-prompt-read-wait-82-key-counter-result.json",
+      "sent": {
+        "length": 30,
+        "key_event_count": 66,
+        "key_chord_count": 31,
+        "last_key_was_ret": true,
+        "non_default_mapping_classes": [
+          "layout_differs_from_us",
+          "non_ascii",
+          "shift"
+        ],
+        "timing": {
+          "hold_ms": 30,
+          "minimum_gap_ms": 120.0
+        }
+      },
+      "received": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 23.276,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 3139,
+        "whole_window_counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        }
+      },
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "whole_window": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 23.276,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 3139
+      },
+      "pre_enter": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "sent": {
+              "length": 30,
+              "key_event_count": 64,
+              "key_chord_count": 30,
+              "last_key_was_ret": false,
+              "non_default_mapping_classes": [
+                "layout_differs_from_us",
+                "non_ascii",
+                "shift"
+              ],
+              "timing": {
+                "hold_ms": 30,
+                "minimum_gap_ms": 120.0
+              }
+            },
+            "comparison": {
+              "sent_events": 64,
+              "received_events": 64,
+              "press": 32,
+              "release": 32,
+              "repeat": 0,
+              "syn_dropped": 0,
+              "matches": true
+            }
+          }
+        ],
+        "enter_sent": false,
+        "accepted_attempt": 1,
+        "clear": null
+      }
+    },
+    {
+      "sha256": "32faea1cd8a31a97a1493d1d7f3fe9cd39a136c0211987c51bfc4d6d91b7003b",
+      "path": "evidence/two-disk/aresos-sudo-hidden-read-wait-88-key-counter-result.json",
+      "sent": {
+        "length": 30,
+        "key_event_count": 66,
+        "key_chord_count": 31,
+        "last_key_was_ret": true,
+        "non_default_mapping_classes": [
+          "layout_differs_from_us",
+          "non_ascii",
+          "shift"
+        ],
+        "timing": {
+          "hold_ms": 30,
+          "minimum_gap_ms": 120.0
+        }
+      },
+      "received": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 23.448,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 7773,
+        "whole_window_counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        }
+      },
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "whole_window": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 23.448,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 7773
+      },
+      "pre_enter": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "sent": {
+              "length": 30,
+              "key_event_count": 64,
+              "key_chord_count": 30,
+              "last_key_was_ret": false,
+              "non_default_mapping_classes": [
+                "layout_differs_from_us",
+                "non_ascii",
+                "shift"
+              ],
+              "timing": {
+                "hold_ms": 30,
+                "minimum_gap_ms": 120.0
+              }
+            },
+            "comparison": {
+              "sent_events": 64,
+              "received_events": 64,
+              "press": 32,
+              "release": 32,
+              "repeat": 0,
+              "syn_dropped": 0,
+              "matches": true
+            }
+          }
+        ],
+        "enter_sent": false,
+        "accepted_attempt": 1,
+        "clear": null
+      }
+    },
+    {
+      "sha256": "5217b52e8bf9bf20bb2ea7ef6faab6a582c8722cc19b5b5fd31bf75a2b806d86",
+      "path": "evidence/two-disk/corrected-stock-password-prompt-read-wait-40-key-counter-result.json",
+      "sent": {
+        "length": 30,
+        "key_event_count": 66,
+        "key_chord_count": 31,
+        "last_key_was_ret": true,
+        "non_default_mapping_classes": [
+          "layout_differs_from_us",
+          "non_ascii",
+          "shift"
+        ],
+        "timing": {
+          "hold_ms": 30,
+          "minimum_gap_ms": 120.0
+        }
+      },
+      "received": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 23.202,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 3304,
+        "whole_window_counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        }
+      },
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "whole_window": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 23.202,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 3304
+      },
+      "pre_enter": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "sent": {
+              "length": 30,
+              "key_event_count": 64,
+              "key_chord_count": 30,
+              "last_key_was_ret": false,
+              "non_default_mapping_classes": [
+                "layout_differs_from_us",
+                "non_ascii",
+                "shift"
+              ],
+              "timing": {
+                "hold_ms": 30,
+                "minimum_gap_ms": 120.0
+              }
+            },
+            "comparison": {
+              "sent_events": 64,
+              "received_events": 64,
+              "press": 32,
+              "release": 32,
+              "repeat": 0,
+              "syn_dropped": 0,
+              "matches": true
+            }
+          }
+        ],
+        "enter_sent": false,
+        "accepted_attempt": 1,
+        "clear": null
+      }
+    },
+    {
+      "sha256": "274c65ab71d72ef73f144e1d59f45fbfb080500ca8c5e43c21f57cd7153d76c8",
+      "path": "evidence/two-disk/corrected-stock-sudo-hidden-read-wait-46-key-counter-result.json",
+      "sent": {
+        "length": 30,
+        "key_event_count": 66,
+        "key_chord_count": 31,
+        "last_key_was_ret": true,
+        "non_default_mapping_classes": [
+          "layout_differs_from_us",
+          "non_ascii",
+          "shift"
+        ],
+        "timing": {
+          "hold_ms": 30,
+          "minimum_gap_ms": 120.0
+        }
+      },
+      "received": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 23.27,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 7936,
+        "whole_window_counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        }
+      },
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "whole_window": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 23.27,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 7936
+      },
+      "pre_enter": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "sent": {
+              "length": 30,
+              "key_event_count": 64,
+              "key_chord_count": 30,
+              "last_key_was_ret": false,
+              "non_default_mapping_classes": [
+                "layout_differs_from_us",
+                "non_ascii",
+                "shift"
+              ],
+              "timing": {
+                "hold_ms": 30,
+                "minimum_gap_ms": 120.0
+              }
+            },
+            "comparison": {
+              "sent_events": 64,
+              "received_events": 64,
+              "press": 32,
+              "release": 32,
+              "repeat": 0,
+              "syn_dropped": 0,
+              "matches": true
+            }
+          }
+        ],
+        "enter_sent": false,
+        "accepted_attempt": 1,
+        "clear": null
+      }
+    },
+    {
+      "sha256": "8143708b2d64d6976ab1beeb690cd6141cd153aa1d36728ed67393c5d613941e",
+      "path": "evidence/two-disk/private-owner-dummy-login-hidden-input-read-wait-59-key-counter-result.json",
+      "sent": {
+        "length": 40,
+        "key_event_count": 114,
+        "key_chord_count": 41,
+        "last_key_was_ret": true,
+        "non_default_mapping_classes": [
+          "layout_differs_from_us",
+          "shift"
+        ],
+        "timing": {
+          "hold_ms": 30,
+          "minimum_gap_ms": 120.0
+        },
+        "chunked": false,
+        "chunk_size": null,
+        "between_chunks_seconds": 0,
+        "before_return_seconds": 0
+      },
+      "received": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 57,
+          "release": 57,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 26.348,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 14347,
+        "whole_window_counts": {
+          "press": 57,
+          "release": 57,
+          "repeat": 0,
+          "syn_dropped": 0
+        }
+      },
+      "comparison": {
+        "sent_events": 114,
+        "received_events": 114,
+        "press": 57,
+        "release": 57,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "whole_window": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 57,
+          "release": 57,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 26.348,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 14347
+      },
+      "pre_enter": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "sent": {
+              "length": 40,
+              "key_event_count": 112,
+              "key_chord_count": 40,
+              "last_key_was_ret": false,
+              "non_default_mapping_classes": [
+                "layout_differs_from_us",
+                "shift"
+              ],
+              "timing": {
+                "hold_ms": 30,
+                "minimum_gap_ms": 120.0
+              },
+              "chunked": false,
+              "chunk_size": null,
+              "between_chunks_seconds": 0,
+              "before_return_seconds": 0
+            },
+            "comparison": {
+              "sent_events": 112,
+              "received_events": 112,
+              "press": 56,
+              "release": 56,
+              "repeat": 0,
+              "syn_dropped": 0,
+              "matches": true
+            }
+          }
+        ],
+        "enter_sent": false,
+        "accepted_attempt": 1,
+        "clear": null
+      }
+    },
+    {
+      "sha256": "f0fd902af17a7ae0978fa8afe6a7d92f30e72c3a9d7d0fc56d7f39ba2a6ac4e1",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-66-key-counter-result.json",
+      "sent": {
+        "length": 377,
+        "key_event_count": 1100,
+        "key_chord_count": 378,
+        "last_key_was_ret": true,
+        "non_default_mapping_classes": [
+          "layout_differs_from_us",
+          "shift"
+        ],
+        "timing": {
+          "hold_ms": 30,
+          "minimum_gap_ms": 120.0
+        },
+        "chunked": true,
+        "chunk_size": 16,
+        "between_chunks_seconds": 1,
+        "before_return_seconds": 1
+      },
+      "received": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 550,
+          "release": 550,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 91.169,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 20054,
+        "whole_window_counts": {
+          "press": 550,
+          "release": 550,
+          "repeat": 0,
+          "syn_dropped": 0
+        }
+      },
+      "comparison": {
+        "sent_events": 1100,
+        "received_events": 1100,
+        "press": 550,
+        "release": 550,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "whole_window": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 550,
+          "release": 550,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 91.169,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 20054
+      },
+      "pre_enter": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "sent": {
+              "length": 377,
+              "key_event_count": 1098,
+              "key_chord_count": 377,
+              "last_key_was_ret": false,
+              "non_default_mapping_classes": [
+                "layout_differs_from_us",
+                "shift"
+              ],
+              "timing": {
+                "hold_ms": 30,
+                "minimum_gap_ms": 120.0
+              },
+              "chunked": true,
+              "chunk_size": 16,
+              "between_chunks_seconds": 1,
+              "before_return_seconds": 1
+            },
+            "comparison": {
+              "sent_events": 1098,
+              "received_events": 1098,
+              "press": 549,
+              "release": 549,
+              "repeat": 0,
+              "syn_dropped": 0,
+              "matches": true
+            }
+          }
+        ],
+        "enter_sent": false,
+        "accepted_attempt": 1,
+        "clear": null
+      }
+    },
+    {
+      "sha256": "22fbe5d58c9b44c1c58fe9392229668e333a2668155b0b4b19d98624d3abf368",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-3-key-counter-result.json",
+      "sent": {
+        "length": 30,
+        "key_event_count": 66,
+        "key_chord_count": 31,
+        "last_key_was_ret": true,
+        "non_default_mapping_classes": [
+          "layout_differs_from_us",
+          "non_ascii",
+          "shift"
+        ],
+        "timing": {
+          "hold_ms": 30,
+          "minimum_gap_ms": 120.0
+        }
+      },
+      "received": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 22.131,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 3116,
+        "whole_window_counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        }
+      },
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "whole_window": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 22.131,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 3116
+      },
+      "pre_enter": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "sent": {
+              "length": 30,
+              "key_event_count": 64,
+              "key_chord_count": 30,
+              "last_key_was_ret": false,
+              "non_default_mapping_classes": [
+                "layout_differs_from_us",
+                "non_ascii",
+                "shift"
+              ],
+              "timing": {
+                "hold_ms": 30,
+                "minimum_gap_ms": 120.0
+              }
+            },
+            "comparison": {
+              "sent_events": 64,
+              "received_events": 64,
+              "press": 32,
+              "release": 32,
+              "repeat": 0,
+              "syn_dropped": 0,
+              "matches": true
+            }
+          }
+        ],
+        "enter_sent": false,
+        "accepted_attempt": 1,
+        "clear": null
+      }
+    },
+    {
+      "sha256": "d4184054baf9848bf80978b99edab5474dc324ddae137f77ac256bb2ee66ed8e",
+      "path": "evidence/two-disk/tools-stock-sudo-hidden-read-wait-9-key-counter-result.json",
+      "sent": {
+        "length": 30,
+        "key_event_count": 66,
+        "key_chord_count": 31,
+        "last_key_was_ret": true,
+        "non_default_mapping_classes": [
+          "layout_differs_from_us",
+          "non_ascii",
+          "shift"
+        ],
+        "timing": {
+          "hold_ms": 30,
+          "minimum_gap_ms": 120.0
+        }
+      },
+      "received": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 22.662,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 7753,
+        "whole_window_counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        }
+      },
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "whole_window": {
+        "status": "passed",
+        "counts_only": true,
+        "autorepeat": {
+          "delay_ms": 250,
+          "period_ms": 33
+        },
+        "counts": {
+          "press": 33,
+          "release": 33,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "codes_recorded": false,
+        "values_recorded": false,
+        "keys_released": true,
+        "seconds": 22.662,
+        "complete": true,
+        "device": "/dev/input/event4",
+        "pid": 7753
+      },
+      "pre_enter": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "sent": {
+              "length": 30,
+              "key_event_count": 64,
+              "key_chord_count": 30,
+              "last_key_was_ret": false,
+              "non_default_mapping_classes": [
+                "layout_differs_from_us",
+                "non_ascii",
+                "shift"
+              ],
+              "timing": {
+                "hold_ms": 30,
+                "minimum_gap_ms": 120.0
+              }
+            },
+            "comparison": {
+              "sent_events": 64,
+              "received_events": 64,
+              "press": 32,
+              "release": 32,
+              "repeat": 0,
+              "syn_dropped": 0,
+              "matches": true
+            }
+          }
+        ],
+        "enter_sent": false,
+        "accepted_attempt": 1,
+        "clear": null
+      }
+    }
+  ],
+  "input_guards": [
+    {
+      "sha256": "1a61969c1aed51f693ab4b6e02fc183fb155c1289449649d4a2a182a425e3de5",
+      "path": "evidence/two-disk/aresos-password-prompt-read-wait-82-input-guard-before-enter-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 1213,
+              "comm": "login",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1,
+              "pgrp": 1213,
+              "session": 1213,
+              "tty": 1027,
+              "tpgid": 1213
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "1a61969c1aed51f693ab4b6e02fc183fb155c1289449649d4a2a182a425e3de5",
+      "path": "evidence/two-disk/aresos-password-prompt-read-wait-82-input-guard-before-value-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 1213,
+              "comm": "login",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1,
+              "pgrp": 1213,
+              "session": 1213,
+              "tty": 1027,
+              "tpgid": 1213
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "0ae24b022b35aa27c60709312ff9fcd51f537a544d7b44a4ce7a24b98f86099f",
+      "path": "evidence/two-disk/aresos-sudo-hidden-read-wait-88-input-guard-before-enter-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Foreground sudo before relay",
+          "foreground_chain": [
+            {
+              "pid": 6771,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4599,
+              "pgrp": 6771,
+              "session": 4599,
+              "tty": 1027,
+              "tpgid": 6771
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "0ae24b022b35aa27c60709312ff9fcd51f537a544d7b44a4ce7a24b98f86099f",
+      "path": "evidence/two-disk/aresos-sudo-hidden-read-wait-88-input-guard-before-value-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Foreground sudo before relay",
+          "foreground_chain": [
+            {
+              "pid": 6771,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4599,
+              "pgrp": 6771,
+              "session": 4599,
+              "tty": 1027,
+              "tpgid": 6771
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "6d437ea494e0a94d050cafa675f712ce88b97651dddb569fbd3d5954ee1e452d",
+      "path": "evidence/two-disk/corrected-stock-password-prompt-read-wait-40-input-guard-before-enter-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 2140,
+              "comm": "login",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1,
+              "pgrp": 2140,
+              "session": 2140,
+              "tty": 1027,
+              "tpgid": 2140
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "6d437ea494e0a94d050cafa675f712ce88b97651dddb569fbd3d5954ee1e452d",
+      "path": "evidence/two-disk/corrected-stock-password-prompt-read-wait-40-input-guard-before-value-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 2140,
+              "comm": "login",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1,
+              "pgrp": 2140,
+              "session": 2140,
+              "tty": 1027,
+              "tpgid": 2140
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "5d79d2a24dee52ec05d1ae50d45eaea8863856166b4f046bac5e5889c1d62bf0",
+      "path": "evidence/two-disk/corrected-stock-sudo-hidden-read-wait-46-input-guard-before-enter-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Foreground sudo before relay",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "5d79d2a24dee52ec05d1ae50d45eaea8863856166b4f046bac5e5889c1d62bf0",
+      "path": "evidence/two-disk/corrected-stock-sudo-hidden-read-wait-46-input-guard-before-value-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Foreground sudo before relay",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "4ee36d3da0c8a738d7f806350025394026e1e15b405948e16785d13efd87e6e9",
+      "path": "evidence/two-disk/private-owner-dummy-login-hidden-input-read-wait-59-input-guard-before-enter-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            },
+            {
+              "pid": 9419,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141
+            },
+            {
+              "pid": 9420,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141
+            },
+            {
+              "pid": 13141,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9420,
+              "pgrp": 13141,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141
+            },
+            {
+              "pid": 13145,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 13141,
+              "pgrp": 13145,
+              "session": 13145,
+              "tty": 34818,
+              "tpgid": 13146
+            },
+            {
+              "pid": 13146,
+              "comm": "python3",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 13145,
+              "pgrp": 13146,
+              "session": 13145,
+              "tty": 34818,
+              "tpgid": 13146
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "4ee36d3da0c8a738d7f806350025394026e1e15b405948e16785d13efd87e6e9",
+      "path": "evidence/two-disk/private-owner-dummy-login-hidden-input-read-wait-59-input-guard-before-value-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            },
+            {
+              "pid": 9419,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141
+            },
+            {
+              "pid": 9420,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141
+            },
+            {
+              "pid": 13141,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9420,
+              "pgrp": 13141,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141
+            },
+            {
+              "pid": 13145,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 13141,
+              "pgrp": 13145,
+              "session": 13145,
+              "tty": 34818,
+              "tpgid": 13146
+            },
+            {
+              "pid": 13146,
+              "comm": "python3",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 13145,
+              "pgrp": 13146,
+              "session": 13145,
+              "tty": 34818,
+              "tpgid": 13146
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "7283d7242daa391f1a91a2ad32dcc5c65b5d6db33e4de8b2a7522b6fdfc96323",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-66-input-guard-before-enter-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            },
+            {
+              "pid": 9419,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843
+            },
+            {
+              "pid": 9420,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843
+            },
+            {
+              "pid": 18843,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9420,
+              "pgrp": 18843,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843
+            },
+            {
+              "pid": 18845,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 18843,
+              "pgrp": 18845,
+              "session": 18845,
+              "tty": 34818,
+              "tpgid": 18846
+            },
+            {
+              "pid": 18846,
+              "comm": "python3",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 18845,
+              "pgrp": 18846,
+              "session": 18845,
+              "tty": 34818,
+              "tpgid": 18846
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "7283d7242daa391f1a91a2ad32dcc5c65b5d6db33e4de8b2a7522b6fdfc96323",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-66-input-guard-before-value-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            },
+            {
+              "pid": 9419,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843
+            },
+            {
+              "pid": 9420,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843
+            },
+            {
+              "pid": 18843,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9420,
+              "pgrp": 18843,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843
+            },
+            {
+              "pid": 18845,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 18843,
+              "pgrp": 18845,
+              "session": 18845,
+              "tty": 34818,
+              "tpgid": 18846
+            },
+            {
+              "pid": 18846,
+              "comm": "python3",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 18845,
+              "pgrp": 18846,
+              "session": 18845,
+              "tty": 34818,
+              "tpgid": 18846
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "751560e137312eabff674722352c4885def83a6cedb6a538eb5e3d38d2e582af",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-3-input-guard-before-enter-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 1959,
+              "comm": "login",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1,
+              "pgrp": 1959,
+              "session": 1959,
+              "tty": 1027,
+              "tpgid": 1959
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "751560e137312eabff674722352c4885def83a6cedb6a538eb5e3d38d2e582af",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-3-input-guard-before-value-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 1959,
+              "comm": "login",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1,
+              "pgrp": 1959,
+              "session": 1959,
+              "tty": 1027,
+              "tpgid": 1959
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "f9ccefd7a1ac19abd89ce17e2f761802ab5806486c08850da911b70d3bf4c546",
+      "path": "evidence/two-disk/tools-stock-sudo-hidden-read-wait-9-input-guard-before-enter-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Foreground sudo before relay",
+          "foreground_chain": [
+            {
+              "pid": 6750,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4580,
+              "pgrp": 6750,
+              "session": 4580,
+              "tty": 1027,
+              "tpgid": 6750
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sha256": "f9ccefd7a1ac19abd89ce17e2f761802ab5806486c08850da911b70d3bf4c546",
+      "path": "evidence/two-disk/tools-stock-sudo-hidden-read-wait-9-input-guard-before-value-1.json",
+      "value": {
+        "ready": true,
+        "canonical": true,
+        "echo_enabled": false,
+        "vkill": 21,
+        "syscall_number": 0,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "observation": {
+          "reason": "Foreground sudo before relay",
+          "foreground_chain": [
+            {
+              "pid": 6750,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4580,
+              "pgrp": 6750,
+              "session": 4580,
+              "tty": 1027,
+              "tpgid": 6750
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "hidden_diagnostics": [
+    {
+      "sha256": "75d0d898c9ae69c79c531575999aec0806fedfe325fca5ffd3b89fbbe6905552",
+      "path": "evidence/two-disk/private-owner-dummy-login-hidden-input-read-wait-59-diagnostics-completion-start.json",
+      "value": {
+        "kind": "hidden-read-diagnostics",
+        "read_only": true,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "syscall_arguments_recorded": false,
+        "active_vt": "tty3",
+        "python_version": "3.14.8",
+        "sudo_version": "1.9.17p2",
+        "terminals": [
+          {
+            "path": "/dev/tty3",
+            "device": 1027,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": false,
+              "IEXTEN": false,
+              "ISIG": false
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0,
+            "KDGKBMODE": 3,
+            "KDGETLED": 0,
+            "KDGKBLED": 0
+          },
+          {
+            "path": "/dev/pts/1",
+            "device": 34817,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": true,
+              "IEXTEN": true,
+              "ISIG": true
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0
+          },
+          {
+            "path": "/dev/pts/2",
+            "device": 34818,
+            "error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          }
+        ],
+        "processes": [
+          {
+            "pid": 6934,
+            "state": "S",
+            "wchan": "poll_schedule_timeout.constprop.0",
+            "syscall_number": 271
+          },
+          {
+            "pid": 9419,
+            "state": "S",
+            "wchan": "poll_schedule_timeout.constprop.0",
+            "syscall_number": 271
+          },
+          {
+            "pid": 9420,
+            "state": "S",
+            "wchan": "poll_schedule_timeout.constprop.0",
+            "syscall_number": 270
+          },
+          {
+            "pid": 13141,
+            "stat_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "wchan_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "syscall_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          },
+          {
+            "pid": 13145,
+            "stat_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "wchan_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "syscall_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          },
+          {
+            "pid": 13146,
+            "stat_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "wchan_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "syscall_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          }
+        ],
+        "phase": "completion-start",
+        "typed": {
+          "length": 40,
+          "key_event_count": 114,
+          "key_chord_count": 41,
+          "last_key_was_ret": true,
+          "non_default_mapping_classes": [
+            "layout_differs_from_us",
+            "shift"
+          ],
+          "timing": {
+            "hold_ms": 30,
+            "minimum_gap_ms": 120.0
+          },
+          "chunked": false,
+          "chunk_size": null,
+          "between_chunks_seconds": 0,
+          "before_return_seconds": 0
+        },
+        "token": true,
+        "guest_key_counts": {
+          "status": "passed",
+          "counts_only": true,
+          "autorepeat": {
+            "delay_ms": 250,
+            "period_ms": 33
+          },
+          "counts": {
+            "press": 57,
+            "release": 57,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "codes_recorded": false,
+          "values_recorded": false,
+          "keys_released": true,
+          "seconds": 26.348,
+          "complete": true,
+          "device": "/dev/input/event4",
+          "pid": 14347,
+          "whole_window_counts": {
+            "press": 57,
+            "release": 57,
+            "repeat": 0,
+            "syn_dropped": 0
+          }
+        },
+        "key_comparison": {
+          "sent_events": 114,
+          "received_events": 114,
+          "press": 57,
+          "release": 57,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": true
+        }
+      }
+    },
+    {
+      "sha256": "16dc83e399ee46e6a5056f88ffed30dc97f423e0d4af8b72f960a315f3e572bd",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-66-diagnostics-completion-start.json",
+      "value": {
+        "kind": "hidden-read-diagnostics",
+        "read_only": true,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "syscall_arguments_recorded": false,
+        "active_vt": "tty3",
+        "python_version": "3.14.8",
+        "sudo_version": "1.9.17p2",
+        "terminals": [
+          {
+            "path": "/dev/tty3",
+            "device": 1027,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": false,
+              "IEXTEN": false,
+              "ISIG": false
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0,
+            "KDGKBMODE": 3,
+            "KDGETLED": 0,
+            "KDGKBLED": 0
+          },
+          {
+            "path": "/dev/pts/1",
+            "device": 34817,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": true,
+              "IEXTEN": true,
+              "ISIG": true
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0
+          },
+          {
+            "path": "/dev/pts/2",
+            "device": 34818,
+            "error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          }
+        ],
+        "processes": [
+          {
+            "pid": 6934,
+            "state": "S",
+            "wchan": "poll_schedule_timeout.constprop.0",
+            "syscall_number": 271
+          },
+          {
+            "pid": 9419,
+            "state": "S",
+            "wchan": "poll_schedule_timeout.constprop.0",
+            "syscall_number": 271
+          },
+          {
+            "pid": 9420,
+            "state": "S",
+            "wchan": "poll_schedule_timeout.constprop.0",
+            "syscall_number": 270
+          },
+          {
+            "pid": 18843,
+            "stat_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "wchan_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "syscall_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          },
+          {
+            "pid": 18845,
+            "stat_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "wchan_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "syscall_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          },
+          {
+            "pid": 18846,
+            "stat_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "wchan_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "syscall_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          }
+        ],
+        "phase": "completion-start",
+        "typed": {
+          "length": 377,
+          "key_event_count": 1100,
+          "key_chord_count": 378,
+          "last_key_was_ret": true,
+          "non_default_mapping_classes": [
+            "layout_differs_from_us",
+            "shift"
+          ],
+          "timing": {
+            "hold_ms": 30,
+            "minimum_gap_ms": 120.0
+          },
+          "chunked": true,
+          "chunk_size": 16,
+          "between_chunks_seconds": 1,
+          "before_return_seconds": 1
+        },
+        "token": true,
+        "guest_key_counts": {
+          "status": "passed",
+          "counts_only": true,
+          "autorepeat": {
+            "delay_ms": 250,
+            "period_ms": 33
+          },
+          "counts": {
+            "press": 550,
+            "release": 550,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "codes_recorded": false,
+          "values_recorded": false,
+          "keys_released": true,
+          "seconds": 91.169,
+          "complete": true,
+          "device": "/dev/input/event4",
+          "pid": 20054,
+          "whole_window_counts": {
+            "press": 550,
+            "release": 550,
+            "repeat": 0,
+            "syn_dropped": 0
+          }
+        },
+        "key_comparison": {
+          "sent_events": 1100,
+          "received_events": 1100,
+          "press": 550,
+          "release": 550,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": true
+        }
+      }
+    }
+  ],
+  "hidden_pairs": [
+    {
+      "sha256": "680d02b92e56d58f3d93d425bd08a9a23ec56cb417eebd4ab6036187fba0bb48",
+      "path": "evidence/two-disk/aresos-password-prompt-read-wait-82.json",
+      "ready": {
+        "ready": true,
+        "physical_echo_enabled": false,
+        "reader_echo_enabled": false,
+        "prompt_at_cursor": true,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 1213,
+              "comm": "login",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1,
+              "pgrp": 1213,
+              "session": 1213,
+              "tty": 1027,
+              "tpgid": 1213
+            }
+          ]
+        },
+        "reader": {
+          "pid": 1213,
+          "ppid": 1,
+          "pgrp": 1213,
+          "session": 1213,
+          "tty": 1027,
+          "tpgid": 1213,
+          "start": "3096",
+          "exe": "/usr/bin/login",
+          "tty_path": "/dev/tty3",
+          "physical": 1027,
+          "origin_chain": [
+            {
+              "pid": 1213,
+              "ppid": 1,
+              "pgrp": 1213,
+              "session": 1213,
+              "tty": 1027,
+              "tpgid": 1213,
+              "start": "3096",
+              "exe": "/usr/bin/login"
+            }
+          ],
+          "return_shells": []
+        }
+      },
+      "left": {
+        "ready": true,
+        "reader_left": true,
+        "shell_idle": true,
+        "prompt_at_cursor": true,
+        "owner_result": null,
+        "handoff": false,
+        "rejected": false,
+        "reason": "Verified hidden-reader transition",
+        "observation": {
+          "reason": "Foreground interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 4599,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1213,
+              "pgrp": 4599,
+              "session": 4599,
+              "tty": 1027,
+              "tpgid": 4599
+            }
+          ]
+        },
+        "completion_uses_echo": false,
+        "value_recorded": false
+      }
+    },
+    {
+      "sha256": "d07b360bab46b0187c9d16fd06a76848ab2b40ad161f98d5c1b71bd55a31ad86",
+      "path": "evidence/two-disk/aresos-sudo-hidden-read-wait-88.json",
+      "ready": {
+        "ready": true,
+        "physical_echo_enabled": false,
+        "reader_echo_enabled": false,
+        "prompt_at_cursor": true,
+        "observation": {
+          "reason": "Foreground sudo before relay",
+          "foreground_chain": [
+            {
+              "pid": 6771,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4599,
+              "pgrp": 6771,
+              "session": 4599,
+              "tty": 1027,
+              "tpgid": 6771
+            }
+          ]
+        },
+        "reader": {
+          "pid": 6771,
+          "ppid": 4599,
+          "pgrp": 6771,
+          "session": 4599,
+          "tty": 1027,
+          "tpgid": 6771,
+          "start": "12416",
+          "exe": "/usr/bin/sudo",
+          "tty_path": "/dev/tty3",
+          "physical": 1027,
+          "origin_chain": [
+            {
+              "pid": 6771,
+              "ppid": 4599,
+              "pgrp": 6771,
+              "session": 4599,
+              "tty": 1027,
+              "tpgid": 6771,
+              "start": "12416",
+              "exe": "/usr/bin/sudo"
+            }
+          ],
+          "return_shells": [
+            {
+              "pid": 4599,
+              "ppid": 1213,
+              "pgrp": 4599,
+              "session": 4599,
+              "tty": 1027,
+              "tpgid": 6771,
+              "start": "9670",
+              "exe": "/usr/bin/bash"
+            }
+          ]
+        }
+      },
+      "left": {
+        "ready": true,
+        "reader_left": true,
+        "shell_idle": true,
+        "prompt_at_cursor": true,
+        "owner_result": null,
+        "handoff": false,
+        "rejected": false,
+        "reason": "Verified hidden-reader transition",
+        "observation": {
+          "reason": "Foreground interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 6771,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4599,
+              "pgrp": 6771,
+              "session": 4599,
+              "tty": 1027,
+              "tpgid": 6771
+            },
+            {
+              "pid": 9256,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6771,
+              "pgrp": 9256,
+              "session": 9256,
+              "tty": 34818,
+              "tpgid": 9258
+            },
+            {
+              "pid": 9258,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9256,
+              "pgrp": 9258,
+              "session": 9256,
+              "tty": 34818,
+              "tpgid": 9258
+            }
+          ]
+        },
+        "completion_uses_echo": false,
+        "value_recorded": false
+      }
+    },
+    {
+      "sha256": "f95c7dac31bf0b82204c5c9ef87874d78e021c33ea84e7ea463e3cc8be43e80d",
+      "path": "evidence/two-disk/corrected-stock-password-prompt-read-wait-40.json",
+      "ready": {
+        "ready": true,
+        "physical_echo_enabled": false,
+        "reader_echo_enabled": false,
+        "prompt_at_cursor": true,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 2140,
+              "comm": "login",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1,
+              "pgrp": 2140,
+              "session": 2140,
+              "tty": 1027,
+              "tpgid": 2140
+            }
+          ]
+        },
+        "reader": {
+          "pid": 2140,
+          "ppid": 1,
+          "pgrp": 2140,
+          "session": 2140,
+          "tty": 1027,
+          "tpgid": 2140,
+          "start": "7989",
+          "exe": "/usr/bin/login",
+          "tty_path": "/dev/tty3",
+          "physical": 1027,
+          "origin_chain": [
+            {
+              "pid": 2140,
+              "ppid": 1,
+              "pgrp": 2140,
+              "session": 2140,
+              "tty": 1027,
+              "tpgid": 2140,
+              "start": "7989",
+              "exe": "/usr/bin/login"
+            }
+          ],
+          "return_shells": []
+        }
+      },
+      "left": {
+        "ready": true,
+        "reader_left": true,
+        "shell_idle": true,
+        "prompt_at_cursor": true,
+        "owner_result": null,
+        "handoff": false,
+        "rejected": false,
+        "reason": "Verified hidden-reader transition",
+        "observation": {
+          "reason": "Foreground interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 4762,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 2140,
+              "pgrp": 4762,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 4762
+            }
+          ]
+        },
+        "completion_uses_echo": false,
+        "value_recorded": false
+      }
+    },
+    {
+      "sha256": "e84915ea05b066269e16960ce6a42882ef36935ebc95509712882d1249b2151a",
+      "path": "evidence/two-disk/corrected-stock-sudo-hidden-read-wait-46.json",
+      "ready": {
+        "ready": true,
+        "physical_echo_enabled": false,
+        "reader_echo_enabled": false,
+        "prompt_at_cursor": true,
+        "observation": {
+          "reason": "Foreground sudo before relay",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            }
+          ]
+        },
+        "reader": {
+          "pid": 6934,
+          "ppid": 4762,
+          "pgrp": 6934,
+          "session": 4762,
+          "tty": 1027,
+          "tpgid": 6934,
+          "start": "14029",
+          "exe": "/usr/bin/sudo",
+          "tty_path": "/dev/tty3",
+          "physical": 1027,
+          "origin_chain": [
+            {
+              "pid": 6934,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934,
+              "start": "14029",
+              "exe": "/usr/bin/sudo"
+            }
+          ],
+          "return_shells": [
+            {
+              "pid": 4762,
+              "ppid": 2140,
+              "pgrp": 4762,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934,
+              "start": "11263",
+              "exe": "/usr/bin/bash"
+            }
+          ]
+        }
+      },
+      "left": {
+        "ready": true,
+        "reader_left": true,
+        "shell_idle": true,
+        "prompt_at_cursor": true,
+        "owner_result": null,
+        "handoff": false,
+        "rejected": false,
+        "reason": "Verified hidden-reader transition",
+        "observation": {
+          "reason": "Foreground interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            },
+            {
+              "pid": 9419,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 9420
+            },
+            {
+              "pid": 9420,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 9420
+            }
+          ]
+        },
+        "completion_uses_echo": false,
+        "value_recorded": false
+      }
+    },
+    {
+      "sha256": "22614e82f9778f84b6e9da4cf030fcdb57874ce7a244ef246b6869807f326cb3",
+      "path": "evidence/two-disk/private-owner-dummy-login-hidden-input-read-wait-59.json",
+      "ready": {
+        "ready": true,
+        "physical_echo_enabled": false,
+        "reader_echo_enabled": false,
+        "prompt_at_cursor": true,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            },
+            {
+              "pid": 9419,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141
+            },
+            {
+              "pid": 9420,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141
+            },
+            {
+              "pid": 13141,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9420,
+              "pgrp": 13141,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141
+            },
+            {
+              "pid": 13145,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 13141,
+              "pgrp": 13145,
+              "session": 13145,
+              "tty": 34818,
+              "tpgid": 13146
+            },
+            {
+              "pid": 13146,
+              "comm": "python3",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 13145,
+              "pgrp": 13146,
+              "session": 13145,
+              "tty": 34818,
+              "tpgid": 13146
+            }
+          ]
+        },
+        "reader": {
+          "pid": 13146,
+          "ppid": 13145,
+          "pgrp": 13146,
+          "session": 13145,
+          "tty": 34818,
+          "tpgid": 13146,
+          "start": "27675",
+          "exe": "/usr/bin/python3.14",
+          "tty_path": "/dev/pts/2",
+          "physical": 1027,
+          "origin_chain": [
+            {
+              "pid": 6934,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934,
+              "start": "14029",
+              "exe": "/usr/bin/sudo"
+            },
+            {
+              "pid": 9419,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141,
+              "start": "16838",
+              "exe": "/usr/bin/sudo"
+            },
+            {
+              "pid": 9420,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141,
+              "start": "16838",
+              "exe": "/usr/bin/bash"
+            },
+            {
+              "pid": 13141,
+              "ppid": 9420,
+              "pgrp": 13141,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 13141,
+              "start": "27671",
+              "exe": "/usr/bin/sudo"
+            },
+            {
+              "pid": 13145,
+              "ppid": 13141,
+              "pgrp": 13145,
+              "session": 13145,
+              "tty": 34818,
+              "tpgid": 13146,
+              "start": "27675",
+              "exe": "/usr/bin/sudo"
+            },
+            {
+              "pid": 13146,
+              "ppid": 13145,
+              "pgrp": 13146,
+              "session": 13145,
+              "tty": 34818,
+              "tpgid": 13146,
+              "start": "27675",
+              "exe": "/usr/bin/python3.14"
+            }
+          ],
+          "return_shells": [
+            {
+              "pid": 4762,
+              "ppid": 2140,
+              "pgrp": 4762,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934,
+              "start": "11263",
+              "exe": "/usr/bin/bash"
+            }
+          ]
+        }
+      },
+      "left": {
+        "ready": true,
+        "reader_left": true,
+        "shell_idle": true,
+        "prompt_at_cursor": true,
+        "owner_result": null,
+        "handoff": false,
+        "rejected": false,
+        "reason": "Verified hidden-reader transition",
+        "observation": {
+          "reason": "Foreground interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            },
+            {
+              "pid": 9419,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 9420
+            },
+            {
+              "pid": 9420,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 9420
+            }
+          ]
+        },
+        "completion_uses_echo": false,
+        "value_recorded": false
+      }
+    },
+    {
+      "sha256": "3b3cfa302fe328235ea25de41efc4ad2f2f867e9c8de7e1fc8a0fc57f868ac27",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-66.json",
+      "ready": {
+        "ready": true,
+        "physical_echo_enabled": false,
+        "reader_echo_enabled": false,
+        "prompt_at_cursor": true,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            },
+            {
+              "pid": 9419,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843
+            },
+            {
+              "pid": 9420,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843
+            },
+            {
+              "pid": 18843,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9420,
+              "pgrp": 18843,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843
+            },
+            {
+              "pid": 18845,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 18843,
+              "pgrp": 18845,
+              "session": 18845,
+              "tty": 34818,
+              "tpgid": 18846
+            },
+            {
+              "pid": 18846,
+              "comm": "python3",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 18845,
+              "pgrp": 18846,
+              "session": 18845,
+              "tty": 34818,
+              "tpgid": 18846
+            }
+          ]
+        },
+        "reader": {
+          "pid": 18846,
+          "ppid": 18845,
+          "pgrp": 18846,
+          "session": 18845,
+          "tty": 34818,
+          "tpgid": 18846,
+          "start": "36408",
+          "exe": "/usr/bin/python3.14",
+          "tty_path": "/dev/pts/2",
+          "physical": 1027,
+          "origin_chain": [
+            {
+              "pid": 6934,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934,
+              "start": "14029",
+              "exe": "/usr/bin/sudo"
+            },
+            {
+              "pid": 9419,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843,
+              "start": "16838",
+              "exe": "/usr/bin/sudo"
+            },
+            {
+              "pid": 9420,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843,
+              "start": "16838",
+              "exe": "/usr/bin/bash"
+            },
+            {
+              "pid": 18843,
+              "ppid": 9420,
+              "pgrp": 18843,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 18843,
+              "start": "36404",
+              "exe": "/usr/bin/sudo"
+            },
+            {
+              "pid": 18845,
+              "ppid": 18843,
+              "pgrp": 18845,
+              "session": 18845,
+              "tty": 34818,
+              "tpgid": 18846,
+              "start": "36408",
+              "exe": "/usr/bin/sudo"
+            },
+            {
+              "pid": 18846,
+              "ppid": 18845,
+              "pgrp": 18846,
+              "session": 18845,
+              "tty": 34818,
+              "tpgid": 18846,
+              "start": "36408",
+              "exe": "/usr/bin/python3.14"
+            }
+          ],
+          "return_shells": [
+            {
+              "pid": 4762,
+              "ppid": 2140,
+              "pgrp": 4762,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934,
+              "start": "11263",
+              "exe": "/usr/bin/bash"
+            }
+          ]
+        }
+      },
+      "left": {
+        "ready": true,
+        "reader_left": true,
+        "shell_idle": true,
+        "prompt_at_cursor": true,
+        "owner_result": null,
+        "handoff": false,
+        "rejected": false,
+        "reason": "Verified hidden-reader transition",
+        "observation": {
+          "reason": "Foreground interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 6934,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4762,
+              "pgrp": 6934,
+              "session": 4762,
+              "tty": 1027,
+              "tpgid": 6934
+            },
+            {
+              "pid": 9419,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6934,
+              "pgrp": 9419,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 9420
+            },
+            {
+              "pid": 9420,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9419,
+              "pgrp": 9420,
+              "session": 9419,
+              "tty": 34817,
+              "tpgid": 9420
+            }
+          ]
+        },
+        "completion_uses_echo": false,
+        "value_recorded": false
+      }
+    },
+    {
+      "sha256": "8e8cce2d65fd895106608dd367a6c85a9f713d975984775998309ece0eb2aa44",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-3.json",
+      "ready": {
+        "ready": true,
+        "physical_echo_enabled": false,
+        "reader_echo_enabled": false,
+        "prompt_at_cursor": true,
+        "observation": {
+          "reason": "Expected foreground reader",
+          "foreground_chain": [
+            {
+              "pid": 1959,
+              "comm": "login",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1,
+              "pgrp": 1959,
+              "session": 1959,
+              "tty": 1027,
+              "tpgid": 1959
+            }
+          ]
+        },
+        "reader": {
+          "pid": 1959,
+          "ppid": 1,
+          "pgrp": 1959,
+          "session": 1959,
+          "tty": 1027,
+          "tpgid": 1959,
+          "start": "4998",
+          "exe": "/usr/bin/login",
+          "tty_path": "/dev/tty3",
+          "physical": 1027,
+          "origin_chain": [
+            {
+              "pid": 1959,
+              "ppid": 1,
+              "pgrp": 1959,
+              "session": 1959,
+              "tty": 1027,
+              "tpgid": 1959,
+              "start": "4998",
+              "exe": "/usr/bin/login"
+            }
+          ],
+          "return_shells": []
+        }
+      },
+      "left": {
+        "ready": true,
+        "reader_left": true,
+        "shell_idle": true,
+        "prompt_at_cursor": true,
+        "owner_result": null,
+        "handoff": false,
+        "rejected": false,
+        "reason": "Verified hidden-reader transition",
+        "observation": {
+          "reason": "Foreground interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 4580,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 1959,
+              "pgrp": 4580,
+              "session": 4580,
+              "tty": 1027,
+              "tpgid": 4580
+            }
+          ]
+        },
+        "completion_uses_echo": false,
+        "value_recorded": false
+      }
+    },
+    {
+      "sha256": "4d6e5df94f67b45c25390f383a10fffee3f528c282b0a19bfc69ef780d4c8024",
+      "path": "evidence/two-disk/tools-stock-sudo-hidden-read-wait-9.json",
+      "ready": {
+        "ready": true,
+        "physical_echo_enabled": false,
+        "reader_echo_enabled": false,
+        "prompt_at_cursor": true,
+        "observation": {
+          "reason": "Foreground sudo before relay",
+          "foreground_chain": [
+            {
+              "pid": 6750,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4580,
+              "pgrp": 6750,
+              "session": 4580,
+              "tty": 1027,
+              "tpgid": 6750
+            }
+          ]
+        },
+        "reader": {
+          "pid": 6750,
+          "ppid": 4580,
+          "pgrp": 6750,
+          "session": 4580,
+          "tty": 1027,
+          "tpgid": 6750,
+          "start": "10722",
+          "exe": "/usr/bin/sudo",
+          "tty_path": "/dev/tty3",
+          "physical": 1027,
+          "origin_chain": [
+            {
+              "pid": 6750,
+              "ppid": 4580,
+              "pgrp": 6750,
+              "session": 4580,
+              "tty": 1027,
+              "tpgid": 6750,
+              "start": "10722",
+              "exe": "/usr/bin/sudo"
+            }
+          ],
+          "return_shells": [
+            {
+              "pid": 4580,
+              "ppid": 1959,
+              "pgrp": 4580,
+              "session": 4580,
+              "tty": 1027,
+              "tpgid": 6750,
+              "start": "8099",
+              "exe": "/usr/bin/bash"
+            }
+          ]
+        }
+      },
+      "left": {
+        "ready": true,
+        "reader_left": true,
+        "shell_idle": true,
+        "prompt_at_cursor": true,
+        "owner_result": null,
+        "handoff": false,
+        "rejected": false,
+        "reason": "Verified hidden-reader transition",
+        "observation": {
+          "reason": "Foreground interactive bash",
+          "foreground_chain": [
+            {
+              "pid": 6750,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 4580,
+              "pgrp": 6750,
+              "session": 4580,
+              "tty": 1027,
+              "tpgid": 6750
+            },
+            {
+              "pid": 9235,
+              "comm": "sudo",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 6750,
+              "pgrp": 9235,
+              "session": 9235,
+              "tty": 34817,
+              "tpgid": 9236
+            },
+            {
+              "pid": 9236,
+              "comm": "bash",
+              "argv": [
+                "[redacted]"
+              ],
+              "argv_redacted": true,
+              "ppid": 9235,
+              "pgrp": 9236,
+              "session": 9235,
+              "tty": 34817,
+              "tpgid": 9236
+            }
+          ]
+        },
+        "completion_uses_echo": false,
+        "value_recorded": false
+      }
+    }
+  ],
+  "visible_echo_proofs": 32,
+  "verified_staged_transfers": 241,
+  "hidden_completions": 8,
+  "pre_enter_stops": 0,
+  "raw_console_or_secret_value_recorded": false,
+  "paused_stop_observed": true
+}

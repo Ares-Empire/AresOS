@@ -1,0 +1,8 @@
+{
+  "version": "8.21.2",
+  "checked_commit": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+  "checked_at": "2026-10-25T22:53:27.669431+00:00",
+  "scope": "full Git history, CI flags with redaction",
+  "exit_code": 0,
+  "findings": 0
+}

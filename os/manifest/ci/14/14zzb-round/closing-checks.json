@@ -1,0 +1,11 @@
+{
+  "status": "passed local closing privacy/hash-order/diff/frozen-path checks",
+  "head": "211df982b5bf080b0167b8fe6e8dd3c5eb264fe8",
+  "pending_findings": 0,
+  "history_findings": 0,
+  "pinned_gitleaks": "8.21.2",
+  "acceptance_met": true,
+  "ready_action_authorized_by_prior_acceptance_instruction": true,
+  "pushes": 0,
+  "dispatches": 0
+}

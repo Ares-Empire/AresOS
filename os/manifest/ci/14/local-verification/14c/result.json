@@ -1,0 +1,34 @@
+{
+  "local_discovery": {
+    "tests": 273,
+    "passed": 265,
+    "host_limited_cases": 8,
+    "failure_records": 2,
+    "error_records": 9,
+    "skipped": 0
+  },
+  "focused_tests": 36,
+  "windows_refusals": 11,
+  "guest_shell_syntax": 257,
+  "guest_python_compile": 233,
+  "real_hardware_access": false,
+  "native_full_suite": "required before probe VM",
+  "files": [
+    {
+      "sha256": "746320a710716f1ec5e340ed70445e96e0d55a3925053ac627d6e76052b687c6",
+      "path": "guest-syntax.log"
+    },
+    {
+      "sha256": "2d23372e783dda4e164756fed06f7bb7dc4cafec07d62b2f90858575251f8a72",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "2fe0206b8f86a39662987996bac5d06d68f09968a5aeb1a8438b234bb438a58c",
+      "path": "powershell.log"
+    },
+    {
+      "sha256": "f3ffeaa0f03fa4c84e53bd74a350c43610d808f3195ce7f90c3248f5b7c521d8",
+      "path": "whole-suite.log"
+    }
+  ]
+}

@@ -1,0 +1,179 @@
+{
+  "status": "STOP-PLAN-GAP: framed heredoc delimiter",
+  "run": 40249992092,
+  "head": "02eac4a226787a8879ee80d8d814221a22630323",
+  "artifact": {
+    "sha256": "636cfeccbcb527c13ba655f6bc6e0a322bac3d30bafc6cc6ba0fe6f0bd40cd93",
+    "path": "evidence.zip",
+    "artifact_id": 12620338527,
+    "bytes": 3116273,
+    "run": 40249992092,
+    "head": "02eac4a226787a8879ee80d8d814221a22630323",
+    "status": "failure",
+    "members": 214,
+    "logs": {
+      "sha256": "77e7b4b16a18b9c86df730c2ff7eaed993c3c6682dc86f77728534d4594be635",
+      "path": "logs.zip"
+    }
+  },
+  "native": {
+    "tests": 297,
+    "seconds": 19.693,
+    "status": "passed",
+    "skips": 0,
+    "windows_zero_write_refusals": 15,
+    "capability_step_seconds": 11,
+    "private_checks": "all four passed",
+    "auth_cleanup": "passed"
+  },
+  "media": {
+    "status": "passed host Windows-copy/FUSE/fsck/readonly every-file readback",
+    "guest_hotplug": false
+  },
+  "installer": {
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "path": "bazzite-nvidia-open-stable-live-amd64.iso",
+    "bytes": 9068650496,
+    "status": "passed",
+    "localization_sources": 4,
+    "webui_sources": 102
+  },
+  "offline_payload": {
+    "status": "passed",
+    "interfaces": [
+      {
+        "name": "enp0s1",
+        "carrier": "0",
+        "flags": 4099,
+        "operstate": "down"
+      }
+    ],
+    "physical_link_down": true
+  },
+  "command_exit": 1,
+  "error": "NameError: name 'PY' is not defined",
+  "cause": "framed(command) appends stdout redirection to the final heredoc delimiter; local exact wrapper reproduces this with workspace-only mktemp adapter",
+  "reached": {
+    "baseline_marker": true,
+    "live_root": true,
+    "offline_payload_printed": true,
+    "offline_json_protocol_success": false,
+    "offline_transport": false,
+    "browser_preview": false,
+    "guest_tools_hotplug": false,
+    "install": false,
+    "qualification": false,
+    "final_detached_windows": false,
+    "target_reset": false
+  },
+  "stop_action": "No rerun/qualification, no harness/owner-script/image change after stop; PR remains draft",
+  "original_members": [
+    {
+      "sha256": "c2ac91112c096596ea97a7eb420e673a830d11beb62b48266688f7cfa154498d",
+      "path": "14-host-capabilities.json",
+      "retained_as": "capabilities.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "f1e2363c02c99a29c2d1e71c6d93dcfb340c4399c68af170c75a20113b484495",
+      "path": "14-dispatch-authorization.json",
+      "retained_as": "native-authorization.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "1025a2132723b2c17cb237a73f2f70fc3e266031bce3218a2f2405b72ddc8934",
+      "path": "private-registry-preflight.json",
+      "retained_as": "private-manifest.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "44c237d7941815bc3280d96049886ff26f2ada44279412849ce4a501ccbe4b58",
+      "path": "private-release-signature-proof.json",
+      "retained_as": "private-signature-proof.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "78a8e7eb8fdfe12f026ca3a2a5b155e9097ff1f2242f4ba88f470db82ba23317",
+      "path": "owner-release-pull.json",
+      "retained_as": "private-pull.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "b719fa720ac55bcb0e2bbb12f2de979f7e85b5dc5098e4b0d0082d392fd55bfd",
+      "path": "owner-auth-cleanup.json",
+      "retained_as": "auth-cleanup.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "421f86c2c581843a8008fc50bc77460c33ee4c908fb520b1da19dc85d3b003e8",
+      "path": "two-disk/tools-stick-windows-copy.json",
+      "retained_as": "tools-copy.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "9fa5b34b69fa96da06690f41aebf0f4a43821b67cbf0852ddc363b50b95ffabf",
+      "path": "two-disk/tools-stick-created-media-backing.json",
+      "retained_as": "tools-readback.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "e7fff3064d393e8c48e68f18257557f36912f7c5a9459ee1a05f62cb70fd69e9",
+      "path": "two-disk/baseline-firmware-protected.json",
+      "retained_as": "baseline-protected.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "e7fff3064d393e8c48e68f18257557f36912f7c5a9459ee1a05f62cb70fd69e9",
+      "path": "two-disk/live-ui-probe-protected.json",
+      "retained_as": "live-protected.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "47125773ccc1bba3ee9a221159e4cfd2dd543ab198752a28b395ec27c00d5753",
+      "path": "two-disk/baseline-firmware-blockstats.json",
+      "retained_as": "baseline-blockstats.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "38332a81c0df69d96065dc0ce11c7ad9b81bca62ab76f837b76b0d8a32aa341c",
+      "path": "two-disk/live-ui-probe-blockstats.json",
+      "retained_as": "live-blockstats.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "1d30935f79f12762aec568063d89e68c668412fcd744c041a82e033e483be9df",
+      "path": "two-disk/baseline-firmware-bootnext-audit.json",
+      "retained_as": "baseline-bootnext.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "4205b767840e0b7418cb08727b455608e0434ffd25ca1e573c20ad7b3e25418a",
+      "path": "two-disk/live-ui-probe-bootnext-audit.json",
+      "retained_as": "live-bootnext.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "d2953634d99546c53b1aa6c6ed18fd87b4341da49d82952cc22dd55342546a70",
+      "path": "two-disk/live-ui-probe-nvram-diff.json",
+      "retained_as": "nvram-replay.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "8128aee9bf5dd58f01bf393a402ea2f6e63c19bb9754d52dca90aa84e1280653",
+      "path": "two-disk/live-ui-probe-failure-counter.json",
+      "retained_as": "failure-counter.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk/boot-2-owner-route.json",
+      "retained_as": "live-owner-route.json",
+      "transformation": "JSON keys hash-first; EFI file maps normalized to hash-first list where present"
+    }
+  ],
+  "baseline_screenshot": {
+    "sha256": "144f112d084fe8bde315f7526188183c9a34b062c4091490516dd7425c6ee573",
+    "path": "reviews/14-owner-tools/screenshots/14h-baseline-firmware.png",
+    "inspected": "Synthetic marker shows BootCurrent0000 and MARKER_BOOT_COMPLETE; no OS installation result"
+  }
+}

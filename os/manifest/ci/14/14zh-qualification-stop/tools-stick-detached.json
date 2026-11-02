@@ -1,0 +1,28 @@
+{
+  "status": "passed",
+  "qmp_events": [
+    {
+      "timestamp": {
+        "seconds": 1793163647,
+        "microseconds": 226695
+      },
+      "event": "DEVICE_DELETED",
+      "data": {
+        "path": "/machine/peripheral/owner-tools-usb/owner-tools-usb.0/legacy[0]"
+      }
+    },
+    {
+      "timestamp": {
+        "seconds": 1793163647,
+        "microseconds": 226926
+      },
+      "event": "DEVICE_DELETED",
+      "data": {
+        "device": "owner-tools-usb",
+        "path": "/machine/peripheral/owner-tools-usb"
+      }
+    }
+  ],
+  "absent_before_shutdown": true,
+  "boot": 7
+}

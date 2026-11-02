@@ -1,0 +1,175 @@
+{
+  "ready": true,
+  "physical_echo_enabled": false,
+  "reader_echo_enabled": false,
+  "prompt_at_cursor": true,
+  "observation": {
+    "reason": "Expected foreground reader",
+    "foreground_chain": [
+      {
+        "pid": 4440,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 3099,
+        "pgrp": 4440,
+        "session": 3099,
+        "tty": 1027,
+        "tpgid": 4440
+      },
+      {
+        "pid": 5187,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 4440,
+        "pgrp": 5187,
+        "session": 5187,
+        "tty": 34817,
+        "tpgid": 7612
+      },
+      {
+        "pid": 5188,
+        "comm": "bash",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 5187,
+        "pgrp": 5188,
+        "session": 5187,
+        "tty": 34817,
+        "tpgid": 7612
+      },
+      {
+        "pid": 7612,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 5188,
+        "pgrp": 7612,
+        "session": 5187,
+        "tty": 34817,
+        "tpgid": 7612
+      },
+      {
+        "pid": 7614,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 7612,
+        "pgrp": 7614,
+        "session": 7614,
+        "tty": 34818,
+        "tpgid": 7615
+      },
+      {
+        "pid": 7615,
+        "comm": "python3",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 7614,
+        "pgrp": 7615,
+        "session": 7614,
+        "tty": 34818,
+        "tpgid": 7615
+      }
+    ]
+  },
+  "reader": {
+    "pid": 7615,
+    "ppid": 7614,
+    "pgrp": 7615,
+    "session": 7614,
+    "tty": 34818,
+    "tpgid": 7615,
+    "start": "19520",
+    "exe": "/usr/bin/python3.14",
+    "tty_path": "/dev/pts/2",
+    "physical": 1027,
+    "origin_chain": [
+      {
+        "pid": 4440,
+        "ppid": 3099,
+        "pgrp": 4440,
+        "session": 3099,
+        "tty": 1027,
+        "tpgid": 4440,
+        "start": "11100",
+        "exe": "/usr/bin/sudo"
+      },
+      {
+        "pid": 5187,
+        "ppid": 4440,
+        "pgrp": 5187,
+        "session": 5187,
+        "tty": 34817,
+        "tpgid": 7612,
+        "start": "12222",
+        "exe": "/usr/bin/sudo"
+      },
+      {
+        "pid": 5188,
+        "ppid": 5187,
+        "pgrp": 5188,
+        "session": 5187,
+        "tty": 34817,
+        "tpgid": 7612,
+        "start": "12222",
+        "exe": "/usr/bin/bash"
+      },
+      {
+        "pid": 7612,
+        "ppid": 5188,
+        "pgrp": 7612,
+        "session": 5187,
+        "tty": 34817,
+        "tpgid": 7612,
+        "start": "19516",
+        "exe": "/usr/bin/sudo"
+      },
+      {
+        "pid": 7614,
+        "ppid": 7612,
+        "pgrp": 7614,
+        "session": 7614,
+        "tty": 34818,
+        "tpgid": 7615,
+        "start": "19520",
+        "exe": "/usr/bin/sudo"
+      },
+      {
+        "pid": 7615,
+        "ppid": 7614,
+        "pgrp": 7615,
+        "session": 7614,
+        "tty": 34818,
+        "tpgid": 7615,
+        "start": "19520",
+        "exe": "/usr/bin/python3.14"
+      }
+    ],
+    "return_shells": [
+      {
+        "pid": 3099,
+        "ppid": 2157,
+        "pgrp": 3099,
+        "session": 3099,
+        "tty": 1027,
+        "tpgid": 4440,
+        "start": "9426",
+        "exe": "/usr/bin/bash"
+      }
+    ]
+  }
+}

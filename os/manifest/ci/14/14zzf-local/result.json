@@ -1,0 +1,69 @@
+{
+  "status": "local test-only acceptance passed",
+  "initial_commit": "04d4051",
+  "payload_fingerprint": "3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd",
+  "sequence": [
+    "real owner __main__: controlled records argument STOP",
+    "one persistent diagnostic; only read-only firmware query",
+    "fresh real owner export to manifest-built fixture stick; exact bytes",
+    "all tool processes exit; entire mapped /run removed and recreated empty",
+    "exported stick bytes unchanged before fresh owner export",
+    "fresh real owner export; internal and stick bytes equal original"
+  ],
+  "filesystem_path_mapping": "one root prefix; no HOME, STOP_RECORDS or media.MOUNT override",
+  "modeled_host_facts": [
+    "root identity/POSIX metadata on unprivileged DrvFS",
+    "synthetic removable exFAT lsblk identity",
+    "mount/umount/sync and read-only firmware command boundary"
+  ],
+  "production_methods_replaced": [],
+  "physical_reboot": false,
+  "actions_dispatches": 0,
+  "vm_evidence_scope": "qualification21: checked export route and /var persistence, not STOP/export/reboot",
+  "negative_control": {
+    "status": "expected failure at persistent-path assertion",
+    "source_commit": "bd855274143e564f832c873cf9d0c134fe340e29",
+    "payload_fingerprint": "320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6",
+    "historical_manifest_format": "SHA256.json only; exact manifest entries",
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "skips": 0,
+    "production_code_rewritten": false,
+    "failure": "STOP diagnostic missing from persistent /var/lib/ares/diagnostics",
+    "log": {
+      "sha256": "993b89eada8d6b77b2083933ab4940127e136a757f85ef5f831df69cf6390180",
+      "path": "pre-14zzc-negative.txt"
+    }
+  },
+  "source_bindings": [
+    {
+      "sha256": "b9fe565be3081bf58b82a8cf592809c5b86c851d0891c05680af0ce512edd670",
+      "path": "os/tests/test_owner_export.py"
+    },
+    {
+      "sha256": "0087d4de72cdc660972f555db0e2f444e55623706c279a785e489d6c7e8c3ca3",
+      "path": "os/tests/owner_export_fixture.py"
+    },
+    {
+      "sha256": "77148d16f9fa6015e804b3b4315953a029a79c8093db03c3e6b9549226ea5342",
+      "path": "os/tests/owner_bundle_fixture.py"
+    },
+    {
+      "sha256": "42456d5b99b28af1423bb804f7b6b9824653e7ca89a257bbe99ddcde2e110ea6",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "e3b548c1e59416ce91c3c50a0971c27a052a766e244bee3e565c3c9c7d45b949",
+      "path": "os/owner-tools/media.py"
+    },
+    {
+      "sha256": "3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd",
+      "path": "os/owner-tools/payload/SHA256SUMS"
+    },
+    {
+      "sha256": "ce25614ef9689d6d5ab4307b2577e7528160f103e8f45cc4af9ea5a5abdb6195",
+      "path": "os/manifest/ci/14/14zzf-local/checks.py"
+    }
+  ]
+}

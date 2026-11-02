@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "kind": "real host subprocess with forced pipe-EOF-before-exit scheduling window",
+  "old_global_clock": {
+    "fake_elapsed": 6094.476000013406,
+    "callers": {
+      "_wait": 121899
+    }
+  },
+  "separated_host_clock": {
+    "fake_elapsed": 0,
+    "callers": {}
+  },
+  "production_changes": false
+}

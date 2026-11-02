@@ -1,0 +1,66 @@
+[
+  {
+    "sha256": "0a5eeb756c294b4545c5547fde6cbe992f3f964a73d3cb09d9ffe705b8c506ec",
+    "path": "evidence/two-disk/corrected-stock-records-completed-wait-33-timeout-1.vcsa",
+    "geometry": [
+      50,
+      160,
+      0,
+      49
+    ],
+    "cursor_is_token_prompt": false,
+    "cursor_is_shell_prompt": false,
+    "pass_login_present": false,
+    "stop_line_present": false,
+    "decoded_scan_findings": 0,
+    "decoded_text_saved": false
+  },
+  {
+    "sha256": "f12de24e7ab2ebbb5e95e8084cae39f4b65d631616289a4f7313c2f2313e0b27",
+    "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-37-left-timeout-1.vcsa",
+    "geometry": [
+      50,
+      160,
+      26,
+      49
+    ],
+    "cursor_is_token_prompt": true,
+    "cursor_is_shell_prompt": false,
+    "pass_login_present": false,
+    "stop_line_present": false,
+    "decoded_scan_findings": 0,
+    "decoded_text_saved": false
+  },
+  {
+    "sha256": "c27db9f1c0efd5ba3a99eefea27b907689d614ca59f7cbcc25a89c920b576225",
+    "path": "evidence/two-disk/tools-before-reboot-title-ready-wait-21-timeout-1.vcsa",
+    "geometry": [
+      50,
+      160,
+      0,
+      49
+    ],
+    "cursor_is_token_prompt": false,
+    "cursor_is_shell_prompt": false,
+    "pass_login_present": false,
+    "stop_line_present": false,
+    "decoded_scan_findings": 0,
+    "decoded_text_saved": false
+  },
+  {
+    "sha256": "88a568a4fb04926e85dd45fb976f905f31332df900c795b9b24c7558e78e0cf2",
+    "path": "evidence/two-disk/tools-install-ready-wait-7-timeout-1.vcsa",
+    "geometry": [
+      50,
+      160,
+      0,
+      49
+    ],
+    "cursor_is_token_prompt": false,
+    "cursor_is_shell_prompt": false,
+    "pass_login_present": false,
+    "stop_line_present": false,
+    "decoded_scan_findings": 0,
+    "decoded_text_saved": false
+  }
+]

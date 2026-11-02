@@ -1,0 +1,95 @@
+{
+  "ready": false,
+  "reader_left": false,
+  "shell_idle": false,
+  "prompt_at_cursor": false,
+  "owner_result": null,
+  "handoff": false,
+  "rejected": false,
+  "reason": "Expected foreground reader",
+  "observation": {
+    "reason": "Expected foreground reader",
+    "foreground_chain": [
+      {
+        "pid": 4417,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 3252,
+        "pgrp": 4417,
+        "session": 3252,
+        "tty": 1027,
+        "tpgid": 4417
+      },
+      {
+        "pid": 5355,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 4417,
+        "pgrp": 5355,
+        "session": 5355,
+        "tty": 34817,
+        "tpgid": 7993
+      },
+      {
+        "pid": 5356,
+        "comm": "bash",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 5355,
+        "pgrp": 5356,
+        "session": 5355,
+        "tty": 34817,
+        "tpgid": 7993
+      },
+      {
+        "pid": 7993,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 5356,
+        "pgrp": 7993,
+        "session": 5355,
+        "tty": 34817,
+        "tpgid": 7993
+      },
+      {
+        "pid": 7998,
+        "comm": "sudo",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 7993,
+        "pgrp": 7998,
+        "session": 7998,
+        "tty": 34818,
+        "tpgid": 7999
+      },
+      {
+        "pid": 7999,
+        "comm": "python3",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 7998,
+        "pgrp": 7999,
+        "session": 7998,
+        "tty": 34818,
+        "tpgid": 7999
+      }
+    ]
+  },
+  "completion_uses_echo": false,
+  "value_recorded": false
+}

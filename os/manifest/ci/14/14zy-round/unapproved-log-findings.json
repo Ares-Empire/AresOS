@@ -1,0 +1,44 @@
+{
+  "status": "STOP; no new finding classification authorized",
+  "findings": [
+    {
+      "sha256": "ed95dd6caa09f2eb336649083e012674b9dcceb4f7c83f5f0ed5593f626f046e",
+      "path": ".work/14/14zy/logs-41290621860/Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt",
+      "line": 223,
+      "rule": "generic-api-key",
+      "json_property_names": [],
+      "matched_value_recorded": false,
+      "approved_exception": false
+    },
+    {
+      "sha256": "bcf2fa555ea21b2091d064d54b5ef7253e30ae67650114e35443d763d35157a3",
+      "path": ".work/14/14zy/logs-41290621860/Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt",
+      "line": 227,
+      "rule": "generic-api-key",
+      "json_property_names": [],
+      "matched_value_recorded": false,
+      "approved_exception": false
+    },
+    {
+      "sha256": "7092f714b4c24c707b21e2ecd9680310b63812e68d04b678d9df7738a9330a25",
+      "path": ".work/14/14zy/logs-41290621860/0_Pinned live ISO inspection and two-disk rehearsal.txt",
+      "line": 4522,
+      "rule": "generic-api-key",
+      "json_property_names": [],
+      "matched_value_recorded": false,
+      "approved_exception": false
+    },
+    {
+      "sha256": "5ee574cd590fc7bde5a54b5e6646b8ba453e1056993ec8f92a829ece5bcaa325",
+      "path": ".work/14/14zy/logs-41290621860/0_Pinned live ISO inspection and two-disk rehearsal.txt",
+      "line": 4526,
+      "rule": "generic-api-key",
+      "json_property_names": [],
+      "matched_value_recorded": false,
+      "approved_exception": false
+    }
+  ],
+  "values_recorded": false,
+  "new_ignore_entries": false,
+  "new_rules": false
+}

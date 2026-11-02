@@ -1,0 +1,58 @@
+{
+  "eb704011-1402-11d3-8e77-00a0c969723b/MTC": {
+    "before": {
+      "sha256": "7aa8ca4a02506da9133d8f889678b76f716ce45d02e22fdb7b70a15e56a0eff8",
+      "attributes": 7,
+      "bytes": 4
+    },
+    "after": {
+      "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b",
+      "attributes": 7,
+      "bytes": 4
+    }
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0003": {
+    "before": null,
+    "after": {
+      "sha256": "208d86022a49958957a27b9bdf37a48368f949badb264b2192b6cca72d31083e",
+      "attributes": 7,
+      "bytes": 82
+    }
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/BootOrder": {
+    "before": {
+      "sha256": "d17b8591b307edb93579eaac0feba28393377fe2b00263c2f9df2288dddc32b1",
+      "attributes": 7,
+      "bytes": 18
+    },
+    "after": {
+      "sha256": "97c451a3a6d0a323053daadd1d6f08caa79bc4bfbf19315908b545a935437647",
+      "attributes": 7,
+      "bytes": 20
+    }
+  },
+  "8be4df61-93ca-11d2-aa0d-00e098032b8c/Boot0002": {
+    "before": {
+      "sha256": "674194f300ba1e545c6deb3f2323f69111f4f3647954b1122fbf9870aba2aafc",
+      "attributes": 7,
+      "bytes": 78
+    },
+    "after": {
+      "sha256": "a677ecb6676190c091b9cdb741a835d15521fa7444d679f87b4996124fa9ea0b",
+      "attributes": 7,
+      "bytes": 78
+    }
+  },
+  "fab7e9e1-39dd-4f2b-8408-e20e906cb6de/HDDP": {
+    "before": {
+      "sha256": "7fc0a3bc0592dba77a008523f212e11274330ba3d2edcab23bbbec11750436f0",
+      "attributes": 3,
+      "bytes": 128
+    },
+    "after": {
+      "sha256": "f821fc531463cae5405f44871c663ab4fb1cbfa2ab9888c8faf1099bfb3075a6",
+      "attributes": 3,
+      "bytes": 128
+    }
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "preparation": {
+    "sha256": "63120ff3180a8d47fae1006e74d6ea2d91afb18c8e7bf082438841d82a23550c",
+    "path": "os/manifest/ci/14/14zz-preflight/preparation.json"
+  },
+  "whole_suite": {
+    "tests": 597,
+    "seconds": 1409.767,
+    "executed": 597,
+    "distinct_passed": 588,
+    "skips": 0,
+    "actual_host_limitations": [
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "documented_host_limitations": [
+      "test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)",
+      "test_active_service_without_drawing_hits_deadline (test_greeter.GreeterTest.test_active_service_without_drawing_hits_deadline)",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload (test_rehearsal_auth.OwnerAuthTest.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload)",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters (test_greeter.GreeterTest.test_black_cursor_and_flat_background_are_not_rendered_greeters)",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence (test_greeter.GreeterTest.test_capture_waits_for_drawing_and_keeps_ready_evidence)",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)",
+      "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)"
+    ],
+    "unknown_failures": [],
+    "status": "known local host limitations; native suite mandatory",
+    "runner_seconds": 1409.761,
+    "host_timing_seconds": [
+      70.02388832899987
+    ]
+  },
+  "new_regressions": {
+    "tests": 15,
+    "accounting_and_safety_net": 11,
+    "cosign_classification": 4,
+    "skips": 0
+  },
+  "affected": {
+    "tests": 60,
+    "seconds": 4.656,
+    "skips": 0
+  },
+  "legacy_fixtures": {
+    "tests": 20,
+    "seconds": 0.601,
+    "skips": 0
+  },
+  "native": {
+    "tests": 597,
+    "seconds": 143.006,
+    "skips": 0,
+    "scan_findings": 0,
+    "timing": {
+      "status": "passed",
+      "run": 41301148135,
+      "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+      "test": "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "native_result": "ok; unchanged30-second bound",
+      "log": {
+        "sha256": "3b24a3b5025a5bfec9d856dd1f9d8fa7a14855785b638ea16abc5e01bfa31bd0",
+        "path": "native.log"
+      },
+      "line": 779,
+      "local_exception_applied_in_ci": false
+    }
+  },
+  "qualification_replay": {
+    "status": "passed",
+    "waits": [
+      10,
+      20,
+      30
+    ],
+    "max_attempts": 4,
+    "ci_inspector_changed": false,
+    "attempts": [
+      {
+        "attempt": 1,
+        "folder": ".work/14/14zz-qualification-replay-1",
+        "start": "2026-11-01T11:19:38.635324+00:00",
+        "exit_code": 0,
+        "end": "2026-11-01T11:21:06.001430+00:00",
+        "result": {
+          "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+          "path": ".work/14/bazzite-nvidia-open-stable-live-amd64.iso",
+          "status": "passed",
+          "kind": "actual installer_inspect.main replay before14zz probe28/qualification17; local inspector replay only",
+          "bytes": 9068650496,
+          "official_checksum": "fresh public HTTPS GET; exact pin",
+          "iso_source": "all retained ISO bytes rehashed by actual inspection loop",
+          "adapters": "Windows system bsdtar, WSL unsquashfs, path spellings and Linux LF writes",
+          "localization_sources": 4,
+          "webui_sources": 102,
+          "ci_inspector_changed": false,
+          "download_attempts": [
+            {
+              "attempt": 1,
+              "offset": 0,
+              "range_requested": false,
+              "status": 200,
+              "bytes": 9068650496,
+              "stored_bytes": 9068650496,
+              "received_total": 9068650496,
+              "restarted": false,
+              "outcome": "complete-response",
+              "content-length": [
+                "9068650496"
+              ],
+              "content-range": [],
+              "content-encoding": [],
+              "applied_offset": 0
+            }
+          ],
+          "length_pin": 9068650496
+        }
+      }
+    ]
+  },
+  "qualification_strict": {
+    "prepared_login_helper_compiled": true,
+    "native_workflow_shells": 1,
+    "status": "passed",
+    "guest_scripts": 980,
+    "serial_wrappers": 980,
+    "stderr_policy": "any parse stderr, including warnings, refuses",
+    "embedded_python": 812,
+    "ci_release_shells": 12,
+    "ci_overlay_owner_python": 52,
+    "execution": "syntax/compile only; no guest, service, privilege or hardware operation"
+  },
+  "cache_reclaim": {
+    "status": "two verified completed duplicate files unlinked",
+    "files": [
+      {
+        "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+        "path": ".work/14/14zz-replay-1/work/bazzite-nvidia-open-stable-live-amd64.iso",
+        "bytes": 9068650496
+      },
+      {
+        "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+        "path": ".work/14/14zz-replay-1/work/squashfs.img",
+        "bytes": 8649285632
+      }
+    ],
+    "master_iso_preserved": true,
+    "canonical_squashfs_preserved": true,
+    "completed_result_preserved": true,
+    "failed_diagnostics_preserved": true,
+    "recursive_delete": false,
+    "free_gib": 41.033
+  },
+  "qualification_replay_kind_note": "The immutable adapter result retains a stale probe28/qualification17 label; the actual 14zz paths, driver timestamps and same-head receipt identify this round",
+  "precommit_local_recovery": "Normalized CRLF to LF in the archived recompute helper after a staged-blob hash mismatch; refreshed bindings and repeated the local commit checks before committing; production source unchanged"
+}

@@ -1,0 +1,133 @@
+{
+  "status": "read-only transition review",
+  "run": 40866713472,
+  "rows": [
+    {
+      "sha256": "dd6ca20e1d7b0cf033e7681d66834d437e604ac4f9f05dc4279bc51e1dc14f71",
+      "path": "evidence/two-disk/aresos-password-prompt-read-wait-82.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "completed",
+      "completion_uses_echo": false,
+      "left": {
+        "sha256": "9bb707084903e0b0c0a66119e7443fd5323285d4bfd603df8b7602bb1415d1ee",
+        "path": "evidence/two-disk/aresos-password-prompt-read-wait-82-left.json"
+      }
+    },
+    {
+      "sha256": "254efe05ebf9ff7636c677725a5d73dd165fcb205d6c89493fdaec7139fff220",
+      "path": "evidence/two-disk/aresos-sudo-hidden-read-wait-88.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "completed",
+      "completion_uses_echo": false,
+      "left": {
+        "sha256": "fa853798f5a084306f330f6f0e9887fce60c05b1e69e6c77b0cbb59576378041",
+        "path": "evidence/two-disk/aresos-sudo-hidden-read-wait-88-left.json"
+      }
+    },
+    {
+      "sha256": "643fedd05d43cf099972f08ba21627232c4b113ff2f959693e649f1ca4010296",
+      "path": "evidence/two-disk/corrected-stock-password-prompt-read-wait-40.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "completed",
+      "completion_uses_echo": false,
+      "left": {
+        "sha256": "3c7c01096e539f4522fc72e54dbc8dc6512a9cbac72df81271318c6b7030ed83",
+        "path": "evidence/two-disk/corrected-stock-password-prompt-read-wait-40-left.json"
+      }
+    },
+    {
+      "sha256": "3be957bbee9eb53999ceccf229b2c02508ed1bca35ae86febce8c51257768bc3",
+      "path": "evidence/two-disk/corrected-stock-sudo-hidden-read-wait-46.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "completed",
+      "completion_uses_echo": false,
+      "left": {
+        "sha256": "d9122cc3fa81685bead63b6573d504a60baf03ab0154af6f4480016debae4df4",
+        "path": "evidence/two-disk/corrected-stock-sudo-hidden-read-wait-46-left.json"
+      }
+    },
+    {
+      "sha256": "a9d634835e40c48e6e07c002f0beeb5c932ab4dcf0238eace80f35630ff16814",
+      "path": "evidence/two-disk/layout-plain-us-password-prompt-read-wait-105.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "expected plain-US rejection",
+      "left": {
+        "sha256": "13e5b44bd524c45403c5557ee68ceedbba6be7f73ddfd6c14e5750a274634137",
+        "path": "evidence/two-disk/layout-plain-us-password-prompt-read-wait-105-left.json"
+      }
+    },
+    {
+      "sha256": "a9d634835e40c48e6e07c002f0beeb5c932ab4dcf0238eace80f35630ff16814",
+      "path": "evidence/two-disk/layout-reverted-login-password-prompt-read-wait-112.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "STOP before Enter; no completion"
+    },
+    {
+      "sha256": "31273b7856fe6e5ff0c208ebe323786091d2f24afa8d5df27d216ba5f21ea4d4",
+      "path": "evidence/two-disk/private-owner-dummy-login-hidden-input-read-wait-59.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "completed",
+      "completion_uses_echo": false,
+      "left": {
+        "sha256": "d9122cc3fa81685bead63b6573d504a60baf03ab0154af6f4480016debae4df4",
+        "path": "evidence/two-disk/private-owner-dummy-login-hidden-input-read-wait-59-left.json"
+      }
+    },
+    {
+      "sha256": "3db2f6f7e55b9a3f0535afb73a808cc3b4cc4c788430c869522a4a2683bb380c",
+      "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-66.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "completed",
+      "completion_uses_echo": false,
+      "left": {
+        "sha256": "d9122cc3fa81685bead63b6573d504a60baf03ab0154af6f4480016debae4df4",
+        "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-66-left.json"
+      }
+    },
+    {
+      "sha256": "05e84792c972697e83dccdd92964beb2bd55dee928c26276ff20feb11d10a1b6",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-3.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "completed",
+      "completion_uses_echo": false,
+      "left": {
+        "sha256": "6a0d45bf2361e6ba6d256787981e0c0e155307287fac7613e4f7f4aea2802b19",
+        "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-3-left.json"
+      }
+    },
+    {
+      "sha256": "209977b570015507fa170b449f6f70c1a0b0d642803b2f520551dc0c3564913c",
+      "path": "evidence/two-disk/tools-stock-sudo-hidden-read-wait-9.json",
+      "ready": true,
+      "echo_off": true,
+      "value_recorded": false,
+      "transition": "completed",
+      "completion_uses_echo": false,
+      "left": {
+        "sha256": "937d3410853e243046085b3b6f010f1acd0acf37752ac12b460636f3d1daa445",
+        "path": "evidence/two-disk/tools-stock-sudo-hidden-read-wait-9-left.json"
+      }
+    }
+  ],
+  "completed": 8,
+  "expected_rejection": 1,
+  "pre_enter_stop": 1
+}

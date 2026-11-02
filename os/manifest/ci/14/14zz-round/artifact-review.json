@@ -1,0 +1,257 @@
+{
+  "status": "STOP retained: automatic artifact classifier refused; qualification withheld",
+  "run": 41301148135,
+  "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+  "artifact": {
+    "sha256": "9f75c2f4da970997ac3639d7246633de24b3b52d80efed5e984ae056a980063a",
+    "path": "evidence.zip",
+    "artifact_id": 13081124345,
+    "bytes": 4800703,
+    "run": 41301148135,
+    "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+    "status": "success",
+    "members": 399,
+    "logs": {
+      "sha256": "1ae7c3eccc926424517f21fa16f4d6357606ab9a29a9bcc9b5a1c3d2b5f7c4c9",
+      "path": "logs.zip"
+    },
+    "downloaded_at": "2026-11-01T11:40:31.530762+00:00"
+  },
+  "findings": 509,
+  "iso_listing": {
+    "sha256": "29ca18709f430342120192ad4b5fab9b7136c257eb30bb436d3dfd45cee81a98",
+    "path": "installer/squashfs-files.txt",
+    "findings": 507,
+    "byte_identical_to_retained_probe29": true
+  },
+  "kernel_findings": [
+    {
+      "sha256": "26a0ec75137ed291e80120880d239f77f72884a3dde73cd751bfa001c632f0b0",
+      "certificate_label": "Fedora kernel signing key",
+      "fingerprint_hex_length": 40,
+      "path": "two-disk/live-ui-probe-boot-console.txt",
+      "line": 529,
+      "certificate_class": "14v exact complete kernel X.509 boot message",
+      "redacted_match": "key: REDACTED'",
+      "automatic_match_predicate_passed": true,
+      "secret_redacted": true
+    },
+    {
+      "sha256": "7694c8211b05838c45b8bba39388b7b0beac65e4efa716f071076a812049fb1f",
+      "certificate_label": "Fedora kernel signing key",
+      "fingerprint_hex_length": 40,
+      "path": "two-disk/live-ui-probe-boot-console.txt",
+      "line": 554,
+      "certificate_class": "14v exact complete kernel X.509 boot message",
+      "redacted_match": "key: REDACTED",
+      "automatic_match_predicate_passed": false,
+      "secret_redacted": true
+    }
+  ],
+  "findings_outside_existing_owner_approved_classes": 0,
+  "approved_source_policy": "briefs/14s-loop-node-race.md and briefs/14v-efibootmgr-format.md",
+  "automatic_refusal": {
+    "line": 554,
+    "reason": "redacted Match is key: REDACTED without trailing quote; classifier requires quote even after exact whole source line passed",
+    "gate_overridden": false,
+    "code_changed": false
+  },
+  "full_log_privacy": {
+    "status": "passed",
+    "run": 41301148135,
+    "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+    "findings": 4,
+    "cosign_checksum_findings": [
+      {
+        "sha256": "4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e",
+        "line_sha256": "b92be9b1fd15ffebca45a4bf488ce1b6398f09201dbe246b90fc5cd62eb356ee",
+        "path": "Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt",
+        "line": 223,
+        "rule": "generic-api-key",
+        "classification": "14zz public RELEASE_COSIGN_PUB_KEY_SHA from pinned sigstore action"
+      },
+      {
+        "sha256": "f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126",
+        "line_sha256": "089f6476bcc20844308d88bbbd86fb437592bc7e6df4c0aa4e36e11386030fc3",
+        "path": "Pinned live ISO inspection and two-disk rehearsal/12_Run sigstore_cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac.txt",
+        "line": 227,
+        "rule": "generic-api-key",
+        "classification": "14zz public RELEASE_COSIGN_PUB_KEY_SHA from pinned sigstore action"
+      },
+      {
+        "sha256": "4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e",
+        "line_sha256": "799af3a70d02a2a471b83e7a840ddc534bca28bf9bee512e4df3f1933d2a5b8c",
+        "path": "0_Pinned live ISO inspection and two-disk rehearsal.txt",
+        "line": 10221,
+        "rule": "generic-api-key",
+        "classification": "14zz public RELEASE_COSIGN_PUB_KEY_SHA from pinned sigstore action"
+      },
+      {
+        "sha256": "f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126",
+        "line_sha256": "b805265265c5224cf0f4413566fe8eb3fbffae59a5ea072c65d32ea7a39770cf",
+        "path": "0_Pinned live ISO inspection and two-disk rehearsal.txt",
+        "line": 10225,
+        "rule": "generic-api-key",
+        "classification": "14zz public RELEASE_COSIGN_PUB_KEY_SHA from pinned sigstore action"
+      }
+    ],
+    "source": {
+      "sha256": "bbd7f51b170057ad223c140c8fb4dd781010d7265416bb94651c64c1bee30f37",
+      "url": "https://raw.githubusercontent.com/sigstore/cosign-installer/398d4b0eeef1380460a10c8013a76f728fb906ac/action.yml"
+    },
+    "combined_block_first_line": 9999,
+    "combined_block_lines": 273,
+    "ignore_changes": false,
+    "workflow_changes": false
+  },
+  "native": {
+    "tests": 597,
+    "seconds": 143.006,
+    "skips": 0,
+    "scan_findings": 0,
+    "timing": {
+      "status": "passed",
+      "run": 41301148135,
+      "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+      "test": "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "native_result": "ok; unchanged30-second bound",
+      "log": {
+        "sha256": "3b24a3b5025a5bfec9d856dd1f9d8fa7a14855785b638ea16abc5e01bfa31bd0",
+        "path": "native.log"
+      },
+      "line": 779,
+      "local_exception_applied_in_ci": false
+    }
+  },
+  "loop_checks": 20,
+  "loop_helper_mutations": 0,
+  "loop_cleanup": true,
+  "staged_transfers": 37,
+  "ps2_boots": 1,
+  "static_mappings": 57,
+  "xhci_healthy_receipts": 7,
+  "independent_audits": {
+    "status": "passed independent replay of actual raw files and counters",
+    "run": 41301148135,
+    "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+    "protected_captures": 3,
+    "zero_write_unmap_samples": 4,
+    "raw_varstores_decoded": 3,
+    "bootnext_exact_replays": 3,
+    "nvram_rule_exact_replays": 2,
+    "all_variable_delta_recomputations": 2,
+    "stages": [
+      "live-ui-probe",
+      "probe-detached-windows"
+    ]
+  },
+  "kernel": {
+    "status": "passed",
+    "run": 41301148135,
+    "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+    "location": "native",
+    "skipped": false,
+    "proof": {
+      "status": "passed",
+      "real_kernel": true,
+      "kernel": "7.0.0-1017-azure",
+      "negative_control": {
+        "counts": {
+          "press": 0,
+          "release": 1,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "press_before_release": 0,
+        "comparison": {
+          "sent_events": 2,
+          "received_events": 1,
+          "press": 0,
+          "release": 1,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": false
+        }
+      },
+      "fixed": {
+        "counts": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "press_before_release": 1,
+        "comparison": {
+          "sent_events": 2,
+          "received_events": 2,
+          "press": 1,
+          "release": 1,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": true
+        }
+      },
+      "counts_only": true,
+      "skipped": false,
+      "location": "native",
+      "sha": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f"
+    },
+    "native": {
+      "status": "passed",
+      "real_kernel": true,
+      "kernel": "7.0.0-1017-azure",
+      "negative_control": {
+        "counts": {
+          "press": 0,
+          "release": 1,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "press_before_release": 0,
+        "comparison": {
+          "sent_events": 2,
+          "received_events": 1,
+          "press": 0,
+          "release": 1,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": false
+        }
+      },
+      "fixed": {
+        "counts": {
+          "press": 1,
+          "release": 1,
+          "repeat": 0,
+          "syn_dropped": 0
+        },
+        "press_before_release": 1,
+        "comparison": {
+          "sent_events": 2,
+          "received_events": 2,
+          "press": 1,
+          "release": 1,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": true
+        }
+      },
+      "counts_only": true,
+      "skipped": false,
+      "location": "native",
+      "sha": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f"
+    },
+    "files": [
+      {
+        "sha256": "fd46a42ac5303af79184c4e5798747bbb69fdbe2544026a62019b398b6e7912f",
+        "path": "14-counter-kernel.json"
+      },
+      {
+        "sha256": "fd46a42ac5303af79184c4e5798747bbb69fdbe2544026a62019b398b6e7912f",
+        "path": "two-disk/counter-kernel-proof.json"
+      }
+    ]
+  },
+  "qualification_dispatched": false,
+  "reruns": 0
+}

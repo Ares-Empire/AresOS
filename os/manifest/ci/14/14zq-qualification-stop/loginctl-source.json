@@ -1,0 +1,19 @@
+{
+  "status": "read-only primary source, no fix or retry",
+  "sources": [
+    {
+      "sha256": "ff2e3cebc8c6fe185a3ad1113363c8b3357683f25a06c0cfe3b2a2f418c08091",
+      "path": "systemd-src_login_loginctl.c",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/login/loginctl.c",
+      "tag": "v259.9",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+    },
+    {
+      "sha256": "f858a20f101998c2fcb97571364b5caee070d78debe387d60edb186d7c6059d9",
+      "path": "systemd-src_shared_bus-print-properties.c",
+      "url": "https://github.com/systemd/systemd/blob/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/shared/bus-print-properties.c",
+      "tag": "v259.9",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+    }
+  ]
+}

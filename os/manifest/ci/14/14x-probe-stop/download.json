@@ -1,0 +1,15 @@
+{
+  "sha256": "a4ed92b949256f67f29030fe51b375d2f5a95d1d7b4c2d5037814842c16c88b5",
+  "expected_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "path": "private artifact installer/iso-download.json",
+  "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+  "received_bytes": 2128609280,
+  "advertised_bytes": 9068650496,
+  "complete": false,
+  "sha256_acceptance": false,
+  "raw_receipt": {
+    "sha256": "20e6a32d31005f0dcca3f0cd695a854338701246ab75e356578eacff6d8c1a02",
+    "path": ".work/14/run-40528739880/evidence/installer/iso-download.json"
+  },
+  "note": "Length guard refused before checksum acceptance; no substitute image or retry"
+}

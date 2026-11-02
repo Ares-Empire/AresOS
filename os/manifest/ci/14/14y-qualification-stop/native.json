@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "head": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+  "tests": 392,
+  "seconds": 29.842,
+  "skips": 0,
+  "real_loop_checks": 20,
+  "helper_mutations": 0,
+  "protected_fixture_unchanged": true,
+  "all_fixture_mounts_unmounted_and_loops_detached": true,
+  "windows_copy_zero_write_refusals": 15,
+  "private_manifest_signature_pull": "passed",
+  "owner_secret_used": false,
+  "credential_cleanup": {
+    "status": "passed",
+    "secret": "GITHUB_TOKEN",
+    "removed": true,
+    "outside_workspace": true,
+    "owner_token_used": false
+  },
+  "native_log": {
+    "sha256": "b48a02058ae0fa5582883bb1454e695baa623b6a8f8358c9a50bb39456474860",
+    "path": ".work/14/run-40543952228/native.log"
+  }
+}

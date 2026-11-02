@@ -1,0 +1,41 @@
+{
+  "status": "accepted VM qualification20; terminal success; closing commit local only",
+  "brief": "briefs/14zzb-step-limit.md",
+  "pushed_head": "211df982b5bf080b0167b8fe6e8dd3c5eb264fe8",
+  "probe31": 41321806985,
+  "qualification20": 41324240079,
+  "acceptance_met": true,
+  "pr13_ready": true,
+  "pr13_readiness": "ready for review; verified open/unmerged on the qualified pushed head",
+  "pushes": 1,
+  "probes": 1,
+  "qualifications": 1,
+  "reruns": 0,
+  "closing_commit_local_only": true,
+  "consumed_minutes": 2301,
+  "cap": 2750,
+  "package_minutes_left": 449,
+  "dispatch_counts": {
+    "probe": 31,
+    "owner-tools": 20
+  },
+  "dispatch_caps": {
+    "probe": 32,
+    "owner-tools": 21
+  },
+  "organization_included_minutes_left": 1410,
+  "other_repos_reserve": 150,
+  "push_reservation": 0,
+  "closing_reservation": 0,
+  "paid_budget_read": false,
+  "vm_step_limit": 180,
+  "qualification_bound": 220,
+  "probe_bound": 72,
+  "vm_actual_minutes": 117.66666666666667,
+  "whole_job_actual_minutes": 131.5,
+  "further_dispatch_authorized": false,
+  "additional_rounds_required": 0,
+  "physical_installation": "NOT RELEASED; physical and laptop gates remain",
+  "owner_payload_or_fingerprint_or_runtime_changed": false,
+  "serial_plan_implemented": false
+}

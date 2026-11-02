@@ -1,0 +1,101 @@
+{
+  "status": "confirmed in actual AresOS owner layout begin/revert",
+  "run": 40866713472,
+  "head": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+  "queries": [
+    {
+      "sha256": "4abe77c0f794498511d30f1ee59cfa40ce2fca2c6fa3d44b7050536c1599f32d",
+      "path": "evidence/two-disk/layout-us-begin-owner-diagnostics.json",
+      "command": [
+        "loginctl",
+        "show-session",
+        "5",
+        "--property=Id",
+        "--property=TTY",
+        "--property=Audit",
+        "--property=Scope"
+      ],
+      "stdout": "Id=5\nTTY=tty3\nScope=session-5.scope\nAudit=5\n",
+      "returncode": 0,
+      "each_key_once": true
+    },
+    {
+      "sha256": "4abe77c0f794498511d30f1ee59cfa40ce2fca2c6fa3d44b7050536c1599f32d",
+      "path": "evidence/two-disk/layout-us-begin-owner-diagnostics.json",
+      "command": [
+        "loginctl",
+        "show-session",
+        "5",
+        "--property=TimestampMonotonic"
+      ],
+      "stdout": "TimestampMonotonic=67342745\n",
+      "returncode": 0,
+      "each_key_once": true
+    },
+    {
+      "sha256": "4abe77c0f794498511d30f1ee59cfa40ce2fca2c6fa3d44b7050536c1599f32d",
+      "path": "evidence/two-disk/layout-us-begin-owner-diagnostics.json",
+      "command": [
+        "loginctl",
+        "show-session",
+        "5",
+        "--property=Service",
+        "--property=Type",
+        "--property=Remote",
+        "--property=Name",
+        "--property=User"
+      ],
+      "stdout": "User=1000\nName=ares-recovery\nRemote=no\nService=login\nType=tty\n",
+      "returncode": 0,
+      "each_key_once": true
+    },
+    {
+      "sha256": "e2c716e5a4fa60a2caf54c4fb1cbf97d7782bfa4f5411683d0a11642e2125b68",
+      "path": "evidence/two-disk/layout-us-revert-owner-diagnostics.json",
+      "command": [
+        "loginctl",
+        "show-session",
+        "5",
+        "--property=Id",
+        "--property=TTY",
+        "--property=Audit",
+        "--property=Scope"
+      ],
+      "stdout": "Id=5\nTTY=tty3\nScope=session-5.scope\nAudit=5\n",
+      "returncode": 0,
+      "each_key_once": true
+    },
+    {
+      "sha256": "e2c716e5a4fa60a2caf54c4fb1cbf97d7782bfa4f5411683d0a11642e2125b68",
+      "path": "evidence/two-disk/layout-us-revert-owner-diagnostics.json",
+      "command": [
+        "loginctl",
+        "show-session",
+        "5",
+        "--property=TimestampMonotonic"
+      ],
+      "stdout": "TimestampMonotonic=67342745\n",
+      "returncode": 0,
+      "each_key_once": true
+    },
+    {
+      "sha256": "e2c716e5a4fa60a2caf54c4fb1cbf97d7782bfa4f5411683d0a11642e2125b68",
+      "path": "evidence/two-disk/layout-us-revert-owner-diagnostics.json",
+      "command": [
+        "loginctl",
+        "show-session",
+        "5",
+        "--property=Service",
+        "--property=Type",
+        "--property=Remote",
+        "--property=Name",
+        "--property=User"
+      ],
+      "stdout": "User=1000\nName=ares-recovery\nRemote=no\nService=login\nType=tty\n",
+      "returncode": 0,
+      "each_key_once": true
+    }
+  ],
+  "requested_keys_exactly_once": true,
+  "comma_joined_options": 0
+}

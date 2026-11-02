@@ -1,0 +1,30 @@
+{
+  "status": "confirmed unit-scoped bounded journal; no kernel record or decoded-MESSAGE exception",
+  "run": 40866713472,
+  "head": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+  "observations": [
+    {
+      "sha256": "fd6858a27080cc7d4bf5f6242f43d590733402f40c9e41f4db8a0edbcd94a685",
+      "path": "evidence/two-disk/owner-logind-diagnostics-owner-diagnostics.json",
+      "command": [
+        "journalctl",
+        "-b",
+        "-1",
+        "-u",
+        "systemd-logind.service",
+        "--lines=200",
+        "--output=json",
+        "--no-pager"
+      ],
+      "records": 24,
+      "transports": {
+        "journal": 24
+      },
+      "kernel_records": 0,
+      "messages_saved": false
+    }
+  ],
+  "artifact_findings": 519,
+  "unclassified_findings": 0,
+  "classifier_unchanged": true
+}

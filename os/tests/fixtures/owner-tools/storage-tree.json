@@ -1,0 +1,43 @@
+{
+  "blockdevices": [
+    {
+      "path": "/dev/nvme0n1", "type": "disk", "model": "Crucial P3 Plus", "serial": "TARGET",
+      "size": 2000398934016, "ptuuid": "00000001-1111-2222-3333-444444444444",
+      "tran": "nvme", "rm": false, "label": null, "fstype": null, "uuid": null, "mountpoints": [null],
+      "children": [
+        {"path": "/dev/nvme0n1p1", "type": "part", "partuuid": "10000001-1111-2222-3333-444444444444",
+         "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b", "start": 2048, "size": 629145600,
+         "tran": null, "rm": false, "label": null, "fstype": "vfat", "uuid": "ABCD-1234", "mountpoints": ["/boot/efi"]},
+        {"path": "/dev/nvme0n1p2", "type": "part", "partuuid": "10000002-1111-2222-3333-444444444444",
+         "parttype": "0fc63daf-8483-4772-8e79-3d69d8477de4", "start": 1230848, "size": 2147483648,
+         "tran": null, "rm": false, "label": "boot", "fstype": "ext4", "uuid": "boot-uuid", "mountpoints": ["/boot"]},
+        {"path": "/dev/nvme0n1p3", "type": "part", "partuuid": "10000003-1111-2222-3333-444444444444",
+         "parttype": "0fc63daf-8483-4772-8e79-3d69d8477de4", "start": 5425152, "size": 1997621166080,
+         "tran": null, "rm": false, "label": "bazzite", "fstype": "btrfs", "uuid": "system-uuid", "mountpoints": ["/sysroot", "/var"]}
+      ]
+    },
+    {
+      "path": "/dev/nvme1n1", "type": "disk", "model": "Micron", "serial": "KEEP",
+      "size": 512110190592, "ptuuid": "00000002-1111-2222-3333-444444444444",
+      "tran": "nvme", "rm": false, "label": null, "fstype": null, "uuid": null, "mountpoints": [null],
+      "children": [
+        {"path": "/dev/nvme1n1p1", "type": "part", "partuuid": "20000001-1111-2222-3333-444444444444",
+         "parttype": "c12a7328-f81f-11d2-ba4b-00a0c93ec93b", "start": 2048, "size": 272629760,
+         "tran": null, "rm": false, "label": "SYSTEM", "fstype": "vfat", "uuid": "ABCD-5678", "mountpoints": [null]},
+        {"path": "/dev/nvme1n1p3", "type": "part", "partuuid": "20000003-1111-2222-3333-444444444444",
+         "parttype": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7", "start": 567296, "size": 510656512000,
+         "tran": null, "rm": false, "label": "Windows", "fstype": "ntfs", "uuid": "windows-uuid", "mountpoints": [null]}
+      ]
+    },
+    {
+      "path": "/dev/sdb", "type": "disk", "model": "Tools stick", "serial": "TOOLS",
+      "size": 16008609792, "ptuuid": "00000003-1111-2222-3333-444444444444",
+      "tran": "usb", "rm": true, "label": null, "fstype": null, "uuid": null, "mountpoints": [null],
+      "children": [
+        {"path": "/dev/sdb1", "type": "part", "partuuid": "30000001-1111-2222-3333-444444444444",
+         "parttype": "ebd0a0a2-b9e5-4433-87c0-68b6b72699c7", "start": 2048, "size": 16007561216,
+         "tran": null, "rm": false, "label": "ARESTOOLS", "fstype": "exfat", "uuid": "CAFE-1234", "mountpoints": [null]}
+      ]
+    }
+  ]
+}

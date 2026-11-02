@@ -1,0 +1,73 @@
+{
+  "status": "retained STOP evidence; not VM acceptance",
+  "files": [
+    {
+      "sha256": "d3f1fbc77cfa5747f27f25cbbd283c442c05a32b9cd7d907f0e4de47e9d7770e",
+      "path": "artifact.json"
+    },
+    {
+      "sha256": "f95c3090b0be4634aecd86398eb83db99904a00b95184e2d73f7fb022aac590b",
+      "path": "auth-cleanup.json"
+    },
+    {
+      "sha256": "d7a63f1171c37d0c16529324fb3580cb0293dd38a31687686798fbdd523b0e56",
+      "path": "ci-steps.json"
+    },
+    {
+      "sha256": "7a801cf2bebb754fe8b295c9470ee6ad6eb9763ac6b79ab3491942e828074ab5",
+      "path": "native-and-media-stop.log"
+    },
+    {
+      "sha256": "14d435c2983b6945563ea1f3ed2316e5bf00fbd67ea7edd68d7935bacb3ad52c",
+      "path": "native-authorization.json"
+    },
+    {
+      "sha256": "4a9da4ea4e9b0964d483e3a41fabce6253f24526caec4315e9151e6fd6c33555",
+      "path": "pre-probe-authorization.json"
+    },
+    {
+      "sha256": "1e7193e08307699e59aaf6fc19f8cfed9702c182d8672cdd2150c83cbb45725a",
+      "path": "pre-probe-privacy.json"
+    },
+    {
+      "sha256": "1025a2132723b2c17cb237a73f2f70fc3e266031bce3218a2f2405b72ddc8934",
+      "path": "private-manifest.json"
+    },
+    {
+      "sha256": "cd83adbda962034f6f2e9dbf959c819667e61b28d387a8cd5129b5a38791b811",
+      "path": "private-pull.json"
+    },
+    {
+      "sha256": "cdfc9e5bc92a6705d243c8d6d005744aa922243a5e0f212d066f95a096d834cc",
+      "path": "private-signature-proof.json"
+    },
+    {
+      "sha256": "1ff9c73574598a6657b66e525a3da938bcf358cf6c25e9a6dca7b666ed57d0b0",
+      "path": "qualification-host-walk.log"
+    },
+    {
+      "sha256": "77234f7abda163cfcf867074c5e20d27ed303010d3cd4c8146be5a7aec1ba89c",
+      "path": "qualification-installer-adapter.py"
+    },
+    {
+      "sha256": "4b852ff9a04d75fe3742c8469e75415ec504956a60725d2f687075ac8c55fae0",
+      "path": "qualification-installer-result.json"
+    },
+    {
+      "sha256": "505ebc0363749c78926da2de6d84dfbeccb2e07a3cc2f7df5d8ef6dc220a6cd5",
+      "path": "qualification-local-replay.json"
+    },
+    {
+      "sha256": "6c02e462d4e901ac1d78b2f7cc9820ea4932f102f5b8ccb9423b01ffe54fe793",
+      "path": "result.json"
+    },
+    {
+      "sha256": "01f17b1960d785cc71505f02a0d4d9d8e060fcf9d9578843bea259e1ef46e6fd",
+      "path": "runner-packages.txt"
+    },
+    {
+      "sha256": "2c2f1b99b399b9416737c6042da5f8f26f08591e87f5131a9c61dcd1763a01a1",
+      "path": "runner-platform.txt"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+ARESOS_ROOT>
+
+>
+
+>
+
+Physical console readiness deadline: tty3
+
+ARESOS_CMD_DONE:1

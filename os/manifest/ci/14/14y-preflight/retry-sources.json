@@ -1,0 +1,11 @@
+{
+  "sha256": "089370c69601a7ca0f7ac8d4fa5b6b76a67eb1e1d0e52bdfd5f45cb3b4ec4021",
+  "path": ".work/14/14y-browser-fetcher.ts",
+  "url": "https://raw.githubusercontent.com/microsoft/playwright/v1.58.0/packages/playwright-core/src/server/registry/browserFetcher.ts",
+  "version": "1.58.0",
+  "browser_attempts": 5,
+  "outer_retry_added": false,
+  "checked_at": "2026-10-27T15:52:41.850582+00:00",
+  "http_range_spec": "https://www.rfc-editor.org/rfc/rfc9110.html#section-14.4",
+  "pip_options": "https://pip.pypa.io/en/stable/cli/pip/#general-options"
+}

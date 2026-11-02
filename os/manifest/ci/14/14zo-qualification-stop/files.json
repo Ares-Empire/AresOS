@@ -1,0 +1,92 @@
+{
+  "files": [
+    {
+      "sha256": "25898c36c480dea2472beb39cccc4f717480d2db3f0157a3a5afc90cf96d0888",
+      "path": "closed-ledger.json"
+    },
+    {
+      "sha256": "b08c7abecf4bd0dba42a802edbe95cf3d77913751a009ceb5843ee8a7d92eb3b",
+      "path": "diagnostics.json"
+    },
+    {
+      "sha256": "13159a380d87506320a088549b93a49a594151339cf5df684dad777a7b8e4f1d",
+      "path": "dummy-completion.json"
+    },
+    {
+      "sha256": "63d25de6711b6bef525ed7d4c5313ed5d72364aec4f4618e15b4183f8e9bd47f",
+      "path": "dummy-key-counter.json"
+    },
+    {
+      "sha256": "d21a1ae863efc34f51fd35ee8ab5978747f40c4eb9cda7dc785100379a0f7522",
+      "path": "dummy-readiness.json"
+    },
+    {
+      "sha256": "22c8145601d60cae527174c6a92227b500c8b8a90762ee47932c2e7d9987da72",
+      "path": "owner-length-token-proof.json"
+    },
+    {
+      "sha256": "c20e18e055e962c7155051e279dc0a5fb946e01c706fc256b7b55bb292e3b2c8",
+      "path": "privacy-ci.json"
+    },
+    {
+      "sha256": "e29a18931c128876195434fa6bbe43d558ada2e3e10a8313be65f9f40198138c",
+      "path": "probe-guard.json"
+    },
+    {
+      "sha256": "f482a2da8b4c3a4ed1d0f8864ae5e6ece82b4f45b9d03be4048c2e6b203f8589",
+      "path": "probe-native-timing.json"
+    },
+    {
+      "sha256": "2baa022a3d97d49f6420413ded354848385b425d91aeffda325c9c45763f36e2",
+      "path": "probe-privacy.json"
+    },
+    {
+      "sha256": "5de8276216f94e733c029ef790cc256edb7d89563a9568a570da07eea0dcef5d",
+      "path": "probe-proof.json"
+    },
+    {
+      "sha256": "951b9f46b046671ad33d9332d1af0665ed47477065e35c65fe445c53efdfb5de",
+      "path": "public-command-predicates.json"
+    },
+    {
+      "sha256": "4c7fb199a4339c165d6a89119adc744cadf523d599274a1129ea5cdf6b328992",
+      "path": "push.json"
+    },
+    {
+      "sha256": "8ff5da75e2b20324172b5fd86b2c634d4be15a76a46af54190540577bf0b7bba",
+      "path": "qualification-artifact.json"
+    },
+    {
+      "sha256": "71c160850e3a262f4f8f5da3abd7ffe58bf32b9a1e7109dc1d50df828a14f261",
+      "path": "qualification-audits.json"
+    },
+    {
+      "sha256": "fe539c0c671b07f3c4bf20d5c79bcdb24f6bc32e2be3d244b343d520b52b8f08",
+      "path": "qualification-guard.json"
+    },
+    {
+      "sha256": "a5183e0d6a99fd46ea384dc71aea2ff122f30f7631ae3fd3ea01374cabc2551c",
+      "path": "qualification-local-replay.json"
+    },
+    {
+      "sha256": "0f14cfb4cbc67339f1a27b8d6af5c0be646a0aee56ee7c8b794e55b54093e6b4",
+      "path": "qualification-native-timing.json"
+    },
+    {
+      "sha256": "18bfd99388f3c1c6142212705372532d4e54f8ea031c7d0d53c4d11816cfd892",
+      "path": "qualification-privacy.json"
+    },
+    {
+      "sha256": "ffadd90363dfae9b512474c481b6b842b4d87825b17e874ccb0c6294ef959049",
+      "path": "real-token-readiness.json"
+    },
+    {
+      "sha256": "2b03ad333685522575d09989fbca94ad076c8eb0bbfecc9202599b2fef4bd4c1",
+      "path": "screen-predicates.json"
+    },
+    {
+      "sha256": "255dcdbf3e599e861c66262dc75a85bfc95af434532d5a7743ca88c3428cf21c",
+      "path": "summary.json"
+    }
+  ]
+}

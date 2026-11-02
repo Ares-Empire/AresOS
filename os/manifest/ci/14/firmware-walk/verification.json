@@ -1,0 +1,34 @@
+{
+  "status": "STOP-PLAN-GAP",
+  "source_integrity": "passed",
+  "source_files": 4,
+  "pinned_BmBoot_source_matches": true,
+  "binary_version": "2024.02-2ubuntu0.10",
+  "usb_auto_entry_expected_from_source": true,
+  "actual_new_vm_observation": false,
+  "fixtures": "synthetic source-derived paths; no device accessed",
+  "rejected": [
+    {
+      "port": 0,
+      "interface": 0,
+      "lun": null,
+      "result": "PLAN-GAP: unsupported firmware device path"
+    },
+    {
+      "port": 1,
+      "interface": 0,
+      "lun": null,
+      "result": "PLAN-GAP: unsupported firmware device path"
+    },
+    {
+      "port": 2,
+      "interface": 1,
+      "lun": 0,
+      "result": "PLAN-GAP: unsupported firmware device path"
+    }
+  ],
+  "controller_only_mapping_would_lose_stick_identity": true,
+  "dispatch_authorized": false,
+  "vm_dispatches": 0,
+  "audit_rule_changed": false
+}

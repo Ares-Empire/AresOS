@@ -1,0 +1,32 @@
+{
+  "scanner": {
+    "version": "8.21.2",
+    "sha256": "671591bd75e11fcd4a25732852afbbf0c3892b368181164ba19aa72e7513af8e",
+    "path": ".work/14/gitleaks/gitleaks.exe"
+  },
+  "scans": [
+    {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "path": ".work/14/gitleaks/14v-parent-history.json",
+      "findings": 0
+    },
+    {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "path": ".work/14/gitleaks/14v-primary-sources.json",
+      "findings": 0
+    }
+  ],
+  "workspace_scan": {
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "path": ".work/14/gitleaks/14v-pending-tree.json",
+    "findings": 0
+  },
+  "committed_history_scan": "Postcommit full-history scan is outside this precommit receipt; final result retained in .work/14/gitleaks/14v-committed-history.json",
+  "artifact_policy": "14s ISO listing507 plus14v exact whole kernel X.509 certificate boot messages; every line recorded",
+  "ignore_changes": false,
+  "rule_changes": false,
+  "workflow_changes": false,
+  "owner_secret_used": false,
+  "pushes": 0,
+  "dispatches": 0
+}

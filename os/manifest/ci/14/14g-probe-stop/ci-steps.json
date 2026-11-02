@@ -1,0 +1,148 @@
+{
+  "run": 40245433868,
+  "head": "4268a94d612a0d6890b14afbd332516dbae11c31",
+  "job": 121325880010,
+  "conclusion": "failure",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:35:14Z",
+      "completed_at": "2026-10-25T23:35:15Z"
+    },
+    {
+      "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:35:15Z",
+      "completed_at": "2026-10-25T23:35:23Z"
+    },
+    {
+      "name": "Reserve the separate 11c minute budget (including privacy checks)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:35:23Z",
+      "completed_at": "2026-10-25T23:35:33Z"
+    },
+    {
+      "name": "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:35:33Z",
+      "completed_at": "2026-10-25T23:37:11Z"
+    },
+    {
+      "name": "Qualify tools, regressions, rewritten release identity and private access",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:37:11Z",
+      "completed_at": "2026-10-25T23:40:07Z"
+    },
+    {
+      "name": "Require completed native preflight before any package 13 VM",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:40:07Z",
+      "completed_at": "2026-10-25T23:40:17Z"
+    },
+    {
+      "name": "Create runner-temporary pinned-image credentials",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-25T23:40:17Z",
+      "completed_at": "2026-10-25T23:40:17Z"
+    },
+    {
+      "name": "Prepare package 13 job-token credentials without owner-secret fallback",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:40:17Z",
+      "completed_at": "2026-10-25T23:40:17Z"
+    },
+    {
+      "name": "Verify exact private manifest with scoped credentials",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:40:17Z",
+      "completed_at": "2026-10-25T23:40:18Z"
+    },
+    {
+      "name": "Run sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:40:18Z",
+      "completed_at": "2026-10-25T23:40:23Z"
+    },
+    {
+      "name": "Verify the exact private signature natively for the offline guest",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:40:23Z",
+      "completed_at": "2026-10-25T23:40:24Z"
+    },
+    {
+      "name": "Qualify the exact pinned layer pull without installing",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:40:24Z",
+      "completed_at": "2026-10-25T23:41:39Z"
+    },
+    {
+      "name": "Inspect the exact pinned live ISO before assuming an installer path",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:41:39Z",
+      "completed_at": "2026-10-25T23:47:00Z"
+    },
+    {
+      "name": "Prepare disposable file disks and qualify the real live environment",
+      "status": "completed",
+      "conclusion": "failure",
+      "started_at": "2026-10-25T23:47:00Z",
+      "completed_at": "2026-10-25T23:47:13Z"
+    },
+    {
+      "name": "Remove owner registry credentials",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-25T23:47:13Z",
+      "completed_at": "2026-10-25T23:47:13Z"
+    },
+    {
+      "name": "Remove package 13 job-token credentials",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:47:13Z",
+      "completed_at": "2026-10-25T23:47:13Z"
+    },
+    {
+      "name": "Bound retained evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:47:13Z",
+      "completed_at": "2026-10-25T23:47:13Z"
+    },
+    {
+      "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:47:13Z",
+      "completed_at": "2026-10-25T23:47:15Z"
+    },
+    {
+      "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:47:15Z",
+      "completed_at": "2026-10-25T23:47:15Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-25T23:47:15Z",
+      "completed_at": "2026-10-25T23:47:15Z"
+    }
+  ]
+}

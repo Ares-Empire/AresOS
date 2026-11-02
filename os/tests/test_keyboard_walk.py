@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT/'os/ci'))
 import keyboard_vm as vm
 import keyboard_entries as ke
 import greeter
+from guest_shell import syntax
 
 RETAINED = ROOT/'os/manifest/ci/13/qualification-2/evidence/two-disk'
 STAGES = ('corrected-stock', 'aresos', 'aresos-us', 'aresos-back-de', 'rollback')
@@ -101,6 +102,7 @@ def walk(render_frame=False, mutation=None):
             qcodes.append(keys)
 
         def command(self, name, command, **kwargs):
+            syntax(name, command)
             commands.append((name, command))
             if name.startswith('repair-'):
                 return 'ARESOS_SYSTEM_KEYBOARD_RESULT '+json.dumps(retained(name))+'\n'
@@ -111,6 +113,7 @@ def walk(render_frame=False, mutation=None):
             return ''
 
         def capture_json(self, name, command):
+            syntax(name, command)
             commands.append((name, command))
             if name.endswith('-labwc-environment'):
                 value = dict(XKB_DEFAULT_LAYOUT='us' if self.stage == 'aresos-us' else 'de')

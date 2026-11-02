@@ -1,0 +1,73 @@
+{
+  "status": "prospective qualification local replay passed; successful same-head probe/native capabilities and fresh guard still required",
+  "head": "02eac4a226787a8879ee80d8d814221a22630323",
+  "checked_at": "2026-10-26T00:41:09.019290+00:00",
+  "host_tests": 60,
+  "host_seconds": 65.435,
+  "windows_zero_write_refusals": 15,
+  "offline_source_files": 53,
+  "guest_shell_checks": 257,
+  "embedded_python_compilations": 233,
+  "python_sources_compiled_without_caches": 48,
+  "installer": {
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "path": ".work/14/bazzite-nvidia-open-stable-live-amd64.iso",
+    "status": "passed",
+    "kind": "actual installer_inspect.main replay before qualification; no VM",
+    "bytes": 9068650496,
+    "official_checksum": "fresh public HTTPS GET; exact pin",
+    "iso_source": "all retained ISO bytes rehashed by actual inspection loop",
+    "adapters": "Windows system bsdtar, WSL unsquashfs, path spellings and Linux LF writes",
+    "localization_sources": 4,
+    "webui_sources": 102,
+    "ci_inspector_changed": false
+  },
+  "ci_only": [
+    {
+      "check": "org package metadata visibility",
+      "reason": "Requires the CI job GITHUB_TOKEN with packages: read; local gh scope is unchanged",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "implementation": "registry_auth.preflight: gh api orgs/Ares-Empire/packages/container/aresos",
+      "fail_closed": "visibility must be private"
+    },
+    {
+      "check": "registry manifest digest inspect",
+      "reason": "Requires the scoped CI job auth file for the private image",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "implementation": "registry_auth.preflight: skopeo inspect",
+      "fail_closed": "successful command and exact pinned digest required; no credential fallback"
+    },
+    {
+      "check": "private pinned layer pull",
+      "reason": "Requires the scoped CI job auth file and runner pull environment",
+      "ci_step": "Qualify the exact pinned layer pull without installing",
+      "implementation": "registry_auth.pull: skopeo copy --preserve-digests, then raw inspect",
+      "fail_closed": "copy success, exact raw manifest digest, temporary copy removed"
+    },
+    {
+      "check": "registry signature verification",
+      "reason": "Requires CI package access and the scoped CI job DOCKER_CONFIG",
+      "ci_step": "Verify the exact private signature natively for the offline guest",
+      "implementation": "registry_auth.signature: cosign verify",
+      "fail_closed": "verification must succeed with exact pinned identity, issuer and release; no credential fallback"
+    }
+  ],
+  "files": [
+    {
+      "sha256": "61096b741173eab81823bd9b548877c66c4f976353ce57419917a0b1a68aa838",
+      "path": ".work/14/14h-qualification-host-walk.log"
+    },
+    {
+      "sha256": "72ed3079c4ae8d49f5d047d8fd80584d16402593b10c5d53279f61ddafb32c9b",
+      "path": ".work/14/14h-qualification-source-replay.json"
+    },
+    {
+      "sha256": "63c9265823ec6efd55ca571d06791b355762e80e73aa9cd3456199ca1b106937",
+      "path": ".work/14/14h-qualification-installer-windows.py"
+    },
+    {
+      "sha256": "4b852ff9a04d75fe3742c8469e75415ec504956a60725d2f687075ac8c55fae0",
+      "path": ".work/14/14h-qualification-installer-replay/result.json"
+    }
+  ]
+}

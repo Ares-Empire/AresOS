@@ -1,0 +1,4 @@
+bash: line 16: warning: here-document at line 4 delimited by end-of-file (wanted `PY')
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+NameError: name 'PY' is not defined

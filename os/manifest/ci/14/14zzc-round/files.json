@@ -1,0 +1,76 @@
+{
+  "files": [
+    {
+      "sha256": "1f5e04c98cc6ab37aae3db7fd731bfbf47a8851431603866cad9367c83c6c66c",
+      "path": "os/manifest/ci/14/14zzc-round/archive-round.py"
+    },
+    {
+      "sha256": "0be29e7460184c7321009e7f6ed4254ffd17fbe5f7e083fd87e35c8fbae7d667",
+      "path": "os/manifest/ci/14/14zzc-round/close-report.py"
+    },
+    {
+      "sha256": "9fe851fc601656225d03a896bc8b990beed9149ebd3a85a0d43e151881f0df77",
+      "path": "os/manifest/ci/14/14zzc-round/closing-tools.json"
+    },
+    {
+      "sha256": "8f175e03892645718c9884a8f53b39f84266cdd49654d33c10a437521160b8a1",
+      "path": "os/manifest/ci/14/14zzc-round/commit-report.py"
+    },
+    {
+      "sha256": "938735f022b20d7c002c5db6ca5d7d2724ec9d4104971a5977cab9f88e6e1e97",
+      "path": "os/manifest/ci/14/14zzc-round/diagnose-bytecode.py"
+    },
+    {
+      "sha256": "0a1dfb41c05efabbd5421f9f653fc844a48fbc2987f8b25a446b146ca9bc4c99",
+      "path": "os/manifest/ci/14/14zzc-round/guide-status.json"
+    },
+    {
+      "sha256": "2fb1d7d58875a3420b7dd76602e73ae9e148602ee25faa2e1035174cc1db7dd9",
+      "path": "os/manifest/ci/14/14zzc-round/hook-privacy.json"
+    },
+    {
+      "sha256": "8efa454a2ef8cd8347c0b2e577927e46a1a59590a647b46b0073ef2fd98e025d",
+      "path": "os/manifest/ci/14/14zzc-round/ledger.json"
+    },
+    {
+      "sha256": "67e4908bd64657b65c945e8f8350415aef4326598c22ac7a68c7545116e6120d",
+      "path": "os/manifest/ci/14/14zzc-round/local-privacy-pushed-head.json"
+    },
+    {
+      "sha256": "ab4c7fad451ce8f65a3eacd8d8897163f4680c03fbf9a8ef4c00859910b22930",
+      "path": "os/manifest/ci/14/14zzc-round/native-stop.json"
+    },
+    {
+      "sha256": "4766ba5ed669e6f8cb6a0fc7d4f58bcddbf42433e0e551e5792f2905df80c208",
+      "path": "os/manifest/ci/14/14zzc-round/probe-authorization.json"
+    },
+    {
+      "sha256": "8294ca8d118c10c030c313754060b6914bc15ea1c3e8b1ef049a5a53d66f9dd4",
+      "path": "os/manifest/ci/14/14zzc-round/probe32-artifact-review.json"
+    },
+    {
+      "sha256": "a8cf26141e34ca08b4b4c88628a219517f44c03941f20f253bffeaac11ca0b27",
+      "path": "os/manifest/ci/14/14zzc-round/probe32-artifact.json"
+    },
+    {
+      "sha256": "14609e0144b06758c338c3a4e7cec5930f7af15d0ed274b7541972ab1771165b",
+      "path": "os/manifest/ci/14/14zzc-round/probe32-log-review.json"
+    },
+    {
+      "sha256": "1227ee2e60126fffc30eb6f5a61d0ea6e6e30b5ef41e9fa98eb6c1026f471375",
+      "path": "os/manifest/ci/14/14zzc-round/probe32-source-bindings.json"
+    },
+    {
+      "sha256": "3aee5b1d1b05c7a5d1f38998bb911145d70e15b19a8cee9c38778e58c7cb1562",
+      "path": "os/manifest/ci/14/14zzc-round/push.json"
+    },
+    {
+      "sha256": "770fcb4ccac4e8e7eb9177996528b5902bbcdc92747763dfbc6870710d8de33d",
+      "path": "os/manifest/ci/14/14zzc-round/qualification-replay-attempts.json"
+    },
+    {
+      "sha256": "9e7947b101645837ebc08cebb5b283420f8e85ff264cfa750cd64caeb7467377",
+      "path": "os/manifest/ci/14/14zzc-round/round.json"
+    }
+  ]
+}

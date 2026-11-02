@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+2026-10-28T07:18:36.2075307Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 708, in <module>
+2026-10-28T07:18:36.2081682Z     main()
+2026-10-28T07:18:36.2082330Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 682, in main
+2026-10-28T07:18:36.2083607Z     td.live_probe(audit)
+2026-10-28T07:18:36.2084375Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 829, in live_probe
+2026-10-28T07:18:36.2089428Z     probe(guest, EVIDENCE, protected, target)
+2026-10-28T07:18:36.2090192Z   File "/home/runner/work/AresOS/AresOS/os/ci/installer_webui.py", line 502, in probe
+2026-10-28T07:18:36.2095014Z     return run(guest, evidence, protected, target, password)
+2026-10-28T07:18:36.2095688Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-28T07:18:36.2096444Z   File "/home/runner/work/AresOS/AresOS/os/ci/installer_webui.py", line 468, in run
+2026-10-28T07:18:36.2097157Z     start(guest, stage)
+2026-10-28T07:18:36.2097759Z   File "/home/runner/work/AresOS/AresOS/os/ci/installer_webui.py", line 109, in start
+2026-10-28T07:18:36.2098428Z     guest.command(stage + '-server', '''set -e
+2026-10-28T07:18:36.2098883Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 104, in command
+2026-10-28T07:18:36.2099602Z     return super().command(name, script, timeout, private=private or registry_read)
+2026-10-28T07:18:36.2100338Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-28T07:18:36.2100970Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 271, in command
+2026-10-28T07:18:36.2101527Z     output = serial_transport.execute(self.send, self.wait, script, timeout,
+2026-10-28T07:18:36.2102176Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-28T07:18:36.2103178Z   File "/home/runner/work/AresOS/AresOS/os/ci/serial_transport.py", line 90, in execute
+2026-10-28T07:18:36.2104068Z     output = wait(pattern, min(ACK_TIMEOUT, remaining))
+2026-10-28T07:18:36.2104658Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-28T07:18:36.2105254Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 193, in wait
+2026-10-28T07:18:36.2106252Z     raise TimeoutError(f'Guest console did not reach {pattern}')
+2026-10-28T07:18:36.2107437Z TimeoutError: Guest console did not reach \r?\nARESOS_STAGE_bfb36eb14394c8e6:10:(\d+)\r?\n
+2026-10-28T07:18:36.2474756Z ##[error]Process completed with exit code 1.

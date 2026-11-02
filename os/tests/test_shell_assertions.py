@@ -62,7 +62,8 @@ class ShellAssertionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=ROOT / 'tests') as directory:
             root = pathlib.Path(directory)
             (root / 'auth.json').write_text('{}\n')
-            (root / 'state.json').write_text(json.dumps(dict(status=dict(staged=staged, rollbackQueued=rollback_queued))))
+            (root / 'state.json').write_text(json.dumps(dict(status=dict(staged=staged, rollbackQueued=rollback_queued,
+                rollback=dict(image=dict(image=dict(image='ghcr.io/ublue-os/bazzite-nvidia-open:stable'), imageDigest='sha256:'+'e'*64))))))
             for name, source in {
                 'bootc': '''#!/bin/bash
 printf 'bootc %s\\n' "$*" >> "$FIXTURE_CALLS"
@@ -140,8 +141,9 @@ bootc() { echo TRANSACTION_MUST_NOT_RUN; }
         self.assertNotIn('TRANSACTION_MUST_NOT_RUN', result.stdout)
 
     def test_install_transactions_stop_on_failure_and_never_include_the_reboot(self):
-        guide = (ROOT.parent / 'docs/INSTALL.md').read_text(encoding='utf-8')
-        blocks = re.findall(r'```bash\n(.*?)\n```', guide, re.S)
+        reference=json.loads((ROOT/'manifest/release.json').read_text())['reference']
+        blocks=[(ROOT/'release/switch.sh').read_text().replace('@REFERENCE@',reference),
+                (ROOT/'release/rollback.sh').read_text().replace('@BASE_DIGEST@','sha256:'+'e'*64)]
         for command in ('bootc switch --retain ', 'bootc rollback\n'):
             block, = [block for block in blocks if command in block]
             self.assertNotIn('systemctl reboot', block)
@@ -150,16 +152,13 @@ bootc() { echo TRANSACTION_MUST_NOT_RUN; }
                 self.assertEqual(result.returncode, 42, result.stdout + result.stderr)
                 self.assertIn('INJECTED_TRANSACTION_FAILURE', result.stdout)
                 transaction, = [line for line in block.splitlines() if line.startswith(command.rstrip())]
-                self.assertEqual(calls, ['bootc status --json', transaction] if 'switch' in command else [transaction])
-        default, = [block for block in blocks if 'REPLACE_WITH_RECORDED_STOCK_CHECKSUM' in block]
-        recipe = (ROOT / 'release/default-stock.sh').read_text().split("<<'PY'\n", 1)[1].rsplit('\nPY', 1)[0]
-        documented = default.split("<<'PY'\n", 1)[1].rsplit('\nPY', 1)[0]
-        digest = __import__('json').loads((ROOT / 'manifest/base.json').read_text())['reference'].split('@')[1]
-        self.assertEqual(recipe.replace('@STOCK_CHECKSUM@', 'REPLACE_WITH_RECORDED_STOCK_CHECKSUM').replace('@BASE_DIGEST@', digest), documented)
+                self.assertEqual(calls, ['bootc status --json', transaction])
+        default=(ROOT/'owner-tools/payload/release/default-stock.sh').read_bytes()
+        self.assertEqual(default,(ROOT/'release/default-stock.sh').read_bytes())
 
     def test_owner_switch_prerequisites_stop_before_the_transaction(self):
-        guide = (ROOT.parent / 'docs/INSTALL.md').read_text(encoding='utf-8')
-        block, = [block for block in re.findall(r'```bash\n(.*?)\n```', guide, re.S) if 'bootc switch --retain ' in block]
+        reference=json.loads((ROOT/'manifest/release.json').read_text())['reference']
+        block=(ROOT/'release/switch.sh').read_text().replace('@REFERENCE@',reference)
         for state, queries in ((dict(daily=True), []), (dict(uid_taken=True), []),
                                (dict(auth_readable=False), []),
                                (dict(staged={'image': 'fixture'}), ['bootc status --json']),

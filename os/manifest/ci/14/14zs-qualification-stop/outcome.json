@@ -1,0 +1,492 @@
+{
+  "status": "STOP after passed corrected-stock records; physical prompt-readiness deadline after two authorized Enter resyncs",
+  "run": 40897501964,
+  "head": "65edb1195b12cade6f62d9952f70f5920ad13631",
+  "native": {
+    "tests": 540,
+    "seconds": 131.362,
+    "skips": 0
+  },
+  "owner_records": [
+    {
+      "sha256": "9ba27f1d36dccab3cbeed8c92c8705a82d7f68c42e52253e7971474dcaf33519",
+      "path": "evidence/two-disk/after-first-network-records-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "records"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "5a8f26d0e8c47476625fdc3b3c46c920cf4559230f29217df195ce5af698b8cc",
+      "path": "evidence/two-disk/after-first-network-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "b6b2b614b6edf6cfd2be4b3366fd28523105bcd9e8a094ead21c3651db119db5",
+      "path": "evidence/two-disk/corrected-stock-records-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "records"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "b4a87abc956583e2aab00bf617717d8409646f220c1634fa3ad39bd6f0c69856",
+      "path": "evidence/two-disk/corrected-stock-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "72592f775798332cecbfbf7d8b66f3e6645fda41d812213e4d154d0e60157577",
+      "path": "evidence/two-disk/tools-before-reboot-title-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "54645e0ab4c67553e467757fbeee8cd5d6214aedec3e6d39031f8448501b4bf7",
+      "path": "evidence/two-disk/tools-install-owner-diagnostics.json",
+      "status": "passed",
+      "command": null,
+      "mutations": 0
+    },
+    {
+      "sha256": "f4df270d20f3bb279a45b14679c4a804f1533e3a9d3bec5e2289b01e1f1b6423",
+      "path": "evidence/two-disk/tools-prepare-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "mutations": 4
+    },
+    {
+      "sha256": "768240c416afc6447912c2a32ffacce4a82f85bf1864acf4909bb1ceb452c27f",
+      "path": "evidence/two-disk/tools-prepare-rerun-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ],
+      "mutations": 0
+    },
+    {
+      "sha256": "c8729e1ab4320b1fb8a3fd87458d59137d8c6ac9bdcd2d87abc0cc4818b1bb43",
+      "path": "evidence/two-disk/tools-record-export-owner-diagnostics.json",
+      "status": "passed",
+      "command": [
+        "export"
+      ],
+      "mutations": 5
+    }
+  ],
+  "logins": [
+    {
+      "sha256": "3d0cb4e93eb1475f40f6852048e615bd12725931cae0ab91baf2af8c1f0352e5",
+      "path": "evidence/two-disk/corrected-stock-physical-login-result.json",
+      "result": {
+        "status": "passed",
+        "tty": "tty3",
+        "attempts": 1,
+        "reader_replacements": 0,
+        "timing": {
+          "elapsed_seconds": 8.933182459999998,
+          "timeout_seconds": 60,
+          "half_budget_seconds": 30.0,
+          "within_half_timeout": true,
+          "counters_started_before_username": true,
+          "value_recorded": false
+        },
+        "value_recorded": false,
+        "secret_tainted": false
+      },
+      "exposure": {
+        "counts_only": true,
+        "counts": {
+          "hidden": {
+            "press": 32,
+            "release": 32,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "non_hidden": {
+            "press": 0,
+            "release": 0,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "unknown": {
+            "press": 0,
+            "release": 0,
+            "repeat": 0,
+            "syn_dropped": 0
+          }
+        },
+        "complete": true,
+        "value_recorded": false,
+        "codes_recorded": false
+      },
+      "versions": {
+        "login": "login from util-linux 2.41.5",
+        "agetty": "agetty from util-linux 2.41.5 (flow control, hints, issue, issue.d, keyboard mode, plymouth, reload, syslog, systemd, widechar)"
+      },
+      "observers_prepared": true
+    },
+    {
+      "sha256": "fedb4b54fce20a223318198c928c34e34130f1e763954c4161c1413e1dc7d44c",
+      "path": "evidence/two-disk/tools-stock-physical-login-result.json",
+      "result": {
+        "status": "passed",
+        "tty": "tty3",
+        "attempts": 1,
+        "reader_replacements": 0,
+        "timing": {
+          "elapsed_seconds": 8.912992063000004,
+          "timeout_seconds": 60,
+          "half_budget_seconds": 30.0,
+          "within_half_timeout": true,
+          "counters_started_before_username": true,
+          "value_recorded": false
+        },
+        "value_recorded": false,
+        "secret_tainted": false
+      },
+      "exposure": {
+        "counts_only": true,
+        "counts": {
+          "hidden": {
+            "press": 32,
+            "release": 32,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "non_hidden": {
+            "press": 0,
+            "release": 0,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "unknown": {
+            "press": 0,
+            "release": 0,
+            "repeat": 0,
+            "syn_dropped": 0
+          }
+        },
+        "complete": true,
+        "value_recorded": false,
+        "codes_recorded": false
+      },
+      "versions": {
+        "login": "login from util-linux 2.41.5",
+        "agetty": "agetty from util-linux 2.41.5 (flow control, hints, issue, issue.d, keyboard mode, plymouth, reload, syslog, systemd, widechar)"
+      },
+      "observers_prepared": true
+    }
+  ],
+  "hidden_counters": [
+    {
+      "sha256": "fbbb1072deb76aceb1d7000614230cc57b2be91fa08b0297b07546ea32f925d5",
+      "path": "evidence/two-disk/corrected-stock-password-prompt-read-wait-40-key-counter-result.json",
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "complete": true,
+      "whole_window": {
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0
+      }
+    },
+    {
+      "sha256": "6a3ed8992ce52b47747dc2accb87629fbdf2b3f918371e1608ba9c3c6ee8b8cf",
+      "path": "evidence/two-disk/corrected-stock-sudo-hidden-read-wait-46-key-counter-result.json",
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "complete": true,
+      "whole_window": {
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0
+      }
+    },
+    {
+      "sha256": "52c1bb7a079bd26f61afb14e358864f952cc98001d756f121eb9ca7b2052dfcc",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-3-key-counter-result.json",
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "complete": true,
+      "whole_window": {
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0
+      }
+    },
+    {
+      "sha256": "dcb2066790a3da6057162d05f0bce6493072afeef515f5066e9cfcda8a0c81cb",
+      "path": "evidence/two-disk/tools-stock-sudo-hidden-read-wait-9-key-counter-result.json",
+      "comparison": {
+        "sent_events": 66,
+        "received_events": 66,
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0,
+        "matches": true
+      },
+      "complete": true,
+      "whole_window": {
+        "press": 33,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0
+      }
+    }
+  ],
+  "resyncs": [
+    {
+      "sha256": "a0ede22bf414bd4d6dfab38fa8fe4beab2123c76066b83bc8b34097a7008d74b",
+      "path": "evidence/two-disk/corrected-stock-records-completed-wait-53-resync-1.json",
+      "receipt": {
+        "stage": "corrected-stock-records-completed-wait-53",
+        "tty": "tty3",
+        "attempt": 1,
+        "time": "2026-10-29T16:06:26.642124+00:00",
+        "before_cursor_line": "",
+        "after_cursor_line": "",
+        "enter_sent": true,
+        "observer": {
+          "ready": true,
+          "completion_uses_echo": false,
+          "foreground_shell": true,
+          "observation": {
+            "ready": true,
+            "reason": "sudo -i monitor to foreground pts interactive bash",
+            "foreground_chain": [
+              {
+                "pid": 6041,
+                "comm": "sudo",
+                "argv": [
+                  "sudo",
+                  "-i"
+                ],
+                "argv_redacted": false,
+                "ppid": 4298,
+                "pgrp": 6041,
+                "session": 4298,
+                "tty": 1027,
+                "tpgid": 6041
+              },
+              {
+                "pid": 8525,
+                "comm": "sudo",
+                "argv": [
+                  "sudo",
+                  "-i"
+                ],
+                "argv_redacted": false,
+                "ppid": 6041,
+                "pgrp": 8525,
+                "session": 8525,
+                "tty": 34817,
+                "tpgid": 8526
+              },
+              {
+                "pid": 8526,
+                "comm": "bash",
+                "argv": [
+                  "-bash"
+                ],
+                "argv_redacted": false,
+                "ppid": 8525,
+                "pgrp": 8526,
+                "session": 8525,
+                "tty": 34817,
+                "tpgid": 8526
+              }
+            ]
+          }
+        },
+        "after_time": "2026-10-29T16:06:59.361870+00:00",
+        "ready": false
+      }
+    },
+    {
+      "sha256": "18e5471a4e01bf3c3c601a88c39ccba8b1f28b15c7dbe6c4072da3a7876fbfd7",
+      "path": "evidence/two-disk/corrected-stock-records-completed-wait-53-resync-2.json",
+      "receipt": {
+        "stage": "corrected-stock-records-completed-wait-53",
+        "tty": "tty3",
+        "attempt": 2,
+        "time": "2026-10-29T16:06:59.363283+00:00",
+        "before_cursor_line": "",
+        "after_cursor_line": "",
+        "enter_sent": true,
+        "observer": {
+          "ready": true,
+          "completion_uses_echo": false,
+          "foreground_shell": true,
+          "observation": {
+            "ready": true,
+            "reason": "sudo -i monitor to foreground pts interactive bash",
+            "foreground_chain": [
+              {
+                "pid": 6041,
+                "comm": "sudo",
+                "argv": [
+                  "sudo",
+                  "-i"
+                ],
+                "argv_redacted": false,
+                "ppid": 4298,
+                "pgrp": 6041,
+                "session": 4298,
+                "tty": 1027,
+                "tpgid": 6041
+              },
+              {
+                "pid": 8525,
+                "comm": "sudo",
+                "argv": [
+                  "sudo",
+                  "-i"
+                ],
+                "argv_redacted": false,
+                "ppid": 6041,
+                "pgrp": 8525,
+                "session": 8525,
+                "tty": 34817,
+                "tpgid": 8526
+              },
+              {
+                "pid": 8526,
+                "comm": "bash",
+                "argv": [
+                  "-bash"
+                ],
+                "argv_redacted": false,
+                "ppid": 8525,
+                "pgrp": 8526,
+                "session": 8525,
+                "tty": 34817,
+                "tpgid": 8526
+              }
+            ]
+          }
+        },
+        "after_time": "2026-10-29T16:07:26.743736+00:00",
+        "ready": false
+      }
+    }
+  ],
+  "timeout_geometry": [
+    {
+      "sha256": "8649735e5bd80360e83a626321415b0e87aef64ffb4592f9eb15b14161f5fd8f",
+      "path": "evidence/two-disk/corrected-stock-records-completed-wait-53-timeout-1.vcsa",
+      "rows": 50,
+      "columns": 160,
+      "cursor_x": 0,
+      "cursor_y": 49,
+      "cursor_line_empty": true,
+      "prompt_suffix_rows": [],
+      "root_prefix_rows": [
+        23,
+        33,
+        45
+      ],
+      "pass_records_rows": [
+        34
+      ],
+      "raw_screen_saved_in_packet": false
+    },
+    {
+      "sha256": "8649735e5bd80360e83a626321415b0e87aef64ffb4592f9eb15b14161f5fd8f",
+      "path": "evidence/two-disk/corrected-stock-records-completed-wait-53-timeout-2.vcsa",
+      "rows": 50,
+      "columns": 160,
+      "cursor_x": 0,
+      "cursor_y": 49,
+      "cursor_line_empty": true,
+      "prompt_suffix_rows": [],
+      "root_prefix_rows": [
+        23,
+        33,
+        45
+      ],
+      "pass_records_rows": [
+        34
+      ],
+      "raw_screen_saved_in_packet": false
+    },
+    {
+      "sha256": "8649735e5bd80360e83a626321415b0e87aef64ffb4592f9eb15b14161f5fd8f",
+      "path": "evidence/two-disk/corrected-stock-records-completed-wait-53-timeout-3.vcsa",
+      "rows": 50,
+      "columns": 160,
+      "cursor_x": 0,
+      "cursor_y": 49,
+      "cursor_line_empty": true,
+      "prompt_suffix_rows": [],
+      "root_prefix_rows": [
+        23,
+        33,
+        45
+      ],
+      "pass_records_rows": [
+        34
+      ],
+      "raw_screen_saved_in_packet": false
+    }
+  ],
+  "verified_staged_transfers": 131,
+  "hidden_completions": 4,
+  "observed": "owner records passed; sudo relay observer reported idle at each resync; physical cursor line remained empty",
+  "underlying_cause_proven": false,
+  "acceptance_met": false,
+  "product_fix_after_stop": false,
+  "reruns": 0,
+  "not_reached": [
+    "private owner login and dummy-token path",
+    "verify and switch",
+    "AresOS boot/login",
+    "plain-US failure and revert",
+    "US International proof/finish",
+    "final German proof/finish",
+    "rollback",
+    "keep-stock",
+    "final Windows checks"
+  ],
+  "raw_visuals_saved_in_packet": false,
+  "credential_values_saved": false
+}

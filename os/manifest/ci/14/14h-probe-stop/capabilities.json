@@ -1,0 +1,44 @@
+{
+  "status": "passed",
+  "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+  "checks": {
+    "loop": true,
+    "fuse_exfat_rw": true,
+    "unmount_confirmed": true,
+    "fsck_readonly": true,
+    "fuse_exfat_ro": true,
+    "readonly_write_refused": true,
+    "fixture_tools": true,
+    "qemu_ovmf": true,
+    "qmp": true,
+    "usb_hotplug": true,
+    "serial_sockets": true,
+    "network_link_control": true,
+    "screenshot": true,
+    "keyboard": true
+  },
+  "qemu": {
+    "acceleration": [
+      "-accel",
+      "kvm",
+      "-cpu",
+      "host"
+    ],
+    "marker_booted": true,
+    "toy_usb_removed_before_firmware": true
+  },
+  "exfat": {
+    "sha256": "2017bace9d18d5b09ccf33306a680329710a3ddb55d62f79ce03a9519fd40608",
+    "path": ".work/14-host-capabilities/exfat.raw"
+  },
+  "ovmf": [
+    {
+      "sha256": "ad23261d43116abc3747d59a7837fbf578c9586a8993f4eeba064cd07eccb083",
+      "path": "/usr/share/OVMF/OVMF_CODE_4M.fd"
+    },
+    {
+      "sha256": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e",
+      "path": "/usr/share/OVMF/OVMF_VARS_4M.fd"
+    }
+  ]
+}

@@ -1,0 +1,451 @@
+{
+  "status": "STOP-PLAN-GAP: tty3 prompt deadline after tools-stick kernel output",
+  "run": 40263990213,
+  "head": "5e8c0c961506af997a522190e194fbe9ca745308",
+  "native_tests": 306,
+  "native_seconds": 22.893,
+  "native_skips": 0,
+  "offline_install": "passed",
+  "first_stock_hardware_reboot": "passed offline, no staged or queued work",
+  "windows_roundtrip": "attached and detached passed",
+  "physical_recovery_login": "passed",
+  "password_sudo": "root readiness passed before hotplug",
+  "hotplug": "passed after login",
+  "failed_stage": "tools-install-ready",
+  "command_typed": false,
+  "prepare": false,
+  "first_network": false,
+  "switch": false,
+  "layout": false,
+  "rollback": false,
+  "keep_stock": false,
+  "normal_detach_export": false,
+  "failure_close": "paused counter then host-signal termination; no subsequent guest reboot",
+  "diagnosis": "Screenshot shows the earlier root prompt followed by USB kernel messages and a blank current line. The wait_tty source requires the active cursor line to end in $/#. This supports prompt synchronisation failure; no kernel-output suppression, readiness bypass or harness fix attempted.",
+  "original_members": [
+    {
+      "sha256": "c98c4155251b0abda85c6b5f8f5e1b4e5313c2be7254d944c63b8895311a04f4",
+      "path": "14-host-capabilities.json",
+      "retained_as": "14-host-capabilities.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "f23d13d5859db27c384e501cc99af28d11210979ab68d31c88457923a9b6aeba",
+      "path": "14-dispatch-authorization.json",
+      "retained_as": "14-dispatch-authorization.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "1025a2132723b2c17cb237a73f2f70fc3e266031bce3218a2f2405b72ddc8934",
+      "path": "private-registry-preflight.json",
+      "retained_as": "private-registry-preflight.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "3bc17169689c78689515fe2cd527cd88010f7efac9ff531c9488dbc65038f00d",
+      "path": "private-release-signature-proof.json",
+      "retained_as": "private-release-signature-proof.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "78a8e7eb8fdfe12f026ca3a2a5b155e9097ff1f2242f4ba88f470db82ba23317",
+      "path": "owner-release-pull.json",
+      "retained_as": "owner-release-pull.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "b719fa720ac55bcb0e2bbb12f2de979f7e85b5dc5098e4b0d0082d392fd55bfd",
+      "path": "owner-auth-cleanup.json",
+      "retained_as": "owner-auth-cleanup.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "1c7da9965c2d48d90abbaaf9f9fd9aad0faddf586275ff5d16a3dae689b3edad",
+      "path": "installer/iso-download.json",
+      "retained_as": "installer--iso-download.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "229e964acccedf454d7979d1d5c66a7ed33f228a61c9779e5ab641c754d00f68",
+      "path": "two-disk/protected-second-install-result.json",
+      "retained_as": "two-disk--protected-second-install-result.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "009a9bc9811c8c2c5b0e3f0e114d99ac14f5e7c7db2db4e0da1b69d7268220d9",
+      "path": "two-disk/offline-first-stock-result.json",
+      "retained_as": "two-disk--offline-first-stock-result.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "9d498a72ea3d72bc055e6de1d871a563e424184edfc4f5e7b8f524daa881ae1c",
+      "path": "two-disk/offline-first-stock-link.json",
+      "retained_as": "two-disk--offline-first-stock-link.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "b02623afc56d3553a5971a8fec18bcb20a907d0b41af8f5df1aae040d6a95cc9",
+      "path": "two-disk/stock-initialization-reboot.json",
+      "retained_as": "two-disk--stock-initialization-reboot.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "f36f70c773eef24dab57307c97580c6723a33b011601999c2a2c6caa0ef42fe4",
+      "path": "two-disk/tools-stock-before-prepare-deployments.json",
+      "retained_as": "two-disk--tools-stock-before-prepare-deployments.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "41610a4dd7596116d820029e9d1c01734ddf3c514c7b32a1d91d2c65ec8a4523",
+      "path": "two-disk/tools-stock-before-prepare-rpm-ostree-status.json",
+      "retained_as": "two-disk--tools-stock-before-prepare-rpm-ostree-status.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "2293cce0b0fb4e5191be07df8faea865955ea37e56b79ee8f8e33d585e49799d",
+      "path": "two-disk/tools-stock-before-prepare-bootc-status.json",
+      "retained_as": "two-disk--tools-stock-before-prepare-bootc-status.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "9eed786d514c3820ed6e9586a9e0066e67abb50f52b1f6893f18bb090478b4a0",
+      "path": "two-disk/tools-stock-before-prepare-resolved-bls.json",
+      "retained_as": "two-disk--tools-stock-before-prepare-resolved-bls.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "826faf3e4784c9f35574f69f4253a7f588bbe56e9c62f3cbb2f094d7745ee242",
+      "path": "two-disk/tools-stock-media-attach.json",
+      "retained_as": "two-disk--tools-stock-media-attach.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "4d89be6064a55eb5c838e9489ca849fbf9a1594e76b260e8e76d66ae18ae79d5",
+      "path": "two-disk/tools-stock-failure-counter.json",
+      "retained_as": "two-disk--tools-stock-failure-counter.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "4c7f4c0603722a694a278a364cd8be1ebbaa8606a65cc291d99fc95bbaacd407",
+      "path": "two-disk/tools-stick-created-media-backing.json",
+      "retained_as": "two-disk--tools-stick-created-media-backing.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "aebae0d96cea68c354848ee77b383f0a6b4e2829f1f564042eb52e12a65b8579",
+      "path": "two-disk/baseline-firmware-protected.json",
+      "retained_as": "two-disk--baseline-firmware-protected.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "aebae0d96cea68c354848ee77b383f0a6b4e2829f1f564042eb52e12a65b8579",
+      "path": "two-disk/boot-3-pre-login-reset-protected.json",
+      "retained_as": "two-disk--boot-3-pre-login-reset-protected.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "aebae0d96cea68c354848ee77b383f0a6b4e2829f1f564042eb52e12a65b8579",
+      "path": "two-disk/offline-first-stock-protected.json",
+      "retained_as": "two-disk--offline-first-stock-protected.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "aebae0d96cea68c354848ee77b383f0a6b4e2829f1f564042eb52e12a65b8579",
+      "path": "two-disk/offline-roundtrip-detached-windows-protected.json",
+      "retained_as": "two-disk--offline-roundtrip-detached-windows-protected.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "aebae0d96cea68c354848ee77b383f0a6b4e2829f1f564042eb52e12a65b8579",
+      "path": "two-disk/offline-roundtrip-unattended-windows-protected.json",
+      "retained_as": "two-disk--offline-roundtrip-unattended-windows-protected.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "aebae0d96cea68c354848ee77b383f0a6b4e2829f1f564042eb52e12a65b8579",
+      "path": "two-disk/protected-second-install-protected.json",
+      "retained_as": "two-disk--protected-second-install-protected.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "aebae0d96cea68c354848ee77b383f0a6b4e2829f1f564042eb52e12a65b8579",
+      "path": "two-disk/tools-stock-protected.json",
+      "retained_as": "two-disk--tools-stock-protected.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "e74fccf1e4ed093105768a7b62dc69bba3d8a2a180d835814fae8aea539765ee",
+      "path": "two-disk/baseline-firmware-blockstats.json",
+      "retained_as": "two-disk--baseline-firmware-blockstats.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "08efdc59b259e0e379c55e9de3f7beb227c3bc0b05f676cacb647aa49da92a8b",
+      "path": "two-disk/offline-first-stock-blockstats.json",
+      "retained_as": "two-disk--offline-first-stock-blockstats.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "a5302656ac6a13a88ae46258a6e4c7946942352d2b30e881b23aa60b1fc8cb67",
+      "path": "two-disk/offline-roundtrip-detached-windows-blockstats.json",
+      "retained_as": "two-disk--offline-roundtrip-detached-windows-blockstats.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "a2a1ed5aacf2690b2647e2024505aad99ceb5b3ecdcb619382c03a8d76de3538",
+      "path": "two-disk/offline-roundtrip-unattended-windows-blockstats.json",
+      "retained_as": "two-disk--offline-roundtrip-unattended-windows-blockstats.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "65f146d61f800c9e5d3ae15e992cbb54d2b4a2b5203270932fd44e1b3d5e89c6",
+      "path": "two-disk/pre-login-reset-blockstats.json",
+      "retained_as": "two-disk--pre-login-reset-blockstats.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "6a22dd8b299459ddd6155891665ada0e61a60bd4dfa5d52ba6c5949b1dda042c",
+      "path": "two-disk/protected-second-install-blockstats.json",
+      "retained_as": "two-disk--protected-second-install-blockstats.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "5f89dbf10c7f5af545bb52f306d35be7c9dcaaae93146a685dae52f7ebdae273",
+      "path": "two-disk/protected-second-install-progress-blockstats.json",
+      "retained_as": "two-disk--protected-second-install-progress-blockstats.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "946a253a87bfad6352e051aaecabb445af5c070f664ea021ffdcdace3b872a54",
+      "path": "two-disk/tools-stock-blockstats.json",
+      "retained_as": "two-disk--tools-stock-blockstats.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "1d30935f79f12762aec568063d89e68c668412fcd744c041a82e033e483be9df",
+      "path": "two-disk/baseline-firmware-bootnext-audit.json",
+      "retained_as": "two-disk--baseline-firmware-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "5dd4cb4e6d4881953afd29bf88a20f50e55510e6b6ce4f2fe67f5cd2b06266a0",
+      "path": "two-disk/boot-3-pre-login-reset-bootnext-audit.json",
+      "retained_as": "two-disk--boot-3-pre-login-reset-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "dd8cd39b374fa4bbbaf52ab6e3475bdaf8e13d54106fa409723737f607b6fed3",
+      "path": "two-disk/offline-first-stock-bootnext-audit.json",
+      "retained_as": "two-disk--offline-first-stock-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "e1e289f63a6d8d1a23268e9dc0842ff0e0e6291ff5661eecd9fa6909799c8ab4",
+      "path": "two-disk/offline-roundtrip-detached-windows-bootnext-audit.json",
+      "retained_as": "two-disk--offline-roundtrip-detached-windows-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "87e7da182d0c15fa57cc478cccf352f70d9fe98011d6ad686044707affa9636f",
+      "path": "two-disk/offline-roundtrip-unattended-windows-bootnext-audit.json",
+      "retained_as": "two-disk--offline-roundtrip-unattended-windows-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "4205b767840e0b7418cb08727b455608e0434ffd25ca1e573c20ad7b3e25418a",
+      "path": "two-disk/protected-second-install-bootnext-audit.json",
+      "retained_as": "two-disk--protected-second-install-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "c50cf80e0cff4a5cbedc83918a6f5b9295593e97d6397be6663b69b97798d1c9",
+      "path": "two-disk/tools-stock-bootnext-audit.json",
+      "retained_as": "two-disk--tools-stock-bootnext-audit.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "c5e9008f03ed35f64ac6f1fc4b4c62c71e62eba904d2a41958987daca1edc4d8",
+      "path": "two-disk/boot-3-pre-login-reset-nvram-diff.json",
+      "retained_as": "two-disk--boot-3-pre-login-reset-nvram-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "d87223f4a9fb69113cfd351f76d3561cebb65698ae46b3619ac9eb5320eac60e",
+      "path": "two-disk/offline-first-stock-nvram-diff.json",
+      "retained_as": "two-disk--offline-first-stock-nvram-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "77bc7ae522c9c639c061c9c35416c0b11ea2a78bec8ac7fa6f7931fd970ca837",
+      "path": "two-disk/offline-roundtrip-detached-windows-nvram-diff.json",
+      "retained_as": "two-disk--offline-roundtrip-detached-windows-nvram-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "da03630c42dff0c37b5d25cda59cd2b246d95662f858009f1a609d025dc350ef",
+      "path": "two-disk/offline-roundtrip-unattended-windows-nvram-diff.json",
+      "retained_as": "two-disk--offline-roundtrip-unattended-windows-nvram-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "309d71492bb18270849e507733fa0f2f4720aa3eff097d2834c64fbbd5072cb6",
+      "path": "two-disk/protected-second-install-nvram-diff.json",
+      "retained_as": "two-disk--protected-second-install-nvram-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "c786c25e3cb2a951fcbf0209e8cce2dc869427c2dfd3bb39cf516caffb6c2e11",
+      "path": "two-disk/tools-stock-nvram-diff.json",
+      "retained_as": "two-disk--tools-stock-nvram-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "c93207522e6fa8e8719bcddb835c4cb5dcabc5d5ad0a0cfd62774ae463608700",
+      "path": "two-disk/boot-3-pre-login-reset-all-variables-diff.json",
+      "retained_as": "two-disk--boot-3-pre-login-reset-all-variables-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "df3c4e8c50cc6268704078ece73a6f0a83127f8fb62b6f84113e14c2fbed2fb1",
+      "path": "two-disk/offline-first-stock-all-variables-diff.json",
+      "retained_as": "two-disk--offline-first-stock-all-variables-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "3a9f92cb52d0d95d8b6e9e3a7de6cbd9f2b0f60354044e6c7ccd724d054edd8e",
+      "path": "two-disk/offline-roundtrip-detached-windows-all-variables-diff.json",
+      "retained_as": "two-disk--offline-roundtrip-detached-windows-all-variables-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "e5987dd62d96db39ab2edd2970b883437b585d418d99009b8709f7f084abec78",
+      "path": "two-disk/offline-roundtrip-unattended-windows-all-variables-diff.json",
+      "retained_as": "two-disk--offline-roundtrip-unattended-windows-all-variables-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "b061a9459fe3286e82e4cd37a7e5dd6fe2d35f429e2b7e9d32c2d00e3e4790ee",
+      "path": "two-disk/protected-second-install-all-variables-diff.json",
+      "retained_as": "two-disk--protected-second-install-all-variables-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "93202febe9cd9d20b5e6307b7806a17869b711902bb451e36fada1632aae4bd8",
+      "path": "two-disk/tools-stock-all-variables-diff.json",
+      "retained_as": "two-disk--tools-stock-all-variables-diff.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk/boot-1-owner-route.json",
+      "retained_as": "two-disk--boot-1-owner-route.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk/boot-2-owner-route.json",
+      "retained_as": "two-disk--boot-2-owner-route.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk/boot-3-owner-route.json",
+      "retained_as": "two-disk--boot-3-owner-route.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk/boot-4-owner-route.json",
+      "retained_as": "two-disk--boot-4-owner-route.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk/boot-5-owner-route.json",
+      "retained_as": "two-disk--boot-5-owner-route.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk/boot-6-owner-route.json",
+      "retained_as": "two-disk--boot-6-owner-route.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "bf4d0f30d35145f2036d3f0c75e6140369a684316e1d43fa586d490e3cfd7af4",
+      "path": "two-disk/boot-7-owner-route.json",
+      "retained_as": "two-disk--boot-7-owner-route.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "24cf0d4c50bb8f723855429d224b0fffd03d3a5283d53a6992256e0ed1d7b362",
+      "path": "two-disk/baseline-firmware-tools-absent.json",
+      "retained_as": "two-disk--baseline-firmware-tools-absent.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "9a1a81afebb3fe36940a2daf9c26be64d6ba1389880774be93d47c1852470d85",
+      "path": "two-disk/offline-first-stock-tools-absent.json",
+      "retained_as": "two-disk--offline-first-stock-tools-absent.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "6d563d4f80a22cd2e1cdd20e8990e989e8fbefd174c0ef3e72468cfdbccf791c",
+      "path": "two-disk/offline-roundtrip-detached-windows-tools-absent.json",
+      "retained_as": "two-disk--offline-roundtrip-detached-windows-tools-absent.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "cef30d96f655959a6a4453013a7b65809115d4eb537d095e7d4966cfeb399a73",
+      "path": "two-disk/offline-roundtrip-unattended-windows-tools-absent.json",
+      "retained_as": "two-disk--offline-roundtrip-unattended-windows-tools-absent.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "0f490f7f11c8baef456d6bfafd94fa5ac9e1f66747ce22042ee5dac1a290a454",
+      "path": "two-disk/pre-login-reset-tools-absent.json",
+      "retained_as": "two-disk--pre-login-reset-tools-absent.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "38cf5f10e5295bf42f25972e4eb9defa161879b1dd012d60e2070bd20e7da826",
+      "path": "two-disk/protected-second-install-tools-absent.json",
+      "retained_as": "two-disk--protected-second-install-tools-absent.json",
+      "transformation": "hash-first JSON; EFI file map normalized where present"
+    },
+    {
+      "sha256": "bfcc74add30da4709c42175b627f7abaa4b58aaaf7b66e27378ffe9f3c3e8b83",
+      "path": "two-disk/tools-stock-shell-ready.txt",
+      "retained_as": "tools-stock-shell-ready.txt",
+      "transformation": "ANSI/OSC removed; trailing prompt spaces trimmed"
+    },
+    {
+      "sha256": "76661410fe68e99c84d63dca57c39f08c219118b6ce02f0d7a406bc064c7db43",
+      "path": "two-disk/tools-stock-sudo-hidden.txt",
+      "retained_as": "tools-stock-sudo-hidden.txt",
+      "transformation": "ANSI/OSC removed; trailing prompt spaces trimmed"
+    },
+    {
+      "sha256": "bfcc74add30da4709c42175b627f7abaa4b58aaaf7b66e27378ffe9f3c3e8b83",
+      "path": "two-disk/tools-stock-root-ready.txt",
+      "retained_as": "tools-stock-root-ready.txt",
+      "transformation": "ANSI/OSC removed; trailing prompt spaces trimmed"
+    },
+    {
+      "sha256": "202abe9335c88e2748aac44662d3696747caae68f499b1987736e957baa51940",
+      "path": "two-disk/tools-install-ready.txt",
+      "retained_as": "tools-install-ready.txt",
+      "transformation": "ANSI/OSC removed; trailing prompt spaces trimmed"
+    }
+  ],
+  "screen_evidence": [
+    {
+      "sha256": "5ae0349a3000dc477b1ba0f4639aa4f4fe57fea798f4679d2f01694dec243916",
+      "path": "reviews/14-owner-tools/screenshots/14i-installation-complete.png"
+    },
+    {
+      "sha256": "addb2895fc259447cd9b5e53bda551a91a01dbc03ba290d048074a88fcc6dc5d",
+      "path": "reviews/14-owner-tools/screenshots/14i-tools-prompt-stop.png"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "local_discovery": {
+    "tests": 275,
+    "passed": 267,
+    "host_limited_cases": [
+      "test_absent_inherited_installation_is_not_created",
+      "test_active_service_without_drawing_hits_deadline",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently",
+      "test_preserves_existing_acl_entries_and_restrictive_mask",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently"
+    ],
+    "failure_records": 2,
+    "error_records": 9,
+    "skipped": 0
+  },
+  "focused_tests": 38,
+  "windows_refusals": 15,
+  "guest_shell_syntax": 257,
+  "guest_python_compile": 233,
+  "real_hardware_access": false,
+  "native_full_suite": "required before probe VM",
+  "files": [
+    {
+      "sha256": "746320a710716f1ec5e340ed70445e96e0d55a3925053ac627d6e76052b687c6",
+      "path": "guest-syntax.log"
+    },
+    {
+      "sha256": "19fc77a96dc36d9ac3a1415999cc69875375fa97f0f1f47fea3ff6a700278836",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "02d5c20983ce963af5ec5f54beaa2b4108a0b00d3f1d0572bffa0575f15f79bf",
+      "path": "powershell.log"
+    },
+    {
+      "sha256": "614def1767088c38afe1c882f43552fd4c4888007876299161007d5a5d0fa565",
+      "path": "whole-suite.log"
+    }
+  ]
+}

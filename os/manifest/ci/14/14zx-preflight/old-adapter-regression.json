@@ -1,0 +1,16 @@
+{
+  "status": "expected regression failure on retained faulty adapter",
+  "source": {
+    "sha256": "67614b3b8f9d3529cde631fae8eb975fbef8ae3735d8bd7b5660704dff35860f",
+    "path": "os/ci/owner_vm.py",
+    "commit": "75a2c638cecff042b528eb07e3089eda9129de02"
+  },
+  "test": "test_real_typing_chain_emits_exact_keys_through_every_remaining_stage",
+  "assertion": "Unknown or untypeable physical character",
+  "tests": 1,
+  "failures": 1,
+  "errors": 0,
+  "no_source_rewrite": true,
+  "no_vm": true,
+  "no_dispatch": true
+}

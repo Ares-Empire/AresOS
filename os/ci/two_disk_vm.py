@@ -251,7 +251,7 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
             time.sleep(0.12)
 
     def finish_shutdown(self, stage, reason, timeout=180):
-        assert reason in ('guest-shutdown', 'guest-reset'), reason
+        assert reason in ('guest-shutdown', 'guest-reset', 'host-qmp-system-reset'), reason
         deadline = time.monotonic() + timeout
         output = bytearray()
         while not any(e.get('event') == 'SHUTDOWN' for e in self.monitor.events):
@@ -267,7 +267,7 @@ lsblk --json --bytes --list --output NAME,TYPE,SERIAL,PARTUUID,PARTTYPE,MOUNTPOI
             if reply:
                 self.console.sendall(reply)
         shutdowns = [e for e in self.monitor.events if e.get('event') == 'SHUTDOWN']
-        assert len(shutdowns) == 1 and shutdowns[0]['data'] == dict(guest=True, reason=reason), shutdowns
+        assert len(shutdowns) == 1 and shutdowns[0]['data'] == dict(guest=reason != 'host-qmp-system-reset', reason=reason), shutdowns
         assert not any(e.get('event') == 'GUEST_PANICKED' for e in self.monitor.events)
         # -no-shutdown keeps QEMU alive with the guest stopped, so this final
         # counter includes shutdown/unmount writes too. Only then close it.
@@ -445,7 +445,17 @@ def live_inventory(guest, stage):
     release = json.loads(pathlib.Path('os/manifest/release.json').read_text())
     assert release['reference'] == REFERENCE
     verify = pathlib.Path('os/release/verify.sh').read_text().replace('@REFERENCE@', REFERENCE).replace('@IDENTITY@', release['signature']['identity'])
-    guest.command(stage + '-release-signature', verify, timeout=180)
+    if os.environ.get('REHEARSAL_PACKAGE') == '14':
+        # The unchanged cryptographic check runs natively before the offline VM.
+        # A guest cosign pull here would violate the link-down installer route.
+        proof = json.loads(pathlib.Path('evidence/private-release-signature-proof.json').read_text())
+        signatures = pathlib.Path('evidence/private-release-signatures.json').read_bytes()
+        assert proof['status'] == 'passed' and proof['reference'] == REFERENCE
+        assert proof['identity'] == release['signature']['identity'] and proof['issuer'] == release['signature']['issuer']
+        assert proof['sha'] == os.environ['GITHUB_SHA']
+        assert __import__('hashlib').sha256(signatures).hexdigest() == proof['signature_sha256']
+    else:
+        guest.command(stage + '-release-signature', verify, timeout=180)
     save(stage + '-release-signature-proof', dict(status='passed', reference=REFERENCE,
         identity=release['signature']['identity'], issuer=release['signature']['issuer'],
         diagnostics='private; only fixed proof fields exported'))

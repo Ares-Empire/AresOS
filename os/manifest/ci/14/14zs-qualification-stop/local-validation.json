@@ -1,0 +1,12 @@
+{
+  "status": "passed local STOP verification",
+  "equality_refusal_tests": 2,
+  "seconds": 0.98,
+  "diff_check": "passed",
+  "product_source_unchanged_since_pushed_head": true,
+  "repository_private": true,
+  "pr_draft": true,
+  "additional_pushes": 0,
+  "reruns": 0,
+  "acceptance_met": false
+}

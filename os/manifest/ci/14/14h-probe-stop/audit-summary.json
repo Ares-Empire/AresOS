@@ -1,0 +1,27 @@
+{
+  "sha256": "1e8a3d03459e53dc30ebefb83f9d7643c33a6b0e49a8fb961fdfbddded137c59",
+  "path": "protected.raw",
+  "bytes": 53687091200,
+  "stages": [
+    {
+      "stage": "baseline-firmware",
+      "whole_disk_gpt_efi_equal": true,
+      "wr_bytes": 0,
+      "wr_operations": 0,
+      "unmap_operations": 0,
+      "bootnext": "passed"
+    },
+    {
+      "stage": "live-ui-probe",
+      "whole_disk_gpt_efi_equal": true,
+      "wr_bytes": 0,
+      "wr_operations": 0,
+      "unmap_operations": 0,
+      "bootnext": "passed"
+    }
+  ],
+  "nvram_rule": "11f-linux-position",
+  "nvram_replay": "passed",
+  "failure_counter": "recorded while paused before cleanup",
+  "guest_tools_attached": false
+}

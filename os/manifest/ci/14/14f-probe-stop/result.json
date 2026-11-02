@@ -1,0 +1,91 @@
+{
+  "status": "STOP-PLAN-GAP",
+  "run": 40242538685,
+  "head": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+  "native_python": {
+    "tests": 284,
+    "seconds": 14.614,
+    "passed": 284,
+    "skipped": 0
+  },
+  "native_powershell": {
+    "refusals": 15,
+    "zero_writes": true
+  },
+  "failure": {
+    "file": "os/ci/verify_release.py",
+    "line": 46,
+    "command": [
+      "gh",
+      "api",
+      "repos/Ares-Empire/AresOS/pulls/12"
+    ],
+    "http_status": 403,
+    "diagnostic": "Resource not accessible by integration"
+  },
+  "declared_job_permissions": {
+    "contents": "read",
+    "packages": "read",
+    "actions": "read"
+  },
+  "pull_requests_explicitly_granted": false,
+  "ci_only_package_registry_checks": "all skipped, not exercised",
+  "vm_started": false,
+  "qualification_dispatched": false,
+  "probe_rerun": false,
+  "credentials_or_scopes_changed": false,
+  "workflow_permissions_changed": false,
+  "owner_secret_used": false,
+  "artifact": {
+    "sha256": "d1753f00430d3fe8d34302ac5a1db6264d2b20b1a571e2a1acdf40ad875a680b",
+    "path": "two-disk-evidence.zip",
+    "id": 12617103845,
+    "bytes": 46060,
+    "integrity": "matched GitHub artifact digest before reading",
+    "retained": "private Actions artifact; local copy under .work/14"
+  },
+  "files": [
+    {
+      "sha256": "5f041c1e44e57be9fe1b14acb5cfd8f4d82c13d2e776fc3b801edb2e1aff0cef",
+      "path": "native-tests-and-stop.log"
+    },
+    {
+      "sha256": "b719fa720ac55bcb0e2bbb12f2de979f7e85b5dc5098e4b0d0082d392fd55bfd",
+      "path": "owner-auth-cleanup.json"
+    },
+    {
+      "sha256": "27ba88f88a56ee4553031cd3c667997f0ceff6574b280bbb9626d56b1f729e93",
+      "path": "pre-probe-guard.json"
+    },
+    {
+      "sha256": "9ebf0daae9573490b9329cde287f69680831dfddd05788606049b92ae1520646",
+      "path": "pre-push-clean-scan.json"
+    },
+    {
+      "sha256": "af6e8cc3fca0cf8969b03f6f8dea2a0ae2e3cd75c531e9b130d674cbe8b9ca61",
+      "path": "privacy-passed.json"
+    },
+    {
+      "sha256": "88dc4b2e6a053bbc802311c2395d172791752096f662a902ce02146f03e8d014",
+      "path": "qualification-installer-adapter.py"
+    },
+    {
+      "sha256": "506812c3a4fac99b18e22146b4937f780ae7d44f33fed89c8e713e2ecb40ffbe",
+      "path": "qualification-local-host-walk.log"
+    },
+    {
+      "sha256": "4b852ff9a04d75fe3742c8469e75415ec504956a60725d2f687075ac8c55fae0",
+      "path": "qualification-local-installer-result.json"
+    },
+    {
+      "sha256": "43d8c66a6b2eaafa1ee249ea87fd13f47e108d97236b91e3793a97c428d758cf",
+      "path": "effective-job-permissions.log"
+    }
+  ],
+  "effective_job_permissions": {
+    "actions": "read",
+    "contents": "read",
+    "metadata": "read",
+    "packages": "read"
+  }
+}

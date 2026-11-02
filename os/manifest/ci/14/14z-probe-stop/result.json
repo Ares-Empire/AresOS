@@ -1,0 +1,20 @@
+{
+  "status": "STOP: local listing confirmation failed; qualification4 withheld",
+  "head": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+  "probe_run": 40560134727,
+  "probe_conclusion": "success",
+  "qualification4": "not dispatched; allowance unused",
+  "pushes": 1,
+  "probe_post_attempts": 1,
+  "reruns": 0,
+  "acceptance_met": false,
+  "pr13_ready": false,
+  "bundle": {
+    "sha256": "a6aff101a24af32229adcb92356fb2a79f0ec0d7227d19c050212346bb83ede3",
+    "path": "os/owner-tools/payload/SHA256.json"
+  },
+  "artifact_unknown_findings": 0,
+  "committed_raw_artifacts": false,
+  "firmware_payload_changed_after_push": false,
+  "run_over": true
+}

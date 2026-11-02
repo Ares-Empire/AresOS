@@ -1,0 +1,18 @@
+{
+  "status": "both same-head privacy jobs completed before the probe POST",
+  "checked_at": "2026-10-26T04:19:41.153742+00:00",
+  "note": "The retained privacy proof was freshly re-read before qualification; these API job times independently establish the pre-probe event order.",
+  "probe_created_at": "2026-10-26T03:00:40Z",
+  "jobs": [
+    {
+      "run": 40261603041,
+      "completed_at": "2026-10-26T02:58:32Z",
+      "before_probe_created": true
+    },
+    {
+      "run": 40261599776,
+      "completed_at": "2026-10-26T02:59:22Z",
+      "before_probe_created": true
+    }
+  ]
+}

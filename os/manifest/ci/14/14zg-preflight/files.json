@@ -1,0 +1,112 @@
+{
+  "files": [
+    {
+      "sha256": "d0a82fbf2b20d6a35cba9a85b0a220f49e0450d5f73319caa92a9f47513bd6b9",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "e921dbb88dfd8b518a644d6b75b7611b811d3e41af6020c3885bddbc4aaf8adb",
+      "path": "baseline.json"
+    },
+    {
+      "sha256": "a53ac45962617a41edabda7c0b22b0ecdb9a790c8321c8348cc80a8db4cbc2d0",
+      "path": "controller-tests.txt"
+    },
+    {
+      "sha256": "f3b31c27f941d63bb935b1d207fb6a4a889b51351f20b9d7010b6e84dad191a9",
+      "path": "current-bundle.json"
+    },
+    {
+      "sha256": "d20dc38fbff11d4335baa7062f45a1ab8395418b17c78bf0bdd6eac1eecc28c6",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
+      "path": "dispatch-watcher.py"
+    },
+    {
+      "sha256": "58b06b4affd63d3c3687ac30222be0a54a8295a3a347fc8873e2fe1a98ed99c9",
+      "path": "final-validation.txt"
+    },
+    {
+      "sha256": "922626c9a48eb21a8991edb03fac2ba73fa98bc0c88f8a634c29bbf20f74817b",
+      "path": "host-walk.txt"
+    },
+    {
+      "sha256": "7131da8a0f0875b228baf104029b0c25c1b01b3455cbb9b07fd3779026c1c242",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "173cdb866437523dcc57763d2e30ae8ec87643201b37ee28762ee21026fb0505",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "5d6a92f2d6f12effc5f0a03100ba152b8f1ce830b41e0e1b128f6972edba83f0",
+      "path": "iso-download.json"
+    },
+    {
+      "sha256": "a2eb405e247c86eff1e1f10fe77a40410bbcde2f5305db9737753cbb6afa944a",
+      "path": "local-privacy.json"
+    },
+    {
+      "sha256": "5c1763f1ec2bd3e56b032724582495a61774286c333fd22e3d35f46db61b83f7",
+      "path": "local-receipt.py"
+    },
+    {
+      "sha256": "f45db737be5083ea23db8a0e787860bc9659cf9bde61d9b1009ec7e8de16120f",
+      "path": "local-replay-attempts.json"
+    },
+    {
+      "sha256": "7900f6ffbb7bdb1f8d3e9a82bb185b1fd572ced68c96049ac9e970adb6e3a2e6",
+      "path": "local-retry.py"
+    },
+    {
+      "sha256": "09606d8cf566eba928bbcc52f4ebb3eabe392af3638eceb905e6593d7e1ee823",
+      "path": "official-CHECKSUM.txt"
+    },
+    {
+      "sha256": "bfa4460b40503b50a4eb07ef8411e05653cf6ef8a209445689e02ffc70ab70fe",
+      "path": "pinned-source-audit.json"
+    },
+    {
+      "sha256": "8bb01d25c2e08e07ff6dea36b8beb8725e4aefe3e58298a332aa420a11802fca",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "de706ce434e6613af7ea0f58ddd103644228f45764ef7656733a54d81d28c698",
+      "path": "push-once.py"
+    },
+    {
+      "sha256": "5e30ed7d65fe41e1d828944294e9bda448e3a31de89112ef85615e57bcc32513",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "20994779c10f3266f312071967054b4b164f4c3635c23c65833f3b8a47e40310",
+      "path": "session-parser-tests.txt"
+    },
+    {
+      "sha256": "52711bce559f71a89cfffa8862e7102b362ff28565eb96f3248702125b386d64",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "d09083ba7881eb486c10f43f595464ea00d979887565b4616809b6eedbccc676",
+      "path": "test_dispatch_control.py"
+    },
+    {
+      "sha256": "d539d8e6d34f52086792dcbdaf37104bfe17eae7644a3db5dc9d15ed7d317efc",
+      "path": "tty-assumption-audit.json"
+    },
+    {
+      "sha256": "8cd9b3adcb71bb3171f7171a92663b28d6a30b065823c02ba8e188bf09ccd5f1",
+      "path": "watcher-tests.txt"
+    },
+    {
+      "sha256": "b5e96af65144d2046e980a6d1f4d966bb1194fce115776eb90bece79980e23df",
+      "path": "whole-suite.txt"
+    },
+    {
+      "sha256": "a83885b4a05586df4c2c48649d7f20af9cc8e75df9f917f2514dbfd70e3fb137",
+      "path": "windows-copy.txt"
+    }
+  ]
+}

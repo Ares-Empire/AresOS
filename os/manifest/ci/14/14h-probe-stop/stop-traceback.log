@@ -1,0 +1,30 @@
+2026-10-26T00:55:17.8839599Z Traceback (most recent call last):
+2026-10-26T00:55:17.8840332Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 593, in <module>
+2026-10-26T00:55:17.8847866Z     main()
+2026-10-26T00:55:17.8848590Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 567, in main
+2026-10-26T00:55:17.8850356Z     td.live_probe(audit)
+2026-10-26T00:55:17.8851009Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 829, in live_probe
+2026-10-26T00:55:17.8855908Z     probe(guest, EVIDENCE, protected, target)
+2026-10-26T00:55:17.8856655Z   File "/home/runner/work/AresOS/AresOS/os/ci/installer_webui.py", line 502, in probe
+2026-10-26T00:55:17.8862247Z     return run(guest, evidence, protected, target, password)
+2026-10-26T00:55:17.8862933Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-26T00:55:17.8863704Z   File "/home/runner/work/AresOS/AresOS/os/ci/installer_webui.py", line 468, in run
+2026-10-26T00:55:17.8864447Z     start(guest, stage)
+2026-10-26T00:55:17.8865111Z   File "/home/runner/work/AresOS/AresOS/os/ci/installer_webui.py", line 178, in start
+2026-10-26T00:55:17.8865823Z     guest.start_offline_webui_transport()
+2026-10-26T00:55:17.8866456Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 103, in start_offline_webui_transport
+2026-10-26T00:55:17.8877964Z     self.assert_offline('live-offline-before-webui')
+2026-10-26T00:55:17.8878800Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 86, in assert_offline
+2026-10-26T00:55:17.8879502Z     result = self.capture_json(stage, sw.framed('''python3 - <<'PY'
+2026-10-26T00:55:17.8880085Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-26T00:55:17.8880777Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 248, in capture_json
+2026-10-26T00:55:17.8888685Z     output = self.command(name, command)
+2026-10-26T00:55:17.8889473Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-26T00:55:17.8890474Z   File "/home/runner/work/AresOS/AresOS/os/ci/two_disk_vm.py", line 104, in command
+2026-10-26T00:55:17.8891746Z     return super().command(name, script, timeout, private=private or registry_read)
+2026-10-26T00:55:17.8892798Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-26T00:55:17.8893874Z   File "/home/runner/work/AresOS/AresOS/os/ci/switch_vm.py", line 240, in command
+2026-10-26T00:55:17.8895010Z     assert code == 0, f'Guest command failed: {name}, exit {code}'
+2026-10-26T00:55:17.8895823Z            ^^^^^^^^^
+2026-10-26T00:55:17.8896634Z AssertionError: Guest command failed: live-offline-before-webui, exit 1
+2026-10-26T00:55:17.9432300Z ##[error]Process completed with exit code 1.

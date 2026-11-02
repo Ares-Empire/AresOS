@@ -1,0 +1,149 @@
+{
+  "files": [
+    {
+      "sha256": "d3f179942bb20b4e69a8d5a6ebc20e8a27ad44f500dd9e1253b9249cea3023b8",
+      "path": "os/manifest/ci/14/14zze-round/archive-round.py"
+    },
+    {
+      "sha256": "1d8dc41982ae0446898e91c6b131b4312b1ca525eb6597e03603184064c7ac7d",
+      "path": "os/manifest/ci/14/14zze-round/close-report.py"
+    },
+    {
+      "sha256": "1806f547073d8963a03c9b67f67e53ef72eb14c9c219285105fd73daaf512a59",
+      "path": "os/manifest/ci/14/14zze-round/closing-tools.json"
+    },
+    {
+      "sha256": "067a335a299781ee1af7cc6db8c403101f1e25b307d831f2580160511f287a1e",
+      "path": "os/manifest/ci/14/14zze-round/commit-report.py"
+    },
+    {
+      "sha256": "8fdfaa60d1a2c67ca19af9cda654213477dca0c70aa0e77e21440e146109db4a",
+      "path": "os/manifest/ci/14/14zze-round/guide-status.json"
+    },
+    {
+      "sha256": "0ccd6677cad6a17869a42480fc62c7a0d3d52f557b5953218407909a5d9432de",
+      "path": "os/manifest/ci/14/14zze-round/hook-privacy.json"
+    },
+    {
+      "sha256": "3e01e74182c6438a7d1ccba1a8370087cbfdd1ffc5c8e56e789fd0ff1456dbcd",
+      "path": "os/manifest/ci/14/14zze-round/layout-reset-proof.json"
+    },
+    {
+      "sha256": "9dde3e596b4d0ed4a1be33c95e44ef56f588a8fc74b0c26a1b65e08517ecc635",
+      "path": "os/manifest/ci/14/14zze-round/ledger.json"
+    },
+    {
+      "sha256": "827991ebf99f2a8f3929a1e8eed34bd256001fb9c76dee5893304aec16323a20",
+      "path": "os/manifest/ci/14/14zze-round/local-privacy-pushed-head.json"
+    },
+    {
+      "sha256": "d8677ddf5d2cec34825a29ab1c873164aef5a1da86cade9b6dc54a0aada0d6aa",
+      "path": "os/manifest/ci/14/14zze-round/local-review-invocation.json"
+    },
+    {
+      "sha256": "647970723861148b11358988efba358ca0ac7d452ab02213bde1a8f939178f72",
+      "path": "os/manifest/ci/14/14zze-round/probe-authorization.json"
+    },
+    {
+      "sha256": "7bc1e371fa6e0fc1e3e1045080e9519c3b96bb6ba27401379df26e14bd5f68e3",
+      "path": "os/manifest/ci/14/14zze-round/probe34-acceptance.json"
+    },
+    {
+      "sha256": "1ecd8efdd7972888dd9e0bbd8fdedd227534bcfdb8a75618e1182170f67aaa87",
+      "path": "os/manifest/ci/14/14zze-round/probe34-artifact-review.json"
+    },
+    {
+      "sha256": "47c8087b6e29951bafb603c0a1db761a55a186facdcc9a5bd50ecde72974f240",
+      "path": "os/manifest/ci/14/14zze-round/probe34-artifact.json"
+    },
+    {
+      "sha256": "88d0ac7bd2807c6cca2ea8c19aaf9f98803229980a3b411cd8eff3fb867a523f",
+      "path": "os/manifest/ci/14/14zze-round/probe34-complete-review.json"
+    },
+    {
+      "sha256": "12104c1b03e955a722cde67c56a39619049c5a9453d9236d332c25503b5a9501",
+      "path": "os/manifest/ci/14/14zze-round/probe34-independent-audits.json"
+    },
+    {
+      "sha256": "07df8a7a730f8650e2f86d99383db519f1faf3dc847a3faaf07d2757f9c85ece",
+      "path": "os/manifest/ci/14/14zze-round/probe34-kernel-proof.json"
+    },
+    {
+      "sha256": "04983289d2a66e1e56e324773785ac4c5f300cd4e1b59d2ae0566e7cba34584f",
+      "path": "os/manifest/ci/14/14zze-round/probe34-log-review.json"
+    },
+    {
+      "sha256": "04ae2d7cfc241af03e8c9b51769d280be6bbd1f3006f6e57c9aad3d3e270a561",
+      "path": "os/manifest/ci/14/14zze-round/probe34-native-timing.json"
+    },
+    {
+      "sha256": "9208cec43f758abc45596c764cd01bbaa25dc51fef9e0f25ac2c759bf765822d",
+      "path": "os/manifest/ci/14/14zze-round/probe34-ps2-health.json"
+    },
+    {
+      "sha256": "711cb34e67c46abf0f1ec5da4eb93b709fe2a61ef8a6ee9d0fa9bc9c9ff4ef47",
+      "path": "os/manifest/ci/14/14zze-round/probe34-source-bindings.json"
+    },
+    {
+      "sha256": "5d4cec721e5440c35f4ab0ae90cc47f6733e9cbd971ecf26e1c82f0ab4bdbc71",
+      "path": "os/manifest/ci/14/14zze-round/push.json"
+    },
+    {
+      "sha256": "69cfd2626a8a260f5ca562e10670e1be8df24e243672054f8a356a893013a223",
+      "path": "os/manifest/ci/14/14zze-round/qualification-authorization.json"
+    },
+    {
+      "sha256": "8c5a09ad514e9bb2cdf13353c3d4f9095633c118ede8a4083af9eddafa4a6245",
+      "path": "os/manifest/ci/14/14zze-round/qualification-replay-attempts.json"
+    },
+    {
+      "sha256": "c74ba07e1bf25a309658f32c825489b6107202107a2243a406128813ee100486",
+      "path": "os/manifest/ci/14/14zze-round/qualification-replay.json"
+    },
+    {
+      "sha256": "2ad0a21bd52cd1ad5d989b80be773cbdb60521897b575aa7c4b96e0a24a5f07f",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-acceptance.json"
+    },
+    {
+      "sha256": "b267f1499cd4fc5786504b2c07732f008765adb08e0cc1c17e173cddeef0fff4",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-artifact-review.json"
+    },
+    {
+      "sha256": "adb36b53ed5b6a5cc160af022fcf45f3b3e635a87005cc82c6cd23e892467c10",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-artifact.json"
+    },
+    {
+      "sha256": "4781a0bef7c407d7b1a92101b6fcbe28470ad263ad7ae8f9054bd8bd3546a90e",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-complete-review.json"
+    },
+    {
+      "sha256": "a421347aca28835d5b67ed1ce4f5f3cff6608e8d6a71298f92fd4a8238117902",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-independent-audits.json"
+    },
+    {
+      "sha256": "8d6358b85ccf303a5357608ed0981656219877810b92d2b16d53d48a6727e3f8",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-kernel-proof.json"
+    },
+    {
+      "sha256": "c7b20ee3a3821106c203fe896cc17c57b172e6a11c844b7fc6530029f4eb1943",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-log-review.json"
+    },
+    {
+      "sha256": "df1216b530f10f445022ce32f0e244aed489374657c5c98789ca06ebde60c62e",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-native-timing.json"
+    },
+    {
+      "sha256": "36bea8508db792c868cfae6b65c88b8d3ff21d0aa1c8c1efa50113a528040a13",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-ps2-health.json"
+    },
+    {
+      "sha256": "6ffd06d58827c9272ee8146ab269c6b0a69fbf0a5c6579bd464a5655c9d93789",
+      "path": "os/manifest/ci/14/14zze-round/qualification21-source-bindings.json"
+    },
+    {
+      "sha256": "796c307212547f908d4d91be94659ffca5e4df25842ec50434ce51cf3acde568",
+      "path": "os/manifest/ci/14/14zze-round/round.json"
+    }
+  ],
+  "binding_format": "git-checkout-bytes-v1"
+}

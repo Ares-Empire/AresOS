@@ -1,0 +1,720 @@
+{
+  "status": "passed local prerequisites with eight existing native-host limits; dispatch gates pending",
+  "decision": "2d934d7",
+  "ci_only": [
+    {
+      "check": "org package metadata visibility",
+      "reason": "Requires the CI job GITHUB_TOKEN with packages: read; local gh scope is unchanged",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "implementation": "registry_auth.preflight: gh api orgs/Ares-Empire/packages/container/aresos",
+      "fail_closed": "visibility must be private"
+    },
+    {
+      "check": "registry manifest digest inspect",
+      "reason": "Requires the scoped CI job auth file for the private image",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "implementation": "registry_auth.preflight: skopeo inspect",
+      "fail_closed": "successful command and exact pinned digest required; no credential fallback"
+    },
+    {
+      "check": "private pinned layer pull",
+      "reason": "Requires the scoped CI job auth file and runner pull environment",
+      "ci_step": "Qualify the exact pinned layer pull without installing",
+      "implementation": "registry_auth.pull: skopeo copy --preserve-digests, then raw inspect",
+      "fail_closed": "copy success, exact raw manifest digest, temporary copy removed"
+    },
+    {
+      "check": "registry signature verification",
+      "reason": "Requires CI package access and the scoped CI job DOCKER_CONFIG",
+      "ci_step": "Verify the exact private signature natively for the offline guest",
+      "implementation": "registry_auth.signature: cosign verify",
+      "fail_closed": "verification must succeed with exact pinned identity, issuer and release; no credential fallback"
+    }
+  ],
+  "ci_only_failure_action": "STOP and report; no probe/job rerun",
+  "credentials_changed": false,
+  "gh_scopes_changed": false,
+  "owner_secret_used": false,
+  "private_ci_implementations_changed": false,
+  "release_binding": {
+    "status": "passed actual verifier",
+    "original_run": 40154642447,
+    "pr_api_used": false,
+    "source": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+    "squash": "775be05b7f0d6971cbdc8a3bd1aea617fc008c4d",
+    "fetches": [
+      "source",
+      "refs/pull/12/head",
+      "squash"
+    ],
+    "ancestry": [
+      "source -> PR12 head",
+      "squash -> HEAD"
+    ],
+    "payload_diffs": [
+      "source -> HEAD",
+      "source -> squash"
+    ],
+    "shallow": false
+  },
+  "local_suite": {
+    "command": "wsl.exe bash .work/14/local/whole-suite.sh",
+    "tests": 286,
+    "passed": 278,
+    "seconds": 152.881,
+    "skips": 0,
+    "exit": 1,
+    "failure_records": 2,
+    "error_records": 9,
+    "native_host_limits": [
+      {
+        "test": "test_greeter.test_active_service_without_drawing_hits_deadline",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_greeter.test_black_cursor_and_flat_background_are_not_rendered_greeters",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_greeter.test_capture_waits_for_drawing_and_keeps_ready_evidence",
+        "reason": "Pillow is unavailable in local WSL"
+      },
+      {
+        "test": "test_inherited_homebrew.test_absent_inherited_installation_is_not_created",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_inherited_homebrew.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_inherited_homebrew.test_preserves_existing_acl_entries_and_restrictive_mask",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_sysusers.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently",
+        "reason": "Local no-privilege shim refuses sudo; no privileged command executed"
+      },
+      {
+        "test": "test_rehearsal_auth.test_auth_is_outside_workspace_and_always_removed_before_artifact_upload",
+        "reason": "DrvFS exposes mode0777 rather than required0600"
+      }
+    ]
+  },
+  "host_walk": {
+    "tests": 49,
+    "seconds": 48.621,
+    "status": "passed",
+    "source_bindings": 51,
+    "stick_across_reboot": false
+  },
+  "installer": {
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "path": ".work/14/bazzite-nvidia-open-stable-live-amd64.iso",
+    "status": "passed",
+    "kind": "actual installer_inspect.main replay before probe3; no VM",
+    "bytes": 9068650496,
+    "official_checksum": "fresh public HTTPS GET; exact pin",
+    "iso_source": "all retained ISO bytes rehashed by actual inspection loop",
+    "adapters": "Windows system bsdtar, WSL unsquashfs, path spellings and Linux LF writes",
+    "localization_sources": 4,
+    "webui_sources": 102,
+    "ci_inspector_changed": false
+  },
+  "syntax": {
+    "ci_overlay_owner_python": "passed",
+    "ci_release_shell": "passed",
+    "guest_shell_commands": 257,
+    "embedded_python": 233
+  },
+  "windows_copy": {
+    "refusal_cases": 15,
+    "mutations_on_refusal": 0,
+    "bundle_fingerprint": "118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba"
+  },
+  "offline_source_gate": {
+    "status": "passed",
+    "retained_files": 53,
+    "full_listing": true
+  },
+  "firmware_source": {
+    "status": "passed",
+    "files": 4,
+    "exact_auto_option_predicate": true
+  },
+  "transient_check_correction": "compileall generated two payload pyc caches; exact-file guard refused; only those files removed, equality4/4 then passed; no tracked bundle changed",
+  "source_bindings": [
+    {
+      "sha256": "09f581e6664ed39189621a9031531de2873e1d9831a91f8db8081b10924125cd",
+      "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "1d8aeb2035c7ccb05e02590f55feb84c8bf4ad1592f0b575882283a5ed193ffe",
+      "path": "docs/install-tools/OwnerTools.psm1"
+    },
+    {
+      "sha256": "9c47abc60a3413930411c4551ec50dbb85cda9fb2d719e04d2938da889df413d",
+      "path": "os/ci/firmware_contract.py"
+    },
+    {
+      "sha256": "a7f1d0976e6ae12885faa30c52c49cc9d372bdcfdf36368514337f76ab00575b",
+      "path": "os/ci/install-tools.sh"
+    },
+    {
+      "sha256": "15f720754d405e37cfd18fffa3e1d9ecbfd7b7b4f6d9cec06778c31f85ba4615",
+      "path": "os/ci/installer_inspect.py"
+    },
+    {
+      "sha256": "7d721e469f834db910312225029e9ccc93d0c77e4d55c7518a40566c7ad7f8c1",
+      "path": "os/ci/installer_webui.py"
+    },
+    {
+      "sha256": "c13f2920b0e42f295fad80aaeae40d97bc9d99b658678058f5c9f74ddd6c43b5",
+      "path": "os/ci/offline_webui.py"
+    },
+    {
+      "sha256": "9b3844270a49466ea2294f91a0cad206ffea41eca8ee45313e781065aecaedc3",
+      "path": "os/ci/owner_keys.py"
+    },
+    {
+      "sha256": "02576034b43b9774ebd1943bb9d70df421445b705a6f0d10d34de01a0b339c73",
+      "path": "os/ci/owner_media.py"
+    },
+    {
+      "sha256": "3fc9e9b7c2e0fd218a307bcf5a58c5772559ef8ef6222bd082815478a93e03af",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "c4be80c3bb72bad396a76cbc3cd968035a36a9334d9fbad71e6994e5d55406c7",
+      "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "924702637c52cc601c51340c581caa39cea1217f3ed2fd8d4fc55c81e68ddd69",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "f23aeb7a7e2cc97319757c3305b0e0e638957b0105aef9bb3c3d321934efb8f5",
+      "path": "os/ci/rehearsal_guard.py"
+    },
+    {
+      "sha256": "21be54e8cbcf29447708e79ddf2c3547bc16b43d2a913e450279fd6aa82ceadd",
+      "path": "os/ci/toolchain.json"
+    },
+    {
+      "sha256": "dc1b812003e2d30f8a7ed6e1d18a2e9e6b667cd07fc97cb599dae2490eac7df1",
+      "path": "os/ci/two_disk_vm.py"
+    },
+    {
+      "sha256": "457370d367f809c70bd6d2053665a08142dfb28062a8abf32d15fa531ac7e30b",
+      "path": "os/ci/verify_release.py"
+    },
+    {
+      "sha256": "3f54a2c25c117b023a66e34d84ff6a75db0fac163f2a244671ebf665da56715a",
+      "path": "os/config/etc/UPower/UPower.conf"
+    },
+    {
+      "sha256": "0a37cb3dde398987c30494570fc5e1053748ae0e2acb5f3c38277699234e4599",
+      "path": "os/config/etc/greetd/config.toml"
+    },
+    {
+      "sha256": "820dfd5e667f3d75ab4949425ee1cfb3253e271b3b87ce4de3c0503a9e3f9633",
+      "path": "os/config/etc/profile.d/aresos.sh"
+    },
+    {
+      "sha256": "65e580bb871c3daa1667f1589778c823b29a3b654ead173edb4b116d27749283",
+      "path": "os/config/etc/rpm-ostreed.conf"
+    },
+    {
+      "sha256": "beb4bc5630ee1f798e7abe8ab27a5dfc293edc08188def6c7120556cab1c64aa",
+      "path": "os/config/etc/systemd/journald.conf.d/90-aresos.conf"
+    },
+    {
+      "sha256": "7d656bd7cab3df085887be6bbb2c990c4823ed0fe75778bf4623913138e7536a",
+      "path": "os/config/etc/systemd/logind.conf.d/90-aresos.conf"
+    },
+    {
+      "sha256": "201ae7e7fdeb50e61ae2fa86dfd6cbd6144cda46ea556d642d70efcceb47aeee",
+      "path": "os/config/etc/systemd/sleep.conf.d/90-aresos.conf"
+    },
+    {
+      "sha256": "630fdb8622ffac09f8081a28a1ccc9f75acbfb42609c675bd428861ad985921b",
+      "path": "os/config/etc/uupd/config.json"
+    },
+    {
+      "sha256": "b1c340fb3bca42b8b8ff5a3fac524a64df7aeaf4bd6a8162bf3092a9c2f9d2ce",
+      "path": "os/config/usr/bin/aresos-session"
+    },
+    {
+      "sha256": "a9167a3b863e3f246bfa7d9da5d9453421339bbb49e82c1973c32880f6224386",
+      "path": "os/config/usr/bin/aresos-terminal"
+    },
+    {
+      "sha256": "90a506dbf620f53f6ff0c9b621419893a809c3bd9b4ab52b8364b8e3b98e2e1e",
+      "path": "os/config/usr/lib/sysusers.d/aresos.conf"
+    },
+    {
+      "sha256": "39e21c4261e9180a377e63b89c17773c31ada3296b5805b2665da4014cbb17b8",
+      "path": "os/config/usr/lib/tmpfiles.d/aresos-inherited-homebrew.conf"
+    },
+    {
+      "sha256": "a724be0f9541409e1763e6822a0a058411ea9d4a354d1311e4a7fdb879e1ad71",
+      "path": "os/config/usr/lib/tmpfiles.d/aresos.conf"
+    },
+    {
+      "sha256": "c12e826bbc663f45677011c94f6e1014a04989cb9b4118071ed558d39014f1bd",
+      "path": "os/config/usr/libexec/aresos-keyboard"
+    },
+    {
+      "sha256": "5ca87acb8e0bbb4c40b8ef74cc31851dfa7952fdeb2e05daa5449e19426607fc",
+      "path": "os/config/usr/share/aresos/bashrc"
+    },
+    {
+      "sha256": "9fb33144e70aff6a97111c136fcb6983f77960d0a2253e9a55174a32e014dfec",
+      "path": "os/config/usr/share/aresos/labwc/autostart"
+    },
+    {
+      "sha256": "bb447ed0b6374135ec99870bcb457cafca7506b55fef02720b6a277758a8a302",
+      "path": "os/config/usr/share/aresos/labwc/rc.xml"
+    },
+    {
+      "sha256": "8da0e84fac55764af7dfaf1ddddf79dd17951284918e275cefce75c7ea274582",
+      "path": "os/config/usr/share/polkit-1/rules.d/00-aresos-maintenance.rules"
+    },
+    {
+      "sha256": "af78ecfda6eb21c35195af3739341715e9cfc3f2f5911dd9c10b0670547bf6e8",
+      "path": "os/keys/bazzite.pub"
+    },
+    {
+      "sha256": "750558b95a7bfb8b6121361935ec5b0bf68de6bc4b127fca00606a5d0d6383ec",
+      "path": "os/manifest/base.json"
+    },
+    {
+      "sha256": "7ed3c328e2e41f45638b8666cecf6aed3821a2e7cd8a9ee148aaea8c514b9947",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_bus.c"
+    },
+    {
+      "sha256": "75e51513e85ee1dfd7153d55eb00d43f3321c3f21f10967565c549332cfd776b",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_dev-storage-bot.c"
+    },
+    {
+      "sha256": "41516450961aaf5382a3fb02fa6537fd781a17ccc17ee2fae9ed6e2a1a3f4c7c",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_dev-storage-classic.c"
+    },
+    {
+      "sha256": "18d2554b4256eccb6cc3f56edc2829fd6f8a6e18092bf2e6161b1116ca9a7869",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_dev-storage.c"
+    },
+    {
+      "sha256": "29f5d722ffd5ee895c46df333b1e81d73561f2531d93edd187a48a4ad3a62dad",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_hcd-xhci.c"
+    },
+    {
+      "sha256": "57dd731f6425f59cd94b9d4a91439414796911f3ff4eba03c0607fa3b9eecc9b",
+      "path": "os/manifest/ci/14/hotplug-sources/index.json"
+    },
+    {
+      "sha256": "cbbd6852b3bc2740721d1c956af12444107e79205a63a0bd22746bb1377e7110",
+      "path": "os/manifest/ci/14/hotplug-sources/net_net.c"
+    },
+    {
+      "sha256": "6942b099b20a65a4bd4747d26c2f1e1ec99bb1171daf96f1e9f975874060c6e5",
+      "path": "os/manifest/ci/14/hotplug-sources/qapi_block-core.json"
+    },
+    {
+      "sha256": "9f1d208a44d46dc18aba99eef6c9ae7cce7952357ff7db20eb3631844a32519b",
+      "path": "os/manifest/ci/14/hotplug-sources/qapi_net.json"
+    },
+    {
+      "sha256": "f8069239e7e361f6a999567ccba6286871d13c1d10e0ae84663b83583bdc6e49",
+      "path": "os/manifest/ci/14/hotplug-sources/qapi_qdev.json"
+    },
+    {
+      "sha256": "724e0b333940e134cf26bf50ac4b021823b583ab88903e763f24b109bfbe52cd",
+      "path": "os/manifest/ci/14/keyboard-sources/README.md"
+    },
+    {
+      "sha256": "b635598d31059279adb4d8fd9d06195568acbcb0d5bfefd554687b8acb836c09",
+      "path": "os/manifest/ci/14/keyboard-sources/de.map"
+    },
+    {
+      "sha256": "85c9505ca41855d544b19db43cc02ae9c6fd2137f764a6d51b6de621fd4d3efe",
+      "path": "os/manifest/ci/14/keyboard-sources/index.json"
+    },
+    {
+      "sha256": "ae279da2f69b22d4a732089e7a7ac4bdf084ab3591a550d40e0d1277b66e5c30",
+      "path": "os/manifest/ci/14/keyboard-sources/us-intl.map"
+    },
+    {
+      "sha256": "06e81bf550edf93d2a9129b573adb9d3bdfb8a3939364088f62de58bc36c4041",
+      "path": "os/manifest/ci/14/keyboard-sources/us.map"
+    },
+    {
+      "sha256": "571be37257a0940bceaef01a33f6db5d53bd55de257aab452038216b63b3cfc1",
+      "path": "os/manifest/installer-isos.json"
+    },
+    {
+      "sha256": "b9383166a21fff6ef961f400d94b51a0c5286d154dfe86cfa528f59dcda6fa6d",
+      "path": "os/manifest/release.json"
+    },
+    {
+      "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
+      "path": "os/owner-tools/at"
+    },
+    {
+      "sha256": "ff838f3aa166933e2e10c25358ae42ac205be906c97f9edb66bd07981788c6e4",
+      "path": "os/owner-tools/bundle.py"
+    },
+    {
+      "sha256": "ea3e287a1ee2647e310a11cee67908ead3fb5f2969a223bb627c303515b6c443",
+      "path": "os/owner-tools/commands.json"
+    },
+    {
+      "sha256": "358d41207078af910b0919af129f1776484c72803b113b0ffce48095c5d8991e",
+      "path": "os/owner-tools/media.py"
+    },
+    {
+      "sha256": "d3f405d4c506bd4038daa17461dcca90b1ca7ce922f73e442a3547282d8d8f7a",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba",
+      "path": "os/owner-tools/payload/SHA256.json"
+    },
+    {
+      "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
+      "path": "os/owner-tools/payload/at"
+    },
+    {
+      "sha256": "358d41207078af910b0919af129f1776484c72803b113b0ffce48095c5d8991e",
+      "path": "os/owner-tools/payload/media.py"
+    },
+    {
+      "sha256": "d3f405d4c506bd4038daa17461dcca90b1ca7ce922f73e442a3547282d8d8f7a",
+      "path": "os/owner-tools/payload/owner.py"
+    },
+    {
+      "sha256": "b9383166a21fff6ef961f400d94b51a0c5286d154dfe86cfa528f59dcda6fa6d",
+      "path": "os/owner-tools/payload/release.json"
+    },
+    {
+      "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6",
+      "path": "os/owner-tools/payload/release/default-stock.sh"
+    },
+    {
+      "sha256": "f5110c74466d53e8ee28620d326fd641746c1a6be488d3c0de9d21fdb7485a9c",
+      "path": "os/owner-tools/payload/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "bc079def58a73f2ffaf2085b64f9e02d72eb45cc76f64be60ad0e476483ecf4f",
+      "path": "os/owner-tools/payload/release/pin-stock.sh"
+    },
+    {
+      "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
+      "path": "os/owner-tools/payload/release/rollback.sh"
+    },
+    {
+      "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",
+      "path": "os/owner-tools/payload/release/stock-session.sh"
+    },
+    {
+      "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c",
+      "path": "os/owner-tools/payload/release/switch.sh"
+    },
+    {
+      "sha256": "014af878488ce708de7ebf5e5869021cf2ae7e8ab37d78193111576ddafae945",
+      "path": "os/owner-tools/payload/release/system-keyboard.sh"
+    },
+    {
+      "sha256": "55947bd644f9741d613dfd9fc2b88aba6e4465a68747ed25c648e59fe95064a3",
+      "path": "os/owner-tools/payload/release/verify.sh"
+    },
+    {
+      "sha256": "0a4b5b8b14d36699502e80963d71ad0eea4661997ba8b3018c79d370ee740872",
+      "path": "os/policy/masked-system-units.txt"
+    },
+    {
+      "sha256": "b278e1000fc9f50142953118a9612f24d1eda46d6bcc19f220a308d01f35d89f",
+      "path": "os/policy/masked-user-units.txt"
+    },
+    {
+      "sha256": "a40c3f733dc1131bd890c8f379665f6e786b108de77cd05c7ebe1035df4740bc",
+      "path": "os/policy/updater-allowlist.json"
+    },
+    {
+      "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6",
+      "path": "os/release/default-stock.sh"
+    },
+    {
+      "sha256": "f5110c74466d53e8ee28620d326fd641746c1a6be488d3c0de9d21fdb7485a9c",
+      "path": "os/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "bc079def58a73f2ffaf2085b64f9e02d72eb45cc76f64be60ad0e476483ecf4f",
+      "path": "os/release/pin-stock.sh"
+    },
+    {
+      "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
+      "path": "os/release/rollback.sh"
+    },
+    {
+      "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",
+      "path": "os/release/stock-session.sh"
+    },
+    {
+      "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c",
+      "path": "os/release/switch.sh"
+    },
+    {
+      "sha256": "014af878488ce708de7ebf5e5869021cf2ae7e8ab37d78193111576ddafae945",
+      "path": "os/release/system-keyboard.sh"
+    },
+    {
+      "sha256": "55947bd644f9741d613dfd9fc2b88aba6e4465a68747ed25c648e59fe95064a3",
+      "path": "os/release/verify.sh"
+    },
+    {
+      "sha256": "b528a2b303efecffb412bf63516b18af541b1a6eaef28195bb5a0283eca13d66",
+      "path": "os/tests/audit.py"
+    },
+    {
+      "sha256": "b7f45a54b0a19b959f848c51fd85e3905ba4d2d5ce2a802765d2ef37a2738ab5",
+      "path": "os/tests/fixtures/11i-pause-stock-updates.sh"
+    },
+    {
+      "sha256": "59d62c525a047ec46b917160ec96a78eefd4afdd683c01fc5a09e8c0ab9c7a14",
+      "path": "os/tests/fixtures/keyboard/README.md"
+    },
+    {
+      "sha256": "50fb9d69ee9220f8bcc1aa79fad94af6282929b719156f55757ff37c713a4429",
+      "path": "os/tests/fixtures/keyboard/de-dumpkeys.txt"
+    },
+    {
+      "sha256": "2293cce0b0fb4e5191be07df8faea865955ea37e56b79ee8f8e33d585e49799d",
+      "path": "os/tests/fixtures/keyboard/stock-two-bootc.json"
+    },
+    {
+      "sha256": "91c8b024cda72e924048df6bfd44fb2bbbded98913583b7aa436841afd6f5a3c",
+      "path": "os/tests/fixtures/keyboard/stock-two-rpm.json"
+    },
+    {
+      "sha256": "f629ffdda8efa382c00b4f3c05111945f1f195ca64167440c487396ff51a5e3e",
+      "path": "os/tests/fixtures/keyboard/us-dumpkeys.txt"
+    },
+    {
+      "sha256": "f4751c366b4e64e59cd3fd15810855322457e94dd249569dd1f7a6a5437589b6",
+      "path": "os/tests/fixtures/owner-tools/after-pin-deployments.json"
+    },
+    {
+      "sha256": "964a58e00038b23ee8a63e7d08ff903c1944084fdfae7750f398da1294b2ea77",
+      "path": "os/tests/fixtures/owner-tools/after-rollback-queued-deployments.json"
+    },
+    {
+      "sha256": "7e7583fdf6370e3e91870b77bdb7923c7807dfe83f3c9a0365da477a167e52bb",
+      "path": "os/tests/fixtures/owner-tools/after-switch-staged-deployments.json"
+    },
+    {
+      "sha256": "fd49e714de01f30350d2ee8d36a3257bc36c28565a99d1965e19a2660f293108",
+      "path": "os/tests/fixtures/owner-tools/aresos-deployments.json"
+    },
+    {
+      "sha256": "f5f787bd098dcbe83ee27918c1f06348e7a6cf8e536cf76be8a7bb2e99f831a3",
+      "path": "os/tests/fixtures/owner-tools/rollback-deployments.json"
+    },
+    {
+      "sha256": "dffe199f034d48d16ed25bf0150a9ff2f165182766c5fbf48dc1e7b0986b7d36",
+      "path": "os/tests/fixtures/owner-tools/sources.json"
+    },
+    {
+      "sha256": "f648260cf138e7199e8cb171c0da5eba4f36ae7cd78cd1d1da238232a2e3f3ad",
+      "path": "os/tests/guest.sh"
+    },
+    {
+      "sha256": "7e951f8512451888020a52f4ddc574e849a23fe856d2c9c207d3122169ec7708",
+      "path": "os/tests/inherited-homebrew.sh"
+    },
+    {
+      "sha256": "49e21351de1f053aeae8524931a7f4e2bdbaeafd65efeab4ea68e8a0da4799b1",
+      "path": "os/tests/owner-tools.Tests.ps1"
+    },
+    {
+      "sha256": "14c1196fbe0be4b7f03d6934636cbcfd615f1838b446c2c6ded5e832567f6651",
+      "path": "os/tests/owner_shim.py"
+    },
+    {
+      "sha256": "7c09d6877aa2320229a210fd2fd0e17f1ca67c48a22320eb2ad0dab62be4fd5d",
+      "path": "os/tests/power-events.py"
+    },
+    {
+      "sha256": "db62606c583698878f0013871b2382006827a4679eb78926139ab27bc237ca37",
+      "path": "os/tests/test_audit.py"
+    },
+    {
+      "sha256": "f9db1051f59c06511720d057792dfd3ba183431c1160cf458dc565fe997e07f7",
+      "path": "os/tests/test_build_tools.py"
+    },
+    {
+      "sha256": "c53caad511aa4db37dc07b9a143d03697c4d785f552eb40f30b1c7adcd8d1e60",
+      "path": "os/tests/test_channel.py"
+    },
+    {
+      "sha256": "7a5443a9afdd2037408e75902cb1c8550658c7ee409d15f8fe8768e65f4d3abe",
+      "path": "os/tests/test_ci_api_permissions.py"
+    },
+    {
+      "sha256": "606ef954d199a8ffacfef1e4f4f8dd58901a06459606e5077246043b13567439",
+      "path": "os/tests/test_default_stock.py"
+    },
+    {
+      "sha256": "5c8d880d59b846d6b5d970d4583d10ac80b518300a3b7addab446dbe32589da8",
+      "path": "os/tests/test_disk_audit.py"
+    },
+    {
+      "sha256": "bb3ee6317a9fb9cf61ce987d223c9ed77de2fc2f56020bd0be6604f2953a4eef",
+      "path": "os/tests/test_firmware_contract.py"
+    },
+    {
+      "sha256": "a9a949ac3ea74d77353b40cef3db7b7c96ae1ef919e1ada93ff907de63bbf5ec",
+      "path": "os/tests/test_greeter.py"
+    },
+    {
+      "sha256": "5bff054c0db825477e3df0b6ccb14be702de9dacc01fe29d1b73ad649ac84ba0",
+      "path": "os/tests/test_greeter_probe.py"
+    },
+    {
+      "sha256": "acd2606a17f29d2bed94a598a06798cf95e101139ba9e12992bceefb450b8be4",
+      "path": "os/tests/test_grub_bls.py"
+    },
+    {
+      "sha256": "b263abc37414c90d0063db3ea9bf092ca1f4819676356871ecd60add9bbf265b",
+      "path": "os/tests/test_inherited_homebrew.py"
+    },
+    {
+      "sha256": "84aed1a4c9415032d113c29f090c932f914e20250694dd6c73eb8d41cc891c7d",
+      "path": "os/tests/test_installer_webui.py"
+    },
+    {
+      "sha256": "deaf190b8e5908a92489b914371548570bb3ea20e83c45cfdf748406a1213843",
+      "path": "os/tests/test_keyboard_entries.py"
+    },
+    {
+      "sha256": "13b0c7c8045c0e7ad01c3030d682295b74af1e6e76d88cef03ec397bf2f4d8c9",
+      "path": "os/tests/test_keyboard_proof.py"
+    },
+    {
+      "sha256": "52635760f62e770a59d59f4cd8a2934efbd1359f509c535bf60e79157b1ddc67",
+      "path": "os/tests/test_keyboard_release.py"
+    },
+    {
+      "sha256": "2ae82612e8ce4131d87180517f15406badc23207d5e442bf0caca03a683036cc",
+      "path": "os/tests/test_keyboard_vm.py"
+    },
+    {
+      "sha256": "5901d2d302e62a775898d92604122dabddb8e71fe0fbe9d4c897662dd58af10f",
+      "path": "os/tests/test_keyboard_walk.py"
+    },
+    {
+      "sha256": "68d869573229ca3526b40c3ede92b872a9c31d0cae439aaed6479dc775818486",
+      "path": "os/tests/test_offline_journal.py"
+    },
+    {
+      "sha256": "ff8aef372948eda9e7c44a85541d92aa537857d0bedd30e8925cf85f4758e49d",
+      "path": "os/tests/test_organization_budget.py"
+    },
+    {
+      "sha256": "b2951362395e0489a29e997e4a3d7ffecf725890d440574826ccef65abe388ae",
+      "path": "os/tests/test_owner_commands.py"
+    },
+    {
+      "sha256": "ec56f59f3f5eae50438740c499bf5c3766d10a49373d54c5db3d6c3c22c46fd5",
+      "path": "os/tests/test_owner_equality.py"
+    },
+    {
+      "sha256": "04ed6a4ddb25e82b27b751664a654b5c772d55a7e52d05f670479f1db7114e59",
+      "path": "os/tests/test_owner_export.py"
+    },
+    {
+      "sha256": "09722f716cae17d095b3895b92001baa7f971ae40192f086c89a686f4f9f8122",
+      "path": "os/tests/test_owner_guard.py"
+    },
+    {
+      "sha256": "e4e4061757adfc36eb0569ab44eaf14b5389002d10a05df8d3502ae70123cea2",
+      "path": "os/tests/test_owner_tools.py"
+    },
+    {
+      "sha256": "13d630b9d5827953a62064e78dab0566fa100896dc5b5b5b89434b519bb77a90",
+      "path": "os/tests/test_owner_transport.py"
+    },
+    {
+      "sha256": "f5a19b9229941cce38922b25f3790cf6428da7877ce0dce5e407a595f71fcc4b",
+      "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "3c337415eab854056efed3832328b6c5ae32b4a72d725946fea4ccee40b56e9e",
+      "path": "os/tests/test_probe_native.py"
+    },
+    {
+      "sha256": "43917d53dc86d6d69df97ad50b632427ea0d218c8bc85328b40d2b5dba70e3ac",
+      "path": "os/tests/test_rehearsal_auth.py"
+    },
+    {
+      "sha256": "409fec6f33d711164909e6362743508fe4ab5d7f7164f522f97125131ed04689",
+      "path": "os/tests/test_rehearsal_budget.py"
+    },
+    {
+      "sha256": "ce8423764035212ada620065a0ddd2f504943abdc1e41ec546d5080ae6763760",
+      "path": "os/tests/test_rehearsal_history.py"
+    },
+    {
+      "sha256": "e2a9fee701ba15e0387b584d2354003e915e297fc471d1fa3aabe190d6bed7ee",
+      "path": "os/tests/test_rehearsal_retry.py"
+    },
+    {
+      "sha256": "2dbe49b016751482b109667389575f242cc516ff7a8bb33faa92ced267b89d9d",
+      "path": "os/tests/test_release_squash_binding.py"
+    },
+    {
+      "sha256": "ebe9f9cd8712b5d89ec5a9fe371c15b3b6bef6b69fa056c60117d68af6345872",
+      "path": "os/tests/test_serial_console.py"
+    },
+    {
+      "sha256": "00f8e4d5859f9ddda3487481c699dc569a617b6b48d6e1338b80608a6112188b",
+      "path": "os/tests/test_shell_assertions.py"
+    },
+    {
+      "sha256": "ee838ec3f7f769294d32016c24e292eb74ffd4eade18ad9dc25388c5e92b3d24",
+      "path": "os/tests/test_stock_idle.py"
+    },
+    {
+      "sha256": "7b969ec5cac0839a2c8a8ce427016202367e7cf9b103049d0b5e40dd21ad1bd3",
+      "path": "os/tests/test_stock_prepare.py"
+    },
+    {
+      "sha256": "bf303bf0f94f858f02563713110eb5b78fce20f0b54dfc5e112fff98542f38f4",
+      "path": "os/tests/test_stock_probe.py"
+    },
+    {
+      "sha256": "5d3fde9c9b31a48fbebd477356d95eb8bd8039ae4e9c0c030535eaf774f3c549",
+      "path": "os/tests/test_switch.py"
+    },
+    {
+      "sha256": "d4c2b92585d229ef388b3e80a510dacbe0e8fc04fea0f1b65f7316f7959aafa0",
+      "path": "os/tests/test_system_keyboard.py"
+    },
+    {
+      "sha256": "02cc277cde88610f556daf11b3cf00f9825b4d515dd560f7f3535086e01ca860",
+      "path": "os/tests/test_sysusers.py"
+    },
+    {
+      "sha256": "314d60814b1dcc4fbedb23860f302c8c350ecf100c2b7cfd13d8f2233c8d411b",
+      "path": "os/tests/test_tty_password.py"
+    },
+    {
+      "sha256": "091e01728b548c4928393ef0df156e62acca58cfbb527e5eabcba8122ca84002",
+      "path": "os/tests/test_two_disk_vm.py"
+    },
+    {
+      "sha256": "333846f3db38462540b1c72d3cfdc5571d05d65eada9afc4caa15b6cb3a66e5c",
+      "path": "reviews/14-owner-tools/walk-host.py"
+    }
+  ]
+}

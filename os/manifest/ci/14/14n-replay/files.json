@@ -1,0 +1,61 @@
+{
+  "status": "local checks only; native and VM acceptance pending",
+  "files": [
+    {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "path": "code-history-gitleaks.json"
+    },
+    {
+      "sha256": "90c481bfee0c95bc48f4e129ef786d764e04fa979204749b876a80f7d0399d93",
+      "path": "final-equality.log"
+    },
+    {
+      "sha256": "8e91b3adf6641419ace2cab01df80d369999735dac06a332066c961f2a3f45ee",
+      "path": "fingerprint-references.json"
+    },
+    {
+      "sha256": "51d6d576aaaebed962c0316aa8cf48ab05a60a571266a33e1152cd18583bca87",
+      "path": "focused-tests.log"
+    },
+    {
+      "sha256": "0ac48b66d9526c053688d329f618b0d8d6e3b85b0efdd80cf510f11f1ebea37b",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "46a7246df3aaf6b4bb648f0fd4f60022845c271ec0948fc87c67d213490068b2",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "8fed2f017fc86ea70e74317b2888298cdc76b30218c634acdbaecbf60ad5e3c6",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "c18ff872c4164b2a504654a56c47fca9b349a3ed0c1665a94aa6268b519a9726",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": "release-replay.log"
+    },
+    {
+      "sha256": "6cb04ad1bf4631629d0498571fe8d1eb0805ccdc3dbd364281b7c509654ed850",
+      "path": "replay.json"
+    },
+    {
+      "sha256": "1e9f90d85f519fcf337ee1b0cf33099b781108b54d15344282ae28e22807c110",
+      "path": "strict-checks.py"
+    },
+    {
+      "sha256": "1622632b8a7fce6ce268bafd3e2ae0be3d8fe1d165e8399d87d0984a4e9ad57f",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "a699d00bbb75da32ec7c6d47661a19415830058e2e69b8094cd38866ebd25390",
+      "path": "windows-copy.log"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": "zero-cost-replay.log"
+    }
+  ]
+}

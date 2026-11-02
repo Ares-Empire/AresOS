@@ -1,0 +1,43 @@
+{
+  "status": "proven checkout-filter mismatch; native failing row not named in its assertion",
+  "run": 41363231606,
+  "head": "dda72ed8a5bdb038d953f950f76c66fc37297115",
+  "native_tests": 627,
+  "native_seconds": 163.918,
+  "native_skips": 0,
+  "native_errors": 0,
+  "native_failures": 0,
+  "gate": "owner_vm.main host-walk source byte hashes, before Media.create and Guest boot",
+  "sources": 195,
+  "git_blob_bindings_passed": 195,
+  "checkout_filter_mismatches": [
+    {
+      "bound_sha256": "2e4b93798a791cc321c508f93e368f778788ad9db5ec7023370731fffa966898",
+      "checkout_sha256": "62a1fd816586ffae3fb1f2f35072d1e2da9373fb9359930eb323684103772948",
+      "path": "os/tests/owner-tools.Tests.ps1",
+      "blob_bytes": 4889,
+      "checkout_bytes": 4961,
+      "blob_crlf": 0,
+      "checkout_crlf": 72,
+      "lf_to_crlf_only": true,
+      "attributes": [
+        "os/tests/owner-tools.Tests.ps1: text: set",
+        "os/tests/owner-tools.Tests.ps1: eol: crlf"
+      ]
+    }
+  ],
+  "provenance": "git show HEAD:path then git cat-file --filters --path=path HEAD:path; exact pushed-tree attributes",
+  "proven": "The only checkout-filter mismatch is the PowerShell test: its committed manifest binds LF bytes, while eol=crlf expands checkout bytes. The native guard reads checkout bytes.",
+  "inference": "This exactly reproduces the stale-source condition on the pushed tree. The native assertion does not export the failing row, so its individual runtime hash was not retained.",
+  "actions_rerun": false,
+  "qualification_dispatched": false,
+  "pushed_tree_changed": false,
+  "native_log": {
+    "sha256": "c08c9b550706ae205ccfadc0d504137f25e703ca843c0624b2a0b324f30a6bc7",
+    "path": ".work/14/run-41363231606/native.log"
+  },
+  "full_log": {
+    "sha256": "b0403db5109038804c3b5f774cad29a194fa9f99c97662c105641d67a3f2868f",
+    "path": ".work/14/14zzd/basic-41363231606/full-logs/1_Pinned live ISO inspection and two-disk rehearsal.txt"
+  }
+}

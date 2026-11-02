@@ -1,0 +1,19 @@
+{
+  "status": "STOP; no rerun",
+  "head": "b15d52f1a24c37fa4f4a3897919b88b591990c49",
+  "runs": [
+    {
+      "mode": "probe",
+      "run": 41356040290,
+      "head": "b15d52f1a24c37fa4f4a3897919b88b591990c49",
+      "conclusion": "failure",
+      "accepted": false
+    }
+  ],
+  "acceptance_met": false,
+  "pushes": 1,
+  "reruns": 0,
+  "closing_commit_local_only": true,
+  "physical_release": "NOT RELEASED",
+  "ledger_minutes": 2310
+}

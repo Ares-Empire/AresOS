@@ -1,0 +1,43 @@
+{
+  "status": "reproduced current framed heredoc failure; single-line control passes",
+  "kind": "local pure Bash/Python and workspace files; no network/device/privilege",
+  "adapter": "only mktemp directory changed from /run to this workspace",
+  "cases": [
+    {
+      "case": "heredoc",
+      "exit_code": 1,
+      "expected_failure": true
+    },
+    {
+      "case": "single-line",
+      "exit_code": 0,
+      "expected_failure": false
+    }
+  ],
+  "files": [
+    {
+      "sha256": "854ac63ccb310bb54875c9d44c2b3fafbf21f4bcd18b792bf4bb6b27860df70c",
+      "path": "heredoc-stderr.txt"
+    },
+    {
+      "sha256": "1db83afc999d938c678fcd80cdc04eeab3dff5baae93d2fbce60e36fef41ac23",
+      "path": "heredoc-stdout.txt"
+    },
+    {
+      "sha256": "9d78c1dfaa1084f8e7f71c013307d9e4025cfd7fc566cd7b93aecb825ad14579",
+      "path": "heredoc.sh"
+    },
+    {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "path": "single-line-stderr.txt"
+    },
+    {
+      "sha256": "ad34e6fa590f21087f7b93a5f37979d5be508c58a6b478e24efccde4bee293e1",
+      "path": "single-line-stdout.txt"
+    },
+    {
+      "sha256": "84668e50ca37fe770dc102b1b326aa34529e694561e45e9499f0eb52d7b68d86",
+      "path": "single-line.sh"
+    }
+  ]
+}

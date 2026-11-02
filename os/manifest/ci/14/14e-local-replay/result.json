@@ -1,0 +1,53 @@
+{
+  "local_discovery": {
+    "tests": 284,
+    "passed": 276,
+    "seconds": 218.778,
+    "host_limited_cases": [
+      "test_absent_inherited_installation_is_not_created",
+      "test_active_service_without_drawing_hits_deadline",
+      "test_auth_is_outside_workspace_and_always_removed_before_artifact_upload",
+      "test_black_cursor_and_flat_background_are_not_rendered_greeters",
+      "test_capture_waits_for_drawing_and_keeps_ready_evidence",
+      "test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently",
+      "test_preserves_existing_acl_entries_and_restrictive_mask",
+      "test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently"
+    ],
+    "failure_records": 2,
+    "error_records": 9,
+    "skipped": 0
+  },
+  "focused_tests": 47,
+  "refusal_binding_tests": 9,
+  "windows_refusals": 15,
+  "guest_shell_syntax": 257,
+  "guest_python_compile": 233,
+  "native_run": false,
+  "vm_run": false,
+  "files": [
+    {
+      "sha256": "37239115ec1a98c080683f648bd68623cf21d4d4840f9e6009b43df89d5d7fce",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "02d5c20983ce963af5ec5f54beaa2b4108a0b00d3f1d0572bffa0575f15f79bf",
+      "path": "powershell.log"
+    },
+    {
+      "sha256": "f352c16788cbb836254d82e0af43ea76c07ffb7076947d6d1cbe743c133aa95a",
+      "path": "release-binding.json"
+    },
+    {
+      "sha256": "4bda9a1436d793bc991a2b32051f98e728de9320199fbaf596c12a1e27ca5596",
+      "path": "release-verifier.log"
+    },
+    {
+      "sha256": "1455e8cd6110d2eb6f31ccc6802d41d9fc485256d0c1c375f05d2198aeb53247",
+      "path": "replay.json"
+    },
+    {
+      "sha256": "f7af81df0043c7fc42adfc8db089edd8a32b8f169149da2a5387a7bc3789695a",
+      "path": "whole-suite.log"
+    }
+  ]
+}

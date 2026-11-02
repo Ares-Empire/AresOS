@@ -84,7 +84,7 @@ def read_keyboard(guest):
     expected, = [item['sha256'] for item in receipt['sources'] if item['path'].endswith('/installation.py')]
     interface, = [item['sha256'] for item in receipt['sources'] if item['path'].endswith('/localization_interface.py')]
     script = pathlib.Path('os/ci/keyboard_proof.py').read_text()
-    untrusted_console = os.environ.get('REHEARSAL_PACKAGE') == '13'
+    untrusted_console = os.environ.get('REHEARSAL_PACKAGE') in ('13', '14')
     script += '\nprint(json.dumps(read_only_proof(' + repr(expected) + ', ' + repr(interface) + ', ' + repr(untrusted_console) + ')))\n'
     proof = guest.capture_json('webui-keyboard-proof', framed('python3 -c ' + shlex.quote(script)))
     validate_keyboard_proof(proof, untrusted_console)
@@ -174,6 +174,8 @@ echo SINGLE_HOST_UI_CLIENT_BACKEND_STILL_READY
 ''', timeout=90)
     encoded = base64.b64encode(RELAY.encode()).decode()
     guest.command(stage + '-relay', f"set -e; printf '%s' '{encoded}' | base64 -d > /tmp/rehearsal-relay.py\npython3 /tmp/rehearsal-relay.py > /tmp/rehearsal-relay.log 2>&1 < /dev/null &\nsleep 1\ncurl --connect-timeout 1 --max-time 5 --fail --silent http://127.0.0.1:8080/cockpit/@localhost/anaconda-webui/index.html > /dev/null\nss -lntp")
+    if os.environ.get('REHEARSAL_PACKAGE') == '14':
+        guest.start_offline_webui_transport()
     guest.command(stage + '-bootloader-console-source', '''set -e
 cat /proc/cmdline
 python3 - <<'PY'
@@ -447,7 +449,7 @@ xlayouts = prop('Localization', '', '', 'XLayouts')
 keymap = prop('Localization', '', '', 'VirtualConsoleKeymap')
 timezone = prop('Timezone', '', '', 'Timezone')
 assert xlayouts == 'as 1 "de"', 'Wrong committed X11 keyboard choice'
-if '@PACKAGE@' != '13':
+if '@PACKAGE@' not in ('13', '14'):
     assert keymap in ('s ""', 's "de"'), 'Wrong keyboard choice'
 assert timezone == 's "Europe/Berlin"', 'Wrong timezone'
 users = prop('Users', '', '', 'Users')
@@ -464,7 +466,7 @@ PY
 def run(guest, evidence, protected, target, password, install=False, stage='webui-probe'):
     from playwright.sync_api import sync_playwright
     start(guest, stage)
-    if os.environ.get('REHEARSAL_PACKAGE') == '13':
+    if os.environ.get('REHEARSAL_PACKAGE') in ('13', '14'):
         import keyboard_diagnostic
         keyboard_diagnostic.start(guest, stage)
     with sync_playwright() as playwright:
@@ -473,7 +475,8 @@ def run(guest, evidence, protected, target, password, install=False, stage='webu
             browser='Chromium', version=browser.version, headless=True, viewport=dict(width=1440, height=1100),
             launch='liveuser liveinst; no LIVECMD or kickstart',
             guest_browser='Liveinst Firefox starts normally; its exact liveuser installer profile process tree is SIGSTOP-paused because browser exit tears down Anaconda. Only host Chromium drives the pages',
-            transport='host loopback:18080 -> QEMU guest:8080 -> TCP relay -> original loopback:80',
+            transport=('host loopback:18080 -> virtio-serial -> guest loopback:8080 -> original loopback:80; NIC link-down'
+                       if os.environ.get('REHEARSAL_PACKAGE') == '14' else 'host loopback:18080 -> QEMU guest:8080 -> TCP relay -> original loopback:80'),
             shutdown='root serial poweroff for mandatory offline audit instead of UI reboot'), indent=2) + '\n')
         pages = Pages(browser, evidence, guest.secrets, guest)
         try:
@@ -483,7 +486,7 @@ def run(guest, evidence, protected, target, password, install=False, stage='webu
             guest.command(stage + '-heartbeat', 'true', timeout=30)
             if install:
                 pages.install(guest, stage)
-                if os.environ.get('REHEARSAL_PACKAGE') == '13':
+                if os.environ.get('REHEARSAL_PACKAGE') in ('13', '14'):
                     keyboard_diagnostic.collect(guest, stage)
             return proof
         finally:

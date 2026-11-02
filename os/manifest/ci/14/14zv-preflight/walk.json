@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "kind": "local synthetic guest responses; no VM qualification",
+  "stages": [
+    "stock",
+    "tools-stock",
+    "corrected-stock",
+    "aresos",
+    "aresos-intl",
+    "aresos-back-de",
+    "rollback-stock",
+    "default-stock"
+  ],
+  "markers": [
+    "offline-roundtrip-unattended-windows",
+    "offline-roundtrip-detached-windows",
+    "prepared-unattended-windows",
+    "final-unattended-windows",
+    "final-detached-windows"
+  ],
+  "cluttered_prompt_waits": 133,
+  "idle_authorized_resyncs": 133,
+  "hidden_pairs": 23,
+  "public_handoffs": 3,
+  "health_boundaries": 86,
+  "composed_guest_commands": 940,
+  "strict_bash_syntax": true,
+  "uncovered_waits": [],
+  "keyboard": "AT selection/counter/source tests; physical redraw simulated",
+  "clutter": "Q15 exact geometry/content shape after tools-stock; synthetic healthy kernel journal. The historical VCSA remains clutter only and never grants authority.",
+  "pending": "Actual PS2 event delivery, FUSE hotplug and health timing need November native/VM runs"
+}

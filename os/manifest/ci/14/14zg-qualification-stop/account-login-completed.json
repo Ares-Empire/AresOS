@@ -1,0 +1,7 @@
+{
+  "status": "passed",
+  "echo_enabled": true,
+  "foreground_shell": true,
+  "input_epoch": 2,
+  "token_recorded": false
+}

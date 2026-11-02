@@ -2,3 +2,13 @@
 # unchanged signed release. This is not an authentication key. Later code puts
 # Git object IDs before paths to avoid the generic key-assignment heuristic.
 e44af20a3d35e759da471dc7ec23bcf8ad0f7d84:os/ci/verify_release.py:generic-api-key:46
+
+# Exact historical false positives (package 14, integrator decision): SHA-256 hashes of
+# repo files in the host-walk manifest. The generic rule fires only because the file
+# names contain "key", "auth" or "api"; each value is the file's checked content hash,
+# not a credential. Later manifests put the hash before the path.
+54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:58
+54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:61
+54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:72
+54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:73
+54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:74

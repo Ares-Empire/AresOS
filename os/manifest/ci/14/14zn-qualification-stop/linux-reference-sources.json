@@ -1,0 +1,20 @@
+{
+  "kind": "public Linux ABI/reference source, not a reproduction of the guest fork",
+  "sources": [
+    {
+      "sha256": "2bc2e5d33722f2cd0c9ab3016165fa1e667dea28ae2f57493e2cfc2dac0824e2",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.17/arch/x86/entry/syscalls/syscall_64.tbl",
+      "path": "linux-syscall64.tbl"
+    },
+    {
+      "sha256": "1a10eca426409b7cb8fa2b5f8575383ad0cf93509c87b9e53a58c64857704eb9",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.17/drivers/tty/n_tty.c",
+      "path": "linux-n_tty.c"
+    },
+    {
+      "sha256": "0a1622b5c1b1418f4046d52fbf67e4d6ddefc1f0f42e4af04e926d95ce269a1e",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/v6.17/include/uapi/linux/kd.h",
+      "path": "linux-kd.h"
+    }
+  ]
+}

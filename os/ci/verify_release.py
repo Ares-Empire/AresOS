@@ -6,6 +6,15 @@ import re
 import subprocess
 import sys
 
+# Integrator verified PR12's squash binding on 2026-10-25 (briefs 14e/14g).
+# These are reviewed historical facts, not a live API claim.
+SQUASH_BINDING = (12, True, '775be05b7f0d6971cbdc8a3bd1aea617fc008c4d',
+                  'pkg/13-keyboard-layout', 'main')
+assert SQUASH_BINDING == (12, True, '775be05b7f0d6971cbdc8a3bd1aea617fc008c4d',
+                          'pkg/13-keyboard-layout', 'main'), 'STOP: reviewed squash binding constants differ'
+if subprocess.check_output(['git', 'rev-parse', '--is-shallow-repository']).decode().strip() != 'false':
+    sys.exit('STOP: release verification requires full history; shallow repository (checkout fetch-depth: 0)')
+
 run_id = sys.argv[1]
 assert run_id.isdigit(), 'A numeric workflow run ID is required'
 release = json.loads(pathlib.Path('evidence/release.json').read_text())
@@ -40,10 +49,16 @@ if org:
         identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/13-keyboard-layout',
         issuer='https://token.actions.githubusercontent.com')
     subprocess.run(['git', 'fetch', '--no-tags', 'origin', source], check=True)
-    subprocess.run(['git', 'merge-base', '--is-ancestor', source, 'HEAD'], check=True)
+    # Bind the signed source to the retained PR head and reachable squash.
+    number, _, merged, _, _ = SQUASH_BINDING
+    subprocess.run(['git', 'fetch', '--no-tags', 'origin', f'refs/pull/{number}/head'], check=True)
+    subprocess.run(['git', 'merge-base', '--is-ancestor', source, 'FETCH_HEAD'], check=True)
+    subprocess.run(['git', 'fetch', '--no-tags', 'origin', merged], check=True)
+    subprocess.run(['git', 'merge-base', '--is-ancestor', merged, 'HEAD'], check=True)
     payload = ['os/Containerfile.keyboard', 'os/.containerignore', 'os/packages.lock.json',
                'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys', 'os/tests/audit.py']
     subprocess.run(['git', 'diff', '--exit-code', source, 'HEAD', '--', *payload], check=True)
+    subprocess.run(['git', 'diff', '--exit-code', source, merged, '--', *payload], check=True)
     assert release['image_diff']['status'] == 'passed' and release['image_diff']['packages_equal'] and release['image_diff']['units_equal']
     assert release['job_token_read']['status'] == 'passed' and not release['job_token_read']['owner_token_used']
     print(f'Qualified private org release {source}; runtime payload unchanged; testing {release["reference"]}')

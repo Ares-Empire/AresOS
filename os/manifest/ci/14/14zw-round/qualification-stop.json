@@ -1,0 +1,197 @@
+{
+  "status": "STOP; qualification failed in the harness three-layout physical-typing adapter",
+  "run": 41266663581,
+  "head": "75a2c638cecff042b528eb07e3089eda9129de02",
+  "stage": "aresos-intl",
+  "acceptance_met": false,
+  "actual_run": {
+    "sha256": "47190794ab3a10cf4045c9bb4e5f5d9c928c5e6a7c93f16cc6bfa2c4a30f2574",
+    "path": "evidence.zip",
+    "artifact_id": 13069567687,
+    "bytes": 15761823,
+    "run": 41266663581,
+    "head": "75a2c638cecff042b528eb07e3089eda9129de02",
+    "status": "failure",
+    "members": 2068,
+    "logs": {
+      "sha256": "6445446bc4a98db7f98ea6eed9a07c4b4babc0c325cce2bdb1fa3250e7958dfd",
+      "path": "logs.zip"
+    },
+    "downloaded_at": "2026-11-01T04:17:23.356909+00:00"
+  },
+  "actual_log": {
+    "sha256": "f213dc52bbbb76484763d79bad0782b0eace27b09580034e178ef21708ff908b",
+    "path": ".work/14/run-41266663581/vm-scan/vm.log"
+  },
+  "proven": {
+    "traceback": "owner_vm.public_typing:808 -> keyboard_vm.physical_input:114 -> owner_vm.type_text:53 -> owner_keys.physical_keys:64",
+    "requested_profile": "us-intl",
+    "incorrectly_forwarded_profile": "us",
+    "public_test_text": "yz-/!ü",
+    "refused_codepoint": "U+00FC",
+    "plain_us_has_codepoint": false,
+    "us_intl_keys": [
+      "alt_r",
+      "y"
+    ],
+    "loaded_console": "us-intl",
+    "x11_layout": "us",
+    "x11_variant": "intl",
+    "forced_vconsole_cmdline": false,
+    "owner_check": "passed",
+    "tty3_login": {
+      "status": "passed",
+      "tty": "tty3",
+      "attempts": 1,
+      "reader_replacements": 0,
+      "timing": {
+        "elapsed_seconds": 9.003255877,
+        "timeout_seconds": 60,
+        "half_budget_seconds": 30.0,
+        "within_half_timeout": true,
+        "counters_started_before_username": true,
+        "value_recorded": false
+      },
+      "value_recorded": false,
+      "secret_tainted": false
+    },
+    "password_sudo": "passed",
+    "intl_proof": "passed",
+    "intl_finish": "passed",
+    "us_intl_public_console_complete": false,
+    "us_intl_foot_reached": false,
+    "duplicate_two_profile_foot_call": "owner_vm.py:810; same collapse, not executed in this stage"
+  },
+  "observed_records": [
+    {
+      "sha256": "6c6484c55c5e0be2ffc24bffbdde43d4092acd6daac5b4b51307d620b267145e",
+      "path": ".work/14/run-41266663581/evidence/two-disk/layout-intl-proof-owner-result.json",
+      "status": "passed"
+    },
+    {
+      "sha256": "a389ad5657e98ec3b18f9ff82ce6ca276ca9e3490f8f9a330e990f88da9882c8",
+      "path": ".work/14/run-41266663581/evidence/two-disk/layout-intl-finish-owner-result.json",
+      "status": "passed"
+    },
+    {
+      "sha256": "2d81d0fa955c6fab68686ae76e7c72d70b1f5daa5dcc9b85454ed6d8b8f7e626",
+      "path": ".work/14/run-41266663581/evidence/two-disk/aresos-intl-check-owner-result.json",
+      "status": "passed"
+    },
+    {
+      "sha256": "692de5f544dc5ca0c209660daf46d7fa644fa17cde39640707fa96ef442372f2",
+      "path": ".work/14/run-41266663581/evidence/two-disk/aresos-intl-physical-login-result.json",
+      "status": "passed"
+    },
+    {
+      "sha256": "5f94def35bdb95dafa08f397526e232e5536858e6422045a7be76e9ca4999975",
+      "path": ".work/14/run-41266663581/evidence/two-disk/aresos-intl-account-login-hidden-completed.json",
+      "status": "passed"
+    },
+    {
+      "sha256": "9f64fe2588b99da416edb279eab806285e7182ecd48851bddbb3d6157841852b",
+      "path": ".work/14/run-41266663581/evidence/two-disk/aresos-intl-sudo-hidden-completed.json",
+      "status": "passed"
+    }
+  ],
+  "loaded_keyboard": {
+    "sha256": "f5d382d644362de84eff18b15769b391b691eb88956960c90b48b5d4aba89c5a",
+    "path": ".work/14/run-41266663581/evidence/two-disk/aresos-intl-loaded-keyboard.json"
+  },
+  "classification": "test harness layout plumbing; no owner-tool refusal or dropped-key diagnosis explains this assertion",
+  "source_derived_coverage_gap": "test_owner_walk substitutes public_typing, so its walk does not execute this actual helper/profile handoff",
+  "coverage_gap_source": {
+    "sha256": "61c56b0397a3ea85a58392c6c161ab03284e4c8a0986a1325bd3f5c441b2e928",
+    "path": "os/tests/test_owner_walk.py"
+  },
+  "native": {
+    "tests": 569,
+    "seconds": 125.363,
+    "skips": 0,
+    "mandatory_30_second_case": "passed",
+    "proof": {
+      "status": "passed",
+      "run": 41266663581,
+      "head": "75a2c638cecff042b528eb07e3089eda9129de02",
+      "test": "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "native_result": "ok; unchanged30-second bound",
+      "log": {
+        "sha256": "33de7ac09312a061a042243c1fd0bfa4765e9557eb4a620734b650e146c3abb2",
+        "path": "native.log"
+      },
+      "line": 750,
+      "local_exception_applied_in_ci": false
+    }
+  },
+  "through_stop_audits": {
+    "status": "passed independent replay of actual raw files and counters",
+    "run": 41266663581,
+    "head": "75a2c638cecff042b528eb07e3089eda9129de02",
+    "protected_captures": 11,
+    "zero_write_unmap_samples": 12,
+    "raw_varstores_decoded": 11,
+    "bootnext_exact_replays": 11,
+    "nvram_rule_exact_replays": 10,
+    "all_variable_delta_recomputations": 10,
+    "stages": [
+      "aresos-intl",
+      "aresos",
+      "boot-3-pre-login-reset",
+      "corrected-stock",
+      "offline-first-stock",
+      "offline-roundtrip-detached-windows",
+      "offline-roundtrip-unattended-windows",
+      "prepared-unattended-windows",
+      "protected-second-install",
+      "tools-stock"
+    ]
+  },
+  "keyboard_health": {
+    "at_boot_records": 6,
+    "static_keycodes_each": 57,
+    "xhci_checkpoints": 71,
+    "stops": 0,
+    "counted_only": true,
+    "typing_hold_ms": 30,
+    "minimum_gap_ms": 120
+  },
+  "unreached_stage_prefixes": [
+    "aresos-back-de",
+    "rollback-stock",
+    "default-stock",
+    "final-unattended-windows",
+    "final-detached-windows"
+  ],
+  "not_verified": [
+    "complete US International console/foot public physical typing",
+    "return to German",
+    "rollback",
+    "keep-stock",
+    "final unattended Windows",
+    "final detached Windows"
+  ],
+  "proposed_only": true,
+  "implemented_fix": false,
+  "further_dispatch": false,
+  "serial_followup_proposal": [
+    "Repair and cover every three-layout helper handoff under a new authorization; preserve unknown-character refusal.",
+    "Retain physical US International login/typing and return-to-German tests.",
+    "For later non-typing rollback/keep-stock/title/reboot/Windows stages, propose using the existing SHA-framed serial runner and retain all owner guards and raw disk/NVRAM/BootNext/hotplug audits.",
+    "A direct serial-root owner invocation fails the physical logind tty guard. Any harness adapter must preserve the verified physical session context with explicit approval; never weaken that product guard."
+  ],
+  "qualification_is_not_accepted": true,
+  "source_files": [
+    {
+      "sha256": "67614b3b8f9d3529cde631fae8eb975fbef8ae3735d8bd7b5660704dff35860f",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "c4ba1ad642b328d9d6f9514f5131e64848862e548f7698dfd2f448bf09cef312",
+      "path": "os/ci/keyboard_vm.py"
+    },
+    {
+      "sha256": "f2452f7cd01efa6ff038b6fc5f8959cf8ae35ea0af5cb71d06b8912f7aab5e15",
+      "path": "os/ci/owner_keys.py"
+    }
+  ]
+}

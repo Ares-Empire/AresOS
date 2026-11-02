@@ -1,0 +1,649 @@
+{
+  "allowance": "14",
+  "start": "2026-10-25T22:01:22Z",
+  "cap": 350,
+  "full_cap": 0,
+  "full_dispatched": 0,
+  "part_b_cap": 0,
+  "part_b_dispatched": 0,
+  "dispatch_caps": {
+    "probe": 5,
+    "owner-tools": 2
+  },
+  "dispatch_counts": {
+    "probe": 5,
+    "owner-tools": 1
+  },
+  "consumed_minutes": 203,
+  "reserved_minutes": 12,
+  "runs": [
+    {
+      "run": 40263990213,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+      "conclusion": "failure",
+      "minutes": 48
+    },
+    {
+      "run": 40261916660,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+      "conclusion": "success",
+      "minutes": 22
+    },
+    {
+      "run": 40261603041,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40261599776,
+      "title": "Record clean framing-fix full-history privacy scan",
+      "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40260375474,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "b71de4af3df67c9f7cbbbb530bf4731fa2383296",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40260372656,
+      "title": "Brief 14i: brace-group guest command framing, composed-command checks\u2026",
+      "sha": "b71de4af3df67c9f7cbbbb530bf4731fa2383296",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40254429101,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "2675f28d927b64834e5f7e2f4bfe153d91ab7fc8",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40254425324,
+      "title": "Remove trailing prompt whitespace from retained stop transcript",
+      "sha": "2675f28d927b64834e5f7e2f4bfe153d91ab7fc8",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40253972397,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "f1df3dae8b444532e8f0944e6213f3c471dcd509",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40253968984,
+      "title": "Record clean full-history scan for fourth-probe stop evidence",
+      "sha": "f1df3dae8b444532e8f0944e6213f3c471dcd509",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40249992092,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+      "conclusion": "failure",
+      "minutes": 22
+    },
+    {
+      "run": 40249682573,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40249678234,
+      "title": "Record clean mount-query refusal scans before the fresh probe",
+      "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40248937111,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "de322e9059fc359d75feb8be048f42533123e26e",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40248932358,
+      "title": "Record the clean FUSE capability history scan in the ledger",
+      "sha": "de322e9059fc359d75feb8be048f42533123e26e",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40247173828,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "afd608b70f22a84c41ea848d4ae11a6f70e57d79",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40247170525,
+      "title": "Brief 14h: exfat-fuse for the virtual tools stick, early runner capab\u2026",
+      "sha": "afd608b70f22a84c41ea848d4ae11a6f70e57d79",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40246837954,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "754eafe273254f6856ec992b58e9ecf8f31700e3",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40246835407,
+      "title": "Record the clean third-probe stop report scan in the ledger",
+      "sha": "754eafe273254f6856ec992b58e9ecf8f31700e3",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40245433868,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
+      "conclusion": "failure",
+      "minutes": 13
+    },
+    {
+      "run": 40245226417,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40245221350,
+      "title": "Record the clean git-binding scan in the package ledger",
+      "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40244218639,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "2d934d7487170bb9b04e9043ca0536c95d2eeec1",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40244215458,
+      "title": "Brief 14g: git-only PR 12 binding (no API read in CI), shallow-clone \u2026",
+      "sha": "2d934d7487170bb9b04e9043ca0536c95d2eeec1",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40243691197,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "500e597a9d87e8aba5ef286da0324ed448752d30",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40243686031,
+      "title": "Record the clean final-probe report scan in the package ledger",
+      "sha": "500e597a9d87e8aba5ef286da0324ed448752d30",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40242538685,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "conclusion": "failure",
+      "minutes": 6
+    },
+    {
+      "run": 40242274817,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40242272088,
+      "title": "Record the clean replay history scan in the package ledger",
+      "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40240890854,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40240887069,
+      "title": "Brief 14f: CI-only classification for steps needing the job's package\u2026",
+      "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40240457809,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40240454787,
+      "title": "Record the clean squash-binding history scan in the package ledger",
+      "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40239504514,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40239499609,
+      "title": "Brief 14e: bind the package 13 release to its squash merge; one fresh\u2026",
+      "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40239030452,
+      "title": "14: owner tools with checked guest command framing",
+      "sha": "bfbb3c696b9107966eddeb1281954de318f3e476",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40239028076,
+      "title": "Pin canonical retained evidence bytes and record the clean report scan",
+      "sha": "bfbb3c696b9107966eddeb1281954de318f3e476",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40238209435,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "5dfe2b00955955eecaca6a9edb62da34b7bb5865",
+      "conclusion": "failure",
+      "minutes": 5
+    }
+  ],
+  "publish_cap": 0,
+  "publish_attempts": [],
+  "history": {
+    "complete": true,
+    "pages_read": 1,
+    "ids_count": 55,
+    "total_count": 55,
+    "page_limit": 20,
+    "snapshot_reads": 1,
+    "pages": [
+      {
+        "ids_sha256": "e5156081839cfe98f2a8d75aae42c8135dbb843895b2e717a975f9719b0c60a3",
+        "page": 1,
+        "returned": 55,
+        "total_count": 55
+      }
+    ],
+    "run_ids": [
+      40263990213,
+      40261916660,
+      40261603041,
+      40261599776,
+      40260375474,
+      40260372656,
+      40254429101,
+      40254425324,
+      40253972397,
+      40253968984,
+      40249992092,
+      40249682573,
+      40249678234,
+      40248937111,
+      40248932358,
+      40247173828,
+      40247170525,
+      40246837954,
+      40246835407,
+      40245433868,
+      40245226417,
+      40245221350,
+      40244218639,
+      40244215458,
+      40243691197,
+      40243686031,
+      40242538685,
+      40242274817,
+      40242272088,
+      40240890854,
+      40240887069,
+      40240457809,
+      40240454787,
+      40239504514,
+      40239499609,
+      40239030452,
+      40239028076,
+      40238209435,
+      40237883460,
+      40237880873,
+      40236884399,
+      40236881214,
+      40232135063,
+      40232129389,
+      40230932763,
+      40230930408,
+      40223185778,
+      40223182504,
+      40222801527,
+      40222797405,
+      40219764089,
+      40219760184,
+      40219068763,
+      40219035460,
+      40216222435
+    ]
+  },
+  "organization_budget": {
+    "response_sha256": "32d079e63e72ac60f20c05c591320e6747d6999be79a0e64a4ad9c85e89a837e",
+    "status": "passed",
+    "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
+    "checked_at": "2026-10-26T04:14:12.367902+00:00",
+    "usage": [
+      {
+        "sku": "actions_linux",
+        "unit": "minutes",
+        "grossQuantity": 1714.0,
+        "discountQuantity": 1714.0,
+        "netQuantity": 0.0,
+        "grossAmount": 10.284,
+        "discountAmount": 10.284,
+        "netAmount": 0.0
+      },
+      {
+        "sku": "actions_storage",
+        "unit": "gigabyte-hours",
+        "grossQuantity": 5.879664052,
+        "discountQuantity": 5.879664052,
+        "netQuantity": 0.0,
+        "grossAmount": 0.001975648,
+        "discountAmount": 0.001975648,
+        "netAmount": 0.0
+      }
+    ],
+    "used_minutes": 1714,
+    "included_minutes": 2000,
+    "remaining_minutes": 286,
+    "reserved_minutes": 12,
+    "after_reservation": 274,
+    "other_repos_reserve": 150,
+    "credential": "existing local gh login; GET only"
+  },
+  "local_privacy_scans": [
+    {
+      "version": "8.21.2",
+      "checked_commit": "1272b3e57ce79378212019c2efbb52cc1dbdd5a9",
+      "scope": "git full history",
+      "flags": [
+        "git",
+        ".",
+        "--redact=100",
+        "--no-banner",
+        "--log-level",
+        "warn"
+      ],
+      "exit_code": 0,
+      "findings": 0,
+      "privacy_configuration_unchanged": true,
+      "files": [
+        {
+          "sha256": "375b95b3b6b2a74779b7257321238262b1d240b8d57be465bb692b3407c2eaac",
+          "path": ".gitleaksignore"
+        },
+        {
+          "sha256": "336569f3d0879c8d6a5792f2b8c15c5b61e7a77e6789c9eaa4300d0cdb0e1742",
+          "path": ".gitleaks.toml"
+        },
+        {
+          "sha256": "2e5d2312a35e266469e201f7a2d1eb1f9a9347286159e7a9e2d3448393e4eee2",
+          "path": ".github/workflows/privacy-check.yml"
+        }
+      ]
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "afaa9e65dc20404097bc1c37c3afb38484f04c67",
+      "checked_at": "2026-10-25T21:56:32.400263+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "checked_commit": "5dfe2b00955955eecaca6a9edb62da34b7bb5865",
+      "version": "8.21.2",
+      "scope": "full history",
+      "findings": 0,
+      "exit_code": 0,
+      "checked_at": "2026-10-25T21:57:09.454170+00:00"
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "6c2118773b68aaf4bf0fb034d4e626f690626a28",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "839d9623ea15e2c79eebeffcedbd4963a69c3d0a",
+      "checked_at": "2026-10-25T22:29:14.873404+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "b0c0b327947943c5f173098c7d3f9e32ac2fcbc8",
+      "checked_at": "2026-10-25T22:52:43.950945+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "checked_at": "2026-10-25T22:53:27.669431+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "73dc414997260d18c120735148640b91edea3249",
+      "checked_at": "2026-10-25T23:11:21.217281+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "500e597a9d87e8aba5ef286da0324ed448752d30",
+      "checked_at": "2026-10-25T23:12:15.248968+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "92ca81aa1edec75eee0d5d4d8e433ab245616e54",
+      "checked_at": "2026-10-25T23:31:37.181632+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "4268a94d612a0d6890b14afbd332516dbae11c31",
+      "checked_at": "2026-10-25T23:32:17.233363+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "0c3169d7df84a277fb0a7e9d51b408d81ca69779",
+      "checked_at": "2026-10-25T23:53:54.993570+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "754eafe273254f6856ec992b58e9ecf8f31700e3",
+      "checked_at": "2026-10-25T23:54:24.375732+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "79a4364517039a2229b58cdebb76514cd36a615c",
+      "checked_at": "2026-10-26T00:20:06.014060+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "de322e9059fc359d75feb8be048f42533123e26e",
+      "checked_at": "2026-10-26T00:21:00.105234+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "f50caac0ac8f88c1629d08f4c3f1373a628b2346",
+      "checked_at": "2026-10-26T00:28:58.929379+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "02eac4a226787a8879ee80d8d814221a22630323",
+      "checked_at": "2026-10-26T00:30:11.079656+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "05322d478b836a75a1c99303922269b7540f5d2e",
+      "checked_at": "2026-10-26T01:22:11.127000+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "f1df3dae8b444532e8f0944e6213f3c471dcd509",
+      "checked_at": "2026-10-26T01:22:59.034424+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "2675f28d927b64834e5f7e2f4bfe153d91ab7fc8",
+      "checked_at": "2026-10-26T01:28:21.867356+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "443f9e6174c741c724be397a20ccb6570eb36223",
+      "checked_at": "2026-10-26T02:55:49.683710+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    },
+    {
+      "version": "8.21.2",
+      "checked_commit": "5e8c0c961506af997a522190e194fbe9ca745308",
+      "checked_at": "2026-10-26T02:56:12.207097+00:00",
+      "scope": "full Git history, CI flags with redaction",
+      "exit_code": 0,
+      "findings": 0
+    }
+  ],
+  "pre_dispatch_privacy": {
+    "checked_at": "2026-10-26T03:23:22.231777+00:00",
+    "head": "5e8c0c961506af997a522190e194fbe9ca745308",
+    "private_repository": true,
+    "source_hashes_match": true,
+    "runs": [
+      {
+        "log_zip_sha256": "5145e0899568adc9056c70968e0f395b204843fdc8ea07339ecca56b70c48645",
+        "run": 40261603041,
+        "head": "5e8c0c961506af997a522190e194fbe9ca745308",
+        "event": "pull_request",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true
+      },
+      {
+        "log_zip_sha256": "ed3f26cbdf69668fcafde876ddfd8fdf64562c5fb3271525a45c12675f094aca",
+        "run": 40261599776,
+        "head": "5e8c0c961506af997a522190e194fbe9ca745308",
+        "event": "push",
+        "steps": {
+          "No secrets (gitleaks)": "success",
+          "Only private commit emails": "success",
+          "No personal terms": "success"
+        },
+        "personal_terms_not_skipped": true
+      }
+    ]
+  },
+  "phase": "14i qualification failure; no further VM dispatch planned",
+  "checked_at": "2026-10-26T04:14:13.028379+00:00",
+  "remaining_plan": {
+    "probe_dispatches": 0,
+    "qualification_dispatches": 0,
+    "closing_privacy_minutes": 12
+  }
+}

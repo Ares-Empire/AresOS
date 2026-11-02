@@ -1,0 +1,25 @@
+{
+  "status": "passed harness-only login timing/reader-restart/visual privacy scope",
+  "base": "2e0e996",
+  "changed_owner_vm_functions": [
+    "Console.__init__",
+    "Console.counter_sample",
+    "Console.hidden",
+    "Console.input_guard",
+    "Console.login",
+    "Console.login_attempt",
+    "Console.send_hidden",
+    "Console.verified_value",
+    "Console.visible",
+    "Guest.screenshot",
+    "retain_vcsa"
+  ],
+  "new_login_module": "os/ci/owner_login.py",
+  "package13_unchanged": true,
+  "owner_bundle_unchanged": true,
+  "release_scripts_unchanged": true,
+  "image_unchanged": true,
+  "all_existing_observer_predicates_unchanged": true,
+  "privacy_classifier_and_workflow_unchanged": true,
+  "settings_and_deadlines_unchanged": true
+}

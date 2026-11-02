@@ -1,0 +1,96 @@
+{
+  "status": "fixed watcher confirmed integrator-verified probe; qualification not yet dispatched",
+  "checked_at": "2026-10-27T19:04:45.313632+00:00",
+  "head": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+  "probe_run": 40560134727,
+  "local_tool_only": true,
+  "paging_ruled_out": {
+    "complete": true,
+    "total_count": 94,
+    "ids_count": 94
+  },
+  "current_old_filter_matches": true,
+  "old_poll": {
+    "reads": 4,
+    "sleep_seconds": 2,
+    "sleep_bound_seconds": 8,
+    "used_returned_url": false,
+    "per_read_identity_retained": false
+  },
+  "diagnosis": "timing/visibility dependency on the list projection; no stable filter or pagination defect reproduced",
+  "historical_limitation": "the original row fields were not recorded; the precise field that lagged cannot be recovered",
+  "fix": "exact canonical returned run URL, six bounded direct identity GETs, all observations retained; no repeated POST",
+  "direct_confirmation": [
+    {
+      "returned_run_id": 40560134727,
+      "max_reads": 6,
+      "post_retried": false,
+      "observations": [
+        {
+          "attempt": 1,
+          "identity": {
+            "id": 40560134727,
+            "head_sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+            "head_branch": "pkg/14-owner-tools",
+            "event": "workflow_dispatch",
+            "display_title": "Two-disk rehearsal (probe)",
+            "path": ".github/workflows/os-image.yml",
+            "run_attempt": 1
+          },
+          "status": "completed",
+          "conclusion": "success",
+          "mismatch": {}
+        }
+      ],
+      "status": "confirmed"
+    }
+  ],
+  "tests": {
+    "watcher": 7,
+    "controller": 2,
+    "passed": true
+  },
+  "pushed": false,
+  "observed_on_qualification4": {
+    "run": 40566496658,
+    "confirmation": [
+      {
+        "attempt": 1,
+        "identity": {
+          "id": 40566496658,
+          "head_sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+          "head_branch": "pkg/14-owner-tools",
+          "event": "workflow_dispatch",
+          "display_title": "OS image",
+          "path": ".github/workflows/os-image.yml",
+          "run_attempt": 1
+        },
+        "status": "queued",
+        "conclusion": null,
+        "mismatch": {
+          "display_title": {
+            "expected": "Two-disk rehearsal (owner-tools)",
+            "actual": "OS image"
+          }
+        }
+      },
+      {
+        "attempt": 2,
+        "identity": {
+          "id": 40566496658,
+          "head_sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+          "head_branch": "pkg/14-owner-tools",
+          "event": "workflow_dispatch",
+          "display_title": "Two-disk rehearsal (owner-tools)",
+          "path": ".github/workflows/os-image.yml",
+          "run_attempt": 1
+        },
+        "status": "queued",
+        "conclusion": null,
+        "mismatch": {}
+      }
+    ],
+    "result": "confirmed",
+    "conclusion": "real reproduction: display_title initially OS image then becomes input-specific; old exact-title list matching was startup-timing dependent"
+  }
+}

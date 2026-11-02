@@ -1,0 +1,426 @@
+{
+  "status": "STOP: global 106-minute VM step deadline; no rerun",
+  "run": 41305049425,
+  "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+  "artifact": {
+    "sha256": "01e735254ebb9bc02733064456cddf9f9ffe446296a0ddc1a5f9480c263976e0",
+    "path": "evidence.zip",
+    "artifact_id": 13086901288,
+    "bytes": 19060176,
+    "run": 41305049425,
+    "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+    "status": "failure",
+    "members": 2651,
+    "logs": {
+      "sha256": "1a949d39dbff57ef92d8095dbdb6c3943d18e78caa14c2853857f9a844fc761e",
+      "path": "logs.zip"
+    },
+    "downloaded_at": "2026-11-01T14:14:51.353364+00:00"
+  },
+  "native": {
+    "tests": 597,
+    "seconds": 202.891,
+    "skips": 0,
+    "scan_findings": 0,
+    "timing": {
+      "status": "passed",
+      "run": 41305049425,
+      "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+      "test": "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+      "native_result": "ok; unchanged30-second bound",
+      "log": {
+        "sha256": "6f8b6ec179939a49c04ad025d6c24daf098fac7171508be1569c74c6c2059c2a",
+        "path": "native.log"
+      },
+      "line": 779,
+      "local_exception_applied_in_ci": false
+    }
+  },
+  "landmarks": [
+    {
+      "sha256": "bceb7557257584b949d16be471e87991c2d3c3fb9272d0b3bedc1c0ff33f1142",
+      "path": ".work/14/run-41305049425/evidence/two-disk/tools-install-owner-result.json",
+      "stage": "tools-install",
+      "status": "passed",
+      "command": [
+        "install"
+      ]
+    },
+    {
+      "sha256": "901d298add2ac7ae2405cebccc280ee9d0d1730d1e755a2cdc5ff1d91535b291",
+      "path": ".work/14/run-41305049425/evidence/two-disk/tools-prepare-owner-result.json",
+      "stage": "tools-prepare",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ]
+    },
+    {
+      "sha256": "c023b9280c03df34e78ebe4243a3bd2324d76a67fd2e9016a01fa4c4a5eca7ee",
+      "path": ".work/14/run-41305049425/evidence/two-disk/tools-prepare-rerun-owner-result.json",
+      "stage": "tools-prepare-rerun",
+      "status": "passed",
+      "command": [
+        "prepare"
+      ]
+    },
+    {
+      "sha256": "1187635bda207c2957145b74aa4c1f917e01476b6f5f7127aab65d24588de10b",
+      "path": ".work/14/run-41305049425/evidence/two-disk/after-first-network-records-owner-result.json",
+      "stage": "after-first-network-records",
+      "status": "passed",
+      "command": [
+        "records"
+      ]
+    },
+    {
+      "sha256": "3ded651c71a98c6994b228cd673798ca1225dab74b3440455f9e892e7ee1d0ec",
+      "path": ".work/14/run-41305049425/evidence/two-disk/tools-record-export-owner-result.json",
+      "stage": "tools-record-export",
+      "status": "passed",
+      "command": [
+        "export"
+      ]
+    },
+    {
+      "sha256": "18a81c6443e3b26a39271c0ab1cad490815329f157013b424efce48b3afb7414",
+      "path": ".work/14/run-41305049425/evidence/two-disk/private-owner-login-owner-result.json",
+      "stage": "private-owner-login",
+      "status": "passed",
+      "command": [
+        "login"
+      ]
+    },
+    {
+      "sha256": "3615520bbc357a42bef055645bbb3ac008b58ff963b10866a84c0bc8efc32949",
+      "path": ".work/14/run-41305049425/evidence/two-disk/owner-signature-owner-result.json",
+      "stage": "owner-signature",
+      "status": "passed",
+      "command": [
+        "verify"
+      ]
+    },
+    {
+      "sha256": "5b388254e39fae0fa132b37079623935f145f1bb3973330fadc7115b0c4c88ff",
+      "path": ".work/14/run-41305049425/evidence/two-disk/owner-switch-owner-result.json",
+      "stage": "owner-switch",
+      "status": "passed",
+      "command": [
+        "switch"
+      ]
+    },
+    {
+      "sha256": "29a0f7a925cbdbdcbec9f989000b76eaaa92fbec5b10720f3c352cad5787ca6f",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-us-begin-owner-result.json",
+      "stage": "layout-us-begin",
+      "status": "passed",
+      "command": [
+        "layout",
+        "begin",
+        "us"
+      ]
+    },
+    {
+      "sha256": "93225fee5d63c1422e77117881e129d6061e48be6bd9195d1b688950ff26acac",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-us-revert-owner-result.json",
+      "stage": "layout-us-revert",
+      "status": "passed",
+      "command": [
+        "layout",
+        "revert"
+      ]
+    },
+    {
+      "sha256": "73ea6f098a06531ba9d1aaa187aa22e9babf8eeaa3f77d8b13c7e7e0ebc16641",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-reverted-proof-owner-result.json",
+      "stage": "layout-reverted-proof",
+      "status": "passed",
+      "command": [
+        "layout",
+        "proof"
+      ]
+    },
+    {
+      "sha256": "cfb4b813e34a8c8e47d38ab6ad1a5edcb3dcf0a3696cb546dbab9a9f7cbf0b37",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-revert-finish-owner-result.json",
+      "stage": "layout-revert-finish",
+      "status": "passed",
+      "command": [
+        "layout",
+        "finish"
+      ]
+    },
+    {
+      "sha256": "604109ad3a76d93eca9d4b5481f1b55cf7446c6d804ee212302cf0c8b713c699",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-intl-begin-owner-result.json",
+      "stage": "layout-intl-begin",
+      "status": "passed",
+      "command": [
+        "layout",
+        "begin",
+        "us-intl"
+      ]
+    },
+    {
+      "sha256": "8690c25d764c57c19790decb7a86f87287d384ee00facfe148119f0586b47188",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-intl-proof-owner-result.json",
+      "stage": "layout-intl-proof",
+      "status": "passed",
+      "command": [
+        "layout",
+        "proof"
+      ]
+    },
+    {
+      "sha256": "c07211e24f5018ce28b90946cc3ae3626893d3b0085cdbea09327b74561de94c",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-intl-finish-owner-result.json",
+      "stage": "layout-intl-finish",
+      "status": "passed",
+      "command": [
+        "layout",
+        "finish"
+      ]
+    },
+    {
+      "sha256": "b3a5557cfae40b3d9e11a656dd79d1544543aba09ae5153d8505e1131184e3e6",
+      "path": ".work/14/run-41305049425/evidence/two-disk/aresos-intl-check-owner-result.json",
+      "stage": "aresos-intl-check",
+      "status": "passed",
+      "command": [
+        "check"
+      ]
+    },
+    {
+      "sha256": "fb11217915b49316c0225cf1241b56b24bcf42bc81d70461377395042a11a714",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-de-begin-owner-result.json",
+      "stage": "layout-de-begin",
+      "status": "passed",
+      "command": [
+        "layout",
+        "begin",
+        "de"
+      ]
+    },
+    {
+      "sha256": "fc182ad90ce86efa61ccafef2873f7922053e7bd8170bd9a9e88259c0900bd0b",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-back-de-proof-owner-result.json",
+      "stage": "layout-back-de-proof",
+      "status": "passed",
+      "command": [
+        "layout",
+        "proof"
+      ]
+    },
+    {
+      "sha256": "006637326b728c23f2a0243df4a026faa8a53360333bf6dc17526e4478a0e997",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-de-finish-owner-result.json",
+      "stage": "layout-de-finish",
+      "status": "passed",
+      "command": [
+        "layout",
+        "finish"
+      ]
+    },
+    {
+      "sha256": "7956e00433517bfb1735bc15ceb4de31029858d4092c4126fcaea902645c34e2",
+      "path": ".work/14/run-41305049425/evidence/two-disk/aresos-back-de-check-owner-result.json",
+      "stage": "aresos-back-de-check",
+      "status": "passed",
+      "command": [
+        "check"
+      ]
+    },
+    {
+      "sha256": "5a7e765d76afdbfe7a194d93b48e4de05f8770fa0151b9d30ea084e36f4047ca",
+      "path": ".work/14/run-41305049425/evidence/two-disk/owner-rollback-owner-result.json",
+      "stage": "owner-rollback",
+      "status": "passed",
+      "command": [
+        "rollback"
+      ]
+    }
+  ],
+  "physical_logins": [
+    {
+      "sha256": "71e4f05f154d72d5369fcc7ff81e76b66e7abdff032080b7cbdaa265c3a30c79",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-plain-us-physical-login-result.json",
+      "stage": "layout-plain-us",
+      "status": "expected-rejection",
+      "tty": "tty4",
+      "attempts": 1,
+      "elapsed_seconds": 9.875941150000017
+    },
+    {
+      "sha256": "4db5be1919a00cc58b2129438b85e3ce4e5cc819b44d39350143e379607c056c",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-reverted-login-physical-login-result.json",
+      "stage": "layout-reverted-login",
+      "status": "passed",
+      "tty": "tty4",
+      "attempts": 1,
+      "elapsed_seconds": 9.909540701000026
+    },
+    {
+      "sha256": "9c53906535b7cb810bde5f28e3da4f056261e2179e00faffcdc2f31723fd396f",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-intl-login-physical-login-result.json",
+      "stage": "layout-intl-login",
+      "status": "passed",
+      "tty": "tty4",
+      "attempts": 1,
+      "elapsed_seconds": 9.815752857999996
+    },
+    {
+      "sha256": "5b1728476d1c478b4bb0958bef6c66d149da9b75799d3a60200124f43bfd6149",
+      "path": ".work/14/run-41305049425/evidence/two-disk/layout-back-de-login-physical-login-result.json",
+      "stage": "layout-back-de-login",
+      "status": "passed",
+      "tty": "tty4",
+      "attempts": 1,
+      "elapsed_seconds": 9.859649055000034
+    },
+    {
+      "sha256": "0f676a012f4cf9d06e68e9ef39145ae7569f0a9249aa22213ce659d8a22ea2d6",
+      "path": ".work/14/run-41305049425/evidence/two-disk/aresos-back-de-physical-login-result.json",
+      "stage": "aresos-back-de",
+      "status": "passed",
+      "tty": "tty3",
+      "attempts": 1,
+      "elapsed_seconds": 9.903232377999998
+    },
+    {
+      "sha256": "00d24617222d532868b208561352901b226f188e362d1f94f7ec213c205106e1",
+      "path": ".work/14/run-41305049425/evidence/two-disk/rollback-stock-physical-login-result.json",
+      "stage": "rollback-stock",
+      "status": "passed",
+      "tty": "tty3",
+      "attempts": 1,
+      "elapsed_seconds": 10.019592958999993
+    }
+  ],
+  "physical_foot": [
+    {
+      "sha256": "231a3377b21dca5245c8502e400f0b0bf65cf5c97463220edb1f15746f6be6b5",
+      "path": ".work/14/run-41305049425/evidence/two-disk/aresos-intl-foot-physical.json",
+      "stage": "aresos-intl",
+      "status": "passed",
+      "layout": "us-intl"
+    },
+    {
+      "sha256": "e9f609eb2c7f4ec8b04166a2910b852ae344d476a32353ca2165d5397a9e2891",
+      "path": ".work/14/run-41305049425/evidence/two-disk/aresos-back-de-foot-physical.json",
+      "stage": "aresos-back-de",
+      "status": "passed",
+      "layout": "de"
+    }
+  ],
+  "stock_identity": {
+    "checksum": "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+    "serial": 1,
+    "osname": "default"
+  },
+  "rollback_stock_login_passed": true,
+  "last_sudo_key_counts": {
+    "sent_events": 66,
+    "received_events": 66,
+    "press": 33,
+    "release": 33,
+    "repeat": 0,
+    "syn_dropped": 0,
+    "matches": true
+  },
+  "last_sudo_codes_or_values_recorded": false,
+  "last_completion_transport": {
+    "sha256": "8be6c35b51d1efbf3270ef33aee8ff3198f6f8ee09a6dc1de7afa5bf23b7b144",
+    "path": ".work/14/run-41305049425/evidence/two-disk/rollback-stock-sudo-hidden-read-wait-224-left-transport.json",
+    "bytes": 24466,
+    "chunks": 255,
+    "verified": true,
+    "last_phase": "syntax",
+    "all_acknowledgements_passed": true,
+    "completed_observation_result": false
+  },
+  "archive_times": [
+    {
+      "path": "two-disk/rollback-stock-physical-login-result.json",
+      "zip_utc_time": [
+        2026,
+        11,
+        1,
+        14,
+        9,
+        18
+      ],
+      "granularity_seconds": 2
+    },
+    {
+      "path": "two-disk/rollback-stock-sudo-hidden-read-wait-224-key-counter-result.json",
+      "zip_utc_time": [
+        2026,
+        11,
+        1,
+        14,
+        10,
+        12
+      ],
+      "granularity_seconds": 2
+    },
+    {
+      "path": "two-disk/rollback-stock-sudo-hidden-read-wait-224-left-transport.json",
+      "zip_utc_time": [
+        2026,
+        11,
+        1,
+        14,
+        10,
+        20
+      ],
+      "granularity_seconds": 2
+    }
+  ],
+  "job_vm_step": {
+    "name": "Prepare disposable file disks and qualify the real live environment",
+    "status": "completed",
+    "conclusion": "failure",
+    "number": 16,
+    "started_at": "2026-11-01T12:24:04Z",
+    "completed_at": "2026-11-01T14:10:17Z"
+  },
+  "timeout_log": {
+    "sha256": "bd4d158fb5c6b90c9af774e7eef9b27492c8a05b9a6cf8244f57970ff139adfc",
+    "path": ".work/14/14zz/basic-41305049425/full-logs/Pinned live ISO inspection and two-disk rehearsal/16_Prepare disposable file disks and qualify the real live environment.txt"
+  },
+  "proven_cause": "GitHub terminated the step at its configured106-minute deadline, during the post-rollback sudo completion observation",
+  "not_proven": [
+    "A stuck sudo reader",
+    "A dropped key event",
+    "An owner-tool refusal",
+    "Whether the last completion observation executed or returned before termination"
+  ],
+  "visual_taint_recorded": false,
+  "remaining": [
+    "Complete post-rollback sudo readiness/check/public-typing/homebrew/greeter",
+    "Rollback-from-stock refusal and zero-mutation proof",
+    "keep-stock, refreshed title and reboot",
+    "Default-stock boot/identity/keyboard/homebrew/greeter checks",
+    "Final unattended and detached Windows markers",
+    "Final protected-disk/NVRAM/BootNext audits and aggregate owner-tools result"
+  ],
+  "organization_ledger_comparison": {
+    "previous_run_ids_sha256": "0496af3e2ff6c0f8db5874c462bb19dfbd0e8e5cea283ef2ed8476d21787335b",
+    "status": "passed",
+    "previous_dispatch": 41305049425,
+    "previous_observed_at": "2026-11-01T12:07:52.769915+00:00",
+    "current_observed_at": "2026-11-01T14:13:07.088860+00:00",
+    "previous_recorded_minutes": 2022,
+    "recomputed_previous_minutes": 2022,
+    "current_minutes": 2144,
+    "package_increase": 122,
+    "organization_increase": 122,
+    "undercount_tolerance_minutes": 5,
+    "previous_run_count": 133
+  },
+  "new_pushes": 0,
+  "new_probes": 0,
+  "qualification_attempts": 1,
+  "reruns": 0,
+  "acceptance_met": false
+}

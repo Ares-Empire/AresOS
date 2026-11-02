@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "run": 40592552658,
+  "head": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+  "scan": {
+    "sha256": "85d15e80c8b3e5b49e7980e82144a0231bbef0bcfdbec71ea135e6d3092bfaaa",
+    "path": ".work/14/gitleaks/14zd-probe-artifacts.json"
+  },
+  "findings": 509,
+  "iso_listing_findings": 507,
+  "kernel_certificate_findings": [
+    {
+      "sha256": "48f4e52dfe2f90602beadc29741bcd9b94c0e344d9c955002f93ce49c17919b1",
+      "certificate_label": "Fedora kernel signing key",
+      "fingerprint_hex_length": 40,
+      "path": "evidence/two-disk/live-ui-probe-boot-console.txt",
+      "line": 495,
+      "rule": "generic-api-key",
+      "classification": "14v public kernel X.509 certificate fingerprint"
+    },
+    {
+      "sha256": "cba6c6645ce0d1ce1660a4377540c72926f31d623728fdb50f1f742e6b2bf55b",
+      "certificate_label": "Fedora kernel signing key",
+      "fingerprint_hex_length": 40,
+      "path": "evidence/two-disk/live-ui-probe-boot-console.txt",
+      "line": 527,
+      "rule": "generic-api-key",
+      "classification": "14v public kernel X.509 certificate fingerprint"
+    }
+  ],
+  "policy": "briefs/14s-loop-node-race.md and briefs/14v-efibootmgr-format.md; exact whole source line in captured boot console only",
+  "ignore_changes": false,
+  "workflow_changes": false,
+  "raw_consoles_committed": false
+}

@@ -1,0 +1,185 @@
+{
+  "status": "passed native/live probe evidence",
+  "files": [
+    {
+      "sha256": "f25f84b2a4e22abe70e040d5c49255e46051ac5f1bed4205a267cb1a03a6d242",
+      "path": "14-dispatch-authorization.json"
+    },
+    {
+      "sha256": "5a184117a11109a8ff4926c35bec9f6d2ebbb455d730aad1184916b1b8c5a3da",
+      "path": "14-host-capabilities.json"
+    },
+    {
+      "sha256": "7e0e7f6794d9270ce8ea7a16e18b642ca859545c216f8329df01101c5758937f",
+      "path": "artifact.json"
+    },
+    {
+      "sha256": "0ec36febe998c655821337d6173adaff11936c1743ba1558b15102b62e240246",
+      "path": "ci-steps.json"
+    },
+    {
+      "sha256": "e104bca9d69772468854460c5a6a472aaa97beb20385f0ac38a3abebe37c3434",
+      "path": "inspection.json"
+    },
+    {
+      "sha256": "9c09755234b83b6185d947e0a169456395514b948e5110b4f98a11b1e7495f47",
+      "path": "installer--iso-download.json"
+    },
+    {
+      "sha256": "1245abc47ab603c3797734e13d55ffce55b9ffb2a8cc0b4d3c4fb24a6b4ab2a9",
+      "path": "native-summary.log"
+    },
+    {
+      "sha256": "188b61db94b57e7794fb87abf8400b77acd613ea14ccaf525731f6a69cb09ffc",
+      "path": "offline-framing-success.txt"
+    },
+    {
+      "sha256": "f95c3090b0be4634aecd86398eb83db99904a00b95184e2d73f7fb022aac590b",
+      "path": "owner-auth-cleanup.json"
+    },
+    {
+      "sha256": "cd83adbda962034f6f2e9dbf959c819667e61b28d387a8cd5129b5a38791b811",
+      "path": "owner-release-pull.json"
+    },
+    {
+      "sha256": "eba9713d50eadbddf21ca6432de77b90533e7dbb77fd197e85e4b2ef5f81ff14",
+      "path": "pre-probe-authorization.json"
+    },
+    {
+      "sha256": "7a495f8945f175703a5503f16a4b67348831035f07366406bacb143f313aa687",
+      "path": "pre-qualification-authorization.json"
+    },
+    {
+      "sha256": "e328e508cf4106333967590a8bd21fe925b1399250585e944515878d59f6c3ce",
+      "path": "pre-qualification-privacy.json"
+    },
+    {
+      "sha256": "41b7051362c6e82c09937a04fcb6e94fe737b04938a00607596134216eaf3f87",
+      "path": "privacy-event-order.json"
+    },
+    {
+      "sha256": "1025a2132723b2c17cb237a73f2f70fc3e266031bce3218a2f2405b72ddc8934",
+      "path": "private-registry-preflight.json"
+    },
+    {
+      "sha256": "2cd016d83ce7cefa319b026146ab5ef78f4d3f9cd2a80b30eb0d0b0fb9d65511",
+      "path": "private-release-signature-proof.json"
+    },
+    {
+      "sha256": "a706f99fa4e5418cc89d67548a2231d6488bc4eda0799c98afe8b18fe39d13b5",
+      "path": "qualification-installer-adapter.py"
+    },
+    {
+      "sha256": "4b852ff9a04d75fe3742c8469e75415ec504956a60725d2f687075ac8c55fae0",
+      "path": "qualification-installer-result.json"
+    },
+    {
+      "sha256": "187f15bc7bf698fb2b552ad4f143bd55e3f56a6d40042b0a7e596442ef305862",
+      "path": "qualification-local-replay.json"
+    },
+    {
+      "sha256": "e65b42a36df43a8fe495e054520a55c896be9329a2e27be3be0445026059eb40",
+      "path": "result.json"
+    },
+    {
+      "sha256": "9c2824236cb1fa0691afc7bf1be0c2f8b0ea263515a40cd38d5808ca48563714",
+      "path": "two-disk--baseline-firmware-blockstats.json"
+    },
+    {
+      "sha256": "1d30935f79f12762aec568063d89e68c668412fcd744c041a82e033e483be9df",
+      "path": "two-disk--baseline-firmware-bootnext-audit.json"
+    },
+    {
+      "sha256": "d97dda4477153fe166440a7832a6366f0bc477a9f77b7c18fa628c4db1e734a6",
+      "path": "two-disk--baseline-firmware-protected.json"
+    },
+    {
+      "sha256": "edf519f1ef5da06da67fcf680764c7a414153498c86302f4c7c64307b89719b0",
+      "path": "two-disk--failure-counter-probe-blockstats.json"
+    },
+    {
+      "sha256": "0d7ec2fb88f323aa45af5e9fff57a44f087395b0e90a89e038470669753bbe80",
+      "path": "two-disk--failure-counter-probe-failure-counter.json"
+    },
+    {
+      "sha256": "e30eb4d01a576f233b87f48baeac5dd6d2274a532433a00a093bfeb2ff384441",
+      "path": "two-disk--keyboard-reader-probe-result.json"
+    },
+    {
+      "sha256": "9d498a72ea3d72bc055e6de1d871a563e424184edfc4f5e7b8f524daa881ae1c",
+      "path": "two-disk--live-offline-before-webui.json"
+    },
+    {
+      "sha256": "43c9ed788e5245bfb17fed71c54ed24ec278b7db3681e16ab5de27e10251b0bd",
+      "path": "two-disk--live-ui-probe-all-variables-diff.json"
+    },
+    {
+      "sha256": "a6cebdc3d8b985370945f3bbb51fd431292bf3024ae3c648cb9ce01622af814f",
+      "path": "two-disk--live-ui-probe-blockstats.json"
+    },
+    {
+      "sha256": "4205b767840e0b7418cb08727b455608e0434ffd25ca1e573c20ad7b3e25418a",
+      "path": "two-disk--live-ui-probe-bootnext-audit.json"
+    },
+    {
+      "sha256": "d2953634d99546c53b1aa6c6ed18fd87b4341da49d82952cc22dd55342546a70",
+      "path": "two-disk--live-ui-probe-nvram-diff.json"
+    },
+    {
+      "sha256": "d97dda4477153fe166440a7832a6366f0bc477a9f77b7c18fa628c4db1e734a6",
+      "path": "two-disk--live-ui-probe-protected.json"
+    },
+    {
+      "sha256": "b946e0779d865ffa682514030293f17a43f4f226265c1754782ffd74ddc41951",
+      "path": "two-disk--offline-webui-transport.json"
+    },
+    {
+      "sha256": "22cfa5009c4585166334c3f0ee5a9d7411ddc4aa6e4225519fb4d8427bd12db7",
+      "path": "two-disk--probe-detached-windows-all-variables-diff.json"
+    },
+    {
+      "sha256": "795b59c3e910aae1e025a4564cb4849ecb5611c99b38a916a6bffd25d32fea23",
+      "path": "two-disk--probe-detached-windows-blockstats.json"
+    },
+    {
+      "sha256": "7f483c40ec63da6f1a347cd0f9cb5649ec3f178dea6e22edec58e05a3237aec5",
+      "path": "two-disk--probe-detached-windows-bootnext-audit.json"
+    },
+    {
+      "sha256": "81735f818c52334c53adf727b1fd27637817cc16e52e5ca295d728796d5a2bbb",
+      "path": "two-disk--probe-detached-windows-nvram-diff.json"
+    },
+    {
+      "sha256": "d97dda4477153fe166440a7832a6366f0bc477a9f77b7c18fa628c4db1e734a6",
+      "path": "two-disk--probe-detached-windows-protected.json"
+    },
+    {
+      "sha256": "935d998e0b11b7c1a17854536d99616e08677ebf0da7040051f8fae76b8e7aca",
+      "path": "two-disk--probe-media-attach.json"
+    },
+    {
+      "sha256": "47a27e98745090365120326bf0b362ce5cec281efe42b5cb254a9a8dbb6a2cd7",
+      "path": "two-disk--probe-media-backing.json"
+    },
+    {
+      "sha256": "8e6f498dafb0b2bdc894c3819e38186925056361df461d8cc9e753c5101f38a1",
+      "path": "two-disk--probe-media-detach.json"
+    },
+    {
+      "sha256": "787e0acf4fdf18f45683079f7cf69eee253d75b0ae05d42343fb30685981c3e9",
+      "path": "two-disk--probe-result.json"
+    },
+    {
+      "sha256": "61bcfb9c7d80597dbe739853337b6460d12be0339a224d92c715bb31a5bc1ae1",
+      "path": "two-disk--stock-recipe-probe.json"
+    },
+    {
+      "sha256": "47a27e98745090365120326bf0b362ce5cec281efe42b5cb254a9a8dbb6a2cd7",
+      "path": "two-disk--tools-stick-created-media-backing.json"
+    },
+    {
+      "sha256": "fa06e4d7f439f7b3d01a9823875d0fed231af3f674652bab7aba449a4f6838d8",
+      "path": "two-disk--tools-stick-windows-copy.json"
+    }
+  ]
+}

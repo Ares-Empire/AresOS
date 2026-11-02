@@ -1,0 +1,57 @@
+{
+  "status": "committed preparation, not dispatch authorization; ignored logs have separate hashes",
+  "files": [
+    {
+      "sha256": "11407a161c6029aa0e8d9418639dc5e1caeaffcaf2e7440f26f8728a71e72a38",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "5172749a925dfebf07e24d833f530962968febe927168cc5c7f46ed23a24d03b",
+      "path": "baseline.json"
+    },
+    {
+      "sha256": "a124e0141c5d5f1673a4a1cc1c92803e30ab6016b949018ed8c4a2f71058e4de",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "dd71934866c745740befbcc7acec3301a9f642c5ee13dc945d248d732fb78866",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "e42dae8ef2a709a85c4591f2426f0665c1c0562647d062cd35503e5ceafea3e8",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "4befe876f79f2d7d8736950703ab1d6201f6fc0593ef065e45d6ed74e93a4dd2",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "713814dc9bad14d950d7b0e7b5c1f02760f3cdb86c6d1e4206fd8b75d3145041",
+      "path": "privacy.json"
+    },
+    {
+      "sha256": "53b5c1f2e1079cb2779251273b78156c2815d9482deb61ce5142aeeeea2c6f78",
+      "path": "push-once.py"
+    },
+    {
+      "sha256": "d71a52cd1f6204fa8cb9d784712908a49ce62a6b8058c0178921f43bc7cb7fff",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "5b5c1070bf14adba5088b5022722f7327e76afba5e904001c5363d260d7a5b0e",
+      "path": "replay.json"
+    },
+    {
+      "sha256": "39abccbf22afc8465bc04308e7c804c4494256e6f29c5527e4bffa9c41e54c45",
+      "path": "retry-sources.json"
+    },
+    {
+      "sha256": "21f9434053a37a2f88f818c2a7686ca9b55fa3ef3a6ee8167cecc3070b470111",
+      "path": "strict-checks.py"
+    },
+    {
+      "sha256": "b57164e80629aeb3e33e3bba1a584c603c63e53895b3c68624e0a7911711b1b3",
+      "path": "syntax.json"
+    }
+  ]
+}

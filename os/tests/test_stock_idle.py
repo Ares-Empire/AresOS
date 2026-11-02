@@ -13,9 +13,9 @@ import test_stock_prepare as prepare
 
 DAEMON = dict(pid=101, exe='/usr/bin/rpm-ostree',
               cmdline=['rpm-ostree', 'start-daemon'],
-              cgroup='0::/system.slice/rpm-ostreed.service\n', excluded_as_daemon=True)
+              cgroup='0::/system.slice/rpm-ostreed.service\n', excluded_as_daemon=True, excluded_as_system_helper=False)
 CLIENT = dict(pid=202, exe='/usr/bin/bootc', cmdline=['bootc', 'upgrade'],
-              cgroup='0::/user.slice/session-1.scope\n', excluded_as_daemon=False)
+              cgroup='0::/user.slice/session-1.scope\n', excluded_as_daemon=False, excluded_as_system_helper=False)
 
 
 class StockIdleTest(unittest.TestCase):
@@ -106,7 +106,9 @@ class StockIdleTest(unittest.TestCase):
         exec(compile(prepare.program(prepare.PAUSE, 'PAUSE_STOCK'), str(prepare.PAUSE), 'exec'), scope)
         with tempfile.TemporaryDirectory(dir=prepare.ROOT / 'os/tests') as directory:
             root = pathlib.Path(directory)
-            for row in (DAEMON, CLIENT, dict(DAEMON, pid=303, cgroup='0::/system.slice/rpm-ostreed.service-evil\n')):
+            for row in (DAEMON, CLIENT, dict(DAEMON, pid=303, cgroup='0::/system.slice/rpm-ostreed.service-evil\n'),
+                        dict(DAEMON, pid=404, exe='/usr/bin/ostree', cmdline=['ostree', 'admin', 'deploy']),
+                        dict(DAEMON, pid=505, cmdline=['rpm-ostree', 'upgrade'])):
                 proc = root / str(row['pid'])
                 proc.mkdir()
                 (proc / 'exe').write_text(row['exe'])
@@ -114,7 +116,7 @@ class StockIdleTest(unittest.TestCase):
                 (proc / 'cgroup').write_text(row['cgroup'])
             with patch.object(pathlib.Path, 'readlink', lambda path: pathlib.PurePosixPath(path.read_text())):
                 result = scope['deployment_processes'](root)
-        self.assertEqual([p['excluded_as_daemon'] for p in result], [True, False, False])
+        self.assertEqual([p['excluded_as_daemon'] for p in result], [True, False, False, False, False])
         self.assertEqual(result[:2], [DAEMON, CLIENT])
 
 

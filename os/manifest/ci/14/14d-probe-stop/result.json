@@ -1,0 +1,67 @@
+{
+  "status": "STOP-PLAN-GAP",
+  "run": 40238209435,
+  "head": "5dfe2b00955955eecaca6a9edb62da34b7bb5865",
+  "native_python": {
+    "tests": 275,
+    "seconds": 17.307,
+    "passed": 275,
+    "skipped": 0
+  },
+  "native_powershell": {
+    "refusals": 15,
+    "zero_writes": true
+  },
+  "failure": {
+    "file": "os/ci/verify_release.py",
+    "line": 43,
+    "command": [
+      "git",
+      "merge-base",
+      "--is-ancestor",
+      "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+      "HEAD"
+    ],
+    "exit_code": 1
+  },
+  "release_source": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+  "package13_squash": "775be05b7f0d6971cbdc8a3bd1aea617fc008c4d",
+  "runtime_payload_diff_exit": 0,
+  "vm_started": false,
+  "qualification_dispatched": false,
+  "image_dispatched": false,
+  "published": false,
+  "release_check_changed": false,
+  "privacy_configuration_changed": false,
+  "artifact": {
+    "sha256": "8554404d3ee502a2f587226543cfebcc5e421e6450c93b3b724c785421c37c75",
+    "path": "two-disk-evidence.zip",
+    "id": 12615638956,
+    "bytes": 44942,
+    "integrity": "matched GitHub artifact digest before reading",
+    "retained": "private Actions artifact; local copy under .work/14",
+    "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/artifacts/12615638956/zip"
+  },
+  "files": [
+    {
+      "sha256": "c84921163e47fcbc0bef1e7008805dcaea60966bcff6747572dcabbec4c2a92c",
+      "path": "native-tests-and-stop.log"
+    },
+    {
+      "sha256": "b719fa720ac55bcb0e2bbb12f2de979f7e85b5dc5098e4b0d0082d392fd55bfd",
+      "path": "owner-auth-cleanup.json"
+    },
+    {
+      "sha256": "e6bfc867cfac4ba47f7bec2eeb2183e39f1c7928d471ffc2058933f642ba3bda",
+      "path": "pre-probe-guard.json"
+    },
+    {
+      "sha256": "065f6c2fdff6d91e84e930fb5df852628958d2cda4d3b34202d7c0bc1ae669d5",
+      "path": "pre-push-clean-scan.json"
+    },
+    {
+      "sha256": "31335773ab3b629ddf2079d4abcfa1e1004e9ff1837e15f4b115f8a48dc73c3b",
+      "path": "privacy-passed.json"
+    }
+  ]
+}

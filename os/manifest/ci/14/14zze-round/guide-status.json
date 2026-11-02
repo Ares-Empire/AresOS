@@ -1,0 +1,20 @@
+{
+  "status": "passed; actual terminal status only",
+  "acceptance_met": true,
+  "files": [
+    {
+      "sha256": "8dda466bacfb2335b1efec8564fffd4a253c4c5fcd74a9f57e14e15ffa2407bf",
+      "path": "docs/INSTALL.md",
+      "status_paragraphs": 2,
+      "bash_blocks_unchanged": true,
+      "open_gates_unchanged": true
+    },
+    {
+      "sha256": "635bec3426655eb9db87606609cea7b8d10bdd7c169876fb7a4ad7c7ba8e58d3",
+      "path": "docs/EMERGENCY.md",
+      "status_paragraphs": 1,
+      "bash_blocks_unchanged": true,
+      "open_gates_unchanged": true
+    }
+  ]
+}

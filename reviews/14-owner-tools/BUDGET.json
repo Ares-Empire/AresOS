@@ -1,0 +1,4421 @@
+{
+  "allowance": "14",
+  "start": "2026-10-25T22:01:22Z",
+  "cap": 2750,
+  "full_cap": 0,
+  "full_dispatched": 0,
+  "part_b_cap": 0,
+  "part_b_dispatched": 0,
+  "dispatch_caps": {
+    "probe": 34,
+    "owner-tools": 21
+  },
+  "dispatch_counts": {
+    "probe": 34,
+    "owner-tools": 21
+  },
+  "consumed_minutes": 2474,
+  "reserved_minutes": 0,
+  "runs": [
+    {
+      "run": 41374876561,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+      "conclusion": "success",
+      "minutes": 120,
+      "jobs": [
+        {
+          "response_sha256": "3a4ec95dc3395fd33dc702623cb59e5e3ea0cc9c09e2c43422ca5bd40f935b76",
+          "job": 125052840090,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 120,
+          "rule": "job-interval",
+          "selected_start": "2026-11-02T01:54:24+00:00",
+          "selected_completion": "2026-11-02T03:54:12+00:00",
+          "seconds": 7188.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "71c9baea2e386b1eba8df6e1c61f461a60a4e81891ff0779ddb6530525833f6e",
+          "job": 125052841145,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "b592967e094f9784e08f201df7cc30ce3f03c6f2e872b2277111f3b726b04535",
+          "job": 125052841217,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "ffc4b8d0e895d382cab774012c6ab24194c5240d8fcd86d978e06d697f0d6a4b",
+          "job": 125052841389,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41371893590,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+      "conclusion": "success",
+      "minutes": 28,
+      "jobs": [
+        {
+          "response_sha256": "515130fc96fd0d0519b303884a1c9fd9225012b8fb352cf5125a09732ad50462",
+          "job": 125043933969,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 28,
+          "rule": "job-interval",
+          "selected_start": "2026-11-02T01:19:34+00:00",
+          "selected_completion": "2026-11-02T01:47:04+00:00",
+          "seconds": 1650.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "16cf46c4857ec3066f5ae83ea98cb2c14fc2e9270b6d94a3fa8e33f503ec983f",
+          "job": 125043935348,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "dbd690825f827e5518f328c45c753735a4007ae38d37958d09dd1b8033d6d8ee",
+          "job": 125043935378,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "1071a19544fa9ea9a031ee2f56a702b5d783f26824bdb56dd8b5c0881eeef9ff",
+          "job": 125043935572,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41363231606,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "dda72ed8a5bdb038d953f950f76c66fc37297115",
+      "conclusion": "failure",
+      "minutes": 16,
+      "jobs": [
+        {
+          "response_sha256": "f4df00248d2ecd6c317ca0a17f1b58ca77aebeb662661319717fd28cf702ac1e",
+          "job": 125017884307,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 16,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T23:40:19+00:00",
+          "selected_completion": "2026-11-01T23:56:12+00:00",
+          "seconds": 953.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "098bb14dfcf2307ba399011d3f114446c8974b7b7f1fc5fd48fcb94ab91c9f4c",
+          "job": 125017885123,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "85cc018be658b5a0c88c789d0c1307419ccfd8a4693e5efb0d9abc2e573e0d40",
+          "job": 125017886263,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "191ab0a4d86d898bffa562e7194f820aeb8a704efd1d3b1d096f0c90e435badf",
+          "job": 125017917501,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41356040290,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "b15d52f1a24c37fa4f4a3897919b88b591990c49",
+      "conclusion": "failure",
+      "minutes": 9,
+      "jobs": [
+        {
+          "response_sha256": "ff749ddbfa611089761caa5b55275bb34fef7d0fc83eebfbe2df9164e39f894b",
+          "job": 124996159840,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 9,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T22:13:31+00:00",
+          "selected_completion": "2026-11-01T22:21:39+00:00",
+          "seconds": 488.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "4ab1101b277e9d726994c0ea2de68d3cc181f1b7f569184441d6e06553e9264e",
+          "job": 124996160632,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "b6e70e96cffbfc889505ef220f165753e194d3a68cd3e1c6a846feffcae544a5",
+          "job": 124996161455,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "dcc31dbf6a121043576c2f69ce5e4ca02d15f9b95c4ca5b11c0310cf476e9538",
+          "job": 124996203798,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41324240079,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "211df982b5bf080b0167b8fe6e8dd3c5eb264fe8",
+      "conclusion": "success",
+      "minutes": 132,
+      "jobs": [
+        {
+          "response_sha256": "2580949cd383147d7c5a504fb6528e6c020991e5a8ccec4cee86ebbdb9476eae",
+          "job": 124900713561,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 132,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T16:02:30+00:00",
+          "selected_completion": "2026-11-01T18:14:00+00:00",
+          "seconds": 7890.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "dde81bf0acdb95549fbda18691158f21efd5bc126251f3afae09170ae1e20a07",
+          "job": 124900714758,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "b62365c855f5386719a639d9a996e5898644624539740bed47d899f6473640b9",
+          "job": 124900714836,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "13836a217a68abbc4ab9283fa6cb2a20f5b03562565a1b6da4f7a90ee0f03355",
+          "job": 124900714862,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41321806985,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "211df982b5bf080b0167b8fe6e8dd3c5eb264fe8",
+      "conclusion": "success",
+      "minutes": 25,
+      "jobs": [
+        {
+          "response_sha256": "781e225a659d155191cdd4175991928e40d2eed2f0eb13d62073d936f24043b8",
+          "job": 124893437578,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 25,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T15:33:20+00:00",
+          "selected_completion": "2026-11-01T15:57:37+00:00",
+          "seconds": 1457.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "3c2d35efc442c31e876ba87841f2c8acec90adbdfc11570d7476aabac73257e5",
+          "job": 124893438352,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "918ede10f150f038a142e2326380817009b6035ae21ed9e63a2874141aec4101",
+          "job": 124893438375,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "1e049170f96fdfd6920915f4b2c81531778d724a44ad8b175c2aaaf620d613a9",
+          "job": 124893438379,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41305049425,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+      "conclusion": "failure",
+      "minutes": 122,
+      "jobs": [
+        {
+          "response_sha256": "c874190d7d2acde822a75108f5c4142eabc38542f7ee92577d0428a370d4f0f2",
+          "job": 124843633763,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 122,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T12:08:39+00:00",
+          "selected_completion": "2026-11-01T14:10:32+00:00",
+          "seconds": 7313.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "08b7b070f77a788c293069ce63870e77f1c861ad34405366eba10ddfb06627fe",
+          "job": 124843634654,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "e59f5d3fb1827fac4dc4041c709743aa6458ad63e3bb9a92e78d1379e3802aaf",
+          "job": 124843634760,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "06e3fbfffbe2f6e8bd7973a954c6a9b436dc6d90fe655bceee1c2fce4a1ce255",
+          "job": 124843635269,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41301148135,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+      "conclusion": "success",
+      "minutes": 24,
+      "jobs": [
+        {
+          "response_sha256": "81feed246c48b2d46a06f9cc756120e3adb66cef9056eb099db37c567dec797c",
+          "job": 124832138512,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 24,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T11:16:29+00:00",
+          "selected_completion": "2026-11-01T11:39:31+00:00",
+          "seconds": 1382.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "a28707d3d88826c522879188c10d959cfacfedd33068b2f2ba7f5dfd56537355",
+          "job": 124832139334,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "7d2eb9a30c63e2385c4e8b398b82485892537b8658909fd9787553d62d677d2f",
+          "job": 124832139492,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "209d908afeef627d8a88acb2224abc9c1eaf59a825190108d6c795693abc72ee",
+          "job": 124832139615,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41290621860,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+      "conclusion": "success",
+      "minutes": 26,
+      "jobs": [
+        {
+          "response_sha256": "56a9fbd62382bcb13e7a4a1defe053baeda4082d412243725e5754c3c5408810",
+          "job": 124800927513,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 26,
+          "rule": "ordered-span",
+          "selected_start": "2026-11-01T08:51:56+00:00",
+          "selected_completion": "2026-11-01T09:17:30+00:00",
+          "seconds": 1534.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "481f753a619a5a66b61813e7bfec8645360e20b3a5802c304dd75875d21882d1",
+          "job": 124800928206,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "398c996508dfb28104986200065e4d116b95e3b5a97b677695b798291b274da5",
+          "job": 124800928294,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "fd8947723369543a7deacbeb7495b9ed7cd50dfbbc11065a90a4fa42071d5e5d",
+          "job": 124800928398,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41292826573,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+      "conclusion": "cancelled",
+      "minutes": 5,
+      "jobs": [
+        {
+          "response_sha256": "44ac84aa5f809e3d12c4a022f60d8ff667c448f6363da9495f2f95864e4b5143",
+          "job": 124807434083,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 5,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T09:22:04+00:00",
+          "selected_completion": "2026-11-01T09:26:08+00:00",
+          "seconds": 244.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "00fb2f2877ea08be1ba8a054b2520da984ffc8614ae908325688e76efc6e4e37",
+          "job": 124807434949,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "5a32349ed7369925d95f18675096bbe818f8177ab78d90f32e5ffdab01b7c15b",
+          "job": 124807435036,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "8d65a4c8aeb368d6c6fc3b570890c7daf94f3059d56aea26efddcea9d40918e5",
+          "job": 124807435703,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41278848542,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+      "conclusion": "failure",
+      "minutes": 111,
+      "jobs": [
+        {
+          "response_sha256": "312bd0c0e1315845e30cd741aa2a957159c2705b5af193dbcf2e0737ed210193",
+          "job": 124766436382,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 111,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T05:56:59+00:00",
+          "selected_completion": "2026-11-01T07:47:24+00:00",
+          "seconds": 6625.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "1a003780ad7a7a8fab31e5f46e7c0f104df3123ab9ad68f6163bbe7f99c8eaea",
+          "job": 124766437173,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "6bd4130b226fce6fbe8b1b7e0ff3b2a17090dc40a71b71c82c55753c435665b2",
+          "job": 124766437221,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "e3e939fda06355bf54f869a118837162aaf147e9f63211061a1c23050ba3f13e",
+          "job": 124766437282,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41276950908,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+      "conclusion": "success",
+      "minutes": 24,
+      "jobs": [
+        {
+          "response_sha256": "4e101588f49acaa06a4a504fbbe5cd54c9972007d30fd8fd93efce379c96c351",
+          "job": 124760943247,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 24,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T05:26:26+00:00",
+          "selected_completion": "2026-11-01T05:49:27+00:00",
+          "seconds": 1381.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "2d460352d831151a4d3cdb2d7b33e4f786876095b9104bdc814c8b57f58a888e",
+          "job": 124760943936,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "24599bba5e167bb1c8b30d8efbd22c551e3603a536dbcdfc376d17c69c806c13",
+          "job": 124760944024,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "61485cc22899f7c0bf5994baf175448319f643873b276a5a8f94dc228d79b1ef",
+          "job": 124760944180,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41266663581,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "75a2c638cecff042b528eb07e3089eda9129de02",
+      "conclusion": "failure",
+      "minutes": 88,
+      "jobs": [
+        {
+          "response_sha256": "2e737c6dbf514f87a36d4e0f17187aca7c9bfbfb484154a57268f6e2b2522a11",
+          "job": 124730769288,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 88,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T02:48:21+00:00",
+          "selected_completion": "2026-11-01T04:16:08+00:00",
+          "seconds": 5267.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "0bc27a855975816bc3a4d8cb22b3fa4e93650614c568ad7a3cb1883174378365",
+          "job": 124730770146,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "da358889ae9d65326aa90436e1cc1680c691c0ce70e34cd683e6ca11a5e6a63d",
+          "job": 124730770276,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "773f12ff056cadcef32a6874217fbda9c8af077e49c4487e94cfcd1bc7962a8c",
+          "job": 124730770294,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41264222963,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "75a2c638cecff042b528eb07e3089eda9129de02",
+      "conclusion": "success",
+      "minutes": 26,
+      "jobs": [
+        {
+          "response_sha256": "5648305cb12a3a39818d4ebc75dfa5b2d6192f46d52c8a71488101e02dddfe8e",
+          "job": 124723535683,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 26,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T02:12:45+00:00",
+          "selected_completion": "2026-11-01T02:38:12+00:00",
+          "seconds": 1527.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "70bd63feff8f6cd5a4728b12c848c81b838894e42c69ab6445b568d24e5e6bfb",
+          "job": 124723536684,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "77c1c148f78cd2ca30ea352e50e4c02bd80bdc528cd892861f15b5c4481c5f2b",
+          "job": 124723537029,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "49f8b9b5a0b6b664cab0d1722c83bef16777524ba50066b1398ee46927a9a82c",
+          "job": 124723554862,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 41257409190,
+      "title": "14zv: bind November verification and single-round dispatch gates",
+      "sha": "becfb2221ce0436e97ed117bd7be1028ad3e7648",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "446653b9800254ad571654ff0d11872a2a17a1132baa3a6fd46da530aca9004e",
+          "job": 124703404984,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-11-01T00:35:32+00:00",
+          "selected_completion": "2026-11-01T00:38:17+00:00",
+          "seconds": 165.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40897501964,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "65edb1195b12cade6f62d9952f70f5920ad13631",
+      "conclusion": "failure",
+      "minutes": 66,
+      "jobs": [
+        {
+          "response_sha256": "39f56db4bd60e273f5713a5384125f9f3ce87d928b2a280525162105ff77f84d",
+          "job": 123530521034,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 66,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T15:02:33+00:00",
+          "selected_completion": "2026-10-29T16:08:14+00:00",
+          "seconds": 3941.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "a2e19625a27a583a4719a548fdb4cf6f7644db8a15f641b3f5a05df9755638ee",
+          "job": 123530522776,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "f6678d5c29bef02746bd95cc8f69a349f80859ab517cc896ce55b3e2c15a5822",
+          "job": 123530523420,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "0699fc54bd86bbe5211ee15fd8a14edb333e8175789ae7357082e353ab0f1b61",
+          "job": 123530523869,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40892685683,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "65edb1195b12cade6f62d9952f70f5920ad13631",
+      "conclusion": "success",
+      "minutes": 24,
+      "jobs": [
+        {
+          "response_sha256": "61fcdfcaf0a4c0330da1fd684f94a23fe10005039d7c4c9f1587c05f53dc65c0",
+          "job": 123513423761,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 24,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T14:33:41+00:00",
+          "selected_completion": "2026-10-29T14:57:35+00:00",
+          "seconds": 1434.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "cf83a2c135064474717d28ecf8bc80dcb7bcef47658aa862f40ad0eab4c358d8",
+          "job": 123513426051,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "478e83510aa7d0002e1aaa0f96a592114c311d85e9b758a17ee1d1c9a5b12aae",
+          "job": 123513426351,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "b6a8886a8134842a7204109e8f14ddf0a994cccaf7f8e0b5df51c19c11c78b23",
+          "job": 123513428584,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40891736219,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "65edb1195b12cade6f62d9952f70f5920ad13631",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "bbd0166681de504a1151d81954ef93ec56b982c28c65b32275806ab4ebf73fcd",
+          "job": 123510070302,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T14:28:03+00:00",
+          "selected_completion": "2026-10-29T14:30:55+00:00",
+          "seconds": 172.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40891720482,
+      "title": "14zs: prepare bounded physical logins before username",
+      "sha": "65edb1195b12cade6f62d9952f70f5920ad13631",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "260a82b72f3b2e8b563f2a8e4b616cd10556f4e14ef9ba8ed59898668a1fd418",
+          "job": 123510010688,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T14:27:57+00:00",
+          "selected_completion": "2026-10-29T14:30:34+00:00",
+          "seconds": 157.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40866713472,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+      "conclusion": "failure",
+      "minutes": 68,
+      "jobs": [
+        {
+          "response_sha256": "c1a320ba7f9243b3e03bba1ceeda94e4a529b713dfd338f9a81e074893461ebe",
+          "job": 123423206078,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 68,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T11:36:44+00:00",
+          "selected_completion": "2026-10-29T12:43:50+00:00",
+          "seconds": 4026.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "df582b801eb69d974a12d3bd9aec40cd34d52af689c3e25ee42506b7702e6396",
+          "job": 123423207803,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "493ff49dbe4c60adcf40d4ea9121659c4b4902ace3ccef614dcbf9644805fb34",
+          "job": 123423208424,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "c81020ba626a09d9f4d5e54a4849d84c284e4caf75d5dc9a5441cf9b420e9278",
+          "job": 123423271943,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40863215153,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+      "conclusion": "success",
+      "minutes": 22,
+      "jobs": [
+        {
+          "response_sha256": "65926da0db6a16180f1f11fc6033c7a6a64209cf854920d7bb1276afd47c75aa",
+          "job": 123411399756,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 22,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T11:09:44+00:00",
+          "selected_completion": "2026-10-29T11:31:03+00:00",
+          "seconds": 1279.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "9e2ec4dcf05ca21b1c0478707db4acf6a3623be68f284bed172a4d49d25b28ca",
+          "job": 123411401695,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "eddd5791af0544f15253393bd63876ed82775ffdd575a86b959ac643161e1aee",
+          "job": 123411402734,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "8cccef7660523363e0305d92532b58345c1a5cc3ad1bf22ae8fb203e8b1c228c",
+          "job": 123411451175,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40862222252,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "03e1524d34ae5624de2de12a556115b4c7737e1be2f6059aa75f7b87661d28f9",
+          "job": 123408032595,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T11:02:10+00:00",
+          "selected_completion": "2026-10-29T11:04:42+00:00",
+          "seconds": 152.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40862211666,
+      "title": "14zr: use literal loginctl selectors and bounded logind diagnostics",
+      "sha": "a247ee898598636aee3f9cd1d9e60c01632d0280",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "90b4bea2d6bb2e56d7d862fffa8dba24bce471bce280109febf21b1a714aacdc",
+          "job": 123407999263,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T11:02:06+00:00",
+          "selected_completion": "2026-10-29T11:04:44+00:00",
+          "seconds": 158.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40844950597,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+      "conclusion": "failure",
+      "minutes": 81,
+      "jobs": [
+        {
+          "response_sha256": "6a5db8dc8c7ce7c639b52f9037e9705e3d39665748b9b03a849c28f4632abd39",
+          "job": 123350056465,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 81,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T08:49:41+00:00",
+          "selected_completion": "2026-10-29T10:09:49+00:00",
+          "seconds": 4808.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "de670fe93254de1a68c2a46436cded4fce24096dfb9581a7cb71bcc999c7dda9",
+          "job": 123350058116,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "5de9d70247e669ce45aa5e04e53801ab5f8353e05aa0218b0b81f7f47c308a56",
+          "job": 123350058321,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "c74e5044330436e1bb0c94c35522424ab87ccf1d7e539cc16c072b375cb4545c",
+          "job": 123350058670,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40841171586,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+      "conclusion": "success",
+      "minutes": 25,
+      "jobs": [
+        {
+          "response_sha256": "cc3a336dea6f05e3e159bb90c3fe6713cd8d98eb682e513d1e75ea5e73d674fc",
+          "job": 123337640891,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 25,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T08:18:21+00:00",
+          "selected_completion": "2026-10-29T08:42:52+00:00",
+          "seconds": 1471.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "5a864ad8ce7d84d69f7a9058b3fda6f89993d886b0075a903cf8a519e0e35c45",
+          "job": 123337642465,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "18bd6e439b08115b7a165c03cee8f780237f83755f29f6da043415d37d92e43a",
+          "job": 123337642499,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "eeaa52b04b0ab7669138d7e31c16bc809d8e39bf01b98712a5903c5ecdba3812",
+          "job": 123337642573,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40840258629,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "9a03b882a0286d9240bca8b0de0506ca0fd9e743765e50c3769f22620215bcc1",
+          "job": 123334621917,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T08:10:33+00:00",
+          "selected_completion": "2026-10-29T08:12:18+00:00",
+          "seconds": 105.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40840251987,
+      "title": "14zq: recognize the exact post-staging hold helper and record process\u2026",
+      "sha": "2755c70bd138678557ff0e44ead6d33fa7cabcc6",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "243ec6fd183a920c5c0c3d89e4f58bea637d232dbfc75f1826f5dbbc9a3aa712",
+          "job": 123334599491,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T08:10:30+00:00",
+          "selected_completion": "2026-10-29T08:13:08+00:00",
+          "seconds": 158.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40826092372,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+      "conclusion": "failure",
+      "minutes": 75,
+      "jobs": [
+        {
+          "response_sha256": "08cf046ba8174e5951ca2c18d683510de36a763e42f759d02e7fb54e227a46ce",
+          "job": 123289356774,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 75,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T05:54:48+00:00",
+          "selected_completion": "2026-10-29T07:09:03+00:00",
+          "seconds": 4455.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "4e7f8f584f9e413ca3c1729a81933480d6a9ac9ef49e5dcda77a0434e0c8bbcc",
+          "job": 123289358219,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "d290ab0778518cb8103b6b7d75fe969914c6ca1073a3f48041e739eb1734a0be",
+          "job": 123289358615,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "e57307d8510f2b5976fdf45345c56e395ba7e2ee159b91303d8b164e919ae6df",
+          "job": 123289407748,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40823225012,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+      "conclusion": "success",
+      "minutes": 26,
+      "jobs": [
+        {
+          "response_sha256": "fbc55f318cb1c21742c2425b9d5c543554e24c6b1a431a83bb0e59860ed798a0",
+          "job": 123280249706,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 26,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T05:24:38+00:00",
+          "selected_completion": "2026-10-29T05:50:11+00:00",
+          "seconds": 1533.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "314ef93613cc37efd643a70b6331dd1d7668d5bd198af5b8ba6ee839cafa729b",
+          "job": 123280251332,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "f815ae956e86a0e429a11ec5d0db0cdb406339080ae225b80ad63108932c197a",
+          "job": 123280251390,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "e3d589ea69ee8a95e8c5333bd138e4cea0ed71f3bf13a3ba0fbb63af33770b7e",
+          "job": 123280251431,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40822668938,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "aeae7a3f12660d20444b214ebd1308c4471e8e8c36af1453b884078476de355b",
+          "job": 123278456444,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T05:18:56+00:00",
+          "selected_completion": "2026-10-29T05:20:39+00:00",
+          "seconds": 103.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40822662987,
+      "title": "14zp: shorten key holds and verify hidden values before Return",
+      "sha": "c0ab14c3c442a6abea2d158311277ed30e4419b1",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "3cdf44d57194dd605088eb5effaf3177dbfb8d9659d5c956c7fe6974147f27fe",
+          "job": 123278437600,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T05:18:53+00:00",
+          "selected_completion": "2026-10-29T05:21:41+00:00",
+          "seconds": 168.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40805607265,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+      "conclusion": "failure",
+      "minutes": 67,
+      "jobs": [
+        {
+          "response_sha256": "824f3ea963a483df41c3b6803b2f9d1b8ba0946e1ece0faaab3fa1aeb46982ee",
+          "job": 123223714326,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 67,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T02:18:57+00:00",
+          "selected_completion": "2026-10-29T03:25:21+00:00",
+          "seconds": 3984.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "25c53fc351ef0c657b14e5d1c27cb10a28ce31eaa1cfaf1fc34b3b5b4f811ddc",
+          "job": 123223715382,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "1a3fcd54066e25ecd4767ce77b89e249b9a4f5b9d2b1118930237dd6af27dd32",
+          "job": 123223716320,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "9900ce735bf0f302e0d72881bac908c117d90605ed247beadf70b82fcd2f68a1",
+          "job": 123223716342,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40802757524,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+      "conclusion": "success",
+      "minutes": 25,
+      "jobs": [
+        {
+          "response_sha256": "391ca119d6e85692efe4b917231df77503367c4d0df4b5d65a8a6e4be6b0b3b1",
+          "job": 123214467732,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 25,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T01:49:54+00:00",
+          "selected_completion": "2026-10-29T02:14:18+00:00",
+          "seconds": 1464.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "48d3f3eb65f05c7b4800bcb9dd7ce956af2937b3174086b9e2653c8eeaba5a8d",
+          "job": 123214469190,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "132ca0d208237d5d088d2da7e8530257629907797eb585c12a220f262da4efb4",
+          "job": 123214469297,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "746fcdebfdfcdffa2bd0ade6c92701d97edb33ae26946593b68428471f51f144",
+          "job": 123214469302,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40802254280,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "9ea750d0795836b2489b5b9e3f3defa627557991b74719370dab28b2218a7137",
+          "job": 123212843971,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T01:44:47+00:00",
+          "selected_completion": "2026-10-29T01:46:56+00:00",
+          "seconds": 129.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40802246771,
+      "title": "14zo: prove owner-length token path and count guest keyboard events",
+      "sha": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "faaeffdba9cdf9f6d8c19bc206749423417c82b4477ea424ef741ad2831a5ab7",
+          "job": 123212818247,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-29T01:44:42+00:00",
+          "selected_completion": "2026-10-29T01:46:53+00:00",
+          "seconds": 131.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40788594413,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "d523fb257afd72d7438340c35f6bf463341ea02b",
+      "conclusion": "failure",
+      "minutes": 56,
+      "jobs": [
+        {
+          "response_sha256": "dc6d40e959593ed71c68b01f9073e3691bea0dfd9f397c1be8fc2c627c7380ed",
+          "job": 123167888973,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 56,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T23:37:04+00:00",
+          "selected_completion": "2026-10-29T00:32:54+00:00",
+          "seconds": 3350.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "803a6189a7d63fb8927e638c3e82950c6944b7be404f3d8832a9b451296b5757",
+          "job": 123167891102,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "b5e9dc03999358569cb3bd01096e8068bf3aaea55ccdcec0a2c3bccd7f96746e",
+          "job": 123167891170,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "c0bc3a230ac67c1a1c7596c4e9a8886c6a0f336800f5dfb14fc6d39dd65e09aa",
+          "job": 123167891305,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40785271949,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "d523fb257afd72d7438340c35f6bf463341ea02b",
+      "conclusion": "success",
+      "minutes": 23,
+      "jobs": [
+        {
+          "response_sha256": "f694565e463c66db3053dfc2901a86d9043728338dd9edcfeaf28403816fd13e",
+          "job": 123156778653,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 23,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T23:09:08+00:00",
+          "selected_completion": "2026-10-28T23:31:25+00:00",
+          "seconds": 1337.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "15fb5f557a792a24a545911eef95a5c18972d2fa8268091cac775febd1cbb807",
+          "job": 123156780413,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "162e97c23b59126b9f445eb7c3f81ccb2998741c128d71488def253fb8583ff2",
+          "job": 123156780563,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "e8ce19f8f5ebb9cfe50dd8ed9b4f24eb1246d3024eb77f3a86807ec95e9ecba3",
+          "job": 123156780567,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40784619811,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "d523fb257afd72d7438340c35f6bf463341ea02b",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "46a9645d371c62f5baccf6530ed6020ccdecdd4584ca666eb0b1be4d63cee339",
+          "job": 123154589462,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T23:03:50+00:00",
+          "selected_completion": "2026-10-28T23:05:28+00:00",
+          "seconds": 98.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40784610639,
+      "title": "14zn: capture hidden-reader queues and VT state; bound token completi\u2026",
+      "sha": "d523fb257afd72d7438340c35f6bf463341ea02b",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "2299257351f505af2cb582a45b080c7760bb93d7b5476a8f48898daffe8f7219",
+          "job": 123154558116,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T23:03:46+00:00",
+          "selected_completion": "2026-10-28T23:06:35+00:00",
+          "seconds": 169.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40768498320,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+      "conclusion": "failure",
+      "minutes": 75,
+      "jobs": [
+        {
+          "response_sha256": "4680d6e38a01fb893703866c556b761a60b24cc10c3dc413db75960dd6d81cc2",
+          "job": 123099041984,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 75,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T21:02:11+00:00",
+          "selected_completion": "2026-10-28T22:16:12+00:00",
+          "seconds": 4441.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "9b40e5ff7dcb1feaa9f12fd11688c3784cc06b16f23987cdbe1c7b8638ae5391",
+          "job": 123099044837,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "4aa7b1b92f302b30ed5cfa6154490e940472e18a2fea198b0daee98e014e432d",
+          "job": 123099045056,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "5bc9f8425ee98e2fd63de20c20e1539f3c8ccd46d7bdd28484c5639f9488d945",
+          "job": 123099045101,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40763979290,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+      "conclusion": "success",
+      "minutes": 24,
+      "jobs": [
+        {
+          "response_sha256": "34ab50901784c1effb7b218ac55506a1f246f6aef352136ba4ba80b76b4c6d2f",
+          "job": 123083072571,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 24,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T20:31:06+00:00",
+          "selected_completion": "2026-10-28T20:54:57+00:00",
+          "seconds": 1431.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "823574e533117ad083e8745331f4b3eb6bc7e92bdcdc31b3a5648f307b3fbe3e",
+          "job": 123083075290,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "1bc404df689f15b6f24d639031ce1e16877685a324ad44097703607a6e9b1961",
+          "job": 123083075606,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "f204aea0e26431b3934610b24f56095d5270ad5f2f19ebdfc023ea6bb150e0f8",
+          "job": 123083075735,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40762971649,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "85bdb0668d5bc9256fa8012ce2f4f06fbf16237268fd319cfc0e19bcff457875",
+          "job": 123079496781,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T20:24:20+00:00",
+          "selected_completion": "2026-10-28T20:27:03+00:00",
+          "seconds": 163.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40762962724,
+      "title": "14zm: bind watcher bytes using committed LF newlines",
+      "sha": "d1d18a7982d87b7bcf1fff6394659742adc7f62e",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "ba3ca56242ca2e6a22376c8f7e8c0bf37dec92d96fb7075b572d9e71ffeca447",
+          "job": 123079465870,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T20:24:17+00:00",
+          "selected_completion": "2026-10-28T20:26:27+00:00",
+          "seconds": 130.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40658792992,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+      "conclusion": "failure",
+      "minutes": 49,
+      "jobs": [
+        {
+          "response_sha256": "732924e8d7832c8c8528c79e162e8a4bbcd19d5131d322831f9d52138b19d0aa",
+          "job": 122716318960,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 49,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T08:43:05+00:00",
+          "selected_completion": "2026-10-28T09:32:05+00:00",
+          "seconds": 2940.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "8cedf4e000be6832976c67ea0f6ac26dc7f5c4f8d70b12b13f6a5becda00547c",
+          "job": 122716320658,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "5a8644d7e9677eb8e2c0ce67a98c958feb1a287aeafd1a9e34cedb6128204019",
+          "job": 122716320761,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "9d292225a6180447901cc47caf1d9b146b63185d8663db8d7feed69d44a14dd9",
+          "job": 122716364353,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40655273119,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+      "conclusion": "success",
+      "minutes": 24,
+      "jobs": [
+        {
+          "response_sha256": "7688569e31f143d51ea4f02d08b835b4e2a626dd8ea2e3cd1b9fe08a364c2324",
+          "job": 122704678697,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 24,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T08:13:40+00:00",
+          "selected_completion": "2026-10-28T08:37:12+00:00",
+          "seconds": 1412.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "40b73568506611f0fecb9900f92a8e793f6bd3af3c7cc87cd3071f994ea47c2f",
+          "job": 122704680397,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "a38b564c458d38bb532bf625b02fe4fefd0d9032cd5ea56b5ab5b861ff33c476",
+          "job": 122704680642,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "69eab8d27f76c8f167db6de0e28be30daa496743f7b385a17cc6726c9fe67872",
+          "job": 122704680676,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40654614484,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "aa9ccba2610b925226d5231f0a44418b3dcc5aa671d962c5aa5bc99c882462d5",
+          "job": 122702523796,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T08:08:00+00:00",
+          "selected_completion": "2026-10-28T08:10:41+00:00",
+          "seconds": 161.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40654606957,
+      "title": "14zj: delimit ACKs and share complete kernel-line filtering",
+      "sha": "85c9cfeeeddd6a2592f86bdf4603818bbeb48ee7",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "6560e9b8d2e8e070f51f3fa68806b9afcff62a582c1fc53d67d6dce26e9d27a2",
+          "job": 122702500037,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T08:07:56+00:00",
+          "selected_completion": "2026-10-28T08:09:39+00:00",
+          "seconds": 103.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40646962291,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+      "conclusion": "failure",
+      "minutes": 22,
+      "jobs": [
+        {
+          "response_sha256": "74576ee7b5f2f67f1364aedbceb565552120ce13c5a50ac8e2c001adf79c575b",
+          "job": 122677910833,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 22,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T06:56:54+00:00",
+          "selected_completion": "2026-10-28T07:18:41+00:00",
+          "seconds": 1307.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "9140fb2a519d609c9e6c7929278333d5534ab65191306eccf6486d3ea3923028",
+          "job": 122677912442,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "874e6bedcb82421f922188f19b6ad3543e385e387eadf36e6d69c632e79efabb",
+          "job": 122677912498,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "fe823fb59b50af8cb3043f888e4b1dc87d75a1d9664059eb8d191013f76edb27",
+          "job": 122677912639,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40646398141,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "5aa390bc8cf47bf0fed00ca7120f4e19f5ce6ecb0ca91bf060b23afb7d557d61",
+          "job": 122676106358,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T06:51:20+00:00",
+          "selected_completion": "2026-10-28T06:54:04+00:00",
+          "seconds": 164.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40646392604,
+      "title": "14zi: prove hidden prompts on the actual foreground reader tty",
+      "sha": "9c3f8a3722e3321150813456fecad7abbfefda3e",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "28e2cf367c90d0b283f5b93d65e2da17e47dbeb212be48c7a20f521355a4f7ac",
+          "job": 122676089307,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T06:51:17+00:00",
+          "selected_completion": "2026-10-28T06:53:57+00:00",
+          "seconds": 160.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40630352782,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+      "conclusion": "failure",
+      "minutes": 77,
+      "jobs": [
+        {
+          "response_sha256": "c55faec16d20af290d40229ba0589bdc435d0d9228be25d866f2e09bbf88d685",
+          "job": 122625031862,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 77,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T04:05:42+00:00",
+          "selected_completion": "2026-10-28T05:22:17+00:00",
+          "seconds": 4595.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "91f64ced746690dc95f0e801585e9ec3295952f63929d6110d49d282a4132b0a",
+          "job": 122625033292,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "4115be64a24810f6620076a62af834bcda510c472cd7429e7d60034f899ad1e7",
+          "job": 122625033510,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "efea67856290ddd42f2623826250bbaf66334e0c5bd62eccb0624ec9169ff17c",
+          "job": 122625033612,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40628158654,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+      "conclusion": "success",
+      "minutes": 20,
+      "jobs": [
+        {
+          "response_sha256": "b56f607caae93c657586efa717b6651e6c5b6d58c9fc68b784f9e3789963ee9c",
+          "job": 122617979235,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 20,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T03:41:56+00:00",
+          "selected_completion": "2026-10-28T04:01:45+00:00",
+          "seconds": 1189.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "3ab8cc001f246d90d135b5fac2adf9bd0cb5230a1791f302fae535a803dde381",
+          "job": 122617980545,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "99010c833e1d3c2468b12af0a831b5a014408dbf228d33ea3cc6defe5faac352",
+          "job": 122617980578,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "f2df0e289cf640d0c96b4a026fa17abb99570554757bc91dfd9eef426505149e",
+          "job": 122617981339,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40627663601,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "1d7f809f4c1be651a12ad0507eafa6b75b8340e78e06f938aa5978ecfd251590",
+          "job": 122616365773,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T03:36:37+00:00",
+          "selected_completion": "2026-10-28T03:39:17+00:00",
+          "seconds": 160.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40627657801,
+      "title": "14zh: require fresh physical idle proof before every prompt resync",
+      "sha": "d15678dc491905f592c2b7b1af852fca1d35e08b",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "99148d89d2ce123f377b2b5948bfa45e2b610145b34decabe6358c977b732414",
+          "job": 122616346864,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T03:36:34+00:00",
+          "selected_completion": "2026-10-28T03:39:04+00:00",
+          "seconds": 150.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40617562735,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+      "conclusion": "failure",
+      "minutes": 54,
+      "jobs": [
+        {
+          "response_sha256": "7caf4f1fdf83e745b68472d89dbcf4369a8f653aa051632e4f459944877315c2",
+          "job": 122583533010,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 54,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T01:52:05+00:00",
+          "selected_completion": "2026-10-28T02:45:26+00:00",
+          "seconds": 3201.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "aa298a11b95a98c48d9b4b0468fc27b7d5621e519cbb002f668f2fe318072d17",
+          "job": 122583534341,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "e30b0ab78e292b306ec08236ce1472eff4ef695173dd24cfcee4cfbb4f671bfa",
+          "job": 122583534529,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "1d595850891b34eb561aea5e16848656fede29fbbfa8cc990dcc9d1614116cba",
+          "job": 122583534694,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40614909488,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+      "conclusion": "success",
+      "minutes": 23,
+      "jobs": [
+        {
+          "response_sha256": "3e1f4fbdbd835c7e8e116994737cc5145dfe05006d985d37ed7dddb47d0430ca",
+          "job": 122575016188,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 23,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T01:25:02+00:00",
+          "selected_completion": "2026-10-28T01:47:18+00:00",
+          "seconds": 1336.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "d466e233e1b348c56ac2861350194b4da7cece831e0af2976afccd4ec321c70a",
+          "job": 122575017340,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "c963cbe3f1d013472771e3559243668d0e75a5082f62805c84ff4a5eaf180922",
+          "job": 122575017821,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "d0817ec71cb5120f0e16a9b340f5d7e5b3b32d6911bec1be9e68d0fc6c12796b",
+          "job": 122575018632,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40614313020,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "a27fe372d2af6ac9b466f70b918b4b3c3c69e7b642b07709286d6f9e35169224",
+          "job": 122573110385,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T01:19:14+00:00",
+          "selected_completion": "2026-10-28T01:21:21+00:00",
+          "seconds": 127.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40614308783,
+      "title": "14zg: verify up to three nested sudo PTY relays for owner sessions",
+      "sha": "ea803fd9b81fbd21ac1d8a054d253cf6d4bb17ac",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "2369be279003a54d570657c896ca2b3a48f2c93725cbef835f98ea10b5797429",
+          "job": 122573096601,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-28T01:19:11+00:00",
+          "selected_completion": "2026-10-28T01:21:52+00:00",
+          "seconds": 161.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40596167369,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+      "conclusion": "failure",
+      "minutes": 54,
+      "jobs": [
+        {
+          "response_sha256": "4be0cf68e1f17c195be06d606c5006d285e5f45fd695974ca7ea8164527e5a40",
+          "job": 122512511198,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 54,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T22:36:59+00:00",
+          "selected_completion": "2026-10-27T23:30:14+00:00",
+          "seconds": 3195.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "9ffef7a12a389f089129af66095bda623e99bca0f77926a7a26d7ed744b26d83",
+          "job": 122512513002,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "2c8c8759ea03a0139d3694e76011b659b6a73ce6b1d753d574796cb9678190d9",
+          "job": 122512513312,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "bbe984be8d849b59bbf45a59da2bdebba17ee83760808bc1caba193b5721f143",
+          "job": 122512513725,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40592552658,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+      "conclusion": "success",
+      "minutes": 21,
+      "jobs": [
+        {
+          "response_sha256": "f67b10fb0f6c60927cd4312a0b1469c8e1facd94f67440161176c7a6f502908a",
+          "job": 122500225640,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 21,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T22:09:12+00:00",
+          "selected_completion": "2026-10-27T22:29:39+00:00",
+          "seconds": 1227.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "943c4abac9a53c4e355642d3fef772372d67a3862c1a1bccdd1d0deac6a68307",
+          "job": 122500228378,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "6517fbdfbc265e8a79c61fa1c0f8ebff2fc57ba3a19ed4dbfc53dd51e362919f",
+          "job": 122500228411,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "bc1a3998aba0ddac4950537ee60690ff1f5ba40300a621d76e4e71c2ec5f4ca3",
+          "job": 122500228418,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40591924586,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "dfaabf71bc09ba4f26bde54b5fc8ecf6aa115811c7ad1c3ce64f2f43dd56eaaa",
+          "job": 122498086953,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T22:04:32+00:00",
+          "selected_completion": "2026-10-27T22:07:11+00:00",
+          "seconds": 159.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40591916713,
+      "title": "14zd: prove isolated local replay for the six-dollar round",
+      "sha": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "3dd2ab8965c711b3a04e86f04de3ab0c071d209f82dd74afb4ef733bdb8b089c",
+          "job": 122498059919,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T22:04:28+00:00",
+          "selected_completion": "2026-10-27T22:06:08+00:00",
+          "seconds": 100.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40566496658,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+      "conclusion": "failure",
+      "minutes": 74,
+      "jobs": [
+        {
+          "response_sha256": "2736f2212dd179522e02128685546fe06dbb5688f0cf5c235f705527940f1cb3",
+          "job": 122409054173,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 74,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T19:09:16+00:00",
+          "selected_completion": "2026-10-27T20:23:03+00:00",
+          "seconds": 4427.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "0e22bc57aad678ac16857dd48eb36a143e8fdbb4238422f14f527d2cbee44bbb",
+          "job": 122409055822,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "2fa92ff0e78ef18a7a1ac2a73a38a9872cb8dbe78a6f1d6c71929d733a5f2236",
+          "job": 122409056626,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "a676f2cfca14953e2feb3c0f9adb3938b384aa351c926979ce866b18f9b6bb94",
+          "job": 122409056727,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40560134727,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+      "conclusion": "success",
+      "minutes": 22,
+      "jobs": [
+        {
+          "response_sha256": "9869f892b60fadc32b1d6b33f7b8b84dcce0775b48b0ad2aa3f8e0d43475bcec",
+          "job": 122386705561,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 22,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T18:27:39+00:00",
+          "selected_completion": "2026-10-27T18:49:25+00:00",
+          "seconds": 1306.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "0a5ce80fbe2aa754bb2930950b4c90a4d234e219e419f4cb217e6f3cb6141cb3",
+          "job": 122386708491,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "b631d5606b73b6240a765817f64e5a2e2f6b78c0bcb3fa561b5de112582d6b30",
+          "job": 122386709001,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "fbdac0d1c8c199c187806828bd19733d70797d50edc766342f459d5aadbcc08d",
+          "job": 122386709919,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40559090525,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+      "conclusion": "success",
+      "minutes": 4,
+      "jobs": [
+        {
+          "response_sha256": "6985b7242cbec12b2e536db67b156994d70e5166883865c661d08bc4b1e29875",
+          "job": 122382945302,
+          "name": "scan",
+          "minutes": 4,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T18:20:43+00:00",
+          "selected_completion": "2026-10-27T18:23:47+00:00",
+          "seconds": 184.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40559083001,
+      "title": "14z: classify owner firmware entries from bounded UEFI device paths",
+      "sha": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+      "conclusion": "success",
+      "minutes": 4,
+      "jobs": [
+        {
+          "response_sha256": "f3a63c8cea40609e892fe13d7309d3f51177e9926198ee00e3d66590ef4408a3",
+          "job": 122382919038,
+          "name": "scan",
+          "minutes": 4,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T18:20:41+00:00",
+          "selected_completion": "2026-10-27T18:24:12+00:00",
+          "seconds": 211.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40543952228,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+      "conclusion": "failure",
+      "minutes": 54,
+      "jobs": [
+        {
+          "response_sha256": "af5b54e3739d2cea42ef92cd915e4566853844a116d97803207cf3e3cdba0a19",
+          "job": 122329433352,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 54,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T16:45:01+00:00",
+          "selected_completion": "2026-10-27T17:38:02+00:00",
+          "seconds": 3181.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "c0874f83771a2670a351d38232e88945b9663ebf5095b80b7ae1a83c8677ee02",
+          "job": 122329435499,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "296c5856feeadce4d1023cbebcf23027383a4f416ec96d30e6d8aeca7d602c6f",
+          "job": 122329435585,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "2e12a6e56e97c9a7c11963ae8c7a1166dd5363d212ae1ec4ff1f3f2ec4a9e1b1",
+          "job": 122329436461,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40538251599,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+      "conclusion": "success",
+      "minutes": 23,
+      "jobs": [
+        {
+          "response_sha256": "a0b446bb44b0c4b26f9f031c71c47611522e70e33739c517b4b541cb12f3e517",
+          "job": 122309288890,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 23,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T16:10:19+00:00",
+          "selected_completion": "2026-10-27T16:32:29+00:00",
+          "seconds": 1330.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "f981c2ff006186989a49577130cf7218c9eac5ee365cfcf42bea3c3d96618cf0",
+          "job": 122309290866,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "03a086d2a9de25b1d9bfd7d0d990b15c19b20ff115831579d2b848c362c06c58",
+          "job": 122309291006,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "ad387bd6c93a89ef93726703069cc25c8dac1e023e42d086fbd9846ed3127b60",
+          "job": 122309292501,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40537576099,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "d381c603016c722804068936c2eafab0c92561371ed97b0d920c34c991976bb6",
+          "job": 122306868447,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T16:06:11+00:00",
+          "selected_completion": "2026-10-27T16:08:51+00:00",
+          "seconds": 160.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40537560673,
+      "title": "14y: resume pinned ISO transfers within six verified attempts",
+      "sha": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "b54242e95c5baf4f7c9a706711fae5108a2f852c0a7098a986eb327ca4f82f60",
+          "job": 122306813790,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T16:06:06+00:00",
+          "selected_completion": "2026-10-27T16:08:21+00:00",
+          "seconds": 135.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40528739880,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "c6fc99555de35d3bde4096c347601d18ea270321",
+      "conclusion": "failure",
+      "minutes": 17,
+      "jobs": [
+        {
+          "response_sha256": "a3fa06e2ebebbe3ad35ffada5ac294cc85a0c1c0430638191443d1cea5b07fc9",
+          "job": 122275382967,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 17,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T15:12:59+00:00",
+          "selected_completion": "2026-10-27T15:29:06+00:00",
+          "seconds": 967.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "ad97162c75ae4fe759b60229d80fe75f18fa8deaf03732f1a9171be7a156fec3",
+          "job": 122275385163,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "07cd5ae197aad169a6ece29a2b732f6bf3bd934e43592c9102f86043285542fa",
+          "job": 122275390172,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "a55487665c8d273ec0c2c30173dfd085da1dd025f521af16f862ded53f6f6f34",
+          "job": 122275474324,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40527965543,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "c6fc99555de35d3bde4096c347601d18ea270321",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "f4385491fdbd678da92d1ee9bd8fc972673d5634d345fdb365b2322f76998ea6",
+          "job": 122272590368,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T15:08:14+00:00",
+          "selected_completion": "2026-10-27T15:10:55+00:00",
+          "seconds": 161.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40527954626,
+      "title": "14x: allow slow mirrors within reviewed rehearsal limits",
+      "sha": "c6fc99555de35d3bde4096c347601d18ea270321",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "cc51fd09eaadb6143c10f7f81462cb6a26b2108d9e8915eba689cb46b3f70611",
+          "job": 122272553979,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T15:08:10+00:00",
+          "selected_completion": "2026-10-27T15:10:50+00:00",
+          "seconds": 160.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40519384061,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "f8ae9cb80fa7e51ee9bf5f3c21ee6b4d3c02036d",
+      "conclusion": "failure",
+      "minutes": 29,
+      "jobs": [
+        {
+          "response_sha256": "1f1de437a962d8bdf0e41cc1e75db7aed77e13e8f8c76e19931d941ef149bc2b",
+          "job": 122241998363,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 29,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T14:15:32+00:00",
+          "selected_completion": "2026-10-27T14:43:35+00:00",
+          "seconds": 1683.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "8f8fa3a3c86531192a1e6e322191dd7cd4b6e60d461f4eab389bd145a703bce6",
+          "job": 122242000359,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "237be33fb6d4052ff281777910e8f200306480a476af1537f027a8deadd4283d",
+          "job": 122242001671,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "dd513837ed6c7f925e192435dc06471359806f3b416fcf2b2182584037ee6af6",
+          "job": 122242002379,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40518683163,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "f8ae9cb80fa7e51ee9bf5f3c21ee6b4d3c02036d",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "3e4c572f2dafe89d31c59557d0733ddae26b000395057d18e9a2ca95e785e8d9",
+          "job": 122239284843,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T14:11:08+00:00",
+          "selected_completion": "2026-10-27T14:13:47+00:00",
+          "seconds": 159.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40518675760,
+      "title": "14w: guard the approved $3 retest and bind the complete preflight",
+      "sha": "f8ae9cb80fa7e51ee9bf5f3c21ee6b4d3c02036d",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "bdc1cc53c84652bfb82a3af1a1ffea9f72849f3a36ed0089e098717e4e0e1927",
+          "job": 122239255955,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-27T14:11:05+00:00",
+          "selected_completion": "2026-10-27T14:12:45+00:00",
+          "seconds": 100.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40421596174,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+      "conclusion": "failure",
+      "minutes": 68,
+      "jobs": [
+        {
+          "response_sha256": "a68fb87c2aa1e094294bff1d201a796a44237d6a5889a1efb547fccfce062479",
+          "job": 121917117021,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 68,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T23:42:48+00:00",
+          "selected_completion": "2026-10-27T00:50:40+00:00",
+          "seconds": 4072.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "fbd0cc9cf3db7c6eb950a4b0abe09d5214b0e5a8772061d39f37d5fc0ea89d6a",
+          "job": 121917118156,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "5d541278939a2c73b103d9303ccb8c33ee82379f3dfe0cb2fd3e06ef17598c3e",
+          "job": 121917118196,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "8a53febb1799fae6be37d4b5dde8f1c6d0d77523c01cf109cfa23ac6a94697aa",
+          "job": 121917118690,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40417291358,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+      "conclusion": "success",
+      "minutes": 23,
+      "jobs": [
+        {
+          "response_sha256": "c0918b780b487e959d7b1e3988ee8d4fb669d4b27b8223fda2b914715e186ced",
+          "job": 121902688946,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 23,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T23:05:33+00:00",
+          "selected_completion": "2026-10-26T23:28:06+00:00",
+          "seconds": 1353.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "a43e37c1e256ffe50b9cabafd80ec407c015ccb41183f126465d5523a785eab7",
+          "job": 121902690838,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "04c7b1f256d0bae7580a5a2c7b15d3aac0a6d955d7c1bcf112c2d71f62da20cf",
+          "job": 121902691054,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "555a70986e4dddaae4d85a6c0951a1f20a909f55d9d33921e4a6bdfc835f7a74",
+          "job": 121902691062,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40416793839,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "4c8c647e85a52daeab9d40519a62a21392cc4d63ad3715c22fe3466f575ca91c",
+          "job": 121901020948,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T23:01:24+00:00",
+          "selected_completion": "2026-10-26T23:04:00+00:00",
+          "seconds": 156.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40416787226,
+      "title": "Guard October owner-tools runs with the approved paid Actions budget",
+      "sha": "bbf228c1dcb7800af5b9793f56acf77d11d5aff2",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "ba60eeef8372fbdd6d58aa95596c69d327cc85ebd82b42fa68d9a8df942323b5",
+          "job": 121900998517,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T23:01:22+00:00",
+          "selected_completion": "2026-10-26T23:03:28+00:00",
+          "seconds": 126.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40407466983,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "22e07b1b6abb6f60da9df9c8646aef414e8589d4",
+      "conclusion": "failure",
+      "minutes": 14,
+      "jobs": [
+        {
+          "response_sha256": "77e118ff376c3480c38d06d1b082c18e1ae7c36d5864b4de058bebd8fb823385",
+          "job": 121868840885,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 14,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T21:48:49+00:00",
+          "selected_completion": "2026-10-26T22:02:24+00:00",
+          "seconds": 815.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "f2581c15ac9337b51eaab8c7f394e73389468a69d5336b868fb38773da2451a4",
+          "job": 121868842853,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "1f0de31e0c9dda45c32c76adf346397d361d092c6c706d65dc07772dd9338016",
+          "job": 121868843029,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "030f67e8535e904bd601779a38038f04b9844c2e2b24e747afda78fb8bcf1c19",
+          "job": 121868843264,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40406753823,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "22e07b1b6abb6f60da9df9c8646aef414e8589d4",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "cb35e6984b2172e107f6420c5a009180388aa45d54330695569a26a9a30ef69d",
+          "job": 121866379334,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T21:43:38+00:00",
+          "selected_completion": "2026-10-26T21:45:48+00:00",
+          "seconds": 130.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40406746890,
+      "title": "14r: record October closing privacy deferral and refresh full preflight",
+      "sha": "22e07b1b6abb6f60da9df9c8646aef414e8589d4",
+      "conclusion": "success",
+      "minutes": 4,
+      "jobs": [
+        {
+          "response_sha256": "2cfb5fa37b1c6b0fd4a8d7d0b157df34ea96acac9aeac917d966997ae3c9ac8c",
+          "job": 121866353510,
+          "name": "scan",
+          "minutes": 4,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T21:43:35+00:00",
+          "selected_completion": "2026-10-26T21:46:44+00:00",
+          "seconds": 189.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40400763278,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+      "conclusion": "failure",
+      "minutes": 14,
+      "jobs": [
+        {
+          "response_sha256": "1b2c9b53cbc92a13a55aef0d30ff1aefe1687f10f4a4a01576119bfa0d5e75ed",
+          "job": 121845673242,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 14,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T21:01:20+00:00",
+          "selected_completion": "2026-10-26T21:14:33+00:00",
+          "seconds": 793.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "34d7e40f87260c2c79e06c4b2852187c1ae50ae577203a0f330145361dbbb72d",
+          "job": 121845675534,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "6f2e9eb6bbb85ba5d0452a2a8c1c9ebf13b8a92bae4340ada81815440483a89a",
+          "job": 121845675688,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "ba82b30628ae8c2f3eb3b93d04789b80765cf62d81e337fba695294043622185",
+          "job": 121845675748,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40400133838,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "5b0452135f0957b554366856a4c0768010e83cecf55f384f87928a7b3f17abb9",
+          "job": 121843447577,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T20:56:57+00:00",
+          "selected_completion": "2026-10-26T20:59:36+00:00",
+          "seconds": 159.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40400127175,
+      "title": "14p: bind native loop mode, cover every caller and record probe7 STOP",
+      "sha": "47f795d072abcef9d9c1173557174b7abd9dd466",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "ba6af03dfc576dc20a597f9029df92dd96f0eeba9a180a38f3d539719c81131a",
+          "job": 121843424788,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T20:56:54+00:00",
+          "selected_completion": "2026-10-26T20:59:04+00:00",
+          "seconds": 130.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40395477901,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "a80cacce5a29c4883e1f0b42e16f4cd860343969",
+      "conclusion": "failure",
+      "minutes": 11,
+      "jobs": [
+        {
+          "response_sha256": "47cb33b815dac1fe8cf85857266a0639c648adbc529d31d881deb65004ce34dd",
+          "job": 121827253576,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 11,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T20:25:24+00:00",
+          "selected_completion": "2026-10-26T20:36:03+00:00",
+          "seconds": 639.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "102247082e63d0dc934922ec2fdb7ef7b54056ba0b367cf9b8fc82e13a11145f",
+          "job": 121827255602,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "8847697a1601d751ee3121cfb64c82e5087817b74a4a2c5756f2bfab8ea1295d",
+          "job": 121827257620,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "2f973683374e661fdf702a29257e9ade33abf146b510c75cf71594b2386cf80f",
+          "job": 121827332126,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40394908641,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "a80cacce5a29c4883e1f0b42e16f4cd860343969",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "74d63162fe8651e88ef359ec8f347c2c06227f5fc2bbc01ae42f8d65bc363d32",
+          "job": 121825255988,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T20:21:34+00:00",
+          "selected_completion": "2026-10-26T20:23:40+00:00",
+          "seconds": 126.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40394899036,
+      "title": "14o: apply owner-approved 440/7/20 limits and refresh preflight",
+      "sha": "a80cacce5a29c4883e1f0b42e16f4cd860343969",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "1e94d694592f2a9acdc4a42acd66ff5ec91706ad9a4486b49a5010a945f9e675",
+          "job": 121825223380,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T20:21:30+00:00",
+          "selected_completion": "2026-10-26T20:23:10+00:00",
+          "seconds": 100.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40363137526,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "5156f5fac592e1e30077b22c196124a1feaafe89",
+      "conclusion": "failure",
+      "minutes": 13,
+      "jobs": [
+        {
+          "response_sha256": "1f130758dac03b7a89ccbcf2b245d81f8c3f8bde753dcfd9613354ca69a12c8d",
+          "job": 121713619510,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 13,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T16:51:40+00:00",
+          "selected_completion": "2026-10-26T17:04:24+00:00",
+          "seconds": 764.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "c6b1098c07c76bb93fab4a2d65ea4fda4850686e65265778a844bc303de70ac8",
+          "job": 121713622564,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "18effb4687832aa280bd5adf04c21fd1a4c5927503af28a7084c8fd22d2d6fba",
+          "job": 121713622970,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "2d5c71b92cbf717f2201055f354f70f0351fc5914876d19d3dbd8421ecdb68f5",
+          "job": 121713624030,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40362028134,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "5156f5fac592e1e30077b22c196124a1feaafe89",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "f7e5a92efc35a8f552bbacebb27b841fe39eeaf11ebb3abd399c01cf92290a78",
+          "job": 121709725287,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T16:44:41+00:00",
+          "selected_completion": "2026-10-26T16:47:18+00:00",
+          "seconds": 157.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40362011848,
+      "title": "14l: record one-push October decision, cap420 and reserve60",
+      "sha": "5156f5fac592e1e30077b22c196124a1feaafe89",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "1207f3f5069e5a6a91d52238d70b738fd1680b7238fe47239d4d672f886d433a",
+          "job": 121709669914,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T16:44:35+00:00",
+          "selected_completion": "2026-10-26T16:47:10+00:00",
+          "seconds": 155.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40358600829,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "5efa22b0d87269aeb9f449637b61d7ff17e1dc4a",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "82deedf3ea5e5efa235496bd6e486cc513873dd0e7f2ab083b09fc6428a4ce20",
+          "job": 121697649008,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T16:23:12+00:00",
+          "selected_completion": "2026-10-26T16:25:50+00:00",
+          "seconds": 158.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40358590302,
+      "title": "Record clean full-history privacy scan for14k budget STOP",
+      "sha": "5efa22b0d87269aeb9f449637b61d7ff17e1dc4a",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "080139d24d4473da3399e61b7f728666d1e011230ac1c0f3507ffd85b8f82e8c",
+          "job": 121697610576,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T16:23:08+00:00",
+          "selected_completion": "2026-10-26T16:25:14+00:00",
+          "seconds": 126.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40356240144,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "bcf2070b874f07d6b9c9300544837db33e41dcc8",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "fc52239f7a7072ed8ac2bf33fc6ca19c1f3013afe9cd3d5aeeb77c31270bfd81",
+          "job": 121689360785,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T16:08:44+00:00",
+          "selected_completion": "2026-10-26T16:11:22+00:00",
+          "seconds": 158.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40356233423,
+      "title": "Brief 14k: owner chose to run probe 6 and qualification 2 now (cap 40\u2026",
+      "sha": "bcf2070b874f07d6b9c9300544837db33e41dcc8",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "7724954a5e1323d6e75f67aa2b4a3a09ee661bd0ffdc68a641ec1e7c9c75dadf",
+          "job": 121689338267,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T16:08:43+00:00",
+          "selected_completion": "2026-10-26T16:11:11+00:00",
+          "seconds": 148.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40271459641,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "ec829b6abebe098632167dbb811e0ede9ea05ca1",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "145ccc20ade298e996f02e030ceeb45979cdf92d0b47f67dc9d3d8cdcd4e289b",
+          "job": 121404977311,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T04:54:40+00:00",
+          "selected_completion": "2026-10-26T04:56:43+00:00",
+          "seconds": 123.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40271454264,
+      "title": "Record clean full-history scan and retained14j replay logs",
+      "sha": "ec829b6abebe098632167dbb811e0ede9ea05ca1",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "3e2ab4dc6060f8a7566bd1544bd687f680ccfd14088b1bd082999d614fd9b071",
+          "job": 121404960318,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T04:54:36+00:00",
+          "selected_completion": "2026-10-26T04:57:13+00:00",
+          "seconds": 157.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40269676645,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "259648962f6cd052c16648904ab7399308088e90",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "ef82fbe856c363064c07316ae54114af886eaf06320c9526bb987423cc4d38df",
+          "job": 121399563798,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T04:33:24+00:00",
+          "selected_completion": "2026-10-26T04:36:00+00:00",
+          "seconds": 156.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40269672103,
+      "title": "Brief 14j: owner-style prompt resync after kernel messages; stop befo\u2026",
+      "sha": "259648962f6cd052c16648904ab7399308088e90",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "0f69d2c8b3d1aac0a5d5d5f3b54c6a1585d47824f29a248ad71055dc3f0269fb",
+          "job": 121399549383,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T04:33:21+00:00",
+          "selected_completion": "2026-10-26T04:35:02+00:00",
+          "seconds": 101.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40269119367,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "e95352af33e3f23593415c898105158cc5664fe1",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "7c8c517018b7fdfb01ee25d55652bcf49b10a4a26fd16fd3058473aef0821983",
+          "job": 121397895332,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T04:26:56+00:00",
+          "selected_completion": "2026-10-26T04:28:38+00:00",
+          "seconds": 102.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40269115700,
+      "title": "Record clean stopped-qualification full-history privacy scan",
+      "sha": "e95352af33e3f23593415c898105158cc5664fe1",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "b899ab19102033e19d4127c2d2d34146c7ed9b714e413944b1c2ba58968351dd",
+          "job": 121397884611,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T04:26:54+00:00",
+          "selected_completion": "2026-10-26T04:28:33+00:00",
+          "seconds": 99.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40263990213,
+      "title": "Two-disk rehearsal (owner-tools)",
+      "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+      "conclusion": "failure",
+      "minutes": 48,
+      "jobs": [
+        {
+          "response_sha256": "282b4ebe445c7f47090cc738d63e6da5d1864a681964d2bb41e08c3f2a462c77",
+          "job": 121382224263,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 48,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T03:25:17+00:00",
+          "selected_completion": "2026-10-26T04:12:41+00:00",
+          "seconds": 2844.0,
+          "step_count": 22,
+          "full_bound": 240
+        },
+        {
+          "response_sha256": "63ee14146b4eebeeb3202b1112e15b33e5f672b8c2a0ea2a9fa1916d9c6c94ac",
+          "job": 121382225386,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "b9652ac096e9a6ba3813bb2a6a6264418b7648af79a974da8e5f786c7e61c118",
+          "job": 121382225437,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "e3fcd7b640436ddb880264fef4857e98fc2f42b2f55bd08bdc78fee97d03e58c",
+          "job": 121382225523,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40261916660,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+      "conclusion": "success",
+      "minutes": 22,
+      "jobs": [
+        {
+          "response_sha256": "c4f8701a5af348c94875a39e4404f655400b0c5ce2f5af8187281e961cd1c522",
+          "job": 121375927853,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 22,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T03:00:44+00:00",
+          "selected_completion": "2026-10-26T03:21:55+00:00",
+          "seconds": 1271.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "68e3d843aa3c96649a5a6f6d7f3627d32b3088424112cce1022f77521aaca324",
+          "job": 121375929150,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "e3e8bff9b36fc4ed50a47e3a0a48e46a82fdc745eace84c7663b8613fd5d810f",
+          "job": 121375929262,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "4fd6cb899cfa0a7a1f99a0d877fbfb66927e2869f1a08886231a3a9e33f5f9ba",
+          "job": 121375929323,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40261603041,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "f06a2efc963933466fd0939d0352364aa42fcd11c4750189480ef6d6bc49e23a",
+          "job": 121374975342,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T02:56:51+00:00",
+          "selected_completion": "2026-10-26T02:58:32+00:00",
+          "seconds": 101.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40261599776,
+      "title": "Record clean framing-fix full-history privacy scan",
+      "sha": "5e8c0c961506af997a522190e194fbe9ca745308",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "35bda4673d0ff64d854222a1b1b6eda76594983b5739a35d87b6dfdb6422ac12",
+          "job": 121374965476,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T02:56:48+00:00",
+          "selected_completion": "2026-10-26T02:59:22+00:00",
+          "seconds": 154.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40260375474,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "b71de4af3df67c9f7cbbbb530bf4731fa2383296",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "7b0336338126c830b5e3e509386e0d0a7dedd81ce27c6ebc966308d5b59318df",
+          "job": 121371262025,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T02:41:56+00:00",
+          "selected_completion": "2026-10-26T02:43:33+00:00",
+          "seconds": 97.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40260372656,
+      "title": "Brief 14i: brace-group guest command framing, composed-command checks\u2026",
+      "sha": "b71de4af3df67c9f7cbbbb530bf4731fa2383296",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "f009f26e2f499ffd7a11169787ef052dbc1db905ea3b47dfe7fddbae4de5bc1f",
+          "job": 121371253203,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T02:41:54+00:00",
+          "selected_completion": "2026-10-26T02:43:32+00:00",
+          "seconds": 98.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40254429101,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "2675f28d927b64834e5f7e2f4bfe153d91ab7fc8",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "a5a583cfbb6d1437ba9194769a1ee4fe61219f0dbf078134f82ad97ad4970763",
+          "job": 121353120285,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T01:29:03+00:00",
+          "selected_completion": "2026-10-26T01:31:43+00:00",
+          "seconds": 160.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40254425324,
+      "title": "Remove trailing prompt whitespace from retained stop transcript",
+      "sha": "2675f28d927b64834e5f7e2f4bfe153d91ab7fc8",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "e5be56d1a943768d928bbb1a592e4abb2b3999f7003eb4c25ff685002fb31ea6",
+          "job": 121353109045,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T01:29:00+00:00",
+          "selected_completion": "2026-10-26T01:31:33+00:00",
+          "seconds": 153.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40253972397,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "f1df3dae8b444532e8f0944e6213f3c471dcd509",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "6a0cacef3e9940fafd02685ff61a081b69e8b6ca42736fd659ff1f364ddee628",
+          "job": 121351730279,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T01:23:25+00:00",
+          "selected_completion": "2026-10-26T01:25:31+00:00",
+          "seconds": 126.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40253968984,
+      "title": "Record clean full-history scan for fourth-probe stop evidence",
+      "sha": "f1df3dae8b444532e8f0944e6213f3c471dcd509",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "2d3e848009f18bd28e3f541067a1c8d450f671dcafd20ca91c62e0700a25a28a",
+          "job": 121351718360,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T01:23:22+00:00",
+          "selected_completion": "2026-10-26T01:24:59+00:00",
+          "seconds": 97.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40249992092,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+      "conclusion": "failure",
+      "minutes": 22,
+      "jobs": [
+        {
+          "response_sha256": "385188001605d15022a4b4d6066dd6e673cbd8e7b35a791935da103ac334ceb5",
+          "job": 121339595110,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 22,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T00:34:15+00:00",
+          "selected_completion": "2026-10-26T00:55:22+00:00",
+          "seconds": 1267.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "673ea73fcc32ceff42d91c6c6cbca56132697e0d65285c59abb274c2882ea93e",
+          "job": 121339596099,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "6312b3e868b6f6fe4c851d4ef7a2e9de97a6c39f9a10fc36e74616a33e34057d",
+          "job": 121339596364,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "a258733a4122fec6f6b7b5da49231267ce118cd7b69269d3e515db499f1bf835",
+          "job": 121339596439,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40249682573,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "d270559ef4a5594604d34f91247b8868ca0d427980c7dff3aa4613ad6b5aa5e1",
+          "job": 121338637970,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T00:30:20+00:00",
+          "selected_completion": "2026-10-26T00:31:59+00:00",
+          "seconds": 99.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40249678234,
+      "title": "Record clean mount-query refusal scans before the fresh probe",
+      "sha": "02eac4a226787a8879ee80d8d814221a22630323",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "c83609fcc0f9698b3cd5ad352fd72b61a4dc23cbbd6023e8d60ed22ac4683bfd",
+          "job": 121338625654,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T00:30:18+00:00",
+          "selected_completion": "2026-10-26T00:32:54+00:00",
+          "seconds": 156.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40248937111,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "de322e9059fc359d75feb8be048f42533123e26e",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "f6ee500823711413b3c0c873e82097cd83677fc883c1f0a747230ad5e0debb2b",
+          "job": 121336371050,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T00:21:10+00:00",
+          "selected_completion": "2026-10-26T00:23:44+00:00",
+          "seconds": 154.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40248932358,
+      "title": "Record the clean FUSE capability history scan in the ledger",
+      "sha": "de322e9059fc359d75feb8be048f42533123e26e",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "894ebac0e46ba3f317eeb4cbf7684cc0da87105ba392a1c7d214ea43559dbf2b",
+          "job": 121336356962,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-26T00:21:07+00:00",
+          "selected_completion": "2026-10-26T00:23:32+00:00",
+          "seconds": 145.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40247173828,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "afd608b70f22a84c41ea848d4ae11a6f70e57d79",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "24dba5ccb9f3e68c16e60a47a1ad5659825571efd0d2008f9aca6aed286e6bab",
+          "job": 121331097357,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:59:23+00:00",
+          "selected_completion": "2026-10-26T00:01:58+00:00",
+          "seconds": 155.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40247170525,
+      "title": "Brief 14h: exfat-fuse for the virtual tools stick, early runner capab\u2026",
+      "sha": "afd608b70f22a84c41ea848d4ae11a6f70e57d79",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "8b66b39edf75eee679ce0f1702caa8be367870744c41208b735ed2b8182b5231",
+          "job": 121331086637,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:59:21+00:00",
+          "selected_completion": "2026-10-26T00:01:29+00:00",
+          "seconds": 128.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40246837954,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "754eafe273254f6856ec992b58e9ecf8f31700e3",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "851da4b18fd8e9aa6514d09e9ed78660dcb3568ab2090863cb0986311412d456",
+          "job": 121330078681,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:54:33+00:00",
+          "selected_completion": "2026-10-25T23:56:15+00:00",
+          "seconds": 102.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40246835407,
+      "title": "Record the clean third-probe stop report scan in the ledger",
+      "sha": "754eafe273254f6856ec992b58e9ecf8f31700e3",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "d5519c1356b2b230ffad3cbd8693fdd483894c126e1807e739d9db4bebe89d0f",
+          "job": 121330071035,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:54:30+00:00",
+          "selected_completion": "2026-10-25T23:57:03+00:00",
+          "seconds": 153.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40245433868,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
+      "conclusion": "failure",
+      "minutes": 13,
+      "jobs": [
+        {
+          "response_sha256": "28d3bd56c64cf1e3348ce7eab05e534abf85c6279a0f159858b46c135250eb1d",
+          "job": 121325880010,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 13,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:35:13+00:00",
+          "selected_completion": "2026-10-25T23:47:17+00:00",
+          "seconds": 724.0,
+          "step_count": 20,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "c0fc442c7569898d7a179e484a44b7a87a00c7885cd9ce1d1a60312d7a29e3ce",
+          "job": 121325880991,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "682ac0cab4b220a3caf2cd856941333f7a70d9956302134f26df4664d8734849",
+          "job": 121325881011,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "5d81c19911ce41e7380aa296bc21e905a06ca1c11a3fbb49b813a90f594188a0",
+          "job": 121325881277,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40245226417,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "78d9ebe80786e5d2dea39cfeb69bc9675f4575f23c8563309b85b5072c394b98",
+          "job": 121325261198,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:32:28+00:00",
+          "selected_completion": "2026-10-25T23:34:09+00:00",
+          "seconds": 101.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40245221350,
+      "title": "Record the clean git-binding scan in the package ledger",
+      "sha": "4268a94d612a0d6890b14afbd332516dbae11c31",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "47aaa752ee2b6feb777bffe84a8a4e8b2479910a1e5b7ec8cf46e2cebd30cd45",
+          "job": 121325246908,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:32:24+00:00",
+          "selected_completion": "2026-10-25T23:34:31+00:00",
+          "seconds": 127.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40244218639,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "2d934d7487170bb9b04e9043ca0536c95d2eeec1",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "46db93dc7898983426ce95f8555b61bbbf12893fd7894546ec7ef214d8b1b4ba",
+          "job": 121322276871,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:19:19+00:00",
+          "selected_completion": "2026-10-25T23:21:56+00:00",
+          "seconds": 157.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40244215458,
+      "title": "Brief 14g: git-only PR 12 binding (no API read in CI), shallow-clone \u2026",
+      "sha": "2d934d7487170bb9b04e9043ca0536c95d2eeec1",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "75190b22fe7685b39284e42b428edc30b71bc9a454c45f45bd07b7a8d2a9d81f",
+          "job": 121322267724,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:19:16+00:00",
+          "selected_completion": "2026-10-25T23:20:54+00:00",
+          "seconds": 98.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40243691197,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "500e597a9d87e8aba5ef286da0324ed448752d30",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "77f0dfb235cb5e6c91498e140ac11761f14e95bbc0dbc9be7ab658a7a4f03dd6",
+          "job": 121320697603,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:12:26+00:00",
+          "selected_completion": "2026-10-25T23:15:13+00:00",
+          "seconds": 167.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40243686031,
+      "title": "Record the clean final-probe report scan in the package ledger",
+      "sha": "500e597a9d87e8aba5ef286da0324ed448752d30",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "e65f2e8efec152c1561c0ab9a7f4ece4e196be687f027206c119ce3a5aa8b0f7",
+          "job": 121320682373,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T23:12:22+00:00",
+          "selected_completion": "2026-10-25T23:14:58+00:00",
+          "seconds": 156.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40242538685,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "conclusion": "failure",
+      "minutes": 6,
+      "jobs": [
+        {
+          "response_sha256": "c261a4e63a6110e6601924b6d736ff62c6e950d93e2f15fd7b7892fab97391c4",
+          "job": 121317237238,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 6,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:57:18+00:00",
+          "selected_completion": "2026-10-25T23:02:56+00:00",
+          "seconds": 338.0,
+          "step_count": 20,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "00954d030d18a31051cf64611c2d0514a26a0aebe8915c8d7f592472c8585d92",
+          "job": 121317238204,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "9c2466598ca205a8a26c3bc14046a83717cbf8dab732a007c23753e228c0ab11",
+          "job": 121317238364,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "1b26524d9ac4319732793561f60e31193bd7a7988f85fb48f7614fcca0dafcf6",
+          "job": 121317238379,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    },
+    {
+      "run": 40242274817,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "d368c57fca53ad5071b228980b54f25b4b1d5bd8d8fd94f2686b816618bf453d",
+          "job": 121316418057,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:53:36+00:00",
+          "selected_completion": "2026-10-25T22:55:42+00:00",
+          "seconds": 126.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40242272088,
+      "title": "Record the clean replay history scan in the package ledger",
+      "sha": "8fa7224ace336b6b1f6d0c181bd80a9303386a84",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "8e21c326441430a3a2eeebec37dda2238ca84888c6ed9b457748b284e9f0c84f",
+          "job": 121316408936,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:53:34+00:00",
+          "selected_completion": "2026-10-25T22:56:07+00:00",
+          "seconds": 153.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40240890854,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "1ec20a23d960e941a7d2fb0e18732ad71a692040998893c334d000edca344bbc",
+          "job": 121312215424,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:35:16+00:00",
+          "selected_completion": "2026-10-25T22:37:52+00:00",
+          "seconds": 156.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40240887069,
+      "title": "Brief 14f: CI-only classification for steps needing the job's package\u2026",
+      "sha": "335141cd16a7b1598e8eb5f90f5824fe1d76eb20",
+      "conclusion": "success",
+      "minutes": 2,
+      "jobs": [
+        {
+          "response_sha256": "8a510c3075f601190b8558b6dcd5bb2ef6e4a74961f1b8c50941c25ad0c3aa08",
+          "job": 121312203734,
+          "name": "scan",
+          "minutes": 2,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:35:13+00:00",
+          "selected_completion": "2026-10-25T22:36:51+00:00",
+          "seconds": 98.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40240457809,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "4219e49d1eeb624989abe38d214d735460fb7f79a1e082611839789dd32f171d",
+          "job": 121310951345,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:29:56+00:00",
+          "selected_completion": "2026-10-25T22:32:00+00:00",
+          "seconds": 124.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40240454787,
+      "title": "Record the clean squash-binding history scan in the package ledger",
+      "sha": "4971081c626adff96b37907cd3870f36be1fee0b",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "be4886483c628cc113e2361d760367b3bcc5a11e6de2937e3b5bc4c3fe0ac8f0",
+          "job": 121310942500,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:29:54+00:00",
+          "selected_completion": "2026-10-25T22:32:31+00:00",
+          "seconds": 157.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40239504514,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "1746889155c826cdc4a8c5a0f5bb32477811ab377162289c43c61a5289b8ea51",
+          "job": 121308072152,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:17:38+00:00",
+          "selected_completion": "2026-10-25T22:20:12+00:00",
+          "seconds": 154.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40239499609,
+      "title": "Brief 14e: bind the package 13 release to its squash merge; one fresh\u2026",
+      "sha": "e58457ce718b9aa4fd1505413e9f5af59aded0ee",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "2fce7c969a2cfebb32798cceb5760f6cb1f4b3a9a0775826c6b4fa5fd0e15fcd",
+          "job": 121308057478,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:17:34+00:00",
+          "selected_completion": "2026-10-25T22:19:40+00:00",
+          "seconds": 126.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40239030452,
+      "title": "14: checked owner tools with idle-only console resync",
+      "sha": "bfbb3c696b9107966eddeb1281954de318f3e476",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "665f1ddb9fac559b4f039158d3e126addee43a814c060abd0ed2fe0ba387428e",
+          "job": 121306656597,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:11:39+00:00",
+          "selected_completion": "2026-10-25T22:13:44+00:00",
+          "seconds": 125.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40239028076,
+      "title": "Pin canonical retained evidence bytes and record the clean report scan",
+      "sha": "bfbb3c696b9107966eddeb1281954de318f3e476",
+      "conclusion": "success",
+      "minutes": 3,
+      "jobs": [
+        {
+          "response_sha256": "f5b2059ae44e4f2da4643637a40d9cd805b65d2d9e62a8e55c21ab87cfd74bc1",
+          "job": 121306649646,
+          "name": "scan",
+          "minutes": 3,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:11:37+00:00",
+          "selected_completion": "2026-10-25T22:14:17+00:00",
+          "seconds": 160.0,
+          "step_count": 7,
+          "full_bound": null
+        }
+      ]
+    },
+    {
+      "run": 40238209435,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "5dfe2b00955955eecaca6a9edb62da34b7bb5865",
+      "conclusion": "failure",
+      "minutes": 5,
+      "jobs": [
+        {
+          "response_sha256": "3d7277b9dcde0c4ba9572ab01f761d703677529038b7e73c6717c9481fdf37d1",
+          "job": 121304216545,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "minutes": 5,
+          "rule": "job-interval",
+          "selected_start": "2026-10-25T22:01:26+00:00",
+          "selected_completion": "2026-10-25T22:05:51+00:00",
+          "seconds": 265.0,
+          "step_count": 20,
+          "full_bound": 72
+        },
+        {
+          "response_sha256": "4a3016a95992ef145401eeb7361812651687478618f97ee377e807b100271ce2",
+          "job": 121304217401,
+          "name": "Published-image switch and rollback",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "28c24ffbc4368b5e0edbbebfb64d6221f362da06a2b6b81f73a087e36ccea624",
+          "job": 121304217574,
+          "name": "image",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "response_sha256": "0cb18e3736028ec5b1082a8fd904b7c668c6326f7f3669955875b9843533d79e",
+          "job": 121304217597,
+          "name": "Regression checks only (no image build or VM)",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    }
+  ],
+  "publish_cap": 0,
+  "publish_attempts": [],
+  "history": {
+    "complete": true,
+    "pages_read": 2,
+    "ids_count": 157,
+    "total_count": 157,
+    "page_limit": 20,
+    "snapshot_reads": 1,
+    "pages": [
+      {
+        "ids_sha256": "1794858d5a986f2c7d1d5b67e5933eac9f8039fbea825885d601d3498dc85fe2",
+        "page": 1,
+        "returned": 100,
+        "total_count": 157
+      },
+      {
+        "ids_sha256": "edc99a9c7faff40ee1717d0de4a492e178e576ddf2020b2fef204033406de7d7",
+        "page": 2,
+        "returned": 57,
+        "total_count": 157
+      }
+    ],
+    "run_ids": [
+      41374876561,
+      41371893590,
+      41363231606,
+      41356040290,
+      41324240079,
+      41321806985,
+      41305049425,
+      41301148135,
+      41290621860,
+      41292826573,
+      41278848542,
+      41276950908,
+      41266663581,
+      41264222963,
+      41257409190,
+      40897501964,
+      40892685683,
+      40891736219,
+      40891720482,
+      40866713472,
+      40863215153,
+      40862222252,
+      40862211666,
+      40844950597,
+      40841171586,
+      40840258629,
+      40840251987,
+      40826092372,
+      40823225012,
+      40822668938,
+      40822662987,
+      40805607265,
+      40802757524,
+      40802254280,
+      40802246771,
+      40788594413,
+      40785271949,
+      40784619811,
+      40784610639,
+      40768498320,
+      40763979290,
+      40762971649,
+      40762962724,
+      40658792992,
+      40655273119,
+      40654614484,
+      40654606957,
+      40646962291,
+      40646398141,
+      40646392604,
+      40630352782,
+      40628158654,
+      40627663601,
+      40627657801,
+      40617562735,
+      40614909488,
+      40614313020,
+      40614308783,
+      40596167369,
+      40592552658,
+      40591924586,
+      40591916713,
+      40566496658,
+      40560134727,
+      40559090525,
+      40559083001,
+      40543952228,
+      40538251599,
+      40537576099,
+      40537560673,
+      40528739880,
+      40527965543,
+      40527954626,
+      40519384061,
+      40518683163,
+      40518675760,
+      40421596174,
+      40417291358,
+      40416793839,
+      40416787226,
+      40407466983,
+      40406753823,
+      40406746890,
+      40400763278,
+      40400133838,
+      40400127175,
+      40395477901,
+      40394908641,
+      40394899036,
+      40363137526,
+      40362028134,
+      40362011848,
+      40358600829,
+      40358590302,
+      40356240144,
+      40356233423,
+      40271459641,
+      40271454264,
+      40269676645,
+      40269672103,
+      40269119367,
+      40269115700,
+      40263990213,
+      40261916660,
+      40261603041,
+      40261599776,
+      40260375474,
+      40260372656,
+      40254429101,
+      40254425324,
+      40253972397,
+      40253968984,
+      40249992092,
+      40249682573,
+      40249678234,
+      40248937111,
+      40248932358,
+      40247173828,
+      40247170525,
+      40246837954,
+      40246835407,
+      40245433868,
+      40245226417,
+      40245221350,
+      40244218639,
+      40244215458,
+      40243691197,
+      40243686031,
+      40242538685,
+      40242274817,
+      40242272088,
+      40240890854,
+      40240887069,
+      40240457809,
+      40240454787,
+      40239504514,
+      40239499609,
+      40239030452,
+      40239028076,
+      40238209435,
+      40237883460,
+      40237880873,
+      40236884399,
+      40236881214,
+      40232135063,
+      40232129389,
+      40230932763,
+      40230930408,
+      40223185778,
+      40223182504,
+      40222801527,
+      40222797405,
+      40219764089,
+      40219760184,
+      40219068763,
+      40219035460,
+      40216222435
+    ]
+  },
+  "status": "14zze accepted",
+  "acceptance_met": true,
+  "package_minute_ledger_trusted": true,
+  "accounting_decision": "briefs/14zz-ledger-and-cosign.md",
+  "changed_jobs": [
+    {
+      "run": 41290621860,
+      "job": 124800927513,
+      "name": "Pinned live ISO inspection and two-disk rehearsal",
+      "old_minutes": 1,
+      "new_minutes": 26,
+      "rule": "ordered-span",
+      "selected_start": "2026-11-01T08:51:56+00:00",
+      "selected_completion": "2026-11-01T09:17:30+00:00"
+    }
+  ],
+  "organization_ledger_comparison": {
+    "previous_run_ids_sha256": "5a57ea30563e1467c01f966cb1bd9401dc3f189388816f4dbc08d3244baf49e9",
+    "status": "passed",
+    "previous_dispatch": 41374876561,
+    "previous_observed_at": "2026-11-02T01:53:41.591347+00:00",
+    "current_observed_at": "2026-11-02T03:57:17.404740+00:00",
+    "previous_recorded_minutes": 2354,
+    "recomputed_previous_minutes": 2354,
+    "current_minutes": 2474,
+    "package_increase": 120,
+    "organization_increase": 120,
+    "undercount_tolerance_minutes": 5,
+    "previous_run_count": 139
+  },
+  "organization_budget_snapshot": {
+    "response_sha256": "888746d5095e19b83d1177ba7dfcfb811fe08c53d414a0d9a02269f16cfca031",
+    "status": "passed",
+    "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=11",
+    "checked_at": "2026-11-02T03:57:17.404740+00:00",
+    "usage": [
+      {
+        "sku": "actions_linux",
+        "unit": "minutes",
+        "grossQuantity": 763.0,
+        "discountQuantity": 763.0,
+        "netQuantity": 0.0,
+        "grossAmount": 4.578,
+        "discountAmount": 4.578,
+        "netAmount": 0.0
+      },
+      {
+        "sku": "actions_storage",
+        "unit": "gigabyte-hours",
+        "grossQuantity": 5.259338809,
+        "discountQuantity": 5.259338809,
+        "netQuantity": 0.0,
+        "grossAmount": 0.001767214,
+        "discountAmount": 0.001767214,
+        "netAmount": 0.0
+      }
+    ],
+    "used_minutes": 763,
+    "included_minutes": 2000,
+    "included_minutes_left": 1237,
+    "paid_overflow": null,
+    "billing_mode": "free-minutes-only",
+    "paid_budget_read": false,
+    "remaining_minutes": 1237,
+    "reserved_minutes": 0,
+    "after_reservation": 1237,
+    "other_repos_reserve": 150,
+    "credential": "existing local gh login; GET only"
+  },
+  "reserve": 150,
+  "push_reservation": 0,
+  "closing_reservation": 0,
+  "reservation_decision": "briefs/14zw-local-privacy.md",
+  "november_starting_ledger": 1715,
+  "november_starting_counts": {
+    "probe": 26,
+    "owner-tools": 15
+  },
+  "previous_reported_untrusted_minutes": 1973,
+  "this_round_starting_ledger": 2326,
+  "this_round_starting_counts": {
+    "probe": 33,
+    "owner-tools": 20
+  },
+  "previous_round": {
+    "brief": "14zzb",
+    "probe31": 41321806985,
+    "qualification20": 41324240079,
+    "status": "complete accepted qualification; closed ledger2301"
+  },
+  "pushed_head": "211df982b5bf080b0167b8fe6e8dd3c5eb264fe8",
+  "no_further_dispatch_without_fresh_guards": true,
+  "accounting_policy": "14zz-job-interval-ordered-span-full-bound-v1",
+  "closed_round_manifest": "os/manifest/ci/14/14zze-round/round.json",
+  "further_dispatch_authorized": false,
+  "qualification_bound": 240,
+  "vm_step_limit": 200,
+  "limit_decision": "briefs/14zzc-review-fixes.md",
+  "timing_manifest": "os/manifest/ci/14/14zzc-timing/projection.json",
+  "current_round": {
+    "decision": "briefs/14zze-checkout-bytes.md",
+    "runs": [
+      {
+        "mode": "probe",
+        "run": 41371893590,
+        "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+        "conclusion": "success",
+        "accepted": true
+      },
+      {
+        "mode": "owner-tools",
+        "run": 41374876561,
+        "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+        "conclusion": "success",
+        "accepted": true
+      }
+    ],
+    "pushes": 1,
+    "reruns": 0,
+    "closing_report_local_only": true
+  },
+  "this_round_accounting_charge_changes": []
+}

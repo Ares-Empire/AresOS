@@ -1,0 +1,45 @@
+[
+  {
+    "sha256": "fabc6501cecac2c928ba7512130cfbbdb6b52e6efc7a1213c78c1ea4554e76eb",
+    "path": "pc_q35.c.gz",
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/i386/pc_q35.c"
+  },
+  {
+    "sha256": "284a54b8d2364658c3878739a6687f69784a7e4b01926c1dbe70363e63ffe4f9",
+    "path": "pc.c.gz",
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/i386/pc.c"
+  },
+  {
+    "sha256": "68397e0689264f7460732e3e3379510b1e384bdcdc3482cf6a30fd043621b43d",
+    "path": "ps2.c.gz",
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/hw/input/ps2.c"
+  },
+  {
+    "sha256": "0ba539a66e3c7e852ce4a448d16dfed9c9c4111b85c0919063629edcc935fdef",
+    "path": "ps2.h.gz",
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/include/hw/input/ps2.h"
+  },
+  {
+    "sha256": "366780ada66c4fedfb2f2c3749ec852cbcfa043c18f7a50d2ee5435dbec370ff",
+    "path": "input-keymap.c.gz",
+    "url": "https://raw.githubusercontent.com/qemu/qemu/v8.2.2/ui/input-keymap.c"
+  },
+  {
+    "sha256": "785e824a060aa5900a765b1174b0db154242a5f207116438cfcecd3a18f85755",
+    "path": "atkbd.c.gz",
+    "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux/+/v6.17/drivers/input/keyboard/atkbd.c?format=TEXT",
+    "kind": "Linux reference; guest fork version is not asserted identical"
+  },
+  {
+    "sha256": "b173c54cb8df6da9b98efce8f5a8e2b2de282261efd946f2f5f0203504c269f3",
+    "path": "evdev.c.gz",
+    "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux/+/v6.17/drivers/input/evdev.c?format=TEXT",
+    "kind": "Linux UAPI getter reference"
+  },
+  {
+    "sha256": "7fe6e540926cca50aff9eaf764347c2686092c95cf4ed930db73b59ceda43d64",
+    "path": "input.h.gz",
+    "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux/+/v6.17/include/uapi/linux/input.h?format=TEXT",
+    "kind": "Linux UAPI getter reference"
+  }
+]

@@ -1,0 +1,58 @@
+{
+  "status": "passed for all locally replayable steps; CI-only/native/VM steps not executed",
+  "source_job": "os-image.yml rehearsal",
+  "source_and_release": {
+    "status": "passed",
+    "command": "python -X utf8 os/ci/verify_release.py 40154642447",
+    "immutable_runtime_unchanged": true,
+    "ancestry_binding": "14g git-only PR12 squash binding; no PR-read scope added"
+  },
+  "offline_sources": {
+    "status": "passed",
+    "command": "python -X utf8 reviews/14-owner-tools/verify-zero-cost.py --14b --listing .work/14/squashfs-files.txt",
+    "sources": 53,
+    "listing_lines": 1439437
+  },
+  "installer": {
+    "status": "passed",
+    "receipt": "installer-result.json"
+  },
+  "windows_copy": {
+    "status": "passed",
+    "zero_write_refusals": 15
+  },
+  "ci_only": [
+    {
+      "check": "org package metadata",
+      "reason": "Local gh login has no packages:read; only CI job token has package access",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "fail_closed": true
+    },
+    {
+      "check": "registry digest inspect",
+      "reason": "Private manifest access requires CI job packages:read token",
+      "ci_step": "Verify exact private manifest with scoped credentials",
+      "fail_closed": true
+    },
+    {
+      "check": "private registry signature",
+      "reason": "Private signature artifacts require CI job packages:read token",
+      "ci_step": "Verify the exact private signature natively for the offline guest",
+      "fail_closed": true
+    },
+    {
+      "check": "exact pinned layers pull",
+      "reason": "Private layer access requires CI job packages:read token",
+      "ci_step": "Qualify the exact pinned layer pull without installing",
+      "fail_closed": true
+    }
+  ],
+  "native_only": [
+    "early loop/FUSE/exFAT/fsck/QEMU/OVMF capability proof",
+    "native partitioned-loop exact-query/helper regression",
+    "eight local host-limit tests"
+  ],
+  "credentials_or_scopes_changed": false,
+  "owner_secret_used": false,
+  "dispatch_performed": false
+}

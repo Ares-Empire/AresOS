@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "run": 41321806985,
+  "head": "211df982b5bf080b0167b8fe6e8dd3c5eb264fe8",
+  "test": "test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry (test_serial_staging.StagingTest.test_exact_login_driver_sequence_stops_on_lost_result_chunk_without_retry)",
+  "native_result": "ok; unchanged30-second bound",
+  "log": {
+    "sha256": "3227a887d08154f1fb1d2441ca69e251569fe444545b836df2567faf2e506f42",
+    "path": "native.log"
+  },
+  "line": 782,
+  "local_exception_applied_in_ci": false
+}

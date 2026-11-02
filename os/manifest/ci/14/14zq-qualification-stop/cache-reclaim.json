@@ -1,0 +1,40 @@
+{
+  "status": "only completed byte-identical duplicates removed; canonical ISO/squashfs and all evidence/logs retained",
+  "files": [
+    {
+      "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+      "path": ".work/14/14f-installer-replay/work/squashfs.img",
+      "bytes": 8649285632
+    },
+    {
+      "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+      "path": ".work/14/14f-qualification-installer-replay/work/squashfs.img",
+      "bytes": 8649285632
+    },
+    {
+      "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+      "path": ".work/14/14g-probe-installer-replay/work/squashfs.img",
+      "bytes": 8649285632
+    },
+    {
+      "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+      "path": ".work/14/14g-qualification-installer-replay/work/squashfs.img",
+      "bytes": 8649285632
+    },
+    {
+      "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+      "path": ".work/14/14h-probe-installer-replay/work/squashfs.img",
+      "bytes": 8649285632
+    },
+    {
+      "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+      "path": ".work/14/14h-qualification-installer-replay/work/squashfs.img",
+      "bytes": 8649285632
+    },
+    {
+      "sha256": "75d06b3cdbac5bc261253670745b6b6e4205877807862caa6645b3c9d8355676",
+      "path": ".work/14/14i-qualification-installer-replay/work/squashfs.img",
+      "bytes": 8649285632
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "stdin_isatty": true,
+  "stdin_is_pts": true,
+  "status": "STOP reproduced by unchanged real Tools.session",
+  "reason": "Use a physical tty3/tty4 recovery login",
+  "host_calls": [],
+  "mutations": 0,
+  "kind": "PLAN-GAP: retained pinned sudo use_pty gives real owner layout stdin a pts, which the payload rejects",
+  "default_use_pty_verified": true,
+  "root_console": "owner_vm.Console.become_root uses sudo -i",
+  "affected_commands": [
+    "layout begin us",
+    "layout revert",
+    "layout proof",
+    "layout finish",
+    "layout begin us-intl",
+    "layout begin de"
+  ],
+  "no_sudo_executed": true,
+  "no_privilege_or_disk_access": true,
+  "no_owner_or_harness_source_modified_for_proof": true,
+  "sources": [
+    {
+      "sha256": "3ada4c076501020a8a043ae58aed30fcf7ed406ca9d8502ba46d5058361e4787",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
+      "path": "os/owner-tools/at"
+    },
+    {
+      "sha256": "ea3e287a1ee2647e310a11cee67908ead3fb5f2969a223bb627c303515b6c443",
+      "path": "os/owner-tools/commands.json"
+    },
+    {
+      "sha256": "15ac0a3eab8c7f06bdafde2d58282bbff8e48fd7dd4c183af399c89268115360",
+      "path": "os/ci/owner_vm.py"
+    }
+  ],
+  "exact_python_source": "import pathlib,sys,importlib.util,json,os\nroot=pathlib.Path.cwd()\nspec=importlib.util.spec_from_file_location('owner',root/'os/owner-tools/owner.py')\nowner=importlib.util.module_from_spec(spec);spec.loader.exec_module(owner)\nclass RefuseHost:\n def __init__(self):self.calls=[]\n def __getattr__(self,name):\n  def refuse(*args,**kwargs):\n   self.calls.append(name);raise AssertionError('No host query or mutation expected')\n  return refuse\ntool=object.__new__(owner.Tools);tool.host=RefuseHost()\nvalue=dict(stdin_isatty=sys.stdin.isatty(),stdin_is_pts=os.ttyname(0).startswith('/dev/pts/'))\ntry:\n tool.session()\n raise AssertionError('Unexpected session acceptance')\nexcept owner.Stop as error:\n value.update(status='STOP reproduced by unchanged real Tools.session',reason=str(error),host_calls=tool.host.calls,mutations=0)\n print(json.dumps(value))\n"
+}

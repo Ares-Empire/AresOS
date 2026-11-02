@@ -1,0 +1,45 @@
+{
+  "status": "passed native subchecks only; whole probe STOP before guest boot",
+  "run": 41363231606,
+  "head": "dda72ed8a5bdb038d953f950f76c66fc37297115",
+  "native_tests": 627,
+  "native_seconds": 163.918,
+  "native_skips": 0,
+  "native_timing_bound_unchanged_and_passed": true,
+  "loop_checks": 20,
+  "loop_helper_mutations": 0,
+  "protected_fixture_unchanged": true,
+  "all_fixture_mounts_unmounted_and_loops_detached": true,
+  "kernel_counter_native_real": true,
+  "kernel_counter_skipped": false,
+  "kernel_negative_control_detected_flush": true,
+  "kernel_fixed_separate_client_preserved_both_events": true,
+  "iso_bytes": 9068650496,
+  "iso_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "official_checksum_equal_to_pin": true,
+  "guest_started": false,
+  "qualification_dispatched": false,
+  "probe_accepted": false,
+  "files": [
+    {
+      "sha256": "7f95becf6dc5b3800efe316150b456a85cc8de4cadb662c0c2c67803ca09680c",
+      "path": "14-native-owner-devices.json"
+    },
+    {
+      "sha256": "0e697fd9c959460d99cbc0eff85de705c39b4069d3108c8403912e2f55d54335",
+      "path": "14-counter-kernel.json"
+    },
+    {
+      "sha256": "27a1e28e4f96177e03076cc257d9bb260d040092729186b75ea038607f029ef1",
+      "path": "14-host-capabilities.json"
+    },
+    {
+      "sha256": "5d6a92f2d6f12effc5f0a03100ba152b8f1ce830b41e0e1b128f6972edba83f0",
+      "path": "installer/iso-download.json"
+    },
+    {
+      "sha256": "b719fa720ac55bcb0e2bbb12f2de979f7e85b5dc5098e4b0d0082d392fd55bfd",
+      "path": "owner-auth-cleanup.json"
+    }
+  ]
+}

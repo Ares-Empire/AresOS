@@ -1,0 +1,67 @@
+{
+  "run": 40596167369,
+  "head": "e3751adc2e4938b0dc938ac84f43c32f6f07c993",
+  "old_ready": false,
+  "root_cursor_prompt": true,
+  "uart_done_zero": true,
+  "raw_vcsa_sha256": "b40b03f2347848f60c44ed54635015860103e02db01eafd5adb8fbab5cda487c",
+  "screen_geometry": [
+    50,
+    160,
+    16,
+    49
+  ],
+  "process_tree_provenance": "model from verified pinned sudo source; PIDs not retained in qualification5",
+  "model_proc": [
+    {
+      "pid": 10,
+      "ppid": 1,
+      "pgrp": 10,
+      "session": 10,
+      "tty": 1027,
+      "tpgid": 20,
+      "comm": "bash",
+      "args": [
+        "-bash"
+      ]
+    },
+    {
+      "pid": 20,
+      "ppid": 10,
+      "pgrp": 20,
+      "session": 10,
+      "tty": 1027,
+      "tpgid": 20,
+      "comm": "sudo",
+      "args": [
+        "sudo",
+        "-i"
+      ]
+    },
+    {
+      "pid": 21,
+      "ppid": 20,
+      "pgrp": 21,
+      "session": 21,
+      "tty": 34818,
+      "tpgid": 22,
+      "comm": "sudo",
+      "args": [
+        "sudo",
+        "-i"
+      ]
+    },
+    {
+      "pid": 22,
+      "ppid": 21,
+      "pgrp": 22,
+      "session": 21,
+      "tty": 34818,
+      "tpgid": 22,
+      "comm": "bash",
+      "args": [
+        "-bash"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+{
+  "archive": {
+    "sha256": "554849aa8e9328e71e0890bc54e035380ad0d770dff4e20848f0ef103fca40fa",
+    "path": "os/manifest/ci/14/parser-sources/source-files.zip",
+    "members": 40
+  },
+  "sources": [
+    {
+      "sha256": "64d0c7cf9a2cd20605f59321d585b827f5884b5760257aa8b87e305bed426f96",
+      "member": "rhboot_efivar__src_dp-media.c",
+      "url": "https://raw.githubusercontent.com/rhboot/efivar/c47820c37ac26286559ec004de07d48d05f3308c/src/dp-media.c",
+      "tag": "39",
+      "commit": "c47820c37ac26286559ec004de07d48d05f3308c"
+    },
+    {
+      "sha256": "a4f1b78eaa38e86b5418a90f986c0a126280fc591520fa27d8bc3857aa88194a",
+      "member": "rhboot_efivar__src_dp.c",
+      "url": "https://raw.githubusercontent.com/rhboot/efivar/c47820c37ac26286559ec004de07d48d05f3308c/src/dp.c",
+      "tag": "39",
+      "commit": "c47820c37ac26286559ec004de07d48d05f3308c"
+    },
+    {
+      "sha256": "2c6fc3a69b51032ef5bc93bfda7cec8374be84977e5a137232d8bf2696b7c348",
+      "member": "rhboot_efivar__src_dp.h",
+      "url": "https://raw.githubusercontent.com/rhboot/efivar/c47820c37ac26286559ec004de07d48d05f3308c/src/dp.h",
+      "tag": "39",
+      "commit": "c47820c37ac26286559ec004de07d48d05f3308c"
+    },
+    {
+      "sha256": "310355d5b8cfdeac53f4722b16a9c61ebf58480e6a6f015063af495156834c68",
+      "member": "rhboot_efivar__src_ucs2.h",
+      "url": "https://raw.githubusercontent.com/rhboot/efivar/c47820c37ac26286559ec004de07d48d05f3308c/src/ucs2.h",
+      "tag": "39",
+      "commit": "c47820c37ac26286559ec004de07d48d05f3308c"
+    },
+    {
+      "sha256": "3f975cd7f581f88ffd57fe80c94b7b78c2b71b3ff01670ce1488c953637ea99c",
+      "member": "rhboot_efibootmgr__src_efibootmgr.c",
+      "url": "https://raw.githubusercontent.com/rhboot/efibootmgr/c3f9f0534e32158f62c43564036878b93b9e0fd6/src/efibootmgr.c",
+      "tag": "18",
+      "commit": "c3f9f0534e32158f62c43564036878b93b9e0fd6"
+    },
+    {
+      "sha256": "39fc0265bf261f47a4c5151933bb86bffb643b706e88e54b87918dd0f17566ee",
+      "member": "util-linux_util-linux__misc-utils_lsblk.c",
+      "url": "https://raw.githubusercontent.com/util-linux/util-linux/230de59ffbee328506d92d3534e66d56de1afe5d/misc-utils/lsblk.c",
+      "tag": "v2.41.5",
+      "commit": "230de59ffbee328506d92d3534e66d56de1afe5d"
+    },
+    {
+      "sha256": "38f3138e9157711710ce7f178b76c770626137e54e32262df5c94b100e63a26e",
+      "member": "util-linux_util-linux__misc-utils_findmnt.c",
+      "url": "https://raw.githubusercontent.com/util-linux/util-linux/230de59ffbee328506d92d3534e66d56de1afe5d/misc-utils/findmnt.c",
+      "tag": "v2.41.5",
+      "commit": "230de59ffbee328506d92d3534e66d56de1afe5d"
+    },
+    {
+      "sha256": "d43dc60963221afbdaf53ae6972d041bbfbbcb8520a95eaa34c5bbb457eb5ee6",
+      "member": "util-linux_util-linux__disk-utils_sfdisk.c",
+      "url": "https://raw.githubusercontent.com/util-linux/util-linux/230de59ffbee328506d92d3534e66d56de1afe5d/disk-utils/sfdisk.c",
+      "tag": "v2.41.5",
+      "commit": "230de59ffbee328506d92d3534e66d56de1afe5d"
+    },
+    {
+      "sha256": "cc4baa6a6a477ded46308f64557879ad8785c329a1a990962ced0f725e66b4d7",
+      "member": "util-linux_util-linux__libsmartcols_src_print.c",
+      "url": "https://raw.githubusercontent.com/util-linux/util-linux/230de59ffbee328506d92d3534e66d56de1afe5d/libsmartcols/src/print.c",
+      "tag": "v2.41.5",
+      "commit": "230de59ffbee328506d92d3534e66d56de1afe5d"
+    },
+    {
+      "sha256": "53f98162448e55f19e30b6e1233cc3cd667907eb42874477cd7197b7142570f6",
+      "member": "util-linux_util-linux__libsmartcols_src_table.c",
+      "url": "https://raw.githubusercontent.com/util-linux/util-linux/230de59ffbee328506d92d3534e66d56de1afe5d/libsmartcols/src/table.c",
+      "tag": "v2.41.5",
+      "commit": "230de59ffbee328506d92d3534e66d56de1afe5d"
+    },
+    {
+      "sha256": "67997d84b1f6a34784718ebd6959868da545aa431f8396c6220350c3be1a8064",
+      "member": "systemd_systemd__src_systemctl_systemctl-list-unit-files.c",
+      "url": "https://raw.githubusercontent.com/systemd/systemd/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/systemctl/systemctl-list-unit-files.c",
+      "tag": "v259.9",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+    },
+    {
+      "sha256": "f858a20f101998c2fcb97571364b5caee070d78debe387d60edb186d7c6059d9",
+      "member": "systemd_systemd__src_shared_bus-print-properties.c",
+      "url": "https://raw.githubusercontent.com/systemd/systemd/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/shared/bus-print-properties.c",
+      "tag": "v259.9",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+    },
+    {
+      "sha256": "ff2e3cebc8c6fe185a3ad1113363c8b3357683f25a06c0cfe3b2a2f418c08091",
+      "member": "systemd_systemd__src_login_loginctl.c",
+      "url": "https://raw.githubusercontent.com/systemd/systemd/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/login/loginctl.c",
+      "tag": "v259.9",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+    },
+    {
+      "sha256": "c05546b45b8126137ec72c3c3d203508af649e7f954f58ad0c6779b643914a79",
+      "member": "systemd_systemd__src_locale_localed.c",
+      "url": "https://raw.githubusercontent.com/systemd/systemd/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/locale/localed.c",
+      "tag": "v259.9",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+    },
+    {
+      "sha256": "500806e64ad6f9dcf8a372de82394bafb43961b7c95c0fed5f9532e83eb3fcff",
+      "member": "systemd_systemd__src_systemctl_systemctl-show.c",
+      "url": "https://raw.githubusercontent.com/systemd/systemd/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/systemctl/systemctl-show.c",
+      "tag": "v259.9",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+    },
+    {
+      "sha256": "11c04fc59661181ac78295c83ac981301d08fc7e23bcfdc5d0544e3e5fddb618",
+      "member": "legionus_kbd__src_dumpkeys.c",
+      "url": "https://raw.githubusercontent.com/legionus/kbd/5264edbf92ece130d1c559fe72ab04d24045da8f/src/dumpkeys.c",
+      "tag": "v2.9.0",
+      "commit": "5264edbf92ece130d1c559fe72ab04d24045da8f"
+    },
+    {
+      "sha256": "d554fb5fd452b30b27aee611cf7cb85ecdd629e6ea88c27bc4cc60c2a0585a2a",
+      "member": "legionus_kbd__src_libkeymap_dump.c",
+      "url": "https://raw.githubusercontent.com/legionus/kbd/5264edbf92ece130d1c559fe72ab04d24045da8f/src/libkeymap/dump.c",
+      "tag": "v2.9.0",
+      "commit": "5264edbf92ece130d1c559fe72ab04d24045da8f"
+    },
+    {
+      "sha256": "c7285b49d57fb78fa59b15813e76481f47a64169bf1bfd6fb572a174912cd403",
+      "member": "coreutils_coreutils__src_id.c",
+      "url": "https://raw.githubusercontent.com/coreutils/coreutils/89b2cd58ac895e3fc0d24d8f10e7e4ba132e7fb6/src/id.c",
+      "tag": "v9.10",
+      "commit": "89b2cd58ac895e3fc0d24d8f10e7e4ba132e7fb6"
+    },
+    {
+      "sha256": "6ffb916d91e2c2b43ef4a9e0a3da5b5f73bfe6eef3b7883c2f2ab8ce26c6731b",
+      "member": "bootc-dev_bootc__crates_lib_src_spec.rs",
+      "url": "https://raw.githubusercontent.com/bootc-dev/bootc/fa0d3f9cb9a0ce3b4d1dc2607a0bf5e31b822f60/crates/lib/src/spec.rs",
+      "tag": "v1.16.13",
+      "commit": "fa0d3f9cb9a0ce3b4d1dc2607a0bf5e31b822f60"
+    },
+    {
+      "sha256": "c629be765306377ff43d524e639c211d0e38d120561bc7f2b7ed0d7ea5d9970b",
+      "member": "ostreedev_ostree__src_libostree_ostree-bootloader-grub2.c",
+      "url": "https://raw.githubusercontent.com/ostreedev/ostree/4f4445a8912f70c604fa84a057a8f4e904e35a24/src/libostree/ostree-bootloader-grub2.c",
+      "tag": "v2026.4",
+      "commit": "4f4445a8912f70c604fa84a057a8f4e904e35a24"
+    },
+    {
+      "sha256": "e018b3af47e85b507f1c31dc1c73f0d47c73459bd63292960db46d11728ddab9",
+      "member": "ostreedev_ostree__src_libostree_ostree-sysroot-deploy.c",
+      "url": "https://raw.githubusercontent.com/ostreedev/ostree/4f4445a8912f70c604fa84a057a8f4e904e35a24/src/libostree/ostree-sysroot-deploy.c",
+      "tag": "v2026.4",
+      "commit": "4f4445a8912f70c604fa84a057a8f4e904e35a24"
+    },
+    {
+      "sha256": "7810a3813629e0405ed82499ece68a11c4b60ff221b303f0c498673845f2e20d",
+      "member": "coreos_rpm-ostree__src_daemon_rpmostreed-deployment-utils.cxx",
+      "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/bd9ad6bce96bf2d1b78967ccda4433833fe02924/src/daemon/rpmostreed-deployment-utils.cxx",
+      "tag": "v2026.3",
+      "commit": "bd9ad6bce96bf2d1b78967ccda4433833fe02924"
+    },
+    {
+      "sha256": "0f830e7cde8fb55ce43d56d9241f028b31bcb2f2a83b6c3daf041aefdfedaa49",
+      "member": "coreos_rpm-ostree__src_app_rpmostree-builtin-status.cxx",
+      "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/bd9ad6bce96bf2d1b78967ccda4433833fe02924/src/app/rpmostree-builtin-status.cxx",
+      "tag": "v2026.3",
+      "commit": "bd9ad6bce96bf2d1b78967ccda4433833fe02924"
+    },
+    {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "member": "fedora_efibootmgr__efibootmgr.patches",
+      "url": "https://src.fedoraproject.org/rpms/efibootmgr/blob/94aa3a57da9c151c40397cb4547380cc9c1bda21/f/efibootmgr.patches",
+      "commit": "94aa3a57da9c151c40397cb4547380cc9c1bda21"
+    },
+    {
+      "sha256": "5684095a242156125af0d923beec3e2ef5ea85cef7dadcba21573504b3a4586a",
+      "member": "fedora_efibootmgr__efibootmgr.spec",
+      "url": "https://src.fedoraproject.org/rpms/efibootmgr/blob/94aa3a57da9c151c40397cb4547380cc9c1bda21/f/efibootmgr.spec",
+      "commit": "94aa3a57da9c151c40397cb4547380cc9c1bda21"
+    },
+    {
+      "sha256": "95c9f88d834b05ac1bf26b9b6a07b4a3412b791eaad306396f439bd944e2a48a",
+      "member": "fedora_efivar__0001-ABI-update-for-newer-libabigail.patch",
+      "url": "https://src.fedoraproject.org/rpms/efivar/blob/c85c857d87be9995cf460377a79a110f4bad7f25/f/0001-ABI-update-for-newer-libabigail.patch",
+      "commit": "c85c857d87be9995cf460377a79a110f4bad7f25"
+    },
+    {
+      "sha256": "54c07be3bff9851f0d92d7b96b872a4cf9f887cdc7b211c62d0afe5859690fd7",
+      "member": "fedora_efivar__0002-ABI-update-after-glibc-changes.patch",
+      "url": "https://src.fedoraproject.org/rpms/efivar/blob/c85c857d87be9995cf460377a79a110f4bad7f25/f/0002-ABI-update-after-glibc-changes.patch",
+      "commit": "c85c857d87be9995cf460377a79a110f4bad7f25"
+    },
+    {
+      "sha256": "6f59c14dcbbc752a701ab4a491fa7856040b7bf2800de01cce47fc4a015866db",
+      "member": "fedora_efivar__0003-ABI-update-after-glibc-changes.patch",
+      "url": "https://src.fedoraproject.org/rpms/efivar/blob/c85c857d87be9995cf460377a79a110f4bad7f25/f/0003-ABI-update-after-glibc-changes.patch",
+      "commit": "c85c857d87be9995cf460377a79a110f4bad7f25"
+    },
+    {
+      "sha256": "e2c2b4809188c25d1f90b8563839e5508dacbf0808896ea75e2f62bc179d7780",
+      "member": "fedora_efivar__0004-efivarfs-Update-a-file-variable-store-On-SetVariable.patch",
+      "url": "https://src.fedoraproject.org/rpms/efivar/blob/c85c857d87be9995cf460377a79a110f4bad7f25/f/0004-efivarfs-Update-a-file-variable-store-On-SetVariable.patch",
+      "commit": "c85c857d87be9995cf460377a79a110f4bad7f25"
+    },
+    {
+      "sha256": "9f928972a3b527670cf2754605e87dd70161846d636a4ab90142de1801a46d52",
+      "member": "fedora_efivar__efivar.patches",
+      "url": "https://src.fedoraproject.org/rpms/efivar/blob/c85c857d87be9995cf460377a79a110f4bad7f25/f/efivar.patches",
+      "commit": "c85c857d87be9995cf460377a79a110f4bad7f25"
+    },
+    {
+      "sha256": "3c1f60307f202361881ce76123f6302005f45e595d13c6f858dce3a98a365060",
+      "member": "fedora_efivar__efivar.spec",
+      "url": "https://src.fedoraproject.org/rpms/efivar/blob/c85c857d87be9995cf460377a79a110f4bad7f25/f/efivar.spec",
+      "commit": "c85c857d87be9995cf460377a79a110f4bad7f25"
+    },
+    {
+      "sha256": "22ffec079161811766ce11d8100d406f2d3481f89174fdf63301ee531a386e28",
+      "member": "rhboot_efibootmgr__src_parse_loader_data.c",
+      "url": "https://raw.githubusercontent.com/rhboot/efibootmgr/c3f9f0534e32158f62c43564036878b93b9e0fd6/src/parse_loader_data.c",
+      "commit": "c3f9f0534e32158f62c43564036878b93b9e0fd6"
+    },
+    {
+      "sha256": "fedde24b627d16d81808171a066ecef20d7bfdfec6a0d24bebfdd51d4502af23",
+      "member": "glibc__nss_getent.c",
+      "url": "https://sourceware.org/git/?p=glibc.git;a=blob;f=nss/getent.c;hb=f762ccf84f122d1354f103a151cba8bde797d521",
+      "tag": "glibc-2.43",
+      "commit": "f762ccf84f122d1354f103a151cba8bde797d521"
+    },
+    {
+      "sha256": "56229edf91d1aa5f077dc3378206641261eb5da6ef8106b98ea8b0cd377778b6",
+      "member": "rhboot_efivar__src_guid.c",
+      "url": "https://raw.githubusercontent.com/rhboot/efivar/c47820c37ac26286559ec004de07d48d05f3308c/src/guid.c",
+      "commit": "c47820c37ac26286559ec004de07d48d05f3308c"
+    },
+    {
+      "sha256": "e8f5650c61539e1bb23cb4b9b4b1db657ae2678ff3a3918e215ca22fdb215713",
+      "member": "rhboot_efivar__src_dp-hw.c",
+      "url": "https://raw.githubusercontent.com/rhboot/efivar/c47820c37ac26286559ec004de07d48d05f3308c/src/dp-hw.c",
+      "commit": "c47820c37ac26286559ec004de07d48d05f3308c"
+    },
+    {
+      "sha256": "bdbe6f509c01206674306aa44e941ce28b291e87344be3521aacf4843d0fe1bc",
+      "member": "rhboot_efivar__src_dp-acpi.c",
+      "url": "https://raw.githubusercontent.com/rhboot/efivar/c47820c37ac26286559ec004de07d48d05f3308c/src/dp-acpi.c",
+      "commit": "c47820c37ac26286559ec004de07d48d05f3308c"
+    },
+    {
+      "sha256": "8fbd2ec3825478b782c344fc2a7154c28921d86dcaf726a83aed2079b12d024c",
+      "member": "rhboot_efivar__src_dp-message.c",
+      "url": "https://raw.githubusercontent.com/rhboot/efivar/c47820c37ac26286559ec004de07d48d05f3308c/src/dp-message.c",
+      "commit": "c47820c37ac26286559ec004de07d48d05f3308c"
+    },
+    {
+      "sha256": "4c463c521e49bf7b9b107d21bd7e154b56b7a0482881a4f213c64576d1f878fb",
+      "member": "systemd_systemd__src_busctl_busctl.c",
+      "url": "https://raw.githubusercontent.com/systemd/systemd/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/busctl/busctl.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+    },
+    {
+      "sha256": "f92147b201e48d9068972666845d351a2b5c938e0dcabcf63e34d580ce04cf4b",
+      "member": "systemd_systemd__src_shared_format-table.c",
+      "url": "https://raw.githubusercontent.com/systemd/systemd/63c0371fa71ae32ba02f05f90658bc40aaa19168/src/shared/format-table.c",
+      "commit": "63c0371fa71ae32ba02f05f90658bc40aaa19168"
+    },
+    {
+      "sha256": "78d10552856cf8ebe361e73d3e9ec1dbf05feac44ca56c869573c8b7990b90f9",
+      "member": "coreos_rpm-ostree__src_app_rpmostree-builtin-kargs.cxx",
+      "url": "https://raw.githubusercontent.com/coreos/rpm-ostree/bd9ad6bce96bf2d1b78967ccda4433833fe02924/src/app/rpmostree-builtin-kargs.cxx",
+      "commit": "bd9ad6bce96bf2d1b78967ccda4433833fe02924"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "status": "SOURCE-GATE-PASSED-14b",
+  "gate": "offline-first-boot-with-no-deferred-deployment-bls-or-disk-work",
+  "source_integrity": "passed",
+  "retained_files_verified": 53,
+  "full_listing_replayed": true,
+  "iso_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "stock_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "stock_nvidia_version": "615.78.08",
+  "live_network_profiles_copied": true,
+  "local_install_payload": true,
+  "local_flatpak_copy": true,
+  "bootc_inplace_origin_change_does_not_pull": true,
+  "homebrew_setup_uses_local_archive": true,
+  "nvidia_sync_enabled_on_stock": true,
+  "matching_nvidia_flatpak_runtimes": [
+    "org.freedesktop.Platform.GL.nvidia-615-78-08",
+    "org.freedesktop.Platform.GL32.nvidia-615-78-08"
+  ],
+  "matching_runtimes_installed_in_iso": [],
+  "nvidia_sync_restart": "on-failure, every 30 seconds; 600-second start timeout",
+  "conclusion": "11728c5 accepts the Flatpak-only retry. Source gate permits continuation; offline VM, bundle and qualification remain separate acceptance gates.",
+  "offline_vm_run": false,
+  "owner_bundle_implemented": false,
+  "dispatches": 0,
+  "image_builds": 0,
+  "publications": 0,
+  "media_writer_restore_source_verified": true,
+  "physical_writer_ui_verified": false,
+  "classification": {
+    "decision_commit": "11728c5",
+    "stock_digest": "sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+    "source_archive": "source-files.zip",
+    "classifications": [
+      {
+        "work": "ublue-nvidia-flatpak-runtime-sync and its verification notification",
+        "classification": "accepted deferred nondeployment work",
+        "writes": [
+          "system Flatpak remote and NVIDIA GL/GL32 runtimes in /var/lib/flatpak"
+        ],
+        "deployment_bls_or_disk_operation": false,
+        "handling": "Do not change the service. Record unit, check exit/result and runtime IDs during prepare and after network. Incomplete sync does not block.",
+        "physical_limit": "Virtio graphics makes the NVIDIA condition false. Real NVIDIA completion and unchanged deployments require the laptop gate."
+      },
+      {
+        "work": "bazzite-flatpak-manager version 36",
+        "classification": "accepted nondeployment configuration",
+        "writes": [
+          "Flatpak remotes/overrides/unused runtimes and Firefox defaults under /var/lib/flatpak",
+          "manager version/image stamps under /etc/bazzite"
+        ],
+        "deployment_bls_or_disk_operation": false,
+        "handling": "No deployment commands in retained complete script. Record service diagnostics; do not invent a deployment-idle dependency on Flatpak."
+      },
+      {
+        "work": "Homebrew setup/update/upgrade",
+        "classification": "local setup; accepted nondeployment updater",
+        "writes": [
+          "/var/home/linuxbrew mutable prefix and /etc/.linuxbrew setup marker"
+        ],
+        "deployment_bls_or_disk_operation": false,
+        "handling": "Setup extracts the local image archive. Update/upgrade run as UID1000 in that prefix; they do not invoke deployment, BLS, partition or firmware operations. Preserve frozen AresOS Homebrew policy checks."
+      },
+      {
+        "work": "bazzite-user-setup 57 and privileged-user-setup",
+        "classification": "accepted nondeployment user configuration",
+        "writes": [
+          "user desktop configuration/version stamps",
+          "NTP enablement and Tailscale operator setting"
+        ],
+        "deployment_bls_or_disk_operation": false,
+        "handling": "Retained complete scripts contain no download-dependent deployment path. NTP/Tailscale connectivity can recover later; neither is an OS transaction."
+      },
+      {
+        "work": "bazzite-hardware-setup 83",
+        "classification": "local mandatory first-boot deployment work; not deferred network work",
+        "writes": [
+          "local kernel argument deployment and one automatic reboot",
+          "local hardware configuration and version stamps"
+        ],
+        "deployment_bls_or_disk_operation": true,
+        "handling": "No network call or later-network condition in retained script. Finish its automatic reboot offline before the Windows round trip. The later prepare validates one/two serials and no unexplained pending work."
+      },
+      {
+        "work": "uupd and OS update services/timers",
+        "classification": "deployment-capable scheduled updater; must be paused before first network",
+        "deployment_bls_or_disk_operation": true,
+        "handling": "Keep the existing system/global-user pause, active manager checks, persistent timer disablement, runtime service masks, transaction check and bounded single cancellation. Include every rpm-ostree, bootc and ostree client; never exempt Flatpak by exempting generic ostree work. Compare complete prepared state and BLS after network."
+      }
+    ],
+    "unclassified_deployment_capable_work": [],
+    "limitations": "This classifies the retained first-run/setup scripts and known updaters, not arbitrary user-started applications or future upstream versions. Unexpected activity in the fresh offline VM is a STOP. No VM or physical result is claimed here."
+  },
+  "nvidia_sync_physically_tested": false
+}

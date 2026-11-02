@@ -1,0 +1,6 @@
+test_package_hash_manifests_put_hashes_before_paths (test_owner_equality.EqualityTest.test_package_hash_manifests_put_hashes_before_paths) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 2.884s
+
+OK

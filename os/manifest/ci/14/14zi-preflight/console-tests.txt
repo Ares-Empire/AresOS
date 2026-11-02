@@ -1,0 +1,18 @@
+test_busy_shell_never_gets_enter_and_retains_raw_timeout (test_owner_console.ConsoleTest.test_busy_shell_never_gets_enter_and_retains_raw_timeout) ... ok
+test_exact_14i_prompt_kernel_cursor_region_recovers_with_one_physical_enter (test_owner_console.ConsoleTest.test_exact_14i_prompt_kernel_cursor_region_recovers_with_one_physical_enter) ... ok
+test_exact_qualification6_cursor_region_and_idle_relay_recovers (test_owner_console.ConsoleTest.test_exact_qualification6_cursor_region_and_idle_relay_recovers) ... ok
+test_fresh_idle_proof_replaces_stale_completion_for_every_wait_kind (test_owner_console.ConsoleTest.test_fresh_idle_proof_replaces_stale_completion_for_every_wait_kind) ... ok
+test_hidden_busy_shell_never_grants_enter_or_prompt_authority (test_owner_console.ConsoleTest.test_hidden_busy_shell_never_grants_enter_or_prompt_authority) ... ok
+test_hidden_completion_grants_only_existing_two_enter_prompt_rule (test_owner_console.ConsoleTest.test_hidden_completion_grants_only_existing_two_enter_prompt_rule) ... ok
+test_hidden_readiness_timeout_keeps_raw_without_an_enter (test_owner_console.ConsoleTest.test_hidden_readiness_timeout_keeps_raw_without_an_enter) ... ok
+test_input_during_wait_revokes_the_grant_before_any_enter (test_owner_console.ConsoleTest.test_input_during_wait_revokes_the_grant_before_any_enter) ... ok
+test_login_and_input_waits_never_resync_even_after_completion (test_owner_console.ConsoleTest.test_login_and_input_waits_never_resync_even_after_completion) ... ok
+test_prompt_present_but_not_yet_stable_never_gets_an_enter (test_owner_console.ConsoleTest.test_prompt_present_but_not_yet_stable_never_gets_an_enter) ... ok
+test_reader_keeps_strict_cursor_predicate_and_three_stable_samples (test_owner_console.ConsoleTest.test_reader_keeps_strict_cursor_predicate_and_three_stable_samples) ... ok
+test_three_cluttered_screens_fail_after_two_enters (test_owner_console.ConsoleTest.test_three_cluttered_screens_fail_after_two_enters) ... ok
+test_typing_during_hidden_completion_revokes_enter_authority (test_owner_console.ConsoleTest.test_typing_during_hidden_completion_revokes_enter_authority) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 28.322s
+
+OK

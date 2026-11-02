@@ -1,0 +1,44 @@
+{
+  "status": "cancelled on agent budget STOP before VM",
+  "run": 41292826573,
+  "head": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+  "artifact": {
+    "sha256": "6221b7dcc5ff605642a1e318ad4cfb309556ea7e343a8c72c393277b47f0e070",
+    "path": "evidence.zip",
+    "artifact_id": 13078080877,
+    "bytes": 12172,
+    "run": 41292826573,
+    "head": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+    "status": "cancelled",
+    "members": 4,
+    "logs": {
+      "sha256": "92907b2b1e069cd89c7cc3fdde4ccbe7d75b3a31f83b62e14701c4d5239dd816",
+      "path": "logs.zip"
+    },
+    "downloaded_at": "2026-11-01T09:27:21.035375+00:00"
+  },
+  "native_and_vm_skipped": true,
+  "cancel": {
+    "run": 41292826573,
+    "head": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+    "attempts": 1,
+    "reason": "STOP: probe job has completed_at before started_at; guard max(1,ceil(negative duration)) silently undercounts; no further qualification before trustworthy ledger",
+    "requested_at": "2026-11-01T09:25:51.201159+00:00",
+    "returncode": 0,
+    "stdout": "✓ Request to cancel workflow 41292826573 submitted.\n",
+    "stderr": ""
+  },
+  "completed_steps": [
+    "Set up job",
+    "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+    "Reserve the separate 11c minute budget (including privacy checks)",
+    "Run ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6",
+    "Remove package 13 job-token credentials",
+    "Bound retained evidence",
+    "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+    "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+    "Complete job"
+  ],
+  "no_owner_commands": true,
+  "no_real_token_typing": true
+}

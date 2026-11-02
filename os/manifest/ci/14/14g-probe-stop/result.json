@@ -1,0 +1,126 @@
+{
+  "status": "STOP-PLAN-GAP",
+  "run": 40245433868,
+  "head": "4268a94d612a0d6890b14afbd332516dbae11c31",
+  "artifact": {
+    "sha256": "1f49f16f1dd1c251806dc301d2085a8620ed9a49880a7b4ad2070d11d26ffbca",
+    "path": "evidence.zip",
+    "artifact_id": 12618767635,
+    "bytes": 3015368,
+    "run": 40245433868,
+    "head": "4268a94d612a0d6890b14afbd332516dbae11c31",
+    "status": "failure",
+    "members": 153,
+    "logs": {
+      "sha256": "d066276f4f65d007ca759d78b69aa67ad3effea832ce3fa64de41e67ff7869e0",
+      "path": "logs.zip"
+    }
+  },
+  "native": {
+    "tests": 286,
+    "seconds": 14.997,
+    "status": "passed",
+    "skips": 0,
+    "windows_zero_write_refusals": 15,
+    "release_verifier": "passed; no PR API read"
+  },
+  "private_ci_only": {
+    "package_metadata": "passed",
+    "registry_digest": "passed",
+    "signature": "passed",
+    "layer_pull": "passed",
+    "owner_secret_used": false,
+    "cleanup": "passed; removed outside-workspace credentials"
+  },
+  "installer": {
+    "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+    "path": "bazzite-nvidia-open-stable-live-amd64.iso",
+    "bytes": 9068650496,
+    "status": "passed",
+    "localization_sources": 4,
+    "webui_sources": 102
+  },
+  "media_stop": {
+    "operation": "mount -t exfat -o nodev,nosuid,noexec <verified file-backed loop partition> <workspace mountpoint>",
+    "exit_code": 32,
+    "message": "unknown filesystem type 'exfat'",
+    "formatter": "mkfs.exfat1.2.2 succeeded",
+    "installed_exfatprogs": "1.2.2-1build1",
+    "runner_image": "ubuntu24 20261023.334.3",
+    "kernel": "6.17.0-1022-azure",
+    "root_cause": "not established beyond runner mount capability refusal; no driver/package repair tested"
+  },
+  "reached": {
+    "file_backed_target_and_protected_created": true,
+    "file_backed_tools_formatted": true,
+    "windows_payload_copy": false,
+    "qemu_started": false,
+    "vm_baseline": false,
+    "tools_hotplug": false,
+    "install": false,
+    "qualification": false
+  },
+  "stop_action": "No rerun, no further dispatch, no harness/owner-script/image change; PR stays draft",
+  "raw_source_provenance": [
+    {
+      "sha256": "3020930e4b360114c9c325129eeb9e45d9316c80b18eb2adc47edad6a05740e6",
+      "path": ".work/14/14g-pre-probe-authorization.json",
+      "retained_as": "pre-probe-authorization.json",
+      "transformation": "JSON keys reordered hash-first; values unchanged"
+    },
+    {
+      "sha256": "87e38241cebce9331b78ef2a3065cd82be31d78159a14b315d6d53b76d0a46af",
+      "path": ".work/14/14g-pre-probe-privacy.json",
+      "retained_as": "pre-probe-privacy.json",
+      "transformation": "JSON keys reordered hash-first; values unchanged"
+    },
+    {
+      "sha256": "f899abdce7307c09b2a9be2cd287970dc8849813b4e1f524e41378901a5577cb",
+      "path": ".work/14/run-40245433868/evidence/14-dispatch-authorization.json",
+      "retained_as": "native-authorization.json",
+      "transformation": "JSON keys reordered hash-first; values unchanged"
+    },
+    {
+      "sha256": "1025a2132723b2c17cb237a73f2f70fc3e266031bce3218a2f2405b72ddc8934",
+      "path": ".work/14/run-40245433868/evidence/private-registry-preflight.json",
+      "retained_as": "private-manifest.json",
+      "transformation": "JSON keys reordered hash-first; values unchanged"
+    },
+    {
+      "sha256": "3a23f2bd046248c02dc08cbfcc700ff0705b62f3a3b78df140a542b524a4c0bc",
+      "path": ".work/14/run-40245433868/evidence/private-release-signature-proof.json",
+      "retained_as": "private-signature-proof.json",
+      "transformation": "JSON keys reordered hash-first; values unchanged"
+    },
+    {
+      "sha256": "78a8e7eb8fdfe12f026ca3a2a5b155e9097ff1f2242f4ba88f470db82ba23317",
+      "path": ".work/14/run-40245433868/evidence/owner-release-pull.json",
+      "retained_as": "private-pull.json",
+      "transformation": "JSON keys reordered hash-first; values unchanged"
+    },
+    {
+      "sha256": "b719fa720ac55bcb0e2bbb12f2de979f7e85b5dc5098e4b0d0082d392fd55bfd",
+      "path": ".work/14/run-40245433868/evidence/owner-auth-cleanup.json",
+      "retained_as": "auth-cleanup.json",
+      "transformation": "JSON keys reordered hash-first; values unchanged"
+    },
+    {
+      "sha256": "505ebc0363749c78926da2de6d84dfbeccb2e07a3cc2f7df5d8ef6dc220a6cd5",
+      "path": ".work/14/14g-qualification-replay.json",
+      "retained_as": "qualification-local-replay.json",
+      "transformation": "JSON keys reordered hash-first; values unchanged"
+    },
+    {
+      "sha256": "4b852ff9a04d75fe3742c8469e75415ec504956a60725d2f687075ac8c55fae0",
+      "path": ".work/14/14g-qualification-installer-replay/result.json",
+      "retained_as": "qualification-installer-result.json",
+      "transformation": "JSON keys reordered hash-first; values unchanged"
+    },
+    {
+      "sha256": "01f17b1960d785cc71505f02a0d4d9d8e060fcf9d9578843bea259e1ef46e6fd",
+      "path": "rehearsal-host-packages.txt",
+      "retained_as": "runner-packages.txt",
+      "transformation": "unchanged artifact member bytes"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "passed": false,
+  "stages": [
+    {
+      "stage": "exact-login-ready-wait-1-sample-1",
+      "bytes": 1445,
+      "seconds": 1.6833,
+      "serial_writes": 21
+    },
+    {
+      "stage": "owner-record-list",
+      "bytes": 1326,
+      "seconds": 1.2936,
+      "serial_writes": 19
+    },
+    {
+      "stage": "exact-login-input-ready-wait-2-sample-1",
+      "bytes": 1435,
+      "seconds": 1.6372,
+      "serial_writes": 20
+    },
+    {
+      "stage": "exact-login-hidden-input-read-wait-3",
+      "bytes": 13302,
+      "seconds": 6.68,
+      "serial_writes": 144
+    },
+    {
+      "stage": "exact-login-hidden-input-read-wait-3-left",
+      "bytes": 21012,
+      "seconds": 11.1313,
+      "serial_writes": 224
+    },
+    {
+      "stage": "exact-login-physical-idle",
+      "bytes": 7849,
+      "seconds": 4.2279,
+      "serial_writes": 87
+    },
+    {
+      "stage": "exact-login-after-hidden-ready-wait-4-sample-1",
+      "bytes": 1445,
+      "seconds": 1.7596,
+      "serial_writes": 21
+    },
+    {
+      "stage": "exact-login-owner-result",
+      "bytes": 2651,
+      "seconds": 2.1692,
+      "serial_writes": 3
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "kind": "retained private q8 VCSA replay; process parent/executable model is explicit in fixture",
+  "source": {
+    "sha256": "fbb69f3ca62f9dbd8792fd6cec0cd806017857f684ac57ef5ce13e4a9e4ad61c",
+    "path": ".work/14/run-40658792992/evidence/two-disk/tools-stock-password-prompt-read-wait-2-left-timeout-1.vcsa"
+  },
+  "result": {
+    "ready": true,
+    "reader_left": true,
+    "shell_idle": true,
+    "prompt_at_cursor": true,
+    "owner_result": null,
+    "handoff": false,
+    "rejected": false,
+    "reason": "Verified hidden-reader transition",
+    "observation": {
+      "reason": "Foreground interactive bash",
+      "foreground_chain": [
+        {
+          "pid": 2926,
+          "comm": "bash",
+          "argv": [
+            "[redacted]"
+          ],
+          "argv_redacted": true,
+          "ppid": 1962,
+          "pgrp": 2926,
+          "session": 2926,
+          "tty": 1027,
+          "tpgid": 2926
+        }
+      ]
+    },
+    "completion_uses_echo": false,
+    "value_recorded": false
+  },
+  "decoded_console_saved": false
+}

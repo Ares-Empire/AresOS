@@ -1,0 +1,124 @@
+{
+  "files": [
+    {
+      "sha256": "16c0b20a3e7f729dc6222b80b9cdc3bb0e633baddc9cbd56c117fafdf4277a4c",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "1f89da6393236688ca8cdb261caeabc8bb6b93e98bfbd87acac163ce8486da9b",
+      "path": "budget-snapshot.json"
+    },
+    {
+      "sha256": "0227b16eb343d6ac9fafd45fdbf07286a0141af173c9bbc19720ca0e524a69f3",
+      "path": "cache-reclaim.json"
+    },
+    {
+      "sha256": "bbb63a14be8cd9ca7ea24f9eaebe3c08ac1e3ade82f2f35f3589521028f7b252",
+      "path": "cache-reclaim.py"
+    },
+    {
+      "sha256": "3e09cd5c268b7464b57fd4e6254eec46501487850b03836674f2c58c12b3ed71",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
+      "path": "dispatch-watcher.py"
+    },
+    {
+      "sha256": "17b1cdf9c9a59d7a39e2db40836fb698d28be39b0e6a4b77e64b084215e44d5b",
+      "path": "independent-audit-replay.py"
+    },
+    {
+      "sha256": "3897e6efbed3f4c5a51deee9eb4963313435016e7b3f859c47c6cd7794872c7b",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "ebe59ceac094fa63492c98a5986e7bc3947c5c409b1ff3d5aacc4c94f9d8e317",
+      "path": "installer-replay.json"
+    },
+    {
+      "sha256": "b47a527990f2bae735a8a88deb12aee58f8d3acdeb9b0e4d5f163b25465ae7cf",
+      "path": "installer-retry.py"
+    },
+    {
+      "sha256": "e0684fd30b791f6911109b83c53058a23b03a479cbfdb72c46acb982f4032dbd",
+      "path": "local-receipt.py"
+    },
+    {
+      "sha256": "3591dab39dbbdda518e543b7265b5cdc5699f72a3b75ed6af06593d4e105bf51",
+      "path": "native-privacy-scan.py"
+    },
+    {
+      "sha256": "802846dfbfad48485c90617d5613c68a88799105cdb9a80302180bad3fa1241e",
+      "path": "native-timing-review.py"
+    },
+    {
+      "sha256": "584735eb1a2a18e20f491c1f985178e2e6b133fa312bcc468b14686a4a14ecd9",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "848eb7b844384674aef468c1eda0c20bda51295bf53ffb358c41a392ea6b26aa",
+      "path": "probe-guest-commands.json"
+    },
+    {
+      "sha256": "ef5df9f67e8ef59f93179a33e78ba93da0a49e075bc8325195b3e265432ccac8",
+      "path": "probe-review.py"
+    },
+    {
+      "sha256": "59bda443824852782a18b6fbb2afbb38869e014c88c42e734eca153646d38ed2",
+      "path": "probe-walk.json"
+    },
+    {
+      "sha256": "f1acc2fcb929fbf90e1c226393cb48707b4e482760f4bb74df67733a58896b9c",
+      "path": "probe-walk.py"
+    },
+    {
+      "sha256": "2f3457657ecdd9d87546b94611ca40ec2cb501012d5d26f62b1dcf194adda3e9",
+      "path": "push-once.py"
+    },
+    {
+      "sha256": "3777b47cda0f1412603cada5179e990eff5d3061aaf8dbda05059248978da257",
+      "path": "qualification-installer.py"
+    },
+    {
+      "sha256": "e04b02c14939c83f7c6190c97493e183df95601633a333fb79388fb20bece60a",
+      "path": "qualification-retry.py"
+    },
+    {
+      "sha256": "c0cf1c6d01632de10a075498b8bd80d5bdba1a505afa01637b6c7c074228aa84",
+      "path": "qualification-review.py"
+    },
+    {
+      "sha256": "749f9d47784e9c24155e0906d9d9a6baa0d094679c395e5e2149665c751adb64",
+      "path": "qualification-walk.py"
+    },
+    {
+      "sha256": "c606f79cc1c6c45950d129ffbccc50992e76f118884a779eb5a570b8324c10d6",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "8d553bcfd0fb02daacf3936c2a2f88abf4b387e64538131e6ba3dac2310fc418",
+      "path": "run-monitor.py"
+    },
+    {
+      "sha256": "a0fb241d6e3f9cdd10b2fae58cc10f27c8540c25e741966305b2dff8a6401f92",
+      "path": "scope-review.py"
+    },
+    {
+      "sha256": "e4567e6429ad994fe7772c0221913c1c248745312b15f59ffc8160963f4ce460",
+      "path": "scope.json"
+    },
+    {
+      "sha256": "0c2a31305a7e35c8bfc74acce5cf1e69562d741b36f784c3c786c737ac774e6f",
+      "path": "syntax-checks.py"
+    },
+    {
+      "sha256": "7d106f6fb9c2bee2290b1ab68bc07b4f26c8f6e7c94b211669b0ec9232ba2c8b",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "56b64860688d79ca63c7e5991f22d0a6691b4cf6b6025cd11285d9967a0231d7",
+      "path": "test_dispatch_control.py"
+    }
+  ]
+}

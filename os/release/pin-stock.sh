@@ -87,6 +87,11 @@ def pause_units():
     return scopes, receipt
 
 
+def deployment_client(process):
+    return not (process['excluded_as_daemon'] is True
+                or process.get('excluded_as_system_helper', False) is True)
+
+
 def deployment_processes(root=pathlib.Path('/proc')):
     processes = []
     for process in sorted(root.iterdir(), key=lambda p: int(p.name) if p.name.isdigit() else -1):
@@ -94,7 +99,7 @@ def deployment_processes(root=pathlib.Path('/proc')):
             continue
         try:
             executable = str((process / 'exe').readlink())
-            if pathlib.Path(executable.removesuffix(' (deleted)')).name not in ('bootc', 'rpm-ostree'):
+            if pathlib.Path(executable.removesuffix(' (deleted)')).name not in ('bootc', 'rpm-ostree', 'ostree'):
                 continue
             cmdline = (process / 'cmdline').read_bytes().decode().rstrip('\0').split('\0')
             cgroup = (process / 'cgroup').read_text()
@@ -102,10 +107,17 @@ def deployment_processes(root=pathlib.Path('/proc')):
             # A process which exited while being read cannot keep a client active.
             continue
         paths = [line.split(':', 2)[2] for line in cgroup.splitlines()]
-        daemon = any(path == '/system.slice/rpm-ostreed.service' or
+        daemon = pathlib.Path(executable.removesuffix(' (deleted)')).name == 'rpm-ostree' and cmdline[1:] == ['start-daemon'] and any(path == '/system.slice/rpm-ostreed.service' or
                      path.startswith('/system.slice/rpm-ostreed.service/') for path in paths)
+        # The pinned ostree unit holds /boot open after staging. The shutdown
+        # finalizers themselves still count as clients; only this exact hold
+        # command in its exact system-service cgroup is an idle helper.
+        helper = (executable == '/usr/bin/ostree'
+                  and cmdline == ['/usr/bin/ostree', 'admin', 'finalize-staged', '--hold']
+                  and cgroup.splitlines() == ['0::/system.slice/ostree-finalize-staged-hold.service'])
         processes.append(dict(pid=int(process.name), exe=executable, cmdline=cmdline,
-                              cgroup=cgroup, excluded_as_daemon=daemon))
+                              cgroup=cgroup, excluded_as_daemon=daemon,
+                              excluded_as_system_helper=helper))
     return processes
 
 
@@ -133,7 +145,7 @@ def pause_stock():
             assert transaction is None or (isinstance(transaction, list) and len(transaction) == 3 and
                    all(isinstance(value, str) for value in transaction)), 'Unexpected rpm-ostree transaction shape'
             decision['processes'] = deployment_processes()
-            decision['clients_idle'] = not any(not p['excluded_as_daemon'] for p in decision['processes'])
+            decision['clients_idle'] = not any(deployment_client(p) for p in decision['processes'])
             if decision['units_inactive'] and not decision['transaction_idle'] and not decision['cancel']['ran']:
                 remaining = deadline - time.monotonic()
                 assert remaining > 0, 'Idle deadline reached before cancellation'
@@ -199,34 +211,40 @@ def upstream(reference):
                 + re.escape(IMAGE) + r'(?::[A-Za-z0-9_.-]+|@sha256:[0-9a-f]{64})', reference))
 
 
-deployments, index, stock, bootc = status()
-require(upstream(stock.get('container-image-reference', '')), 'Booted origin is not the recorded upstream Bazzite')
-checksum = stock['checksum']
-staged = [d for d in deployments if d.get('staged')]
-require(len(staged) <= 1, 'More than one staged deployment')
-discarded = None
-if staged:
-    candidate, = staged
-    require(not candidate.get('booted') and not candidate.get('pinned'), 'The staged deployment is booted or pinned')
-    reference = candidate.get('container-image-reference', '')
-    digest = candidate.get('container-image-reference-digest', '')
-    require(upstream(reference), 'Staged origin is not upstream Bazzite')
-    require(re.fullmatch(r'sha256:[0-9a-f]{64}', digest) and re.fullmatch(r'[0-9a-f]{64}', candidate['checksum']),
-            'Staged deployment identity is incomplete')
-    require(bootc.get('staged') and bootc['staged']['image']['imageDigest'] == digest
-            and bootc['staged']['ostree']['checksum'] == candidate['checksum'], 'Staged identity observations disagree')
-    discarded = dict(reference=reference, digest=digest, checksum=candidate['checksum'], version=candidate.get('version'))
-    print('ARESOS_STOCK_DISCARD ' + json.dumps(discarded), flush=True)
-    subprocess.run(['rpm-ostree', 'cleanup', '-p'], check=True)
+def pin_stock(cleanup_only=False):
     deployments, index, stock, bootc = status()
-    require(stock['checksum'] == checksum, 'Booted checksum changed after pending cleanup')
-require(not any(d.get('staged') for d in deployments) and not bootc.get('staged'), 'A staged deployment remains')
-subprocess.run(['ostree', 'admin', 'pin', str(index)], check=True)
-deployments, index, stock, bootc = status()
-require(stock['checksum'] == checksum and stock.get('pinned'), 'Pin did not preserve the booted stock deployment')
-require(not any(d.get('staged') for d in deployments) and not bootc.get('staged'), 'A staged deployment appeared while pinning')
-print('Pinned booted stock deployment:', checksum)
-print('ARESOS_STOCK_PIN_RESULT ' + json.dumps(dict(status='passed', booted_checksum=checksum,
-      booted_digest=ISO_DIGEST, staged_discarded=discarded is not None, discarded=discarded,
-      pinned=True, no_staged=True)))
+    require(upstream(stock.get('container-image-reference', '')), 'Booted origin is not the recorded upstream Bazzite')
+    checksum = stock['checksum']
+    staged = [d for d in deployments if d.get('staged')]
+    require(len(staged) <= 1, 'More than one staged deployment')
+    discarded = None
+    if staged:
+        candidate, = staged
+        require(not candidate.get('booted') and not candidate.get('pinned'), 'The staged deployment is booted or pinned')
+        reference = candidate.get('container-image-reference', '')
+        digest = candidate.get('container-image-reference-digest', '')
+        require(upstream(reference), 'Staged origin is not upstream Bazzite')
+        require(re.fullmatch(r'sha256:[0-9a-f]{64}', digest) and re.fullmatch(r'[0-9a-f]{64}', candidate['checksum']),
+                'Staged deployment identity is incomplete')
+        require(bootc.get('staged') and bootc['staged']['image']['imageDigest'] == digest
+                and bootc['staged']['ostree']['checksum'] == candidate['checksum'], 'Staged identity observations disagree')
+        discarded = dict(reference=reference, digest=digest, checksum=candidate['checksum'], version=candidate.get('version'))
+        print('ARESOS_STOCK_DISCARD ' + json.dumps(discarded), flush=True)
+        subprocess.run(['rpm-ostree', 'cleanup', '-p'], check=True)
+        deployments, index, stock, bootc = status()
+        require(stock['checksum'] == checksum, 'Booted checksum changed after pending cleanup')
+    require(not any(d.get('staged') for d in deployments) and not bootc.get('staged'), 'A staged deployment remains')
+    if cleanup_only:
+        return
+    subprocess.run(['ostree', 'admin', 'pin', str(index)], check=True)
+    deployments, index, stock, bootc = status()
+    require(stock['checksum'] == checksum and stock.get('pinned'), 'Pin did not preserve the booted stock deployment')
+    require(not any(d.get('staged') for d in deployments) and not bootc.get('staged'), 'A staged deployment appeared while pinning')
+    print('Pinned booted stock deployment:', checksum)
+    print('ARESOS_STOCK_PIN_RESULT ' + json.dumps(dict(status='passed', booted_checksum=checksum,
+          booted_digest=ISO_DIGEST, staged_discarded=discarded is not None, discarded=discarded,
+          pinned=True, no_staged=True)))
+
+if globals().get('__name__', '__main__') == '__main__':
+    pin_stock()
 PIN_STOCK

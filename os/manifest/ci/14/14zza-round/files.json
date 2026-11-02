@@ -1,0 +1,132 @@
+{
+  "files": [
+    {
+      "sha256": "e8e1510daf6e902825056ea4bccd142c9fc5af6153a8f81b53e359ee3c6832b0",
+      "path": "os/manifest/ci/14/14zza-round/artifact-review.json"
+    },
+    {
+      "sha256": "56dfc6408e0c404b60b49deb9a681920918b3edda89a7258c8926175c8f9dd5e",
+      "path": "os/manifest/ci/14/14zza-round/authorization.json"
+    },
+    {
+      "sha256": "34d75a281cce99a5d70c213bce25a0025886d87a8165e4c73f677ef62362e63f",
+      "path": "os/manifest/ci/14/14zza-round/cache-reclaim.json"
+    },
+    {
+      "sha256": "ffd5c144732a21db0ba307ed1130d13caafad303647427292ba183086d2c9138",
+      "path": "os/manifest/ci/14/14zza-round/checks.json"
+    },
+    {
+      "sha256": "15c2eecae7e59392aad2366c45e1d7e868f0eb8223b5f80128fae3a64d51a840",
+      "path": "os/manifest/ci/14/14zza-round/classify-at-dispatch.py"
+    },
+    {
+      "sha256": "c62b5db836a2bbddeb797d5f3926b8fa538e7ead1fe0f752ac5fe993c54585b5",
+      "path": "os/manifest/ci/14/14zza-round/classify.py"
+    },
+    {
+      "sha256": "25fb180c38e365d7be518f5af2e444354c5fd9c24608f55ac9943eb77c1b15a0",
+      "path": "os/manifest/ci/14/14zza-round/close-guard.py"
+    },
+    {
+      "sha256": "1fdf9f126f74633a94b26cbb21ca84070a88115f59b161e67317ed724fb385d3",
+      "path": "os/manifest/ci/14/14zza-round/control.py"
+    },
+    {
+      "sha256": "5d48fed2cf7be15513d133204c9b700033e5d3a283f6dd3c5722c232318fe812",
+      "path": "os/manifest/ci/14/14zza-round/diagnose.py"
+    },
+    {
+      "sha256": "eadbba91231fafd44325004c4f57e6c7d4670641ecd219987591d248979bb178",
+      "path": "os/manifest/ci/14/14zza-round/diagnosis.json"
+    },
+    {
+      "sha256": "7c734e291e37745b8cf995c80d08b07351de53ee2c45e7fc92db319fe1295b6f",
+      "path": "os/manifest/ci/14/14zza-round/dispatch-local-bindings.json"
+    },
+    {
+      "sha256": "f94cc20ff704819e04fd6e2d56556e076db13bfbd472fc4a1e8ece27766ab49c",
+      "path": "os/manifest/ci/14/14zza-round/dispatch.json"
+    },
+    {
+      "sha256": "969519958a38767b9858377bca20d8688bd2a658253422fc03ed9d79311c0ae7",
+      "path": "os/manifest/ci/14/14zza-round/independent-audits.json"
+    },
+    {
+      "sha256": "7a5db8e76be97c1c2b7e249684c434064de4333dea902c19b84e2649064aafe7",
+      "path": "os/manifest/ci/14/14zza-round/installer-adapter.py"
+    },
+    {
+      "sha256": "8b3229b2f541e7620bce610c30dcf37604db8b06198019a188e379db698a63cb",
+      "path": "os/manifest/ci/14/14zza-round/kernel-proof.json"
+    },
+    {
+      "sha256": "73cf42ce46dc193b580d199a43544811655e3372369561a9942f2a489d90454e",
+      "path": "os/manifest/ci/14/14zza-round/ledger.json"
+    },
+    {
+      "sha256": "2cdeabb2d57232755dc14ea8cbdf3d03154b2e9dcda8eeae88e648c8c2cd2429",
+      "path": "os/manifest/ci/14/14zza-round/local-privacy.json"
+    },
+    {
+      "sha256": "60de6bd3cb3bca7d98aa06e905cfb15d4fb11e6ae238238b7b36000831df536a",
+      "path": "os/manifest/ci/14/14zza-round/local-receipt.py"
+    },
+    {
+      "sha256": "ef0b14168876126bd639cf93c727e65658a93745c13ad8d4d6572f52ba1688f5",
+      "path": "os/manifest/ci/14/14zza-round/local-replay.json"
+    },
+    {
+      "sha256": "8d4e524775c48fffa94d0c0d76ffb4821efbf2f6f769b24689dfd39eb8d3aa11",
+      "path": "os/manifest/ci/14/14zza-round/local-retry.py"
+    },
+    {
+      "sha256": "97aa803806fb216befa7c758d64f10b4205137709f788daa4722b31516458b61",
+      "path": "os/manifest/ci/14/14zza-round/log-review.json"
+    },
+    {
+      "sha256": "34909264e234949b6bf8a76609e63030b4da92f28a357f162609a59c5d50f46a",
+      "path": "os/manifest/ci/14/14zza-round/log-review.py"
+    },
+    {
+      "sha256": "397bcba56c469adc7337fdd17ae89f8624c0fec66f9b1cd9896497a33c2b3248",
+      "path": "os/manifest/ci/14/14zza-round/post-review-local-bindings.json"
+    },
+    {
+      "sha256": "e1cd2f88f970ba15e563a478366b907b9bc6e48f2f0a5b008da94b1f2d81e892",
+      "path": "os/manifest/ci/14/14zza-round/post-run.py"
+    },
+    {
+      "sha256": "51e2d3e6a581a64b9dc09470b681f3fa2b825fc3d8b18339a84f2d0fd50ee172",
+      "path": "os/manifest/ci/14/14zza-round/probe30-reaccepted.json"
+    },
+    {
+      "sha256": "d721b62bf995df408848c37d7d13d93fc73f70f905d66e30ca6ee7b73203c804",
+      "path": "os/manifest/ci/14/14zza-round/read-only-replay.py"
+    },
+    {
+      "sha256": "436ad75ef79f98e3feb2098018eca3de3b766cd4bc366e0200d7736e24d1fef6",
+      "path": "os/manifest/ci/14/14zza-round/round.json"
+    },
+    {
+      "sha256": "f6906c75bec74bfe10a336e15edb60c18cc019b2fe4a420971945dd7c936ffed",
+      "path": "os/manifest/ci/14/14zza-round/syntax.py"
+    },
+    {
+      "sha256": "9a7f834caa9b5a196e70482c9c101a4cf73e96773930267bcbf2a3d7b05e3b3c",
+      "path": "os/manifest/ci/14/14zza-round/test-classify-at-dispatch.py"
+    },
+    {
+      "sha256": "1ce4b618865b5433e0ddf833394146c79ce0118e533b816fa143b13da0e05783",
+      "path": "os/manifest/ci/14/14zza-round/test_classify.py"
+    },
+    {
+      "sha256": "0f616f686465a985a941e9ce53e9dadce73299199689912e4e3404869aedfd22",
+      "path": "os/manifest/ci/14/14zza-round/test_control.py"
+    },
+    {
+      "sha256": "8e465ede75a0a5e8b753786e49aae50a63d13652ebc9629c5bcad228ef08f27a",
+      "path": "os/manifest/ci/14/14zza-round/upstream-sources.json"
+    }
+  ]
+}

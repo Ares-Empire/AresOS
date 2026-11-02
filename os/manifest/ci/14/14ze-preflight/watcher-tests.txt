@@ -1,0 +1,12 @@
+test_ambiguous_or_foreign_url_refuses_without_api (test_14za_watcher.WatchTest.test_ambiguous_or_foreign_url_refuses_without_api) ... ok
+test_delayed_display_fields_outlast_old_eight_second_window (test_14za_watcher.WatchTest.test_delayed_display_fields_outlast_old_eight_second_window) ... ok
+test_every_wrong_identity_field_refuses_with_all_observations (test_14za_watcher.WatchTest.test_every_wrong_identity_field_refuses_with_all_observations) ... ok
+test_http_auth_or_transport_failure_is_not_multiplied_by_polling (test_14za_watcher.WatchTest.test_http_auth_or_transport_failure_is_not_multiplied_by_polling) ... ok
+test_old_list_predicate_matches_current_retained_probe (test_14za_watcher.WatchTest.test_old_list_predicate_matches_current_retained_probe) ... ok
+test_real_retained_probe_identity_does_not_read_history (test_14za_watcher.WatchTest.test_real_retained_probe_identity_does_not_read_history) ... ok
+test_terminal_failure_is_retained_and_never_becomes_success (test_14za_watcher.WatchTest.test_terminal_failure_is_retained_and_never_becomes_success) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.004s
+
+OK

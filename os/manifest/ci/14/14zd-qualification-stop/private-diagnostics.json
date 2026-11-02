@@ -1,0 +1,29 @@
+{
+  "raw_data_committed": false,
+  "files": [
+    {
+      "sha256": "6c9aa8f69dffbe71473ac4e43a6d51d06013aebf1fe2f447794a9504c0626634",
+      "path": ".work/14/run-40596167369/native.log"
+    },
+    {
+      "sha256": "6131edffe55d1a6850fc2eae207cb8b9c262e16f71247e094789189667896ba5",
+      "path": ".work/14/run-40596167369/failure.log"
+    },
+    {
+      "sha256": "1f461c3da0bd6266590be29b80c4238512792d202927ce136ca5698aacf647ef",
+      "path": ".work/14/run-40596167369/evidence/two-disk/tools-stock-physical-idle.json"
+    },
+    {
+      "sha256": "b40b03f2347848f60c44ed54635015860103e02db01eafd5adb8fbab5cda487c",
+      "path": ".work/14/run-40596167369/evidence/two-disk/tools-stock-physical-idle-timeout-1.vcsa"
+    },
+    {
+      "sha256": "1b9759718d7c11ff82abc392addb0a8d4fbee7a910388e43acd1e9d94cd05ef2",
+      "path": ".work/14/run-40596167369/evidence/two-disk/tools-stock-physical-idle-timeout-1.json"
+    },
+    {
+      "sha256": "ec0ef2f6563db3dfa3f3a4783a8e4189b5c1288eb8805bbd34394844c3b176d0",
+      "path": ".work/14/run-40596167369/evidence/two-disk/tools-stock-physical-idle.txt"
+    }
+  ]
+}

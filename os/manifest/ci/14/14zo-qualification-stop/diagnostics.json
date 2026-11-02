@@ -1,0 +1,174 @@
+{
+  "status": "read-only inspected counts/flags only",
+  "run": 40805607265,
+  "head": "68df196fc9fbfa8a1f441045baaa57c540ee9e2c",
+  "records": [
+    {
+      "sha256": "e01468201629ee14f86ab555afc6af8dba30b71601e77934bb6869f800c4166d",
+      "path": "evidence/two-disk/private-owner-dummy-login-hidden-input-read-wait-37-diagnostics-completion-start.json",
+      "value": {
+        "kind": "hidden-read-diagnostics",
+        "read_only": true,
+        "value_recorded": false,
+        "queue_contents_read": false,
+        "syscall_arguments_recorded": false,
+        "active_vt": "tty3",
+        "python_version": "3.14.8",
+        "sudo_version": "1.9.17p2",
+        "terminals": [
+          {
+            "path": "/dev/tty3",
+            "device": 1027,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": false,
+              "IEXTEN": false,
+              "ISIG": false
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0,
+            "KDGKBMODE": 3,
+            "KDGETLED": 0,
+            "KDGKBLED": 0
+          },
+          {
+            "path": "/dev/pts/1",
+            "device": 34817,
+            "termios": {
+              "ICANON": false,
+              "ECHO": false,
+              "ICRNL": false,
+              "IXON": true,
+              "IEXTEN": true,
+              "ISIG": true
+            },
+            "TIOCINQ": 0,
+            "TIOCOUTQ": 0
+          },
+          {
+            "path": "/dev/pts/2",
+            "device": 34818,
+            "error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          }
+        ],
+        "processes": [
+          {
+            "pid": 4440,
+            "state": "S",
+            "wchan": "poll_schedule_timeout.constprop.0",
+            "syscall_number": 271
+          },
+          {
+            "pid": 5187,
+            "state": "S",
+            "wchan": "poll_schedule_timeout.constprop.0",
+            "syscall_number": 271
+          },
+          {
+            "pid": 5188,
+            "state": "S",
+            "wchan": "poll_schedule_timeout.constprop.0",
+            "syscall_number": 270
+          },
+          {
+            "pid": 7612,
+            "stat_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "wchan_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "syscall_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          },
+          {
+            "pid": 7614,
+            "stat_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "wchan_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "syscall_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          },
+          {
+            "pid": 7615,
+            "stat_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "wchan_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            },
+            "syscall_error": {
+              "kind": "FileNotFoundError",
+              "errno": 2
+            }
+          }
+        ],
+        "phase": "completion-start",
+        "typed": {
+          "length": 40,
+          "key_event_count": 110,
+          "key_chord_count": 41,
+          "last_key_was_ret": true,
+          "non_default_mapping_classes": [
+            "layout_differs_from_us",
+            "shift"
+          ],
+          "chunked": false,
+          "chunk_size": null,
+          "between_chunks_seconds": 0,
+          "before_return_seconds": 0
+        },
+        "token": true,
+        "guest_key_counts": {
+          "status": "passed",
+          "counts_only": true,
+          "autorepeat": {
+            "delay_ms": 250,
+            "period_ms": 33
+          },
+          "counts": {
+            "press": 55,
+            "release": 55,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "codes_recorded": false,
+          "values_recorded": false,
+          "seconds": 11.128,
+          "complete": true,
+          "device": "/dev/input/event4",
+          "pid": 8567
+        },
+        "key_comparison": {
+          "sent_events": 110,
+          "received_events": 110,
+          "press": 55,
+          "release": 55,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": true
+        }
+      }
+    }
+  ],
+  "raw_consoles_saved": false,
+  "secret_value_or_key_sequence_recorded": false
+}

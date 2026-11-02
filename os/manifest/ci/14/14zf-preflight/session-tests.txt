@@ -1,0 +1,17 @@
+test_broken_cycle_unknown_missing_monitor_and_wrong_controlling_tty (test_owner_session.SessionTest.test_broken_cycle_unknown_missing_monitor_and_wrong_controlling_tty) ... ok
+test_direct_tty3_and_tty4 (test_owner_session.SessionTest.test_direct_tty3_and_tty4) ... ok
+test_every_logind_fact_remains_mandatory (test_owner_session.SessionTest.test_every_logind_fact_remains_mandatory) ... ok
+test_graphical_konsole_and_remote_sshd (test_owner_session.SessionTest.test_graphical_konsole_and_remote_sshd) ... ok
+test_missing_duplicate_and_mismatched_cgroup_session (test_owner_session.SessionTest.test_missing_duplicate_and_mismatched_cgroup_session) ... ok
+test_missing_unset_or_inconsistent_audit_and_loginuid (test_owner_session.SessionTest.test_missing_unset_or_inconsistent_audit_and_loginuid) ... ok
+test_nested_sudo_pts_refuses_under_the_briefs_single_pts_rule (test_owner_session.SessionTest.test_nested_sudo_pts_refuses_under_the_briefs_single_pts_rule) ... ok
+test_qualification5_sudo_monitor_bash_shape (test_owner_session.SessionTest.test_qualification5_sudo_monitor_bash_shape) ... ok
+test_real_unprivileged_pts_uses_real_stdin_with_modelled_session_facts (test_owner_session.SessionTest.test_real_unprivileged_pts_uses_real_stdin_with_modelled_session_facts) ... ok
+test_sudo_pty_tty3_and_fresh_tty4 (test_owner_session.SessionTest.test_sudo_pty_tty3_and_fresh_tty4) ... ok
+test_tmux_screen_terminal_emulator_and_unknown_inside_local_sudo (test_owner_session.SessionTest.test_tmux_screen_terminal_emulator_and_unknown_inside_local_sudo) ... ok
+test_tty_session_and_list_identity_mismatch_or_duplicate (test_owner_session.SessionTest.test_tty_session_and_list_identity_mismatch_or_duplicate) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.386s
+
+OK

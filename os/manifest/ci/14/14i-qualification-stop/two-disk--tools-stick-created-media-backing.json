@@ -1,0 +1,9 @@
+{
+  "image_sha256": "f923af07b4864cf7c6c0fe1210f906908c4c6a7d78301a01656749bd9800a6ed",
+  "manifest_sha256": "118212ec60844043856b5531be95cf2319f9943319679fa6149f999db89bf6ba",
+  "status": "passed",
+  "bundle_unchanged": true,
+  "fsck_readonly": true,
+  "fuse_readonly": true,
+  "device_attached": false
+}

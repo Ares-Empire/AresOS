@@ -1,0 +1,101 @@
+{
+  "status": "cause unresolved; demonstrated transport, readiness and deadline weaknesses fixed locally",
+  "run": 40566496658,
+  "source_head": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+  "exact_reconstruction": {
+    "sha256": "e2909f53d780906f55232a2a88f856d71d80a1bcf41d27335fa1bce5bd4e24d4",
+    "path": "os/tests/fixtures/owner-console/14za-login-command.json",
+    "framed_bytes": 2652,
+    "wire_bytes": 3633,
+    "max_wire_line_bytes": 1024,
+    "received_uart_input_retained": false
+  },
+  "findings": [
+    "Exact old source passes strict Bash syntax and executes in a real PTY with private-filesystem adapters.",
+    "Complete unchanged command reaches its reader and produces five PS2 prompts, matching the retained count. Missing terminator also produces PS2. Retained PS2 alone cannot distinguish these states.",
+    "A 512-byte burst limit breaks the old unacknowledged send; short acknowledged staging completes. This is a controlled loss reproduction, not proof of the actual guest loss.",
+    "Real independent physical and serial PTYs show the physical getpass reader cannot consume the serial command. Actual received guest UART bytes and login outcome remain unknown.",
+    "Idle interactive Bash/readline can have ECHO disabled; hidden readiness now excludes the interactive foreground shell. Completion requires its return before any physical Enter authority.",
+    "Old inner poll1800 exceeded outer900. Both owner polling sources now use840 inside900 execution, with60 seconds return grace; public-script transfer has its separate120-second bound."
+  ],
+  "transport": {
+    "inline_bytes": 256,
+    "chunk_source_bytes": 96,
+    "max_control_line_bytes": 512,
+    "ack_seconds": 10,
+    "transfer_seconds": 120,
+    "root": "/run",
+    "required_filesystem": "tmpfs",
+    "directory_uid_mode": "0:700",
+    "script_uid_mode": "0:600",
+    "sha256_checked_before_run": true,
+    "strict_guest_bash_n": true,
+    "missing_ack": "STOP without retry, execution or speculative cleanup",
+    "acknowledged_refusal": "STOP; remove only owned script/syntax/directory when allocated"
+  },
+  "secrets": "Physical hidden prompt only; reject known secret-bearing public scripts before hash/evidence/allocation/send. Legacy inline registry credential writer refuses. No credential bytes in staged scripts or evidence.",
+  "later_stages": {
+    "stages": [
+      "verify",
+      "switch",
+      "AresOS boot",
+      "layout",
+      "rollback",
+      "keep-stock"
+    ],
+    "composed_commands": "283 strict guest + legacy UART parses; large commands also parse all staged controls and body",
+    "real_outputs": [
+      "package11n public signature proof",
+      "package13 deployment/bootc/BLS/keyboard/map observations",
+      "package14 qualification3 install and qualification4 prepare/network/title observations"
+    ],
+    "checks": "Existing real owner parsers/preflights plus actual checksum-framed PTY roundtrips of retained JSON; host control-flow walk uses explicit stand-ins",
+    "limitation": "No package14 verify/switch/layout/rollback/keep-stock VM result exists; none manufactured; keep-stock uses retained rollback input, not a claimed execution"
+  },
+  "sources": [
+    {
+      "sha256": "7a4793603d7553b5c00078d36c482060232be2400125775b6bf60539872fa052",
+      "path": "os/ci/owner_console.py"
+    },
+    {
+      "sha256": "01b328c757dad90e6d537fbc6fc42fc5a0f6460940d1c0d17e258b563b0f03c5",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "ebf02a6c80f2346bd908e5c3be3b73fb6a8ad3ec56afccb9ffe5b11bab6011a8",
+      "path": "os/ci/serial_transport.py"
+    },
+    {
+      "sha256": "366d743b11f1788532cf6125dccc0d0c534bef0b8cb90e695600b57a375591f8",
+      "path": "os/ci/switch_vm.py"
+    },
+    {
+      "sha256": "a518be16c9f05419de35f2ab1485afe9920246efa5266ec89d2e2875cda5a914",
+      "path": "os/tests/fixtures/owner-console/14za-login-command.json"
+    },
+    {
+      "sha256": "9cd15ec4e24cb44eb0917a70f80000659df6e10191bdd2ca917a5c6c15e28f99",
+      "path": "os/tests/guest_shell.py"
+    },
+    {
+      "sha256": "8789d958828598ca60c91a7bc0752df5279fcae2a5caba4ab5b363e54ad108a8",
+      "path": "os/tests/serial_pty.py"
+    },
+    {
+      "sha256": "9e30e1b9b007dd5d27d1c497f88eb3ce03547c1e0dafb00b858d5162699febaa",
+      "path": "os/tests/test_owner_console.py"
+    },
+    {
+      "sha256": "61b2f1e93b1d186efbf0d3c89e667b003681e25c8af3e2c4574570c5006e9fe0",
+      "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "e9c353e8032b8aaa934479aaa0ba4574cbba97df7ff492c58901449f7ec2b23a",
+      "path": "os/tests/test_serial_staging.py"
+    },
+    {
+      "sha256": "c8c4424a803dc2aea853e225eb375503a7a056d8db1de8023ab2eb7511d88fe0",
+      "path": "reviews/14-owner-tools/walk-host.py"
+    }
+  ]
+}

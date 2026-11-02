@@ -1,0 +1,397 @@
+{
+  "status": "verified through the actual STOP only",
+  "run": 41278848542,
+  "head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+  "physical_cases": [
+    {
+      "sha256": "0daf8d0632cab59099d2ade5cfe616a044c1d637f5fc124b64f630f780b0f04e",
+      "path": ".work/14/run-41278848542/evidence/two-disk/corrected-stock-console-physical.json",
+      "stage": "corrected-stock-console",
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!ü",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ]
+      ],
+      "uid": 0,
+      "transport": "QMP i8042/PS-2 AT keyboard; serial observation only"
+    },
+    {
+      "sha256": "0daf8d0632cab59099d2ade5cfe616a044c1d637f5fc124b64f630f780b0f04e",
+      "path": ".work/14/run-41278848542/evidence/two-disk/aresos-console-physical.json",
+      "stage": "aresos-console",
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!ü",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ]
+      ],
+      "uid": 0,
+      "transport": "QMP i8042/PS-2 AT keyboard; serial observation only"
+    },
+    {
+      "sha256": "e9f609eb2c7f4ec8b04166a2910b852ae344d476a32353ca2165d5397a9e2891",
+      "path": ".work/14/run-41278848542/evidence/two-disk/aresos-foot-physical.json",
+      "stage": "aresos-foot",
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!ü",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ]
+      ],
+      "uid": 1001,
+      "transport": "QMP i8042/PS-2 AT keyboard; serial observation only"
+    },
+    {
+      "sha256": "0bba56ff6b65109f48d78c24899cc76bf0f2e7f830cdec21746d84dd833dc2de",
+      "path": ".work/14/run-41278848542/evidence/two-disk/aresos-intl-console-physical.json",
+      "stage": "aresos-intl-console",
+      "status": "passed",
+      "layout": "us-intl",
+      "text": "yz-/!ü",
+      "physical_qcodes": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "alt_r",
+          "y"
+        ]
+      ],
+      "uid": 0,
+      "transport": "QMP i8042/PS-2 AT keyboard; serial observation only"
+    },
+    {
+      "sha256": "231a3377b21dca5245c8502e400f0b0bf65cf5c97463220edb1f15746f6be6b5",
+      "path": ".work/14/run-41278848542/evidence/two-disk/aresos-intl-foot-physical.json",
+      "stage": "aresos-intl-foot",
+      "status": "passed",
+      "layout": "us-intl",
+      "text": "yz-/!ü",
+      "physical_qcodes": [
+        [
+          "y"
+        ],
+        [
+          "z"
+        ],
+        [
+          "minus"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "alt_r",
+          "y"
+        ]
+      ],
+      "uid": 1001,
+      "transport": "QMP i8042/PS-2 AT keyboard; serial observation only"
+    },
+    {
+      "sha256": "0daf8d0632cab59099d2ade5cfe616a044c1d637f5fc124b64f630f780b0f04e",
+      "path": ".work/14/run-41278848542/evidence/two-disk/aresos-back-de-console-physical.json",
+      "stage": "aresos-back-de-console",
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!ü",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ]
+      ],
+      "uid": 0,
+      "transport": "QMP i8042/PS-2 AT keyboard; serial observation only"
+    },
+    {
+      "sha256": "e9f609eb2c7f4ec8b04166a2910b852ae344d476a32353ca2165d5397a9e2891",
+      "path": ".work/14/run-41278848542/evidence/two-disk/aresos-back-de-foot-physical.json",
+      "stage": "aresos-back-de-foot",
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!ü",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ]
+      ],
+      "uid": 1001,
+      "transport": "QMP i8042/PS-2 AT keyboard; serial observation only"
+    },
+    {
+      "sha256": "0daf8d0632cab59099d2ade5cfe616a044c1d637f5fc124b64f630f780b0f04e",
+      "path": ".work/14/run-41278848542/evidence/two-disk/rollback-stock-console-physical.json",
+      "stage": "rollback-stock-console",
+      "status": "passed",
+      "layout": "de",
+      "text": "yz-/!ü",
+      "physical_qcodes": [
+        [
+          "z"
+        ],
+        [
+          "y"
+        ],
+        [
+          "slash"
+        ],
+        [
+          "shift",
+          "7"
+        ],
+        [
+          "shift",
+          "1"
+        ],
+        [
+          "bracket_left"
+        ]
+      ],
+      "uid": 0,
+      "transport": "QMP i8042/PS-2 AT keyboard; serial observation only"
+    }
+  ],
+  "loaded_maps": [
+    {
+      "sha256": "4efeb79f315ca90cbc3bd11dfa1e3a7f5fc56b5e6847dcb4215cc4ed14c037f8",
+      "path": ".work/14/run-41278848542/evidence/two-disk/aresos-intl-loaded-keyboard.json",
+      "stage": "aresos-intl",
+      "console": "us-intl",
+      "x11_layout": "us",
+      "x11_variant": "intl",
+      "forced_vconsole_cmdline": false
+    },
+    {
+      "sha256": "3da3aaf0b885cd1d397bd1783738330a156e2424b0bfa7f02ea4c0b1a1c9d3c9",
+      "path": ".work/14/run-41278848542/evidence/two-disk/aresos-back-de-loaded-keyboard.json",
+      "stage": "aresos-back-de",
+      "console": "de",
+      "x11_layout": "de",
+      "x11_variant": "",
+      "forced_vconsole_cmdline": false
+    },
+    {
+      "sha256": "a433a06c81de6177fe8c3154161d13bd7dc36926391746e7206d75cf4af7b085",
+      "path": ".work/14/run-41278848542/evidence/two-disk/rollback-stock-loaded-keyboard.json",
+      "stage": "rollback-stock",
+      "console": "de",
+      "x11_layout": "de",
+      "x11_variant": "",
+      "forced_vconsole_cmdline": false
+    },
+    {
+      "sha256": "a433a06c81de6177fe8c3154161d13bd7dc36926391746e7206d75cf4af7b085",
+      "path": ".work/14/run-41278848542/evidence/two-disk/default-stock-loaded-keyboard.json",
+      "stage": "default-stock",
+      "console": "de",
+      "x11_layout": "de",
+      "x11_variant": "",
+      "forced_vconsole_cmdline": false
+    }
+  ],
+  "owner_results": [
+    {
+      "sha256": "e5f8bc054d883be869777b873f61641714cd04c2e26f3b9f25f8984cf258e6d7",
+      "path": ".work/14/run-41278848542/evidence/two-disk/layout-intl-proof-owner-result.json",
+      "command": "layout-intl-proof",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "7353b8b8bc111b56dd65105b44b74a3722af77551ec03010fb4f10b400b4f5a5",
+      "path": ".work/14/run-41278848542/evidence/two-disk/layout-intl-finish-owner-result.json",
+      "command": "layout-intl-finish",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "8e1be022e20284990260bc936ef27518836c104338097332d6d6ded3b42a7872",
+      "path": ".work/14/run-41278848542/evidence/two-disk/layout-back-de-proof-owner-result.json",
+      "command": "layout-back-de-proof",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "71ef8c507d2445ffdff6cba8843d74c40cf338e65ef786b6d9fce3663d5dc911",
+      "path": ".work/14/run-41278848542/evidence/two-disk/layout-de-finish-owner-result.json",
+      "command": "layout-de-finish",
+      "status": "passed",
+      "mutations": 0
+    },
+    {
+      "sha256": "2cad553fb58be3688e1ae09f2501a213eec2ebe691331348d5ac211771bed04b",
+      "path": ".work/14/run-41278848542/evidence/two-disk/owner-rollback-owner-result.json",
+      "command": "owner-rollback",
+      "status": "passed",
+      "mutations": 1
+    },
+    {
+      "sha256": "694726dfc6530a69c05c2ed087a28edaab3c3dd58f2267b01d246d6c92c0e68d",
+      "path": ".work/14/run-41278848542/evidence/two-disk/owner-keep-stock-owner-result.json",
+      "command": "owner-keep-stock",
+      "status": "passed",
+      "mutations": 1
+    }
+  ],
+  "rollback_from_stock_refused": {
+    "sha256": "df80d8d58c25a3dde05ebf6b4f2d748756ce5a1e340ea09be768b99b2407ca3d",
+    "path": ".work/14/run-41278848542/evidence/two-disk/rollback-from-stock-refused-owner-result.json",
+    "status": "stopped as expected",
+    "mutations": 0
+  },
+  "default_stock_boot": {
+    "sha256": "8660e31c58e89922e6cd2396a34ea8e4e95542785fa16f67ef1c4be4a8e84ece",
+    "path": ".work/14/run-41278848542/evidence/two-disk/default-stock-deployments.json",
+    "index0_booted": true,
+    "index0_pinned": true,
+    "saved_stock_identity_match": true,
+    "transaction": null,
+    "staged": false,
+    "rollback_queued": false
+  },
+  "complete_qualification": false,
+  "default_stock_login_completion": false,
+  "default_stock_post_login_checks": false,
+  "final_windows_checks": false,
+  "at_boots": 9,
+  "at_static_keycodes_each": 57,
+  "xhci_health_checkpoints": 98,
+  "xhci_stops": 0,
+  "staged_transfers": 587,
+  "staged_sha_and_syntax_verified": true,
+  "independent_audits": {
+    "status": "passed independent replay of actual raw files and counters",
+    "run": 41278848542,
+    "head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+    "protected_captures": 14,
+    "zero_write_unmap_samples": 15,
+    "raw_varstores_decoded": 14,
+    "bootnext_exact_replays": 14,
+    "nvram_rule_exact_replays": 13,
+    "all_variable_delta_recomputations": 13,
+    "stages": [
+      "aresos-back-de",
+      "aresos-intl",
+      "aresos",
+      "boot-3-pre-login-reset",
+      "corrected-stock",
+      "default-stock",
+      "offline-first-stock",
+      "offline-roundtrip-detached-windows",
+      "offline-roundtrip-unattended-windows",
+      "prepared-unattended-windows",
+      "protected-second-install",
+      "rollback-stock",
+      "tools-stock"
+    ]
+  }
+}

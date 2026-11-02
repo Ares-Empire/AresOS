@@ -1,0 +1,106 @@
+{
+  "status": "local verification passed; PLAN-GAP blocks requested positive readiness repair",
+  "tests": 32,
+  "seconds": 55.265,
+  "old_console_and_sudo_tests": 28,
+  "new_tests": 4,
+  "skips": 0,
+  "first_new_test_attempt": "4 tests/24.284s; busy-case helper counted both primary and observer timeout captures together. Helper now distinguishes and asserts one primary plus one observer capture; no production change or weakened assertion.",
+  "source_bindings": [
+    {
+      "sha256": "a47460564d74c0305c92133419e0b13e1369312580189c22e7d19c17500b2c77",
+      "path": "AGENTS.md"
+    },
+    {
+      "sha256": "ea4d08006f746d7a5da8c2dc976d49c47edc7df42a61bef8836625abb542e24d",
+      "path": "README.md"
+    },
+    {
+      "sha256": "4bdf329c560e33d4a158be2b0911363702fc4b991f362fcf5b84da5df2c2d9b1",
+      "path": "briefs/14zt-records-prompt-local.md"
+    },
+    {
+      "sha256": "9e12cc25e9f721634900bce7c757b8e041ac84c56383eb75ddd6926a48644b54",
+      "path": "os/ci/owner_console.py"
+    },
+    {
+      "sha256": "faada8836a89cc275847362efef25e9200013b254a5a646316148f598003d471",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "73c0b1aae6bfe30707027e002a93653847a4d1e9a1052de7260fb889a20e1665",
+      "path": "os/ci/owner_key_counter.py"
+    },
+    {
+      "sha256": "219bfda222e64dadb2aa029fce5b9bbeb8f902e43e0c0c72c0ada76eb68d7c7c",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "320ca9878367ee1da4d4634e74d1e3b2de0027d1e7436955f4c69eb21ab806a6",
+      "path": "os/owner-tools/payload/SHA256.json"
+    },
+    {
+      "sha256": "a91704d410481fdab5e6fd13031df21dc4602ad901dccd3f11839b7bffe43255",
+      "path": "os/tests/test_owner_records_prompt.py"
+    },
+    {
+      "sha256": "984e365443e7b0793244a370349566294b77af3fdf91009ddc9f00138ca58421",
+      "path": "os/tests/fixtures/owner-console/14zt-q15-shape.json"
+    },
+    {
+      "sha256": "399033dafe70330f23e4a8fd2618a69524961a794abad4f163d528fed9c634ec",
+      "path": "os/tests/test_owner_console.py"
+    },
+    {
+      "sha256": "6006917ef698643f1aa76c0676db36a271862cec55d9db01419159edc25a7421",
+      "path": "os/tests/test_owner_sudo_idle.py"
+    },
+    {
+      "sha256": "d44a951dbd7e30053eaa66f17d7cac8dfe72c8583f33773bddd829a0af84b984",
+      "path": "os/tests/owner_console_shim.py"
+    },
+    {
+      "sha256": "b1187c56699012a041a444b1fcfbaafd3c6b0cf5b7ecd779a51f4621fc7e7e70",
+      "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "9cd15ec4e24cb44eb0917a70f80000659df6e10191bdd2ca917a5c6c15e28f99",
+      "path": "os/tests/guest_shell.py"
+    }
+  ],
+  "logs": [
+    {
+      "sha256": "f59ca75b6d8775f06c100ccd0de907a50051c31eb64df1080d7958484d871620",
+      "path": ".work/14/14zt/console-regressions.log"
+    },
+    {
+      "sha256": "ee0f92f3a618928d9987353f39788bed20e448b0a578ded8fa4e7671922691c8",
+      "path": ".work/14/14zt/exact-replay.log"
+    },
+    {
+      "sha256": "62489acc5a429ef59108f6f02eaef942fdc1c3826ad14d8c0b845f8c9c507fcc",
+      "path": ".work/14/14zt/host-walk.log"
+    }
+  ],
+  "private_analysis_source": {
+    "sha256": "f029695e51075c61c1dc2b181b2d1d0465beb6462110b57d04577ff4c4c9906d",
+    "path": ".work/14/14zt/analyse.py"
+  },
+  "production_code_changed": false,
+  "owner_scripts_changed": false,
+  "release_image_changed": false,
+  "privacy_rules_changed": false,
+  "budget_settings_changed": false,
+  "package13_changed": false,
+  "actions_dispatches": 0,
+  "pushes": 0,
+  "acceptance_met": false,
+  "discovered_test_cases": 544,
+  "whole_suite_executed": false,
+  "pinned_gitleaks": {
+    "version": "8.21.2",
+    "full_history_findings": 0,
+    "initial_curated_findings": 0,
+    "final_curated_findings_required": 0
+  }
+}

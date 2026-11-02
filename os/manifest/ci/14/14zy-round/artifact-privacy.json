@@ -1,0 +1,50 @@
+{
+  "status": "STOP: additional full-log findings unclassified",
+  "probe_artifact": {
+    "status": "passed",
+    "run": 41290621860,
+    "head": "cbaa985ed81eaea268d6f261cb212048da69d9cc",
+    "scan": {
+      "sha256": "84e366dfd748b8c3798d7aabbc58f10298499ca75c81b1317c7503207b355498",
+      "path": ".work/14/gitleaks/14zy-probe-artifact.json"
+    },
+    "findings": 509,
+    "iso_listing_findings": 507,
+    "kernel_certificate_findings": [
+      {
+        "sha256": "843ea7bb2f91a9525884cb3b17699baccb1319115a985462b28cab888db0aa6b",
+        "certificate_label": "Fedora kernel signing key",
+        "fingerprint_hex_length": 40,
+        "path": "evidence/two-disk/live-ui-probe-boot-console.txt",
+        "line": 491,
+        "rule": "generic-api-key",
+        "classification": "14v public kernel X.509 certificate fingerprint"
+      },
+      {
+        "sha256": "8bb3742faaf5997a69d3a75f9f7b7b253e142b8180de0335d38f45a593cc700b",
+        "certificate_label": "Fedora kernel signing key",
+        "fingerprint_hex_length": 40,
+        "path": "evidence/two-disk/live-ui-probe-boot-console.txt",
+        "line": 516,
+        "rule": "generic-api-key",
+        "classification": "14v public kernel X.509 certificate fingerprint"
+      }
+    ],
+    "policy": "briefs/14s-loop-node-race.md and briefs/14v-efibootmgr-format.md; exact whole source line in captured boot console only",
+    "ignore_changes": false,
+    "workflow_changes": false,
+    "raw_consoles_committed": false
+  },
+  "probe_native_log_findings": 0,
+  "probe_full_job_logs_findings": 4,
+  "approved_exceptions_applied_to_full_logs": false,
+  "qualification_artifact_findings": 0,
+  "qualification_full_job_logs_findings": 0,
+  "raw_matches_reproduced": false,
+  "new_ignore_entries": false,
+  "new_rules": false,
+  "unapproved_report": {
+    "sha256": "0767f5844a7f2f3ef271ce38624c262c04bb24346ffb23c6820e05d37d02a8d7",
+    "path": ".work/14/14zy/unapproved-log-findings.json"
+  }
+}

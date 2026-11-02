@@ -12,9 +12,11 @@ import shutil
 import socket
 import subprocess
 import time
+import secrets as random_secrets
 
 from qmp import QMP
-from serial_console import TerminalReplies, decode_export, encode_command
+from serial_console import TerminalReplies, decode_export, encode_command, strip_kernel_lines, serial_search, IncompleteKernelLine, command_status
+import serial_transport
 from greeter import capture_stock_greeter
 
 WORK = pathlib.Path('switch-work').resolve()
@@ -124,6 +126,8 @@ class Guest:
         self.screenshot_safe = True
         self.buffer = ''
         self.replies = TerminalReplies()
+        self.serial_input_epoch = 0
+        self.serial_completed_epoch = None
         for name in ('serial.sock', 'qmp.sock'):
             path = WORK / name
             if path.is_socket():
@@ -159,7 +163,7 @@ class Guest:
         return 'user,model=virtio-net-pci'
 
     def prepare_registry_auth(self, encoded_auth):
-        self.command('private-auth', f"set -e; install -d -m 0700 /etc/ostree; printf '%s' '{encoded_auth}' | base64 -d > /etc/ostree/auth.json; chmod 0600 /etc/ostree/auth.json", private=True)
+        raise AssertionError('Secret-bearing serial authentication is disabled; use the hidden physical prompt')
 
     def connect(self, name):
         deadline = time.monotonic() + 30
@@ -177,7 +181,11 @@ class Guest:
     def wait(self, pattern, timeout=300):
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            match = re.search(pattern, self.buffer)
+            try:
+                clean, match = serial_search(pattern, self.buffer)
+                self.buffer = clean
+            except IncompleteKernelLine:
+                match = None
             if match:
                 result = self.buffer[:match.end()]
                 self.buffer = self.buffer[match.end():]
@@ -199,7 +207,50 @@ class Guest:
         raise TimeoutError(f'Guest console did not reach {pattern}')
 
     def send(self, text):
+        # A stale ACK must not authorize another command or script execution.
+        assert 'ARESOS_ACK:' not in strip_kernel_lines(self.buffer), 'Unexpected or duplicate serial ACK before input; STOP'
+        self.serial_input_epoch = getattr(self, 'serial_input_epoch', 0) + 1
+        self.serial_completed_epoch = None
         self.console.sendall(text.encode())
+
+    def resync_after_hidden(self, stage):
+        """The prior serial command completed; tty3 input grants no UART input.
+
+        Drain output without retaining it, then flush stray serial input only
+        under that completion grant. No Enter is sent to a physical console.
+        """
+        epoch = getattr(self, 'serial_input_epoch', 0)
+        assert not self.command_pending and self.serial_completed_epoch == epoch, 'Serial idle authority absent'
+        drained = 0
+        drain_buffer = self.buffer
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            self.console.settimeout(0.2)
+            try:
+                data = self.console.recv(65536)
+            except socket.timeout:
+                break
+            assert data, 'Serial console closed during drain'
+            drained += len(data)
+            drain_buffer += data.decode(errors='replace')
+            reply = self.replies.feed(data)
+            if reply:
+                self.console.sendall(reply)
+        else:
+            raise TimeoutError('Serial output did not become quiet after hidden input')
+        serial_search(r'\Z', drain_buffer)
+        self.buffer = ''
+        nonce = random_secrets.token_hex(8)
+        self.command_pending = True
+        serial_transport.roundtrip(self.send, self.wait,
+            "python3 -c 'import termios; termios.tcflush(0,termios.TCIFLUSH)'",
+            nonce, 0, serial_transport.ACK_TIMEOUT)
+        self.command_pending = False
+        self.serial_completed_epoch = getattr(self, 'serial_input_epoch', 0)
+        self.serial_hidden_resync = dict(status='passed', prior_completion_observed=True,
+            drained_output_bytes=drained, raw_output_retained=False, serial_input_flushed=True,
+            serial_idle_roundtrips=1, physical_enter_sent=False)
+        return dict(self.serial_hidden_resync)
 
     def login(self):
         # Kernel messages may follow the prompt in the same UART read.
@@ -225,15 +276,18 @@ class Guest:
     def command(self, name, script, timeout=900, private=False):
         transcript_start = len(self.transcript)
         self.command_pending = True
-        self.send(encode_command(script))
         try:
-            output = self.wait(r'\r?\nARESOS_CMD_DONE:(\d+)\r?\n', timeout)
-        except (TimeoutError, EOFError):
-            if not private:
-                (EVIDENCE / f'{name}-incomplete.txt').write_text(redact(self.transcript[transcript_start:], self.secrets))
+            output = serial_transport.execute(self.send, self.wait, script, timeout,
+                lambda value: (EVIDENCE / f'{name}-transport.json').write_text(json.dumps(value, indent=2) + '\n'),
+                getattr(self, 'secrets', ()))
+        except (TimeoutError, EOFError, AssertionError, IncompleteKernelLine):
+            if not private and (len(self.transcript) > transcript_start or 'ARESOS_ACK:' in self.buffer):
+                output = self.transcript[transcript_start:] if len(self.transcript) > transcript_start else self.buffer
+                (EVIDENCE / f'{name}-incomplete.txt').write_text(redact(output, self.secrets))
             raise
         self.command_pending = False
-        code = int(re.search(r'ARESOS_CMD_DONE:(\d+)', output).group(1))
+        self.serial_completed_epoch = getattr(self, 'serial_input_epoch', 0)
+        code = command_status(output)
         clean = redact(output, self.secrets)
         if not private:
             (EVIDENCE / f'{name}.txt').write_text(clean)
@@ -312,7 +366,9 @@ def framed(command):
     return '''set -e
 result=$(mktemp /run/aresos-json.XXXXXX)
 trap 'rm -f "$result"' EXIT
-''' + command + ''' > "$result"
+{
+''' + command + '''
+} > "$result"
 python3 - "$result" <<'ARESOS_JSON_EXPORT'
 import base64, hashlib, json, pathlib, sys
 raw = pathlib.Path(sys.argv[1]).read_bytes()

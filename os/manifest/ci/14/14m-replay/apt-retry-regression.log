@@ -1,0 +1,9 @@
+test_all_six_apt_invocations_get_exactly_three_retries_and_same_packages (__main__.AptRetryRegression.test_all_six_apt_invocations_get_exactly_three_retries_and_same_packages) ... ok
+test_each_apt_failure_propagates_and_stops_without_shell_reruns (__main__.AptRetryRegression.test_each_apt_failure_propagates_and_stops_without_shell_reruns) ... ok
+test_exact_change_scope_and_unchanged_pins (__main__.AptRetryRegression.test_exact_change_scope_and_unchanged_pins) ... ok
+test_wrong_candidate_still_refuses_before_any_install (__main__.AptRetryRegression.test_wrong_candidate_still_refuses_before_any_install) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 29.186s
+
+OK

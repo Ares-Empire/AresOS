@@ -1,0 +1,48 @@
+{
+  "tools-install": {
+    "status": "passed",
+    "operational_trace_mutations": 0
+  },
+  "tools-prepare": {
+    "status": "passed",
+    "operational_trace_mutations": 4
+  },
+  "tools-prepare-rerun": {
+    "status": "passed",
+    "operational_trace_mutations": 0
+  },
+  "after-first-network-title": {
+    "status": "passed",
+    "operational_trace_mutations": 0
+  },
+  "after-first-network-records": {
+    "status": "passed",
+    "operational_trace_mutations": 0
+  },
+  "tools-record-export": {
+    "status": "passed",
+    "operational_trace_mutations": 5
+  },
+  "corrected-stock-title": {
+    "status": "passed",
+    "operational_trace_mutations": 0
+  },
+  "corrected-stock-records": {
+    "status": "passed",
+    "operational_trace_mutations": 0
+  },
+  "network_invariance": {
+    "rpm": true,
+    "bootc": true,
+    "bls": true
+  },
+  "login": {
+    "status": "not established",
+    "completion_export": false,
+    "exception": "TimeoutError: Guest console did not reach ARESOS_CMD_DONE",
+    "outer_command_timeout_seconds": 900,
+    "diagnostic_poll_deadline_seconds": 1800,
+    "hidden_prompt_observed": true,
+    "private_owner_login_diagnostics_exported": false
+  }
+}

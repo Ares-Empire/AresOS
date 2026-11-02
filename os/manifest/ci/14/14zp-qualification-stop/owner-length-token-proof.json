@@ -1,0 +1,42 @@
+{
+  "status": "passed",
+  "length": 40,
+  "value_recorded": false,
+  "outcome": "expected-registry-refusal",
+  "guest_key_counts": {
+    "status": "passed",
+    "counts_only": true,
+    "autorepeat": {
+      "delay_ms": 250,
+      "period_ms": 33
+    },
+    "counts": {
+      "press": 56,
+      "release": 56,
+      "repeat": 0,
+      "syn_dropped": 0
+    },
+    "codes_recorded": false,
+    "values_recorded": false,
+    "keys_released": true,
+    "seconds": 25.867,
+    "complete": true,
+    "device": "/dev/input/event4",
+    "pid": 13921,
+    "whole_window_counts": {
+      "press": 56,
+      "release": 56,
+      "repeat": 0,
+      "syn_dropped": 0
+    }
+  },
+  "comparison": {
+    "sent_events": 112,
+    "received_events": 112,
+    "press": 56,
+    "release": 56,
+    "repeat": 0,
+    "syn_dropped": 0,
+    "matches": true
+  }
+}

@@ -1,0 +1,375 @@
+{
+  "status": "STOP; final account-login key counter comparison",
+  "run": 41278848542,
+  "head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+  "stage": "default-stock",
+  "classification": "test keyboard/counter verification failure; no owner command ran at the failure point",
+  "actual_log": {
+    "sha256": "542ab4638ccd07fdd3233e265df456754b2eb0b1b79c5621973e0591eafc4649",
+    "path": ".work/14/run-41278848542/vm-scan/vm.log"
+  },
+  "assertion": "Final key counts differ; no post-Enter retry",
+  "pre_enter": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "sent": {
+          "length": 30,
+          "key_event_count": 64,
+          "key_chord_count": 30,
+          "last_key_was_ret": false,
+          "non_default_mapping_classes": [
+            "layout_differs_from_us",
+            "non_ascii",
+            "shift"
+          ],
+          "timing": {
+            "hold_ms": 30,
+            "minimum_gap_ms": 120.0
+          }
+        },
+        "comparison": {
+          "sent_events": 64,
+          "received_events": 64,
+          "press": 32,
+          "release": 32,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": true
+        }
+      }
+    ],
+    "enter_sent": false,
+    "accepted_attempt": 1,
+    "clear": null
+  },
+  "sent": {
+    "length": 30,
+    "key_event_count": 66,
+    "key_chord_count": 31,
+    "last_key_was_ret": true,
+    "non_default_mapping_classes": [
+      "layout_differs_from_us",
+      "non_ascii",
+      "shift"
+    ],
+    "timing": {
+      "hold_ms": 30,
+      "minimum_gap_ms": 120.0
+    }
+  },
+  "counter": {
+    "received": {
+      "status": "passed",
+      "counts_only": true,
+      "autorepeat": {
+        "delay_ms": 250,
+        "period_ms": 33
+      },
+      "counts": {
+        "press": 32,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0
+      },
+      "codes_recorded": false,
+      "values_recorded": false,
+      "keys_released": true,
+      "seconds": 10.724,
+      "complete": true,
+      "device": "/dev/input/event1",
+      "pid": 4733,
+      "exposure": {
+        "counts_only": true,
+        "counts": {
+          "hidden": {
+            "press": 32,
+            "release": 32,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "non_hidden": {
+            "press": 0,
+            "release": 0,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "unknown": {
+            "press": 0,
+            "release": 0,
+            "repeat": 0,
+            "syn_dropped": 0
+          }
+        },
+        "complete": true,
+        "value_recorded": false,
+        "codes_recorded": false
+      },
+      "whole_window_counts": {
+        "press": 32,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0
+      }
+    },
+    "whole_window": {
+      "status": "passed",
+      "counts_only": true,
+      "autorepeat": {
+        "delay_ms": 250,
+        "period_ms": 33
+      },
+      "counts": {
+        "press": 32,
+        "release": 33,
+        "repeat": 0,
+        "syn_dropped": 0
+      },
+      "codes_recorded": false,
+      "values_recorded": false,
+      "keys_released": true,
+      "seconds": 10.724,
+      "complete": true,
+      "device": "/dev/input/event1",
+      "pid": 4733,
+      "exposure": {
+        "counts_only": true,
+        "counts": {
+          "hidden": {
+            "press": 32,
+            "release": 32,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "non_hidden": {
+            "press": 0,
+            "release": 0,
+            "repeat": 0,
+            "syn_dropped": 0
+          },
+          "unknown": {
+            "press": 0,
+            "release": 0,
+            "repeat": 0,
+            "syn_dropped": 0
+          }
+        },
+        "complete": true,
+        "value_recorded": false,
+        "codes_recorded": false
+      }
+    },
+    "comparison": {
+      "sent_events": 66,
+      "received_events": 65,
+      "press": 32,
+      "release": 33,
+      "repeat": 0,
+      "syn_dropped": 0,
+      "matches": false
+    },
+    "attempts": [
+      {
+        "attempt": 1,
+        "sent": {
+          "length": 30,
+          "key_event_count": 64,
+          "key_chord_count": 30,
+          "last_key_was_ret": false,
+          "non_default_mapping_classes": [
+            "layout_differs_from_us",
+            "non_ascii",
+            "shift"
+          ],
+          "timing": {
+            "hold_ms": 30,
+            "minimum_gap_ms": 120.0
+          }
+        },
+        "comparison": {
+          "sent_events": 64,
+          "received_events": 64,
+          "press": 32,
+          "release": 32,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": true
+        }
+      }
+    ],
+    "clear": null
+  },
+  "stop": {
+    "status": "stopped",
+    "enter_sent": true,
+    "attempts": [
+      {
+        "attempt": 1,
+        "sent": {
+          "length": 30,
+          "key_event_count": 64,
+          "key_chord_count": 30,
+          "last_key_was_ret": false,
+          "non_default_mapping_classes": [
+            "layout_differs_from_us",
+            "non_ascii",
+            "shift"
+          ],
+          "timing": {
+            "hold_ms": 30,
+            "minimum_gap_ms": 120.0
+          }
+        },
+        "comparison": {
+          "sent_events": 64,
+          "received_events": 64,
+          "press": 32,
+          "release": 32,
+          "repeat": 0,
+          "syn_dropped": 0,
+          "matches": true
+        }
+      }
+    ],
+    "clear": null,
+    "value_recorded": false
+  },
+  "entered": {
+    "elapsed_seconds": 8.952960957999991,
+    "timeout_seconds": 60,
+    "half_budget_seconds": 30.0,
+    "within_half_timeout": true,
+    "counters_started_before_username": true,
+    "value_recorded": false
+  },
+  "absolute_counts": {
+    "baseline": {
+      "press": 14,
+      "release": 14,
+      "repeat": 0,
+      "syn_dropped": 0
+    },
+    "pre_enter": {
+      "press": 46,
+      "release": 46,
+      "repeat": 0,
+      "syn_dropped": 0
+    },
+    "final": {
+      "press": 46,
+      "release": 47,
+      "repeat": 0,
+      "syn_dropped": 0
+    }
+  },
+  "proven": {
+    "password_events_before_enter": 64,
+    "pre_enter_press": 32,
+    "pre_enter_release": 32,
+    "final_sent_events": 66,
+    "final_received_events": 65,
+    "final_press": 32,
+    "final_release": 33,
+    "repeat": 0,
+    "syn_dropped": 0,
+    "keys_released": true,
+    "counter_reported_complete": true,
+    "comparison_matches": false,
+    "extra_enter_or_post_enter_retry": false,
+    "readiness_resync_before_failure": false,
+    "password_exposure_hidden_only": true,
+    "reader_replacements_observed": false,
+    "within_half_login_timeout": true
+  },
+  "diagnostics": {
+    "kind": "hidden-read-diagnostics",
+    "read_only": true,
+    "value_recorded": false,
+    "queue_contents_read": false,
+    "syscall_arguments_recorded": false,
+    "active_vt": "tty3",
+    "python_version": "3.14.8",
+    "sudo_version": "1.9.17p2",
+    "terminals": [
+      {
+        "path": "/dev/tty3",
+        "device": 1027,
+        "termios": {
+          "ICANON": false,
+          "ECHO": false,
+          "ICRNL": false,
+          "IXON": true,
+          "IEXTEN": true,
+          "ISIG": true
+        },
+        "TIOCINQ": 0,
+        "TIOCOUTQ": 0,
+        "KDGKBMODE": 3,
+        "KDGETLED": 0,
+        "KDGKBLED": 0
+      }
+    ],
+    "processes": [
+      {
+        "pid": 2273,
+        "state": "S",
+        "wchan": "do_wait",
+        "syscall_number": 61
+      },
+      {
+        "pid": 4801,
+        "state": "S",
+        "wchan": "poll_schedule_timeout.constprop.0",
+        "syscall_number": 270
+      }
+    ],
+    "phase": "input-refused",
+    "typed": {
+      "length": 30,
+      "key_event_count": 66,
+      "key_chord_count": 31,
+      "last_key_was_ret": true,
+      "non_default_mapping_classes": [
+        "layout_differs_from_us",
+        "non_ascii",
+        "shift"
+      ],
+      "timing": {
+        "hold_ms": 30,
+        "minimum_gap_ms": 120.0
+      }
+    },
+    "token": false
+  },
+  "authentication": "not certified: no hidden-left/login-completion receipt; login parent wait plus child poll is compatible with a shell but does not prove its identity",
+  "hypothesis": {
+    "kind": "possible evdev observer queue-flush race, not a proven event interleaving",
+    "caller": "owner_key_counter.observe calls released(counting_fd) after select; released uses EVIOCGKEY",
+    "reference_behavior": "EVIOCGKEY reaches evdev_handle_get_val, which flushes queued EV_KEY events for that client; successful getter need not emit SYN_DROPPED",
+    "possible_window": "Return press arrives after select reports no data but before the state getter, then release is read normally",
+    "source": {
+      "sha256": "3b2e268c3a6059369a643e5f71199d7adf7aea2cac699476522f034b2f9ecb77",
+      "path": "os/manifest/ci/14/14zu-local/evdev.c.gz",
+      "url": "https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux/+/v6.17/drivers/input/evdev.c",
+      "kind": "retained Linux v6.17 UAPI reference; not asserted identical to guest fork"
+    },
+    "upstream_url": "https://github.com/torvalds/linux/blob/master/drivers/input/evdev.c",
+    "guest_kernel": "7.2.9-ogc3.1.fc44.x86_64",
+    "guest_fork_evdev_source_verified": false,
+    "hardware_key_loss_proven": false
+  },
+  "remaining": {
+    "lower_bound_rounds": 1,
+    "exact_rounds_known": false,
+    "checks": [
+      "complete final stock login and post-login checks",
+      "final unattended Windows marker",
+      "final detached Windows marker"
+    ],
+    "requirement": "new owner-authorized fresh probe and qualification on one head; no current-run continuation or rerun"
+  },
+  "no_fix_implemented": true,
+  "no_new_dispatch": true,
+  "acceptance_met": false
+}

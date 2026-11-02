@@ -1,0 +1,15 @@
+{
+  "status": "passed final local STOP report checks",
+  "equality_tests": 2,
+  "seconds": 20.294,
+  "diff_check": "passed",
+  "product_source_unchanged_since_pushed_head": true,
+  "private_repository": true,
+  "pr_draft": true,
+  "full_history_gitleaks_findings": 0,
+  "pending_gitleaks_zero_required_before_commit": true,
+  "artifact_unclassified_findings": 0,
+  "acceptance_met": false,
+  "extra_pushes": 0,
+  "reruns": 0
+}

@@ -1,0 +1,78 @@
+{
+  "status": "STOP: tools-install refused unexpected efibootmgr OptionalData alias",
+  "run": 40543952228,
+  "head": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+  "run_attempt": 1,
+  "conclusion": "failure",
+  "probe_run": 40538251599,
+  "probe_conclusion": "success",
+  "owner_command": "install",
+  "owner_error": "Unexpected efibootmgr grammar; preserve private diagnostics",
+  "source_line": 470,
+  "refused_boot_number": "0002",
+  "refused_label": "UEFI Misc Device",
+  "computed_suffix": "{8108ac4e-9f11-4d59-850e-e21a522c59b2}",
+  "actual_suffix": "{auto_created_boot_option}",
+  "diagnosis": "Actual formatter emits auto_created_boot_option; parser instead expects a literal GUID for16-byte OptionalData and refuses on the unrelated firmware option before selecting the Linux target",
+  "command_trace_operational_mutations": 0,
+  "private_stop_record_exported_before_assertion": true,
+  "owner_record": {
+    "sha256": "97de0ec81532fcca612d254bb9bcf4d67efb18ebc79c2590bcc9e2fc5b447ebf",
+    "path": ".work/14/run-40543952228/evidence/two-disk/tools-install-owner-diagnostics.json"
+  },
+  "failure_log": {
+    "sha256": "bf386e57eec038244800be2d2899791a58bf6617620245dc5064c352d6697188",
+    "path": ".work/14/run-40543952228/failure.log"
+  },
+  "verified_stages": [
+    "offline protected-second live install",
+    "orderly hardware initialization reboot",
+    "offline first stock boot",
+    "unattended Windows-like roundtrip",
+    "detached Windows-like check",
+    "tools-stock login/hotplug and physical install invocation"
+  ],
+  "not_verified": [
+    "prepare and zero-mutation rerun",
+    "network-up deployment/pin/pending invariance",
+    "record export",
+    "registry login/verify/switch in installed system",
+    "AresOS installed boot",
+    "layout failure/revert and success/back",
+    "rollback guard/rollback/keep-stock"
+  ],
+  "audits": {
+    "status": "passed independent replay of actual raw files and counters",
+    "run": 40543952228,
+    "head": "9284b04cc8a37b51a29c86e011ce2a22ac009d22",
+    "protected_captures": 7,
+    "zero_write_unmap_samples": 8,
+    "raw_varstores_decoded": 7,
+    "bootnext_exact_replays": 7,
+    "nvram_rule_exact_replays": 6,
+    "all_variable_delta_recomputations": 6,
+    "stages": [
+      "boot-3-pre-login-reset",
+      "offline-first-stock",
+      "offline-roundtrip-detached-windows",
+      "offline-roundtrip-unattended-windows",
+      "protected-second-install",
+      "tools-stock"
+    ]
+  },
+  "failure_counter": {
+    "failure_path": true,
+    "probe_only": false,
+    "boot": 7,
+    "status": "recorded",
+    "counter": "tools-stock-blockstats.json",
+    "vm_paused": true
+  },
+  "reruns": 0,
+  "pushes": 1,
+  "further_pushes": 0,
+  "acceptance_met": false,
+  "reserve_restoration_condition_met": false,
+  "pr13_ready": false,
+  "fix_applied": false
+}

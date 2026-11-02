@@ -1,0 +1,19 @@
+{
+  "status": "STOP; observed successful status with interleaved kernel output does not match existing exact newline ACK predicate",
+  "source": {
+    "sha256": "4727e1fb006de6cf6e6cfa9d067d7f8f10d199d30a0851b9e4afe0f648c46173",
+    "path": "evidence/two-disk/webui-probe-server-incomplete.txt"
+  },
+  "transport_stage": "webui-probe-server",
+  "ack_index": 10,
+  "phase": "syntax",
+  "observed_status": 0,
+  "following_kernel_message": "[   58.604886] async_tx: api initialized (async)",
+  "exact_ack_pattern_present": false,
+  "sha_integrity_acknowledged": true,
+  "run_line_sent": false,
+  "hidden_input_stage_reached": false,
+  "qualification_dispatched": false,
+  "raw_transcript_committed": false,
+  "post_failure_source_change": false
+}

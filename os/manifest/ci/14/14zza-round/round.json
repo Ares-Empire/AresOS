@@ -1,0 +1,41 @@
+{
+  "status": "STOP: global 106-minute VM step deadline; no rerun",
+  "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+  "existing_probe": 41301148135,
+  "qualification": 41305049425,
+  "acceptance_met": false,
+  "pr13_ready": false,
+  "new_pushes": 0,
+  "new_probes": 0,
+  "qualification_attempts": 1,
+  "reruns": 0,
+  "closing_commit_local_only": true,
+  "consumed_minutes": 2144,
+  "cap": 2750,
+  "dispatch_counts": {
+    "probe": 30,
+    "owner-tools": 19
+  },
+  "dispatch_caps": {
+    "probe": 32,
+    "owner-tools": 21
+  },
+  "organization_included_minutes_left": 1567,
+  "other_repos_reserve": 150,
+  "push_reservation": 0,
+  "closing_reservation": 0,
+  "paid_budget_read": false,
+  "remaining": [
+    "Complete post-rollback sudo readiness/check/public-typing/homebrew/greeter",
+    "Rollback-from-stock refusal and zero-mutation proof",
+    "keep-stock, refreshed title and reboot",
+    "Default-stock boot/identity/keyboard/homebrew/greeter checks",
+    "Final unattended and detached Windows markers",
+    "Final protected-disk/NVRAM/BootNext audits and aggregate owner-tools result"
+  ],
+  "additional_rounds_lower_bound": 1,
+  "additional_rounds_upper_bound": null,
+  "further_dispatch_authorized": false,
+  "product_or_owner_script_or_workflow_change": false,
+  "serial_plan_implemented": false
+}

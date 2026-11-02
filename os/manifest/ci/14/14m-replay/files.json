@@ -1,0 +1,53 @@
+{
+  "kind": "local checks only; no VM acceptance or dispatch authorization",
+  "files": [
+    {
+      "sha256": "e8f8f2de964d03942bc14752a5759d8a5e8b9b9b43f709a6b6913fb0acde0eb3",
+      "path": "apt-retry-regression.log"
+    },
+    {
+      "sha256": "ac8f29b9bb67e8a07f4f421db732fd4d904886152d0fc77e2fb6c94959ddd5b5",
+      "path": "apt-retry-regression.py"
+    },
+    {
+      "sha256": "dca133b090f9de6855a3bd56218556795b63533ccba6bf4b956fa75655ebe431",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "5eb2646d7ab818dd62e6464277d5a664d0176e1f256510b08c96f9f80319f25b",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "0faff0d67e3eef77b574fe16e52daee8bf93d890f48d0d57d1e232b01c5096c2",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "851f4cd4aeef02b1982bfdef76b781a7adb0261b6f19f873bfe254635be6dbde",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": "release-replay.log"
+    },
+    {
+      "sha256": "4b7c9280d1025a3fc02edae1b6e419893a7560fbaf534122b1c1e78aa471a97f",
+      "path": "replay.json"
+    },
+    {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "path": "stop-history-gitleaks.json"
+    },
+    {
+      "sha256": "9da99282f4356a4a7db9d59e3e758b5c660da845d00a53dceacd5631126ca498",
+      "path": "strict-checks.py"
+    },
+    {
+      "sha256": "da32227ff5798436f73aa6e819c8746373bd202c1035065af46e340d00f6ce17",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": "zero-cost-replay.log"
+    }
+  ]
+}

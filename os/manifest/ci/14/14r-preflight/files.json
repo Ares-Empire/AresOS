@@ -1,0 +1,73 @@
+{
+  "status": "local preparation; not dispatch authorization",
+  "files": [
+    {
+      "sha256": "f7729cc608254590b46faefbb3673187c1815e9dc0dc64855ff9607687bd126f",
+      "path": "artifact-collector.py"
+    },
+    {
+      "sha256": "02f04a860ad92946a95227baf32e2fe180dd02ed297b13af2ba1f39d2274d836",
+      "path": "baseline.json"
+    },
+    {
+      "sha256": "221b796193552d076251d797ea7cda71b6f518733cd17b77baf618e57f0293aa",
+      "path": "dispatch-control.py"
+    },
+    {
+      "sha256": "dcb76c05809d54cfc638437f8017c0a789c5441c428710ec8cbd76b4e2f99005",
+      "path": "guard-regressions.log"
+    },
+    {
+      "sha256": "f23c384e2b4afecd9bfe980c54206166a5ed1f619daffd41fff9f4c3c969f537",
+      "path": "host-walk.log"
+    },
+    {
+      "sha256": "b49c137539f7393685bf879043708cc38b079bd344afd6f8b9348dda77ff6350",
+      "path": "installer-adapter.py"
+    },
+    {
+      "sha256": "8b589238a1764f623b0e4833c3ea31eb39cf63d159fc685b98fb5d7e6c0318f2",
+      "path": "installer-result.json"
+    },
+    {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "path": "parent-history-gitleaks.json"
+    },
+    {
+      "sha256": "09975c99fc44ee4c88ae5fc4ef881a5d5af61e7518067ad89e3d18a4d74f29b8",
+      "path": "preparation.json"
+    },
+    {
+      "sha256": "a057ba655c6d188b9515c9b21b11f47763ae049cf0df6497292f684a37a4cf11",
+      "path": "previous-stop-ledger.json"
+    },
+    {
+      "sha256": "364602ba4be44cf91866ad349aec3a7da6a08d5a1fdee90e3dfaceb3e8073788",
+      "path": "read-only-replay.py"
+    },
+    {
+      "sha256": "527ca393a9e8fa8bf9e2f583db2a1f498fbce477663ed3be41d62aa4ccf32d7c",
+      "path": "release-replay.log"
+    },
+    {
+      "sha256": "3bb7ad62da0a603d16f09cd347985ac163ed17ae9315f5a96f2f4d2316fd5955",
+      "path": "strict-checks.py"
+    },
+    {
+      "sha256": "1622632b8a7fce6ce268bafd3e2ae0be3d8fe1d165e8399d87d0984a4e9ad57f",
+      "path": "syntax.json"
+    },
+    {
+      "sha256": "bb6d0dd3788dc1a755781f5d356e9e2f929d24cfe46c836c5028a7bb27aeed0f",
+      "path": "whole-suite.log"
+    },
+    {
+      "sha256": "a699d00bbb75da32ec7c6d47661a19415830058e2e69b8094cd38866ebd25390",
+      "path": "windows-copy.log"
+    },
+    {
+      "sha256": "d058d5b947620b3526c3dc43f201095e4b882eeb725de6d25669651af51db455",
+      "path": "zero-cost-replay.log"
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+{
+  "status": "stopped-before-dispatch",
+  "ledger": {
+    "allowance": "14",
+    "start": null,
+    "cap": 350,
+    "full_cap": 0,
+    "full_dispatched": 0,
+    "part_b_cap": 0,
+    "part_b_dispatched": 0,
+    "dispatch_caps": {
+      "probe": 1,
+      "owner-tools": 2
+    },
+    "dispatch_counts": {
+      "probe": 0,
+      "owner-tools": 0
+    },
+    "consumed_minutes": 0,
+    "reserved_minutes": 0,
+    "runs": [],
+    "publish_cap": 0,
+    "publish_attempts": [],
+    "history": {
+      "complete": true,
+      "pages_read": 1,
+      "ids_count": 11,
+      "total_count": 11,
+      "page_limit": 20,
+      "snapshot_reads": 1,
+      "pages": [
+        {
+          "ids_sha256": "885d4117e3da8fe2aee5697739bd4134255b980c082e2f7c042a6133407dcfcc",
+          "page": 1,
+          "returned": 11,
+          "total_count": 11
+        }
+      ],
+      "run_ids": [
+        40230932763,
+        40230930408,
+        40223185778,
+        40223182504,
+        40222801527,
+        40222797405,
+        40219764089,
+        40219760184,
+        40219068763,
+        40219035460,
+        40216222435
+      ]
+    }
+  },
+  "pre_dispatch_privacy": [
+    {
+      "run": 40230932763,
+      "event": "pull_request",
+      "sha": "f412cd9ef505b9ce74a62ad9d19ca922fe2f2c01",
+      "conclusion": "failure",
+      "minutes": 2
+    },
+    {
+      "run": 40230930408,
+      "event": "push",
+      "sha": "f412cd9ef505b9ce74a62ad9d19ca922fe2f2c01",
+      "conclusion": "failure",
+      "minutes": 3
+    },
+    {
+      "run": 40223185778,
+      "event": "pull_request",
+      "sha": "e96310d55134eb5ffa717a055d912eac6069b922",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40223182504,
+      "event": "push",
+      "sha": "e96310d55134eb5ffa717a055d912eac6069b922",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40222801527,
+      "event": "pull_request",
+      "sha": "ab7079659c3aa5e014a837b1a63bb4043e4808d6",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40222797405,
+      "event": "push",
+      "sha": "ab7079659c3aa5e014a837b1a63bb4043e4808d6",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40219764089,
+      "event": "pull_request",
+      "sha": "11728c531a6930a348bdaa2ae831a216d1f4d130",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40219760184,
+      "event": "push",
+      "sha": "11728c531a6930a348bdaa2ae831a216d1f4d130",
+      "conclusion": "success",
+      "minutes": 2
+    },
+    {
+      "run": 40219068763,
+      "event": "pull_request",
+      "sha": "9e3dae68effba087a20e02e924c0fd2cc47a6c57",
+      "conclusion": "success",
+      "minutes": 6
+    },
+    {
+      "run": 40219035460,
+      "event": "push",
+      "sha": "9e3dae68effba087a20e02e924c0fd2cc47a6c57",
+      "conclusion": "success",
+      "minutes": 3
+    },
+    {
+      "run": 40216222435,
+      "event": "push",
+      "sha": "362d0770033b5146940f696ee2a9a40a70b6283a",
+      "conclusion": "success",
+      "minutes": 3
+    }
+  ],
+  "pre_dispatch_privacy_minutes": 34,
+  "organization": {
+    "response_sha256": "726d9cd426416720787e957496278b8f6bed051aa2808836d830b9aab35f4126",
+    "status": "passed",
+    "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=10",
+    "checked_at": "2026-10-25T20:38:08.050167+00:00",
+    "usage": [
+      {
+        "sku": "actions_linux",
+        "unit": "minutes",
+        "grossQuantity": 1474.0,
+        "discountQuantity": 1474.0,
+        "netQuantity": 0.0,
+        "grossAmount": 8.844,
+        "discountAmount": 8.844,
+        "netAmount": 0.0
+      },
+      {
+        "sku": "actions_storage",
+        "unit": "gigabyte-hours",
+        "grossQuantity": 4.334820456,
+        "discountQuantity": 4.524094461,
+        "netQuantity": 0.0,
+        "grossAmount": 0.001456555,
+        "discountAmount": 0.001520154,
+        "netAmount": 0.0
+      }
+    ],
+    "used_minutes": 1474,
+    "included_minutes": 2000,
+    "remaining_minutes": 526,
+    "reserved_minutes": 12,
+    "after_reservation": 514,
+    "other_repos_reserve": 150,
+    "credential": "existing local gh login; GET only"
+  },
+  "probe_dispatched": 0,
+  "qualification_dispatched": 0,
+  "image_dispatched": 0,
+  "published": false,
+  "closing_privacy_reservation": 12
+}

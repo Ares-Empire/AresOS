@@ -1,0 +1,7 @@
+{
+  "status": "passed actual PS2 boot/static mappings and counts-only xHCI health records",
+  "at_boots": 1,
+  "static_keycodes_checked": 57,
+  "health_checkpoints": 7,
+  "hardware": "actual disposable runner/guest, not local stand-ins"
+}

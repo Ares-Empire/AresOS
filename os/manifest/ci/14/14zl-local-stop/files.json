@@ -1,0 +1,24 @@
+{
+  "files": [
+    {
+      "sha256": "fd1e0b1ef8c51df7522656503e15bbd0c9a2d4763e26a146c4846b9c1dddb11d",
+      "path": "budget-guard.json"
+    },
+    {
+      "sha256": "c1de791ce663ec615744ceb5ad807e50233bc1e413ffb66ed3c925abee82b48b",
+      "path": "installer-replay.json"
+    },
+    {
+      "sha256": "dacef1b0463be36b82b73f90338542d44ba3977999299d03bab385bc96cf2ac9",
+      "path": "strict.json"
+    },
+    {
+      "sha256": "9ba4610545398c11a474936fdac77c489ea3a43f26ed723aa15d66ec5cea4f85",
+      "path": "summary.json"
+    },
+    {
+      "sha256": "c4dd32dd5941705bb426bc6b84d55166d07cd4886324a01e586c7e8e5be6bece",
+      "path": "timing-profile.json"
+    }
+  ]
+}

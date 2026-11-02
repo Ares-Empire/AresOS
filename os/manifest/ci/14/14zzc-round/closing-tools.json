@@ -1,0 +1,20 @@
+{
+  "status": "local-only closing helpers",
+  "files": [
+    {
+      "sha256": "1f5e04c98cc6ab37aae3db7fd731bfbf47a8851431603866cad9367c83c6c66c",
+      "path": ".work/14/14zzc/archive-round.py",
+      "archive": "archive-round.py"
+    },
+    {
+      "sha256": "0be29e7460184c7321009e7f6ed4254ffd17fbe5f7e083fd87e35c8fbae7d667",
+      "path": ".work/14/14zzc/close-report.py",
+      "archive": "close-report.py"
+    },
+    {
+      "sha256": "8f175e03892645718c9884a8f53b39f84266cdd49654d33c10a437521160b8a1",
+      "path": ".work/14/14zzc/commit-report.py",
+      "archive": "commit-report.py"
+    }
+  ]
+}

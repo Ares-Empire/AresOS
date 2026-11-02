@@ -1,0 +1,811 @@
+{
+  "status": "passed",
+  "sources": [
+    {
+      "sha256": "b059e842c909614da9f7ec02148bb56d41a3127dfa8a7d4304defa7633a62443",
+      "path": ".work/14/14zx/basic-41278848542/jobs.json"
+    },
+    {
+      "sha256": "f4fd6bbe39cfe7d3489e0dfc9c24441fe1277d2d35fe413927079c0c633c7355",
+      "member_sha256": "542ab4638ccd07fdd3233e265df456754b2eb0b1b79c5621973e0591eafc4649",
+      "path": ".work/14/14zx/basic-41278848542/logs.zip",
+      "member": "Pinned live ISO inspection and two-disk rehearsal/16_Prepare disposable file disks and qualify the real live environment.txt"
+    },
+    {
+      "sha256": "e7b0583c6b15af80d9bff32b90cada720642d19b7b0b43770a11c201ddb2adf6",
+      "path": ".work/14/14zz/basic-41305049425/jobs.json"
+    },
+    {
+      "sha256": "1a949d39dbff57ef92d8095dbdb6c3943d18e78caa14c2853857f9a844fc761e",
+      "member_sha256": "bd4d158fb5c6b90c9af774e7eef9b27492c8a05b9a6cf8244f57970ff139adfc",
+      "path": ".work/14/14zz/basic-41305049425/logs.zip",
+      "member": "Pinned live ISO inspection and two-disk rehearsal/16_Prepare disposable file disks and qualify the real live environment.txt"
+    }
+  ],
+  "observed_runs": [
+    {
+      "qualification": 17,
+      "run": 41278848542,
+      "head": "d8adc498064065d506917f6b45bf71ca49c36dc6",
+      "job_started_at": "2026-11-01T05:56:59Z",
+      "job_completed_at": "2026-11-01T07:47:24Z",
+      "vm_started_at": "2026-11-01T06:14:25Z",
+      "vm_completed_at": "2026-11-01T07:47:17Z",
+      "before_vm_seconds": 1046.0,
+      "vm_seconds": 5572.0,
+      "after_vm_seconds": 7.0,
+      "stages": [
+        {
+          "stage": "baseline-firmware",
+          "completed_at": "2026-11-01T06:16:14.9583648Z",
+          "log_line": 72,
+          "started_at": "2026-11-01T06:14:25+00:00",
+          "seconds": 109.958364,
+          "minutes": 1.8326394000000001
+        },
+        {
+          "stage": "protected-second-install",
+          "completed_at": "2026-11-01T06:38:46.1687677Z",
+          "log_line": 75,
+          "started_at": "2026-11-01T06:16:14.958364+00:00",
+          "seconds": 1351.210403,
+          "minutes": 22.520173383333333
+        },
+        {
+          "stage": "boot-3-pre-login-reset",
+          "completed_at": "2026-11-01T06:41:45.5470491Z",
+          "log_line": 76,
+          "started_at": "2026-11-01T06:38:46.168767+00:00",
+          "seconds": 179.378282,
+          "minutes": 2.9896380333333337
+        },
+        {
+          "stage": "offline-first-stock",
+          "completed_at": "2026-11-01T06:43:19.2694245Z",
+          "log_line": 78,
+          "started_at": "2026-11-01T06:41:45.547049+00:00",
+          "seconds": 93.722375,
+          "minutes": 1.5620395833333334
+        },
+        {
+          "stage": "offline-roundtrip-unattended-windows",
+          "completed_at": "2026-11-01T06:44:08.1695093Z",
+          "log_line": 79,
+          "started_at": "2026-11-01T06:43:19.269424+00:00",
+          "seconds": 48.900085,
+          "minutes": 0.8150014166666666
+        },
+        {
+          "stage": "offline-roundtrip-detached-windows",
+          "completed_at": "2026-11-01T06:44:57.0033549Z",
+          "log_line": 80,
+          "started_at": "2026-11-01T06:44:08.169509+00:00",
+          "seconds": 48.833845,
+          "minutes": 0.8138974166666666
+        },
+        {
+          "stage": "tools-stock",
+          "completed_at": "2026-11-01T06:54:04.2778825Z",
+          "log_line": 83,
+          "started_at": "2026-11-01T06:44:57.003354+00:00",
+          "seconds": 547.274528,
+          "minutes": 9.121242133333334
+        },
+        {
+          "stage": "prepared-unattended-windows",
+          "completed_at": "2026-11-01T06:54:53.1939990Z",
+          "log_line": 84,
+          "started_at": "2026-11-01T06:54:04.277882+00:00",
+          "seconds": 48.916117,
+          "minutes": 0.8152686166666666
+        },
+        {
+          "stage": "corrected-stock",
+          "completed_at": "2026-11-01T07:11:21.7912001Z",
+          "log_line": 85,
+          "started_at": "2026-11-01T06:54:53.193999+00:00",
+          "seconds": 988.597201,
+          "minutes": 16.47662001666667
+        },
+        {
+          "stage": "aresos",
+          "completed_at": "2026-11-01T07:25:24.0101116Z",
+          "log_line": 86,
+          "started_at": "2026-11-01T07:11:21.791200+00:00",
+          "seconds": 842.218911,
+          "minutes": 14.03698185
+        },
+        {
+          "stage": "aresos-intl",
+          "completed_at": "2026-11-01T07:33:27.6599126Z",
+          "log_line": 87,
+          "started_at": "2026-11-01T07:25:24.010111+00:00",
+          "seconds": 483.649801,
+          "minutes": 8.060830016666667
+        },
+        {
+          "stage": "aresos-back-de",
+          "completed_at": "2026-11-01T07:39:15.0570763Z",
+          "log_line": 88,
+          "started_at": "2026-11-01T07:33:27.659912+00:00",
+          "seconds": 347.397164,
+          "minutes": 5.789952733333333
+        },
+        {
+          "stage": "rollback-stock",
+          "completed_at": "2026-11-01T07:45:08.4044855Z",
+          "log_line": 89,
+          "started_at": "2026-11-01T07:39:15.057076+00:00",
+          "seconds": 353.347409,
+          "minutes": 5.889123483333334
+        },
+        {
+          "stage": "default-stock",
+          "completed_at": "2026-11-01T07:47:17.6747204Z",
+          "log_line": 90,
+          "started_at": "2026-11-01T07:45:08.404485+00:00",
+          "seconds": 129.270235,
+          "minutes": 2.154503916666667
+        }
+      ],
+      "tail_after_last_checkpoint_seconds": -0.67472,
+      "checkpoint_caution": "A failure-unwind audit checkpoint is not proof that every stage assertion completed"
+    },
+    {
+      "qualification": 19,
+      "run": 41305049425,
+      "head": "10921f81f481bd2b2c7bfb2da9e13deabdb1267f",
+      "job_started_at": "2026-11-01T12:08:39Z",
+      "job_completed_at": "2026-11-01T14:10:32Z",
+      "vm_started_at": "2026-11-01T12:24:04Z",
+      "vm_completed_at": "2026-11-01T14:10:17Z",
+      "before_vm_seconds": 925.0,
+      "vm_seconds": 6373.0,
+      "after_vm_seconds": 15.0,
+      "stages": [
+        {
+          "stage": "baseline-firmware",
+          "completed_at": "2026-11-01T12:25:52.6525762Z",
+          "log_line": 72,
+          "started_at": "2026-11-01T12:24:04+00:00",
+          "seconds": 108.652576,
+          "minutes": 1.8108762666666667
+        },
+        {
+          "stage": "protected-second-install",
+          "completed_at": "2026-11-01T12:50:51.5362631Z",
+          "log_line": 75,
+          "started_at": "2026-11-01T12:25:52.652576+00:00",
+          "seconds": 1498.883687,
+          "minutes": 24.981394783333332
+        },
+        {
+          "stage": "boot-3-pre-login-reset",
+          "completed_at": "2026-11-01T12:53:46.6558856Z",
+          "log_line": 76,
+          "started_at": "2026-11-01T12:50:51.536263+00:00",
+          "seconds": 175.119622,
+          "minutes": 2.9186603666666664
+        },
+        {
+          "stage": "offline-first-stock",
+          "completed_at": "2026-11-01T12:55:39.8157170Z",
+          "log_line": 78,
+          "started_at": "2026-11-01T12:53:46.655885+00:00",
+          "seconds": 113.159832,
+          "minutes": 1.8859971999999998
+        },
+        {
+          "stage": "offline-roundtrip-unattended-windows",
+          "completed_at": "2026-11-01T12:56:34.5829342Z",
+          "log_line": 79,
+          "started_at": "2026-11-01T12:55:39.815717+00:00",
+          "seconds": 54.767217,
+          "minutes": 0.91278695
+        },
+        {
+          "stage": "offline-roundtrip-detached-windows",
+          "completed_at": "2026-11-01T12:57:29.3844386Z",
+          "log_line": 80,
+          "started_at": "2026-11-01T12:56:34.582934+00:00",
+          "seconds": 54.801504,
+          "minutes": 0.9133584
+        },
+        {
+          "stage": "tools-stock",
+          "completed_at": "2026-11-01T13:08:31.2013093Z",
+          "log_line": 83,
+          "started_at": "2026-11-01T12:57:29.384438+00:00",
+          "seconds": 661.816871,
+          "minutes": 11.030281183333333
+        },
+        {
+          "stage": "prepared-unattended-windows",
+          "completed_at": "2026-11-01T13:09:26.5859334Z",
+          "log_line": 84,
+          "started_at": "2026-11-01T13:08:31.201309+00:00",
+          "seconds": 55.384624,
+          "minutes": 0.9230770666666667
+        },
+        {
+          "stage": "corrected-stock",
+          "completed_at": "2026-11-01T13:30:32.6975213Z",
+          "log_line": 85,
+          "started_at": "2026-11-01T13:09:26.585933+00:00",
+          "seconds": 1266.111588,
+          "minutes": 21.1018598
+        },
+        {
+          "stage": "aresos",
+          "completed_at": "2026-11-01T13:48:29.1018943Z",
+          "log_line": 86,
+          "started_at": "2026-11-01T13:30:32.697521+00:00",
+          "seconds": 1076.404373,
+          "minutes": 17.940072883333336
+        },
+        {
+          "stage": "aresos-intl",
+          "completed_at": "2026-11-01T13:59:01.0535752Z",
+          "log_line": 87,
+          "started_at": "2026-11-01T13:48:29.101894+00:00",
+          "seconds": 631.951681,
+          "minutes": 10.532528016666667
+        },
+        {
+          "stage": "aresos-back-de",
+          "completed_at": "2026-11-01T14:07:05.1295999Z",
+          "log_line": 88,
+          "started_at": "2026-11-01T13:59:01.053575+00:00",
+          "seconds": 484.076024,
+          "minutes": 8.067933733333334
+        }
+      ],
+      "tail_after_last_checkpoint_seconds": 191.870401,
+      "checkpoint_caution": "A failure-unwind audit checkpoint is not proof that every stage assertion completed"
+    }
+  ],
+  "qualification17_completed_command_facts": [
+    {
+      "sha256": "df80d8d58c25a3dde05ebf6b4f2d748756ce5a1e340ea09be768b99b2407ca3d",
+      "path": ".work/14/run-41278848542/evidence/two-disk/rollback-from-stock-refused-owner-result.json",
+      "status": "stopped",
+      "command": [
+        "rollback"
+      ]
+    },
+    {
+      "sha256": "694726dfc6530a69c05c2ed087a28edaab3c3dd58f2267b01d246d6c92c0e68d",
+      "path": ".work/14/run-41278848542/evidence/two-disk/owner-keep-stock-owner-result.json",
+      "status": "passed",
+      "command": [
+        "keep-stock"
+      ]
+    },
+    {
+      "sha256": "9928e3afc21a8c45582f4cdd7194dc1f03e9194d5b3bdd549ab25e935160cbe4",
+      "path": ".work/14/run-41278848542/evidence/two-disk/owner-keep-stock-title-owner-result.json",
+      "status": "passed",
+      "command": [
+        "title"
+      ]
+    }
+  ],
+  "brief_fact_note": "q17 did complete rollback-from-stock refusal and keep-stock/title commands; its default-stock checkpoint was failure unwind, not successful verification. The projection nevertheless uses fresh conservative whole-boot allowances for every remaining logical group.",
+  "projection": [
+    {
+      "stage": "baseline-firmware",
+      "seconds": 109.958364,
+      "minutes": 1.8326394000000001,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 17,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "baseline-firmware",
+          "completed_at": "2026-11-01T06:16:14.9583648Z",
+          "log_line": 72,
+          "started_at": "2026-11-01T06:14:25+00:00",
+          "seconds": 109.958364,
+          "minutes": 1.8326394000000001
+        },
+        {
+          "qualification": 19,
+          "stage": "baseline-firmware",
+          "completed_at": "2026-11-01T12:25:52.6525762Z",
+          "log_line": 72,
+          "started_at": "2026-11-01T12:24:04+00:00",
+          "seconds": 108.652576,
+          "minutes": 1.8108762666666667
+        }
+      ]
+    },
+    {
+      "stage": "protected-second-install",
+      "seconds": 1498.883687,
+      "minutes": 24.981394783333332,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "protected-second-install",
+          "completed_at": "2026-11-01T06:38:46.1687677Z",
+          "log_line": 75,
+          "started_at": "2026-11-01T06:16:14.958364+00:00",
+          "seconds": 1351.210403,
+          "minutes": 22.520173383333333
+        },
+        {
+          "qualification": 19,
+          "stage": "protected-second-install",
+          "completed_at": "2026-11-01T12:50:51.5362631Z",
+          "log_line": 75,
+          "started_at": "2026-11-01T12:25:52.652576+00:00",
+          "seconds": 1498.883687,
+          "minutes": 24.981394783333332
+        }
+      ]
+    },
+    {
+      "stage": "boot-3-pre-login-reset",
+      "seconds": 179.378282,
+      "minutes": 2.9896380333333337,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 17,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "boot-3-pre-login-reset",
+          "completed_at": "2026-11-01T06:41:45.5470491Z",
+          "log_line": 76,
+          "started_at": "2026-11-01T06:38:46.168767+00:00",
+          "seconds": 179.378282,
+          "minutes": 2.9896380333333337
+        },
+        {
+          "qualification": 19,
+          "stage": "boot-3-pre-login-reset",
+          "completed_at": "2026-11-01T12:53:46.6558856Z",
+          "log_line": 76,
+          "started_at": "2026-11-01T12:50:51.536263+00:00",
+          "seconds": 175.119622,
+          "minutes": 2.9186603666666664
+        }
+      ]
+    },
+    {
+      "stage": "offline-first-stock",
+      "seconds": 113.159832,
+      "minutes": 1.8859971999999998,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "offline-first-stock",
+          "completed_at": "2026-11-01T06:43:19.2694245Z",
+          "log_line": 78,
+          "started_at": "2026-11-01T06:41:45.547049+00:00",
+          "seconds": 93.722375,
+          "minutes": 1.5620395833333334
+        },
+        {
+          "qualification": 19,
+          "stage": "offline-first-stock",
+          "completed_at": "2026-11-01T12:55:39.8157170Z",
+          "log_line": 78,
+          "started_at": "2026-11-01T12:53:46.655885+00:00",
+          "seconds": 113.159832,
+          "minutes": 1.8859971999999998
+        }
+      ]
+    },
+    {
+      "stage": "offline-roundtrip-unattended-windows",
+      "seconds": 54.767217,
+      "minutes": 0.91278695,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "offline-roundtrip-unattended-windows",
+          "completed_at": "2026-11-01T06:44:08.1695093Z",
+          "log_line": 79,
+          "started_at": "2026-11-01T06:43:19.269424+00:00",
+          "seconds": 48.900085,
+          "minutes": 0.8150014166666666
+        },
+        {
+          "qualification": 19,
+          "stage": "offline-roundtrip-unattended-windows",
+          "completed_at": "2026-11-01T12:56:34.5829342Z",
+          "log_line": 79,
+          "started_at": "2026-11-01T12:55:39.815717+00:00",
+          "seconds": 54.767217,
+          "minutes": 0.91278695
+        }
+      ]
+    },
+    {
+      "stage": "offline-roundtrip-detached-windows",
+      "seconds": 54.801504,
+      "minutes": 0.9133584,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "offline-roundtrip-detached-windows",
+          "completed_at": "2026-11-01T06:44:57.0033549Z",
+          "log_line": 80,
+          "started_at": "2026-11-01T06:44:08.169509+00:00",
+          "seconds": 48.833845,
+          "minutes": 0.8138974166666666
+        },
+        {
+          "qualification": 19,
+          "stage": "offline-roundtrip-detached-windows",
+          "completed_at": "2026-11-01T12:57:29.3844386Z",
+          "log_line": 80,
+          "started_at": "2026-11-01T12:56:34.582934+00:00",
+          "seconds": 54.801504,
+          "minutes": 0.9133584
+        }
+      ]
+    },
+    {
+      "stage": "tools-stock",
+      "seconds": 661.816871,
+      "minutes": 11.030281183333333,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "tools-stock",
+          "completed_at": "2026-11-01T06:54:04.2778825Z",
+          "log_line": 83,
+          "started_at": "2026-11-01T06:44:57.003354+00:00",
+          "seconds": 547.274528,
+          "minutes": 9.121242133333334
+        },
+        {
+          "qualification": 19,
+          "stage": "tools-stock",
+          "completed_at": "2026-11-01T13:08:31.2013093Z",
+          "log_line": 83,
+          "started_at": "2026-11-01T12:57:29.384438+00:00",
+          "seconds": 661.816871,
+          "minutes": 11.030281183333333
+        }
+      ]
+    },
+    {
+      "stage": "prepared-unattended-windows",
+      "seconds": 55.384624,
+      "minutes": 0.9230770666666667,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "prepared-unattended-windows",
+          "completed_at": "2026-11-01T06:54:53.1939990Z",
+          "log_line": 84,
+          "started_at": "2026-11-01T06:54:04.277882+00:00",
+          "seconds": 48.916117,
+          "minutes": 0.8152686166666666
+        },
+        {
+          "qualification": 19,
+          "stage": "prepared-unattended-windows",
+          "completed_at": "2026-11-01T13:09:26.5859334Z",
+          "log_line": 84,
+          "started_at": "2026-11-01T13:08:31.201309+00:00",
+          "seconds": 55.384624,
+          "minutes": 0.9230770666666667
+        }
+      ]
+    },
+    {
+      "stage": "corrected-stock",
+      "seconds": 1266.111588,
+      "minutes": 21.1018598,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "corrected-stock",
+          "completed_at": "2026-11-01T07:11:21.7912001Z",
+          "log_line": 85,
+          "started_at": "2026-11-01T06:54:53.193999+00:00",
+          "seconds": 988.597201,
+          "minutes": 16.47662001666667
+        },
+        {
+          "qualification": 19,
+          "stage": "corrected-stock",
+          "completed_at": "2026-11-01T13:30:32.6975213Z",
+          "log_line": 85,
+          "started_at": "2026-11-01T13:09:26.585933+00:00",
+          "seconds": 1266.111588,
+          "minutes": 21.1018598
+        }
+      ]
+    },
+    {
+      "stage": "aresos",
+      "seconds": 1076.404373,
+      "minutes": 17.940072883333336,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "aresos",
+          "completed_at": "2026-11-01T07:25:24.0101116Z",
+          "log_line": 86,
+          "started_at": "2026-11-01T07:11:21.791200+00:00",
+          "seconds": 842.218911,
+          "minutes": 14.03698185
+        },
+        {
+          "qualification": 19,
+          "stage": "aresos",
+          "completed_at": "2026-11-01T13:48:29.1018943Z",
+          "log_line": 86,
+          "started_at": "2026-11-01T13:30:32.697521+00:00",
+          "seconds": 1076.404373,
+          "minutes": 17.940072883333336
+        }
+      ]
+    },
+    {
+      "stage": "aresos-intl",
+      "seconds": 631.951681,
+      "minutes": 10.532528016666667,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "aresos-intl",
+          "completed_at": "2026-11-01T07:33:27.6599126Z",
+          "log_line": 87,
+          "started_at": "2026-11-01T07:25:24.010111+00:00",
+          "seconds": 483.649801,
+          "minutes": 8.060830016666667
+        },
+        {
+          "qualification": 19,
+          "stage": "aresos-intl",
+          "completed_at": "2026-11-01T13:59:01.0535752Z",
+          "log_line": 87,
+          "started_at": "2026-11-01T13:48:29.101894+00:00",
+          "seconds": 631.951681,
+          "minutes": 10.532528016666667
+        }
+      ]
+    },
+    {
+      "stage": "aresos-back-de",
+      "seconds": 484.076024,
+      "minutes": 8.067933733333334,
+      "rule": "slower completed checkpoint interval across q17/q19",
+      "selected_qualification": 19,
+      "observations": [
+        {
+          "qualification": 17,
+          "stage": "aresos-back-de",
+          "completed_at": "2026-11-01T07:39:15.0570763Z",
+          "log_line": 88,
+          "started_at": "2026-11-01T07:33:27.659912+00:00",
+          "seconds": 347.397164,
+          "minutes": 5.789952733333333
+        },
+        {
+          "qualification": 19,
+          "stage": "aresos-back-de",
+          "completed_at": "2026-11-01T14:07:05.1295999Z",
+          "log_line": 88,
+          "started_at": "2026-11-01T13:59:01.053575+00:00",
+          "seconds": 484.076024,
+          "minutes": 8.067933733333334
+        }
+      ]
+    },
+    {
+      "stage": "rollback-from-stock-refusal",
+      "seconds": 661.816871,
+      "minutes": 11.030281183333333,
+      "rule": "one entire slowest comparable stock-boot interval per remaining logical group; deliberately overallocates boot cost for the two command groups",
+      "comparable_stage": "tools-stock",
+      "selected_qualification": 19
+    },
+    {
+      "stage": "keep-stock/title/reboot",
+      "seconds": 661.816871,
+      "minutes": 11.030281183333333,
+      "rule": "one entire slowest comparable stock-boot interval per remaining logical group; deliberately overallocates boot cost for the two command groups",
+      "comparable_stage": "tools-stock",
+      "selected_qualification": 19
+    },
+    {
+      "stage": "default-stock-verification",
+      "seconds": 661.816871,
+      "minutes": 11.030281183333333,
+      "rule": "one entire slowest comparable stock-boot interval per remaining logical group; deliberately overallocates boot cost for the two command groups",
+      "comparable_stage": "tools-stock",
+      "selected_qualification": 19
+    },
+    {
+      "stage": "final-unattended-windows",
+      "seconds": 55.384624,
+      "minutes": 0.9230770666666667,
+      "rule": "slowest observed comparable Windows marker boot",
+      "comparable_stage": "prepared-unattended-windows",
+      "selected_qualification": 19
+    },
+    {
+      "stage": "final-detached-windows",
+      "seconds": 55.384624,
+      "minutes": 0.9230770666666667,
+      "rule": "slowest observed comparable Windows marker boot",
+      "comparable_stage": "prepared-unattended-windows",
+      "selected_qualification": 19
+    }
+  ],
+  "comparable_stock_candidates": [
+    {
+      "qualification": 17,
+      "stage": "boot-3-pre-login-reset",
+      "completed_at": "2026-11-01T06:41:45.5470491Z",
+      "log_line": 76,
+      "started_at": "2026-11-01T06:38:46.168767+00:00",
+      "seconds": 179.378282,
+      "minutes": 2.9896380333333337
+    },
+    {
+      "qualification": 17,
+      "stage": "offline-first-stock",
+      "completed_at": "2026-11-01T06:43:19.2694245Z",
+      "log_line": 78,
+      "started_at": "2026-11-01T06:41:45.547049+00:00",
+      "seconds": 93.722375,
+      "minutes": 1.5620395833333334
+    },
+    {
+      "qualification": 17,
+      "stage": "tools-stock",
+      "completed_at": "2026-11-01T06:54:04.2778825Z",
+      "log_line": 83,
+      "started_at": "2026-11-01T06:44:57.003354+00:00",
+      "seconds": 547.274528,
+      "minutes": 9.121242133333334
+    },
+    {
+      "qualification": 17,
+      "stage": "rollback-stock",
+      "completed_at": "2026-11-01T07:45:08.4044855Z",
+      "log_line": 89,
+      "started_at": "2026-11-01T07:39:15.057076+00:00",
+      "seconds": 353.347409,
+      "minutes": 5.889123483333334
+    },
+    {
+      "qualification": 19,
+      "stage": "boot-3-pre-login-reset",
+      "completed_at": "2026-11-01T12:53:46.6558856Z",
+      "log_line": 76,
+      "started_at": "2026-11-01T12:50:51.536263+00:00",
+      "seconds": 175.119622,
+      "minutes": 2.9186603666666664
+    },
+    {
+      "qualification": 19,
+      "stage": "offline-first-stock",
+      "completed_at": "2026-11-01T12:55:39.8157170Z",
+      "log_line": 78,
+      "started_at": "2026-11-01T12:53:46.655885+00:00",
+      "seconds": 113.159832,
+      "minutes": 1.8859971999999998
+    },
+    {
+      "qualification": 19,
+      "stage": "tools-stock",
+      "completed_at": "2026-11-01T13:08:31.2013093Z",
+      "log_line": 83,
+      "started_at": "2026-11-01T12:57:29.384438+00:00",
+      "seconds": 661.816871,
+      "minutes": 11.030281183333333
+    }
+  ],
+  "comparable_windows_candidates": [
+    {
+      "qualification": 17,
+      "stage": "offline-roundtrip-unattended-windows",
+      "completed_at": "2026-11-01T06:44:08.1695093Z",
+      "log_line": 79,
+      "started_at": "2026-11-01T06:43:19.269424+00:00",
+      "seconds": 48.900085,
+      "minutes": 0.8150014166666666
+    },
+    {
+      "qualification": 17,
+      "stage": "offline-roundtrip-detached-windows",
+      "completed_at": "2026-11-01T06:44:57.0033549Z",
+      "log_line": 80,
+      "started_at": "2026-11-01T06:44:08.169509+00:00",
+      "seconds": 48.833845,
+      "minutes": 0.8138974166666666
+    },
+    {
+      "qualification": 17,
+      "stage": "prepared-unattended-windows",
+      "completed_at": "2026-11-01T06:54:53.1939990Z",
+      "log_line": 84,
+      "started_at": "2026-11-01T06:54:04.277882+00:00",
+      "seconds": 48.916117,
+      "minutes": 0.8152686166666666
+    },
+    {
+      "qualification": 19,
+      "stage": "offline-roundtrip-unattended-windows",
+      "completed_at": "2026-11-01T12:56:34.5829342Z",
+      "log_line": 79,
+      "started_at": "2026-11-01T12:55:39.815717+00:00",
+      "seconds": 54.767217,
+      "minutes": 0.91278695
+    },
+    {
+      "qualification": 19,
+      "stage": "offline-roundtrip-detached-windows",
+      "completed_at": "2026-11-01T12:57:29.3844386Z",
+      "log_line": 80,
+      "started_at": "2026-11-01T12:56:34.582934+00:00",
+      "seconds": 54.801504,
+      "minutes": 0.9133584
+    },
+    {
+      "qualification": 19,
+      "stage": "prepared-unattended-windows",
+      "completed_at": "2026-11-01T13:09:26.5859334Z",
+      "log_line": 84,
+      "started_at": "2026-11-01T13:08:31.201309+00:00",
+      "seconds": 55.384624,
+      "minutes": 0.9230770666666667
+    }
+  ],
+  "excluded_from_tail_comparison": [
+    {
+      "stage": "corrected-stock",
+      "reason": "one-time registry dummy/real login, signature verification and image switch/pull; retained in full known projection, not comparable to the already-installed stock tail"
+    },
+    {
+      "stage": "aresos",
+      "reason": "initial intentional plain-US rejection/revert and multiple physical login/proof branches; retained in full known projection, not a stock-only tail boot"
+    },
+    {
+      "stage": "protected-second-install",
+      "reason": "installation, not a boot of already-installed stock"
+    }
+  ],
+  "vm_projection_minutes": 138.04856513333334,
+  "margin_fraction": 0.25,
+  "vm_with_margin_minutes": 172.56070641666668,
+  "vm_limit_minutes": 180,
+  "before_vm_slower_minutes": 17.433333333333334,
+  "after_vm_slower_minutes": 0.25,
+  "whole_job_projection_minutes": 155.73189846666668,
+  "whole_job_with_margin_minutes": 194.66487308333336,
+  "qualification_bound_minutes": 220,
+  "probe_bound_minutes": 72,
+  "cap_minutes": 2750,
+  "starting_minutes": 2144,
+  "round_worst_case_minutes": 2436,
+  "new_pushes": 0,
+  "dispatches": 0,
+  "privacy_changes": false
+}

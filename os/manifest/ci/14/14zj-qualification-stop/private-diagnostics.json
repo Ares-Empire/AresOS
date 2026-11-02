@@ -1,0 +1,65 @@
+{
+  "artifact_sha256": "92198cf3943f814eebe4cab1e149cf279c80943896412704702187e8476ae20b",
+  "files": [
+    {
+      "sha256": "2fec60989ddf2daecda03720862384880361acd7786235508e478117c6705f25",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2-left-timeout-1.json",
+      "bytes": 241
+    },
+    {
+      "sha256": "fbb69f3ca62f9dbd8792fd6cec0cd806017857f684ac57ef5ce13e4a9e4ad61c",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2-left-timeout-1.vcsa",
+      "bytes": 16004
+    },
+    {
+      "sha256": "c9fe20d53602d457c95b92a1673f4099979debd73e64bece77490b8461e8aa1c",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2-left-transport.json",
+      "bytes": 12259
+    },
+    {
+      "sha256": "203f757d2ea9a9a4a65a8ba806d47d480aa97089800ee2b1d506db88645c548c",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2-left.json",
+      "bytes": 21801
+    },
+    {
+      "sha256": "70d5cf6fdf0f0e840753747356c3188336ee9cbe90374d4ae0a3b27418bc0f11",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2-left.txt",
+      "bytes": 29846
+    },
+    {
+      "sha256": "cabed1b31dc9af7333a22c9f24f29f71e7a3ba2d9a18fbea6b21c677802ead0d",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2-read-left-serial-resync.json",
+      "bytes": 219
+    },
+    {
+      "sha256": "a5d2d99e76ccfb9f25bcf36d15191215b01d41e9f410cbe72034a623c9a01270",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2-transport.json",
+      "bytes": 12013
+    },
+    {
+      "sha256": "75ca0f0b40a522397e53381ce60dcacdb2e81dd243fe7091e70897a4760586f5",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2.json",
+      "bytes": 707
+    },
+    {
+      "sha256": "371d4e2c68afcc907b0af00d04d5e8a9e85a7ffa33c54d0d3e3e4088a18cc5e7",
+      "path": "evidence/two-disk/tools-stock-password-prompt-read-wait-2.txt",
+      "bytes": 916
+    },
+    {
+      "sha256": "4d89be6064a55eb5c838e9489ca849fbf9a1594e76b260e8e76d66ae18ae79d5",
+      "path": "evidence/two-disk/tools-stock-failure-counter.json",
+      "bytes": 152
+    }
+  ],
+  "native_log": {
+    "sha256": "a054a6c626a20252863479dcb296f38e6380888a4c740b234ca8a01783d98acb",
+    "path": "native.log",
+    "review_copy": "native-suite.txt",
+    "normalization": "LF and trailing horizontal whitespace removed from review copy only; exact private source retained"
+  },
+  "raw_console_or_vcsa_committed": false,
+  "decoded_console_saved": false,
+  "owner_commands_reached": 0,
+  "private_token_stage_reached": false
+}

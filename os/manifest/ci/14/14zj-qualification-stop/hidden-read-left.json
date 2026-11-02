@@ -1,0 +1,23 @@
+{
+  "ready": false,
+  "reason": "Foreground interactive bash",
+  "observation": {
+    "reason": "Foreground interactive bash",
+    "foreground_chain": [
+      {
+        "pid": 2926,
+        "comm": "bash",
+        "argv": [
+          "[redacted]"
+        ],
+        "argv_redacted": true,
+        "ppid": 1962,
+        "pgrp": 2926,
+        "session": 2926,
+        "tty": 1027,
+        "tpgid": 2926
+      }
+    ]
+  },
+  "value_recorded": false
+}

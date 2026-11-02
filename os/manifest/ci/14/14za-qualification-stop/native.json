@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "head": "2fb695cdb419d67b51a76d91727668b33df82ecd",
+  "tests": 400,
+  "seconds": 32.354,
+  "skips": 0,
+  "loop_checks": 20,
+  "helper_mutations": 0,
+  "protected_unchanged": true,
+  "cleanup_complete": true,
+  "local_host_limits_resolved": 8,
+  "logs": [
+    {
+      "sha256": "7328f2ce2397694f5ea5d8d992294abdd7eae915096e93eafac8c6c5c6a71338",
+      "path": ".work/14/run-40566496658/native.log",
+      "committed": false
+    },
+    {
+      "sha256": "b9d679555ddfea59de2de676ae7592dd64c21cd33156e04e183e8b1aa0ee96e9",
+      "path": ".work/14/run-40566496658/failure.log",
+      "committed": false
+    }
+  ]
+}

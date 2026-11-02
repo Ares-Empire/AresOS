@@ -1,0 +1,260 @@
+{
+  "status": "PLAN-GAP: keyboard controller failure, not a different rendered prompt",
+  "run": 40897501964,
+  "head": "65edb1195b12cade6f62d9952f70f5920ad13631",
+  "artifact": {
+    "sha256": "1d29a8509949b5d1fcaeb0dedcb6993a0e5bbfc73dcc90ef72998318d3d096bf",
+    "path": ".work/14/run-40897501964/evidence.zip"
+  },
+  "snapshots": [
+    {
+      "sha256": "8649735e5bd80360e83a626321415b0e87aef64ffb4592f9eb15b14161f5fd8f",
+      "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-records-completed-wait-53-timeout-1.vcsa",
+      "phase": 1,
+      "rows": 50,
+      "columns": 160,
+      "cursor_x": 0,
+      "cursor_y": 49,
+      "root_prefix_rows": [
+        23,
+        33,
+        45
+      ],
+      "pass_records_row": 34,
+      "fresh_prompt_row": 45,
+      "footer_row": 44,
+      "prompt_form": "root@bazzite:~# ",
+      "prompt_only_rows": [],
+      "identical_to_other_snapshots": true,
+      "prompt_start_column": 0,
+      "prompt_width": 16,
+      "kernel_start_column": 16
+    },
+    {
+      "sha256": "8649735e5bd80360e83a626321415b0e87aef64ffb4592f9eb15b14161f5fd8f",
+      "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-records-completed-wait-53-timeout-2.vcsa",
+      "phase": 2,
+      "rows": 50,
+      "columns": 160,
+      "cursor_x": 0,
+      "cursor_y": 49,
+      "root_prefix_rows": [
+        23,
+        33,
+        45
+      ],
+      "pass_records_row": 34,
+      "fresh_prompt_row": 45,
+      "footer_row": 44,
+      "prompt_form": "root@bazzite:~# ",
+      "prompt_only_rows": [],
+      "identical_to_other_snapshots": true,
+      "prompt_start_column": 0,
+      "prompt_width": 16,
+      "kernel_start_column": 16
+    },
+    {
+      "sha256": "8649735e5bd80360e83a626321415b0e87aef64ffb4592f9eb15b14161f5fd8f",
+      "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-records-completed-wait-53-timeout-3.vcsa",
+      "phase": 3,
+      "rows": 50,
+      "columns": 160,
+      "cursor_x": 0,
+      "cursor_y": 49,
+      "root_prefix_rows": [
+        23,
+        33,
+        45
+      ],
+      "pass_records_row": 34,
+      "fresh_prompt_row": 45,
+      "footer_row": 44,
+      "prompt_form": "root@bazzite:~# ",
+      "prompt_only_rows": [],
+      "identical_to_other_snapshots": true,
+      "prompt_start_column": 0,
+      "prompt_width": 16,
+      "kernel_start_column": 16
+    }
+  ],
+  "resyncs": [
+    {
+      "sha256": "a0ede22bf414bd4d6dfab38fa8fe4beab2123c76066b83bc8b34097a7008d74b",
+      "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-records-completed-wait-53-resync-1.json",
+      "attempt": 1,
+      "host_enter_issued": true,
+      "observer_ready": true,
+      "time": "2026-10-29T16:06:26.642124+00:00",
+      "after_time": "2026-10-29T16:06:59.361870+00:00",
+      "visible_change": false,
+      "new_visible_prompt": false,
+      "guest_ev_key_delivery_proven": false,
+      "foreground_chain": [
+        {
+          "pid": 6041,
+          "comm": "sudo",
+          "argv": [
+            "sudo",
+            "-i"
+          ],
+          "argv_redacted": false,
+          "ppid": 4298,
+          "pgrp": 6041,
+          "session": 4298,
+          "tty": 1027,
+          "tpgid": 6041
+        },
+        {
+          "pid": 8525,
+          "comm": "sudo",
+          "argv": [
+            "sudo",
+            "-i"
+          ],
+          "argv_redacted": false,
+          "ppid": 6041,
+          "pgrp": 8525,
+          "session": 8525,
+          "tty": 34817,
+          "tpgid": 8526
+        },
+        {
+          "pid": 8526,
+          "comm": "bash",
+          "argv": [
+            "-bash"
+          ],
+          "argv_redacted": false,
+          "ppid": 8525,
+          "pgrp": 8526,
+          "session": 8525,
+          "tty": 34817,
+          "tpgid": 8526
+        }
+      ]
+    },
+    {
+      "sha256": "18e5471a4e01bf3c3c601a88c39ccba8b1f28b15c7dbe6c4072da3a7876fbfd7",
+      "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-records-completed-wait-53-resync-2.json",
+      "attempt": 2,
+      "host_enter_issued": true,
+      "observer_ready": true,
+      "time": "2026-10-29T16:06:59.363283+00:00",
+      "after_time": "2026-10-29T16:07:26.743736+00:00",
+      "visible_change": false,
+      "new_visible_prompt": false,
+      "guest_ev_key_delivery_proven": false,
+      "foreground_chain": [
+        {
+          "pid": 6041,
+          "comm": "sudo",
+          "argv": [
+            "sudo",
+            "-i"
+          ],
+          "argv_redacted": false,
+          "ppid": 4298,
+          "pgrp": 6041,
+          "session": 4298,
+          "tty": 1027,
+          "tpgid": 6041
+        },
+        {
+          "pid": 8525,
+          "comm": "sudo",
+          "argv": [
+            "sudo",
+            "-i"
+          ],
+          "argv_redacted": false,
+          "ppid": 6041,
+          "pgrp": 8525,
+          "session": 8525,
+          "tty": 34817,
+          "tpgid": 8526
+        },
+        {
+          "pid": 8526,
+          "comm": "bash",
+          "argv": [
+            "-bash"
+          ],
+          "argv_redacted": false,
+          "ppid": 8525,
+          "pgrp": 8526,
+          "session": 8525,
+          "tty": 34817,
+          "tpgid": 8526
+        }
+      ]
+    }
+  ],
+  "keyboard_mapping": [
+    {
+      "sha256": "755d414ab469439c17d36e89c12114ada841cb388900aaef337a08a95bcce061",
+      "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-boot-console.txt",
+      "line": 444,
+      "statement": "new USB bus registered, assigned bus number 1"
+    },
+    {
+      "sha256": "663134b95e70bc0141567c71de3787f0f709637fb959d798abc11fe749bd74df",
+      "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-boot-console.txt",
+      "line": 540,
+      "statement": "usb 1-1: New USB device found, idVendor=0627, idProduct=0001"
+    },
+    {
+      "sha256": "fc75648ac42f8a7c8675da2bd21d610ef1ee540ffe192157c15fe43efa5ad6d6",
+      "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-boot-console.txt",
+      "line": 546,
+      "statement": "usb 1-1: Product: QEMU USB Keyboard"
+    },
+    {
+      "sha256": "75a80d8224eaa530fe35683ed6a4a1d6212c26bc96b09dad3313f5611c499efe",
+      "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-boot-console.txt",
+      "line": 552,
+      "statement": "input: QEMU QEMU USB Keyboard as /devices/pci0000:00/0000:00:05.0/usb1/1-1/"
+    }
+  ],
+  "qmp_mapping": {
+    "sha256": "6889ff7ed4d8390183297b4b60b048f8f93de214a67ecae468cf6fe07649ed4b",
+    "path": ".work/14/run-40897501964/evidence/two-disk/corrected-stock-devices.json"
+  },
+  "records_output": {
+    "pass_row": 34,
+    "diagnostic_result_rows": [
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43
+    ],
+    "footer_row": 44,
+    "prompt_row": 45,
+    "pager_in_foreground_chain": false,
+    "blank_line_before_prompt": false
+  },
+  "proven": [
+    "unchanged printable root prompt followed by kernel output on row45",
+    "rows46-48 report controller death and qualified keyboard disconnect",
+    "no visible screen or cursor change after either host Enter",
+    "foreground observer proved idle sudo relay/bash, not input-device delivery"
+  ],
+  "likely": "Disconnected QEMU keyboard explains ineffective Enters; their guest EV_KEY delivery was not recorded.",
+  "unproved": [
+    "cause of xHCI controller failure",
+    "literal PS1 environment value or ANSI escape bytes",
+    "per-Enter guest event arrival"
+  ],
+  "readiness_change_safe": false,
+  "reason": "Matching historical prompt would accept a disconnected physical input path; USB recovery/topology/fallback changes are outside the prompt-only brief.",
+  "raw_data_private": true,
+  "raw_vcsa_committed": false,
+  "private_exact_rows": {
+    "sha256": "7880d5db13cced89a2d4182361f32e0c8c617fc65d97ce9392bc8c1277146593",
+    "path": ".work/14/14zt/exact-rows-private.json"
+  }
+}

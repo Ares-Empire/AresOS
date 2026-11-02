@@ -1,0 +1,13 @@
+test_all_other_serial_markers_use_the_same_incremental_filter (test_serial_ack.AckTest.test_all_other_serial_markers_use_the_same_incremental_filter) ... ok
+test_duplicate_mismatch_out_of_order_and_noncanonical_status_stop (test_serial_ack.AckTest.test_duplicate_mismatch_out_of_order_and_noncanonical_status_stop) ... ok
+test_duplicate_real_ack_stops_without_executing_or_retrying (test_serial_ack.AckTest.test_duplicate_real_ack_stops_without_executing_or_retrying) ... ok
+test_exact_probe18_interleave_is_filtered_without_legacy_protocol_fallback (test_serial_ack.AckTest.test_exact_probe18_interleave_is_filtered_without_legacy_protocol_fallback) ... ok
+test_export_checksum_remains_required_and_partial_kernel_is_not_discarded (test_serial_ack.AckTest.test_export_checksum_remains_required_and_partial_kernel_is_not_discarded) ... ok
+test_kernel_at_every_ack_byte_boundary_and_socket_split_preserves_exact_fields (test_serial_ack.AckTest.test_kernel_at_every_ack_byte_boundary_and_socket_split_preserves_exact_fields) ... ok
+test_real_bash_staging_and_hidden_resync_survive_interleaved_records (test_serial_ack.AckTest.test_real_bash_staging_and_hidden_resync_survive_interleaved_records) ... ok
+test_truncated_kernel_never_grants_ack_or_completion_and_wait_is_bounded (test_serial_ack.AckTest.test_truncated_kernel_never_grants_ack_or_completion_and_wait_is_bounded) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 2.119s
+
+OK

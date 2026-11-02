@@ -1,0 +1,21 @@
+test_both_real_helpers_refuse_flat_json_clearly (test_owner_devices.DevicesTest.test_both_real_helpers_refuse_flat_json_clearly) ... ok
+test_findmnt_nested_ambiguous_or_wrong_target_refuses_without_mutation (test_owner_devices.DevicesTest.test_findmnt_nested_ambiguous_or_wrong_target_refuses_without_mutation) ... ok
+test_install_reaches_private_copy_with_real_tree_and_both_helpers (test_owner_devices.DevicesTest.test_install_reaches_private_copy_with_real_tree_and_both_helpers) ... ok
+test_malformed_and_multiply_parented_nodes_refuse_before_other_reads (test_owner_devices.DevicesTest.test_malformed_and_multiply_parented_nodes_refuse_before_other_reads) ... ok
+test_protected_mounted_child_and_two_labels_refuse_install_without_writes (test_owner_devices.DevicesTest.test_protected_mounted_child_and_two_labels_refuse_install_without_writes) ... ok
+test_real_helpers_accept_partitioned_tree_and_inherit_usb_identity (test_owner_devices.DevicesTest.test_real_helpers_accept_partitioned_tree_and_inherit_usb_identity) ... ok
+test_every_real_entry_pass_line_equals_the_guide (test_owner_entry.EntryTest.test_every_real_entry_pass_line_equals_the_guide) ... ok
+test_bad_usb_identity_never_mounts (test_owner_export.ExportTest.test_bad_usb_identity_never_mounts) ... ok
+test_readonly_refusals_and_success_unmount_with_private_records_only (test_owner_export.ExportTest.test_readonly_refusals_and_success_unmount_with_private_records_only) ... ok
+test_complete_native_path_runs_real_helpers_and_confirms_cleanup (test_owner_devices_native.NativeWalkTest.test_complete_native_path_runs_real_helpers_and_confirms_cleanup) ... ok
+test_failed_fuse_mount_cleans_up_without_a_filesystem_fallback (test_owner_devices_native.NativeWalkTest.test_failed_fuse_mount_cleans_up_without_a_filesystem_fallback) ... ok
+test_flat_native_result_fails_and_still_cleans_up (test_owner_devices_native.NativeWalkTest.test_flat_native_result_fails_and_still_cleans_up) ... ok
+test_local_invocation_refuses_before_any_host_command (test_owner_devices_native.NativeWalkTest.test_local_invocation_refuses_before_any_host_command) ... ok
+test_probe_native_suite_requires_the_loop_regression (test_owner_devices_native.NativeWalkTest.test_probe_native_suite_requires_the_loop_regression) ... ok
+test_unconfirmed_unmount_prevents_target_detach (test_owner_devices_native.NativeWalkTest.test_unconfirmed_unmount_prevents_target_detach) ... ok
+test_wrong_backing_refuses_before_any_format_or_mount (test_owner_devices_native.NativeWalkTest.test_wrong_backing_refuses_before_any_format_or_mount) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 43.316s
+
+OK

@@ -1,0 +1,19 @@
+{
+  "status": "passed allowed function/config/documentation scope; frozen image and safety workflows unchanged",
+  "base": "4ae5f14",
+  "changed_owner_functions": [
+    "Tools.processes",
+    "deployment_client",
+    "idle",
+    "preflight_prepare"
+  ],
+  "changed_pause_functions": [
+    "deployment_client",
+    "deployment_processes",
+    "pause_stock"
+  ],
+  "pin_tail_unchanged": true,
+  "package13_unchanged": true,
+  "other_release_files_unchanged": true,
+  "guide_only_current_fingerprint_changed": true
+}

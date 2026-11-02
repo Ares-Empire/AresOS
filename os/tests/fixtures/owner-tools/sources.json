@@ -1,0 +1,27 @@
+{
+  "archive_sha256": "262f259b105b8b0fe940925f72e3e62cb65bcbf715d0956a09c9052c541adc4f",
+  "run": 40184846815,
+  "artifact": 12596724884,
+  "files": [
+    {
+      "sha256": "f4751c366b4e64e59cd3fd15810855322457e94dd249569dd1f7a6a5437589b6",
+      "file": "after-pin-deployments.json"
+    },
+    {
+      "sha256": "7e7583fdf6370e3e91870b77bdb7923c7807dfe83f3c9a0365da477a167e52bb",
+      "file": "after-switch-staged-deployments.json"
+    },
+    {
+      "sha256": "fd49e714de01f30350d2ee8d36a3257bc36c28565a99d1965e19a2660f293108",
+      "file": "aresos-deployments.json"
+    },
+    {
+      "sha256": "964a58e00038b23ee8a63e7d08ff903c1944084fdfae7750f398da1294b2ea77",
+      "file": "after-rollback-queued-deployments.json"
+    },
+    {
+      "sha256": "f5f787bd098dcbe83ee27918c1f06348e7a6cf8e536cf76be8a7bb2e99f831a3",
+      "file": "rollback-deployments.json"
+    }
+  ]
+}

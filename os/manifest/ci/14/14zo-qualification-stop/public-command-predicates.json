@@ -1,0 +1,16 @@
+{
+  "sha256": "c71c73f35fc5ea9bf44421797236f507c2726628035e601bc05ed5645ee21349",
+  "path": "evidence/two-disk/private-owner-login-hidden-input-read-wait-42-timeout-1.vcsa",
+  "shell_command_not_found_lines": 2,
+  "username_command_not_found": true,
+  "owner_entry_command_not_found": false,
+  "shell_command_not_found_mentions_owner_path": true,
+  "cursor_is_shell_prompt": true,
+  "cursor_is_token_prompt": false,
+  "decoded_text_saved": false,
+  "secret_value_saved": false,
+  "cause": "Unproved; public-command execution/readiness failed before real token input",
+  "command_not_found_owner_paths": [
+    "/var/lib/ares/aatt"
+  ]
+}

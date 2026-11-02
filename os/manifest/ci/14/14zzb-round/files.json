@@ -1,0 +1,184 @@
+{
+  "files": [
+    {
+      "sha256": "c62b5db836a2bbddeb797d5f3926b8fa538e7ead1fe0f752ac5fe993c54585b5",
+      "path": "os/manifest/ci/14/14zzb-round/14zzb-classify.py"
+    },
+    {
+      "sha256": "4da51ca7ecb388f32275a531af4d7e50629fd2cb6c716b2440de642b177d9a85",
+      "path": "os/manifest/ci/14/14zzb-round/14zzb-control.py"
+    },
+    {
+      "sha256": "a233be31ee2cc476c0e4abbf41d2def73f31a96790b358bec5af2e86c7ff4f70",
+      "path": "os/manifest/ci/14/14zzb-round/14zzb-qualification-proof.py"
+    },
+    {
+      "sha256": "aade6b306d54ea1425f736875d2b19a99a37132fc27507d32a537e642257a7d6",
+      "path": "os/manifest/ci/14/14zzb-round/archive-round.py"
+    },
+    {
+      "sha256": "0bf3bf5757f3d7cae97accc446f9da6b15db0ba7e52851a7fa892d34727032f7",
+      "path": "os/manifest/ci/14/14zzb-round/build-report.py"
+    },
+    {
+      "sha256": "1d80185dd4372ada31f871b09f844cc8edc36fa48163813e0da37eec9e586598",
+      "path": "os/manifest/ci/14/14zzb-round/close-guard.py"
+    },
+    {
+      "sha256": "a9cd0259cd5e7b5abd88b680752006c440225a7bfa141a4e6d9a3cc5fc2b61ec",
+      "path": "os/manifest/ci/14/14zzb-round/closing-checks.json"
+    },
+    {
+      "sha256": "10aea51d1a54e58d8db6cf29646d433fa84fddf414fa2c434dd0ed01b0d2c555",
+      "path": "os/manifest/ci/14/14zzb-round/closing-checks.py"
+    },
+    {
+      "sha256": "0c94a843fecd20fb851e68403c94f85a21e4f2081e08a6a13d49891ebbf8011c",
+      "path": "os/manifest/ci/14/14zzb-round/commit-report.py"
+    },
+    {
+      "sha256": "99c1a6495e2e51e4122b01944100cfcdd2589a1e5a7be12edfc742f3f894863f",
+      "path": "os/manifest/ci/14/14zzb-round/ledger.json"
+    },
+    {
+      "sha256": "90dcb46f771d930ab23c3de722fb80fa2f2697377845f01cbe60b0c7a047ada7",
+      "path": "os/manifest/ci/14/14zzb-round/local-privacy-pushed-head.json"
+    },
+    {
+      "sha256": "59ee9204cf7750a75bb3e0380592d59a1f6a27df2e73c17093143513838c7f6f",
+      "path": "os/manifest/ci/14/14zzb-round/local-privacy.json"
+    },
+    {
+      "sha256": "e6a8047c5f985045f4a9c17d3caaad3220aec6e80098b1766a161d49d80774db",
+      "path": "os/manifest/ci/14/14zzb-round/log-review.py"
+    },
+    {
+      "sha256": "34b697081ca9ac7378d66a712ceef34534d0d47cadee805eb7029d451394594e",
+      "path": "os/manifest/ci/14/14zzb-round/post-run.py"
+    },
+    {
+      "sha256": "62451720f04786690de74a86e4c6c6844434d010426352a7d6244014afca9fae",
+      "path": "os/manifest/ci/14/14zzb-round/pr-ready.json"
+    },
+    {
+      "sha256": "a88572a3c235480f56ccff711e0d4176022862af2bedd8e4d3d42c947d5d7bd4",
+      "path": "os/manifest/ci/14/14zzb-round/probe-authorization.json"
+    },
+    {
+      "sha256": "178870af69aff5b06c88e4e40689aca65399e9d64aa309760992198c93621e23",
+      "path": "os/manifest/ci/14/14zzb-round/probe31-acceptance.json"
+    },
+    {
+      "sha256": "14af7edeb62db9bc53751e365277f24afeb3e43cd877ba28ec539000e7e0f22d",
+      "path": "os/manifest/ci/14/14zzb-round/probe31-artifact-review.json"
+    },
+    {
+      "sha256": "02463c985806126044089e948e954568fe339ad572212c727df41dff5d6db5d7",
+      "path": "os/manifest/ci/14/14zzb-round/probe31-artifact.json"
+    },
+    {
+      "sha256": "1519a6fcefe7e3e673984ec7aca0118ea348dcdb230c35ede3cda86974b72cfc",
+      "path": "os/manifest/ci/14/14zzb-round/probe31-independent-audits.json"
+    },
+    {
+      "sha256": "9777e1afd17cdb5907d98fb45dddbaee2088a25f4b18a0854fd0598c7a03cd8d",
+      "path": "os/manifest/ci/14/14zzb-round/probe31-kernel-proof.json"
+    },
+    {
+      "sha256": "5f69db5584948e1cd3f45ca09710c2fb3514a7ccc52d52e94741b9f5de66b51b",
+      "path": "os/manifest/ci/14/14zzb-round/probe31-log-review.json"
+    },
+    {
+      "sha256": "a44d0cf3163e2754a7f92ed5a92a7a10a5b9161c3bb2f406332f980895af4909",
+      "path": "os/manifest/ci/14/14zzb-round/probe31-native-timing.json"
+    },
+    {
+      "sha256": "9208cec43f758abc45596c764cd01bbaa25dc51fef9e0f25ac2c759bf765822d",
+      "path": "os/manifest/ci/14/14zzb-round/probe31-ps2-health.json"
+    },
+    {
+      "sha256": "123ef9c9d5d4e473335899e64b1e6aa0e4962ad30f3d0ee87f069d57206b5b87",
+      "path": "os/manifest/ci/14/14zzb-round/probe31-source-bindings.json"
+    },
+    {
+      "sha256": "2e6af5a8dec1339fc404daa978665ab183b026e7e369e960f699818b0b27ed48",
+      "path": "os/manifest/ci/14/14zzb-round/push.json"
+    },
+    {
+      "sha256": "f99f7848e562221d77952d2c1b5091085a275c4979e14a30eb9cc4b675f2742d",
+      "path": "os/manifest/ci/14/14zzb-round/qualification-authorization.json"
+    },
+    {
+      "sha256": "92d0903f089574c1721dccc1b53c7feee9bcc83333f3e530606aff7c4e344d40",
+      "path": "os/manifest/ci/14/14zzb-round/qualification-proof-at-dispatch.py"
+    },
+    {
+      "sha256": "c8dcaf054a8e1c5bc4964697fc3ebe05570b3a2c5731bc731ca43ad0f642e6d5",
+      "path": "os/manifest/ci/14/14zzb-round/qualification-replay-attempts.json"
+    },
+    {
+      "sha256": "f883f09a92124bf4ed6f188e130e950f214bd4b45f7e89554c74b7d10166cb91",
+      "path": "os/manifest/ci/14/14zzb-round/qualification-replay.json"
+    },
+    {
+      "sha256": "8dcdf609488b24869db6e685e9a3b31e5533d9c10264a4a6dd9838e763522727",
+      "path": "os/manifest/ci/14/14zzb-round/qualification20-acceptance.json"
+    },
+    {
+      "sha256": "8193b63f391e4d3d21fdfd123ba32dde0354e39335fb7b10626f0141ad482610",
+      "path": "os/manifest/ci/14/14zzb-round/qualification20-artifact-review.json"
+    },
+    {
+      "sha256": "8fc8abeaff71fd3e3be1d7dc9c1092440ff152a6e3e41b4eaa8bb11b9046bb69",
+      "path": "os/manifest/ci/14/14zzb-round/qualification20-artifact.json"
+    },
+    {
+      "sha256": "fa9e615dcff7095bb5901ee238929d8f02c4861c3109549f99acaf2cf15e1087",
+      "path": "os/manifest/ci/14/14zzb-round/qualification20-independent-audits.json"
+    },
+    {
+      "sha256": "66565201b8a1d6c454de597ffc2ba645017462cff8b4dea7fbed05bdb486b917",
+      "path": "os/manifest/ci/14/14zzb-round/qualification20-kernel-proof.json"
+    },
+    {
+      "sha256": "458ffa29938376d432acd6b77d45d337abe0519a833db87dba3cee9e0eedaf8d",
+      "path": "os/manifest/ci/14/14zzb-round/qualification20-log-review.json"
+    },
+    {
+      "sha256": "961f52c2dfacb876ff54165458849ca3377fa4f48d2bac1286ec8fe2c66545d3",
+      "path": "os/manifest/ci/14/14zzb-round/qualification20-native-timing.json"
+    },
+    {
+      "sha256": "837603e0a7622cbef838eec0f0252d4146c95cc9ec4dfbc10206fc28eb8c55ba",
+      "path": "os/manifest/ci/14/14zzb-round/qualification20-ps2-health.json"
+    },
+    {
+      "sha256": "8706e362b33e1526dbbaa69ca62f8f7db8419822e2385d0ec27de625f57e64ed",
+      "path": "os/manifest/ci/14/14zzb-round/qualification20-source-bindings.json"
+    },
+    {
+      "sha256": "a1c6b4deca44d3b7e09a77b643711ad70513348f464e7dd7202d8d0b7c9e8bd2",
+      "path": "os/manifest/ci/14/14zzb-round/review-tools.json"
+    },
+    {
+      "sha256": "a1ac3256cabebc4ea25ee77d35313a1c3bec692d5526142c86e5c999df0f3708",
+      "path": "os/manifest/ci/14/14zzb-round/reviewer-correction.json"
+    },
+    {
+      "sha256": "32d0e3fc3ca49749c44a27a2a10b33b4aaf149e915e4627c921e7b691d344718",
+      "path": "os/manifest/ci/14/14zzb-round/round.json"
+    },
+    {
+      "sha256": "a3d8c44557350d35e7056bb2de4b1c0017c5e917f70e8373783591937be76cf7",
+      "path": "os/manifest/ci/14/14zzb-round/terminal-facts.json"
+    },
+    {
+      "sha256": "62fb9024578a97b4a6131b3344c70780285299d9b72a0d888977f94815734203",
+      "path": "os/manifest/ci/14/14zzb-round/terminal-facts.py"
+    },
+    {
+      "sha256": "bfdf11960a5e08f4d3dff90492d019c136d80cbe2fe0116d7041ae65712306a5",
+      "path": "os/manifest/ci/14/14zzb-round/test_review_receipts.py"
+    }
+  ]
+}

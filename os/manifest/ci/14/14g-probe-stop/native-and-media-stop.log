@@ -1,0 +1,21 @@
+Native preflight (actual CI output):
+2026-10-25T23:40:02.3415113Z Ran 286 tests in 14.997s
+2026-10-25T23:40:02.3415519Z OK
+2026-10-25T23:40:06.0387906Z PASS 15 destination refusals with zero writes; copied payload equals source
+2026-10-25T23:40:07.3934972Z Qualified private org release 2abc12e8aa6089f7576143d1fbccb6648a3291bd; runtime payload unchanged; testing ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb
+
+Media construction STOP (actual CI output):
+2026-10-25T23:47:13.6078969Z exFAT format complete!
+2026-10-25T23:47:13.6094269Z mount: /home/runner/work/AresOS/AresOS/.work/installer/owner-media-mount: unknown filesystem type 'exfat'.
+2026-10-25T23:47:13.6097480Z        dmesg(1) may have more information after failed mount system call.
+2026-10-25T23:47:13.6710532Z Traceback (most recent call last):
+2026-10-25T23:47:13.6711144Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 589, in <module>
+2026-10-25T23:47:13.6711839Z     main()
+2026-10-25T23:47:13.6712262Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_vm.py", line 557, in main
+2026-10-25T23:47:13.6712740Z     media.create()
+2026-10-25T23:47:13.6713161Z   File "/home/runner/work/AresOS/AresOS/os/ci/owner_media.py", line 70, in create
+2026-10-25T23:47:13.6713815Z     subprocess.run(['mount', '-t', 'exfat', '-o', 'nodev,nosuid,noexec', loop + 'p1', str(self.mount)], check=True)
+2026-10-25T23:47:13.6714399Z   File "/usr/lib/python3.12/subprocess.py", line 571, in run
+2026-10-25T23:47:13.6714826Z     raise CalledProcessError(retcode, process.args,
+2026-10-25T23:47:13.6715800Z subprocess.CalledProcessError: Command '['mount', '-t', 'exfat', '-o', 'nodev,nosuid,noexec', '/dev/loop0p1', '/home/runner/work/AresOS/AresOS/.work/installer/owner-media-mount']' returned non-zero exit status 32.
+2026-10-25T23:47:13.6838254Z ##[error]Process completed with exit code 1.

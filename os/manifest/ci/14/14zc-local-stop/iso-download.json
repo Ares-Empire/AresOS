@@ -1,0 +1,32 @@
+{
+  "sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "downloaded_sha256": "93c1a3b7e6984d7f0e48e461f125e35785b8fcb46bad8c01caf323722e0d829d",
+  "official_sha256": "776b76f3417723440ee1823d79ec02a2c22860df196d219024edb062ad00d8e6",
+  "filename": "bazzite-nvidia-open-stable-live-amd64.iso",
+  "url": "https://download.bazzite.gg/bazzite-nvidia-open-stable-live-amd64.iso",
+  "pinned_bytes": 9068650496,
+  "bytes": 3422552064,
+  "max_attempts": 6,
+  "attempts": [
+    {
+      "attempt": 1,
+      "offset": 0,
+      "range_requested": false,
+      "status": 200,
+      "bytes": 3422552064,
+      "stored_bytes": 3422552064,
+      "received_total": 3422552064,
+      "restarted": false,
+      "outcome": "stopped",
+      "content-length": [
+        "9068650496"
+      ],
+      "content-range": [],
+      "content-encoding": [],
+      "applied_offset": 0,
+      "error_type": "PermissionError"
+    }
+  ],
+  "status": "stopped",
+  "error_type": "PermissionError"
+}
