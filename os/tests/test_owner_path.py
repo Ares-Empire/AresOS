@@ -405,15 +405,52 @@ class OwnerPathTest(unittest.TestCase):
                       'without following its retry prompts', 'changed/unknown policy'):
             self.assertIn(value, reference)
 
-    def test_mounted_protected_child_runtime_condition_remains_open_and_synthetic_only(self):
+    def test_mounted_protected_child_condition_requires_native_evidence_before_stage_c(self):
         status = documents()['INSTALL-STATUS.md']
         mounted = next(line for line in status.splitlines() if line.startswith('| Protected child mounted at runtime |'))
-        for value in ('OPEN — synthetic evidence only', 'protected disk was unmounted',
-                      'native runtime check', 'real loop fixture', 'mounted protected child partition',
-                      'zero mutations', 'before release', 'VM acceptance remains met'):
+        for value in ('protected disk was unmounted', 'native runtime check', 'real loop fixture',
+                      'mounted protected child partition', 'zero mutations', 'cleanup', 'VM acceptance remains met'):
             self.assertIn(value, mounted)
+        if '**MET' in mounted:
+            self.assertRegex(mounted, r'https://github.com/Ares-Empire/AresOS/actions/runs/[0-9]+')
+            self.assertIn('missing-check stand-in', mounted)
+        else:
+            self.assertIn('OPEN — native probe required before Stage C', mounted)
         accepted = next(line for line in status.splitlines() if line.startswith('| Package 14 owner tools |'))
         self.assertIn('Qualification 21 PASSED; VM acceptance met', accepted)
+
+    def test_staged_owner_decision_and_all_stage_boundaries(self):
+        texts=documents(); status=texts['INSTALL-STATUS.md']; guide=texts['INSTALL.md']
+        self.assertIn('Owner decision: staged release (2026-11-02)', status)
+        self.assertIn('owner as first reader', status)
+        self.assertIn('maintainer (Claude) checking each stage', status)
+        for label,state in (('Stage A — preparation','RELEASED now'),
+                            ('Stage B — fitting','NOT RELEASED until A checked'),
+                            ('Stage C — installation','NOT RELEASED')):
+            row=next(line for line in status.splitlines() if line.startswith('| '+label+' |'))
+            self.assertIn('**'+state+'**',row)
+        c=next(line for line in status.splitlines() if line.startswith('| Stage C —'))
+        for term in ('maintainer has checked A and B','native mounted-child check has passed',
+                     'maintainer has updated this table','each step'):
+            self.assertIn(term,c)
+        self.assertNotIn('Until it permits physical installation, read only',guide)
+        for anchor in ('1-backups-recovery-and-windows-preparation','3-fit-and-identify-both-drives',
+                       '4-install-and-prepare-corrected-stock'):
+            self.assertIn('stop here and send your records to the maintainer',section(guide,anchor))
+        for anchor in ('2-prepare-and-test-the-installer-stick','3-fit-and-identify-both-drives'):
+            self.assertIn('End of Stage',section(guide,anchor))
+        fitting=next(line for line in status.splitlines() if line.startswith('| Fitting,'))
+        for term in ('seating and battery photos','firmware screen showing both drives',
+                     'after-fit','2026-11-09','qualified repairer first'):
+            self.assertIn(term,fitting)
+        gates=('Media pins','LOQ shortcuts and recovery menu','Live KDE / installed keyboard',
+               'Tools-stick physical lifecycle','NVIDIA deferred Flatpak work',
+               'Windows record helper / independent undo','Token retirement','Early hardware / P1a')
+        for gate in gates:
+            row=next(line for line in status.splitlines() if line.startswith('| '+gate+' |'))
+            self.assertIn('OPEN',row)
+            self.assertIn('owner performs',row)
+            self.assertIn('maintainer checks',row)
 
     def test_tools_stop_exports_persistent_diagnostics_without_authorizing_retry(self):
         card = section(documents()['EMERGENCY.md'], 'a-tools-command-stopped')

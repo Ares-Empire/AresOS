@@ -1,12 +1,14 @@
 # Install AresOS on its own SSD
 
-Read on your phone; save the [emergency card](EMERGENCY.md) there. **Start at step 1 and follow the numbered steps in order.** The [current gate/status table](INSTALL-STATUS.md#current-gates) is the only release authority. Until it permits physical installation, read only: do not open the laptop, write media or install. Agents do none of those actions.
+Read on your phone; save the [emergency card](EMERGENCY.md) there. **Start at step 1 and follow the numbered steps in order.** The [current gate/status table](INSTALL-STATUS.md#current-gates) is the only release authority. Follow only its released stage: **A (steps 1–2) is released now**; **B (step 3)** requires the maintainer to check A; **C (steps 4 onward)** requires checked A and B, a passed native mounted-child check, and the maintainer updating the table. Send each stage's records at its boundary; during C, send each step's record to the maintainer before continuing. Agents do none of those actions.
 
 This route is for Lenovo LOQ 15IRH8 (82XV), German Windows 11 Home and Crucial P310 500 GB (`CT500P310SSD801`). Crucial is the target; Micron `MTFDKCD512TFK…` 512 GB is **Windows — KEEP**. Expected sizes 465/477 GiB are estimates, never identification. Use model + serial + GUIDs. No C: resizing, shared Windows EFI or Linux mounts/writes on Micron. Ordinary Windows records still write ordinary files. The same-drive route is archived, not a fallback.
 
 Keep a private checklist and [record](INSTALL-RECORD.md) off-device. At each step write its number, time and PASS/FAIL. Every blank or unclear check means **STOP → go to [Help](INSTALL-REFERENCE.md#help)** with that number; resume only at the named return step after resolution. Never photograph passwords, tokens or recovery keys. **Ctrl = Strg**. F12/F2 at power-on have **Fn+F12/Fn+F2** alternatives; [console entry/exit](INSTALL-REFERENCE.md#console) supplies both FnLock cases.
 
 ## 1. Backups, recovery and Windows preparation
+
+**Stage A — RELEASED:** steps 1–2 only; no installing or opening the laptop. At the end of step 2, **stop here and send your records to the maintainer**.
 
 - [ ] Finish Windows updates/restarts. Back up files, photos, schoolwork and game saves independently of both SSDs; open several copies. Disconnect the backup device.
 - [ ] Label two distinct sticks **WINDOWS RECOVERY — KEEP** and **ARESOS INSTALLER — ERASE OK** (ordered 2 × 64 GB). Recovery excludes personal-file backups; its wizard's capacity requirement wins. Search **Wiederherstellungslaufwerk** (`recoverydrive.exe`) → approve → **Systemdateien auf das Wiederherstellungslaufwerk sichern → Weiter**. Connect only the recovery stick; recheck identity → **Weiter → Erstellen**. Finish, safely eject.
@@ -38,17 +40,21 @@ First command normally prints nothing; second must show **Ruhezustand / Schnells
 - [ ] **Schreiben** opens **Löschbestätigung**: the entire device will be erased. Recheck the target before its second **Schreiben**. Wrong/unclear target → **Abbrechen**, no write. Expect **<ISO name> erfolgreich geschrieben** after writing/verification → **Fertig**. [Exact warning and cancellation reference](INSTALL-REFERENCE.md#writer-labels); **Return to step 2** here. Safely eject; cancel Windows format prompts.
 - [ ] **F12** (or **Fn+F12**) → UEFI installer USB. Expect Bazzite boot menu then live desktop; do not install. Shut down through the desktop; unplug and return to Windows. Both sticks must boot successfully before fitting.
 
-**Record:** filenames/versions/full hashes, exact stick identity, erase-dialog cancellation trial and successful boot. **STOP → go to [Help](INSTALL-REFERENCE.md#help)** on any mismatch/error. Return to step 2 after resolution; PASS → [step 3](#3-fit-and-identify-both-drives).
+**Record:** filenames/versions/full hashes, exact stick identity, erase-dialog cancellation trial and successful boot. **STOP → go to [Help](INSTALL-REFERENCE.md#help)** on any mismatch/error. Return to step 2 after resolution; **End of Stage A: stop here and send your records to the maintainer**. Continue to [step 3](#3-fit-and-identify-both-drives) only after the maintainer has checked A and released B.
 
 ## 3. Fit and identify both drives
+
+**Stage B — wait for the maintainer to check A before starting.** Owner fitting uses the checkpoint below. At the end, **stop here and send your records to the maintainer**: seating and battery photos, firmware showing both drives, and record B after-fit. Target about **2026-11-09**, the SSD return deadline. Battery warning: qualified repairer first.
 
 - [ ] Open the [model-specific fitting and battery checkpoint](INSTALL-REFERENCE.md#fitting). **Return to step 3** here only after its entire sequence passes. Battery warning signs require Lenovo/qualified repairer, with no connector work or reconnection. Occupied slot, missing parts, poor seating, resistance, damaged clips or unclear thermal pieces mean stop without powering on. Never use the screw to pull the SSD into place; leave Micron alone.
 - [ ] After closing, reconnect AC. Power on → **F2** (or **Fn+F2**) → **More Settings** → storage/device information. Require **both Micron and Crucial**, model/serial where available; the boot list alone cannot identify an empty SSD. Exit without other changes.
 - [ ] Windows: cancel Crucial initialise/format prompts. Direct **F12** (or **Fn+F12**) → Windows with both USBs absent; run [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), stage **after-fit**. Require its full Windows-unchanged PASS line. **Return to step 3** here.
 
-**Record:** private Crucial-label photo, fitting/seating result, firmware both-drive screen, timestamped after-fit comparison. **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; battery warnings → qualified repairer first. Return to step 3 after resolution; PASS → [step 4](#4-install-and-prepare-corrected-stock).
+**Record:** private Crucial-label photo, fitting/seating result, firmware both-drive screen, timestamped after-fit comparison. **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; battery warnings → qualified repairer first. Return to step 3 after resolution; **End of Stage B: stop here and send your records to the maintainer**. Continue to [step 4](#4-install-and-prepare-corrected-stock) only when the status table releases C.
 
 ## 4. Install and prepare corrected stock
+
+**Stage C — NOT RELEASED:** start only after the maintainer has checked A and B, the native mounted-child check has passed, and the maintainer has updated the [status table](INSTALL-STATUS.md#current-gates) to release C. From here, at the end of **each step, stop here and send your records to the maintainer** before continuing.
 
 - [ ] AC connected, lid open. **Offline from this live boot until prepare passes:** no Wi-Fi profile or Ethernet. The installer copies network profiles. Disconnect backup/recovery devices. **F12** (or **Fn+F12**) → UEFI installer USB.
 - [ ] Before Konsole: **System Settings → Keyboard → Layouts → Enable** (accessible name **Configure Layouts**) → **Add → German → OK**, German first/active, Global switching if offered → **Apply**. In a text editor physically type `y z / - " $ ä ö ü`; correct every character. Repeat after every live boot. Then open Konsole → [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux). Match Micron to A and Crucial to its label by full identity, never disk number/size alone. Require Micron unchanged/unmounted and Crucial empty (no partitions, signatures, mounts or prior data). **Return to step 4** here with a same-session mapping.
