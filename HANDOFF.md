@@ -10,7 +10,7 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   `pkg/03-os-image` and the Actions history live there. PR numbers start again at #1 in the new repo.
 - Public repos get free Actions minutes on GitHub's standard runners, so the $0 budget no longer limits `os-image.yml`.
 - **Two settings did not come along** (GitHub keeps them per repo); Patrik restores them:
-  1. The secret `GHCR_READ_TOKEN` (used by the release-13 and rehearsal runs). It expired around 2026-11-22 anyway: a
+  1. The secret `GHCR_READ_TOKEN` (used by the release-13 and rehearsal runs). It expires around 2026-11-22 anyway, so a
      new token with `read:packages`, best as an organization secret for AresOS.
   2. Write access for the new repo's workflows on the image packages in GHCR (each package → Package settings →
      Manage Actions access → add `AresOS` with the Write role). Until then a run that publishes an image fails.
