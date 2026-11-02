@@ -67,11 +67,16 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 ### Next: the release decision (owner)
 
 - `docs/INSTALL-STATUS.md` keeps the physical install NOT RELEASED until physical and novice gates close "before opening the laptop, writing installation media or installing". Most of those can only close on the laptop.
-- **Proposed:** a staged release with the owner as first reader and Claude checking each stage's records:
-  - **A:** steps 1–2 (Windows prep, recovery stick, record A, installer stick write and test boot)
-  - **B:** step 3, fitting, by about 2026-11-09
-  - **C:** steps 4 onward, after a small native mounted-protected-child probe package
-- Waiting for the owner's answer.
+- **OWNER DECISION (2026-11-02): staged release,** with the owner as first reader and Claude checking each stage's records before the next:
+  - **A, released now:** steps 1–2 (Windows prep, recovery stick, record A, installer stick write and test boot).
+  - **B, after A's records are checked:** step 3, fitting, by about 2026-11-09, with Claude checking the photos and record B.
+  - **C:** steps 4 onward, after A and B, package 16's native mounted-child check, and a table update.
+- **Package 16** (`pkg/16-staged-release`, worktree `C:/Users/pab/AresOS-16-staged-release`, Codex thread `01a19de6-f5b9-7b83-bfe8-3c530e9402eb`, log `../AresOS-16.log`):
+  - records the staged release in `INSTALL-STATUS.md`/INSTALL.md
+  - adds the native mounted-protected-child refusal check
+  - wires a probe-only dispatch (cap 120 minutes, 2 probes)
+  - one push, a PR, one probe
+- **Merge permission for 16:** not yet asked. The 2026-11-02 permission was given for package 15.
 
 ### Package 14: owner tools (PR #13, draft)
 
