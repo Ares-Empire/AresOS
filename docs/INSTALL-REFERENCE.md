@@ -21,6 +21,14 @@ Use Windows with **F12** (or **Fn+F12**) → **Windows Boot Manager** when safe;
 
 **Return to step 4** after initial entry: [step 4](INSTALL.md#4-install-and-prepare-corrected-stock). At the later checks, **Return to step 5** ([stock proof](INSTALL.md#5-prove-windows-and-corrected-stock)) or **Return to step 7** ([AresOS check](INSTALL.md#7-check-the-first-aresos-session)), according to your calling step. If called by a later procedure, return directly to its named section: [layout](INSTALL-PROCEDURES.md#later-layout), [recovery menu](INSTALL-PROCEDURES.md#recovery-menu), [rollback](INSTALL-PROCEDURES.md#rollback-from-running-aresos) or [keep-stock](INSTALL-PROCEDURES.md#keep-stock), then [Return to step 8](INSTALL.md#8-everyday-boot-and-recovery) when that procedure finishes. Any STOP → [Help](#help).
 
+## Layout recovery login limit
+
+The [retained image-source policy files and hashes](../reviews/15-owner-path/15e-login-policy/index.json) come from the public base pinned by [release.json](../os/manifest/release.json). Its shipped `faillock.conf` has **default `deny = 3`**, **`fail_interval = 900` seconds** and **`unlock_time = 600` seconds**, with no active overrides. The generated **local** authselect login/sudo stack does **not enable `pam_faillock`**. Thus 3 is the shipped module's default threshold, not a claim that this baseline currently enforces an account lock after three failures. The AresOS build sources do not replace this policy; this source inspection does not certify a particular installed `/etc` after installer/owner changes.
+
+Use the stricter recovery budget: **at most two failed login submissions total for the incident**, below the shipped threshold of 3. Start only with no failed authentication attempts before this route or lockout warning and with the recorded old/new profiles known. During an interrupted finish: old profile once, then proven new profile once only if needed; after two failures get Help. Count failures across ttys, greeter and sudo for this account; changing console or restarting does not grant a new budget. After a successful login, a sudo rejection means stop immediately, without following its retry prompts. Failures before starting this route, changed/unknown policy or uncertainty → **STOP → [Help](#help)** before trying. Do not reset counters, change passwords or wait and loop through more guesses.
+
+**Return to the calling recovery:** [abandoned layout trial](INSTALL-PROCEDURES.md#abandoned-layout-trial). If abandon already passed, [Return to its completion](INSTALL-PROCEDURES.md#abandon-completion) without executing it again, then follow the booted-OS return to step 8.
+
 ## Media checksums
 
 Use [installer-isos.json](../os/manifest/installer-isos.json) and [media-tools.json](../os/manifest/media-tools.json). Only the live nvidia-open ISO is on the initial path; no legacy ISO/raw VM disk substitution.

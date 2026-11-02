@@ -4,7 +4,7 @@ These are separate from initial installation. Use the [current gate/status table
 
 ## Later layout
 
-Backup Bazzite keeps the installer’s **German** layout. AresOS's later settings affect only its own deployment, not stock. The distinct current/backup layouts belong in the private record. **Begin and revert change only the running console map. Only finish persists the console/greeter setting.** An unplanned restart before finish reloads the last confirmed layout, not the trial. Qualification 21 includes that reset/recovery; direct US-to-stock rollback remains outside the stated runtime scope (see status table).
+Backup Bazzite keeps the installer’s **German** layout. AresOS's later settings affect only its own deployment, not stock. Record old and proven new profiles before invoking finish. **Begin and revert change only the running console map. Only finish persists the console/greeter setting.** A restart during begin/revert reloads the last confirmed layout. An interrupted finish may already have persisted the proven new console map; use [abandoned-trial recovery](#abandoned-layout-trial), not an assumed old map. Qualification 21 includes a reset during a pending begin trial; direct US-to-stock rollback remains outside the stated runtime scope (see status table).
 
 Use the [console entry/exit reference](INSTALL-REFERENCE.md#console). **Return to this procedure** after entry. Keep the original **tty3 ares-recovery → sudo -i** session **OPEN** throughout; do not reboot or change the password to bypass failed typing. In AresOS, begin US International (keeps the unchanged umlaut password enterable):
 
@@ -81,15 +81,28 @@ Require `PASS title` and `PASS reboot` / `Reboot requested; Windows stays defaul
 
 ## Abandoned layout trial
 
-Use this after a crash/restart during a trial or loss of the original session. After an unplanned restart, log in using the **last confirmed layout** from your record; retained stock uses its own installer German. Begin/revert did not persist the trial. If the original session was lost without a restart, the running console may still use the trial map; use that map for the fresh login. An untypeable/unknown map → **STOP → [Help](INSTALL-REFERENCE.md#help)**, no forced restart or password change.
+**Already cleared:** if you recorded `PASS layout abandon`, go directly to [abandon completion](#abandon-completion), without another invocation. If you accidentally repeated it and received `Missing private layout-pending record`, that same route applies **only with the prior recorded PASS**. Every other refusal, or no evidence of that PASS, → **STOP → [Help](INSTALL-REFERENCE.md#help)**.
 
-Make a **fresh physical tty3 ares-recovery password login → sudo -i**, using [console entry](INSTALL-REFERENCE.md#console); **Return to this procedure**. The old inherited administrator session cannot abandon its own trial. On either AresOS or retained stock:
+For a still-pending trial, identify the interrupted action and booted OS from your record:
+
+- **Begin/revert interrupted by a restart:** try the **last confirmed layout once**; a failed login → Help. These actions did not persist the trial map.
+- **Finish invoked, but no `PASS layout finish`:** the console may already use the recorded, proven new map. Try the last confirmed layout **once**. Only if that login fails, try the proven new layout **once**. Two failed logins → **STOP → [Help](INSTALL-REFERENCE.md#help)**, no third attempt.
+- **Retained stock:** use its own installer German; never apply AresOS's new profile to stock.
+- **Original session lost without restart:** the running console may still use the trial map. If its current map is uncertain, stop at Help instead of guessing.
+
+This is a **two-failed-login total limit for the incident**, not per tty or restart. Any earlier failures before starting this route, unknown old/new profile, changed/unknown authentication policy or lockout warning → Help before attempting. [Lockout settings and counting precautions](INSTALL-REFERENCE.md#layout-recovery-login-limit). No forced restart, password change or counter-reset command.
+
+Use the bounded route above for a **fresh physical tty3 ares-recovery password login**, following [TTY entry/exit](INSTALL-REFERENCE.md#console) only as far as the login prompt before choosing the map; **Return to this procedure** for the password attempt. Once that login succeeds, run `sudo -i` in that same session using the successful map. If sudo rejects the password, stop at Help without a retry. The old inherited administrator session cannot abandon its own trial. On either AresOS or retained stock, invoke once:
 
 ```bash
 sudo /var/lib/ares/at layout abandon
 ```
 
-Require `PASS layout abandon`, `Last finished console layout restored; abandoned trial cleared` and `Last finished persistent layout verified; stock settings preserved`. Save the refreshed title/state/time and invalidate old titles. This clears the shared pending trial after identity checks; stock retains its own confirmed setting. A failed or missing result → **STOP → [Help](INSTALL-REFERENCE.md#help)**; keep the screen/session and [export diagnostics](EMERGENCY.md#a-tools-command-stopped), no retry with a different identity.
+Require `PASS layout abandon`, `Last finished console layout restored; abandoned trial cleared` and `Last finished persistent layout verified; stock settings preserved`. Save the refreshed title/state/time and invalidate old titles. This clears the shared pending trial after identity checks; stock retains its own confirmed setting.
+
+### Abandon completion
+
+Enter here after the recorded `PASS layout abandon`, including an already-cleared trial or an accidental repeat's `Missing private layout-pending record` **only after that PASS**. Do not invoke abandon again: the successful command deleted the pending record. No prior PASS or any other refusal → **STOP → [Help](INSTALL-REFERENCE.md#help)**; preserve the screen/session and [export diagnostics](EMERGENCY.md#a-tools-command-stopped), no guessed retry.
 
 **Return by booted OS:** on **AresOS**, run `sudo /var/lib/ares/at check` (require `PASS check`), prove confirmed-layout password/text typing, then [Return to step 8](INSTALL.md#8-everyday-boot-and-recovery). On **retained stock**, [return to keep-stock](#keep-stock), complete its guarded restart/second stock boot and records, then Return to step 8. Do not go through layout proof/finish for an abandoned trial, or through the initial switch steps. **Record:** booted OS, confirmed map, fresh login, abandon result/title and completion route.
 

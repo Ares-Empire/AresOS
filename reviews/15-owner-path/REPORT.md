@@ -1,5 +1,27 @@
 # 15: one owner checklist and a symptom-first emergency card
 
+## 15e — Card recovery and mounted-child status (2026-11-02)
+
+**Done:** successful card-side abandon now jumps directly to `abandon-completion`, with no second invocation. Already-cleared state and the exact missing-pending-record refusal use completion only with the prior recorded PASS; every other refusal goes to Help. Begin/revert restart recovery uses the confirmed map; interrupted finish permits old once, then proven new once, with a two-failed-login total limit and no retry after sudo rejection. Completion keeps the AresOS/check/step-8 and retained-stock/keep-stock returns distinct.
+
+**Policy source:** [eight retained files and digest bindings](15e-login-policy/README.md) were read from the public base pinned by the current release, after verifying the registry manifest and four OCI layer digests and resolving OSTree hardlinks. No image code, mount, container or VM executed. The baseline local PAM stack does not enable pam_faillock; its shipped configuration documents default deny=3, fail_interval=900 and unlock_time=600, without overrides. The two-failure budget is below that shipped default, not a claim of an active three-failure account lock. Build/package/keyboard-image source inheritance is checked. This does not audit a particular installed `/etc`; earlier failures, unknown policy or a lockout warning require Help before trying.
+
+INSTALL-STATUS explicitly keeps the mounted-protected-child runtime negative check **OPEN — synthetic evidence only**. Maintainers must add a real mounted-child loop refusal/zero-mutation probe before release. Package 14's completed VM acceptance remains met; **NOT RELEASED** and all physical gates remain.
+
+**Verified in WSL:** `python3 [-B] -m unittest discover -s os/tests -p <pattern> -v`, with `PYTHONDONTWRITEBYTECODE` unset and worktree TMPDIR. Patterns: `test_owner_path.py`, `test_owner_equality.py`, `test_owner*.py`. All six final runs have zero skips.
+
+| Suite | `python3 -B` | Ordinary `python3` |
+| --- | --- | --- |
+| Owner path | **23 /45.080s, OK** | **23 /54.282s, OK** |
+| Equality | **9 /362.958s, OK** | **9 /359.426s, OK** |
+| Full owner | **323 /2090.153s, OK** | **323 /2167.655s, OK** |
+
+Initial WSL owner-path run: **23 tests /53.594s, OK**; strengthened policy-source check: **1/0.906s, OK**. Final report/payload/fingerprint equality recheck: **2/2.430s, OK**. Windows Pester **1 passed, 0 failed/skipped**, exercising the existing four Windows PASS comparisons, 17 zero-write copy refusals and 78 record checks. Logs/runners and the public source archives stay in ignored `.work/15e/`; only the small policy-source files/index are retained.
+
+Publisher-checksum-verified local **gitleaks 8.21.2**, `git . --log-opts="--all --full-history -m" --redact=100`: **733 commits /1m4.6s, zero leaks**, exit0 before this commit. The committed head is scanned again before the single privacy-hook push; the closing scan, hook and fresh billing receipts go in PR #14. Current-change whitespace and protected-path comparisons pass. All eight staged policy-source blobs match their recorded hashes; the initial Linux Git audit could not resolve the Windows gitdir, then passed using Git for Windows from WSL.
+
+**Scope / not verified:** tools, payload, harness, workflows, Windows helpers, release and mod compare equal to `79a67d2`. No client/Gradle, dispatch or physical operation. No runtime mounted-child or live installed-PAM result is claimed. **JUDGMENT-CALL / PLAN-GAP / open questions:** none new.
+
 ## 15d — Final package 14 integration (2026-11-02)
 
 **Done:** merged `origin/main` (`79a67d2`) with `--no-ff`, preserving the numbered checklist, symptom-first card, Windows proof gate and state-dependent returns. The 13-line bootstrap is byte-equal to the generator exercised by package 14's tamper tests. Regenerated SHA256SUMS fingerprint: `3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd`. Current copies, Windows manifests and all 20 captured dispatcher PASS results agree; earlier report sections retain historical bundle receipts.

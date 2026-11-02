@@ -5,6 +5,7 @@ This checks documentation reachability; it cannot establish physical Windows
 proof, human compliance, speed, firmware behavior or localized rendering.
 """
 import collections
+import hashlib
 import json
 import pathlib
 import re
@@ -161,6 +162,75 @@ def section(text, anchor):
     return '\n'.join(lines[start:end])
 
 
+def abandon_card_route(texts, *, pending, recorded_pass=False, refusal=None, invoke=None):
+    """Follow the card's successful jump with the real pending-record state."""
+    commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+    card = section(texts['EMERGENCY.md'], 'crashed-or-restarted-during-a-keyboard-layout-trial')
+    procedure = section(texts['INSTALL-PROCEDURES.md'], 'abandoned-layout-trial')
+    missing = 'Missing private layout-pending record'
+    events = []
+    if recorded_pass:
+        already = next(line for line in procedure.splitlines() if line.startswith('**Already cleared:**'))
+        if missing not in already or 'only with the prior recorded PASS' not in already:
+            raise AssertionError('Already-cleared route must require its prior PASS')
+        if refusal not in (None, missing):
+            return ['Help']
+        destination = next(url for url in LINK.findall(already) if 'abandon-completion' in url)
+        page = 'INSTALL-PROCEDURES.md'
+    else:
+        if refusal or not pending:
+            return ['Help']
+        if card.count(commands['layout-abandon']) != 1 or pass_line('layout-abandon') not in card:
+            raise AssertionError('Card must invoke abandon once and require its exact PASS')
+        if invoke:
+            invoke()
+        events.append('abandon')
+        pending = False
+        recorded_pass = True
+        after = next(line for line in card.splitlines() if line.startswith('**After `PASS layout abandon`:**'))
+        destination = LINK.findall(after)[0]
+        page = 'EMERGENCY.md'
+    resolved = target(page, destination, texts)
+    if resolved is None:
+        raise AssertionError('Unresolved abandon completion')
+    name, line = resolved
+    headings = anchors(texts[name])
+    anchor = next(key for key, value in headings.items() if value == line)
+    completion = section(texts[name], anchor)
+    if name != 'INSTALL-PROCEDURES.md' or anchor != 'abandon-completion':
+        raise AssertionError('Card must jump directly to abandon completion')
+    if commands['layout-abandon'] in completion and not pending:
+        raise AssertionError('Card route repeats abandon after clearing its pending record')
+    if 'only after that PASS' not in completion or 'Do not invoke abandon again' not in completion:
+        raise AssertionError('Completion must preserve the already-cleared state')
+    return events + ['completion']
+
+
+def bounded_layout_login(texts, *, interrupted, successes, prior_failures=0):
+    """Use the visible old/new order and budget, never reset it by changing tty."""
+    block = section(texts['INSTALL-PROCEDURES.md'], 'abandoned-layout-trial')
+    before = block.split('### Abandon completion', 1)[0]
+    branch = next(line for line in before.splitlines() if line.startswith('- **Finish invoked'))
+    old, new, stop = (branch.find(term) for term in ('last confirmed layout **once**',
+                     'proven new layout **once**', 'Two failed logins'))
+    if min(old, new, stop) < 0 or not old < new < stop or 'no third attempt' not in branch:
+        raise AssertionError('Interrupted finish needs old once, proven new once, then Help')
+    begin = next(line for line in before.splitlines() if line.startswith('- **Begin/revert'))
+    if 'last confirmed layout' not in begin or 'did not persist' not in begin:
+        raise AssertionError('Begin/revert must use the confirmed boot layout')
+    if 'Any earlier failures' not in before or 'two-failed-login total limit for the incident' not in before:
+        raise AssertionError('Login budget must include earlier failures')
+    if prior_failures:
+        return ['Help']
+    allowed = ['old', 'new'] if interrupted == 'finish' else ['old']
+    events = []
+    for profile, success in zip(allowed, successes):
+        events.append(profile)
+        if success:
+            return events + ['authenticated']
+    return events + ['Help']
+
+
 def check_context_returns(texts):
     """Resolve visible caller conditions, rather than exploring all links alike."""
     record = texts['INSTALL-RECORD.md']
@@ -212,21 +282,25 @@ def check_context_returns(texts):
     if (commands['layout-abandon'] not in abandoned or pass_line('layout-abandon') not in abandoned
             or 'fresh physical tty3' not in abandoned or 'last confirmed layout' not in abandoned):
         raise AssertionError('Abandon needs confirmed layout and a fresh physical login')
-    ares, stock = abandoned.split('**Return by booted OS:**', 1)[1].split('On **retained stock**', 1)
+    complete_abandon = section(procedures, 'abandon-completion')
+    ares, stock = complete_abandon.split('**Return by booted OS:**', 1)[1].split('On **retained stock**', 1)
     if (commands['check'] not in ares or 'INSTALL.md#8-everyday-boot-and-recovery' not in ares
             or '(#keep-stock)' in ares or '[return to keep-stock](#keep-stock)' not in stock):
         raise AssertionError('Abandon must retain the booted OS return route')
     if any(command in abandoned for command in (commands['layout-proof'], commands['layout-finish'])):
         raise AssertionError('Abandon must not finish a cleared trial')
+    if abandon_card_route(texts, pending=True) != ['abandon', 'completion']:
+        raise AssertionError('Card abandon route is incomplete')
 
 
 class OwnerPathTest(unittest.TestCase):
-    def test_abandoned_trial_card_uses_confirmed_layout_fresh_login_and_exact_pass(self):
+    def test_abandoned_trial_card_uses_bounded_login_fresh_session_exact_pass_and_completion(self):
         texts = documents()
         card = section(texts['EMERGENCY.md'], 'crashed-or-restarted-during-a-keyboard-layout-trial')
         for value in ('last confirmed layout', 'fresh physical', 'ares-recovery password login',
                       'sudo /var/lib/ares/at layout abandon', pass_line('layout-abandon'),
-                      'INSTALL-PROCEDURES.md#abandoned-layout-trial', 'INSTALL-PROCEDURES.md#keep-stock'):
+                      'INSTALL-PROCEDURES.md#abandon-completion', 'INSTALL-PROCEDURES.md#keep-stock',
+                      'Finish invoked', 'proven new layout **once**', 'two failed logins'):
             self.assertIn(value, card)
         check_context_returns(texts)
         before = 'run `sudo /var/lib/ares/at check` (require `PASS check`), prove confirmed-layout password/text typing, then [Return to step 8](INSTALL.md#8-everyday-boot-and-recovery)'
@@ -235,6 +309,111 @@ class OwnerPathTest(unittest.TestCase):
             before, '[return to keep-stock](#keep-stock)', 1)
         with self.assertRaisesRegex(AssertionError, 'Abandon must retain'):
             check_context_returns(texts)
+
+    def test_card_clears_real_pending_state_then_completion_does_not_abandon_again(self):
+        import test_owner_setup_resume as setup
+        from unittest.mock import patch
+        import time
+        with setup.preparation() as fixture:
+            fixture.pair()
+            administrator = dict(tty='tty3', session='original', boot='first', started_us=1)
+            fixture.tools.session = lambda: administrator
+            fixture.tools.layout('begin', 'us')
+            pending = fixture.store/'layout-pending.json'
+            self.assertTrue(pending.exists())
+            fixture.tools.session = lambda: dict(administrator, session='fresh', started_us=int(time.monotonic()*1e6)+1)
+            with patch.object(fixture.tools, 'title', return_value=['fresh verified title']):
+                events = abandon_card_route(documents(), pending=pending.exists(),
+                    invoke=lambda: fixture.tools.layout('abandon'))
+            self.assertEqual(events, ['abandon', 'completion'])
+            self.assertFalse(pending.exists())
+            self.assertEqual(abandon_card_route(documents(), pending=False, recorded_pass=True), ['completion'])
+            with self.assertRaisesRegex(setup.owner.Stop, 'Missing private layout-pending record'):
+                fixture.tools.layout('abandon')
+            self.assertEqual(abandon_card_route(documents(), pending=False, recorded_pass=True,
+                             refusal='Missing private layout-pending record'), ['completion'])
+            self.assertEqual(abandon_card_route(documents(), pending=False,
+                             refusal='Missing private layout-pending record'), ['Help'])
+            self.assertEqual(abandon_card_route(documents(), pending=False, recorded_pass=True,
+                             refusal='Another identity refusal'), ['Help'])
+
+    def test_card_start_link_and_extra_completion_invocation_mutations_are_rejected(self):
+        texts = documents()
+        texts['EMERGENCY.md'] = texts['EMERGENCY.md'].replace(
+            '(INSTALL-PROCEDURES.md#abandon-completion)', '(INSTALL-PROCEDURES.md#abandoned-layout-trial)', 1)
+        with self.assertRaisesRegex(AssertionError, 'directly to abandon completion'):
+            abandon_card_route(texts, pending=True)
+        texts = documents()
+        texts['INSTALL-PROCEDURES.md'] = texts['INSTALL-PROCEDURES.md'].replace(
+            '### Abandon completion\n', '### Abandon completion\n\nsudo /var/lib/ares/at layout abandon\n', 1)
+        with self.assertRaisesRegex(AssertionError, 'repeats abandon'):
+            abandon_card_route(texts, pending=True)
+
+    def test_interrupted_finish_tries_confirmed_then_proven_map_with_a_two_attempt_stop(self):
+        texts = documents()
+        for action in ('begin', 'revert'):
+            self.assertEqual(bounded_layout_login(texts, interrupted=action, successes=[True]), ['old', 'authenticated'])
+            self.assertEqual(bounded_layout_login(texts, interrupted=action, successes=[False, True]), ['old', 'Help'])
+        self.assertEqual(bounded_layout_login(texts, interrupted='finish', successes=[True]), ['old', 'authenticated'])
+        self.assertEqual(bounded_layout_login(texts, interrupted='finish', successes=[False, True]), ['old', 'new', 'authenticated'])
+        self.assertEqual(bounded_layout_login(texts, interrupted='finish', successes=[False, False, True]), ['old', 'new', 'Help'])
+        self.assertEqual(bounded_layout_login(texts, interrupted='finish', successes=[True], prior_failures=1), ['Help'])
+        texts['INSTALL-PROCEDURES.md'] = texts['INSTALL-PROCEDURES.md'].replace('proven new layout **once**', 'proven new layout repeatedly', 1)
+        with self.assertRaisesRegex(AssertionError, 'Interrupted finish needs'):
+            bounded_layout_login(texts, interrupted='finish', successes=[False, True])
+
+    def test_login_budget_is_below_hash_bound_shipped_policy_without_claiming_active_faillock(self):
+        folder = ROOT/'reviews/15-owner-path/15e-login-policy'
+        evidence = json.loads((folder/'index.json').read_text())
+        release = json.loads((ROOT/'os/manifest/release.json').read_text())
+        self.assertEqual(evidence['image'], release['reference'])
+        self.assertEqual(evidence['base'], release['base'])
+        self.assertIn('FROM '+release['base'], (ROOT/'os/Containerfile').read_text())
+        self.assertTrue(release['image_diff']['packages_equal'])
+        self.assertEqual(set(release['image_diff']['files']),
+                         {'usr/bin/aresos-session', 'usr/libexec/aresos-keyboard'})
+        packages = json.loads((ROOT/'os/packages.lock.json').read_text())['packages']
+        self.assertFalse(any(row['nevra'].startswith(('pam-', 'authselect-')) for row in packages))
+        self.assertNotRegex((ROOT/'os/build.sh').read_text(), r'faillock|authselect')
+        self.assertFalse(any('pam.d' in path.parts or 'authselect' in path.parts or path.name == 'faillock.conf'
+                             for path in (ROOT/'os/config').rglob('*')))
+        manifest = ROOT/evidence['manifest']['path']
+        self.assertEqual(hashlib.sha256(manifest.read_bytes()).hexdigest(), evidence['manifest']['sha256'])
+        self.assertTrue(release['base'].endswith(evidence['manifest']['sha256']))
+        layers = {row['digest'].split(':', 1)[1] for row in json.loads(manifest.read_text())['layers']}
+        for row in evidence['files']:
+            self.assertEqual(hashlib.sha256((ROOT/row['path']).read_bytes()).hexdigest(), row['sha256'])
+            self.assertIn(row['layer_sha256'], layers)
+        config = (folder/'faillock.conf').read_text()
+        self.assertFalse(re.search(r'^\s*(deny|fail_interval|unlock_time)\s*=', config, re.M))
+        defaults = {key:int(value) for key,value in re.findall(r'^#\s*(deny|fail_interval|unlock_time)\s*=\s*(\d+)', config, re.M)}
+        self.assertEqual(defaults, {'deny':3, 'fail_interval':900, 'unlock_time':600})
+        self.assertEqual((folder/'authselect.conf').read_text().splitlines()[0], 'local')
+        for name in ('system-auth', 'password-auth', 'postlogin', 'login.pam', 'sudo.pam', 'sudo-i.pam'):
+            self.assertNotIn('pam_faillock', (folder/name).read_text())
+        self.assertIn('auth       substack     system-auth', (folder/'login.pam').read_text())
+        self.assertIn('auth       include      sudo', (folder/'sudo-i.pam').read_text())
+        self.assertIn('auth       include      system-auth', (folder/'sudo.pam').read_text())
+        self.assertEqual(evidence['links']['etc/pam.d/system-auth'], '/etc/authselect/system-auth')
+        self.assertFalse(evidence['policy']['pam_faillock_in_generated_login_stack'])
+        budget = evidence['policy']['recovery_attempt_limit']
+        self.assertEqual(budget, 2)
+        self.assertLess(budget, defaults['deny'])
+        reference = section(documents()['INSTALL-REFERENCE.md'], 'layout-recovery-login-limit')
+        for value in ('default `deny = 3`', '`fail_interval = 900`', '`unlock_time = 600`',
+                      'does **not enable `pam_faillock`**', 'at most two failed login submissions total',
+                      'without following its retry prompts', 'changed/unknown policy'):
+            self.assertIn(value, reference)
+
+    def test_mounted_protected_child_runtime_condition_remains_open_and_synthetic_only(self):
+        status = documents()['INSTALL-STATUS.md']
+        mounted = next(line for line in status.splitlines() if line.startswith('| Protected child mounted at runtime |'))
+        for value in ('OPEN — synthetic evidence only', 'protected disk was unmounted',
+                      'native runtime check', 'real loop fixture', 'mounted protected child partition',
+                      'zero mutations', 'before release', 'VM acceptance remains met'):
+            self.assertIn(value, mounted)
+        accepted = next(line for line in status.splitlines() if line.startswith('| Package 14 owner tools |'))
+        self.assertIn('Qualification 21 PASSED; VM acceptance met', accepted)
 
     def test_tools_stop_exports_persistent_diagnostics_without_authorizing_retry(self):
         card = section(documents()['EMERGENCY.md'], 'a-tools-command-stopped')
