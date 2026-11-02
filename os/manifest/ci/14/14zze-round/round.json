@@ -1,0 +1,26 @@
+{
+  "status": "accepted",
+  "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+  "runs": [
+    {
+      "mode": "probe",
+      "run": 41371893590,
+      "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+      "conclusion": "success",
+      "accepted": true
+    },
+    {
+      "mode": "owner-tools",
+      "run": 41374876561,
+      "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+      "conclusion": "success",
+      "accepted": true
+    }
+  ],
+  "acceptance_met": true,
+  "pushes": 1,
+  "reruns": 0,
+  "closing_commit_local_only": true,
+  "physical_release": "NOT RELEASED",
+  "ledger_minutes": 2474
+}

@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "mode": "probe",
+  "run": 41371893590,
+  "head": "3fd79165fa96406948c17ea90f94f943cd9bc201",
+  "artifact_and_full_log_classification": true,
+  "independent_audits": true,
+  "mandatory_native_timing": true,
+  "real_kernel_counter": true,
+  "complete_acceptance_and_ps2_review": true
+}

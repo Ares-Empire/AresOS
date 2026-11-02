@@ -1,13 +1,13 @@
 # 14: checked owner tools
 
-## 14zze REPORT: checkout-byte bindings; probe 34 / qualification 21 pending
+## 14zze REPORT: checkout-byte bindings; probe 34 and qualification 21 passed
 
-**Disposition:** local checks completed with the established host limitations.
-One fast-forward push through the installed aresync privacy hook, probe 34 and
-qualification 21 on that same head are the authorized sequence. Qualification
-requires complete probe acceptance and its own fresh ledger/billing guard.
-These are the last allowed probe and qualification. Any CI stop ends the round,
-with no rerun or additional push. The closing report is committed locally only.
+**Disposition:** [probe 34](https://github.com/Ares-Empire/AresOS/actions/runs/41371893590) **success**, [qualification 21](https://github.com/Ares-Empire/AresOS/actions/runs/41374876561) **success**, once each on pushed head `3fd79165fa96406948c17ea90f94f943cd9bc201`. Independent complete
+evidence review passed; **VM acceptance is met**. There was one fast-forward push
+through the installed privacy hook, no Actions rerun, no merge, and no image
+build, release or publication. PR #13 is ready for review after closing checks.
+This REPORT, curated evidence, ledger and actual-status guide/card update are
+committed **locally only**, with no second push. Physical release is **NOT RELEASED**.
 
 ### Done
 
@@ -49,8 +49,8 @@ Twelve affected modules (the new checkout tests and the eleven 14zzd modules)
 ran with PYTHONDONTWRITEBYTECODE unset: **78 tests / zero skips**, normal
 Python in 659.504 s; **78 tests / zero skips**, -B in
 659.505 s. Both passed. The new three checkout tests also passed under
-Windows Python. The final sealed tables are replayed again by the commit gate,
-then against the actual staged/committed tree.
+Windows Python. The three-test final replay passed against all six sealed
+tables in 6.779 s, followed by staged- and committed-tree replay.
 
 Full discovery under normal Python ran **630 tests in
 2129.297 s**: **621 passed**,
@@ -83,7 +83,7 @@ first start preceded log creation; its corrected restart waited for those
 files and did not restart a test.
 
 Pinned gitleaks 8.21.2 pending/full-history scans, exact-range privacy precheck,
-the real hook, source replay and fresh live guards are required before dispatch.
+the real hook, source replay and fresh live guards passed before dispatch.
 Source/result/control bindings are in
 `os/manifest/ci/14/14zze-preflight/preparation.json`.
 
@@ -95,14 +95,66 @@ Organization free: **1385**, reserve **150**. Reservation 72+240=312 gives
 **2638 <=2750** and leaves 1073 organization minutes. The retained projection
 fits unchanged VM 200 / qualification 240 limits. Caps stay 34/21. November is
 free-minutes-only, no paid budget read, with zero local-hook push/closing privacy
-reservations. Fresh ledger/billing comparison is mandatory before each dispatch.
+reservations. Fresh ledger/billing comparisons passed before both dispatches.
+
+### Actual November round / independent review
+
+[probe 34](https://github.com/Ares-Empire/AresOS/actions/runs/41371893590) **success**, [qualification 21](https://github.com/Ares-Empire/AresOS/actions/runs/41374876561) **success**. No run was rerun.
+
+Run 41371893590: native **630 tests / zero skips**, 223.789 s. Independent review: complete and passed.
+
+Artifact scan: 509 findings, comprising 507 exact pinned public ISO listing lines and 2 exact whole-line public kernel X.509 messages. Every occurrence is recorded by file, line, source-line SHA and approved-token cross-check in probe34-artifact-review.json. No ignore/rule/workflow changes.
+
+Every completed job log was scanned; 4 findings were the exact pinned cosign-installer checksum class. Unknown findings: zero.
+
+Run 41374876561: native **630 tests / zero skips**, 138.095 s. Independent review: complete and passed.
+
+Artifact scan: 531 findings, comprising 507 exact pinned public ISO listing lines and 24 exact whole-line public kernel X.509 messages. Every occurrence is recorded by file, line, source-line SHA and approved-token cross-check in qualification21-artifact-review.json. No ignore/rule/workflow changes.
+
+Every completed job log was scanned; 4 findings were the exact pinned cosign-installer checksum class. Unknown findings: zero.
+
+Qualification 21 passed the real bootstrap/private-copy install, prepare and
+zero-mutation rerun, persistent diagnostic/export route, offline and network
+boundaries, signature/private login, switch and all original layout proofs,
+rollback, keep-stock and final attached/detached Windows markers. The extra
+plain-US pending trial received QMP system_reset without a guest shutdown.
+Next boot proved German on tty1..tty6, fresh German password/sudo login and
+physical foot typing, then layout abandon and guarded reboot. Independent
+review rechecked raw maps, persisted console/X11 equality, fresh-login receipts,
+exact reset origin and absent tools stick. Protected-disk, BootNext, NVRAM,
+detached-device and firmware audits remain unchanged and passed.
+
+The fresh qualification ISO replay passed on its first attempt; read-only
+release/git/GH and all 53 retained-input checks plus strict syntax were replayed
+before its own guard. Probe review verified 37 guest transfers and twenty native
+loop checks. Qualification review verified 43 physical owner-command records,
+745 transfers, 27 hidden ready/left pairs, 18 raw varstores, nineteen zero-write/
+unmap samples and every BootNext/NVRAM delta. Both native suites passed all 630
+tests with zero skips, including the unchanged timing bound.
+
+The first local qualification review reached its map checks then raised
+`ModuleNotFoundError: keyboard_vm` because its launch lacked os/ci on
+PYTHONPATH. The same unchanged review code passed after setting
+`$env:PYTHONPATH=(Join-Path (Get-Location) 'os/ci')` and rerunning the local
+review. No workflow or VM was rerun, no pushed-tree or check was changed, and
+the actual keyboard_vm.loaded_map function checked all six recovery maps.
+The private invocation and log hashes are recorded in
+`14zze-round/local-review-invocation.json`.
+
+Complete closing history: **157/157 IDs**. Package minutes **2474 / 2750**; added **148** this round. Counts **34 probes / 21 qualifications** (last caps 34/21). Organization free **1237**, reserve **150**. The saved last-dispatch package/organization comparison passed; the complete per-job charge rules and response hashes are in ledger.json. November remains free-minutes-only: no paid budget read or paid overflow; local-hook privacy reservations stay zero. No further dispatch is authorized.
+
+Actual receipts are in `os/manifest/ci/14/14zze-round/round.json`. Raw consoles,
+VCSA, screenshots, varstores and owner diagnostics remain only in private retained
+artifacts/local evidence; they are not committed. The whole report's outstanding
+physical release gates and the existing For package 15 list still apply.
 
 ### Not verified / JUDGMENT-CALL / PLAN-GAP / open questions
 
-Fresh same-head native and VM acceptance are pending. The fix changes
+Fresh same-head native and VM acceptance passed. The fix changes
 verification only. All physical release and followability gates remain open;
-the product is **NOT RELEASED**. PR #13 remains draft until complete acceptance.
-No additional run is authorized by a spare allowance.
+the product is **NOT RELEASED**. PR #13's readiness gate is met after the closing
+local checks; merging remains the owner's decision. No additional run is
+authorized: both dispatch caps are exhausted.
 
 ## 14zzd REPORT: manifest-only fixtures; STOP, no rerun
 
