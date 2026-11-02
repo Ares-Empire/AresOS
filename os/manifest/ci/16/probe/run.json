@@ -1,0 +1,35 @@
+{
+  "id": 41532052332,
+  "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/41532052332",
+  "event": "workflow_dispatch",
+  "path": ".github/workflows/os-image.yml",
+  "head_branch": "pkg/16-staged-release",
+  "head_sha": "4a1a5fa08f45bc4f7124c95e718bf4319a62188f",
+  "run_attempt": 1,
+  "status": "completed",
+  "conclusion": "success",
+  "created_at": "2026-11-02T21:50:54Z",
+  "updated_at": "2026-11-02T22:14:50Z",
+  "artifact": {
+    "sha256": "3938cc346625e2e3dd3e1e3f9068d3707103eeff9b28ea98413dd4563942c6fa",
+    "id": 13184840737,
+    "name": "two-disk-evidence",
+    "size_in_bytes": 4766764
+  },
+  "files": [
+    {
+      "sha256": "cf21bb6ae5e8094353449ff4fd3673e1728b7dd65b114228d81e2d3d7537a2ab",
+      "path": "native-owner-devices.json"
+    },
+    {
+      "sha256": "bc79868190cd7291b4fff01a3499c9e9888e8ad59cfb0e9bc8a089735fb2d6f3",
+      "path": "probe-result.json"
+    }
+  ],
+  "native_checks": 38,
+  "protected_child_mounted_readonly": true,
+  "exact_install_and_helper_refusals": true,
+  "missing_check_detected": true,
+  "zero_mutations": true,
+  "cleanup_confirmed": true
+}

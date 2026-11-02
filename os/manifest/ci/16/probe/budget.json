@@ -1,0 +1,83 @@
+{
+  "allowance": "16",
+  "start": "2026-11-02T21:50:54Z",
+  "cap": 120,
+  "full_cap": 0,
+  "full_dispatched": 0,
+  "part_b_cap": 0,
+  "part_b_dispatched": 0,
+  "dispatch_caps": {
+    "probe": 2
+  },
+  "dispatch_counts": {
+    "probe": 1
+  },
+  "consumed_minutes": 24,
+  "reserved_minutes": 0,
+  "runs": [
+    {
+      "run": 41532052332,
+      "title": "Two-disk rehearsal (probe)",
+      "sha": "4a1a5fa08f45bc4f7124c95e718bf4319a62188f",
+      "conclusion": "success",
+      "minutes": 24,
+      "jobs": [
+        {
+          "job": 125574488265,
+          "name": "Pinned live ISO inspection and two-disk rehearsal",
+          "response_sha256": "6a81428bd651b3e2dd3ccdf85249e5d048a415c52d300137c3963cb55b55b2ec",
+          "minutes": 24,
+          "rule": "job-interval",
+          "selected_start": "2026-11-02T21:50:59+00:00",
+          "selected_completion": "2026-11-02T22:14:49+00:00",
+          "seconds": 1430.0,
+          "step_count": 22,
+          "full_bound": 72
+        },
+        {
+          "job": 125574490354,
+          "name": "Regression checks only (no image build or VM)",
+          "response_sha256": "bed9c4d21d6267b2f03ff80cec6b67e0a3f6ef8ae80d8342411dc5d0ae77a490",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 125574490793,
+          "name": "image",
+          "response_sha256": "f1402a6ccacb303dc3fd57aec5c7a4aaba897b5430fe9325ee1cb557c8eb394b",
+          "minutes": 0,
+          "rule": "skipped"
+        },
+        {
+          "job": 125574491139,
+          "name": "Published-image switch and rollback",
+          "response_sha256": "6b8fd6d2d7d56a81ac7d066ae124b4ab1ea0d631c101d247afceac114eb8a0b7",
+          "minutes": 0,
+          "rule": "skipped"
+        }
+      ]
+    }
+  ],
+  "publish_cap": 0,
+  "publish_attempts": [],
+  "history": {
+    "complete": true,
+    "pages_read": 1,
+    "ids_count": 1,
+    "total_count": 1,
+    "page_limit": 20,
+    "snapshot_reads": 1,
+    "pages": [
+      {
+        "page": 1,
+        "returned": 1,
+        "total_count": 1,
+        "ids_sha256": "b108f794af9f2b236092668bcb832b2756f4a8084dd287bad5455cbac0e30c6a"
+      }
+    ],
+    "run_ids": [
+      41532052332
+    ]
+  },
+  "accounting_policy": "14zz-job-interval-ordered-span-full-bound-v1"
+}
