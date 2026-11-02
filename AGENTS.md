@@ -46,6 +46,7 @@ Nobody can answer questions mid-run. If the brief doesn't settle something, take
 4. Never install system software, change Windows settings, touch disks, partitions or boot configuration, or run anything as admin. If the brief seems to need that, stop and record it as a blocker.
 5. Never weaken, skip or delete a test to get green.
 6. Never put secrets in the repo.
+7. Keep at most **one** verified copy of each large download (ISO, image layer) in your worktree's `.work/`, and reuse it. Delete extracted images (`squashfs.img`), duplicates and partial downloads as soon as the step that made them ends. Before the closing report, list what is left in `.work/` that is over 500 MB. The laptop's SSD is shared with the owner: package 14's replays once left 115 GB behind (2026-11-02).
 
 ## Environment (the owner's laptop)
 
