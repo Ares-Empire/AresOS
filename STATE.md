@@ -78,10 +78,10 @@ Updated 2026-11-02. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Next, in order
 
-1. **Release the physical install.** Packages 14 and 15 are merged.
-   - **Owner decision needed:** how the physical gates in `docs/INSTALL-STATUS.md` close. As written, they must close before even writing media, but most can only be closed on the laptop.
-   - Claude's proposal is a staged release with the owner as first reader. A native mounted-protected-child probe goes in before the install stage.
-   - SSD return deadline: about 2026-11-09.
+1. **Physical install, staged (owner decision 2026-11-02; package 16 merged as `4e69540`):**
+   - **Stage A (steps 1–2) is RELEASED,** and the owner is doing it now.
+   - **Stage B (fitting)** is released once Claude has checked A’s records. Target: by about 2026-11-09.
+   - **Stage C (install)** needs A and B checked plus a table update. The native mounted-child check is MET (package 16 probe passed).
 2. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
