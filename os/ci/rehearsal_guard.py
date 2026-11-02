@@ -348,7 +348,7 @@ def budget(reserve, current=None):
     for run in runs:
         if start is None or run['created_at'] < start:
             continue
-        if PACKAGE in ('13', '14') and run['event'] == 'workflow_dispatch':
+        if PACKAGE in ('13', '14', '16') and run['event'] == 'workflow_dispatch':
             kind, = [kind for kind, title in SETTINGS['titles'].items() if title == run['display_title']]
             assert run.get('run_attempt') == 1, 'STOP: a rerun is an additional dispatch, not a free retry'
             counts[kind] += 1
@@ -361,7 +361,7 @@ def budget(reserve, current=None):
         assert run['status'] == 'completed', 'Another branch workflow is active; cannot reserve its cost'
         response = api(f'actions/runs/{run["id"]}/jobs?per_page=100')
         jobs = response['jobs']
-        if PACKAGE in ('13', '14'):
+        if PACKAGE in ('13', '14', '16'):
             assert response.get('total_count') == len(jobs) <= 100, 'STOP: incomplete job listing'
             for job in jobs:
                 steps = job.get('steps', [])
@@ -373,7 +373,7 @@ def budget(reserve, current=None):
                         assert step['status'] == 'completed', 'STOP: publish outcome is not settled'
                         publishes.append(dict(run=run['id'], conclusion=step['conclusion']))
         bound = None
-        if PACKAGE=='14' and run['event']=='workflow_dispatch':
+        if PACKAGE in ('14','16') and run['event']=='workflow_dispatch':
             bound = 72 if run['display_title']==SETTINGS['titles']['probe'] else OWNER_QUALIFICATION_BOUND
         accounts = [job_accounting(job, bound) for job in jobs]
         records.append(dict(run=run['id'], title=run['display_title'], sha=run['head_sha'],
@@ -445,22 +445,28 @@ def main():
     ci = mode in ('ci', 'publish-ci', 'probe-budget-ci')
     current = os.environ.get('GITHUB_RUN_ID') if ci else None
     plan=None
+    if PACKAGE=='16':
+        kind=os.environ.get('REHEARSAL_MODE') if ci else mode
+        assert kind=='probe' and mode in ('probe','probe-budget-ci','ci'), 'STOP: package16 permits only the owner-tools probe'
+        assert reserve==72, 'STOP: package16 requires the full 72-minute probe reservation'
+        for key in ('push_privacy_reservation','closing_privacy_reservation'):
+            assert SETTINGS[key]==dict(minutes=0,decision='briefs/14zw-local-privacy.md'), 'STOP: invalid package16 local privacy reservation'
     if PACKAGE=='14' and not ci:
         plan=owner_reservations()
         assert mode in ('probe','owner-tools'), 'STOP: invalid owner dispatch mode'
         assert reserve==plan['before_probe' if mode=='probe' else 'before_qualification'], 'STOP: incomplete owner dispatch reservation'
-    if PACKAGE in ('13', '14'):
+    if PACKAGE in ('13', '14', '16'):
         assert os.environ.get('GITHUB_REF_NAME', BRANCH) == BRANCH, 'STOP: wrong package branch'
     result = budget(reserve, current)
     if plan is not None:
         result['reservation_plan']=plan
     if mode=='probe-budget-ci':
-        assert PACKAGE in ('13', '14') and os.environ.get('REHEARSAL_MODE')=='probe', 'STOP: native deferral is only for probe budget reservation'
+        assert PACKAGE in ('13', '14', '16') and os.environ.get('REHEARSAL_MODE')=='probe', 'STOP: native deferral is only for probe budget reservation'
     history = result.get('history')
     assert history and history['complete'] and history['ids_count'] == history['total_count'], 'STOP: no complete run-history proof'
-    if PACKAGE in ('13', '14'):
+    if PACKAGE in ('13', '14', '16'):
         kind = os.environ['REHEARSAL_MODE'] if ci else mode
-        assert kind in SETTINGS['dispatch_caps'], 'STOP: mode is not authorized for package 13'
+        assert kind in SETTINGS['dispatch_caps'], 'STOP: mode is not authorized for package'
         if ci:
             run = api('actions/runs/' + current)
             assert run['head_branch'] == BRANCH and run['head_sha'] == os.environ['GITHUB_SHA']
@@ -515,7 +521,7 @@ def main():
         assert proof['part_b_tools_probe'] and proof['stock_idle_source_verified']
         if PACKAGE == '13':
             assert proof['package13_keyboard_tools'] and proof['live_desktop_keyboard']=='laptop-followability-only'
-        if PACKAGE in ('13', '14'):
+        if PACKAGE in ('13', '14', '16'):
             from registry_auth import REFERENCE, DIGEST
         else:
             from rehearsal_auth import REFERENCE, DIGEST
@@ -524,12 +530,12 @@ def main():
             pull = json.loads(archive.read('owner-release-pull.json'))
             cleanup = json.loads(archive.read('owner-auth-cleanup.json'))
         assert manifest['status'] == 'passed' and manifest['reference'] == REFERENCE and manifest['registry_digest'] == DIGEST
-        assert manifest['secret'] == ('GITHUB_TOKEN' if PACKAGE in ('13', '14') else 'GHCR_READ_TOKEN') and manifest['owner_token_api_calls'] == 0
+        assert manifest['secret'] == ('GITHUB_TOKEN' if PACKAGE in ('13', '14', '16') else 'GHCR_READ_TOKEN') and manifest['owner_token_api_calls'] == 0
         assert pull['status'] == 'passed' and pull['reference'] == REFERENCE and pull['preserved_digest']
         assert cleanup['status'] == 'passed' and cleanup['removed'] and cleanup['outside_workspace']
         result['probe_run'] = probe_id
         result['probe'] = proof
-    if PACKAGE in ('13', '14') and not ci:
+    if PACKAGE in ('13', '14', '16') and not ci:
         result['organization_budget'] = organization_budget(reserve)
         if PACKAGE == '14':
             previous = os.environ.get('REHEARSAL_PREVIOUS_DISPATCH')
@@ -547,8 +553,8 @@ def main():
     (directory / suffix).write_text(json.dumps(result, indent=2) + '\n')
     if PACKAGE == '13' and mode != 'publish-ci':
         (directory / '13-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
-    if PACKAGE == '14':
-        (directory / '14-dispatch-authorization.json').write_text(json.dumps(result, indent=2) + '\n')
+    if PACKAGE in ('14','16'):
+        (directory / (PACKAGE+'-dispatch-authorization.json')).write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 
 

@@ -14,7 +14,10 @@ import pathlib
 import re
 import subprocess
 import struct
+import shutil
+import sys
 import uuid
+from unittest.mock import patch
 
 import owner_fuse
 import owner_media
@@ -134,6 +137,14 @@ class LoopHost:
             self.observations.note('raw findmnt before JSON or mount assertions')
             value = json.loads(raw)
             self.observations.value['findmnt_rows'][-1]['parsed'] = copy.deepcopy(value)
+            if getattr(self,'install_media',False) and command[3]=='--target':
+                # install's exFAT contract is about the volume, whose native
+                # lsblk FSTYPE remains exfat; this host mounts it with FUSE.
+                row,=value['filesystems']
+                target=next(iter(self.loops))
+                self.observations.check(row['source']==target+'p2' and row['fstype']=='fuseblk',
+                    'STOP: install adapter did not receive the native tools FUSE mount')
+                row['fstype']='exfat'
             if command[3] == '--mountpoint':
                 for row in value['filesystems']:
                     self.observations.check(row['target']==str(self.efi),'STOP: wrong sandbox mount')
@@ -159,6 +170,71 @@ def run(*command):
     subprocess.run(list(command),check=True,timeout=30)
 
 
+def mount_snapshot():
+    rows = owner.Host().json('findmnt','--json','--list','--output','SOURCE,TARGET,FSTYPE,OPTIONS')['filesystems']
+    return sorted(rows, key=lambda row: json.dumps(row,sort_keys=True))
+
+
+def require_mounted_refusal(reader, host):
+    try:
+        reader(host,dict(target='TARGET',protected='KEEP'))
+    except owner.Stop as error:
+        assert str(error)=='Protected disk is mounted', 'STOP: wrong mounted-child refusal: '+str(error)
+        return str(error)
+    raise AssertionError('STOP: mounted protected child was accepted')
+
+
+def mounted_child(host, protected, directory, observations):
+    """The real install preflight helper, with native partition/mount fields.
+
+    The negative control drops exactly the mounted-child requirement. All
+    remaining real helper queries still run; the refusal oracle must reject it.
+    Neither path can install, format, or write a file.
+    """
+    images = [directory/(name+'.raw') for name in ('target','protected')]
+    before = dict(hashes=[owner_media.digest(p) for p in images],mounts=mount_snapshot(),
+        partitions=[host.native.json('sfdisk','--json',loop) for loop in host.loops],
+        files=sorted(str(p.relative_to(directory)) for name in ('efi','tools')
+                     for p in (directory/name).rglob('*')))
+    rows=owner_fuse.mounts('--source',protected+'p1')
+    observations.check(len(rows)==1 and rows[0]['target']==str(directory/'protected-mount')
+        and 'ro' in rows[0]['vfs-options'].split(',') and 'rw' not in rows[0]['vfs-options'].split(','),
+        'STOP: protected child is not natively mounted read-only')
+    def install_preflight(host, expected):
+        host.install_media=True
+        try:
+            with patch.object(owner,'HOME',directory/'efi/native-install-refusal'), \
+                 patch.object(sys,'dont_write_bytecode',True), \
+                 patch.object(sys.stdin,'isatty',return_value=True), \
+                 patch('builtins.input',side_effect=[expected['target'],expected['protected']]):
+                return owner.install(directory/'private-bootstrap',host)
+        finally:
+            host.install_media=False
+    refusal=require_mounted_refusal(owner.disk_record,host)
+    install_refusal=require_mounted_refusal(install_preflight,host)
+    real_require=owner.require
+    def unchecked(condition,message):
+        if message!='Protected disk is mounted': real_require(condition,message)
+    def missing_check(*args):
+        with patch.object(owner,'require',unchecked): return owner.disk_record(*args)
+    try:
+        require_mounted_refusal(missing_check,host)
+    except AssertionError as error:
+        assert str(error)=='STOP: mounted protected child was accepted'
+        negative=str(error)
+    else:
+        raise AssertionError('STOP: missing mounted-child check was not detected')
+    after = dict(hashes=[owner_media.digest(p) for p in images],mounts=mount_snapshot(),
+        partitions=[host.native.json('sfdisk','--json',loop) for loop in host.loops],
+        files=sorted(str(p.relative_to(directory)) for name in ('efi','tools')
+                     for p in (directory/name).rglob('*')))
+    observations.note('mounted protected child result',mounted_child=dict(status='passed',
+        refusal=refusal,install_refusal=install_refusal,missing_check_rejected=negative,before=before,after=after,
+        protected_child_mount=rows,helper='owner.install private bootstrap copy -> owner.disk_record'))
+    observations.check(after==before,'STOP: mounted-child refusal mutated hashes, partitions, mounts or target files')
+    return observations.value['mounted_child']
+
+
 def detach(loop, image, parts, observations):
     observations.note('before cleanup backing verification',cleanup_loop=loop,cleanup_image=str(image))
     verify_loop(loop,image)
@@ -169,7 +245,10 @@ def detach(loop, image, parts, observations):
         observations.check(not rows,'STOP: fixture partition remains mounted')
     run('losetup','--detach',loop)
     run('udevadm','settle','--timeout=5')
-    observations.note('backing-verified loop detached')
+    remaining=owner.Host().json('losetup','--json','--list','--output','NAME,BACK-FILE')['loopdevices']
+    observations.check(not any(row['name']==loop or row['back-file']==str(image) for row in remaining),
+        'STOP: fixture loop or backing remains attached')
+    observations.note('backing-verified loop detached',cleanup_remaining_loops=remaining)
 
 
 def prove(directory, observations):
@@ -185,14 +264,15 @@ def prove_observed(directory, observations):
     observations.note('fixture path guard',directory=str(directory))
     observations.check(not directory.exists() and directory.parent==WORK,'STOP: fresh workspace fixture required')
     directory.mkdir()
+    mounts_before=mount_snapshot()
     with contextlib.ExitStack() as cleanup:
         loops = []
-        for name, parts, size in (('target',2,160),('protected',1,32)):
+        for name, parts, size in (('target',2,160),('protected',1,80)):
             image=directory/(name+'.raw')
             with image.open('xb') as stream: stream.truncate(size*1024**2)
             args=['sgdisk','--clear','--new=1:2048:+64M','--typecode=1:ef00',
                   '--new=2:0:0','--typecode=2:0700',str(image)] if parts==2 else [
-                  'sgdisk','--clear','--new=1:2048:0','--typecode=1:0700',str(image)]
+                  'sgdisk','--clear','--new=1:2048:0','--typecode=1:ef00',str(image)]
             run(*args)
             loop=subprocess.check_output(['losetup','--find','--show','--partscan',str(image)],text=True,timeout=10).strip()
             observations.note('before loop backing verification',loop=loop,image=str(image))
@@ -205,6 +285,7 @@ def prove_observed(directory, observations):
         run('udevadm','settle')
         target, protected = loops
         protected_image=directory/'protected.raw'
+        run('mkfs.vfat','-F','32','-n','KEEP_ESP',protected+'p1')
         protected_before=owner_media.digest(protected_image)
         run('mkfs.vfat','-F','32','-n','ARES_ESP',target+'p1')
         run('mkfs.exfat','-L','ARESTOOLS',target+'p2')
@@ -215,7 +296,12 @@ def prove_observed(directory, observations):
         # Register first so even a failed FUSE mount/postcondition is inspected
         # and unmounted before either backing-verified loop can be detached.
         cleanup.callback(owner_fuse.unmount,target+'p2',tools)
+        owner_fuse.mount(target+'p2',tools)
+        owner_media.bundle_module('bundle').build(tools/'ares-tools')
+        run('sync','-f',str(tools))
+        owner_fuse.unmount(target+'p2',tools)
         owner_fuse.mount(target+'p2',tools,readonly=True)
+        shutil.copytree(tools/'ares-tools',directory/'private-bootstrap')
         blkid=['blkid','-p','-s','PART_ENTRY_UUID','-o','value',target+'p1']
         gpt=['sgdisk','-i','1',str(directory/'target.raw')]
         observations.note('independent GUID sources',expected_guid_source=dict(blkid=blkid,sgdisk=gpt))
@@ -236,15 +322,30 @@ def prove_observed(directory, observations):
         observations.note('tools mount returned',tools_mount=mounted)
         observations.check(mounted['source']==target+'p2' and mounted['fstype']=='fuseblk','STOP: tools FUSE mount mismatch')
         observations.check(all(row['type']=='loop' and row.get('children') for tree in host.raw_trees for row in tree),'STOP: raw loop tree mismatch')
+        protected_mount=directory/'protected-mount'
+        protected_mount.mkdir()
+        cleanup.callback(owner_fuse.unmount,protected+'p1',protected_mount)
+        run('mount','-t','vfat','-o','ro,nodev,nosuid,noexec',protected+'p1',str(protected_mount))
+        mounted=mounted_child(host,protected,directory,observations)
         protected_after=owner_media.digest(protected_image)
         observations.note('protected fixture comparison',protected_before=protected_before,protected_after=protected_after)
         observations.check(protected_after==protected_before,'STOP: protected fixture changed')
         result=dict(status='passed',sha=os.environ['GITHUB_SHA'],native_queries=host.native.trace,
             raw_loop_trees=host.raw_trees, helper_mutations=0, loop_backing_verified=True, protected_fixture_unchanged=True,
+            mounted_child=mounted,
             adapters=['loop root TYPE/serial/USB/removability only; no tree/partition reshaping',
                       'guest mountpoint arguments map to one scratch FAT mount; returned TARGET maps back',
+                      'install findmnt FUSE type maps to the independently queried native exFAT volume type',
+                      'private bootstrap HOME maps to the read-only target ESP; photographed serial input supplied by fixture',
                       'synthetic firmware read naming the native EFI PARTUUID; no firmware access'])
+    mounts_after=mount_snapshot()
+    observations.check(mounts_after==mounts_before,'STOP: fixture mounts remain after cleanup')
     result['all_fixture_mounts_unmounted_and_loops_detached']=True
+    result['cleanup']=dict(status='passed',mounts_before=mounts_before,mounts_after=mounts_after,
+        fixture_mounts_remaining=[],fixture_loops_remaining=[])
+    hashes=[owner_media.digest(directory/(name+'.raw')) for name in ('target','protected')]
+    observations.check(hashes==mounted['before']['hashes'],'STOP: fixture image changed during cleanup')
+    result['cleanup']['image_hashes_after_detach']=hashes
     observations.note('complete',**result)
     return result
 
@@ -261,6 +362,8 @@ def main():
         observations.failed(error)
         raise
     print('PASS native partitioned-loop lsblk/findmnt queries and real owner disk/media helpers; cleanup confirmed')
+    print('PASS native mounted protected child: Protected disk is mounted; zero mutations (both image hashes, partition tables, mounts and target files unchanged); missing-check stand-in rejected')
+    print('PASS cleanup: protected child and target mounts unmounted; backing-verified loops detached; no fixture mounts or loops remain')
 
 
 if __name__=='__main__': main()

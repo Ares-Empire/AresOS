@@ -12,6 +12,19 @@ import checkout_sources as checkout
 
 
 class CheckoutSourcesTest(unittest.TestCase):
+    def test_package16_receipts_agree_and_package14_stays_historical(self):
+        folder=ROOT/'os/manifest/ci/16'
+        walk=json.loads((folder/'host-walk.json').read_text())
+        record=json.loads((folder/'source-bindings.json').read_text())
+        self.assertEqual(record['package'],'16')
+        self.assertEqual(walk['status'],'passed')
+        self.assertFalse(walk['stick_across_reboot'])
+        self.assertEqual(walk['sources'],record['tables'][0]['sources'])
+        self.assertIn('os/tests/test_owner_staged_release.py',{row['path'] for row in walk['sources']})
+        legacy=json.loads((ROOT/'os/manifest/ci/14/host-walk/result.json').read_text())
+        self.assertNotEqual(walk['sources'],legacy['sources'])
+        self.assertTrue(legacy['current_verification'].startswith('os/manifest/ci/14/'))
+
     def test_every_active_source_binding_replays_checkout_including_crlf(self):
         tables = checkout.active_tables(ROOT)
         self.assertGreaterEqual(len(tables), 4)

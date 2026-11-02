@@ -106,6 +106,10 @@ def verify_git(root, rows, ref='HEAD'):
 def active_tables(root):
     """Current qualification, probe and preflight records; history stays intact."""
     root = pathlib.Path(root)
+    staged = root / 'os/manifest/ci/16/source-bindings.json'
+    if staged.exists():
+        record = json.loads(staged.read_text())
+        return [(row['name'],row['sources']) for row in record['tables']]
     walk_path = root / 'os/manifest/ci/14/host-walk/result.json'
     walk = json.loads(walk_path.read_text())
     prep_path = root / walk['current_verification']

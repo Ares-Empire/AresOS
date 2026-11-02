@@ -113,12 +113,17 @@ class GuardTest(unittest.TestCase):
             with self.assertRaisesRegex(AssertionError,'owner-tools dispatch allowance'):guard.budget(0)
 
     def test_wrong_or_incomplete_native_proof_never_reaches_vm_or_media(self):
-        for status,sha in (('pending','a'*40),('failed','a'*40),('passed','b'*40)):
-            proof=dict(allowance='14',native=dict(status=status,sha=sha))
-            with patch.object(sys,'argv',['owner_vm.py','probe']),patch.dict(os.environ,GITHUB_SHA='a'*40), \
-                 patch('pathlib.Path.read_text',return_value=json.dumps(proof)),patch.object(vm,'Media') as media, \
-                 self.assertRaises(AssertionError):vm.main()
-            media.assert_not_called()
+        for package,branch in (('14','pkg/14-owner-tools'),('16','pkg/16-staged-release')):
+            for status,sha in (('pending','a'*40),('failed','a'*40),('passed','b'*40)):
+                proof=dict(allowance=package,native=dict(status=status,sha=sha))
+                with patch.object(sys,'argv',['owner_vm.py','probe']), \
+                     patch.dict(os.environ,GITHUB_SHA='a'*40,GITHUB_ACTIONS='true',GITHUB_EVENT_NAME='workflow_dispatch',
+                         GITHUB_REPOSITORY='Ares-Empire/AresOS',GITHUB_REF_NAME=branch,
+                         REHEARSAL_PACKAGE=package,REHEARSAL_MODE='probe'), \
+                     patch('pathlib.Path.read_text',return_value=json.dumps(proof)) as read, \
+                     patch.object(vm,'Media') as media,self.assertRaises(AssertionError):vm.main()
+                self.assertEqual(read.call_count,1)
+                media.assert_not_called()
 
     def test_october_reservation_drops_only_closing_privacy(self):
         historical=self.historical_settings(0)
@@ -192,7 +197,7 @@ class GuardTest(unittest.TestCase):
 
     def test_workflow_limits_and_both_ci_reservations_cover_the_owner_plan(self):
         job=yaml.load((ROOT/'.github/workflows/os-image.yml').read_text(),Loader=yaml.BaseLoader)['jobs']['rehearsal']
-        limits="${{ inputs.rehearsal == 'owner-tools' && 240 || github.ref_name == 'pkg/14-owner-tools' && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}"
+        limits="${{ inputs.rehearsal == 'owner-tools' && 240 || (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && inputs.rehearsal == 'probe' && 70 || (inputs.rehearsal == 'part-b' || inputs.rehearsal == 'keyboard') && 130 || 40 }}"
         self.assertEqual(job['timeout-minutes'],limits)
         steps={s['name']:s for s in job['steps'] if 'name' in s}
         native=steps[guard.NATIVE_STEP]
@@ -208,7 +213,7 @@ class GuardTest(unittest.TestCase):
         reservation=limits.replace('&& 70','&& 72').replace('|| 40','|| 42')
         self.assertIn(reservation,steps['Reserve the separate 11c minute budget (including privacy checks)']['run'])
         self.assertEqual(steps['Require completed native preflight before any package 13 VM']['run'],
-            "python3 os/ci/rehearsal_guard.py ci '${{ github.ref_name == 'pkg/14-owner-tools' && 72 || 42 }}'")
+            "python3 os/ci/rehearsal_guard.py ci '${{ (github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') && 72 || 42 }}'")
 
     def test_new_head_requires_fresh_probe_and_owner_token_has_no_fallback(self):
         run=dict(event='workflow_dispatch',path='.github/workflows/os-image.yml',head_branch=guard.BRANCH,

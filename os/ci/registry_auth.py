@@ -26,7 +26,9 @@ def require_dispatch():
     branch = os.environ['GITHUB_REF_NAME']
     assert (branch == 'pkg/13-keyboard-layout' and os.environ['REHEARSAL_MODE'] in ('probe', 'keyboard') or
             branch == 'pkg/14-owner-tools' and os.environ.get('REHEARSAL_PACKAGE') == '14'
-            and os.environ['REHEARSAL_MODE'] in ('probe', 'owner-tools'))
+            and os.environ['REHEARSAL_MODE'] in ('probe', 'owner-tools') or
+            branch == 'pkg/16-staged-release' and os.environ.get('REHEARSAL_PACKAGE') == '16'
+            and os.environ['REHEARSAL_MODE'] == 'probe')
     assert org_release() and RELEASE['visibility'] == 'private'
 
 
@@ -120,7 +122,7 @@ guest_mount_command = legacy.guest_mount_command
 
 def signature(cosign):
     require_dispatch()
-    assert os.environ['GITHUB_REF_NAME'] == 'pkg/14-owner-tools'
+    assert os.environ['GITHUB_REF_NAME'] in ('pkg/14-owner-tools','pkg/16-staged-release')
     tool = pathlib.Path(cosign)
     assert tool.is_absolute() and tool.is_file() and os.access(tool, os.X_OK), 'Resolve cosign before sudo'
     config = directory() / 'config.json'

@@ -1072,8 +1072,12 @@ def main():
     global PROBE_MEDIA
     mode, = sys.argv[1:]
     assert mode in ('probe', 'owner-tools')
-    authorization = json.loads(pathlib.Path('evidence/14-dispatch-authorization.json').read_text())
-    assert authorization['allowance'] == '14' and authorization['native']['status'] == 'passed'
+    from owner_media import require_runner
+    require_runner()
+    package=os.environ['REHEARSAL_PACKAGE']
+    assert package!='16' or mode=='probe', 'STOP: package16 permits only the owner-tools probe'
+    authorization = json.loads(pathlib.Path('evidence/'+package+'-dispatch-authorization.json').read_text())
+    assert authorization['allowance'] == package and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
     from owner_capabilities import CHECKS
     capabilities = json.loads(pathlib.Path('evidence/14-host-capabilities.json').read_text())
@@ -1081,7 +1085,8 @@ def main():
     assert all(capabilities['checks'].get(name) is True for name in CHECKS), 'STOP: host capabilities incomplete'
     if mode != 'probe':
         assert authorization['probe']['status'] == 'passed' and authorization['probe']['commit'] == os.environ['GITHUB_SHA']
-    walk = json.loads(pathlib.Path('os/manifest/ci/14/host-walk/result.json').read_text())
+    walk_path=('os/manifest/ci/16/host-walk.json' if package=='16' else 'os/manifest/ci/14/host-walk/result.json')
+    walk = json.loads(pathlib.Path(walk_path).read_text())
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
     assert isinstance(walk['sources'], list) and walk['sources']
     assert len({row['path'] for row in walk['sources']}) == len(walk['sources']), 'Duplicate host source'

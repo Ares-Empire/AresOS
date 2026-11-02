@@ -32,8 +32,9 @@ def digest(path):
 def require_runner():
     assert os.environ.get('GITHUB_ACTIONS') == 'true'
     assert os.environ.get('GITHUB_REPOSITORY') == 'Ares-Empire/AresOS'
-    assert os.environ.get('GITHUB_REF_NAME') == 'pkg/14-owner-tools'
-    assert os.environ.get('REHEARSAL_PACKAGE') == '14'
+    assert ((os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE')) == ('pkg/14-owner-tools','14') or
+            (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE'),os.environ.get('REHEARSAL_MODE')) ==
+            ('pkg/16-staged-release','16','probe'))
 
 
 class Media:
