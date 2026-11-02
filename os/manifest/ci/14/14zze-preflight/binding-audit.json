@@ -1,0 +1,58 @@
+{
+  "status": "all current repository source bindings use checkout bytes",
+  "areas": [
+    {
+      "area": "qualification host walk",
+      "generator": "14zze-walk.py",
+      "record": "host-walk/result.json sources and preflight/walk.json sources",
+      "verification": "native owner_vm raw working bytes unchanged; independent checkout-index replay locally"
+    },
+    {
+      "area": "probe walk",
+      "generator": "14zze-probe-walk.py",
+      "record": "preflight/probe-walk.json sources",
+      "verification": "same checkout-index replay"
+    },
+    {
+      "area": "preparation",
+      "generator": "14zze/build-preparation.py",
+      "record": "preparation.json source_bindings",
+      "verification": "same checkout-index replay"
+    },
+    {
+      "area": "preflight archived tools and files",
+      "generator": "14zze/build-preparation.py",
+      "record": "local_tool_bindings checkout sha256; local_sha256 separately binds private executed file; files.json",
+      "verification": "checkout replay of archived paths; raw private hash checked separately"
+    },
+    {
+      "area": "staged and committed gates",
+      "generator": "14zze/commit-preflight.py; 14zze-control.py",
+      "record": "merged current tables",
+      "verification": "Git index/HEAD blobs are input to checkout-index, never compared to checkout hashes"
+    },
+    {
+      "area": "probe and qualification replay receipts",
+      "generator": "14zze-local-receipt.py",
+      "record": "source_bindings copied from preparation",
+      "verification": "same committed-head checkout gate for both modes"
+    },
+    {
+      "area": "closing source archives and status files",
+      "generator": "14zze/commit-report.py",
+      "record": "closing-tools.json and files.json; staged closing files",
+      "verification": "checkout-index replay; raw local helper hash separately named"
+    },
+    {
+      "area": "pinned artifact-classifier library",
+      "generator": "14zze-classify.py",
+      "record": "approved existing library PIN",
+      "verification": "checkout bytes must equal PIN; original actual imported-byte PIN check retained"
+    }
+  ],
+  "immutable_history": "Earlier source records, retained provenance and original raw artifact fingerprints remain historical evidence; the dda72ed negative fixture is intentionally wrong and never an active table.",
+  "raw_fingerprints": "Private .work tools, logs/artifacts/archives, ISO/checksum/media, installed payload manifests and frozen release fingerprints continue to bind their actual delivered/captured bytes, not Git blobs.",
+  "attributes": ".gitattributes copied exactly into isolated index; core.autocrlf=false, no global/system attributes; real repository config and pre-push hook untouched",
+  "runtime_and_ci": "No product, owner payload, release, workflow or native raw-working-tree predicate change",
+  "local_mutation_guards": "Ephemeral before/after hashes within one local process continue to detect changes to its actual working files; they are not exported or compared as runner source bindings."
+}

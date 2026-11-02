@@ -1,5 +1,109 @@
 # 14: checked owner tools
 
+## 14zze REPORT: checkout-byte bindings; probe 34 / qualification 21 pending
+
+**Disposition:** local checks completed with the established host limitations.
+One fast-forward push through the installed aresync privacy hook, probe 34 and
+qualification 21 on that same head are the authorized sequence. Qualification
+requires complete probe acceptance and its own fresh ledger/billing guard.
+These are the last allowed probe and qualification. Any CI stop ends the round,
+with no rerun or additional push. The closing report is committed locally only.
+
+### Done
+
+`os/ci/checkout_sources.py` copies explicitly named repository sources and their
+declared attributes into a temporary, repository-local Git fixture. Git stages
+the inputs and checkout-index materializes them into a separate empty directory
+with core.autocrlf=false. Global/system attributes are excluded only for those
+scratch processes; actual repository settings and its pre-push hook are intact.
+The recorded SHA-256 is over those checkout bytes. No blob digest is compared
+to a checkout digest. Staged/committed blobs are inputs to the same checkout
+replay when the pre-push gates verify the future runner tree.
+
+The native owner_vm check is unchanged: its actual working-tree bytes must
+equal the recorded bytes. The PowerShell test now binds the 4,961-byte CRLF form,
+including 72 CRLF endings, rather than the 4,889-byte LF blob. The attributes
+file is itself bound. The reviewed payload fingerprint remains
+`3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd`.
+
+The binding audit covers qualification host-walk/result.json and
+preflight/walk.json, probe-walk.json, preparation.source_bindings, archived
+preflight tools, preflight/files.json, staged/committed gates, both replay
+receipts, and closing archives. Archived tools have separate local_sha256 and
+checkout sha256 fields. Private tool/log/artifact/ISO fingerprints still hash
+their actual captured or delivered bytes. Historical records and frozen
+payload/release fingerprints are preserved. The detailed generator/consumer
+list is in preflight/binding-audit.json.
+
+Three new tests replay every current source table, assert the real PowerShell
+CRLF conversion, refuse the exact 195-row dda72ed record, and test real Git
+LF/CRLF/binary behavior, changed/missing sources, unsafe paths, duplicates and
+conflicts. That old CRLF-declared source itself is unchanged, isolating its old
+LF hash as the negative control. No source comparison is relaxed. No owner
+script, payload, workflow, harness, image/release path, privacy rule, package 13
+or package allowance changes.
+
+### Verified locally before the single push
+
+Twelve affected modules (the new checkout tests and the eleven 14zzd modules)
+ran with PYTHONDONTWRITEBYTECODE unset: **78 tests / zero skips**, normal
+Python in 659.504 s; **78 tests / zero skips**, -B in
+659.505 s. Both passed. The new three checkout tests also passed under
+Windows Python. The final sealed tables are replayed again by the commit gate,
+then against the actual staged/committed tree.
+
+Full discovery under normal Python ran **630 tests in
+2129.297 s**: **621 passed**,
+9 documented local host limitations, **zero skips and zero
+unknown failures**. The unchanged 30-second timing case overran locally at 71.04893822600025 s (the documented host limitation). All 630 tests, including that bound,
+remain mandatory in native CI; any native overrun is a STOP.
+
+The final coordinator was `python -u -X utf8 .work/14/14zze/final-local.py`.
+Exact WSL commands, the environment policy, full discovery and safe local shims
+are retained in preflight/final-local.py and whole.py. Qualification and probe
+stand-in walks passed, including all remaining stages, 27 hidden transitions,
+three handoffs, 154 cluttered waits, thirteen real typing-chain cases and final
+Windows markers. No wait is uncovered. Strict syntax passed 1159 composed
+guest commands, 954 embedded Python bodies, 12 shell files and
+54 CI/overlay/owner Python files.
+
+Local controller tests: 31 passed. Windows helper: seventeen zero-write
+refusals and successful checked copy/private entry point passed. Actual
+read-only release/git/GH replay and all 53 retained inputs passed. Four
+credential-only registry steps remain fail-closed in CI.
+
+Actual ISO inspection passed on driver attempt four, hashing all 9,068,650,496
+bytes against the pin and fresh official checksum. Attempts one and three hit
+the accepted Windows checkpoint Path.replace denial; attempt two was refused
+by the local space preflight before inspection started. The bounded 10/20/30 s
+retry sequence was kept. Two pairs of completed ISO/squash duplicates were
+hash-verified before unlinking; failed partials, checkpoints, logs, master ISO
+and canonical extraction remain. No CI inspector change. The coordinator's
+first start preceded log creation; its corrected restart waited for those
+files and did not restart a test.
+
+Pinned gitleaks 8.21.2 pending/full-history scans, exact-range privacy precheck,
+the real hook, source replay and fresh live guards are required before dispatch.
+Source/result/control bindings are in
+`os/manifest/ci/14/14zze-preflight/preparation.json`.
+
+### Sizing / budget
+
+Starting history: **155/155 IDs**, **2326 / 2750 minutes**, counts **33 probes /
+20 qualifications**. Last-dispatch deltas agree at +16 package / +16 organization.
+Organization free: **1385**, reserve **150**. Reservation 72+240=312 gives
+**2638 <=2750** and leaves 1073 organization minutes. The retained projection
+fits unchanged VM 200 / qualification 240 limits. Caps stay 34/21. November is
+free-minutes-only, no paid budget read, with zero local-hook push/closing privacy
+reservations. Fresh ledger/billing comparison is mandatory before each dispatch.
+
+### Not verified / JUDGMENT-CALL / PLAN-GAP / open questions
+
+Fresh same-head native and VM acceptance are pending. The fix changes
+verification only. All physical release and followability gates remain open;
+the product is **NOT RELEASED**. PR #13 remains draft until complete acceptance.
+No additional run is authorized by a spare allowance.
+
 ## 14zzd REPORT: manifest-only fixtures; STOP, no rerun
 
 **Disposition:** [probe 33](https://github.com/Ares-Empire/AresOS/actions/runs/41363231606) **failure**, once on pushed head `dda72ed8a5bdb038d953f950f76c66fc37297115`. **Acceptance is not

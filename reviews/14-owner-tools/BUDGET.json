@@ -15,7 +15,7 @@
     "owner-tools": 20
   },
   "consumed_minutes": 2326,
-  "reserved_minutes": 0,
+  "reserved_minutes": 312,
   "runs": [
     {
       "run": 41363231606,
@@ -4210,7 +4210,7 @@
       40216222435
     ]
   },
-  "status": "14zzd STOP; no rerun",
+  "status": "14zze fixtures/local checks passed; probe34 and qualification21 pending",
   "acceptance_met": false,
   "package_minute_ledger_trusted": true,
   "accounting_decision": "briefs/14zz-ledger-and-cosign.md",
@@ -4231,7 +4231,7 @@
     "status": "passed",
     "previous_dispatch": 41363231606,
     "previous_observed_at": "2026-11-01T23:39:50.757610+00:00",
-    "current_observed_at": "2026-11-02T00:00:06.134985+00:00",
+    "current_observed_at": "2026-11-02T00:16:45.439137+00:00",
     "previous_recorded_minutes": 2310,
     "recomputed_previous_minutes": 2310,
     "current_minutes": 2326,
@@ -4244,7 +4244,7 @@
     "response_sha256": "dc7b2c1ba4fe7018f738d11300f6951017c4818d17b13e3c6a9d7ad7535717d5",
     "status": "passed",
     "source": "organizations/Ares-Empire/settings/billing/usage/summary?year=2026&month=11",
-    "checked_at": "2026-11-02T00:00:06.134985+00:00",
+    "checked_at": "2026-11-02T00:16:45.439137+00:00",
     "usage": [
       {
         "sku": "actions_linux",
@@ -4274,8 +4274,8 @@
     "billing_mode": "free-minutes-only",
     "paid_budget_read": false,
     "remaining_minutes": 1385,
-    "reserved_minutes": 0,
-    "after_reservation": 1385,
+    "reserved_minutes": 312,
+    "after_reservation": 1073,
     "other_repos_reserve": 150,
     "credential": "existing local gh login; GET only"
   },
@@ -4289,9 +4289,9 @@
     "owner-tools": 15
   },
   "previous_reported_untrusted_minutes": 1973,
-  "this_round_starting_ledger": 2310,
+  "this_round_starting_ledger": 2326,
   "this_round_starting_counts": {
-    "probe": 32,
+    "probe": 33,
     "owner-tools": 20
   },
   "previous_round": {
@@ -4310,19 +4310,10 @@
   "limit_decision": "briefs/14zzc-review-fixes.md",
   "timing_manifest": "os/manifest/ci/14/14zzc-timing/projection.json",
   "current_round": {
-    "decision": "briefs/14zzd-fixture-bundles.md",
-    "runs": [
-      {
-        "mode": "probe",
-        "run": 41363231606,
-        "head": "dda72ed8a5bdb038d953f950f76c66fc37297115",
-        "conclusion": "failure",
-        "accepted": false
-      }
-    ],
-    "pushes": 1,
-    "reruns": 0,
-    "closing_report_local_only": true
+    "brief": "14zze",
+    "status": "pending fresh same-head probe34/qualification21",
+    "pushes": 0,
+    "reruns": 0
   },
   "this_round_accounting_charge_changes": []
 }
