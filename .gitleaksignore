@@ -12,3 +12,17 @@ e44af20a3d35e759da471dc7ec23bcf8ad0f7d84:os/ci/verify_release.py:generic-api-key
 54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:72
 54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:73
 54337da3aa6802eb44c748af4e0c3844631d2fa3:os/manifest/ci/14/host-walk/result.json:generic-api-key:74
+
+# Exact historical false positives (package 14, checked 2026-11-02 before the repo went public): Python code in
+# os/ci/owner_vm.py and os/ci/owner_key_counter.py, and the same code captured in the host-walk guest commands.
+# The generic rule fires on identifiers containing "key"; none of these is a credential. Already-pushed commits were
+# never rescanned, so they only matter when the whole history is pushed again (the fresh public repo).
+68df196fc9fbfa8a1f441045baaa57c540ee9e2c:os/ci/owner_key_counter.py:generic-api-key:32
+68df196fc9fbfa8a1f441045baaa57c540ee9e2c:os/ci/owner_vm.py:generic-api-key:344
+68df196fc9fbfa8a1f441045baaa57c540ee9e2c:os/ci/owner_vm.py:generic-api-key:345
+68df196fc9fbfa8a1f441045baaa57c540ee9e2c:os/manifest/ci/14/host-walk/guest-commands.json:generic-api-key:500
+68df196fc9fbfa8a1f441045baaa57c540ee9e2c:os/manifest/ci/14/host-walk/guest-commands.json:generic-api-key:504
+68df196fc9fbfa8a1f441045baaa57c540ee9e2c:os/manifest/ci/14/host-walk/guest-commands.json:generic-api-key:572
+68df196fc9fbfa8a1f441045baaa57c540ee9e2c:os/manifest/ci/14/host-walk/guest-commands.json:generic-api-key:576
+79a67d2fea4a1c3790beb0499f73433ba7f68758:os/ci/owner_vm.py:generic-api-key:535
+79a67d2fea4a1c3790beb0499f73433ba7f68758:os/ci/owner_vm.py:generic-api-key:536
