@@ -68,11 +68,17 @@ class HostStandIn:
             stdout=json.dumps(dict(blockdevices=[selected(row) for row in rows]))
         elif tool=='sfdisk': stdout=json.dumps(dict(partitiontable=dict(device=command[-1],label='gpt',partitions=[])))
         elif tool=='findmnt':
-            selector=next(k for k in ('--source','--target','--mountpoint') if k in command)
-            value=command[command.index(selector)+1]
-            rows=[row for target,row in self.mounts.items() if (row['source'] if selector=='--source' else target)==value]
+            selector=next((k for k in ('--source','--target','--mountpoint') if k in command),None)
+            value=command[command.index(selector)+1] if selector else None
+            rows=[row for target,row in self.mounts.items() if selector is None or
+                  (row['source']==value if selector=='--source' else
+                   pathlib.Path(value).is_relative_to(target) if selector=='--target' else target==value)]
+            if selector is None:
+                return subprocess.CompletedProcess(command,0,json.dumps(dict(filesystems=rows)),'')
             if not rows: return subprocess.CompletedProcess(command,1,'','')
             stdout=json.dumps(dict(filesystems=rows))
+        elif tool=='losetup' and '--list' in command:
+            stdout=json.dumps(dict(loopdevices=[{'name':loop,'back-file':image} for loop,image in self.loops.items()]))
         elif tool=='mount.exfat-fuse':
             if self.fail_fuse: raise subprocess.CalledProcessError(9,command)
             self.mounts[command[-1]]=dict(source=command[-2],target=command[-1],fstype='fuseblk',**{'vfs-options':command[2]})
@@ -85,7 +91,7 @@ class HostStandIn:
         elif tool=='losetup' and '--detach' in command:
             assert not any(row['source'].startswith(command[-1]+'p') for row in self.mounts.values())
             del self.loops[command[-1]]
-        elif tool not in ('sgdisk','udevadm','mkfs.vfat','mkfs.exfat'):
+        elif tool not in ('sgdisk','udevadm','mkfs.vfat','mkfs.exfat','sync'):
             raise AssertionError('Unwalked command: '+repr(command))
         return subprocess.CompletedProcess(command,0,stdout,'')
 
@@ -132,7 +138,15 @@ class NativeWalkTest(unittest.TestCase):
         self.assertEqual(self.observed['expected_guid_source']['blkid'][1:6],['-p','-s','PART_ENTRY_UUID','-o','value'])
         self.assertEqual(self.observed['expected_guid_source']['sgdisk'][1:3],['-i','1'])
         queries=[r['command'] for r in result['native_queries']]
-        self.assertEqual(sum(c[0]=='lsblk' for c in queries),2)
+        self.assertEqual(sum(c[0]=='lsblk' for c in queries),6)
+        check=result['mounted_child']
+        self.assertEqual(check['refusal'],'Protected disk is mounted')
+        self.assertEqual(check['install_refusal'],'Protected disk is mounted')
+        self.assertEqual(check['missing_check_rejected'],'STOP: mounted protected child was accepted')
+        self.assertEqual(check['before'],check['after'])
+        self.assertEqual(result['cleanup']['mounts_before'],result['cleanup']['mounts_after'])
+        self.assertEqual(result['cleanup']['fixture_mounts_remaining'],[])
+        self.assertEqual(result['cleanup']['fixture_loops_remaining'],[])
         for query in queries:
             if query[0]=='lsblk': self.assertIn('--tree',query)
             elif query[0]=='findmnt': self.assertIn('--list',query)
@@ -145,6 +159,35 @@ class NativeWalkTest(unittest.TestCase):
         self.assertEqual(self.observed['status'],'failed')
         self.assertTrue(self.observed['raw_lsblk_trees'])
         self.assertIn('Unexpected lsblk tree shape',self.observed['error']['message'])
+
+    def test_missing_mounted_child_refusal_fails_the_native_check_and_cleans_up(self):
+        host=HostStandIn()
+        real=native.owner.require
+        def unchecked(condition,message):
+            if message!='Protected disk is mounted': real(condition,message)
+        with patch.object(native.owner,'require',unchecked):
+            with self.assertRaisesRegex(AssertionError,'mounted protected child was accepted'):
+                self.exercise(host)
+        self.assertEqual(host.loops,{})
+        self.assertEqual(host.mounts,{})
+        self.assertEqual(self.observed['status'],'failed')
+
+    def test_wrong_refusal_does_not_satisfy_the_native_condition(self):
+        def wrong(*args): raise native.owner.Stop('Wrong or ambiguous protected disk serial')
+        with self.assertRaisesRegex(AssertionError,'wrong mounted-child refusal'):
+            native.require_mounted_refusal(wrong,None)
+
+    def test_target_file_mutation_fails_even_after_the_correct_refusal(self):
+        host=HostStandIn(); real=native.require_mounted_refusal
+        def changed(reader,loop_host):
+            value=real(reader,loop_host)
+            (loop_host.efi/'unexpected').write_text('mutation')
+            return value
+        with patch.object(native,'require_mounted_refusal',side_effect=changed):
+            with self.assertRaisesRegex(AssertionError,'mutated hashes, partitions, mounts or target files'):
+                self.exercise(host)
+        self.assertEqual(host.loops,{})
+        self.assertEqual(host.mounts,{})
 
     def test_failed_fuse_mount_cleans_up_without_a_filesystem_fallback(self):
         host=HostStandIn(); host.fail_fuse=True
@@ -237,7 +280,7 @@ class NativeWalkTest(unittest.TestCase):
         job=workflow['jobs']['rehearsal']
         step,=[s for s in job['steps'] if s.get('name')=='Qualify tools, regressions, rewritten release identity and private access']
         self.assertNotIn('continue-on-error',step)
-        self.assertIn('if test "$GITHUB_REF_NAME" = pkg/14-owner-tools; then\n',step['run'])
+        self.assertIn('if test "$GITHUB_REF_NAME" = pkg/14-owner-tools || test "$GITHUB_REF_NAME" = pkg/16-staged-release; then\n',step['run'])
         self.assertIn('sudo -E env -u GH_TOKEN python3 os/ci/owner_devices.py',step['run'])
         self.assertLess(step['run'].index('owner_devices.py'),step['run'].index('verify_release.py'))
 

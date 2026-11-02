@@ -23,7 +23,7 @@ class CapabilitiesTest(unittest.TestCase):
         workflow=yaml.load((ROOT/'.github/workflows/os-image.yml').read_text(),Loader=yaml.BaseLoader)
         steps=workflow['jobs']['rehearsal']['steps']
         capability,=[s for s in steps if s.get('name')==caps.STEP]
-        self.assertEqual(capability['if'],"github.ref_name == 'pkg/14-owner-tools'")
+        self.assertEqual(capability['if'],"(github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')")
         self.assertEqual(capability['timeout-minutes'],'3')
         self.assertIn('sudo -E python3 os/ci/owner_capabilities.py',capability['run'])
         self.assertNotIn('GH_TOKEN',capability.get('env',{}))
@@ -114,14 +114,19 @@ class CapabilitiesTest(unittest.TestCase):
             process.kill.assert_called_once();process.wait.assert_called_once_with(timeout=10)
 
     def test_incomplete_or_wrong_head_capability_proof_refuses_before_media(self):
-        authorization=dict(allowance='14',native=dict(status='passed',sha='a'*40))
         good=dict(status='passed',sha='a'*40,checks=dict.fromkeys(caps.CHECKS,True))
-        for changed in (dict(good,status='failed'),dict(good,sha='b'*40),dict(good,checks={})):
-            responses=iter((json.dumps(authorization),json.dumps(changed)))
-            with self.subTest(changed=changed),patch.object(sys,'argv',['owner_vm.py','probe']), \
-                 patch.dict(os.environ,GITHUB_SHA='a'*40),patch.object(pathlib.Path,'read_text',side_effect=lambda *a,**kw:next(responses)), \
-                 patch.object(owner_vm,'Media') as media,self.assertRaises(AssertionError):owner_vm.main()
-            media.assert_not_called()
+        for package,branch in (('14','pkg/14-owner-tools'),('16','pkg/16-staged-release')):
+            authorization=dict(allowance=package,native=dict(status='passed',sha='a'*40))
+            for changed in (dict(good,status='failed'),dict(good,sha='b'*40),dict(good,checks={})):
+                responses=iter((json.dumps(authorization),json.dumps(changed)))
+                with self.subTest(package=package,changed=changed),patch.object(sys,'argv',['owner_vm.py','probe']), \
+                     patch.dict(os.environ,GITHUB_SHA='a'*40,GITHUB_ACTIONS='true',GITHUB_EVENT_NAME='workflow_dispatch',
+                         GITHUB_REPOSITORY='Ares-Empire/AresOS',GITHUB_REF_NAME=branch,
+                         REHEARSAL_PACKAGE=package,REHEARSAL_MODE='probe'), \
+                     patch.object(pathlib.Path,'read_text',side_effect=lambda *a,**kw:next(responses)) as read, \
+                     patch.object(owner_vm,'Media') as media,self.assertRaises(AssertionError):owner_vm.main()
+                self.assertEqual(read.call_count,2)
+                media.assert_not_called()
 
 
 if __name__=='__main__':unittest.main()
