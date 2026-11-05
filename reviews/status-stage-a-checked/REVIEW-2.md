@@ -6,7 +6,7 @@ The three original findings, against latest commit `565bcd1`:
 
 One current finding:
 
-- **Blocking — [REVIEW.md:1](../../reviews/status-stage-a-checked/REVIEW.md:1), also lines 3 and 5: personal local paths committed publicly.** The added review’s links expose the Windows user-folder name and local checkout path. Its line 7 assertion that the diff introduces no personal paths is consequently false. **Fix:** replace all local absolute link targets with repository-relative links and correct that assertion. Check the revised diff for remaining personal paths.
+- **Blocking — [REVIEW.md:1](../../reviews/status-stage-a-checked/REVIEW.md), also lines 3 and 5: personal local paths committed publicly.** The added review’s links expose the Windows user-folder name and local checkout path. Its line 7 assertion that the diff introduces no personal paths is consequently false. **Fix:** replace all local absolute link targets with repository-relative links and correct that assertion. Check the revised diff for remaining personal paths.
 
 The rest of the review passes:
 
