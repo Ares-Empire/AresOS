@@ -92,6 +92,13 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - one push, a PR, one probe
 - **Package 16 MERGED 2026-11-02** as `4e69540`. Review SAFE, no findings. Probe run 41532052332 passed: mounted-child refusal, zero mutations, cleanup. INSTALL-STATUS: stage A RELEASED, B after A is checked, C NOT RELEASED.
 - **Stage A help:** Claude copied the verified ISO (776b76f3…, equal to the pin and the fresh official checksum) and FedoraMediaWriter-win64-5.3.2.exe (f53e0c11…, equal to the pin and the GitHub digest) into Downloads. The owner installs the writer and writes the sticks themselves.
+- **Stage A DONE and CHECKED 2026-11-05.** PR #1 of the public repo **MERGED** as `e0f737b` (reviews `reviews/status-stage-a-checked/`, REVIEW-4 SAFE). INSTALL-STATUS: A CHECKED, B RELEASED, C NOT RELEASED.
+  - Every step 1–2 record passed: cloud backups opened online, recovery stick booted, UEFI/Secure Boot off/decrypted/hibernation off, record A in OneDrive, writer cancel trial, "erfolgreich geschrieben", live desktop boot.
+  - Afterwards the Windows disk and its four partitions matched record A (read-only check).
+  - Private records stay out of the public repo.
+- **Stage B is released.** The owner plans fitting on **2026-11-06**, guided step by step in chat. Claude checks the photos (battery, seating, Crucial label: private, never committed), the F2 screen showing both drives, and record B after-fit.
+- **Owner to-dos:**
+  - Shift+Delete `C:\Users\pab\AresOS-delete-me` (115 GB of old replay ISOs).
 
 ### Package 14: owner tools (PR #13, draft)
 

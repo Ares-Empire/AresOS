@@ -71,20 +71,28 @@ Updated 2026-11-02. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Waiting on the owner
 
-- **Hardware ARRIVED 2026-10-26** (keep it boxed until the guide is released; record A comes before fitting). Ordered 2026-10-22 (€127.05, delivery Mon 2026-10-26): Crucial P310 500 GB, Kingston 2×64 GB sticks, Wera 2050 PH0 + PH1 screwdrivers. The owner bought the SSD before the slot check because one opening beats two. Evidence the 2280 slot is free: the Windows drive is a Micron 2450 **2242** (MTFDKCD512TFK), and a LaptopMedia teardown of this model shows the factory 2242 in the 2242-only slot with the 2280 slot (by the Wi-Fi card) empty.
-  - **Return window: request within 14 days of delivery (about 2026-11-09).** Before that: make the Windows recovery stick, open the laptop once following INSTALL.md §3, and fit the SSD if the slot is free; if not, return it sealed. (Opening before the guide is released is the owner's call for the slot check.)
+- **Hardware ARRIVED 2026-10-26.** Record A is done (2026-11-03) and Stage B is released, so fitting is allowed now. Ordered 2026-10-22 (€127.05, delivery Mon 2026-10-26): Crucial P310 500 GB, Kingston 2×64 GB sticks, Wera 2050 PH0 + PH1 screwdrivers. The owner bought the SSD before the slot check because one opening beats two. Evidence the 2280 slot is free: the Windows drive is a Micron 2450 **2242** (MTFDKCD512TFK), and a LaptopMedia teardown of this model shows the factory 2242 in the 2242-only slot with the 2280 slot (by the Wi-Fi card) empty.
+  - **Return window: request within 14 days of delivery (about 2026-11-09).** Before that: open the laptop once following INSTALL.md §3 (Stage B) and fit the SSD if the slot is free; if not, return it sealed.
   - Pry the cover clips with plastic (card or pick), never metal.
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
 
 ## Next, in order
 
 1. **Physical install, staged (owner decision 2026-11-02; package 16 merged as `4e69540`):**
-   - **Stage A (steps 1–2) is RELEASED,** and the owner is doing it now.
-   - **Stage B (fitting)** is released once Claude has checked A’s records. Target: by about 2026-11-09.
+   - **Stage A (steps 1–2) is DONE and CHECKED (2026-11-05),** recorded in INSTALL-STATUS by PR #1 of the public repo (merged `e0f737b`).
+   - **Stage B (fitting) is RELEASED.** The owner plans to fit the SSD on 2026-11-06, with Claude guiding step by step. Return deadline about 2026-11-09.
    - **Stage C (install)** needs A and B checked plus a table update. The native mounted-child check is MET (package 16 probe passed).
 2. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
 5. **Later:** a help button in AresOS that opens a terminal with Claude Code (owner idea 2026-10-22, after the first boot works), piglin shops, owner-designed hub, shaders, controlled updates, boot splash, sleep, Brawl Stars theme.
+6. **AI-native control layer (owner idea 2026-11-05, after the first boot works):** commands and an MCP so the always-on Claude session drives the owner's apps without screenshots or mouse moves, like git's CLI.
+   - **Order of methods, cleanest first:**
+     1. the service's own API (mail through the mail server: read, send, delete, attachments)
+     2. the app's own remote control (Chrome DevTools protocol: page structure, fields, fill in the current tab; KDE D-Bus; our own mod)
+     3. the accessibility tree (AT-SPI: one command lists an app's layout and fields, one fills them)
+     4. screenshots only as a last resort
+   - **Rules:** reading is free; sending or deleting asks the owner first. Discord forbids automating personal accounts, so Discord is the owner's call.
+   - **Start:** a design council, then mail and Chrome as the first two apps, tested in the VM. Related prior art: HKUDS/CLI-Anything generates CLIs from open-source apps' source code (not closed apps).
 
 Codex Pro runs until 2026-11-21.
