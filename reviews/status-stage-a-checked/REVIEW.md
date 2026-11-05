@@ -1,0 +1,11 @@
+1. **Blocking — [INSTALL-STATUS.md:21](/C:/Users/pab/AresOS-status-a/docs/INSTALL-STATUS.md:21): Stage A passes with a required label still outstanding.** The row says the recovery stick “is to carry a clear KEEP mark,” while declaring A checked and releasing B. [INSTALL.md:14](/C:/Users/pab/AresOS-status-a/docs/INSTALL.md:14) requires two clearly distinguished labels, and step 1 requires all boxes PASS. The gap is disclosed honestly, but remains unresolved. **Fix:** confirm both required labels are applied and record that confirmation; otherwise keep B conditional.
+
+2. **Should-fix — [INSTALL-STATUS.md:32](/C:/Users/pab/AresOS-status-a/docs/INSTALL-STATUS.md:32): The required exact installer-stick identity is missing.** “Expendable 64 GB stick (the only removable drive)” establishes capacity and isolation, but does not record the displayed device name or explicitly confirm its match to the labelled installer stick, as [step 2 requires](/C:/Users/pab/AresOS-status-a/docs/INSTALL.md:39). **Fix:** add a sanitized confirmation that the recorded name/capacity matched **ARESOS INSTALLER — ERASE OK**. Keep identifying raw records private.
+
+3. **Should-fix — [INSTALL-STATUS.md:21](/C:/Users/pab/AresOS-status-a/docs/INSTALL-STATUS.md:21): Some preparation checks are neither evidenced nor identified as gaps.** The summary does not confirm recovery creation with **Systemdateien … sichern** selected, encryption **protection off**, hibernation unavailable specifically because it was disabled followed by the required restart, or direct Windows Boot Manager entry with both sticks absent for record A. These are required by step 1; merely creating the recovery stick or collecting record A does not establish them. **Fix:** add maintainer-checked confirmations where supported, and explicitly mark anything unverified. Do not infer success from related checks.
+
+The remaining review checks pass: Stage C stays unreleased; B remains step 3 only; the other physical gates remain open. Both documents agree on those boundaries. The test file is byte-for-byte unchanged after reversing only the two expected A/B state strings. The diff introduces no serial values, GUID values, email addresses, or personal paths. Cancellation and writer success are honestly qualified as owner-reported without screenshots.
+
+No files changed; tests were not run.
+
+CHANGES-NEEDED
