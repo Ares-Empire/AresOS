@@ -424,8 +424,8 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn('Owner decision: staged release (2026-11-02)', status)
         self.assertIn('owner as first reader', status)
         self.assertIn('maintainer (Claude) checking each stage', status)
-        for label,state in (('Stage A — preparation','RELEASED now'),
-                            ('Stage B — fitting','NOT RELEASED until A checked'),
+        for label,state in (('Stage A — preparation','CHECKED 2026-11-05'),
+                            ('Stage B — fitting','RELEASED — A checked 2026-11-05'),
                             ('Stage C — installation','NOT RELEASED')):
             row=next(line for line in status.splitlines() if line.startswith('| '+label+' |'))
             self.assertIn('**'+state+'**',row)
