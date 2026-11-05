@@ -1,6 +1,6 @@
 # Install AresOS on its own SSD
 
-Read on your phone; save the [emergency card](EMERGENCY.md) there. **Start at step 1 and follow the numbered steps in order.** The [current gate/status table](INSTALL-STATUS.md#current-gates) is the only release authority. Follow only its released stage: **A (steps 1–2) is released now**; **B (step 3)** requires the maintainer to check A; **C (steps 4 onward)** requires checked A and B, a passed native mounted-child check, and the maintainer updating the table. Send each stage's records at its boundary; during C, send each step's record to the maintainer before continuing. Agents do none of those actions.
+Read on your phone; save the [emergency card](EMERGENCY.md) there. **Start at step 1 and follow the numbered steps in order.** The [current gate/status table](INSTALL-STATUS.md#current-gates) is the only release authority. Follow only its released stage: **A (steps 1–2) is done and was checked on 2026-11-05**; **B (step 3) is released now**; **C (steps 4 onward)** requires checked A and B, a passed native mounted-child check, and the maintainer updating the table. Send each stage's records at its boundary; during C, send each step's record to the maintainer before continuing. Agents do none of those actions.
 
 This route is for Lenovo LOQ 15IRH8 (82XV), German Windows 11 Home and Crucial P310 500 GB (`CT500P310SSD801`). Crucial is the target; Micron `MTFDKCD512TFK…` 512 GB is **Windows — KEEP**. Expected sizes 465/477 GiB are estimates, never identification. Use model + serial + GUIDs. No C: resizing, shared Windows EFI or Linux mounts/writes on Micron. Ordinary Windows records still write ordinary files. The same-drive route is archived, not a fallback.
 
@@ -44,7 +44,7 @@ First command normally prints nothing; second must show **Ruhezustand / Schnells
 
 ## 3. Fit and identify both drives
 
-**Stage B — wait for the maintainer to check A before starting.** Owner fitting uses the checkpoint below. At the end, **stop here and send your records to the maintainer**: seating and battery photos, firmware showing both drives, and record B after-fit. Target about **2026-11-09**, the SSD return deadline. Battery warning: qualified repairer first.
+**Stage B — released 2026-11-05 after the maintainer checked A.** Owner fitting uses the checkpoint below. At the end, **stop here and send your records to the maintainer**: seating and battery photos, firmware showing both drives, and record B after-fit. Target about **2026-11-09**, the SSD return deadline. Battery warning: qualified repairer first.
 
 - [ ] Open the [model-specific fitting and battery checkpoint](INSTALL-REFERENCE.md#fitting). **Return to step 3** here only after its entire sequence passes. Battery warning signs require Lenovo/qualified repairer, with no connector work or reconnection. Occupied slot, missing parts, poor seating, resistance, damaged clips or unclear thermal pieces mean stop without powering on. Never use the screw to pull the SSD into place; leave Micron alone.
 - [ ] After closing, reconnect AC. Power on → **F2** (or **Fn+F2**) → **More Settings** → storage/device information. Require **both Micron and Crucial**, model/serial where available; the boot list alone cannot identify an empty SSD. Exit without other changes.
