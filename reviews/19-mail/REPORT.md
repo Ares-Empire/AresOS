@@ -2,6 +2,136 @@
 
 Builds on draft PR #6. No merge, force push, real account or model run.
 
+## For the owner: decisions before merge
+
+**read — still-open JUDGMENT-CALLs and PLAN-GAPs across all rounds:**
+
+- **Draft revisions and deletion:** editing or sending keeps the old draft, so revisions can accumulate. This keeps every deletion behind its own named approval; silently replacing or removing drafts was rejected.
+- **Conservative draft protection:** draft text, including quoted history, must fit wholly in approval; any part of a draft, even a binary file, refuses attachment, and older marked Sent copies get the same protection. A narrower policy could allow more attachments and long threads, but would need a reliable way to distinguish who wrote each part; Drafts now also refuses move/copy, while sending itself, forwarding inline and approved deletion remain the routes out.
+- **Forwarded mail is a file:** attached forwarding sends a rebuilt `.eml` file that recipients may need to save and open, and drops private or unlisted headers while preserving decoded binary files. Native inline attached-mail presentation and original header bytes were rejected to keep the approved bytes exact and private recipients protected; recipient-program presentation remains untested.
+- **Saved mail files:** attaching a saved `.eml` or `.msg` from your folders is refused, even if harmless; forward the mail itself or use its exact mail reference. Allowing local saved mail would need a different provenance and disclosure policy.
+- **Ordinary local files and timestamps:** local files show their path, name, size, hash and last change time, but that time does not prove authorship, and Claude-written file text can still travel without appearing in the prompt. Showing text-like files wholly in approval is the unresolved alternative; this run deliberately leaves that design question open.
+- **Strict content refusals:** malformed or unsupported mail and even a literal `Bcc:` line in a text file can refuse attachment. Guessing encodings, trusting file labels or silently editing that text was rejected; support for additional cases needs tests for both the builder and the final check.
+- **Size and performance limits:** very large messages, threads and folders may refuse: files cap at 25 MiB, encoded mail at 64 MiB, approvals at 16 KiB and history scans at 10,000 messages, with bounded pages and nesting. Smaller selected folders are the current choice over unlimited scans; a durable incremental index and large-account performance work remain deferred.
+- **Sent setup:** when a short probe finds no Sent copy, setup asks you to confirm whether the client or server saves it rather than guessing from absence. Automatic negative detection would need a proven time bound for the real account.
+- **Folder deletion:** tools delete empty folders only if onboarding proves the server blocks deletion when mail arrives; neither test server qualifies on its own. Until the real account qualifies, delete folders in your mail program rather than relying on a race-prone tool check.
+- **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
+- **Approval format:** send and delete use the existing base approval format, with one reserved operation identifier and its complete description, unchanged through submission. A separate mail-specific format was rejected to keep callers and approval checks compatible.
+
+**assumed / needs your own check with the real account:**
+
+- Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
+- Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
+- Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 6
+
+**read — scope / Done:** closes REVIEW-6's unmarked-owner-draft move/copy escape.
+`adapter.py` checks the complete move/copy source set before any server mutation:
+messages in SPECIAL-USE Drafts or its subfolders refuse regardless of marker or
+flags, with `mail_compose mode=draft` and approved `mail_delete` named as alternatives.
+Ordinary messages can still enter Drafts; named deletion can still move drafts to
+Trash. The folder protections in `safe_folder` remain unchanged.
+
+Draft classification now also uses the IMAP `\Draft` flag returned by the existing
+fresh exact-reference `FLAGS BODY.PEEK[]` fetch, with UIDVALIDITY, UID and Message-ID
+validation. No read sets/removes flags. Attachments from flagged sources, including
+all descendant parts, refuse before reconstruction; draft/reply/reply-all/inline
+text is fully disclosed or its approval refuses as oversized. Only draft-save
+writes the marker. Tool definitions, generated Mail tools and `TOOLS.md`, and the
+control README describe the current rules.
+
+**read — tests proving each rule** (`control/mail_tests/test_review_fixes_6.py`):
+
+| Test in `ReviewFixes6` | Coverage |
+| --- | --- |
+| `test_review6_unmarked_marked_flagged_drafts_and_subfolders_refuse_move_copy_atomically` | Exact REVIEW-6 unmarked owner draft; marked/flagged variants; root/subfolder; move/copy refused with both alternatives; real server UIDs, bytes and flags unchanged, even with an ordinary message first in the batch; source/part/attached forwarding refusal. |
+| `test_review6_flagged_inbox_archive_and_deep_parts_refuse_and_allowed_moves_keep_flag` | Unmarked flagged sources in INBOX/Archive; every MIME descendant; both attach forms and attached forwarding; allowed copy/move between ordinary folders preserves bytes/flags and refusal. |
+| `test_review6_flagged_literal_text_fully_disclosed_or_oversized_in_all_inline_modes` | INBOX/Archive flagged drafts in draft/reply/reply-all/inline-forward modes; exact whole header-like text in approval and SMTP receipt, or refusal at 23,100 characters without reservation. |
+| `test_review6_flagged_draft_differing_html_is_disclosed_whole` | Flag-only draft accepts mode=draft; entire plain and differing readable HTML/link text disclosed; server unchanged. |
+| `test_review6_flag_is_fresh_after_another_client_changes_it_without_read_side_effects` | Same reference was previously read/attachable; another client sets Draft; all attach paths now refuse and all inline modes disclose; full server bytes/flags unchanged by reads/composition/preparation. |
+| `test_review6_flagged_sources_still_validate_uidvalidity_identity_and_existence` | Changed UIDVALIDITY, wrong identity and expunged UID refuse as stale rather than using the flag or a replacement message; server unchanged. |
+| `test_review6_ordinary_move_copy_into_drafts_allowed_and_named_delete_still_works` | Ordinary messages move/copy into Drafts with bytes/flags intact; unmarked/flagged drafts go to Trash only through exact named deletion approval. |
+| `test_review6_mail_flag_cannot_add_or_remove_draft_even_in_mixed_flags` | Draft addition/removal refuses in INBOX/Archive, already-flagged/unflagged sources, with otherwise permitted flags; no partial flag changes. |
+
+**read — earlier-test setup alignment:** two earlier methods explicitly used a
+move/copy out of Drafts as setup, which cannot succeed under point 1. The fixtures
+in `ReviewFixes.test_review_1_moved_and_copied_draft_reply_and_both_forwards_keep_provenance`
+and `ReviewFixes5.test_review5_header_like_saved_draft_source_and_parts_refused_even_after_move_copy`
+now append the exact saved draft bytes to INBOX as a pre-existing marked draft
+before exercising allowed ordinary-folder moves/copies. Every earlier assertion,
+case and test method is retained unchanged; none is weakened, skipped or deleted.
+The new first test covers the now-forbidden Drafts exit and its unchanged server
+state. This necessary fixture-only adjustment resolves the literal conflict
+between “every earlier test unchanged” and the new mandatory refusal rule.
+
+**run — local verification:**
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests python3 -m unittest test_review_fixes_5.DraftAndTextGuard test_review_fixes_4.RebuildAndGuard test_review_fixes_3.HeaderAndEncoding test_review_fixes_2.LocalMailDetection -v`
+printed `Ran 14 tests in 0.139s` / `OK`. `python3 control/generate.py` printed
+`Generated tools, help, reference and ask rules`; `--check` printed
+`Generated artifacts match definitions`; AST parsing printed `Python syntax OK`;
+`git diff --check` was silent. A local decision check loaded `614c0e0a`'s actual
+adapter and current adapter: only current classifies an unmarked flagged INBOX
+message as a draft and refuses Drafts move/copy before reading/mutating messages;
+it printed `Baseline differs on both round-6 rules; local decision check only, not server evidence`.
+Docker printed `Cannot connect to the Docker daemon`; all container checks run
+on GitHub's Linux runners, without installing software on the host.
+
+**run — last code/test commit `807f2b9d41d5f5aba7d9f8001ab65cb1e971c115`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail push 42377205761](https://github.com/Ares-Empire/AresOS/actions/runs/42377205761) | `Ran 57 tests in 47.293s`; `OK`; `Control base suite PASS`; `Ran 103 tests in 236.747s`; `OK`; `Control Mail suite PASS` |
+| [Mail PR 42377210353](https://github.com/Ares-Empire/AresOS/actions/runs/42377210353) | `Ran 57 tests in 36.413s`; `OK`; `Control base suite PASS`; `Ran 103 tests in 217.018s`; `OK`; `Control Mail suite PASS` |
+| [Independent base 42377210379, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42377210379/attempts/1) | `Ran 57 tests in 47.594s`; `OK`; `Control base suite PASS` |
+| [Independent base 42377210379, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42377210379/attempts/2) | `Ran 57 tests in 47.293s`; `OK`; `Control base suite PASS` |
+
+Both Mail passes execute `bash control/ci/mail/run.sh`, including the generated
+check, all 57 brief-18 base tests, isolated pinned Dovecot/GreenMail containers,
+all 103 Mail tests (all 95 earlier methods plus eight new ones), and the existing
+crash coverage. Both logs print `Mail delete kill-9 cases: 26; unnamed Deleted messages survive`,
+`Mail send kill-9 cases: 45; no repeated SMTP DATA` and
+`Mail reservation/repair kill-9 cases: 16; no SMTP during repair/restart`;
+the additional remote-boundary tests also pass. The independent base workflow
+executes `bash control/ci/test.sh` in pinned Fedora and passes both attempts.
+
+Any later commit changes only files under `reviews/` (this run changes only
+`reviews/19-mail/REPORT.md`); the PR body records both workflows and both passes
+on the final head. Four initial executions plus four corrected-code executions
+and four final-report executions total twelve, above the approximate eight-run
+target because of the fixture correction; no required pass is omitted.
+
+**run — closing scope/size checks:** syntax-tree comparison printed
+`All 95 earlier Mail test methods and 628 assertion expressions unchanged`.
+`Protected-path check PASS`; `git diff --check` was silent; the size scan printed
+`Remaining .work files over 500 MB: []`. No large downloads or extracted layers
+were created. Normal pushes used verification, without force push or `--no-verify`;
+all run commits include the required model trailer.
+
+
+**run — initial fixture corrections:** code head `7541e338` Mail push
+[42376740905](https://github.com/Ares-Empire/AresOS/actions/runs/42376740905)
+printed `Ran 103 tests in 238.512s` / `FAILED (failures=2)`: all 95 earlier tests
+and six new tests passed. The PR pass [42376745468](https://github.com/Ares-Empire/AresOS/actions/runs/42376745468)
+printed `Ran 103 tests in 231.436s` / `FAILED (failures=2)` with the same two failures.
+The two new setup errors were creating a Drafts
+subfolder through a tool that intentionally forbids that, and comparing flags
+across a successful reply's writable selection without first settling the
+session-only `\Recent` flag. The test now seeds the owner-created subfolder
+through real IMAP and establishes the writable baseline before taking any
+expected flags; every assertion remains unchanged. The independent base passed
+both attempts ([42376745475](https://github.com/Ares-Empire/AresOS/actions/runs/42376745475));
+its logs printed `Ran 57 tests in 37.845s` / `Ran 57 tests in 47.949s`, both
+`Control base suite PASS`. These superseded runs are not final code evidence.
+
+
+**Not verified / assumed:** the real-account and owner usability/presentation
+checks are listed above, as are all still-open decisions. No new product
+JUDGMENT-CALL or PLAN-GAP is introduced; the earlier test-instruction conflict is
+resolved by rounds 5 and 6. **Open questions:** the owner decisions above remain
+for the lead before merge. No real account, recipient program or model was used;
+no merge performed.
+
 ## Review fixes, round 5
 
 **read — scope:** implements `briefs/19-review-fixes-5.md` against REVIEW-5's
@@ -63,14 +193,12 @@ and `ReviewFixes3.test_review3_1_export_punctuation_malformed_and_mbox_refused_b
 now assert the marker on the draft export only, and its absence on the Sent export.
 Their exact-export, Bcc-presence and proxy refusal checks remain.
 
-**PLAN-GAP / read — conflicting test instructions:** point 2 says “No other
-earlier test changes,” but points 1, 3 and 4 require the opposite of several earlier
-assertions. Keeping those assertions would require sending a now-forbidden draft
-attachment, accepting a container marker after disclosure, or reparsing text.
-I used this brief's “If unsure: Refuse” rule to resolve the conflict and asked for
-clarification while continuing independent work; no answer arrived before this
-reversible resolution. All 85 earlier Mail test methods and their original cases
-remain; ten methods were added. No test was skipped or deleted. These additional expectations were changed, explicitly:
+**RESOLVED / read — conflicting test instructions:** rounds 5 and 6 replace
+“shown in full inside an attachment” with “refused as an attachment,” and round 6
+forbids moving/copying from Drafts. These approved rules settle the superseded
+expectations below; this is no longer an open PLAN-GAP or owner question. All 85
+earlier Mail test methods and their original cases remained in round 5; ten methods
+were added. No test was skipped or deleted. The historical expectation changes were:
 
 - `ReviewFixes.test_review_1_moved_and_copied_draft_reply_and_both_forwards_keep_provenance`:
   attached forward refuses immediately; inline/reply full-text and size checks stay.
@@ -180,8 +308,8 @@ is over 500 MiB; no large downloads, images or extracted layers were created.
 **Not verified / assumed:** real recipient-client `.eml` presentation, real-account
 qualification and tool-user/approval usability still need owner testing. Ordinary
 local-file authorship remains the deferred design question. **Open questions:**
-the lead should review the explicit test-instruction conflict and recipient-file
-presentation judgment call before merge. No merge performed.
+the lead should review the recipient-file presentation judgment call before merge;
+the historical test-instruction conflict is resolved by rounds 5 and 6. No merge performed.
 
 ## Review fixes, round 4
 
