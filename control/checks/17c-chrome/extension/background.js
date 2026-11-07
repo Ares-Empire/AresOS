@@ -81,6 +81,7 @@ async function rpc(m,p){
   if(m==='Check.detach'){await chrome.debugger.detach({tabId:selected});attached.delete(selected);return {};}
   if(m==='Check.public'){publicMode=true;await chrome.declarativeNetRequest.updateSessionRules({addRules:[{id:900,priority:1,action:{type:'block'},condition:{resourceTypes:['websocket']}},{id:901,priority:1,action:{type:'block'},condition:{requestMethods:['post','put','patch','delete','connect','options','other']}}]});return {};}
   if(m==='Check.tabs')return chrome.tabs.query({});
+  if(m==='Check.mainDocument')return chrome.scripting.executeScript({target:{tabId:selected,frameIds:[0]},world:'ISOLATED',func:()=>location.href});
   if(m==='Check.open'){if(!safe(p.url))throw Error('FORBIDDEN_PAGE');return chrome.tabs.create({url:p.url});}
   if(m==='Check.targets')return chrome.debugger.getTargets();
   if(m==='Check.workerAttach'){const s={targetId:p.targetId};await chrome.debugger.attach(s,'1.3');attached.set(p.targetId,s);await prepare(s,true);return {};}
