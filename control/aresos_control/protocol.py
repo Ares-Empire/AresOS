@@ -25,8 +25,10 @@ def receive(connection):
     raise Refused("invalid_input", "Socket frame exceeds 6 MiB or contains extra messages; reduce the request.")
 
 
-def send(connection, message):
-    wire = (display_json(message) + "\n").encode()
+def send(connection, message, *, result=False):
+    # Only results get presentation ordering. Requests must expose the caller's order.
+    encoded = json.dumps(message, ensure_ascii=True, separators=(",", ":"), allow_nan=False) if not result else display_json(message)
+    wire = (encoded + "\n").encode()
     if len(wire) > WIRE_LIMIT:
         raise Refused("invalid_input", "Socket frame too large; reduce the request.")
     connection.sendall(wire)

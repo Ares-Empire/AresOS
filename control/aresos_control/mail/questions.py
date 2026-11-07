@@ -3,10 +3,11 @@
 Build from raw preparation facts and escape once in shared approval_input().
 Summary limits count the eventual visible characters, keeping every escape whole.
 """
-from email.utils import getaddresses, parsedate_to_datetime
+from email import policy
+from email.utils import parsedate_to_datetime
 from urllib.parse import urlsplit
 
-from ..common import visible
+from ..common import Refused, visible
 
 
 def short(value, limit=80):
@@ -19,17 +20,21 @@ def short(value, limit=80):
     return value
 
 
-def person(value):
-    """A display name never stands alone: a lookalike name ("Mom") must show its real address.
-
-    Only the name is shortened; the address is always shown whole (bounded like a real address).
-    """
-    pairs = getaddresses([value])
-    if len(pairs) == 1 and pairs[0][1]:
-        name, address = pairs[0]
-        address = short(address, 254)
-        return f'{short(name)} <{address}>' if name else address
-    return short(value)
+def people(headers):
+    """Count mailboxes, shorten only names, and never guess at a defective header."""
+    shown = []
+    for value in headers:
+        try:
+            header = value if hasattr(value, 'addresses') else policy.default.header_factory('To', value)
+            if header.defects or not header.addresses or any(
+                    not a.username or not a.domain for a in header.addresses):
+                raise ValueError('Missing or defective mailbox')
+        except (ValueError, TypeError, IndexError) as exc:
+            raise Refused('invalid_input', 'Cannot show a complete mailbox in the approval question: missing address or defective address header. Use the owner mail program.') from exc
+        for address in header.addresses:
+            name = short(address.display_name)
+            shown.append(f'{name} <{address.addr_spec}>' if name else address.addr_spec)
+    return few(shown, cut=False)
 
 
 def few(values, cut=True):
@@ -55,7 +60,7 @@ def question(verb, details, source=None):
         text = 'Send this mail'
         for key, label in (('to', ' to '), ('cc', ', Cc '), ('bcc', ', hidden copy (Bcc) to ')):
             if details[key]:
-                text += label + few([person(v) for v in details[key]], cut=False)
+                text += label + people(details[key])
         # The caller's text excludes generated quotes, forwards and the signature.
         lines = len(details['text'].splitlines())
         attachments = details['attachments']
@@ -77,16 +82,16 @@ def question(verb, details, source=None):
         items = details['items']
         count = f"{len(items)} " + ('message' if len(items) == 1 else 'messages')
         text = f'Delete {count} for good' if details['mode'] == 'permanent' else f'Move {count} to Trash'
-        summaries = [f"from {person(i['from'])}, '{short(i['subject'], 120)}' ({day(i['date'])})" for i in items[:3]]
+        summaries = [f"from {people([i['from']])}, '{short(i['subject'], 120)}' ({day(i['date'])})" for i in items[:3]]
         if len(items) > 3:
             summaries.append(f'and {len(items) - 3} more')
         return text + ': ' + '; '.join(summaries) + '?'
     if verb == 'folder_delete':
         return f"Delete the empty folder '{details['folder']}'?"
     if verb == 'unsubscribe':
-        label = short(str(source.get('List-ID')), 120) if source.get('List-ID') else person(str(source.get('From'))) if source.get('From') else 'this mailing list'
+        label = short(str(source.get('List-ID')), 120) if source.get('List-ID') else people([source.get('From', '')])
         url = urlsplit(details['target'])
-        method = ('sending a mail to ' + few(details['to']) if url.scheme == 'mailto'
+        method = ('sending a mail to ' + people(details['to']) if url.scheme == 'mailto'
                   else 'a one-click web request to ' + url.hostname)
         return f'Unsubscribe from {label} by {method}?'
     if verb == 'onboarding_folder_probe':

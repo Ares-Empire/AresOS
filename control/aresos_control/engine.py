@@ -261,7 +261,7 @@ class Engine:
     def transfer(self, connection, request):
         from .protocol import receive, send
         result = self.request(request)
-        send(connection, result)
+        send(connection, result, result=True)
         if not result["ok"]:
             return
         offset = 0
@@ -283,22 +283,22 @@ class Engine:
                         raise Refused("invalid_input", "Use nonempty upload chunks of at most 1 MiB.")
                     offset += len(data)
                     yield data
-                    send(connection, {"ok": True, "data": {"offset": offset}})
+                    send(connection, {"ok": True, "data": {"offset": offset}}, result=True)
 
             self.blobs.put_stream(chunks(), blob["size"], blob["sha256"], origin="caller_import")
             self.store.write({"blob:" + digest(blob): blob}, request["app"] + "_file_import", "import immutable blob " + blob["sha256"])
-            send(connection, {"ok": True, "data": {"file": blob}, "pending": self.pending(request["app"])})
+            send(connection, {"ok": True, "data": {"file": blob}, "pending": self.pending(request["app"])}, result=True)
         else:
             data = self.blobs.require_origin(request["sha256"], "export")
             while True:
                 frame = receive(connection)
                 if frame == {"end": True, "offset": offset} and offset == len(data):
-                    send(connection, {"ok": True, "data": {"complete": True}})
+                    send(connection, {"ok": True, "data": {"complete": True}}, result=True)
                     return
                 if frame != {"offset": offset} or offset == len(data):
                     raise Refused("invalid_input", "Download chunks are out of order or incomplete; save refused.")
                 chunk = data[offset:offset + CHUNK_SIZE]
-                send(connection, {"ok": True, "data": {"offset": offset, "bytes": base64.b64encode(chunk).decode()}})
+                send(connection, {"ok": True, "data": {"offset": offset, "bytes": base64.b64encode(chunk).decode()}}, result=True)
                 offset += len(chunk)
 
     def request(self, request, admin=False):

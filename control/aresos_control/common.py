@@ -64,8 +64,9 @@ def display_json(value):
 
 
 def require_question(arguments):
-    if isinstance(arguments, dict) and "operation_id" in arguments and "question" not in arguments:
-        raise Refused("stale_approval", "Question missing; pass the whole service-provided approval unchanged, or prepare anew.")
+    # Check the received order before schema validation, hashing or presentation.
+    if type(arguments) is not dict or list(arguments) != ["question", "operation_id", "description"]:
+        raise Refused("stale_approval", "Pass exactly question, operation_id, description in that order, unchanged from the service approval, or prepare anew.")
 
 
 def validate(value, schema, path="input"):

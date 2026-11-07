@@ -1,5 +1,6 @@
 import asyncio
 import json
+from itertools import permutations
 import os
 from pathlib import Path
 import shlex
@@ -80,7 +81,7 @@ class Integration(unittest.TestCase):
     def request(self, uid, kind, request):
         # An independent client process provides genuine kernel peer credentials.
         code = "import json,socket,sys; s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); s.sendall((sys.argv[2]+'\\n').encode()); f=s.makefile(); print(f.readline())"
-        return self.run_user(uid, code, str(self.root / ("sockets/" + kind + ".sock")), canonical({"v": 1, **request}))
+        return self.run_user(uid, code, str(self.root / ("sockets/" + kind + ".sock")), json.dumps({"v": 1, **request}))
 
     def call(self, uid, action, args, kind="act"):
         return self.request(uid, kind, {"method": "call", "action": action, "arguments": args})
@@ -352,6 +353,43 @@ print(json.dumps(results))
         prompt_input = {"hook_event_name": "UserPromptSubmit", "session_id": "fixture-session", "prompt": "owner message", "cwd": str(self.home)}
         prompt = self.launch(OWNER, ["hook", "UserPromptSubmit"], input=canonical(prompt_input))
         self.assertIn(prepared["operation_id"], json.loads(prompt.stdout)["hookSpecificOutput"]["additionalContext"])
+
+    def test_round13_all_wrong_orders_refused_by_real_mcp_socket_and_cli_then_execute_once(self):
+        async def conversation():
+            from mcp import Client as MCPClient, StdioServerParameters
+            parameters = StdioServerParameters(command="/usr/bin/setpriv", args=["--reuid", str(OWNER), "--regid", str(OWNER), "--clear-groups",
+                                                                               "/usr/bin/aresos-mcp", "testapp"])
+            async with MCPClient(parameters) as client:
+                ref = self.call(OWNER, 'testapp_list', {})['data']['items'][0]['reference']
+                for verb, args in (('send', message(to=['alpha'], bcc=[])), ('delete', {'references': [ref]})):
+                    approval = self.call(OWNER, 'testapp_prepare_' + verb, args)['data']['approval']
+                    for order in permutations(approval):
+                        if list(order) == list(approval):
+                            continue
+                        altered = {k: approval[k] for k in order}
+                        results = [(await client.call_tool(verb, altered)).structured_content,
+                                   self.call(OWNER, 'testapp_' + verb, altered)]
+                        cli = self.launch(OWNER, ['cli', 'testapp', verb, '--input', json.dumps(altered)])
+                        self.assertEqual(cli.returncode, 1, cli.stderr)
+                        results.append(json.loads(cli.stdout))
+                        for result in results:
+                            self.assertEqual(result['error']['code'], 'stale_approval', result)
+                        status = self.call(OWNER, 'testapp_operation_status', {'operation_id': approval['operation_id']})['data']
+                        self.assertEqual((status['operation']['state'], status['operation']['stages']), ('reserved', {}))
+                        self.assertEqual(status['evidence']['arrivals'], [])
+                        items = self.call(OWNER, 'testapp_list', {})['data']['items']
+                        self.assertIn(ref, [item['reference'] for item in items])
+                    correct = (await client.call_tool(verb, approval)).structured_content
+                    self.assertTrue(correct['ok'], correct)
+                    self.assertEqual(correct['data']['operation']['state'], 'done')
+                    self.assertEqual(self.call(OWNER, 'testapp_' + verb, approval)['data'], correct['data'])
+                    cli = self.launch(OWNER, ['cli', 'testapp', verb, '--input', json.dumps(approval)])
+                    self.assertEqual(cli.returncode, 0, cli.stderr)
+                    self.assertEqual(json.loads(cli.stdout)['data'], correct['data'])
+                    evidence = self.call(OWNER, 'testapp_operation_status', {'operation_id': approval['operation_id']})['data']['evidence']
+                    self.assertEqual(evidence['arrivals'], ['alpha'] if verb == 'send' else [])
+                self.assertNotIn(ref, [item['reference'] for item in self.call(OWNER, 'testapp_list', {})['data']['items']])
+        asyncio.run(conversation())
 
     def test_large_hook_inputs_still_remind_about_pending_work(self):
         prepared = self.call(OWNER, "testapp_prepare_send", message())

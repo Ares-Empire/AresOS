@@ -10,7 +10,7 @@ from unittest.mock import patch
 from support import WORK, MailCase
 from smtp_fixture import SMTPFixture
 from test_review_fixes_11 import MemoryIMAP
-from aresos_control.common import ASK_LIMIT, QUESTION_LIMIT, approval_input, canonical, digest, visible
+from aresos_control.common import ASK_LIMIT, QUESTION_LIMIT, Refused, approval_input, canonical, digest, visible
 from aresos_control.engine import Engine
 from aresos_control.mail import codec
 from aresos_control.mail.questions import question, short
@@ -109,10 +109,15 @@ class PlainQuestions12(unittest.TestCase):
         comp = self.mail.composition(self.compose())['mail']
         comp = {**comp, 'to': ['"Anna\u202e\x01\\ Example" <anna@example.com>'],
                 'subject': 'Wohnung\x00\u2066\\u202e', 'attachments': [{'name': 'f' * 78 + '\u202e.pdf'}]}
+        # Round 13 refuses the non-printable mailbox defect instead of displaying a repaired header.
+        with self.assertRaises(Refused) as error:
+            question('send', comp)
+        self.assertEqual(error.exception.code, 'invalid_input')
+        comp['to'] = ['"Anna\u202e\\\\ Example" <anna@example.com>']
         approval = approval_input('fixed', comp, question('send', comp))
         self.assertIn(visible(comp['subject']), approval['question'])
         self.assertIn('\\u202e', approval['question'])
-        self.assertIn('\\u0001', approval['question'])
+        self.assertIn('\\u0000', approval['question'])
         self.assertEqual(approval['description'], visible(comp))
         self.assertNotIn('\u202e', approval['question'])
         self.assertEqual(visible(short('x' * 78 + '\u202e.pdf')), 'x' * 78 + '…')

@@ -17,7 +17,7 @@ from ..adapters import NothingLeft, Uncertain
 from ..blobs import Blobs
 from ..common import Refused, canonical, digest, sha256, visible
 from . import codec
-from .questions import question
+from .questions import people, question
 from .roles import resolve, SETUP, REQUIRED, OPTIONAL, optional_roles, recorded_optional, optional_status, check_optional, root
 from .transport import Transport, folders, select, fetch, fetch_headers, uids, ok, quote, context, nonempty_refusal
 
@@ -525,6 +525,8 @@ class Mail:
             raise Refused("invalid_input", "A delete operation uses exactly one account.")
         for target in items:
             msg = self.message(target["reference"])["msg"]
+            # str(header) may repair malformed syntax and discard its parse defects.
+            people([msg.get("From", "")])
             if any(str(msg.get(k, "")) != target[k] for k in ("from", "subject", "date")):
                 raise Refused("stale_approval", "Message sender, subject or date differs: stale, search again before deleting.")
 

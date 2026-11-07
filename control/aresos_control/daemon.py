@@ -58,7 +58,7 @@ class Daemon:
                     except (Refused, OSError, ValueError, KeyError, TypeError) as exc:
                         result = {"ok": False, "error": {"code": getattr(exc, "code", "transport_error"), "message": str(exc)}, "pending": {"items": [], "total": 0, "cursor": None}}
                     try:
-                        send(connection, result)
+                        send(connection, result, result=True)
                     except (OSError, Refused):
                         pass
 

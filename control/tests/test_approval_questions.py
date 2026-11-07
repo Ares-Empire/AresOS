@@ -2,18 +2,60 @@ import copy
 import io
 import json
 import socket
-from contextlib import redirect_stdout
+from contextlib import ExitStack, contextmanager, redirect_stdout
+from itertools import permutations
 from unittest.mock import patch
 
 from aresos_control.common import ASK_LIMIT, QUESTION_LIMIT, Refused, approval_input, canonical, display_json, visible
 from aresos_control.definitions import APPROVAL
-from aresos_control.protocol import send, receive
+from aresos_control.protocol import Client, send, receive
 from aresos_control.proxy import Proxy
 from aresos_control.cli import main
 from support import EngineCase
 
 
 class ApprovalQuestions(EngineCase):
+    def test_round13_wrong_orders_and_extra_or_missing_keys_stop_before_submission(self):
+        ref = self.data('testapp_list')['items'][0]['reference']
+        for verb, approval in (('send', self.reserve()), ('delete', self.data('testapp_prepare_delete', {'references': [ref]})['approval'])):
+            before = self.engine.store.get('testapp')
+            wrong = [{k: approval[k] for k in order} for order in permutations(approval) if list(order) != list(approval)]
+            wrong += [{**approval, 'extra': True}, {}, *[{k: v for k, v in approval.items() if k != missing} for missing in approval]]
+            adapter = self.engine.adapters['testapp']
+            proxy = Proxy('testapp', {'act_socket': 'unused'})
+            for altered in wrong:
+                with self.subTest(verb=verb, keys=list(altered)), ExitStack() as stack:
+                    guards = [stack.enter_context(patch.object(obj, name, wraps=getattr(obj, name))) for obj, name in
+                              ((self.engine, 'submit'), (self.engine, 'stage'), (adapter, 'revalidate'),
+                               (adapter, 'has_submission_evidence'), (adapter, 'execute'))]
+                    result = self.call('testapp_' + verb, altered)
+                    self.assertEqual(result['error']['code'], 'stale_approval', result)
+                    with patch.object(proxy.client, 'call', side_effect=lambda name, args: self.call(name, args)) as outbound:
+                        result = proxy.call(verb, altered)
+                    self.assertEqual(result['error']['code'], 'stale_approval', result)
+                    self.assertEqual([c.args[0] for c in outbound.call_args_list], ['control_pending'])
+                    for guard in guards:
+                        guard.assert_not_called()
+                self.assertEqual(self.engine.operation(approval['operation_id'])['state'], 'reserved')
+                self.assertEqual(self.engine.store.get('testapp'), before)
+                self.assertEqual(self.engine.receiver.evidence(approval['operation_id'])['arrivals'], [])
+            first = self.data('testapp_' + verb, approval)
+            self.assertEqual(first['operation']['state'], 'done')
+            self.assertEqual(self.data('testapp_' + verb, approval), first)
+
+    def test_round13_client_serializes_caller_order_without_result_presentation(self):
+        approval = self.reserve()
+        altered = {k: approval[k] for k in ('description', 'operation_id', 'question')}
+        caller, service = socket.socketpair()
+        @contextmanager
+        def connection():
+            yield caller
+        client = Client('unused')
+        with caller, service, patch.object(client, 'connection', connection), patch('aresos_control.protocol.receive', return_value={'ok': True}):
+            client.call('testapp_send', altered)
+            payload = json.loads(service.recv(65536))
+        self.assertEqual(list(payload['arguments']), list(altered))
+
     def test_question_required_first_escaped_and_counts_toward_exact_limit(self):
         question = 'Send café \\ \x00\u202e?'
         template = approval_input('fixed-id', {'text': ''}, question)
