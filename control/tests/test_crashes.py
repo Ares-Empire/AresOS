@@ -20,7 +20,7 @@ class Crashes(EngineCase):
         self.engine = Engine(self.root / "state", self.root / "independent")
 
     def test_kill9_every_send_boundary_never_resubmits(self):
-        points = ["journal_appended", "sqlite_committed", "journal_committed", "revalidated", "submitting",
+        points = ["sqlite_prepared", "journal_appended", "sqlite_committed", "journal_committed", "revalidated", "submitting",
                   "receiver_arrival:alpha", "stage:recipient:alpha", "receiver_arrival:beta", "stage:recipient:beta",
                   "receiver_arrival:hidden", "stage:recipient:hidden", "receiver_stage:sent_copy", "stage:sent_copy",
                   "receiver_stage:answered_flag", "stage:answered_flag", "before_outcome", "outcome"]
@@ -42,7 +42,7 @@ class Crashes(EngineCase):
                 self.assertEqual(self.engine.receiver.evidence(op["id"])["arrivals"], before)
 
     def test_kill9_reservation_boundaries_never_sends(self):
-        for point in ["journal_appended", "sqlite_committed", "journal_committed", "reserved"]:
+        for point in ["sqlite_prepared", "journal_appended", "sqlite_committed", "journal_committed", "reserved"]:
             with self.subTest(point=point):
                 self.kill_at(point, "reserve", message(subject=point))
                 ops = [op for _, op in self.engine.store.items("op:") if op["payload"]["subject"] == point]
@@ -80,7 +80,7 @@ class Crashes(EngineCase):
 
     def test_kill9_during_restore_confirmation_can_be_confirmed_again(self):
         import sqlite3
-        for point in ("journal_appended", "sqlite_committed", "journal_committed"):
+        for point in ("sqlite_prepared", "journal_appended", "sqlite_committed", "journal_committed"):
             with self.subTest(point=point):
                 approval = self.reserve()
                 backup = sqlite3.connect(self.root / "backup.sqlite")

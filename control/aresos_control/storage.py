@@ -1,4 +1,4 @@
-"""SQLite mirror plus an independently retained, append-only, fsynced operation journal."""
+"""Full SQLite log plus a compact independently retained restore fence."""
 import copy
 import fcntl
 import json
@@ -19,6 +19,21 @@ def sync_directory(path):
         os.close(fd)
 
 
+def short_description(operation):
+    description = operation["approval"]["description"]
+    result = {k: copy.deepcopy(description[k]) for k in
+              ("action", "account", "to", "cc", "bcc", "subject", "title") if k in description}
+    result.setdefault("action", operation["action"])
+    if "targets" in description:
+        result["targets"] = copy.deepcopy(description["targets"])
+    if "items" in description:
+        result["targets"] = [{k: copy.deepcopy(item[k]) for k in ("reference", "subject", "title") if k in item}
+                             for item in description["items"]]
+    if "repair_of" in operation:
+        result["targets"] = [operation["repair_of"]]
+    return result
+
+
 class Store:
     def __init__(self, state_dir, evidence_dir, checkpoint=lambda _: None):
         self.state_dir, self.evidence_dir = Path(state_dir), Path(evidence_dir)
@@ -35,7 +50,9 @@ class Store:
         self.db.execute("PRAGMA synchronous=FULL")
         self.db.executescript("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS head (id INTEGER PRIMARY KEY CHECK(id=1), seq INTEGER, hash TEXT);"
-                              "INSERT OR IGNORE INTO head VALUES (1,0,'');")
+                              "INSERT OR IGNORE INTO head VALUES (1,0,'');"
+                              "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, value TEXT NOT NULL);"
+                              "CREATE TABLE IF NOT EXISTS operation_versions (id TEXT PRIMARY KEY, seq INTEGER NOT NULL);")
         self.db.commit()
         sync_directory(self.state_dir)
         self.events, self.committed = self._read_journal()
@@ -44,13 +61,24 @@ class Store:
         if seq > len(self.events) or hash_value != expected:
             raise Refused("evidence_mismatch", "The independent record is missing or different; stop and have the owner recover it. No submissions allowed.")
         self.locked = seq < self.committed
-        if not self.locked and len(self.events) > self.committed:
-            # A single unacknowledged event can only be a crash between append, SQL and commit.
-            event = self.events[-1]
-            if seq < event["seq"]:
-                self._apply(event)
-            self._append({"commit": event["seq"], "hash": event["hash"]})
-            self.committed = event["seq"]
+        if not self.locked:
+            if len(self.events) > self.committed:
+                record = self.events[-1]
+                event = self._prepared(record["seq"])
+                if event is None or event["record"] != record:
+                    # Even an unacknowledged reservation must remain visible after restore.
+                    self.locked = True
+                else:
+                    self._finish(event)
+            else:
+                event = self._prepared(seq + 1)
+                if event is not None:
+                    record = event["record"]
+                    if record["previous"] != hash_value or record["seq"] != seq + 1:
+                        raise Refused("evidence_mismatch", "Prepared write does not extend the independent record; owner recovery required.")
+                    self._append(record)
+                    self.events.append(record)
+                    self._finish(event)
         if not self.events:
             self.write({"generation": uuid.uuid4().hex}, "control_initialize", "initialize operation log")
         if not self.locked:
@@ -72,44 +100,73 @@ class Store:
                         raise ValueError("invalid commit")
                     committed += 1
                 else:
-                    if len(events) != committed:
-                        raise ValueError("uncommitted event before another event")
+                    if len(events) != committed or row["format"] != 2:
+                        raise ValueError("uncommitted event or unsupported record format")
                     hash_value = row.pop("hash")
                     if row["seq"] != len(events) + 1 or row["previous"] != last_hash or digest(row) != hash_value:
                         raise ValueError("broken chain")
                     row["hash"] = hash_value
                     events.append(row)
                     last_hash = hash_value
-            except (ValueError, KeyError, IndexError) as exc:
-                raise Refused("evidence_corrupt", "Independent record is damaged; owner recovery required, no submissions.") from exc
+            except (ValueError, KeyError, IndexError, TypeError) as exc:
+                raise Refused("evidence_corrupt", "Independent record is damaged or has an older format; owner recovery required, no submissions.") from exc
         return events, committed
 
     def _append(self, value):
         self.journal.write((canonical(value) + "\n").encode())
         os.fsync(self.journal.fileno())
 
+    def _prepared(self, seq):
+        row = self.db.execute("SELECT value FROM events WHERE seq=?", (seq,)).fetchone()
+        return json.loads(row[0]) if row else None
+
     def _apply(self, event):
+        record = event["record"]
         with self.db:
             for key, value in event["set"].items():
                 self.db.execute("INSERT OR REPLACE INTO kv VALUES (?,?)", (key, canonical(value)))
-            self.db.execute("UPDATE head SET seq=?,hash=? WHERE id=1", (event["seq"], event["hash"]))
+            for operation in record["operations"]:
+                self.db.execute("INSERT OR REPLACE INTO operation_versions VALUES (?,?)", (operation["id"], record["seq"]))
+            self.db.execute("UPDATE head SET seq=?,hash=? WHERE id=1", (record["seq"], record["hash"]))
+
+    def _finish(self, event):
+        self._apply(event)
+        self.checkpoint("sqlite_committed")
+        record = event["record"]
+        self._append({"commit": record["seq"], "hash": record["hash"]})
+        self.committed = record["seq"]
+        self.checkpoint("journal_committed")
 
     def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done"):
         if self.locked and not restoring:
             raise Refused("restore_required", "Older log detected; sudo aresos admin control restore_confirm must invalidate earlier approvals first.")
-        operation = changes.get("op:" + operation_id, self.get("op:" + operation_id)) if operation_id else None
-        event = {"seq": len(self.events) + 1, "previous": self.events[-1]["hash"] if self.events else "",
-                 "time": time.time(), "action": action, "summary": summary,
-                 "outcome": operation["state"] if operation else outcome, "operation_id": operation_id, "set": changes}
-        event["hash"] = digest(event)
-        self._append(event)
+        operations = {v["id"]: v for k, v in changes.items() if k.startswith("op:")}
+        if operation_id and operation_id not in operations:
+            operations[operation_id] = self.get("op:" + operation_id)
+        operation = operations.get(operation_id)
+        record = {"format": 2, "seq": len(self.events) + 1,
+                  "previous": self.events[-1]["hash"] if self.events else "", "time": time.time(),
+                  "generation": changes.get("generation", self.generation),
+                  "operations": [{"id": op["id"], "generation": op["generation"], "input_hash": op["input_hash"],
+                                  "description": short_description(op), "state": op["state"]} for op in operations.values()]}
+        record["hash"] = digest(record)
+        event = {"seq": record["seq"], "time": record["time"], "action": action, "summary": summary,
+                 "outcome": operation["state"] if operation else outcome, "operation_id": operation_id,
+                 "set": changes, "record": record}
+        # Full recovery information lives only in SQLite, before the compact fence.
+        # No app/irreversible work runs until both stores and the commit marker sync.
+        with self.db:
+            self.db.execute("INSERT OR REPLACE INTO events VALUES (?,?)", (record["seq"], canonical(event)))
+        self.checkpoint("sqlite_prepared")
+        self._append(record)
+        self.events.append(record)
         self.checkpoint("journal_appended")
-        self._apply(event)
-        self.checkpoint("sqlite_committed")
-        self._append({"commit": event["seq"], "hash": event["hash"]})
-        self.events.append(event)
-        self.committed = event["seq"]
-        self.checkpoint("journal_committed")
+        self._finish(event)
+
+    def audit(self):
+        head = self.db.execute("SELECT seq FROM head WHERE id=1").fetchone()[0]
+        return [event for (value,) in self.db.execute("SELECT value FROM events WHERE seq<=? ORDER BY seq", (head,))
+                if (event := json.loads(value))["record"] == self.events[event["seq"] - 1]]
 
     def get(self, key, default=None):
         row = self.db.execute("SELECT v FROM kv WHERE k=?", (key,)).fetchone()
@@ -126,23 +183,28 @@ class Store:
         if not self.locked:
             raise Refused("refused", "No older log is awaiting confirmation.")
         if len(self.events) > self.committed:
-            # A restore confirmation may itself have died before its commit marker.
-            # The owner is confirming again: retain that evidence, never append over
-            # an uncommitted tail and never replay app work from the older database.
             last = self.events[-1]
             self._append({"commit": last["seq"], "hash": last["hash"]})
             self.committed = last["seq"]
         latest = {}
         for event in self.events:
-            latest.update({k: copy.deepcopy(v) for k, v in event["set"].items() if k.startswith("op:")})
+            for op in event["operations"]:
+                latest[op["id"]] = (op, event["seq"])
         changes = {"generation": uuid.uuid4().hex}
-        for key, known in latest.items():
+        for op_id, (known, seq) in latest.items():
+            key = "op:" + op_id
             old = self.get(key)
-            if old != known or old is None or old["state"] == "submitting":
-                known["state"], known["reason"] = "unknown", "Restored log: independent record has newer or missing evidence. Owner must check."
-                changes[key] = known
+            version = self.db.execute("SELECT seq FROM operation_versions WHERE id=?", (op_id,)).fetchone()
+            if old is None or version != (seq,) or old["state"] == "submitting":
+                if old is None:
+                    old = {"id": op_id, "generation": known["generation"], "input_hash": known["input_hash"],
+                           "app": known["description"]["action"].split("_", 1)[0], "action": known["description"]["action"],
+                           "approval": {"operation_id": op_id, "description": known["description"]},
+                           "payload": {}, "expires": 0, "stages": {}}
+                old.update(state="unknown", reason="Restored log: independent record has newer or missing evidence. Owner must check.")
+                changes[key] = old
             elif old["state"] == "reserved":
-                old["state"], old["reason"] = "failed", "Restore invalidated this generation's approval; nothing resumed."
+                old.update(state="failed", reason="Restore invalidated this generation's approval; nothing resumed.")
                 changes[key] = old
         result = {"generation": changes["generation"], "unknown": [v["id"] for k, v in changes.items() if k.startswith("op:") and v["state"] == "unknown"]}
         self.write(changes, "control_restore_confirm", "owner confirmed restore; invalidated all earlier approvals", restoring=True)

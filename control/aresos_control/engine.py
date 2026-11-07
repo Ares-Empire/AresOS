@@ -173,7 +173,7 @@ class Engine:
             return self.pending(args=args)
         if name == "control_log":
             day = time.strftime("%Y-%m-%d", time.localtime())
-            entries = [{k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")} for event in self.store.events
+            entries = [{k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")} for event in self.store.audit()
                        if time.strftime("%Y-%m-%d", time.localtime(event["time"])) == day]
             return self.page(entries, args, "log:" + day)
         app, verb = action.app, action.verb
