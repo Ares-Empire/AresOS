@@ -142,3 +142,18 @@ class Reading(MailCase):
         self.assertNotIn('ca_file', accounts[0])
         counts = self.data('folders', {'account':'box', 'limit':20})
         self.assertEqual(next(f for f in counts['items'] if f['name'] == 'INBOX')['unread'], 2)
+
+    def test_no_condstore_or_qresync_fallback_rereads_flags_and_references(self):
+        import imaplib
+        original = imaplib.IMAP4_SSL.capability
+        def without_extensions(connection):
+            kind,rows = original(connection)
+            return kind,[b' '.join(v for v in row.split() if v.upper() not in {b'CONDSTORE',b'QRESYNC'}) for row in rows]
+        ref = self.fixture()
+        before = self.all_flags()
+        with patch.object(imaplib.IMAP4_SSL,'capability',without_extensions):
+            self.assertEqual(self.data('read',{'reference':ref})['reference'],ref)
+            self.assertEqual(self.data('search',{'account':'box','unread':True})['total'],1)
+            self.assertEqual(self.all_flags(),before)
+            approval = self.delete_approval([ref],'permanent')
+            self.assertEqual(self.data('delete',approval)['operation']['state'],'done')

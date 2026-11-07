@@ -17,7 +17,7 @@ COMPOSE = obj({"account": ACCOUNT, "mode": {"type": "string", "enum": ["new", "r
                "reference": REFERENCE, "forward_as": {"type": "string", "enum": ["inline", "attachment"]},
                "from": string(512), "to": array(string(512), 50), "cc": array(string(512), 50), "bcc": array(string(512), 50),
                "subject": TEXT, "text": TEXT, "format": {"type": "string", "enum": ["plain", "formatted"]},
-               "attachments": array(ATTACH, 16)}, ["account", "text"])
+               "attachments": array(ATTACH, 16)}, ["account"])
 ACCOUNT_CONFIG = obj({"id": ACCOUNT, "addresses": array(string(512), 20), "username": string(512),
                       "imap_host": string(255), "imap_port": {"type": "integer", "minimum": 1, "maximum": 65535},
                       "smtp_host": string(255), "smtp_port": {"type": "integer", "minimum": 1, "maximum": 65535},
@@ -66,7 +66,7 @@ def actions(Action):
         a("contacts", "read", obj({"account": ACCOUNT, "text": TEXT, **PAGE}, ["account"]),
           "Find correspondents in actual sent/received history across non-Trash/Junk folders, excluding owner aliases. Returns untrusted display names/addresses with cursors bound to history. Does not use CardDAV.", PAGED),
         a("compose", "change", COMPOSE,
-          "Build an immutable service composition, sending nothing. Modes new/reply/reply_all/forward/draft; replies derive recipients (Reply-To, aliases removed; own sent mail uses original recipients) and threading. Forward inline or attachment. text is everything you write; format plain or small Markdown (bold/italic/lists/links/quotes), never raw HTML. Account default/signature apply. Attach caller path objects (proxy imports safely), immutable blobs, or exact mail parts. Returns id/hash and full approval description; long generated quotes by hash reference. Then prepare_send and pass its approval unchanged to send. Cannot silently replace/remove original drafts."),
+          "Build an immutable service composition, sending nothing. Modes new/reply/reply_all/forward/draft; replies derive recipients (Reply-To, aliases removed; own sent mail uses original recipients) and threading. Forward inline or attachment. text is everything you write (optional; omit in mode=draft to keep its stored body by reference); format plain or small Markdown (bold/italic/lists/links/quotes), never raw HTML. Account default/signature apply. Attach caller path objects (proxy imports safely), immutable blobs, or exact mail parts. Returns id/hash and full approval description; long generated quotes by hash reference. Then prepare_send and pass its approval unchanged to send. Cannot silently replace/remove original drafts."),
         a("draft_save", "change", obj({"composition_id": string(80), "composition_hash": string(64), "previous": REFERENCE}, ["composition_id", "composition_hash"]),
           "Append composition to SPECIAL-USE Drafts and return exact draft reference. With previous, save an updated revision and retain the old draft: deleting that named old draft requires prepare_delete/delete approval. Never silently removes mail. Compose mode=draft to edit or send a saved draft."),
         a("prepare_send", "change", obj({"composition_id": string(80), "composition_hash": string(64)}),

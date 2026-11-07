@@ -287,6 +287,17 @@ class Mail:
                 cc = args.get("cc", codec.addresses(msg, "Cc"))
                 bcc = args.get("bcc", codec.addresses(msg, "Bcc"))
                 quote_text = ""
+                if "text" not in args:
+                    data = codec.body(msg).encode("utf8")
+                    generated.append({"kind":"draft_body", "source":original["reference"], "sha256":self.blobs.put(data), "size":len(data)})
+                    html_part = msg.get_body(preferencelist=("html",))
+                    if html_part is not None:
+                        html_data = codec.decoded(html_part)
+                        try:
+                            html_data = html_data.decode(html_part.get_content_charset() or "utf8","replace").encode("utf8")
+                        except LookupError:
+                            html_data = html_data.decode("utf8","replace").encode("utf8")
+                        generated.append({"kind":"draft_html", "source":original["reference"], "sha256":self.blobs.put(html_data), "size":len(html_data)})
                 for item in codec.attachments(msg):
                     _, att = self.attachment({"reference": original["reference"], "part": item["part"]})
                     attachment_refs.append(att)
@@ -320,8 +331,8 @@ class Mail:
             if att["type"] == "message/rfc822":
                 att["source_type"], att["type"] = "message/rfc822", "application/octet-stream"
         mail = {"account": account["id"], "from": sender, "to": to, "cc": cc, "bcc": bcc,
-                "subject": codec.clean_header(subject), "text": args["text"], "format": args.get("format", account["format"]),
-                "signature": account["signature"], "generated_parts": generated, "attachments": attachment_refs,
+                "subject": codec.clean_header(subject), "text": args.get("text", ""), "format": args.get("format", "formatted" if any(p["kind"] == "draft_html" for p in generated) else account["format"]),
+                "signature": "" if mode == "draft" and "text" not in args else account["signature"], "generated_parts": generated, "attachments": attachment_refs,
                 "in_reply_to": reply_ids[-1] if reply_ids else "", "references": [],
                 "answered_reference": original["reference"] if mode in {"reply", "reply_all"} else None}
         if reply_ids:
@@ -350,12 +361,13 @@ class Mail:
         text = mail["text"]
         if mail["signature"]:
             text += "\n\n" + mail["signature"]
-        generated = "".join(self.blobs.read(p["sha256"]).decode("utf8") for p in mail["generated_parts"])
+        generated = "".join(self.blobs.read(p["sha256"]).decode("utf8") for p in mail["generated_parts"] if p["kind"] != "draft_html")
+        draft_html = "".join(self.blobs.read(p["sha256"]).decode("utf8") for p in mail["generated_parts"] if p["kind"] == "draft_html")
         if mail["format"] == "formatted":
             plain, html = codec.formatted(text)
             from html import escape
             msg.set_content(plain + generated, cte="quoted-printable")
-            msg.add_alternative(html + ("<pre>" + escape(generated) + "</pre>" if generated else ""), subtype="html", cte="quoted-printable")
+            msg.add_alternative((html + draft_html) if draft_html else html + ("<pre>" + escape(generated) + "</pre>" if generated else ""), subtype="html", cte="quoted-printable")
         else:
             msg.set_content(text + generated, cte="quoted-printable")
         for item in mail["attachments"]:

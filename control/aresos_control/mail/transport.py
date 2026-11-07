@@ -80,7 +80,7 @@ class Transport:
             client.capabilities = tuple(x.decode("ascii").upper() for x in b" ".join(ok(client.capability(), "CAPABILITY")).split())
             if "CONDSTORE" in client.capabilities and "ENABLE" in client.capabilities:
                 # Read HIGHESTMODSEQ where available; full re-reads remain authoritative.
-                client.enable("CONDSTORE")
+                client.enable("QRESYNC" if "QRESYNC" in client.capabilities else "CONDSTORE")
             yield client
         finally:
             if client is not None:

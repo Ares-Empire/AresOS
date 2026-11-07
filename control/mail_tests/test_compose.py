@@ -125,6 +125,11 @@ class Composing(MailCase):
         first = self.data('draft_save', args)['reference']
         read = self.data('read', {'reference':first})
         self.assertIn('\\Draft', read['flags'])
+        unchanged = self.data('compose',{'account':'box','mode':'draft','reference':first})
+        kept = codec.parse(self.mail.mime(self.mail.composition(unchanged),'<kept-draft@mail.invalid>'))
+        self.assertIn('Full authored text',codec.body(kept))
+        self.assertEqual(unchanged['mail']['text'],'')
+        self.assertEqual(unchanged['mail']['generated_parts'][0]['kind'],'draft_body')
         edited = self.data('compose', {'account':'box','mode':'draft','reference':first,'text':'Updated body'})
         second = self.data('draft_save', {k:edited[k] for k in ('composition_id','composition_hash')} | {'previous':first})
         self.assertEqual(second['previous_retained'], first)
