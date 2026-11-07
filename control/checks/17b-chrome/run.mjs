@@ -15,6 +15,7 @@ const summary={phase,run:process.env.GITHUB_RUN_ID,head:process.env.GITHUB_SHA,c
 const save=(n,v)=>fs.writeFileSync(out+'/'+n+'.json',JSON.stringify(v,null,2));
 function log(name,row){summary.cases.push({name,...row});save('summary',summary);console.log(name,JSON.stringify(row));}
 async function probe(name,fn){try{const row=await fn();log(name,{status:'observed',...row});return row;}catch(e){log(name,{status:'probe-error',error:e.stack});return {error:e.message};}}
+let activeProfile=work+'/profile';
 let updateVersion='0.2.0',id,chrome,bridge,selected,group;
 const wt=spawn(work+'/venv/bin/python',[here+'/webtransport.py',work],{stdio:['ignore',fs.openSync(out+'/webtransport.log','a'),fs.openSync(out+'/webtransport.log','a')]});
 await eventually(()=>fs.existsSync(work+'/webtransport.json'),'WebTransport receiver');
@@ -37,7 +38,7 @@ function policy(userHosts,forced=true){const p={ExtensionInstallForcelist:forced
 policy(true);
 async function stop(kill=false){
  if(chrome?.exitCode===null){
-   if(kill){chrome.kill('SIGKILL');try{execFileSync('pkill',['-KILL','-f',work+'/profile'],{stdio:'ignore'});}catch{}}
+   if(kill){chrome.kill('SIGKILL');try{execFileSync('pkill',['-KILL','-f',activeProfile],{stdio:'ignore'});}catch{}}
    else{await activateChrome();await key('alt+F4');await delay(2000);if(chrome.exitCode===null){log('NORMAL_CLOSE_FALLBACK',{signal:'SIGTERM'});chrome.kill('SIGTERM');}}
    await delay(600);
  }
@@ -45,7 +46,7 @@ async function stop(kill=false){
 }
 async function boot(label){
  bridge=await nativeBridge(socket);
- const args=[`--user-data-dir=${work}/profile`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode',f.base+'/'];
+ const args=[`--user-data-dir=${activeProfile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode',f.base+'/'];
  save('chrome-'+label+'-args',args);const fd=fs.openSync(out+'/chrome-'+label+'.log','a');chrome=spawn('/usr/bin/google-chrome-stable',args,{stdio:['ignore',fd,fd]});
  await activateChrome();await delay(5000);await screenshot(out,'boot-'+label);await connect();
 }
@@ -105,7 +106,7 @@ try{
 
  }
  log('Q1_MANAGED_BAR',{shown:false,evidence:'policy-debug-bar.png; no owner Cancel UI on force-installed extension'});
- await stop();policy(false,false);installExternal(id,updateVersion,work+'/own-extension.crx',work);await boot('nonforced-cancel');
+ await stop();policy(false,false);installExternal(id,updateVersion,work+'/own-extension.crx',work);activeProfile=work+'/nonforced-profile';await boot('nonforced-cancel');
  log('Q1_NONFORCED_INSTALL',{info:await bridge.send('Check.info')});
  for(const backstop of [false,true]){
    await matrix('cancel',async()=>{await bridge.send('Page.bringToFront');await screenshot(out,'before-cancel-'+backstop);x('mousemove',960,115,'click',1);await delay(500);await screenshot(out,'after-cancel-'+backstop);await eventually(async()=>(await state()).history.some(r=>r.method==='check.detached'&&r.params.reason==='canceled_by_user'),'Cancel really detached');},{backstop});
@@ -113,8 +114,8 @@ try{
  }
  for(const op of ['disable','uninstall']){
    await matrix('nonforced-'+op,async()=>{await bridge.send(op==='disable'?'Check.disable':'Check.uninstall').catch(e=>log('Q1_NONFORCED_END',{op,error:e.message}));await screenshot(out,'nonforced-'+op);});
-   await stop();policy(false);await boot('restore-managed-'+op);
-   if(op==='disable'){await stop();policy(false,false);await boot('nonforced-remove');}
+   await stop();policy(false);activeProfile=work+'/profile';await boot('restore-managed-'+op);
+   if(op==='disable'){await stop();policy(false,false);activeProfile=work+'/nonforced-remove-profile';await boot('nonforced-remove');}
  }
 
  await matrix('tab-close',()=>bridge.send('Check.closeTab'),{expected:0});await stop();await boot('after-tab');
