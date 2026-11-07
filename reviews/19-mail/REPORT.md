@@ -5,7 +5,8 @@ Builds on draft PR #6. No merge, force push, real account or model run.
 Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [REVIEW-3.md](REVIEW-3.md), [REVIEW-4.md](REVIEW-4.md),
 [REVIEW-5.md](REVIEW-5.md), [REVIEW-6.md](REVIEW-6.md),
-[REVIEW-7.md](REVIEW-7.md), and [SECURITY-REVIEW.md](SECURITY-REVIEW.md).
+[REVIEW-7.md](REVIEW-7.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md),
+and [SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md).
 
 ## For the owner: decisions before merge
 
@@ -26,11 +27,209 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
 - **Approval format:** send and delete use the existing base approval format, with one reserved operation identifier and its complete description, unchanged through submission. A separate mail-specific format was rejected to keep callers and approval checks compatible.
 
+- **Filing rollback:** if special-folder roles change during a move or copy, the service immediately tries to return the messages or remove only the new copies. A returned move gets new message numbers; incomplete undo reports where matching messages were observed and never retries after restart. The alternative is to disable free filing entirely; this run follows the lead's explicit rollback rule.
+- **Stopping rule from the lead:** Claude can always write a file itself and attach it, and the approval then shows only its name, size and change time; that is the open owner question about Claude-written files. Any further finding of the kind “text Claude wrote reaches an attachment by a new route” is settled by your answer on how attachments are shown, not by another fix round. Blocking findings of any other kind still count.
+
 **assumed / needs your own check with the real account:**
 
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 9
+
+**read — Done:** implements `briefs/19-review-fixes-9.md` against
+[SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md). The original security review's
+closed header/audit findings remain covered by their earlier tests.
+
+- **Finding 1 — role race:** `mail/filing.py` records durable intent before remote
+  work, retains the prechecks and reads SPECIAL-USE roles after every forward
+  MOVE/COPY. Any role-map change rolls back the attempted batch using only exact
+  one-message COPYUID mappings: MOVE back to the original source folder and
+  UIDVALIDITY, or STORE Deleted plus UID EXPUNGE on only the created copies.
+  Returned moves have newly assigned source UIDs, verified by fetching their exact
+  bytes; IMAP cannot restore the original UID. Both actions require live UIDPLUS;
+  moving also requires MOVE. Missing COPYUID, missing/changed source or destination,
+  failed undo or unavailable live verification returns partial, never done.
+  Partial/refused results carry observed folder/UID references, per-message source,
+  and scan completeness under untrusted_content. Reporting searches never authorize
+  undo. Intent and final outcome remain in SQLite/audit; interrupted intents remain
+  visibly started, with no restart undo or retry.
+- **Finding 2 — root separators:** `mail/roles.py` records each required and optional
+  root's actual LIST separator. Required names and separators bind fresh checks;
+  Drafts/Trash ancestry and folder protections use that root's separator. Owner
+  account_folders refresh retains old protected roots with their own separators.
+  Pre-round-nine setups without required-root metadata refuse changes until owner
+  refresh; that refresh resolves each old root from LIST or refuses if it is gone.
+  `mail_tests/support.py` now builds Dovecot accounts through the production role
+  resolver; bare GreenMail remains deliberately incomplete for the existing raw
+  server-qualification probes. `test_changes.py` resolves the guard frontend roles
+  after it adds them. Existing tests exercise recorded per-root metadata; no earlier
+  assertion changed. Legacy remembered roots are also corrected from each root's
+  LIST row during owner refresh, rather than retaining previously stamped separators.
+- **Finding 3 — private blob download:** `blobs.py` durably records service-assigned
+  origins beside hash-verified immutable bytes. Publication/crash without origin
+  metadata grants no export permission. Every app's download path requires an
+  explicit export; caller imports, composition/rebuilt parts, draft body/HTML,
+  quotes and private wire copies cannot be downloaded by hash. Mail composition
+  still accepts hashes only with caller-import origin plus recorded caller metadata.
+  Ordinary non-draft attachment_save explicitly exports the original bytes.
+  Hash deduplication retains each trusted origin grant; only a service export path
+  can add export rights, never a caller-supplied hash or metadata object.
+- **Should-fix — historical status:** live evidence errors now appear separately as
+  evidence_error; recorded operation, approval, outcome and stages remain available.
+- **Should-fix — approved headers:** composition strips surrounding spaces/tabs
+  from subjects and parsed display names before freezing approval. Inner controls,
+  encoded-word attacks and the independent final decoded-wire equality checks keep
+  their existing strict checks. The low-level strict header/address validation
+  tests remain unchanged.
+
+**read — regression mapping:** all new methods are in
+`control/mail_tests/test_review_fixes_9.py`; prefixes below name their classes.
+
+| Finding / behavior | Regression method |
+| --- | --- |
+| Trash, Drafts, Archive reassigned immediately before command and immediately after it; MOVE and COPY; real source restored or exact copies removed; unrelated Deleted survives; no approval operation | `ReviewFixes9.test_review9_role_races_undo_move_and_copy_for_trash_drafts_archive` (12 boundary cases) |
+| Failed MOVE undo, failed copy expunge, omitted COPYUID, source gone, destination gone; partial with actual observed folder/UID locations | `ReviewFixes9.test_review9_failed_undo_and_missing_copyuid_are_partial_with_exact_observed_locations` |
+| Ordinary filing done; both actions refuse without live UIDPLUS before any mutation | `ReviewFixes9.test_review9_stable_roles_complete_and_uidplus_is_required_before_mutation` |
+| Crash immediately after remote MOVE leaves durable started intent; reopen neither repeats nor undoes | `ReviewFixes9.test_review9_filing_crash_leaves_visible_intent_and_restart_never_repeats_or_undoes` |
+| INBOX `/`, Trash/Drafts `.`; Trash.Child free filing refused, unmarked/unflagged Drafts.Child source/all parts cannot export/attach/forward/move; same after owner refresh; delimiter drift refuses | `ReviewFixes9.test_review9_per_root_separators_protect_trash_and_unmarked_draft_children_after_refresh` |
+| Every internal origin and caller imports refuse download across apps and restart; missing old metadata refuses; export lacks import rights; shipped settings exclude testapp | `BlobOrigins9.test_review9_all_internal_origins_refuse_download_across_apps_and_restart` |
+| Long saved draft → mode=draft → generated_parts[0].sha256 → real testapp Proxy.file_save notes.txt: refused, no file/SMTP; ordinary Mail part saves exact binary bytes | `ReviewFixes9.test_review9_long_draft_hash_cannot_be_saved_by_testapp_and_ordinary_export_is_exact` |
+| Send, remove Trash role, status still returns identical approval/stages and separate evidence_error | `ReviewFixes9.test_review9_operation_status_retains_approval_and_stages_when_trash_role_is_removed` |
+| Leading/trailing spaces and tabs, normalized display names and long folded subject: approved decoded values equal received wire values | `ReviewFixes9.test_review9_header_whitespace_normalizes_before_approval_and_long_folded_subject_sends` |
+
+**read — server qualification:** scripted TLS LIST/command timing runs through the
+existing test-only `imap_guard_fixture.py` frontend over real pinned Dovecot
+storage; namespace separators/role flags are explicitly scripted LIST data, not a
+claim about Dovecot's default namespaces. Command hooks run under its frontend lock.
+Copy removal/return, source UIDVALIDITY, exact bodies and unrelated Deleted messages
+are checked on the server. SMTP checks use the isolated non-relaying TLS sink.
+The shared-store regression is plain Python; the download reproduction uses the
+actual Proxy/Client/Engine transfer framing on a private Unix socket. Existing
+base and Mail proxy tests still qualify distinct OS users and the installed daemon.
+No real account or model was used.
+
+**read — base files changed and why:**
+
+- `control/aresos_control/blobs.py`: origin metadata publication, fail-closed legacy
+  behavior and origin-gated reads; default writes are internal.
+- `control/aresos_control/engine.py`: mark streamed imports as caller imports; gate
+  both download authorization and actual streaming on export; preserve historical
+  status separately from failing live evidence.
+- `control/aresos_control/testapp.py` and `definitions.py`: imported-file provenance
+  at attachment/revalidation boundaries; an explicit fixture-only export_file
+  action promotes only a recorded caller-import snapshot for file-transfer tests.
+  It cannot promote a private service hash. file_save describes export-only bytes.
+- `control/settings/managed-mcp.json`: remove testapp, leaving control and mail.
+  The fixture catalogue remains generated for tests, not a shipped MCP server.
+- `control/tests/test_files.py`: the download fixture now explicitly creates an
+  export; its original size/hash/download/refusal assertions remain intact.
+- `control/tests/test_integration.py`: both existing successful download flows first
+  call the fixture's explicit imported-file export. Original 25 MiB framing,
+  immutable-byte, MCP, collision and permission assertions remain intact.
+- `control/tests/test_record.py`: its preloaded attachment is tagged caller_import
+  instead of internal; the independent-record size/privacy assertions are unchanged.
+- `control/generated/testapp-tools.json`, `control/generated/cli-help.txt`,
+  `control/generated/mail-tools.json`, `docs/control/TOOLS.md`: regenerate from the
+  changed descriptions/results and fixture export action. Ask rules remain identical.
+  `control/README.md` documents origins, filing outcomes, old setup refresh and status.
+- `.github/workflows/control-base.yml`: add only workflow_dispatch. PR #9 currently
+  conflicts with main, which prevents GitHub pull_request jobs from starting;
+  manual dispatch permits exact-branch verification without merging or rebasing.
+  All base job steps and assertions stay the same.
+
+**run — last code/test head `d5164a8652278ead9e3c9c4722641f2fbed01f60`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail 42389443350 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42389443350/attempts/1) | `Ran 57 tests in 40.642s`; `OK`; `Control base suite PASS`; `Ran 132 tests in 428.924s`; `OK`; `Control Mail suite PASS` |
+| [Mail 42389443350 attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42389443350/attempts/2) | `Ran 57 tests in 49.988s`; `OK`; `Control base suite PASS`; `Ran 132 tests in 465.309s`; `OK`; `Control Mail suite PASS` |
+| [Independent base 42389466380 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42389466380/attempts/1) | `Ran 57 tests in 49.222s`; `OK`; `Control base suite PASS` |
+| [Independent base 42389466380 attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42389466380/attempts/2) | `Ran 57 tests in 47.685s`; `OK`; `Control base suite PASS` |
+
+Both Mail passes run `bash control/ci/mail/run.sh`: pinned containers, generated
+artifact check, `bash control/ci/test.sh` (all 57 base tests), then isolated
+`python3 -m unittest discover -s control/mail_tests -v` (all 132 Mail methods:
+123 earlier plus nine new). Both independent base passes run
+`bash control/ci/test.sh` in pinned Fedora 45. Every new round-nine method prints
+`... ok`. Existing outputs remain `Mail delete kill-9 cases: 26; unnamed Deleted
+messages survive`, `Mail send kill-9 cases: 45; no repeated SMTP DATA`, and
+`Mail reservation/repair kill-9 cases: 16; no SMTP during repair/restart`.
+No earlier assertion was weakened, skipped or deleted.
+
+Any later commit changes only files under `reviews/`; final-head workflow runs are
+recorded in draft PR #9 after that report-only push.
+
+**run — local checks:** `python3 control/generate.py --check` printed
+`Generated artifacts match definitions`; AST parsing every control Python source
+printed `Python syntax OK`; `git diff --check` printed nothing. The portable command
+`PYTHONPATH=control:control/mail_tests python3 -m unittest test_review_fixes_7.HeaderRules7 test_review_fixes_8.RoleResolution8 test_review_fixes_9.BlobOrigins9 -v`
+printed `Ran 6 tests in 0.017s`, `OK` on the last code/test head.
+An earlier `PYTHONPATH=control:control/tests python3 -m unittest test_files test_operations test_record -q`
+on the Mac printed `Ran 31 tests in 0.196s`, `FAILED (errors=37)` because Linux
+O_PATH and the container's jsonschema dependency are unavailable locally. It is not
+green evidence; the complete Linux container runs above are authoritative. No host
+software was installed and no Linux-only assertion was changed for this Mac.
+
+**JUDGMENT-CALL — read:** follows the lead's specified rollback policy. Free filing
+can briefly enter a newly designated role before it is detected and returned;
+returned messages receive new UIDs. Without exact undo proof the result is partial
+and the owner must inspect the reported locations, never retry automatically.
+Disabling all free filing would avoid this protocol window but was rejected by the
+brief's explicit requested behavior. Removing this policy later affects only the
+filing tools and their outcome/reference contract. Origin restrictions mean old
+hashes without origin metadata cannot download; make a new explicit export or
+caller import rather than guessing old provenance.
+
+**PLAN-GAP / Not verified — read:** merge-conflict resolution against current main
+is left to the lead under the explicit no-merge/no-rebase rule. The one-line
+workflow_dispatch addition is necessary to verify the independent base job on this
+branch. No wider issue hunt or protected-path change was performed. Reports of
+concurrent external message disappearance identify observed locations, including an
+empty result when the server no longer contains it; they do not invent an exact
+location when transport prevents a complete scan. Real-provider role propagation,
+crash durability and rollback permission remain owner qualification; no automated
+restart recovery is claimed. Earlier owner questions, including the lead's stopping
+rule for Claude-written attachments, remain in the owner list above.
+
+**run — earlier iterations (not final-head evidence):**
+[42388505712](https://github.com/Ares-Empire/AresOS/actions/runs/42388505712)
+on `00d48db7` printed `Ran 57 tests in 45.538s`, `OK`,
+`Control base suite PASS`, then `Ran 132 tests in 441.747s`,
+`FAILED (failures=1, errors=3)`. All 12 role-race cases, the five partial-undo
+cases, mixed separators, normalized headers and historical status passed. The
+failures were fixture setup: strict resolve on deliberately incomplete bare
+GreenMail (two existing qualification tests), the new proxy's hidden `.work`
+caller home, and the new crash test's log limit 20 (maximum is 10). Corrected
+fixtures and valid input without changing any assertion. The subsequent migration
+regression adds previously remembered roots whose old separator was wrong.
+
+On `698565ee`, base
+[42388752113 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42388752113/attempts/1)
+printed `Ran 57 tests in 47.899s`, `OK`, `Control base suite PASS`;
+[attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42388752113/attempts/2)
+printed `Ran 57 tests in 37.794s`, `OK`, `Control base suite PASS`.
+Mail push 42388746808 was automatically superseded while pending by manual
+42388754581 in the same GitHub concurrency group; that obsolete run was then
+cancelled after the known fixture failures. On `b83b8455`, base
+[42389329145](https://github.com/Ares-Empire/AresOS/actions/runs/42389329145)
+passed; Mail 42389299032 was cancelled when the remembered-root migration fix
+superseded it. None of these cancelled runs is claimed as passing evidence.
+
+**run — cleanup and budget:** `git diff --check` printed nothing. The scope check
+against starting head `587a50ef` found no change to os/, mod/, frozen review files,
+owner/install/emergency/design/plan/feature paths. The only added workflow setting
+is the necessary base manual-dispatch trigger described above. The closing size
+scan printed `Remaining .work files over 500 MB: []`. No Gradle daemon or host
+container was started; no host software was installed. All pushes used normal
+verification, with no force push or --no-verify.
+
+Eleven workflow executions were used through code verification, including the
+initial fixture failure and three superseded/cancelled runs. This exceeds the
+approximate ten-run target; the final report head still requires four full checks,
+whose actual IDs/results and total are recorded in the PR body. No assertion or
+required repeat was weakened to reduce the run count.
 
 ## Review fixes, round 8
 
