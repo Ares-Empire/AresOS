@@ -1,0 +1,317 @@
+[
+  {
+    "id": "one",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "competing",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "wrong-body",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "wrong-header",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "different-target",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "exact-target",
+    "observed": 1,
+    "reason": "exact URL allowance",
+    "actual": 1
+  },
+  {
+    "id": "site-scope",
+    "observed": 1,
+    "reason": "initiator-scoped allowance",
+    "actual": 1
+  },
+  {
+    "id": "site-allow-worker-v1-first",
+    "expected": 3,
+    "actual": 3
+  },
+  {
+    "id": "race-false-0-0",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-0-1",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-0-2",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-25-0",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-25-1",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-25-2",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-100-0",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-100-1",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-100-2",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-500-0",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-500-1",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-false-500-2",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-0-0",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-0-1",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-0-2",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-25-0",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-25-1",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-25-2",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-100-0",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-100-1",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-100-2",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-500-0",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-500-1",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "race-true-500-2",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "natural-window",
+    "observed": 1,
+    "reason": "natural allowance window",
+    "actual": 1
+  },
+  {
+    "id": "leftover-false-reload",
+    "observed": 1,
+    "reason": "remaining allowance consequence",
+    "actual": 1
+  },
+  {
+    "id": "leftover-false-update",
+    "observed": 1,
+    "reason": "remaining allowance consequence",
+    "actual": 1
+  },
+  {
+    "id": "leftover-false-worker-crash",
+    "observed": 1,
+    "reason": "remaining allowance consequence",
+    "actual": 1
+  },
+  {
+    "id": "policy-unloaded-false-same",
+    "observed": 1,
+    "reason": "first send after policy block",
+    "actual": 1
+  },
+  {
+    "id": "policy-unloaded-false-cross",
+    "observed": 1,
+    "reason": "cross-site first send after policy block",
+    "actual": 1
+  },
+  {
+    "id": "leftover-false-policy",
+    "observed": 1,
+    "reason": "remaining allowance consequence",
+    "actual": 1
+  },
+  {
+    "id": "leftover-true-reload",
+    "observed": 0,
+    "reason": "remaining allowance consequence",
+    "actual": 0
+  },
+  {
+    "id": "leftover-true-update",
+    "observed": 0,
+    "reason": "remaining allowance consequence",
+    "actual": 0
+  },
+  {
+    "id": "leftover-true-worker-crash",
+    "observed": 0,
+    "reason": "remaining allowance consequence",
+    "actual": 0
+  },
+  {
+    "id": "policy-unloaded-true-same",
+    "observed": 1,
+    "reason": "first send after policy block",
+    "actual": 1
+  },
+  {
+    "id": "policy-unloaded-true-cross",
+    "observed": 1,
+    "reason": "cross-site first send after policy block",
+    "actual": 1
+  },
+  {
+    "id": "leftover-true-policy",
+    "observed": 1,
+    "reason": "remaining allowance consequence",
+    "actual": 1
+  },
+  {
+    "id": "body-json",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "wrap-json",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "body-urlencoded",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "wrap-urlencoded",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "body-multipart",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "wrap-multipart",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "body-1mb",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "wrap-1mb",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "large-event-1mb",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "body-25mb",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "wrap-25mb",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "large-event-25mb",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "body-stream",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "wrap-stream",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "account-change",
+    "expected": 0,
+    "actual": 0
+  }
+]

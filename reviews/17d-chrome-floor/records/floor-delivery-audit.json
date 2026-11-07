@@ -1,0 +1,199 @@
+[
+  {
+    "id": "control-fetch",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "control-xhr",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "control-beacon",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "control-ping",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "control-ws",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "control-form",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "floor-fetch-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-fetch-true",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-xhr-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-xhr-true",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-beacon-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-beacon-true",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-ping-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-ping-true",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-ws-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-ws-true",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-form-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "floor-form-true",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "foreign-frame",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-detach",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-detach-after",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-reload",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-reload-after",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-update",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-update-after",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-worker-crash",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-worker-crash-after",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-host-loss",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-host-loss-after",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-normal",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-normal-after",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-kill",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-kill-after",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "policy-unloaded-same",
+    "observed": 1,
+    "reason": "first send after policy block",
+    "actual": 1
+  },
+  {
+    "id": "policy-unloaded-cross",
+    "observed": 1,
+    "reason": "cross-site first send after policy block",
+    "actual": 1
+  },
+  {
+    "id": "ending-policy",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "ending-policy-after",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "startup-same",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "startup-cross",
+    "expected": 0,
+    "actual": 0
+  }
+]

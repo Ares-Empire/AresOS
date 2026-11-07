@@ -1,0 +1,92 @@
+[
+  {
+    "id": "worker-service-v1-first",
+    "observed": 4,
+    "reason": "autonomous-worker counterexample",
+    "actual": 4
+  },
+  {
+    "id": "worker-service-v2-first",
+    "observed": 2,
+    "reason": "autonomous-worker counterexample",
+    "actual": 2
+  },
+  {
+    "id": "worker-service-v3-first",
+    "observed": 6,
+    "reason": "autonomous-worker counterexample",
+    "actual": 6
+  },
+  {
+    "id": "worker-service-v3-sync",
+    "observed": 2,
+    "reason": "autonomous-worker counterexample",
+    "actual": 2
+  },
+  {
+    "id": "worker-shared-v3-first",
+    "observed": 2,
+    "reason": "autonomous-worker counterexample",
+    "actual": 2
+  },
+  {
+    "id": "worker-shared-v3-message",
+    "observed": 2,
+    "reason": "autonomous-worker counterexample",
+    "actual": 2
+  },
+  {
+    "id": "worker-service-v3-message",
+    "observed": 2,
+    "reason": "autonomous-worker counterexample",
+    "actual": 2
+  },
+  {
+    "id": "worker-service-v1-message",
+    "observed": 0,
+    "reason": "worker startup/message/sync transport coverage",
+    "actual": 0
+  },
+  {
+    "id": "worker-service-v2-message",
+    "observed": 0,
+    "reason": "worker startup/message/sync transport coverage",
+    "actual": 0
+  },
+  {
+    "id": "worker-service-v1-sync",
+    "observed": 0,
+    "reason": "worker startup/message/sync transport coverage",
+    "actual": 0
+  },
+  {
+    "id": "worker-service-v2-sync",
+    "observed": 0,
+    "reason": "worker startup/message/sync transport coverage",
+    "actual": 0
+  },
+  {
+    "id": "worker-global-v3-first",
+    "observed": 2,
+    "reason": "autonomous-worker counterexample",
+    "actual": 2
+  },
+  {
+    "id": "worker-control-v3-first",
+    "observed": 3,
+    "reason": "autonomous-worker counterexample",
+    "actual": 3
+  },
+  {
+    "id": "worker-wt-shared-v3-first",
+    "observed": 2,
+    "reason": "worker WebSocket alongside WebTransport",
+    "actual": 2
+  },
+  {
+    "id": "worker-wt-service-v3-first",
+    "observed": 2,
+    "reason": "worker WebSocket alongside WebTransport",
+    "actual": 2
+  }
+]

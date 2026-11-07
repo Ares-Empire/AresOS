@@ -1,0 +1,668 @@
+[
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17d-chrome/artifacts/summary.json",
+    "sourceSha256": "673006e3fea24aad97bf2de0556d6536aa13c671cefcbb7e7134fb0e1ac30285",
+    "retained": "floor-summary.json",
+    "retainedSha256": "673006e3fea24aad97bf2de0556d6536aa13c671cefcbb7e7134fb0e1ac30285"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17d-chrome/artifacts/server.jsonl",
+    "sourceSha256": "2f2dc97cf9f1caedd76ed661c9f8a51e72e417eb1369b4a62009cf34447aac3c",
+    "retained": "floor-server.jsonl",
+    "retainedSha256": "2f2dc97cf9f1caedd76ed661c9f8a51e72e417eb1369b4a62009cf34447aac3c"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17d-chrome/artifacts/delivery-audit.json",
+    "sourceSha256": "b9a30dfbfacd5f43a90862cf8265fdd4a49953f23bc05f38fae189359991056e",
+    "retained": "floor-delivery-audit.json",
+    "retainedSha256": "b9a30dfbfacd5f43a90862cf8265fdd4a49953f23bc05f38fae189359991056e"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17d-chrome/artifacts/processes.json",
+    "sourceSha256": "6a111f5e8c66448db978b276f52b5c594eb90b4262c8602099ced7852c5782a6",
+    "retained": "floor-processes.json",
+    "retainedSha256": "6a111f5e8c66448db978b276f52b5c594eb90b4262c8602099ced7852c5782a6"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17d-chrome/artifacts/args-initial.json",
+    "sourceSha256": "703d3683915164bfc7f69222219309cecc278fd4f2f163e190f824b1a9b10edd",
+    "retained": "floor-args-initial.json",
+    "retainedSha256": "703d3683915164bfc7f69222219309cecc278fd4f2f163e190f824b1a9b10edd"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17-chrome/artifacts/chrome-version.txt",
+    "sourceSha256": "110a77e1e84248e63d70a24b03762d751c5e03ccd78c6f935266fea8a9bb6ea7",
+    "retained": "floor-chrome-version.txt",
+    "retainedSha256": "c187fe1cdb226bd619c6eacd3d218fd6832044bf33e488d731b5f8246d1606cf"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17-chrome/artifacts/head.txt",
+    "sourceSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256",
+    "retained": "floor-head.txt",
+    "retainedSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17-chrome/artifacts/run.txt",
+    "sourceSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e",
+    "retained": "floor-run.txt",
+    "retainedSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17-chrome/artifacts/platform.txt",
+    "sourceSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25",
+    "retained": "floor-platform.txt",
+    "retainedSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17-chrome/artifacts/dependencies.json",
+    "sourceSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f",
+    "retained": "floor-dependencies.json",
+    "retainedSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17-chrome/artifacts/python-dependencies.txt",
+    "sourceSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0",
+    "retained": "floor-python-dependencies.txt",
+    "retainedSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17d-chrome/artifacts/sandbox.png",
+    "sourceSha256": "d38d9a24b089d604cb762fee3e8d9695424fccff69076333b2494fd3222bf720",
+    "retained": "../screenshots/sandbox.png",
+    "retainedSha256": "d38d9a24b089d604cb762fee3e8d9695424fccff69076333b2494fd3222bf720"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17d-chrome/artifacts/policy-blocked.png",
+    "sourceSha256": "2d7a9466eaa1616ac7438444a8f8649dced9cc3cc70af697aa483d5a3e3099d8",
+    "retained": "../screenshots/policy-blocked.png",
+    "retainedSha256": "2d7a9466eaa1616ac7438444a8f8649dced9cc3cc70af697aa483d5a3e3099d8"
+  },
+  {
+    "run": "42362681610",
+    "phase": "floor",
+    "artifact": "chrome-check-42362681610-1-floor",
+    "source": "17d-chrome/artifacts/restore-pending-restored-true.png",
+    "sourceSha256": "0879de66140fbec0c5a0a139bc445b2038a5b6c44fd79069c146ca0a479367c3",
+    "retained": "../screenshots/restore-pending-restored-true.png",
+    "retainedSha256": "0879de66140fbec0c5a0a139bc445b2038a5b6c44fd79069c146ca0a479367c3"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17d-chrome/artifacts/summary.json",
+    "sourceSha256": "a95aeac2637d3f9363b0f64c23c26d4827bf54edaf4a6abaf69688d26b5d3c50",
+    "retained": "workers-summary.json",
+    "retainedSha256": "a95aeac2637d3f9363b0f64c23c26d4827bf54edaf4a6abaf69688d26b5d3c50"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17d-chrome/artifacts/server.jsonl",
+    "sourceSha256": "f7f182145d74a704005d29abd62a7587732ba898ca30e6dbdf1dfc7acc6ce1b7",
+    "retained": "workers-server.jsonl",
+    "retainedSha256": "f7f182145d74a704005d29abd62a7587732ba898ca30e6dbdf1dfc7acc6ce1b7"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17d-chrome/artifacts/delivery-audit.json",
+    "sourceSha256": "8424d4fab60f980c8e61e3821722e35f9424cbe5cb019a8279001c1fb92fda9c",
+    "retained": "workers-delivery-audit.json",
+    "retainedSha256": "8424d4fab60f980c8e61e3821722e35f9424cbe5cb019a8279001c1fb92fda9c"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17d-chrome/artifacts/processes.json",
+    "sourceSha256": "b2bb4097dfff960a32a81cb67c8f2475c3954840a2b9a30f50aef9cffac22167",
+    "retained": "workers-processes.json",
+    "retainedSha256": "b2bb4097dfff960a32a81cb67c8f2475c3954840a2b9a30f50aef9cffac22167"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17d-chrome/artifacts/args-initial.json",
+    "sourceSha256": "64f7b7ea3573cb344c32d98ee58ba4fca44e25dc97c3571e166eea7351693ae4",
+    "retained": "workers-args-initial.json",
+    "retainedSha256": "64f7b7ea3573cb344c32d98ee58ba4fca44e25dc97c3571e166eea7351693ae4"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17d-chrome/artifacts/webtransport-audit.json",
+    "sourceSha256": "bb6fd462c0a9f8a5d397f4f4aa3be586101770e4c0eeeda6a6ae0c85c0f887eb",
+    "retained": "workers-webtransport-audit.json",
+    "retainedSha256": "bb6fd462c0a9f8a5d397f4f4aa3be586101770e4c0eeeda6a6ae0c85c0f887eb"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17d-chrome/artifacts/webtransport-server.jsonl",
+    "sourceSha256": "6aaa0d65706eb0bed64e96cf2e7c87eba6891939dcb1afbfc0a48540341968ad",
+    "retained": "workers-webtransport-server.jsonl",
+    "retainedSha256": "6aaa0d65706eb0bed64e96cf2e7c87eba6891939dcb1afbfc0a48540341968ad"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17-chrome/artifacts/chrome-version.txt",
+    "sourceSha256": "110a77e1e84248e63d70a24b03762d751c5e03ccd78c6f935266fea8a9bb6ea7",
+    "retained": "workers-chrome-version.txt",
+    "retainedSha256": "c187fe1cdb226bd619c6eacd3d218fd6832044bf33e488d731b5f8246d1606cf"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17-chrome/artifacts/head.txt",
+    "sourceSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256",
+    "retained": "workers-head.txt",
+    "retainedSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17-chrome/artifacts/run.txt",
+    "sourceSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e",
+    "retained": "workers-run.txt",
+    "retainedSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17-chrome/artifacts/platform.txt",
+    "sourceSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25",
+    "retained": "workers-platform.txt",
+    "retainedSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17-chrome/artifacts/dependencies.json",
+    "sourceSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f",
+    "retained": "workers-dependencies.json",
+    "retainedSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f"
+  },
+  {
+    "run": "42362681610",
+    "phase": "workers",
+    "artifact": "chrome-check-42362681610-1-workers",
+    "source": "17-chrome/artifacts/python-dependencies.txt",
+    "sourceSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0",
+    "retained": "workers-python-dependencies.txt",
+    "retainedSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17d-chrome/artifacts/summary.json",
+    "sourceSha256": "fde4bfef4dba9fef303a62c39fa7aaac042d01a8fff999cebc3f5acbf2a8aafa",
+    "retained": "allowances-summary.json",
+    "retainedSha256": "fde4bfef4dba9fef303a62c39fa7aaac042d01a8fff999cebc3f5acbf2a8aafa"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17d-chrome/artifacts/server.jsonl",
+    "sourceSha256": "37dfd2f6d4f0d0c1634be7b7b7f50ead713f4d304681b92ea311ebf1f64b079e",
+    "retained": "allowances-server.jsonl",
+    "retainedSha256": "37dfd2f6d4f0d0c1634be7b7b7f50ead713f4d304681b92ea311ebf1f64b079e"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17d-chrome/artifacts/delivery-audit.json",
+    "sourceSha256": "a56634fe45b05cbe485f0304a54a1dbc1514d0b5512a2d59aedabbcdef023ea6",
+    "retained": "allowances-delivery-audit.json",
+    "retainedSha256": "a56634fe45b05cbe485f0304a54a1dbc1514d0b5512a2d59aedabbcdef023ea6"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17d-chrome/artifacts/processes.json",
+    "sourceSha256": "013c5da548b228e87c0907770a89db921fb399dbd1ae64204c067f520c62383e",
+    "retained": "allowances-processes.json",
+    "retainedSha256": "013c5da548b228e87c0907770a89db921fb399dbd1ae64204c067f520c62383e"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17d-chrome/artifacts/args-initial.json",
+    "sourceSha256": "ed19bc999e98fb49696f3c4cc0e57373137f354657a43cc3301663cf6a3cd544",
+    "retained": "allowances-args-initial.json",
+    "retainedSha256": "ed19bc999e98fb49696f3c4cc0e57373137f354657a43cc3301663cf6a3cd544"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17-chrome/artifacts/chrome-version.txt",
+    "sourceSha256": "110a77e1e84248e63d70a24b03762d751c5e03ccd78c6f935266fea8a9bb6ea7",
+    "retained": "allowances-chrome-version.txt",
+    "retainedSha256": "c187fe1cdb226bd619c6eacd3d218fd6832044bf33e488d731b5f8246d1606cf"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17-chrome/artifacts/head.txt",
+    "sourceSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256",
+    "retained": "allowances-head.txt",
+    "retainedSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17-chrome/artifacts/run.txt",
+    "sourceSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e",
+    "retained": "allowances-run.txt",
+    "retainedSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17-chrome/artifacts/platform.txt",
+    "sourceSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25",
+    "retained": "allowances-platform.txt",
+    "retainedSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17-chrome/artifacts/dependencies.json",
+    "sourceSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f",
+    "retained": "allowances-dependencies.json",
+    "retainedSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17-chrome/artifacts/python-dependencies.txt",
+    "sourceSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0",
+    "retained": "allowances-python-dependencies.txt",
+    "retainedSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17d-chrome/artifacts/synthetic-file-picker-path.png",
+    "sourceSha256": "53d7672a9ae23a9a8a1086676904969c8c8f88f832c193050b01931b9e75aa8b",
+    "retained": "../screenshots/synthetic-file-picker-path.png",
+    "retainedSha256": "53d7672a9ae23a9a8a1086676904969c8c8f88f832c193050b01931b9e75aa8b"
+  },
+  {
+    "run": "42362681610",
+    "phase": "allowances",
+    "artifact": "chrome-check-42362681610-1-allowances",
+    "source": "17d-chrome/artifacts/synthetic-file-selected.png",
+    "sourceSha256": "f05a9918ddf33c0c212f9ea5d44b690de8100c89a943a1b02d9914bf16600bb8",
+    "retained": "../screenshots/synthetic-file-selected.png",
+    "retainedSha256": "f05a9918ddf33c0c212f9ea5d44b690de8100c89a943a1b02d9914bf16600bb8"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17d-chrome/artifacts/summary.json",
+    "sourceSha256": "22c00de6400cbc84c04fa58416a5f6c558d1b68e3f335719c1a3abd0aa9c9daf",
+    "retained": "storage-summary.json",
+    "retainedSha256": "22c00de6400cbc84c04fa58416a5f6c558d1b68e3f335719c1a3abd0aa9c9daf"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17d-chrome/artifacts/server.jsonl",
+    "sourceSha256": "9b3fb7a686bcb6cca3c86b37ea9971dc8ac6b58ceaefac2745932dfb936e8202",
+    "retained": "storage-server.jsonl",
+    "retainedSha256": "9b3fb7a686bcb6cca3c86b37ea9971dc8ac6b58ceaefac2745932dfb936e8202"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17d-chrome/artifacts/delivery-audit.json",
+    "sourceSha256": "d6799177cb9a77c0705669a4ac2213ee0ec83c94f00868719642a8a8bfe16460",
+    "retained": "storage-delivery-audit.json",
+    "retainedSha256": "d6799177cb9a77c0705669a4ac2213ee0ec83c94f00868719642a8a8bfe16460"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17d-chrome/artifacts/processes.json",
+    "sourceSha256": "d2cc35bb651447b5a4467d3ad872a69f8ced81bd60dece5ad72a2261e9ba9c81",
+    "retained": "storage-processes.json",
+    "retainedSha256": "d2cc35bb651447b5a4467d3ad872a69f8ced81bd60dece5ad72a2261e9ba9c81"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17d-chrome/artifacts/args-initial.json",
+    "sourceSha256": "22a31d9ed4041dc5ac5bb7c403170519dedfa14b9520ef23c25369c81280d2a3",
+    "retained": "storage-args-initial.json",
+    "retainedSha256": "22a31d9ed4041dc5ac5bb7c403170519dedfa14b9520ef23c25369c81280d2a3"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17-chrome/artifacts/chrome-version.txt",
+    "sourceSha256": "110a77e1e84248e63d70a24b03762d751c5e03ccd78c6f935266fea8a9bb6ea7",
+    "retained": "storage-chrome-version.txt",
+    "retainedSha256": "c187fe1cdb226bd619c6eacd3d218fd6832044bf33e488d731b5f8246d1606cf"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17-chrome/artifacts/head.txt",
+    "sourceSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256",
+    "retained": "storage-head.txt",
+    "retainedSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17-chrome/artifacts/run.txt",
+    "sourceSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e",
+    "retained": "storage-run.txt",
+    "retainedSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17-chrome/artifacts/platform.txt",
+    "sourceSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25",
+    "retained": "storage-platform.txt",
+    "retainedSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17-chrome/artifacts/dependencies.json",
+    "sourceSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f",
+    "retained": "storage-dependencies.json",
+    "retainedSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f"
+  },
+  {
+    "run": "42362681610",
+    "phase": "storage",
+    "artifact": "chrome-check-42362681610-1-storage",
+    "source": "17-chrome/artifacts/python-dependencies.txt",
+    "sourceSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0",
+    "retained": "storage-python-dependencies.txt",
+    "retainedSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/summary.json",
+    "sourceSha256": "f873d3f32edca83f8bde955942057e66bc28fff0a87a60f5f7cea03e05b6f98e",
+    "retained": "public-summary.json",
+    "retainedSha256": "92a09c1f8ee063506c241965f2b0fa01dc1e562dd745d4c2bccf51fe1382af3c"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/server.jsonl",
+    "sourceSha256": "953e636423b29ed9aba54df2ed5f880e952d6832ee816b3bf33c6854d1e3de19",
+    "retained": "public-server.jsonl",
+    "retainedSha256": "953e636423b29ed9aba54df2ed5f880e952d6832ee816b3bf33c6854d1e3de19"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/delivery-audit.json",
+    "sourceSha256": "3f8b1346fb80e7edebc8cfa1ecc88996435221ef3ba43bf4b63b470ffd247d50",
+    "retained": "public-delivery-audit.json",
+    "retainedSha256": "3f8b1346fb80e7edebc8cfa1ecc88996435221ef3ba43bf4b63b470ffd247d50"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/processes.json",
+    "sourceSha256": "22cd1a4509877e01ef1467d0b70d0e582d72925df54bb4eda6d09fb080be456e",
+    "retained": "public-processes.json",
+    "retainedSha256": "22cd1a4509877e01ef1467d0b70d0e582d72925df54bb4eda6d09fb080be456e"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/args-initial.json",
+    "sourceSha256": "7333af71df074c722885ae76456de4c6754a665a5b2b2bfd42234c206986ee6b",
+    "retained": "public-args-initial.json",
+    "retainedSha256": "7333af71df074c722885ae76456de4c6754a665a5b2b2bfd42234c206986ee6b"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17-chrome/artifacts/chrome-version.txt",
+    "sourceSha256": "110a77e1e84248e63d70a24b03762d751c5e03ccd78c6f935266fea8a9bb6ea7",
+    "retained": "public-chrome-version.txt",
+    "retainedSha256": "c187fe1cdb226bd619c6eacd3d218fd6832044bf33e488d731b5f8246d1606cf"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17-chrome/artifacts/head.txt",
+    "sourceSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256",
+    "retained": "public-head.txt",
+    "retainedSha256": "8aa4bd492144a104512637cb676304c25e2d3ea5a1b5aa17bfcba3d20cf9b256"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17-chrome/artifacts/run.txt",
+    "sourceSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e",
+    "retained": "public-run.txt",
+    "retainedSha256": "defadf6cf698580ef57c00bd4670e92d0f52cfc0da327e38fc36726ef122759e"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17-chrome/artifacts/platform.txt",
+    "sourceSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25",
+    "retained": "public-platform.txt",
+    "retainedSha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17-chrome/artifacts/dependencies.json",
+    "sourceSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f",
+    "retained": "public-dependencies.json",
+    "retainedSha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17-chrome/artifacts/python-dependencies.txt",
+    "sourceSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0",
+    "retained": "public-python-dependencies.txt",
+    "retainedSha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/owner-waiting.png",
+    "sourceSha256": "9996b6051bfdc923867c173beda7b1fd5bb6b1080f605e8936b8c8d7a718e9b0",
+    "retained": "../screenshots/owner-waiting.png",
+    "retainedSha256": "9996b6051bfdc923867c173beda7b1fd5bb6b1080f605e8936b8c8d7a718e9b0"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/notification-menu.png",
+    "sourceSha256": "bc353c246a6989838026404a8922a1a1e9828df199ecfe72a2133a4707f538b3",
+    "retained": "../screenshots/notification-menu.png",
+    "retainedSha256": "bc353c246a6989838026404a8922a1a1e9828df199ecfe72a2133a4707f538b3"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-github.png",
+    "sourceSha256": "817491b7c0a17e77976b13aed92a32782e84d67ede4d3926593d8ba40db921c0",
+    "retained": "../screenshots/public-github.png",
+    "retainedSha256": "817491b7c0a17e77976b13aed92a32782e84d67ede4d3926593d8ba40db921c0"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-wikipedia.png",
+    "sourceSha256": "2c49e507c81f9242a13e36c5de8219d5556a02105e00c07b6f1ecf1712f86f13",
+    "retained": "../screenshots/public-wikipedia.png",
+    "retainedSha256": "2c49e507c81f9242a13e36c5de8219d5556a02105e00c07b6f1ecf1712f86f13"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-youtube.png",
+    "sourceSha256": "2b55fc328c3685d8e782097e7f2e16275cb37b8350ce36cc11ccfc8785792f10",
+    "retained": "../screenshots/public-youtube.png",
+    "retainedSha256": "2b55fc328c3685d8e782097e7f2e16275cb37b8350ce36cc11ccfc8785792f10"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-news.png",
+    "sourceSha256": "fd32b0b634054608618d6d6f4affd191fe4971e7f708ed9b00a171943954d166",
+    "retained": "../screenshots/public-news.png",
+    "retainedSha256": "fd32b0b634054608618d6d6f4affd191fe4971e7f708ed9b00a171943954d166"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-amazon.png",
+    "sourceSha256": "47429cf69bb11a14487f3c9e41a8523231c253f6c0d7e3bccd4e839da26699a1",
+    "retained": "../screenshots/public-amazon.png",
+    "retainedSha256": "47429cf69bb11a14487f3c9e41a8523231c253f6c0d7e3bccd4e839da26699a1"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-reddit.png",
+    "sourceSha256": "0d69572bbe9cfa779ab98eab7ebdf877f1d6ccebeedd17c3ab7d5337f94efca2",
+    "retained": "../screenshots/public-reddit.png",
+    "retainedSha256": "0d69572bbe9cfa779ab98eab7ebdf877f1d6ccebeedd17c3ab7d5337f94efca2"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-stackoverflow.png",
+    "sourceSha256": "0d4645906e0353dba1738b741044941f300da6c3fe54b08971a545210b02756a",
+    "retained": "../screenshots/public-stackoverflow.png",
+    "retainedSha256": "0d4645906e0353dba1738b741044941f300da6c3fe54b08971a545210b02756a"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-notion.png",
+    "sourceSha256": "d563ed556890f54c705743753b51afe95e0df8a51064cdf9c2853b12603ca568",
+    "retained": "../screenshots/public-notion.png",
+    "retainedSha256": "d563ed556890f54c705743753b51afe95e0df8a51064cdf9c2853b12603ca568"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-docs.png",
+    "sourceSha256": "f51caa34f40dd396a3a4ba5b68b84a8d428548ef073c1cec8e480d6a0ab8a321",
+    "retained": "../screenshots/public-docs.png",
+    "retainedSha256": "f51caa34f40dd396a3a4ba5b68b84a8d428548ef073c1cec8e480d6a0ab8a321"
+  },
+  {
+    "run": "42362681610",
+    "phase": "public",
+    "artifact": "chrome-check-42362681610-1-public",
+    "source": "17d-chrome/artifacts/public-search.png",
+    "sourceSha256": "36ce890e7237322e6920c3359be381a864507799965b3656dea1fbdf640cce98",
+    "retained": "../screenshots/public-search.png",
+    "retainedSha256": "36ce890e7237322e6920c3359be381a864507799965b3656dea1fbdf640cce98"
+  }
+]

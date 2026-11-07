@@ -1,0 +1,10 @@
+[
+  "--user-data-dir=/home/runner/work/AresOS/AresOS/.work/17d-chrome/profile",
+  "--no-first-run",
+  "--no-default-browser-check",
+  "--password-store=basic",
+  "--start-maximized",
+  "--gtk-version=3",
+  "--disable-background-mode",
+  "http://127.0.0.1:34939/"
+]
