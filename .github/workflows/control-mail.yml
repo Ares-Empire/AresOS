@@ -28,5 +28,6 @@ jobs:
           path: |
             .work/mail-ci/base.txt
             .work/mail-ci/mail.txt
+            .work/mail-ci/isolation.txt
             .work/mail-ci/greenmail.txt
             .work/mail-ci/dovecot.txt
