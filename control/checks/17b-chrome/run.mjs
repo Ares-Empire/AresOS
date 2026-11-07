@@ -84,7 +84,7 @@ try{
  const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);const listeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(l=>l.includes('\"chrome\"'));assert.equal(listeners.length,0);save('processes',{processes,listeners});
  await key('ctrl+t');await address('chrome://sandbox');await screenshot(out,'sandbox-status');await key('ctrl+w');
  log('Q5_POLICY_INSTALL',{info:await bridge.send('Check.info'),policy:JSON.parse(fs.readFileSync(work+'/policy.json'))});
- await address('chrome://extensions/?id='+id);await screenshot(out,'policy-extension-controls');
+ await address('chrome://extensions/?id='+id);await screenshot(out,'policy-extension-controls');x('mousemove',1025,225,'click',1);await delay(300);assert.equal((await bridge.send('Check.info')).enabled,true);await screenshot(out,'policy-user-disable-refused');
  await key('ctrl+t');await address('https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn');await delay(2500);await screenshot(out,'claude-blocklisted');await key('ctrl+w');
  log('Q5_HOST_DEFAULT',{starts:fs.readFileSync(out+'/host-starts.txt','utf8')});
  await stop();policy(false);await boot('system-host');
@@ -136,8 +136,8 @@ try{
    assert.ok(processes.length,'extension worker renderer exists');save('worker-stop-before',{p,before,processes});
    for(const line of processes)process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');
    await delay(1200);const received=await observe('q1-worker-stop');
-   await screenshot(out,'worker-stopped');
-   await connect();const after=await bridge.send('Check.targets');return {before,after,arrivals:received};
+   await screenshot(out,'worker-stopped');audit.set('q1-worker-stop',received.length);log('Q1_WORKER_STOP_DELIVERY',{before,preview:p,arrivals:received});
+   await connect();const after=await bridge.send('Check.targets');return {before,after,state:await state(),arrivals:await observe('q1-worker-stop',received.length)};
  });
  await stop();await boot('after-worker-stop');
  await matrix('policy-update',async()=>{packVersion('0.2.1');log('Q5_UPDATE_CHECK',await bridge.send('Check.update'));await delay(4000);});
@@ -176,7 +176,7 @@ try{
      // A page pause may precede a separate worker pause. Drain only this case.
      if(p)await decide(p,release);await delay(500);s=await state();for(const q of s.pending.filter(q=>q.url.includes('case='+id)))await decide(q,release);
      const a=await observe(id);if(p){assert.equal(heldBefore,0);assert.equal(a.length,release?1:0);audit.set(id,release?1:0);}
-     log('Q2_PAGE_SW',{id,kind,release,preview:p,held:!!p,heldBefore,arrivals:a,states:kind==='form'?null:await evaluate(bridge,'states')});
+     log('Q2_PAGE_SW',{id,kind,release,preview:p,held:!!p,heldBefore,arrivals:a,states:kind==='form'?await evaluate(bridge,'({url:location.href,title:document.title,text:document.body.innerText.slice(0,300)})').catch(e=>({error:e.message})):await evaluate(bridge,'states')});
    }
    for(const release of [true,false]){
      await nav();await evaluate(bridge,'worker()');const id='sw-own-'+release;
@@ -203,7 +203,7 @@ try{
  for(const [id,p]of [['long-abort',abort],['long-xhr',xhr]]){const result=await probe('Q3_CANCELED_RELEASE_'+id,()=>decide(p,true));log('Q3_CANCELED',{id,result,arrivals:await observe(id,0)});}
  log('Q3_PAGE_STATES',{states:await evaluate(bridge,'states')});
  // Form stays pending for 30 seconds, then completes one navigation.
- await nav();const form=await held('long-form','form');await delay(30000);assert.equal(arrivals('long-form').length,0);await decide(form,true);await observe('long-form',1);log('Q3_FORM',{arrivals:arrivals('long-form')});
+ await nav();const form=await held('long-form','form');await screenshot(out,'long-form-held');await delay(30000);assert.equal(arrivals('long-form').length,0);await decide(form,true);await observe('long-form',1);await screenshot(out,'long-form-released');log('Q3_FORM',{arrivals:arrivals('long-form')});
  await nav();
  }
  if(['all','live-public'].includes(phase)){
@@ -231,7 +231,7 @@ try{
 const negative=await held('typed-negative');assert.equal(negative.typed.length,0);await decide(negative,false);await observe('typed-negative',0);log('Q4_TYPED_NEGATIVE',{preview:negative});
  // Q5 group ownership, refusal after owner ungroup, close while held.
  const opened=await bridge.send('Check.open',{url:f.base+'/new'});assert.equal(opened.groupId,group);assert.equal((await state()).groupInfo.title,'Claude');log('Q5_GROUP_OPEN',{opened,tabs:await bridge.send('Check.tabs')});
- await nav();const gp=await held('group-out');await bridge.send('Check.ungroup',{tabId:selected});await delay(500);await probe('Q5_OUTSIDE_REFUSED',()=>evaluate(bridge,'document.title'));log('Q5_GROUP_OUT',{arrivals:await observe('group-out',0),state:await state()});
+ await nav();const gp=await held('group-out');await screenshot(out,'group-before-drag');x('mousemove',210,20,'mousedown',1);await delay(200);x('mousemove',1050,20);await delay(600);x('mouseup',1);await delay(500);await screenshot(out,'group-after-drag');await eventually(async()=>(await bridge.send('Check.tabs')).find(t=>t.id===selected)?.groupId===-1,'owner dragged tab outside group');await probe('Q5_OUTSIDE_REFUSED',()=>evaluate(bridge,'document.title'));log('Q5_GROUP_OUT',{arrivals:await observe('group-out',0),state:await state()});
  await bridge.send('Check.attach',{tabId:selected});await bridge.send('Check.enableGate');await nav();await held('group-close');await bridge.send('Check.closeGroup');log('Q5_GROUP_CLOSE',{arrivals:await observe('group-close',0)});
  await stop();await boot('public');
  // Public sites: only safe resources load; every potential text carrier is failed before sending.

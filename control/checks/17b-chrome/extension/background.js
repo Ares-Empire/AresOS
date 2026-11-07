@@ -2,13 +2,16 @@
 let port, selected, group, mode='hold', backstop=false, nextRule=1, texts=[], publicMode=false, publicDenyAll=false;
 const attached=new Map(), pending=new Map(), history=[], errors=[];
 let permit;
+const persist=()=>chrome.storage.session.set({held:[...pending.values()]});
+// Browser-owned debugger state can outlive a crashed extension renderer. Recover only to drop.
+const recovery=(async()=>{const saved=(await chrome.storage.session.get('held')).held||[];for(const p of saved){try{await chrome.debugger.sendCommand(p.source,'Fetch.failRequest',{requestId:p.id,errorReason:'Aborted'});emit('check.recoveredDrop',{id:p.id,url:p.url});}catch(e){emit('check.recoveryUnavailable',{id:p.id,url:p.url,error:String(e)});}}await chrome.storage.session.set({held:[]});})();
 const key=s=>JSON.stringify(s);
 const target=()=>attached.get(selected)||{tabId:selected};
 const command=(s,m,p={})=>chrome.debugger.sendCommand(s,m,p);
 function emit(method,params){history.push({method,params,at:Date.now()});try{port?.postMessage({method,params});}catch{}}
 function matchText(r){const raw=r.url+'\n'+(r.postData||'');return texts.filter(t=>[t,encodeURIComponent(t),encodeURIComponent(t).replace(/%20/g,'+'),JSON.stringify(t).slice(1,-1),btoa(unescape(encodeURIComponent(t)))].some(x=>raw.includes(x)));}
 async function decide(id,release){
-  const p=pending.get(id);if(!p)throw Error('NOT_PENDING');pending.delete(id);
+  const p=pending.get(id);if(!p)throw Error('NOT_PENDING');pending.delete(id);await persist();
   if(p.rule)await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:[p.rule]});
   await command(p.source,release?'Fetch.continueRequest':'Fetch.failRequest',release?{requestId:id}:{requestId:id,errorReason:'Aborted'});
   emit('check.decision',{id,release});
@@ -19,6 +22,7 @@ async function dropTab(tabId,reason){
   emit('check.controlEnded',{tabId,reason});
 }
 async function pause(source,p){
+  await recovery;
   const r=p.request, typed=matchText(r), fixture=['/receive','/socket'].includes(new URL(r.url).pathname);
   if(new URL(r.url).pathname==='/socket')emit('check.socketPause',{source,request:p});
   if(!fixture&&!publicMode)return command(source,'Fetch.continueRequest',{requestId:p.requestId});
@@ -42,7 +46,7 @@ async function pause(source,p){
     entry.rule=1+(await chrome.declarativeNetRequest.getSessionRules()).reduce((n,r)=>Math.max(n,r.id),0);
     await chrome.declarativeNetRequest.updateSessionRules({addRules:[{id:entry.rule,priority:1,action:{type:'block'},condition:{tabIds:[source.tabId],requestMethods:[r.method.toLowerCase()],regexFilter:'^'+r.url.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$'}}]});
   }
-  pending.set(p.requestId,entry);emit('check.held',entry);
+  pending.set(p.requestId,entry);await persist();emit('check.held',entry);
 }
 chrome.debugger.onEvent.addListener((s,m,p)=>{
   if(m==='Fetch.requestPaused')pause(s,p).catch(e=>{errors.push(String(e));emit('check.error',{error:String(e),request:p});});
@@ -52,8 +56,9 @@ chrome.debugger.onDetach.addListener((s,reason)=>{attached.delete(s.tabId||s.tar
 chrome.tabs.onUpdated.addListener(async(id,change,tab)=>{if(attached.has(id)&&tab.groupId!==group)await dropTab(id,'left Claude group');});
 chrome.tabs.onRemoved.addListener(id=>{attached.delete(id);emit('check.tabClosed',{id});});
 async function attach(tabId){
+  await recovery;
   if(!group){group=await chrome.tabs.group({tabIds:[tabId]});await chrome.tabGroups.update(group,{title:'Claude',color:'blue'});}else await chrome.tabs.group({groupId:group,tabIds:[tabId]});
-  selected=tabId;const s={tabId};await chrome.debugger.attach(s,'1.3');attached.set(tabId,s);return {tabId,group};
+  selected=tabId;const s={tabId};try{await chrome.debugger.attach(s,'1.3');}catch(e){await command(s,'Runtime.enable');emit('check.recoveredAttachment',{tabId,attachError:String(e)});}attached.set(tabId,s);return {tabId,group};
 }
 async function rpc(m,p){
   if(m==='Check.config'){({mode='hold',backstop=false,texts=[],publicMode=false}=p);permit=null;return {mode,backstop};}
