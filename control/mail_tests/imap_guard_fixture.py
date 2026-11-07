@@ -20,6 +20,7 @@ class GuardedIMAPFixture:
         # Optional raw received-message literals: preserve binary octets that a
         # real backend may canonicalize during BODY[] retrieval. Test-only.
         self.exact_sources = {}
+        self.special_roles = {}
         self.lock = threading.Lock()
         self.server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.server_context.load_cert_chain(CERT / 'tls.crt',CERT / 'tls.key')
@@ -44,6 +45,10 @@ class GuardedIMAPFixture:
                                 line = backend.readline()
                                 if not line:
                                     raise OSError('Backend disconnected')
+                                if destination and line.startswith(b'* LIST ') and fixture.special_roles:
+                                    for name, flag in fixture.special_roles.items():
+                                        if line.rstrip().endswith((b'"' + name.encode() + b'"', b' ' + name.encode())):
+                                            line = line.replace(b'(', b'(' + flag.encode() + b' ', 1)
                                 collected.append(line)
                                 literal = re.search(rb'\{(\d+)\}\r\n$',line)
                                 if literal:

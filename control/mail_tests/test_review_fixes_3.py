@@ -134,11 +134,17 @@ class ReviewFixes3(MailCase):
         draft = self.data('draft_save', {k: comp[k] for k in ('composition_id', 'composition_hash')})['reference']
         sent = self.send(self.approval(bcc=['private-syntax@mail.invalid']))
         sent_ref, = self.data('operation_status', {'operation_id': sent['id']})['evidence']['sent']
+        originals = [self.mail.message(ref)['raw'] for ref in (draft, sent_ref)]
         with self.caller() as (proxy, home):
             for index, ref in enumerate((draft, sent_ref)):
                 exported = proxy('attachment_save', {'reference':ref, 'part':'source', 'name':f'export-{index}.eml'})
-                self.assertTrue(exported['ok'], exported)
-                original = Path(exported['data']['path']).read_bytes()
+                if index == 0:
+                    self.assertFalse(exported['ok'], exported)
+                    self.assertFalse((home / 'Downloads' / f'export-{index}.eml').exists())
+                    original = originals[index]
+                else:
+                    self.assertTrue(exported['ok'], exported)
+                    original = Path(exported['data']['path']).read_bytes()
                 self.assertEqual(b'X-AresOS-Authored:' in original, index == 0)
                 if index:
                     self.assertIn(b'Bcc: private-syntax@mail.invalid', original)
@@ -225,8 +231,10 @@ class ReviewFixes3(MailCase):
                             self.assertEqual(sha256(codec.decoded(part)), item['sha256'])
                 saved = self.data('attachment_save', {'reference':ref,'part':'source'})['file']
                 self.assertEqual(self.engine.blobs.read(saved['sha256']), raw)
-                saved = self.data('attachment_save', {'reference':marked_ref,'part':'source'})['file']
-                self.assertEqual(self.engine.blobs.read(saved['sha256']), marked_raw)
+                # A nested marked draft now refuses export as well; exact raw
+                # reads remain available for the owner's inspection.
+                self.assertFalse(self.call('attachment_save', {'reference':marked_ref,'part':'source'})['ok'])
+                self.assertEqual(self.data('read', {'reference':marked_ref, 'part':'source'})['untrusted_content']['text'].encode('latin1'), marked_raw)
 
     def test_review3_2_large_encoded_marked_draft_is_not_approved_by_hash(self):
         for kind in ('rfc822', 'global'):

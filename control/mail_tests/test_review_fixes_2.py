@@ -164,8 +164,15 @@ class ReviewFixes2(MailCase):
         with self.caller() as (proxy, home):
             for index, ref in enumerate((draft, sent_ref)):
                 saved = proxy('attachment_save', {'reference':ref,'part':'source','name':f'saved-{index}.eml'})
-                self.assertTrue(saved['ok'], saved)
-                path = Path(saved['data']['path'])
+                if index == 0:
+                    self.assertFalse(saved['ok'], saved)
+                    path = home / 'Downloads' / f'saved-{index}.eml'
+                    self.assertFalse(path.exists())
+                    path.write_bytes(originals[index])
+                    os.chown(path, 26101, 26101)
+                else:
+                    self.assertTrue(saved['ok'], saved)
+                    path = Path(saved['data']['path'])
                 self.assertEqual(path.read_bytes(), originals[index])
                 self.assertEqual(codec.AUTHORED_HEADER.encode() in path.read_bytes(), index == 0)
                 if index:

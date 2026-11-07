@@ -84,6 +84,14 @@ class Changes(MailCase):
         guard.__enter__()
         green = {**green, 'imap_host':'localhost', 'imap_port':guard.port}
         self.engine.store.write({'mail:account:green':green},'fixture','serialized nonempty guard frontend')
+        green['special'] = {'inbox':'INBOX', 'sent':'Sent', 'drafts':'Drafts', 'trash':'Trash', 'junk':'Junk', 'archive':'Archive'}
+        guard.special_roles = {name: '\\' + role.title() for role, name in green['special'].items() if role != 'inbox'}
+        with self.mail.transport.imap(green) as conn:
+            for name in guard.special_roles:
+                ok(conn.create(quote(name)), 'fixture special folder')
+            from aresos_control.mail.transport import folders
+            green['delimiter'] = next(f['delimiter'] for f in folders(conn) if f['name'] == 'INBOX')
+        self.engine.store.write({'mail:account:green':green}, 'fixture', 'explicit server frontend roles')
         previous = self.account
         self.account = green
         try:
@@ -143,7 +151,10 @@ class Changes(MailCase):
                 previous = self.account
                 self.account = account
                 try:
-                    self.data('folder_create',{'account':account['id'],'name':'UpstreamProbe'})
+                    # Seed directly: GreenMail has no complete SPECIAL-USE
+                    # mapping and now correctly refuses service mutations.
+                    with self.mail.transport.imap(account) as conn:
+                        ok(conn.create(quote('UpstreamProbe')), 'fixture upstream probe')
                     self.fixture('UpstreamProbe')
                     with self.mail.transport.imap(account) as conn:
                         self.assertEqual(conn.delete(quote('UpstreamProbe'))[0],'OK')
