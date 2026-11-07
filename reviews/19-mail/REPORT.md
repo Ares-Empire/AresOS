@@ -14,7 +14,8 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - **Draft revisions and deletion:** editing or sending keeps the old draft, so revisions can accumulate. This keeps every deletion behind its own named approval; silently replacing or removing drafts was rejected.
 - **Conservative draft protection:** draft text, including quoted history, must fit wholly in approval; any part of a draft, even a binary file, refuses attachment, and older marked Sent copies get the same protection. A narrower policy could allow more attachments and long threads, but would need a reliable way to distinguish who wrote each part; Drafts now also refuses move/copy, while sending itself, forwarding inline and approved deletion remain the routes out.
 - **Saving draft attachments:** Claude cannot save any draft part or its source to your folders, even a PDF. Save draft attachments in your mail program, or have Claude send the draft itself with `mode=draft`; allowing exports would require reliable provenance on decoded files and full disclosure on reimport.
-- **Changed special folders:** if Sent, Drafts, Trash, Junk or Archive is missing, duplicated or changes on the server, mail changes stop until you fix the server roles and review/record them with `sudo aresos admin mail account_folders`. Earlier Trash and Drafts folders stay protected after that refresh; automatically accepting changed roles or unprotecting the old folders was rejected because it can let drafts escape or turn a free move into deletion.
+- **Required special folders:** Sent, Drafts and Trash must each be marked on exactly one selectable folder; if one is missing, duplicated or changes, mail changes stop until you fix the server roles and review/record them with `sudo aresos admin mail account_folders`. Earlier Trash and Drafts folders stay protected after that refresh, so a free move cannot become deletion or let drafts escape.
+- **Optional Junk and Archive:** either can be absent; only filing by that missing role refuses, with instructions to mark the folder in your mail server settings and run the setup step. Duplicated or changed optional roles stop changes involving their current or recorded folders until setup is reviewed; other actions and reads keep working, and search/thread defaults leave out current and recorded Junk folders.
 - **Forwarded mail is a file:** attached forwarding sends a rebuilt `.eml` file that recipients may need to save and open, and drops private or unlisted headers while preserving decoded binary files. Native inline attached-mail presentation and original header bytes were rejected to keep the approved bytes exact and private recipients protected; recipient-program presentation remains untested.
 - **Saved mail files:** attaching a saved `.eml` or `.msg` from your folders is refused, even if harmless; forward the mail itself or use its exact mail reference. Allowing local saved mail would need a different provenance and disclosure policy.
 - **Ordinary local files and timestamps:** local files show their path, name, size, hash and last change time, but that time does not prove authorship, and Claude-written file text can still travel without appearing in the prompt. Showing text-like files wholly in approval is the unresolved alternative; this run deliberately leaves that design question open.
@@ -30,6 +31,129 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 8
+
+**read — Done:** implements `briefs/19-review-fixes-8.md`. This section supersedes
+round 7's all-five-role requirement and whole-account optional-role refusal.
+`mail/roles.py` requires unique selectable Sent, Drafts, Trash and INBOX, records
+optional Junk/Archive roots (including absence or ambiguity), and compares them
+independently. Existing accounts use their recorded folder names without guessing.
+Onboarding accepts absent or duplicated optional roles; the owner's two-step
+`account_folders` records the reviewed mapping without sending a new probe.
+`mail_accounts.optional_roles` shows each as `present`, `absent` or `needs_setup`,
+with current/recorded roots; an unavailable fresh listing reports `needs_setup`.
+
+`adapter.py` scopes optional-role refusal to actions needing the role or involving
+its current/recorded roots and descendants. This includes complete mixed batches,
+flags, deletes, folder changes, exports, composition sources, draft saves, send
+preflight and local stages. Immutable compositions retain their source reference
+so a later role change cannot evade the check. Required-role and historical
+Trash/Drafts protection, full draft approval, named deletion and send replay rules
+remain. Move/copy accepts exactly one exact `target` folder or explicit
+`target_role=junk|archive`; the latter gives the missing-role/server-settings/setup
+reason without inferring roles from mailbox names. The catalogue, generated Mail
+JSON and `docs/control/TOOLS.md` describe the new behavior.
+
+Reads never require valid optional roles. Default search, thread and correspondent
+history exclude every current/recorded Junk root (and Trash as before); explicit folder
+search and direct reads remain available. A thread seeded in excluded Junk returns
+an empty page, rather than refusing the read.
+
+**read — regression tests** (`control/mail_tests/test_review_fixes_8.py`):
+
+| Test | Evidence |
+| --- | --- |
+| `test_review8_no_optional_roles_onboard_and_all_ordinary_mail_actions_work` | Owner-only synthetic onboarding with no Junk/Archive; setup records absence; missing-role move/copy gives clear reasons with unchanged server state; ordinary folder create/rename, copy/move, flags, Trash/permanent delete, reply with Sent copy/Answered and saved-draft send work. SMTP receives exactly two messages; replay adds none and the draft stays. |
+| `test_review8_duplicate_optional_role_onboards_without_disabling_other_actions` | Duplicate Archive at initial onboarding reports needs_setup; affected filing refuses while the same ordinary actions, deletes, sends and drafts work. |
+| `test_review8_duplicate_archive_refuses_only_affected_changes_and_allows_ordinary_actions` | Both Archive roots refuse move/copy in/out and mixed batches, flags, export, composition, deletion and folder changes; existing send/delete approvals and derived-source draft/send preparation refuse with unchanged UID/bytes/flags and no DATA. Drift injected between reference check and UID-command preflight also refuses. Ordinary actions still work; recording a still-duplicate role cannot bypass refusal. |
+| `test_review8_moved_archive_refuses_old_and_new_until_owner_records_then_role_move_works` | Same refusal and positive checks after actual Archive reassignment; owner review/record restores explicit Archive filing and ordinary use of the former root. |
+| `test_review8_optional_appearance_disappearance_needs_setup_only_for_affected_folder` | Disappearance and later appearance affect only Archive-root changes; statuses change through needs_setup/absent/present and ordinary flags keep working. |
+| `test_review8_junk_reads_defaults_exclude_all_current_and_recorded_roots_without_refusing` | Real moved, duplicate and disappeared Junk: search/thread exclude all roots and children, direct/explicit reads work without changing flags/bytes, Junk-seeded threads return zero, correspondents exclude Junk, affected changes refuse and ordinary operations still work. |
+| `test_review8_each_missing_duplicate_required_role_still_blocks_setup_and_changes` | All three required roles, each missing and duplicated: onboarding/setup and compose/draft/send/move/flag/delete preflights refuse before mutation; existing send approval stays reserved. |
+| `test_review8_optional_absence_duplicates_and_unselectable_do_not_hide_required_errors` | Local resolver checks optional absence/ambiguity/unselectability and retains required-role missing/duplicate/unselectable assertions. |
+| `test_review8_legacy_recorded_roots_scope_changes_and_missing_role_reason` | Local compatibility with earlier account records, both changed roots/children, unaffected similarly named folders and precise missing-role instructions. |
+
+**read — earlier test changes:** the round-7
+`test_review7_roles_reject_missing_ambiguous_unselectable_and_casefold_flags`
+invalid fixture now removes Sent instead of optional Archive; its rejection,
+ambiguity, unselectability and casefold assertions remain. Its shared
+`configure_roles` helper recognizes the additional actual Dovecot configurations
+and sorts duplicate expectations. `onboard_with_frontend` in `test_review_fixes.py` now persists the synthetic
+fixture CA before its fresh `mail_accounts` lookup; its full-account equality
+assertion and every qualification/cleanup assertion remain. This affects
+`test_review_4_missing_exact_probe_or_failed_cleanup_never_qualifies`,
+`test_review_4_positive_guard_qualifies_only_after_verified_cleanup` and
+`test_review_4_transient_permission_and_generic_refusals_never_qualify`. All other
+earlier test methods and all `control/tests/` remain unchanged; the existing Trash/Drafts protection tests run
+unchanged. Runner configuration adds only synthetic optional/required role modes,
+with readiness still proven by actual LIST responses.
+
+**JUDGMENT-CALL / read:** the replacement role rule is recorded in round 7's
+updated judgment call and the owner list above. When source classification is
+uncertain, refuse the affected action; never bypass draft, approval, exact-delete
+or replay protection. **PLAN-GAP:** none added; earlier owner decisions remain.
+**Not verified / assumed:** real account/server settings, terminal/phone approvals,
+the seven Claude tasks and recipient `.eml` presentation still need owner checks.
+**Open questions:** the existing owner decisions; no new mid-run answer needed.
+
+**run — local checks:**
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests python3 -m unittest test_review_fixes_8.RoleResolution8 test_review_fixes_7.HeaderRules7 test_review_fixes_5.DraftAndTextGuard test_review_fixes_4.RebuildAndGuard test_review_fixes_3.HeaderAndEncoding test_review_fixes_2.LocalMailDetection -q`
+(the two new local role tests and 17 earlier codec/guard/header tests) printed `Ran 19 tests in 0.141s` / `OK`.
+`python3 control/generate.py --check` printed `Generated artifacts match definitions`;
+AST parsing and constructing all fixture configurations printed
+`Python syntax and 17 Dovecot fixture configurations OK`; `git diff --check` was
+silent. An in-memory comparison loaded the actual `8e0c7bdd` role resolver and
+printed `8e0c7bdd refuses required-only roles; current records Junk and Archive absent`
+and `Current changed-Archive check permits ordinary folders and refuses both role roots`.
+This is local decision evidence, not a server run. Docker printed
+`Cannot connect to the Docker daemon`; no host/container installation was attempted.
+
+**run — initial executions / correction:** code/test head `de894c5d9b0ed6db240442a39f1e71ba7c03c66c`:
+Mail push [42384373464](https://github.com/Ares-Empire/AresOS/actions/runs/42384373464)
+printed `Ran 57 tests in 47.422s` / `OK` / `Control base suite PASS`, then
+`Ran 123 tests in 333.345s` / `FAILED (failures=7, errors=7)`.
+Mail PR [42384377428](https://github.com/Ares-Empire/AresOS/actions/runs/42384377428)
+printed `Ran 57 tests in 65.429s` / `OK` / `Control base suite PASS`, then
+`Ran 123 tests in 408.029s` / `FAILED (failures=7, errors=7)`.
+The seven new server-test bodies reached their assertions successfully but their
+reused round-7 teardown had a class-bound `super()` and failed cleanup. Round 8 now
+owns its teardown, resetting actual Dovecot roles before closing its engine/temp
+state. Seven existing qualification subtest comparisons also found the new live
+account-role lookup lacked the fixture CA after onboarding's temporary TLS patch;
+the shared fixture now persists that synthetic trust before comparing the full
+account results. No assertion was weakened, skipped or deleted. The initial base
+workflow [42384377435 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42384377435/attempts/1)
+printed `Ran 57 tests in 49.415s` / `OK` / `Control base suite PASS`; its
+[attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42384377435/attempts/2)
+printed `Ran 57 tests in 50.037s` / `OK` / `Control base suite PASS`.
+
+**run — last code/test commit `eb3f7dd2411bbfe87afe1ff03bfdd99f2a16c091`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail push 42385029196](https://github.com/Ares-Empire/AresOS/actions/runs/42385029196) | `Ran 57 tests in 50.046s`; `OK`; `Control base suite PASS`; `Ran 123 tests in 346.531s`; `OK`; `Control Mail suite PASS` |
+| [Mail PR 42385033899](https://github.com/Ares-Empire/AresOS/actions/runs/42385033899) | `Ran 57 tests in 50.590s`; `OK`; `Control base suite PASS`; `Ran 123 tests in 348.366s`; `OK`; `Control Mail suite PASS` |
+| [Independent base 42385033981, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42385033981/attempts/1) | `Ran 57 tests in 44.257s`; `OK`; `Control base suite PASS` |
+| [Independent base 42385033981, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42385033981/attempts/2) | `Ran 57 tests in 49.239s`; `OK`; `Control base suite PASS` |
+
+Both Mail passes ran `bash control/ci/mail/run.sh`: generated-artifact verification,
+all 57 unchanged base tests via `bash control/ci/test.sh`, isolated pinned servers
+and all 123 Mail methods (114 earlier plus nine new; every new method printed
+`... ok`). Both printed `Mail delete kill-9 cases: 26; unnamed Deleted messages survive`,
+`Mail send kill-9 cases: 45; no repeated SMTP DATA`, and
+`Mail reservation/repair kill-9 cases: 16; no SMTP during repair/restart`.
+The independent base workflow ran `bash control/ci/test.sh` twice in pinned Fedora.
+
+Any commit after `eb3f7dd2` changes only files under `reviews/`; the final-head
+workflow IDs and both passes are recorded in [draft PR #9](https://github.com/Ares-Empire/AresOS/pull/9)
+after its report-only push. Twelve workflow executions total (four initial, four
+corrected code, four final report) exceed the approximate eight-run target because
+of the initial fixture failures. No test was bypassed to meet that target.
+Scope check printed `Scope check PASS: no protected path or base test changed`.
+The final worktree scan printed `Remaining .work files over 500 MB: []`.
+All pushes used normal verification; no force push, merge or host installation.
+
 
 ## Review fixes, round 7
 
@@ -133,14 +257,18 @@ existing draft rules. Allowing exports would require reliable decoded-file
 provenance and a disclosure policy for reimport; checking names or extensions
 was rejected because the review's exact plain-text route defeats them.
 
-**JUDGMENT-CALL / read — conservative role refresh:** require all five SPECIAL-USE
-roles and retain former Trash/Drafts protection after owner refresh. Supporting
-partially configured accounts or unprotecting former roots would be more
-permissive, but risks free deletion or losing draft provenance; changing it later
-needs an explicit migration/provenance rule and regression coverage. The two-step
-owner command can restore the current mapping by restoring server roles and
-reviewing them again; remembered protections would need an explicit future
-migration to remove. Recording roles does not enable incomplete onboarding.
+**JUDGMENT-CALL / read — required safety roles, optional filing roles (updated round 8):**
+Sent, Drafts and Trash remain required and must match owner setup. Earlier Trash
+and Drafts folders remain protected after refresh. Junk and Archive can be absent;
+only actions needing a missing role refuse. A duplicated, unselectable or changed
+optional role refuses changes involving its current or recorded folders and their
+children; other actions and reads keep working. Search/thread defaults exclude
+current and recorded Junk roots. Requiring all five roles and stopping the whole
+account for optional-role drift was rejected by the round-8 brief; silently accepting drift
+was rejected because it changes which folder an action affects. Revising the
+scope later needs caller descriptions and regression updates; removing remembered
+Trash/Drafts protection still needs an explicit migration/provenance decision.
+Recording roles does not enable incomplete onboarding.
 
 **PLAN-GAP / read:** the ordinary caller-file authorship question remains open,
 as listed for the owner. Finding 4 is deliberately retained as a JUDGMENT-CALL;
