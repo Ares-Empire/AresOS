@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "ask": [
+      "mcp__testapp__send",
+      "mcp__testapp__delete"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "_comment": "DRAFT. owner_uid=0 intentionally prevents startup until configured. Do not include evidence_dir in log backups.",
+  "owner_uid": 0,
+  "socket_dir": "/run/aresos-tools",
+  "state_dir": "/var/lib/aresos-tools",
+  "evidence_dir": "/var/lib/aresos-operation-evidence",
+  "approval_ttl": 900,
+  "file_limit": 26214400
+}
