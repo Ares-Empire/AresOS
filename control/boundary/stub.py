@@ -42,4 +42,15 @@ while True:
         print('CONNECTION ' + json.dumps({'listener': key.data}), flush=True)
         with connection:
             if key.data == 'network':
+                connection.settimeout(2)
+                data = b''
+                try:
+                    while b'\r\n\r\n' not in data and len(data) < 8192:
+                        chunk = connection.recv(4096)
+                        if not chunk:
+                            break
+                        data += chunk
+                except (OSError, TimeoutError):
+                    pass
+                print('REQUEST ' + json.dumps({'request': data.decode(errors='replace')}), flush=True)
                 connection.sendall(b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK')

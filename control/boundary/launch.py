@@ -24,7 +24,7 @@ def main():
     for path in (ROOT, Path(__file__), FILTER, CLAUDE, ROOT / 'pins.json',
                  ROOT / 'run.mjs', ROOT / 'seccomp-canary.py',
                  Path('/usr/local/bin/node'), Path('/usr/bin/python3'),
-                 ROOT / 'sandbox.json', Path('/etc/claude-code/managed-settings.json'),
+                 ROOT / 'sandbox.json', ROOT / 'native-canary.json', ROOT / 'native-pin.json', Path('/etc/claude-code/managed-settings.json'),
                  Path('/etc/claude-code/managed-mcp.json')):
         trusted(path)
     # An empty enabledPlugins map is not a wildcard deny. Refuse a pre-existing
@@ -37,6 +37,9 @@ def main():
     expected = json.loads((ROOT / 'pins.json').read_text())['seccomp_x64_sha256']
     if hashlib.sha256(FILTER.read_bytes()).hexdigest() != expected:
         raise ValueError('seccomp helper hash mismatch')
+    native_hash = json.loads((ROOT / 'native-pin.json').read_text())['sha256']
+    if hashlib.sha256(CLAUDE.resolve().read_bytes()).hexdigest() != native_hash:
+        raise ValueError('native CLI hash mismatch')
     os.chdir('/home/assistant/work')
     # Do not merely test that a file exists. Require the real sandbox to execute
     # a canary and return EPERM for both socket families, before Claude starts.
@@ -46,6 +49,11 @@ def main():
         capture_output=True, text=True, timeout=45, close_fds=True)
     if probe.returncode or probe.stdout.strip() != 'SECCOMP_CANARY_OK':
         raise ValueError('effective seccomp canary failed: ' + probe.stderr[-1500:])
+    native_probe = subprocess.run(
+        ['/usr/local/bin/node', str(ROOT / 'run.mjs'), '--native-canary'],
+        capture_output=True, text=True, timeout=45, close_fds=True)
+    if native_probe.returncode or native_probe.stdout.strip() != 'SECCOMP_CANARY_OK':
+        raise ValueError('native embedded seccomp canary failed: ' + native_probe.stderr[-1500:])
     os.execve(str(CLAUDE), [str(CLAUDE), '--setting-sources', ''], dict(os.environ))
 
 

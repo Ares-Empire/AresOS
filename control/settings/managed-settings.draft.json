@@ -15,7 +15,10 @@
     "blockReadsOutsideWorkingDirectories": true,
     "additionalDirectories": [],
     "allow": [],
-    "ask": ["WebFetch", "WebSearch"],
+    "ask": [
+      "WebFetch",
+      "WebSearch"
+    ],
     "deny": [
       "Read(//run/aresos-tools/**)",
       "Read(//var/lib/aresos-tools/**)",
@@ -43,7 +46,8 @@
       "Edit(**/.mcp.json)",
       "Edit(**/.vscode/**)",
       "Edit(**/.idea/**)",
-      "Edit(//etc/claude-code/**)"
+      "Edit(//etc/claude-code/**)",
+      "Edit(//opt/aresos-control/**)"
     ]
   },
   "sandbox": {
@@ -62,16 +66,34 @@
     "filesystem": {
       "allowManagedReadPathsOnly": true,
       "denyRead": [
-        "/home", "/root", "/run/aresos-tools", "/var/lib/aresos-tools",
-        "/run/user", "/tmp/.X11-unix"
+        "/home",
+        "/root",
+        "/run/aresos-tools",
+        "/var/lib/aresos-tools",
+        "/run/user",
+        "/tmp/.X11-unix"
       ],
-      "allowRead": ["/home/assistant/work"],
-      "allowWrite": ["/home/assistant/work"],
+      "allowRead": [
+        "/home/assistant/work"
+      ],
+      "allowWrite": [
+        "/home/assistant/work"
+      ],
       "denyWrite": [
-        "~/.bashrc", "~/.bash_profile", "~/.bash_login", "~/.profile",
-        "~/.zshrc", "~/.zprofile", "~/.zshenv", "~/.gitconfig",
-        "~/.config", "~/.local", "~/.claude", "~/.claude.json",
-        "/etc/claude-code", "/opt/aresos-control",
+        "~/.bashrc",
+        "~/.bash_profile",
+        "~/.bash_login",
+        "~/.profile",
+        "~/.zshrc",
+        "~/.zprofile",
+        "~/.zshenv",
+        "~/.gitconfig",
+        "~/.config",
+        "~/.local",
+        "~/.claude",
+        "~/.claude.json",
+        "/etc/claude-code",
+        "/opt/aresos-control",
         "/home/assistant/work"
       ]
     }

@@ -37,3 +37,14 @@ if __name__ == '__main__':
             path.write_text('{"mcpServers":{}}\n' if name == '.mcp.json' else '')
     for name in ['.vscode', '.idea', '.claude/commands', '.claude/agents']:
         (work / name).mkdir(parents=True, exist_ok=True)
+
+    for name in ('hostile.py', 'socket-state.py'):
+        (work / ('boundary-' + name)).write_bytes((ROOT / name).read_bytes())
+    # The native canary must not inherit the standalone helper's filter, or it
+    # could pass even when the native binary's embedded stage is broken.
+    native_canary = derive(settings)
+    native_canary['network']['allowAllUnixSockets'] = True
+    (ROOT / 'native-canary.json').write_text(json.dumps(native_canary))
+    import hashlib
+    native = Path('/usr/local/bin/claude').resolve()
+    (ROOT / 'native-pin.json').write_text(json.dumps({'sha256': hashlib.sha256(native.read_bytes()).hexdigest()}))

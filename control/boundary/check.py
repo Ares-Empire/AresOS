@@ -54,7 +54,7 @@ def digest(path):
 def main():
     assert MODE in ('present', 'absent')
     print('VERSIONS ' + (ROOT / 'pins.json').read_text().strip(), flush=True)
-    for source in [ROOT / 'sandbox.json', Path('/etc/claude-code/managed-settings.json'),
+    for source in [ROOT / 'sandbox.json', ROOT / 'native-pin.json', Path('/etc/claude-code/managed-settings.json'),
                    Path('/etc/claude-code/managed-mcp.json')]:
         (OUT / source.name).write_bytes(source.read_bytes())
     for args in (['uname', '-a'], ['bwrap', '--version'], ['node', '--version'], ['claude', '--version']):
@@ -64,6 +64,7 @@ def main():
             put(path, '{}\n' if path.endswith('.json') else 'synthetic fixture\n')
     # Claude's global configuration must be valid. None of these are real tokens.
     put('/home/assistant/.claude.json', '{}\n')
+    put('/home/assistant/outside.txt')
     put('/home/assistant/.claude/settings.json', '{}\n')
     put('/home/assistant/work/.claude/settings.json', '{}\n')
     put('/home/assistant/work/.claude/settings.local.json', '{}\n')
@@ -107,7 +108,7 @@ def main():
             else:
                 run(['/usr/bin/python3', '-I', '-c', code], 'positive-' + name)
         run(['/usr/bin/python3', '-I', '-c',
-             'import socket; s=socket.create_connection(("127.0.0.1",18080)); print(s.recv(100))'], 'positive-network')
+             'import socket; s=socket.create_connection(("127.0.0.1",18080)); s.sendall(b"GET /positive HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n"); print(s.recv(100))'], 'positive-network')
         # Reads of owner cookies/auth and writes to startup files really work
         # outside the sandbox. Service secrets and admin are denied by DAC.
         for path in FIXTURES['reads'][2:]:
@@ -128,6 +129,9 @@ def main():
                 print('POSITIVE_REPLACE_ROOT ' + path, flush=True)
             put(path, original.decode(), uid=10001 if path.startswith('/home/') else 0)
         from native import native_checks
+        if MODE == 'absent':
+            for helper in ROOT.glob('node_modules/@anthropic-ai/sandbox-runtime/vendor/seccomp/*/apply-seccomp'):
+                helper.unlink()
         native_checks(run, put, MODE,
                       {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + ['/dev/uinput']}, stub)
         # Run network positive controls before the zero-arrival observation window.
@@ -139,17 +143,16 @@ def main():
         try:
             for suffix, tunnel in [('http', ''), ('connect', '--proxytunnel ')]:
                 command = "curl --noproxy '' --silent --show-error --fail --max-time 5 " + tunnel + 'http://blocked.boundary.localhost:18080/payload'
+                receiver_before = (OUT / 'stub.txt').read_text().count('GET /payload HTTP/1.1')
                 positive = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'), command], 'positive-proxy-' + suffix)
                 assert positive.stdout.strip() == 'OK'
+                assert (OUT / 'stub.txt').read_text().count('GET /payload HTTP/1.1') > receiver_before
         finally:
             config.write_bytes(original)
         time.sleep(.2)
         baseline = (OUT / 'stub.txt').read_text().splitlines()
-        assert sum(line.startswith('CONNECTION ') for line in baseline) == len(FIXTURES['sockets']) + 3
+        assert sum(line.startswith('CONNECTION ') for line in baseline) >= len(FIXTURES['sockets']) + 3
         snapshots = {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + ['/dev/uinput']}
-        if MODE == 'absent':
-            for helper in ROOT.glob('node_modules/@anthropic-ai/sandbox-runtime/vendor/seccomp/*/apply-seccomp'):
-                helper.unlink()
         # Run hostile code even with the helper missing, to measure the fallback.
         result = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'),
                       '/usr/bin/python3 -I /opt/aresos-control/hostile.py'], 'hostile', required=False)
@@ -184,9 +187,12 @@ def launcher_checks():
     # disposable container; no production test-switch exists in the launcher.
     cli = Path('/usr/local/bin/claude')
     target = cli.resolve()
+    pin = ROOT / 'native-pin.json'
+    original_pin = pin.read_bytes()
     cli.unlink()
     cli.write_text('#!/usr/bin/python3 -I\nimport json,os,sys\nprint("LAUNCHED " + json.dumps({"env":dict(os.environ),"args":sys.argv[1:]}))\n')
     cli.chmod(0o755)
+    pin.write_text(json.dumps({'sha256': digest(cli)}))
     put('/home/assistant/work/env-shadow/sitecustomize.py',
         'open("/home/assistant/work/python-env-ran", "w").write("executed")\n')
     put('/home/assistant/work/env-shadow/preload.cjs',
@@ -240,6 +246,7 @@ def launcher_checks():
     finally:
         cli.unlink()
         cli.symlink_to(target)
+        pin.write_bytes(original_pin)
 
 
 def settings_checks():

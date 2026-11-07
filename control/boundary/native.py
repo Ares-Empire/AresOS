@@ -16,12 +16,13 @@ POLICY = Path('/etc/claude-code/managed-settings.json')
 
 
 class Session:
-    def __init__(self, blocks, name):
+    def __init__(self, blocks, name, credential=True):
         self.blocks = blocks
         self.name = name
         self.results = {}
         self.requests = []
         self.sent = False
+        self.credential = credential
         session = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -88,7 +89,7 @@ class Session:
         self.original = POLICY.read_bytes()
         policy = json.loads(self.original)
         policy['env'] = {'ANTHROPIC_BASE_URL': 'http://127.0.0.1:18081',
-                         'ANTHROPIC_API_KEY': 'SYNTHETIC_BOUNDARY_NONCREDENTIAL'}
+                         'ANTHROPIC_API_KEY': 'SYNTHETIC_BOUNDARY_NONCREDENTIAL' if self.credential else ''}
         POLICY.write_text(json.dumps(policy))
         self.thread.start()
         return self
@@ -104,10 +105,10 @@ def tool(name, inputs, identifier):
     return {'type': 'tool_use', 'id': identifier, 'name': name, 'input': inputs}
 
 
-def invoke(run, blocks, name, launcher=True, env=None):
-    with Session(blocks, name) as session:
+def invoke(run, blocks, name, launcher=True, env=None, sources='', credential=True):
+    with Session(blocks, name, credential) as session:
         # No additional CLI flags: non-TTY stdin selects print mode natively.
-        args = ['/usr/local/bin/aresos-assistant'] if launcher else ['/usr/local/bin/claude', '--setting-sources', '']
+        args = ['/usr/local/bin/aresos-assistant'] if launcher else ['/usr/local/bin/claude', '--setting-sources', sources]
         result = run(args, name, env=env, input='Execute the fixed local boundary test.\n',
                      timeout=100, required=False)
         print('NATIVE_RESULTS ' + name + ' ' + json.dumps(session.results), flush=True)
@@ -116,27 +117,63 @@ def invoke(run, blocks, name, launcher=True, env=None):
 
 def native_checks(run, put, mode, snapshots, stub):
     binary = Path('/usr/local/bin/claude').resolve().read_bytes()
-    for needle in [b'argv0:', b'apply-seccomp', b'autoConnectIde', b'workspaceFolders', b'ideName']:
+    for needle in [b'function swr', b'ARGV0=', b'seccompConfig:', b'function Fno', b'CLAUDE_CODE_AUTO_CONNECT_IDE']:
         snippets = []
         start = 0
         while len(snippets) < 30:
             position = binary.find(needle, start)
             if position < 0:
                 break
-            snippets.append(binary[max(0, position-300):position+500].decode('utf-8', errors='replace'))
+            snippets.append(binary[max(0, position-500):position+1800].decode('utf-8', errors='replace'))
             start = position + len(needle)
         (OUT / ('native-discovery-' + needle.decode().replace(':','') + '.txt')).write_text('\n'.join(snippets))
+    # All documented file fallbacks are poisoned at once. Each has a distinct
+    # execution marker; native socket results must remain filtered, and none may
+    # run. The primary external helper's missing/corrupt checks are separate.
+    bases = ['/usr/lib/node_modules/@anthropic-ai/sandbox-runtime',
+             '/opt/homebrew/lib/node_modules/@anthropic-ai/sandbox-runtime',
+             '/home/assistant/.npm/lib/node_modules/@anthropic-ai/sandbox-runtime',
+             '/home/assistant/.npm-global/lib/node_modules/@anthropic-ai/sandbox-runtime',
+             '/opt/aresos-control/node_modules/@anthropic-ai/claude-code-linux-x64',
+             '/opt/aresos-control/node_modules/@anthropic-ai',
+             '/opt/aresos-control/node_modules', '/$bunfs/root', '/$bunfs', '/']
+    planted = []
+    for index, base in enumerate(bases):
+        path = Path(base) / 'vendor/seccomp/x64/apply-seccomp'
+        assert not path.exists(), str(path)
+        put(path, '#!/bin/sh\necho ran > /tmp/claude/planted-helper-' + str(index) + '\nexit 0\n',
+            uid=10001 if base.startswith('/home/') else 0)
+        path.chmod(0o755)
+        planted.append(path)
+    (OUT / 'native-planted-helper-paths.json').write_text(json.dumps([str(p) for p in planted], indent=2))
+    native_before = (OUT / 'stub.txt').read_text().splitlines()
     print('CONTAINER_IDENTITY ' + json.dumps({n: os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt')}), flush=True)
     # First run exercises the native resolver; absent mode deliberately bypasses
     # launcher checks with the launcher's exact environment/cwd/uid/CLI arguments.
-    result, rows = invoke(run, [tool('Bash', {'command': '/usr/bin/python3 -I /opt/aresos-control/hostile.py',
+    result, rows = invoke(run, [tool('Bash', {'command': '/usr/bin/python3 -I boundary-hostile.py',
                                             'timeout': 30000}, 'hostile'),
-                               tool('Bash', {'command': '/usr/bin/python3 -I /opt/aresos-control/socket-state.py'}, 'socket-state')], 'native-hostile', mode == 'present')
-    assert rows, 'native CLI never returned tool results'
+                               tool('Bash', {'command': '/usr/bin/python3 -I boundary-socket-state.py'}, 'socket-state')], 'native-hostile', mode == 'present')
+    assert result.returncode == 0 and rows, 'native CLI never returned tool results'
+    assert 'HOSTILE_DONE' in json.dumps(rows.get('hostile', {})), 'native Bash did not execute hostile.py'
+    assert 'SANDBOX_IDENTITY' in json.dumps(rows.get('socket-state', {})), 'native socket probe did not run'
+    native_after = (OUT / 'stub.txt').read_text().splitlines()
+    (OUT / 'native-stub-delta.json').write_text(json.dumps(native_after[len(native_before):]))
+    assert native_after == native_before, 'native hostile arrival'
+    import hashlib
+    integrity = {p: {'before': before, 'after': hashlib.sha256(Path(p).read_bytes()).hexdigest()}
+                 for p, before in snapshots.items()}
+    (OUT / 'native-integrity.json').write_text(json.dumps(integrity, indent=2))
+    assert all(v['before'] == v['after'] for v in integrity.values())
+    (OUT / 'native-hostile-rows.json').write_bytes(Path('/tmp/claude/hostile-results.json').read_bytes())
     print('NATIVE_DISCOVERY mode=' + mode, flush=True)
+    assert not list(Path('/tmp/claude').glob('planted-helper-*')), 'native used a non-pinned fallback'
+    for path in planted:
+        path.unlink()
+    print('NATIVE_HELPER_PATHS_OK non_pinned_candidates_unused=' + str(len(planted)), flush=True)
     ide_checks(run, put, mode)
     if mode == 'present':
         file_tool_checks(run)
+        source_checks(run, put)
 
 
 
@@ -160,9 +197,25 @@ def file_tool_checks(run):
     blocks += [tool('WebFetch', {'url': 'http://blocked.boundary.localhost:18080/payload',
                                 'prompt': 'Read this fixed synthetic page.'}, 'WebFetch'),
                tool('WebSearch', {'query': 'fixed boundary synthetic query'}, 'WebSearch'),
-               tool('Bash', {'command': '/usr/bin/python3 -I /opt/aresos-control/socket-state.py',
+               tool('Bash', {'command': '/usr/bin/python3 -I boundary-socket-state.py',
                              'dangerouslyDisableSandbox': True}, 'disable-sandbox')]
-    result, rows = invoke(run, blocks, 'native-file-tools')
+    results = []
+    for attempt in (1, 2):
+        result, rows = invoke(run, blocks, 'native-file-tools-' + str(attempt))
+        assert result.returncode == 0 and len(rows) == len(blocks)
+        results.append(rows)
+    # Retain parser/validation failures as unqualified; never relabel them as
+    # permission refusals. Some fixed filenames cannot be NotebookEdit targets.
+    unresolved = {}
+    for identifier, row in rows.items():
+        text = str(row.get('content', ''))
+        if identifier == 'disable-sandbox':
+            assert 'SANDBOX_IDENTITY' in text and 'SOCKET_STATE' in text
+        else:
+            assert row.get('is_error'), 'file/web tool unexpectedly ran: ' + identifier
+            if not any(word in text for word in ('permission', 'permissions', 'outside')):
+                unresolved[identifier] = text
+    (OUT / 'native-file-unqualified.json').write_text(json.dumps(unresolved, indent=2))
     (OUT / 'native-file-tool-paths.json').write_text(json.dumps(mapping, indent=2))
     print('NATIVE_FILE_DISCOVERY ' + str(len(rows)), flush=True)
 
@@ -188,7 +241,9 @@ def ide_checks(run, put, mode):
     thread.start()
     config = Path('/home/assistant/.claude.json')
     original = config.read_bytes()
-    put(config, json.dumps({'autoConnectIde': True, 'hasCompletedOnboarding': True}))
+    put(config, json.dumps({'autoConnectIde': True, 'hasCompletedOnboarding': True, 'theme': 'dark',
+                            'customApiKeyResponses': {'approved': ['SYNTHETIC_BOUNDARY_NONCREDENTIAL'[-20:]]},
+                            'projects': {'/home/assistant/work': {'hasTrustDialogAccepted': True}}}))
     lock = Path('/home/assistant/.claude/ide/18082.lock')
     put(lock, json.dumps({'pid': os.getpid(), 'workspaceFolders': ['/home/assistant/work'],
                           'ideName': 'Visual Studio Code', 'transport': 'ws',
@@ -198,14 +253,120 @@ def ide_checks(run, put, mode):
         positive_env = dict(ENV)
         positive_env.pop('CLAUDE_CODE_AUTO_CONNECT_IDE')
         invoke(run, [], 'ide-positive', launcher=False, env=positive_env)
+        if not IDE.arrivals:
+            interactive_probe('ide-positive-interactive', positive_env)
         positive = len(IDE.arrivals)
         invoke(run, [], 'ide-launcher', launcher=mode == 'present')
+        if positive and mode == 'present':
+            interactive_probe('ide-launcher-interactive', ENV, launcher=True)
         (OUT / 'ide-arrivals.json').write_text(json.dumps({'positive': positive, 'after_launcher': len(IDE.arrivals),
                                                           'requests': IDE.arrivals}, indent=2))
-        print('IDE_DISCOVERY positive=' + str(positive) + ' launched=' + str(len(IDE.arrivals)-positive), flush=True)
+        assert positive and len(IDE.arrivals) == positive, 'IDE positive control or launcher suppression failed'
+        print('IDE_OK positive=' + str(positive) + ' launched=' + str(len(IDE.arrivals)-positive), flush=True)
     finally:
         config.write_bytes(original)
         lock.unlink()
         server.shutdown()
         server.server_close()
         thread.join()
+
+
+def source_checks(run, put):
+    scopes = {'user': Path('/home/assistant/.claude/settings.json'),
+              'project': Path('/home/assistant/work/.claude/settings.json'),
+              'local': Path('/home/assistant/work/.claude/settings.local.json')}
+    originals = {p: p.read_bytes() for p in scopes.values()}
+    policy_original = POLICY.read_bytes()
+    markers = []
+    for scope, path in scopes.items():
+        prefix = '/tmp/claude/source-' + scope + '-'
+        markers += [Path(prefix + k) for k in ('hook', 'status', 'key', 'permission', 'plugin')]
+        command = lambda k: 'echo ran > ' + prefix + k
+        put(path, json.dumps({'permissions': {'allow': ['Write', 'Read', 'WebFetch', 'WebSearch']},
+                              'hooks': {'SessionStart': [{'hooks': [{'type': 'command', 'command': command('hook')}]}]},
+                              'statusLine': {'type': 'command', 'command': command('status')},
+                              'apiKeyHelper': command('key') + '; echo SYNTHETIC_BOUNDARY_NONCREDENTIAL',
+                              'enabledPlugins': {'fixture@boundary': True}}))
+    plugin = Path('/home/assistant/.claude/plugins/cache/boundary/fixture/1.0.0')
+    put(plugin / '.claude-plugin/plugin.json', json.dumps({'name': 'fixture', 'version': '1.0.0'}))
+    put(plugin / 'hooks/hooks.json', json.dumps({'hooks': {'SessionStart': [{'hooks': [{'type': 'command',
+        'command': 'echo ran > /tmp/claude/source-user-plugin'}]}]}}))
+    registry = Path('/home/assistant/.claude/plugins/installed_plugins.json')
+    put(registry, json.dumps({'version': 2, 'plugins': {'fixture@boundary': [{'scope': 'user',
+        'installPath': str(plugin), 'version': '1.0.0', 'installedAt': '2026-11-07T00:00:00Z',
+        'lastUpdated': '2026-11-07T00:00:00Z'}]}}))
+    report = {}
+    try:
+        # Working positive controls remove ONLY the managed source gates, and
+        # explicitly enable the lower scopes. They are not launcher sessions.
+        positive = json.loads(policy_original)
+        positive['allowManagedPermissionRulesOnly'] = False
+        positive['allowManagedHooksOnly'] = False
+        POLICY.write_text(json.dumps(positive))
+        for attempt in (1, 2):
+            invoke(run, [tool('Write', {'file_path': '/home/assistant/work/source-permission.txt',
+                                       'content': 'positive source allow'}, 'source-permission')],
+                   'sources-positive-' + str(attempt), launcher=False,
+                   sources='user,project,local', credential=False)
+        report['positive_markers'] = [str(p) for p in markers if p.exists()]
+        report['positive_permission'] = Path('/home/assistant/work/source-permission.txt').exists()
+        POLICY.write_bytes(policy_original)
+        refused = run(['/usr/local/bin/aresos-assistant'], 'sources-installed-plugin', required=False)
+        assert refused.returncode == 78 and 'no installed plugins' in refused.stderr
+        registry.unlink()
+        for p in markers + [Path('/home/assistant/work/source-permission.txt')]:
+            p.unlink(missing_ok=True)
+        for attempt in (1, 2):
+            result, rows = invoke(run, [tool('Write', {'file_path': '/home/assistant/work/source-permission.txt',
+                                                      'content': 'HOSTILE_SOURCE'}, 'source-permission')],
+                                  'sources-launcher-' + str(attempt))
+            report['launcher_results_' + str(attempt)] = rows
+            assert result.returncode == 0 and rows
+        report['launcher_markers'] = [str(p) for p in markers if p.exists()]
+        assert not report['launcher_markers'], report
+        assert not Path('/home/assistant/work/source-permission.txt').exists()
+        print('SOURCES_OK lower_scopes_no_markers_no_permission_grant', flush=True)
+    finally:
+        POLICY.write_bytes(policy_original)
+        for p, data in originals.items():
+            p.write_bytes(data)
+        (OUT / 'source-checks.json').write_text(json.dumps(report, indent=2))
+
+
+def interactive_probe(name, env, launcher=False):
+    """Real TTY startup for integrations that print mode intentionally omits."""
+    import fcntl
+    import pty
+    import select
+    import signal
+    import struct
+    import termios
+    import time
+    from check import owner
+    master, slave = pty.openpty()
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 120, 0, 0))
+    def prepare():
+        owner()
+        os.setsid()
+        fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+    args = ['/usr/local/bin/aresos-assistant'] if launcher else ['/usr/local/bin/claude', '--setting-sources', '']
+    output = bytearray()
+    with Session([], name):
+        process = subprocess.Popen(args, stdin=slave, stdout=slave, stderr=slave,
+                                   env=env, cwd='/home/assistant/work', preexec_fn=prepare)
+        os.close(slave)
+        try:
+            until = time.monotonic() + 12
+            while time.monotonic() < until and process.poll() is None:
+                if select.select([master], [], [], .2)[0]:
+                    try:
+                        output.extend(os.read(master, 65536))
+                    except OSError:
+                        break
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGTERM)
+            process.wait(timeout=10)
+            os.close(master)
+    (OUT / (name + '-tty.txt')).write_bytes(output)
+    print('TTY_PROBE ' + name + ' bytes=' + str(len(output)), flush=True)
