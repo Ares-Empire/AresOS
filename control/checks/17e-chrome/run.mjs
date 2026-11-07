@@ -23,7 +23,12 @@ const log=(name,value)=>{summary.cases.push({name,...value});save('summary',summ
 const kp=generateKeyPairSync('rsa',{modulusLength:2048});const extId=idFor(kp.publicKey.export({type:'spki',format:'der'}));
 const f=await fixture(work,out,()=>`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${extId}"><updatecheck codebase="${f.base}/extension.crx" version="0.5.0"/></app></gupdate>`);
 const ext=work+'/extension';fs.cpSync(here+'/extension',ext,{recursive:true});
-const manifest=JSON.parse(fs.readFileSync(ext+'/manifest.json'));Object.assign(manifest,{key:kp.publicKey.export({type:'spki',format:'der'}).toString('base64'),update_url:f.base+'/update.xml'});fs.writeFileSync(ext+'/manifest.json',JSON.stringify(manifest));pack(ext,work,kp);
+const manifest=JSON.parse(fs.readFileSync(ext+'/manifest.json'));
+if(phase==='public'){
+ fs.copyFileSync(path.resolve('control/checks/17c-chrome/extension/public-guard.js'),ext+'/public-guard.js');
+ manifest.content_scripts=[{matches:['<all_urls>'],exclude_matches:['http://127.0.0.1/*','http://localhost/*'],all_frames:true,run_at:'document_start',world:'MAIN',js:['public-guard.js']}];
+}
+Object.assign(manifest,{key:kp.publicKey.export({type:'spki',format:'der'}).toString('base64'),update_url:f.base+'/update.xml'});fs.writeFileSync(ext+'/manifest.json',JSON.stringify(manifest));pack(ext,work,kp);
 const socket=work+'/native.sock',profile=work+'/browser-home/profile';
 fs.writeFileSync(work+'/host',`#!/bin/sh\nprintf '%s\\n' "$$" >> '${work}/host-pids.txt'\nexport CHROME_CHECK_SOCKET='${socket}'\nexec python3 '${path.resolve('control/checks/17-chrome/native-host.py')}'\n`,{mode:0o755});
 sudo('chmod','a+w',work); // Native host writes synthetic PIDs; private/ stays 0700.
@@ -49,7 +54,7 @@ async function control(action,params={}){
 async function startProxy(){
  const fd=fs.openSync(work+'/proxy-console.log','a');
  proxy=spawn('sudo',['-u','aresproxy','env','CHECKPOINT_PRIVATE='+work+'/private',work+'/venv/bin/mitmdump','-q','--listen-host','127.0.0.1','--listen-port','18080','--set','confdir='+work+'/private','--set','connection_strategy=lazy','--set','ssl_verify_upstream_trusted_ca='+work+'/upstream-roots.pem','--set','body_size_limit=32m','--set','rawtcp=false','--set','termlog_verbosity=error','-s',here+'/checkpoint.py'],{stdio:['ignore',fd,fd]});
- await eventually(()=>control('state'),'checkpoint ready',15000);log('CHECKPOINT_READY',await control('state'));
+ try{await eventually(()=>control('state'),'checkpoint ready',15000)}catch(e){console.error(fs.readFileSync(work+'/proxy-console.log','utf8').slice(-8000));throw e;}log('CHECKPOINT_READY',await control('state'));
 }
 async function stopProxy(){
  try{sudo('pkill','-KILL','-u','aresproxy')}catch{}await delay(500);proxy=undefined;

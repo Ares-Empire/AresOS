@@ -46,4 +46,5 @@ export default async function(c){
  await guard();await ev("send('e-oversized',new Uint8Array(34*1024*1024));true");await delay(1500);await zero('e-oversized');log('Q4_OVERSIZE',{page:await ev("results['e-oversized']"),receiver:rows('e-oversized')});
  // Proxy outage has no direct fallback.
  await c.stopProxy();await send('e-proxy-down');await delay(900);await zero('e-proxy-down');log('Q1_PROXY_DOWN',{page:await ev("results['e-proxy-down']"),receiver:rows('e-proxy-down')});await c.startProxy();assert.equal((await control('state')).guard,true);
+ await (await import('./wire.mjs')).default(c);
 }

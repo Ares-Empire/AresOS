@@ -5,6 +5,7 @@ bytes live only in bounded RAM. Approval releases the paused flow, never a URL.
 """
 import asyncio
 import dataclasses
+import functools
 import hashlib
 import json
 import os
@@ -22,6 +23,22 @@ from mitmproxy.proxy.layers import websocket as ws_layer
 ROOT = pathlib.Path(os.environ['CHECKPOINT_PRIVATE'])
 MAX_BODY = 32 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
+
+
+def fail_closed(handler):
+    # An addon exception normally gets logged and processing may continue. A
+    # safety hook must kill its flow before returning control to mitmproxy.
+    @functools.wraps(handler)
+    async def wrapped(self, arg):
+        try:
+            return await handler(self, arg)
+        except BaseException as error:
+            flow = arg.flow if isinstance(arg, CheckpointFrameHook) else arg
+            flow.kill()
+            if isinstance(arg, CheckpointFrameHook):
+                flow.metadata['checkpoint_frame_denied'] = True
+            self.record('hook-failed-closed', error=type(error).__name__)
+    return wrapped
 
 
 @dataclasses.dataclass
@@ -169,12 +186,15 @@ class Checkpoint:
         future = asyncio.get_running_loop().create_future()
         op = dict(future=future, context=self.context, flow=flow, **{'info':info})
         try:
+            if self.fault == 'ledger-full':
+                raise sqlite3.OperationalError('injected SQLITE_FULL at durable insert')
             self.db.execute('insert into operations values (?,?,?)', (oid, json.dumps(info), 'held'))
             self.db.commit()
         except sqlite3.Error:
             self.record('refused', **info, reason='ledger-unavailable')
             return False
         self.pending[oid] = op
+        flow.metadata.setdefault('checkpoint_operations', []).append(oid)
         self.total += len(data)
         self.record('held', id=oid, **info)
         try:
@@ -210,6 +230,7 @@ class Checkpoint:
         if flow.request.method == 'CONNECT':
             flow.response = http.Response.make(403, b'Unsupported tunnel')
 
+    @fail_closed
     async def request(self, flow):
         if flow.response:
             return
@@ -224,6 +245,7 @@ class Checkpoint:
         if not await self.hold(flow, 'handshake' if flow.request.headers.get('upgrade','').lower() == 'websocket' else 'http', captured):
             flow.response = http.Response.make(409, b'Checkpoint refused or cancelled')
 
+    @fail_closed
     async def websocket_message(self, flow):
         message = flow.websocket.messages[-1]
         if message.from_client and not await self.hold(flow, 'ws-message', message.content):
@@ -232,6 +254,7 @@ class Checkpoint:
         # check retains only the current one, consumed synchronously by the layer.
         flow.websocket.messages[:] = [message]
 
+    @fail_closed
     async def checkpoint_frame(self, hook):
         if not await self.hold(hook.flow, 'ws-control', hook.data):
             hook.flow.metadata['checkpoint_frame_denied'] = True
@@ -245,7 +268,7 @@ class Checkpoint:
     def response(self, flow):
         # A response is evidence of a response, not business success.
         for row in self.rows():
-            if row['status'] == 'consumed' and row['case'] == self.case(flow):
+            if row['status'] == 'consumed' and row['id'] in flow.metadata.get('checkpoint_operations', []):
                 self.status(row['id'], 'response')
 
     def done(self):

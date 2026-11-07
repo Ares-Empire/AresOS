@@ -9,7 +9,7 @@ export default async function(c){
  await c.nav('https://fixture.test:18443/hsts');await delay(300);await c.nav('http://fixture.test:18443/hsts');log('Q9_HSTS',{page:await ev('({url:location.href,title:document.title})')});await c.nav();
  // Start 17d's working HTTP/3 receiver; its own log is the oracle.
  fs.mkdirSync(work+'/artifacts',{recursive:true});
- const wt=spawn(work+'/venv/bin/python',[c.path.resolve('control/checks/17b-chrome/webtransport.py'),work],{stdio:'ignore'});
+ const wt=spawn(c.path.resolve('.work/17b-chrome/venv/bin/python'),[c.path.resolve('control/checks/17b-chrome/webtransport.py'),work],{stdio:'ignore'});
  const turn=spawn('turnserver',['-n','--listening-ip=127.0.0.1','--relay-ip=127.0.0.1','--listening-port=13478','--tls-listening-port=15349','--realm=synthetic17e','--user=synthetic:synthetic-password','--lt-cred-mech','--allow-loopback-peers','--no-multicast-peers','--no-cli','--no-udp','--no-dtls','--cert='+work+'/fixture.pem','--pkey='+work+'/fixture.key','--log-file='+work+'/turn-private.log'],{stdio:'ignore'});
  const peer=spawn(work+'/venv/bin/python',[c.here+'/rtc-peer.py',out],{stdio:'ignore'});
  try{

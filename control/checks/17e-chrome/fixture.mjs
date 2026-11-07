@@ -36,11 +36,12 @@ export async function fixture(work,out,getUpdate){
   function rtc(config){return (async()=>{const p=new RTCPeerConnection(config);const d=p.createDataChannel('synthetic');globalThis.peer=p;const offer=await p.createOffer();await p.setLocalDescription(offer);await new Promise(r=>{if(p.iceGatheringState==='complete')return r();p.onicegatheringstatechange=()=>{if(p.iceGatheringState==='complete')r()};setTimeout(r,4500)});return p.localDescription.sdp})()}
   </script>`);
  };
- const servers=[];const sockets=[];
+ const servers=[];const sockets=[];const sessions=new Set();
  const plain=http.createServer(handler);await new Promise(r=>plain.listen(18081,'0.0.0.0',r));servers.push(plain);
  const v6=http.createServer(handler);await new Promise(r=>v6.listen({port:18081,host:'::1',ipv6Only:true},r));servers.push(v6);
  const tls=http2.createSecureServer({allowHTTP1:true,key:fs.readFileSync(work+'/fixture.key'),cert:fs.readFileSync(work+'/fixture.pem')},handler);await new Promise(r=>tls.listen(18443,'0.0.0.0',r));servers.push(tls);
+ tls.on('session',s=>{sessions.add(s);s.on('close',()=>sessions.delete(s))});
  const invalid=https.createServer({key:fs.readFileSync(work+'/bad.key'),cert:fs.readFileSync(work+'/bad.pem')},handler);await new Promise(r=>invalid.listen(18444,'0.0.0.0',r));servers.push(invalid);
  for(const server of [plain,v6,tls]){const w=new WebSocketServer({server});sockets.push(w);w.on('connection',(s,req)=>{const id=new URL(req.url,'http://fixture').searchParams.get('case');record({kind:'ws-open',case:id,attributionPresent:'x-ares-check' in req.headers});s.on('message',b=>record({kind:'ws-message',case:b.toString().startsWith('e-')?b.toString():'e-binary',length:b.length,sha256:hash(b)}));s.on('close',(code,b)=>record({kind:'ws-close',case:b.toString().startsWith('e-')?b.toString():id,code,length:b.length,sha256:hash(b)}));});}
- return {base:'http://127.0.0.1:18081',rows,record,close(){for(const w of sockets){for(const c of w.clients)c.terminate();w.close()}for(const s of servers){s.closeAllConnections?.();s.close()}}};
+ return {base:'http://127.0.0.1:18081',rows,record,close(){for(const s of sessions)s.destroy();for(const w of sockets){for(const c of w.clients)c.terminate();w.close()}for(const s of servers){s.closeAllConnections?.();s.close()}}};
 }
