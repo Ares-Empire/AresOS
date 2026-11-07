@@ -164,7 +164,8 @@ def native_checks(run, put, mode, snapshots, stub):
     assert result.returncode == 0 and rows, 'native CLI never returned tool results'
     executed = 'HOSTILE_DONE' in json.dumps(rows.get('hostile', {}))
     if not executed:
-        assert 'approval' in str(rows.get('hostile', {}).get('content', '')).lower(), 'unexpected native failure'
+        assert rows['hostile'].get('is_error') and any(phrase in str(rows['hostile'].get('content', '')).lower()
+            for phrase in ('requires approval', 'asks the person')), 'unexpected native failure'
         (OUT / 'native-not-executed.json').write_text(json.dumps({
             'reason': rows['hostile'], 'attempts': len(attempts),
             'policy': 'unchanged managed draft; no test-only Bash permission grants'}, indent=2))
@@ -194,10 +195,12 @@ def native_checks(run, put, mode, snapshots, stub):
         print('NATIVE_BOUNDARY_OK mode=' + mode + ' attacks=' + str(len(hostile_rows)) +
               ' isolated_net_mnt seccomp=2 AF_UNIX=EPERM AF_VSOCK=EPERM unchanged=' + str(len(integrity)) +
               ' hostile_connections=0', flush=True)
-    run(['/usr/local/bin/node', str(ROOT / 'run.mjs'), '--native-canary'], 'native-embedded-canary-planted')
+    try:
+        run(['/usr/local/bin/node', str(ROOT / 'run.mjs'), '--native-canary'], 'native-embedded-canary-planted')
+    finally:
+        for path in planted:
+            path.unlink(missing_ok=True)
     assert not list(Path('/tmp/claude').glob('planted-helper-*')), 'native used a non-pinned fallback'
-    for path in planted:
-        path.unlink()
     print('NATIVE_HELPER_PATHS_OK non_pinned_candidates_unused=' + str(len(planted)), flush=True)
     failures = []
     checks = [('ide', lambda: ide_checks(run, put, mode))]
@@ -222,7 +225,7 @@ def file_tool_checks(run):
     blocks = []
     mapping = {}
     for name in ('Edit', 'Write', 'NotebookEdit'):
-        for index, path in enumerate(fixtures['writes'] + ['/home/assistant/outside.txt']):
+        for index, path in enumerate(fixtures['writes'] + fixtures['notebooks'] + ['/home/assistant/outside.txt']):
             identifier = name + '-' + str(index)
             inputs = {'file_path': path, 'old_string': 'synthetic fixture', 'new_string': 'HOSTILE_FILE_TOOL'}
             if name == 'Write':
@@ -277,6 +280,8 @@ def ide_checks(run, put, mode):
             self.send_header('Upgrade', 'websocket')
             self.send_header('Connection', 'Upgrade')
             self.send_header('Sec-WebSocket-Accept', accept)
+            if self.headers.get('Sec-WebSocket-Protocol'):
+                self.send_header('Sec-WebSocket-Protocol', self.headers['Sec-WebSocket-Protocol'].split(',')[0].strip())
             self.end_headers()
     class Listener(ThreadingHTTPServer):
         connections = 0
@@ -326,6 +331,11 @@ def source_checks(run, put):
               'project': Path('/home/assistant/work/.claude/settings.json'),
               'local': Path('/home/assistant/work/.claude/settings.local.json')}
     originals = {p: p.read_bytes() for p in scopes.values()}
+    global_config = Path('/home/assistant/.claude.json')
+    originals[global_config] = global_config.read_bytes()
+    put(global_config, json.dumps({'hasCompletedOnboarding': True, 'theme': 'dark',
+        'customApiKeyResponses': {'approved': ['SYNTHETIC_BOUNDARY_NONCREDENTIAL'[-20:]]},
+        'projects': {'/home/assistant/work': {'hasTrustDialogAccepted': True}}}))
     policy_original = POLICY.read_bytes()
     markers = []
     for scope, path in scopes.items():

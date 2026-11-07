@@ -62,6 +62,10 @@ def main():
     for path in FIXTURES['reads'] + FIXTURES['writes']:
         if not path.startswith(('/etc/', '/opt/')):
             put(path, '{}\n' if path.endswith('.json') else 'synthetic fixture\n')
+    for path in FIXTURES['notebooks']:
+        put(path, json.dumps({'cells': [{'cell_type': 'code', 'execution_count': None,
+             'metadata': {}, 'outputs': [], 'source': ['synthetic_fixture = 1']}],
+             'metadata': {}, 'nbformat': 4, 'nbformat_minor': 5}))
     # Claude's global configuration must be valid. None of these are real tokens.
     put('/home/assistant/.claude.json', '{}\n')
     put('/home/assistant/outside.txt')
@@ -135,7 +139,7 @@ def main():
         native_error = None
         try:
             native_checks(run, put, MODE,
-                          {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + ['/dev/uinput']}, stub)
+                          {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + FIXTURES['notebooks'] + ['/dev/uinput']}, stub)
         except Exception as error:
             import traceback
             native_error = traceback.format_exc()
@@ -171,7 +175,7 @@ def main():
         time.sleep(.2)
         baseline = (OUT / 'stub.txt').read_text().splitlines()
         assert sum(line.startswith('CONNECTION ') for line in baseline) >= len(FIXTURES['sockets']) + 3
-        snapshots = {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + ['/dev/uinput']}
+        snapshots = {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + FIXTURES['notebooks'] + ['/dev/uinput']}
         # Run hostile code even with the helper missing, to measure the fallback.
         result = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'),
                       '/usr/bin/python3 -I /opt/aresos-control/hostile.py'], 'hostile', required=False)

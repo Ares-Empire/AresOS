@@ -17,9 +17,13 @@
     "/home/assistant/.claude.json"
   ],
   "writes": [
-    "/home/assistant/.bashrc", "/home/assistant/.bash_profile",
-    "/home/assistant/.bash_login", "/home/assistant/.profile",
-    "/home/assistant/.zshrc", "/home/assistant/.zprofile", "/home/assistant/.zshenv",
+    "/home/assistant/.bashrc",
+    "/home/assistant/.bash_profile",
+    "/home/assistant/.bash_login",
+    "/home/assistant/.profile",
+    "/home/assistant/.zshrc",
+    "/home/assistant/.zprofile",
+    "/home/assistant/.zshenv",
     "/home/assistant/.gitconfig",
     "/home/assistant/.config/fish/config.fish",
     "/home/assistant/.config/autostart/hostile.desktop",
@@ -45,5 +49,10 @@
     "/etc/claude-code/managed-settings.json",
     "/etc/claude-code/managed-mcp.json",
     "/opt/aresos-control/launch.py"
+  ],
+  "notebooks": [
+    "/home/assistant/work/nested/.claude/denied.ipynb",
+    "/home/assistant/.config/denied.ipynb",
+    "/home/assistant/outside.ipynb"
   ]
 }
