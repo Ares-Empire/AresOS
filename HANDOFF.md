@@ -9,11 +9,11 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   `Ares-Empire/AresOS-archive-2026-11` (read-only): the pull requests #1–#15 and their discussion, the old branch
   `pkg/03-os-image` and the Actions history live there. PR numbers start again at #1 in the new repo.
 - Public repos get free Actions minutes on GitHub's standard runners, so the $0 budget no longer limits `os-image.yml`.
-- **Two settings did not come along** (GitHub keeps them per repo); Patrik restores them:
-  1. The secret `GHCR_READ_TOKEN` (used by the release-13 and rehearsal runs). It expires around 2026-11-22 anyway, so a
-     new token with `read:packages`, best as an organization secret for AresOS.
-  2. Write access for the new repo's workflows on the image packages in GHCR (each package → Package settings →
-     Manage Actions access → add `AresOS` with the Write role). Until then a run that publishes an image fails.
+- **Two settings did not come along** (GitHub keeps them per repo); Patrik restored both on 2026-11-07:
+  1. The repository secret `GHCR_READ_TOKEN` (used by the release-13 and rehearsal runs): a new classic token with only
+     `read:packages`, valid 30 days (until about 2026-12-07). Renew it the same way before then if runs still need it.
+  2. Write access for the new repo's workflows on the `aresos` package in GHCR (Package settings → Manage Actions
+     access → `AresOS`, Write role). Not yet exercised: the next publishing run shows it works.
 - Public means: nothing personal in commits (the pre-push privacy check enforces it; never `--no-verify`).
 
 ## Where things are (2026-11-01)
