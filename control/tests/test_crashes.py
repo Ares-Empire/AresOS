@@ -175,12 +175,53 @@ class Crashes(EngineCase):
                     self.assertFalse(self.call("testapp_send", approval)["ok"])
                     self.assertEqual(self.engine.receiver.evidence(missing)["arrivals"], before)
 
+    def test_restart_without_restore_at_every_send_delete_and_repair_write(self):
+        for mode, writes in (("send", 7), ("delete", 6), ("repair", 3), ("reserve_delete", 1)):
+            for occurrence in range(1, writes + 1):
+                for point in ("journal_appended", "sqlite_prepared", "sqlite_committed", "journal_committed"):
+                    with self.subTest(mode=mode, write=occurrence, point=point), self.fresh_store():
+                        if mode in {"delete", "reserve_delete"}:
+                            refs = [item["reference"] for item in self.data("testapp_list", {"limit": 2})["items"]]
+                            args = {"references": refs}
+                            if mode == "delete":
+                                args = self.data("testapp_prepare_delete", args)["approval"]
+                        else:
+                            if mode == "repair":
+                                self.configure("sent_copy")
+                            args = self.reserve()
+                            if mode == "repair":
+                                self.data("testapp_send", args)
+                                self.configure()
+                                args = {"operation_id": args["operation_id"], "stage": "sent_copy"}
+                        self.kill_at(point, mode, args, occurrence)
+                        self.assertEqual(self.engine.store.locked, point == "journal_appended")
+                        if self.engine.store.locked:
+                            self.data("control_restore_confirm", {"confirm": "invalidate earlier approvals"}, admin=True)
+                        known = self.killed_records[-1]["operations"]
+                        before = {op["id"]: self.engine.receiver.evidence(op["id"])["arrivals"] for op in known}
+                        for compact in known:
+                            op = self.engine.operation(compact["id"])
+                            expected = "unknown" if point == "journal_appended" or compact["state"] == "submitting" else compact["state"]
+                            self.assertEqual(op["state"], expected)
+                            self.assertEqual(short_description(op), compact["description"])
+                            if op["state"] == "reserved":
+                                self.data("testapp_operation_cancel", {"operation_id": op["id"]})
+                        items = self.engine.store.get("testapp")["items"]
+                        self.restart()
+                        for compact in known:
+                            op = self.engine.operation(compact["id"])
+                            self.assertNotIn(op["state"], {"reserved", "submitting"})
+                            if op["action"] in {"testapp_send", "testapp_delete"}:
+                                self.call(op["action"], op["approval"])
+                            self.assertEqual(self.engine.receiver.evidence(op["id"])["arrivals"], before[op["id"]])
+                        self.assertEqual(self.engine.store.get("testapp")["items"], items)
+
     def test_uncommitted_record_with_missing_staged_event_requires_restore(self):
         import sqlite3
         backup = sqlite3.connect(self.root / "backup.sqlite")
         self.engine.store.db.backup(backup)
         backup.close()
-        self.kill_at("journal_appended", "reserve", message(subject="Unacknowledged reservation"))
+        self.kill_at("sqlite_prepared", "reserve", message(subject="Unacknowledged reservation"))
         # Remove only the commit marker recovery just wrote, reconstructing the
         # exact durable independent record at the killed write boundary.
         self.engine.close()
@@ -208,7 +249,9 @@ class Crashes(EngineCase):
             with self.subTest(point=point):
                 approval = self.reserve(subject="Crash at " + point)
                 self.kill_at(point, "send", approval)
-                self.assertFalse(self.engine.store.locked)
+                self.assertEqual(self.engine.store.locked, point == "journal_appended")
+                if self.engine.store.locked:
+                    self.data("control_restore_confirm", {"confirm": "invalidate earlier approvals"}, admin=True)
                 op = self.engine.operation(approval["operation_id"])
                 self.assertEqual(op["state"], "reserved" if point == "revalidated" else "done" if point == "outcome" else "unknown")
                 before = self.engine.receiver.evidence(op["id"])["arrivals"]
@@ -216,18 +259,23 @@ class Crashes(EngineCase):
                 if op["state"] == "reserved":
                     self.assertEqual(before, [])
                     self.data("testapp_operation_cancel", {"operation_id": op["id"]})
-                self.data("testapp_send", approval)
+                replay = self.call("testapp_send", approval)
+                self.assertEqual(replay["ok"], point != "journal_appended")
                 self.restart()
-                self.data("testapp_send", approval)
+                replay = self.call("testapp_send", approval)
+                self.assertEqual(replay["ok"], point != "journal_appended")
                 self.assertEqual(self.engine.receiver.evidence(op["id"])["arrivals"], before)
 
     def test_kill9_reservation_boundaries_never_sends(self):
         for point in ["sqlite_prepared", "journal_appended", "sqlite_committed", "journal_committed", "reserved"]:
             with self.subTest(point=point):
                 self.kill_at(point, "reserve", message(subject=point))
-                ops = [op for _, op in self.engine.store.items("op:") if op["payload"]["subject"] == point]
+                self.assertEqual(self.engine.store.locked, point == "journal_appended")
+                if self.engine.store.locked:
+                    self.data("control_restore_confirm", {"confirm": "invalidate earlier approvals"}, admin=True)
+                ops = [op for _, op in self.engine.store.items("op:") if op["approval"]["description"]["subject"] == point]
                 self.assertEqual(len(ops), 1)
-                self.assertEqual(ops[0]["state"], "reserved")
+                self.assertEqual(ops[0]["state"], "unknown" if point == "journal_appended" else "reserved")
                 self.assertEqual(self.engine.receiver.evidence(ops[0]["id"])["arrivals"], [])
 
     def test_kill9_every_delete_target_and_stage_no_resume(self):

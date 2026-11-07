@@ -104,14 +104,20 @@ Expired/cancelled notices stay visible until explicitly acknowledged. Partial an
 unknown operations remain pending. No restart, status query, repair or hook resubmits.
 
 The main log uses SQLite rollback journaling with `synchronous=FULL`. Each write
-first stages its complete event in SQLite and commits, then appends and fsyncs a
-compact hash-chained record, applies the event and commits SQLite's head, and
-finally appends/fsyncs a matching commit marker. Directory entries are fsynced
+first appends and fsyncs its compact hash-chained record, then stages its complete
+event in SQLite and commits, applies the event and commits SQLite's head, and
+finally appends/fsyncs a matching commit marker. The separate record is durable
+before any part of that write commits to SQLite. Directory entries are fsynced
 when created. App work begins only after this sequence completes. On a crash,
-recovery finishes only that single staged transaction, never app work. Startup
-turns every `submitting` operation into `unknown`. A database behind the independent
-committed high-water mark is **locked**, and all app calls/transfers are refused.
-A record with an uncommitted tail also locks if its full staged event is missing.
+recovery finishes only a staged transaction whose full event matches the record,
+never app work. Startup turns every `submitting` operation into `unknown`. A
+database behind the independent committed high-water mark is **locked**, and all
+app calls/transfers are refused. A record with an uncommitted tail also locks if
+its full staged event is missing. This includes an ordinary power loss between
+syncing the record and committing the full event: it cannot be distinguished from
+a restore. The owner must run `restore_confirm` below; the operations named by
+that record become `unknown` with their short descriptions, even reservations
+that were never acknowledged. Nothing is silently dropped or resumed.
 
 Back up the state directory (using SQLite's backup API or with the service stopped)
 and immutable blobs. **Never restore, roll back or copy the independent evidence

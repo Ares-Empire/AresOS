@@ -66,7 +66,8 @@ class Store:
                 record = self.events[-1]
                 event = self._prepared(record["seq"])
                 if event is None or event["record"] != record:
-                    # Even an unacknowledged reservation must remain visible after restore.
+                    # A record-only crash and a rollback are indistinguishable.
+                    # Keep even unacknowledged reservations for owner confirmation.
                     self.locked = True
                 else:
                     self._finish(event)
@@ -153,14 +154,15 @@ class Store:
         event = {"seq": record["seq"], "time": record["time"], "action": action, "summary": summary,
                  "outcome": operation["state"] if operation else outcome, "operation_id": operation_id,
                  "set": changes, "record": record}
-        # Full recovery information lives only in SQLite, before the compact fence.
-        # No app/irreversible work runs until both stores and the commit marker sync.
-        with self.db:
-            self.db.execute("INSERT OR REPLACE INTO events VALUES (?,?)", (record["seq"], canonical(event)))
-        self.checkpoint("sqlite_prepared")
+        # Fence the write before even its prepared event can enter a backup.
+        # A crash here may need owner confirmation: compact metadata cannot
+        # reconstruct the full event, and absence cannot prove no restore.
         self._append(record)
         self.events.append(record)
         self.checkpoint("journal_appended")
+        with self.db:
+            self.db.execute("INSERT OR REPLACE INTO events VALUES (?,?)", (record["seq"], canonical(event)))
+        self.checkpoint("sqlite_prepared")
         self._finish(event)
 
     def audit(self):
