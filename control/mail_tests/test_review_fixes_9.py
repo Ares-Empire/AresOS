@@ -35,7 +35,12 @@ class BlobOrigins9(unittest.TestCase):
                     result = engine.request({'v': 1, 'method': 'download', 'app': app, 'sha256': key})
                     self.assertFalse(result['ok'], result)
                     self.assertEqual(result['error']['code'], 'file_refused')
+            settings = json.loads((root.parent / 'control/settings/managed-mcp.json').read_text())
+            self.assertNotIn('testapp', settings['mcpServers'])
+            self.assertIn('mail', settings['mcpServers'])
             export = engine.blobs.put(b'owner export', origin='export')
+            with self.assertRaises(Refused):
+                engine.blobs.require_origin(export, 'caller_import')
             self.assertTrue(engine.request({'v': 1, 'method': 'download', 'app': 'testapp', 'sha256': export})['ok'])
             engine.close()
             engine = Engine(Path(directory) / 'state', Path(directory) / 'evidence')
