@@ -1,6 +1,7 @@
 # The control layer: design
 
-**Status:** draft 16, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+**Status:** draft 16, 2026-11-07, with the owner's answers of the same day built in (`PLAN.md` decisions 14 to 19;
+only the approval surface is still open). Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -92,12 +93,13 @@ A program that runs as the assistant's user outside the sandbox can use `act.soc
 normal desktop trust model (the owner's own programs could equally type into Chrome); the line this design draws is
 around Claude, and section 7 lists every way Claude could start such a program and how each is closed.
 
-**Three users, and what each can read.** The owner (his own user), the assistant (`assistant`) and coding sessions
-(`coder`, as in brief 18b's isolation check) are separate users; coding sessions never run as the owner. Which of
-the owner's folders the assistant may read, and which it may change, is **owner decides (open, section 10)**. Until he
-answers, the assistant writes only into its own folders (rule 4.4), which the owner can read and the coding user
-can't, and reads the folders he shares with it, read-only. Whatever he chooses, the rule stays: nothing the assistant
-can write is readable by a coding session (section 7).
+**Three users, and what each can read and change.** The owner (his own user), the assistant (`assistant`) and coding
+sessions (`coder`, as in brief 18b's isolation check) are separate users; coding sessions never run as the owner.
+Decided (decision 17; his words: "pretty much everything no? like running claude with dangerously skip permissions
+just like I do now"): the assistant may read and change everything in his home folders except hidden settings and
+start-up places (rule 4.4). Code lives in the coding user's own home, so coding sessions read their repositories
+there and never read his folders; the coding user has no access to his home at all. So nothing the assistant can
+write is readable by a coding session (section 7).
 
 ## 3. One definition per action
 
@@ -166,22 +168,24 @@ two actions.
      log doesn't is listed as `unknown` with its description, for the owner to check. Repairs that never submit
      again (a missing Sent copy) run as new operations that point to the old one. Mail adds evidence on the server: the Message-ID is derived from the operation id, and before
      submitting, the service refuses if that Message-ID is already in Sent. Not finding it there proves nothing.
-4. **Files cross between users only on the caller's side, and only from and to allowed folders.** The service never
-   opens a path in the owner's home. The MCP proxy, running as the assistant's user (section 2), opens the file and
-   hands the bytes over; the service keeps them as an unchangeable copy by hash and sends exactly those. Claude Code's
-   file-tool limits don't apply to MCP tools, so the proxy enforces its own:
-   - **Reading** (attachments, uploads) only from the allowed folders: the assistant's own, and the owner's folders
-     he shared with it read-only (for example `~/Documents`, `~/Downloads`, `~/Desktop`); never from places that
-     hold credentials or configuration (`~/.ssh`,
-     `~/.gnupg`, `~/.config`, `~/.local/share`, the browser profile, `~/.claude`, any dotfile), opened component by
-     component under the allowed folder without following symlinks, regular files only, with a size limit. The
-     prompt shows the real path.
-   - **Saving** the other way: only into the assistant's own output folders (saved attachments, downloads, work
-     files), which the owner can read and the coding user can't (section 7), with safe file names, never
-     overwriting, never into configuration or start-up places. Whether the assistant may also change folders of
-     his is **owner decides (open, section 10)**; if he picks some, writes there go through the tool service with
-     these same limits, and the coding user can't read those folders. There, saving a new file never replaces an
-     existing one; replacing an existing file is its own action, and it asks.
+4. **Files: his home folders, never hidden settings or start-up places (decision 17).** The service never opens a
+   path in the owner's home itself; the assistant's own tools do, as the assistant's user: Claude's file tools, the
+   tool service's file actions through the MCP proxy, and the proxy's side of attachments and uploads (it hands the
+   bytes over, and the service keeps them as an unchangeable copy by hash and sends exactly those). Claude Code's
+   file-tool limits don't apply to MCP tools, so the proxy enforces the same limits:
+   - **Where:** everything in his home folders, opened component by component without following symlinks, regular
+     files only, with a size limit. Never a path with a component that starts with a dot (hidden settings:
+     `~/.ssh`, `~/.gnupg`, `~/.config`, `~/.local`, `~/.claude`, and a `.envrc` or `.git` inside any folder), never
+     a start-up place (autostart and service folders, shell start-up files, desktop entries), and never through a
+     symlink. Where something asks, the question shows the real path.
+   - **Free:** reading; saving a new file (never onto an existing name); creating a folder; renaming and moving
+     within his folders, never onto an existing name; editing an existing file in place, because a managed hook
+     first keeps its previous version in the assistant's own versions folder, so the edit can be undone.
+   - **Asks, as a delete:** deleting (to the Trash or for good), and overwriting: replacing an existing file as a
+     whole, or moving or renaming onto an existing name. A managed hook makes a write onto an existing file ask;
+     moving, renaming and deleting go through the tool service's file actions.
+   - **Its own folders:** session records, the versions folder and temporary files stay in the assistant's own
+     folders, which the owner can read and the coding user can't (section 7).
 5. **Reading changes nothing.** Mail is fetched with `BODY.PEEK`; flags are compared before and after in the tests.
 6. **Readable, bounded results.** Compact structured results with the important fields first. Long content is paged
    (`cursor`), and every result has a size cap, so a huge mail or page never floods Claude's context.
@@ -236,12 +240,11 @@ How each one works:
   and repeats everything the owner must see, with Claude's own text in full. The service sends exactly the stored
   composition and refuses if the input doesn't match it. A long quoted thread therefore never has to pass through
   Claude, and still can't be altered.
-- **"Don't ask again" for mail: owner decides (open, section 10).** If he takes it, an entry names the account and
-  an exact set of recipients (To, Cc and Bcc together, for example only himself), set and revoked only through his
-  own channels (section 6); a free send action then sends without asking only a composition whose recipients are
-  exactly that set, compared with the recipients of the actual submission (in Gmail, with the recipients the adapter
-  validates in the captured send), and every other mail asks. The entry covers any future mail to exactly those
-  addresses, not only repeats of one mail.
+- **"Don't ask again" for mail (decision 15).** An entry names the account and an exact set of recipients (To, Cc and
+  Bcc together, for example only himself), set and revoked only through his own channels (section 6); a free send
+  action then sends without asking only a composition whose recipients are exactly that set, compared with the
+  recipients of the actual submission (in Gmail, with the recipients the adapter validates in the captured send), and
+  every other mail asks. The entry covers any future mail to exactly those addresses, not only repeats of one mail.
 - **Replies** use Reply-To where set, never address the owner's own addresses (reply-all removes them), and build
   In-Reply-To and References from the original. A reply to the owner's own sent mail goes to that mail's original
   To and Cc, as Apple Mail does. Bcc recipients never appear in the headers that others receive.
@@ -615,7 +618,7 @@ requirement here, with how it is met and how brief 20 tests it.
      working; a Google address that Chrome pins worked through the local root, as Chrome documents. Everything else
      here is *brief 20*.
 
-   **What is still lost, in plain words** (for the owner to accept before everyday use, section 10):
+   **What is still lost, in plain words** (accepted by the owner, "okay", decision 19):
    - **Sites that ask the browser for a client certificate** don't work.
    - **No "continue anyway".** Chrome lets him click through a certificate warning, for example on his router's or
      printer's own page, whose certificate the device made itself. Through the checkpoint such a page doesn't open.
@@ -876,26 +879,20 @@ list kept only in the browser) without any network send, so the checkpoint can't
   durably, like a captured send, and recorded as consumed before the click reaches Chrome; the count of sends that
   follow is kept durably too. The sends that follow go without a second question only while each validates against
   that description, within its limit and before its expiry; anything else, and anything after it is used up, asks. A
-  contract's recognition is never a reusable permission: each destructive operation is one approval, unless the
-  owner allows "don't ask again" for a recognised kind of deletion (his open choice, section 10).
+  contract's recognition is never a reusable permission: each destructive operation is one approval (deleting always
+  asks, decision 15).
 - **An unlabelled control that deletes data kept only in the browser** (an icon without a name, a "Reset" that
   doesn't say what it resets; on an ordinary online site too, for example an unsent draft kept in the browser's
-  storage): **owner decides (open, section 10)** between (a) such clicks stay free, and (b) on any site without an
-  adapter, every click on something that isn't a link and every action other than plain text editing asks first; an
-  adapter frees only interactions inside its qualified coverage. Under (b) links stay free, so two ways remain: a
-  link's own click handler can clear a draft kept in the browser, and following a link leaves the page, losing a
-  draft held only in its memory.
-- *Tests (brief 20).* For both options: labelled controls and Delete or Backspace asking before the click; other
-  ways to activate a control (Enter or Space on a focused control, a context-menu item, a double click, dragging an
-  item onto a bin); a page's own confirmation after a destructive click (part of the same approved action) and a
-  confirmation reached by another route (asks); plain text editing staying free, typing, Backspace and Delete on text
-  in text fields and editable areas included; Delete and Backspace on a selected card, attachment or object inside
-  an editable area asking. For (a): an unlabelled control on a fixture that keeps a draft in the browser's storage
-  stays free, as he chose. For (b): on a site without an adapter, every click other than a link and plain text
-  editing asks, on online and offline fixtures alike; on a site with an adapter, interactions inside its coverage go
-  free and those outside it ask. For both: a fixture with a draft kept in the browser's storage and an
-  ordinary-looking link whose click handler clears it, showing that the link goes free under either option (the
-  disclosed exception).
+  storage): **such clicks stay free** (decision 14, his answer "a)"). He accepted the gap as stated: an unlabelled
+  control can delete something kept only in this browser without asking, on any site where something is kept that
+  way. Deleting something that also lives on a site's server is a send and asks.
+- *Tests (brief 20):* labelled controls and Delete or Backspace asking before the click; other ways to activate a
+  control (Enter or Space on a focused control, a context-menu item, a double click, dragging an item onto a bin); a
+  page's own confirmation after a destructive click (part of the same approved action) and a confirmation reached by
+  another route (asks); plain text editing staying free, typing, Backspace and Delete on text in text fields and
+  editable areas included; Delete and Backspace on a selected card, attachment or object inside an editable area
+  asking; an unlabelled control, and an ordinary-looking link whose click handler clears a draft, on a fixture that
+  keeps a draft in the browser's storage, both staying free, as he chose.
 
 **What Claude may open freely, and data leaving.** A *site* is a registrable domain by the Public Suffix List
 (including its private part, so every `*.github.io` page is its own site), and areas of big platforms where anyone
@@ -1001,11 +998,10 @@ The owner can free a kind of action from asking, within these limits:
   add to playlist" or "GitHub: star". Never for a send the tool doesn't recognise: one POST to `/graphql` looks like
   any other, so freeing "this address" would free everything sent there. A kind that sends a message to other people
   names one conversation whose identity the adapter validates in the captured bytes, never "any chat".
-- **Mail, and deleting and paying: owner decides (open, section 10).** His answer (#52) was general, and earlier
-  drafts offered "don't ask again" more narrowly than he asked. Open: (1) mail sends, in the Mail tools and in Gmail,
-  bound to an exact set of recipients (for example mails to himself); recommended: offer it. (2) Deleting and paying,
-  for kinds an adapter recognises; recommended: always ask, which he can overrule. Until he answers, neither is
-  offered.
+- **Mail: offered, bound to an exact set of recipients** (decision 15, his answer "yes"), in the Mail tools and in
+  Gmail (for example mails to himself; section 5). In Gmail the adapter validates the recipients in the captured
+  send.
+- **Deleting and paying always ask** (decision 15); "don't ask again" is never offered for them.
 - **Never on WhatsApp Web.** This is a technical limit, not a choice: the checkpoint can't check what is inside
   WhatsApp's encrypted messages, so nothing sent there can skip the question.
 - **Bound to its exact scope:** the site, the signed-in account, the target where the kind has one, the action, the
@@ -1104,19 +1100,20 @@ each likely needs, to be confirmed when its adapter is built:
     unanswered it expires and is dropped); and a crash of the checkpoint, the tool service and Chrome during
     collection, after the freeze, after approval and while forwarding (never forwarded twice, never reported as done
     when only part went).
-  - **"Claude fills in, he sends"** is an option he can choose for this site (section 10). It doesn't make the holds
-    disappear: while the site is guarded, his own press of Send is held and put to him like any of his sends on a
-    guarded site (above), and read receipts and typing traffic stay subject to the same holds.
+  - **Decided (decision 16, his answer "a)"):** Claude asks per message, as above. When he asks Claude only to fill
+    in and presses Send himself, that doesn't make the holds disappear: while the site is guarded, his own press of
+    Send is held and put to him like any of his sends on a guarded site (above), and read receipts and typing traffic
+    stay subject to the same holds.
   The hardest of the four.
 - **Gemini.** Google's app talks through POST calls in Google's own format, reading included (loading a chat), like
   Google Docs in 17c. The adapter decodes the call names to tell reading from sending: asking a question (which sends
   Claude's text to Google), deleting a chat, sharing one. "Ask a question" is a candidate for "don't ask again".
 - **Gmail.** Also POST calls, reading included. Opening a mail marks it read and saving a draft keeps it in his
   account (both changes, free once the adapter recognises them); sending is a mail send and asks; "don't ask again"
-  for mail, bound to an exact set of recipients, is the owner's open question (section 10). The adapter decodes the
-  recipients (Bcc included), subject and text so the approval reads like a mail (decision 11), and follows the "undo
-  send" delay: the send leaves when the delay ends, and is held then. His main mail goes through the Mail tools
-  (section 5).
+  for mail is offered bound to an exact set of recipients (decision 15), which the adapter validates in the captured
+  send. The adapter decodes the recipients (Bcc included), subject and text so the approval reads like a mail
+  (decision 11), and follows the "undo send" delay: the send leaves when the delay ends, and is held then. His main
+  mail goes through the Mail tools (section 5).
 - **Deezer.** Its web calls likely name each method in the address, so reading (search, lists, playing) and changing
   (add to a playlist, like, follow) can be told apart; reports of what was played are sends to his own account, which
   the adapter groups with the play action. "Add to playlist" is a candidate for "don't ask again".
@@ -1182,7 +1179,7 @@ In plain words (re-check 7, section C, and 17e):
 - **Certificate checks are Chrome's, with a few differences** (requirement 4): the checkpoint checks sites the way
   Chrome 157 does, with Chrome's own current lists; client certificates and "continue anyway" don't work, out-of-date
   lists pause browsing, and a Chrome newer than its checkpoint may make checks the checkpoint lacks (he is told). He
-  decides whether to accept this before everyday use (section 10).
+  accepted this ("okay", decision 19).
 - **Uploads above the limit fail** rather than going around the checkpoint.
 
 ### Before it becomes his everyday browser (PLAN S2e)
@@ -1195,7 +1192,7 @@ Until all five hold, the fallback is the one in the plan: Claude fills in, the o
    the first boot; the target is zero, and each stall is counted with its cause.
 2. **Chrome's own protection works:** Safe Browsing with a positive control, and component updates with a fresh
    download, through the checkpoint and with no exemptions, also while guards are on (Chrome's own services, above);
-   and he has accepted the TLS checks the checkpoint can't replicate (requirement 4, section 10).
+   he accepted the TLS checks the checkpoint can't replicate ("okay", decision 19; requirement 4).
 3. **A way out of a fault.** An owner-only switch, `sudo aresos admin chrome checkpoint pass-through` (and a menu
    entry that runs it with his password), sets Chrome's policy to direct connections, lifts the firewall rule for the
    browser user, stops the checkpoint, which destroys its key, removes the root from every place it was installed and
@@ -1297,9 +1294,8 @@ qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on
     (hostile test); unknown fields, mixed batches and unknown protocol versions ask; a free operation batched with or
     preceded by unapproved ones doesn't take them along; an adapter update that widens a kind suspends the entry;
     revocation racing a release (the release either happened before the revocation was recorded or is refused);
-    refused for unrecognised sends and always on WhatsApp Web, and for mail, deleting and paying as the owner decides
-    (until then refused; a mail entry, if he allows it, matching only its exact recipient set); Claude Code's own
-    "don't ask again" stays inert.
+    refused for unrecognised sends, deleting, paying and always on WhatsApp Web; a mail entry matching only its exact
+    recipient set, in the Mail tools and in Gmail's captured send; Claude Code's own "don't ask again" stays inert.
 17. **The separate browser user on Fedora with KDE,** with the owner's profile and sign-ins moved once: display,
     sound, camera and microphone, notifications (the owner's own-send notifications reach his desktop), the file
     chooser, the keyring, downloads; the native host as that user; the launcher always used (desktop entry, links
@@ -1349,24 +1345,29 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     whether a managed key can force them off; if one is ever needed, it gets the same fixed, root-owned treatment as
     the MCP proxy.
 - **Claude's file tools:** `blockWritesOutsideWorkingDirectories` (holds in every mode, also skip-permissions), with
-  the working folders named in the settings. Inside them, deny rules for every place whose contents another program
-  later runs as the owner: `.git/hooks`, `.git/config`, `.envrc`, `.claude/`, `.mcp.json`, editor task files. Reads:
-  deny rules for the browser profile, Chrome's policies, Claude Code's own sign-in files, and the tool service's
-  files (also another user's), or `blockReadsOutsideWorkingDirectories`, chosen with the owner (section 10).
+  his home folders and the assistant's own folders as the working folders (decision 17). Inside them, deny rules for
+  every path with a component that starts with a dot (hidden settings, and every place whose contents another program
+  later runs as the owner: `.git/hooks`, `.git/config`, `.envrc`, `.claude/`, `.mcp.json`, editor task files) and
+  for start-up places; a managed hook makes a write onto an existing file ask and keeps the previous version before
+  an edit (rule 4.4). Reads: deny rules for the browser profile, Chrome's policies, Claude Code's own sign-in files,
+  and the tool service's files (also another user's).
   What remains is the owner himself running code Claude wrote in a work folder: that is ordinary development and is
   named here so it isn't mistaken for a closed route.
-- **The sandbox:** forced on (`enabled`, `failIfUnavailable`, `allowUnsandboxedCommands: false`); for the assistant
-  session the whole work tree is read-only to the terminal, because Linux's sandbox can't exclude places like
-  `**/.envrc` inside a writable folder (brief 18b); writing files goes through the file tools and their deny rules;
-  no Unix sockets
+- **The sandbox:** forced on (`enabled`, `failIfUnavailable`, `allowUnsandboxedCommands: false`). Inside it the
+  assistant's terminal runs without permission prompts (`autoAllowBashIfSandboxed: true`, decision 17), as in his
+  bypass sessions now; only sends and deletes ask. It reads his home folders (hidden settings and start-up places
+  hidden from it) and writes only the assistant's own work and temporary folders, because Linux's sandbox can't keep
+  nested start-up places (a `.envrc` inside a folder) out of a writable folder (brief 18b); his files are changed
+  through the file tools and the tool service, which enforce rule 4.4. No Unix sockets
   (`allowAllUnixSockets: false` plus the seccomp filter, section 2); the browser profile, `/run/aresos-tools`, the
   keyring and Claude Code's sign-in files hidden from its file view; no session D-Bus.
 - **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
   the list is locked (`allowManagedDomainsOnly`), and it contains only what the owner allows: nothing by default, so
   the assistant's terminal, which also holds no credentials, can't carry text out (below). `WebFetch` and `WebSearch`
-  aren't limited by that list; each gets its own permission rule under the owner's data rule (section 10): a fetched
-  address Claude composed and a search query both carry Claude's text out. Until the owner answers, both ask on every
-  call.
+  aren't limited by that list, so each gets its own rule (decision 18, his answer "a)"): searches are free, as on his
+  usual sites in Chrome; fetching an address Claude composed asks; fetching an address that came from him or from a
+  page or mail the tools returned is free. A managed hook decides which: a fetch goes without asking only when its
+  exact address appeared in the owner's own message or in a tool result; otherwise it asks.
 - **Approval surfaces:** Claude must never approve its own prompt. Pages that can (claude.ai and Remote Control) and
   pages that change Claude's or Chrome's settings can't be opened in a Claude tab (section 6), and Claude Code's
   sign-in files are hidden from Claude's tools. Which surface the owner approves on is open (below).
@@ -1411,28 +1412,22 @@ very long input must be shown in full or refused, also on the phone.
   credentials) run in their own container with their own settings files, keeping brief 18b's isolation, not a toolbox
   or distrobox default (re-check 6).
 - **No shared files, no local connection.** What the assistant can write and what coding sessions can read never
-  overlap: downloads, saved attachments, work files, session records (Claude Code's transcripts and memory) and
-  temporary files (the launcher gives the assistant its own temporary folders) all live in the assistant's own
-  folders, which the owner can read and the coding user can't. The owner's folders the assistant may read are
-  read-only to it, so it can't plant anything there for a coding session to pick up. If he lets it change some of his
-  folders (owner decides, open: section 10), the coding user loses read access to exactly those folders, and loses it
-  before the assistant can write there: coding programs that still hold a file or folder there open are ended (unsaved
-  work in them can be lost; he is told which programs before the switch), and a
-  folder with another way in for the coding user (a hard link, a mount, a link from a coding folder) is refused until
-  that way is closed. *Test (if he picks it):* a coding program holding a file open in the folder and a hard link to
-  a file in it, both before the switch; after it, the coding user reads nothing there, and the assistant's first
-  write happens only after that. The assistant's user can't
-  connect to the coding user's local services either (a firewall rule by user on the machine's own addresses), so a
-  fetch to a local address can't carry text across. Otherwise a mail's text written into a file could be read by a
-  coding session and sent with its network access, with no prompt (re-check 8). Anything that should cross goes
-  through the approved-send channel (next point). The owner himself can copy a file across; Claude can't.
-  *Test:* the assistant writes a content marker through every path it has (its file tools, a saved attachment, a
-  Chrome download, its terminal's temporary files, its session records); a coding session and plain programs of the
-  coding user search everything they can read and find none; the coding user runs real services on its own
-  addresses (IPv4, IPv6 and a container's address), and the assistant's programs (outside and inside the sandbox,
-  and its web fetch) try real connections to each, before and after the firewall's rules are reloaded, and none
-  arrives; plus the follow-ups from the 18b review (the real and the effective user id, rogue user and project MCP
-  configurations: `PLAN.md`, "Follow-ups").
+  overlap. The assistant writes his home folders (decision 17) and its own folders (session records, the versions
+  folder, temporary files: the launcher gives it its own temporary folders); the owner can read all of them. The
+  coding user can read neither: its code lives in its own home, and it has no access to his home at all. Moving his
+  repositories into the coding user's home is a one-time step of the setup; a folder with another way in for the
+  coding user (a hard link, a mount, a link from a coding folder) is refused until that way is closed. The assistant's
+  user can't connect to the coding user's local services either (a firewall rule by user on the machine's own
+  addresses), so a fetch to a local address can't carry text across. Otherwise a mail's text written into a file could
+  be read by a coding session and sent with its network access, with no prompt (re-check 8). Anything that should
+  cross goes through the approved-send channel (next point). The owner himself can copy a file across; Claude can't.
+  *Test:* the assistant writes a content marker through every path it has (its file tools into his folders, a saved
+  attachment, a Chrome download, its terminal's temporary files, its session records, the versions folder); a coding
+  session and plain programs of the coding user search everything they can read and find none, and can't list his
+  home; the coding user runs real services on its own addresses (IPv4, IPv6 and a container's address), and the
+  assistant's programs (outside and inside the sandbox, and its web fetch) try real connections to each, before and
+  after the firewall's rules are reloaded, and none arrives; plus the follow-ups from the 18b review (the real and the
+  effective user id, rogue user and project MCP configurations: `PLAN.md`, "Follow-ups").
 - They coordinate only through the tool service. A message from the assistant to a coding session is a send: it
   asks, and the approval shows the full text and the receiving session. Messages from coding sessions reach the
   assistant as untrusted content, like a mail (rule 4.8), and never count as an approval. This message tool comes in
@@ -1443,7 +1438,7 @@ very long input must be shown in full or refused, also on the phone.
   tries to message a coding session through Claude Code's own messaging, and nothing arrives; the setting that
   closes it is named there.
 
-**The approval surface (open: the owner decides).** Decision 1 made Claude Code's own permission prompt the
+**The approval surface (open: the owner decides, board #78).** Decision 1 made Claude Code's own permission prompt the
 approval, at the laptop and through Remote Control on the phone. The phone tests of 2026-11-07 showed that this doesn't
 work on the phone. In the Claude app through Remote Control, Claude Code's prompt read as code in every shape tried:
 the raw tool call (test 1), a readable reason from a managed hook that runs before the tool (test 3a; in the terminal
@@ -1460,8 +1455,8 @@ Whatever surface he chooses must:
 3. **Be out of Claude's reach:** no page, socket, file, key or input device Claude can use can answer it or change
    what it shows.
 4. **Work at the laptop and on the phone** when he is away, with the same text.
-5. **Offer "don't ask again"** where it is allowed (section 6; for mail, deleting and paying the owner decides,
-   open: section 10; never on WhatsApp Web), written to the owner-only list.
+5. **Offer "don't ask again"** where it is allowed (section 6: recognised kinds on sites, and mail bound to an exact
+   set of recipients; never for deleting, paying or on WhatsApp Web), written to the owner-only list.
 6. **Decide once:** the first answer counts, a second or late answer is refused, an expired question sends nothing.
 
 **Proposal: approvals get their own screen in his Aresus iPhone app,** with a local approval window on AresOS's own
@@ -1586,77 +1581,41 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
 
 **For the owner, open:**
 
-- **The approval surface** (board #71 and #73). The phone tests are done: on the phone, Claude Code's prompt reads as
-  code in every shape tried, and the tool's own question never arrived. Proposed: approvals get their own screen in
-  his Aresus iPhone app (end-to-end encrypted, signed on the phone with a key that needs his face), with a local
-  approval window at the laptop; the alternative is approving only at the laptop. Section 7 has the requirements,
-  the proposal and what it adds to the trust boundary. Where he sets "don't ask again" follows from it (section 6).
-- **`WebFetch` and `WebSearch` for the assistant.** Claude Code's own web tools don't go through Chrome or the
-  checkpoint. Recommended: the same data rule as in Chrome, so a fetched address Claude composed and every search
-  ask first; a fetch of an address he or a page gave stays free. Until he answers, both ask on every call (section 7).
+- **The approval surface** (board #78). The phone tests are done: on the phone, Claude Code's prompt reads as code in
+  every shape tried, and the tool's own question never arrived; in the terminal at the laptop it is readable.
+  Proposed: approvals get their own screen in his Aresus iPhone app (end-to-end encrypted, signed on the phone with a
+  key that needs his face), with a local approval window at the laptop; the alternative is approving only at the
+  laptop. Section 7 has the requirements, the proposal and what it adds to the trust boundary. Where he sets "don't
+  ask again" follows from it (section 6).
 
-- **What the checkpoint's certificate checks still can't do** (section 6, requirement 4), needed before Chrome with
-  the checkpoint becomes his everyday browser. The checkpoint checks sites' certificates the way Chrome 157 does, with
-  Chrome's own current lists (its revocation list, root list, CT log list and pin list). What still differs: sites
-  that ask the browser for a client certificate don't work; there is no "continue anyway", so a device page with a
-  certificate it made itself (a router, a printer) doesn't open; if Chrome can't update its lists for a long time,
-  new connections pause until it can. And Chrome and its checkpoint are updated together in the image, but if Chrome
-  is ever newer than the checkpoint, checks the newer Chrome makes may be missing until AresOS is updated; he gets a
-  visible notice when that happens. Recommended: accept.
-- **Clicks that might delete data kept only in the browser, when the control doesn't say so** (section 6). Many
-  sites keep some of his data only in the browser: offline apps, but also ordinary online sites, for example an
-  unsent draft kept in the browser's storage. A click there can delete it without anything being sent, so the
-  checkpoint can't hold it. Controls labelled delete, remove, discard, clear, empty or trash (and the German words),
-  and Delete or Backspace outside plain text editing, already ask first. Open is a control that doesn't say what it
-  does:
-  - **(a) Such clicks stay free.** An unlabelled control (an icon without a name, a "Reset") can delete something
-    kept only in this browser without asking, on any site where something is kept that way. Deleting something that
-    also lives on a site's server is a send and asks; what this leaves open is data that exists only in the browser,
-    such as a draft not yet sent.
-  - **(b) Clicks ask on sites without an adapter.** On any site without an adapter, every click on something that
-    isn't a link, and every action other than plain text editing, asks first; an adapter frees only what its
-    qualified coverage includes. That covers every button and icon, but not links: a link's own click handler can
-    still clear a draft kept in the browser, and following a link leaves the page, losing a draft held only in its
-    memory. And most of Claude's work on sites without an adapter becomes a series of questions.
-  Recommended: (a), because (b) makes Chrome hard to use on every site without an adapter, and what (a) leaves open
-  is limited to data that was never sent anywhere.
+**Answered on 2026-11-07 and built into this draft** (his words in quotes; `PLAN.md` decisions):
 
-- **Which of his folders the assistant may read, and which it may change** (sections 2, 4.4 and 7). Earlier drafts
-  settled this more narrowly than he asked: the assistant only reads folders he shares and writes only its own
-  folders, so he copies its results himself.
-  - **(a) As now:** read-only access to the folders he picks; its own folders for everything it writes.
-  - **(b) Folders it may change:** he picks folders the assistant may change, and the coding user can't read those
-    folders; its access is removed before the assistant can write there, open files included: coding programs that
-    hold a file there open are ended at the switch, and unsaved work in them can be lost. Writes go through the
-    tool service with rule 4.4's limits (no dotfiles, no start-up places, no symlinks). Saving a new file, creating a
-    folder, renaming and moving within those folders are free, but never onto an existing name: they can't replace
-    anything. Replacing an existing file and deleting ask; moving to the Trash is a delete.
-  Either way, coding sessions can't read what the assistant writes. Recommended: (b).
-- **"Don't ask again": for which actions** (section 6). His answer (#52) was general; earlier drafts offered it only
-  for site actions an adapter recognises. Open:
-  - **Mail sends**, in the Mail tools and in Gmail, bound to an exact set of recipients (for example mails to
-    himself). It then covers any future mail to exactly those addresses, not only repeats of one mail. Recommended:
-    offer it.
-  - **Deleting and paying**, for kinds an adapter recognises. Recommended: always ask; he can overrule this.
-  WhatsApp Web is not among them: the checkpoint can't check what is inside its encrypted messages, so nothing there
-  can skip the question (a technical limit).
-- **How Claude sends on WhatsApp Web** (section 6). (a) Claude asks per message, usually once and sometimes a second
-  time for frames that come late: the approval covers the set of encrypted frames captured from the start of composing
-  until shortly after Send, in order, with the page's description of the chat and text marked "as the page shows it",
-  since the checkpoint can't read them. (b) Claude fills in, and he presses Send himself; while the site is guarded,
-  his Send is still held and put to him, and read receipts and typing traffic are held as before. Recommended: (a),
-  the default; (b) stays available if he prefers it.
-
-**Answered on 2026-11-07 and built into this draft:** data leaving in Chrome (decision 7: searches on his usual sites
-are free, anything else that could carry Claude's text asks; section 6); the central session apart from coding work
-(decision 8; section 7); Claude in Chrome kept for his own use and the machine-wide rules (decision 10; sections 6
-and 7); the checkpoint with his hard requirements (decision 6; section 6); the strict guard (decision 12; section 6).
+- Data leaving in Chrome (decision 7: searches on his usual sites are free, anything else that could carry Claude's
+  text asks; section 6); the central session apart from coding work (decision 8; section 7); Claude in Chrome kept for
+  his own use and the machine-wide rules (decision 10; sections 6 and 7); the checkpoint with his hard requirements
+  (decision 6; section 6); the strict guard (decision 12; section 6).
+- **Unlabelled controls that may delete data kept only in the browser:** "a)" (decision 14). Such clicks stay free;
+  labelled destructive controls and Delete or Backspace outside plain text editing ask; the gap is accepted as stated
+  (section 6).
+- **"Don't ask again":** "yes" (decision 15). Offered for mail bound to an exact set of recipients, in the Mail tools
+  and in Gmail (sections 5 and 6); deleting and paying always ask; never on WhatsApp Web (a technical limit).
+- **How Claude sends on WhatsApp Web:** "a)" (decision 16). Claude asks per message, as one approval of the bounded
+  set of encrypted frames, described "as the page shows it" (section 6).
+- **His folders:** "pretty much everything no? like running claude with dangerously skip permissions just like I do
+  now" (decision 17). The assistant may change everything in his home folders except hidden settings and start-up
+  places; code lives in the coding user's own home, so coding sessions never read his folders; inside its sandbox the
+  assistant works without permission prompts, and only sends and deletes ask, overwriting as a delete (sections 2,
+  4.4 and 7).
+- **`WebFetch` and `WebSearch`:** "a)" (decision 18). Searches are free; fetching an address Claude composed asks; an
+  address from him or from a page is free (section 7).
+- **What the checkpoint's certificate checks still can't do:** "okay" (decision 19), accepted as stated (section 6,
+  requirement 4): client certificates, no "continue anyway", a pause when Chrome's lists are out of date, and a
+  visible notice if Chrome is ever newer than its checkpoint.
 
 **For the owner, later:**
 
 - Outgoing mail formatted (like Apple Mail) or plain by default, and the signature (a habit for CLAUDE.md, not a tool
   rule).
-- Which work folders Claude's file tools use (section 7).
 - The feature list in [`FEATURES.md`](../control/FEATURES.md): anything missing, and what can wait.
 - **What the checkpoint costs, with brief 20's numbers.** He agreed "if that's not a security risk". Before it becomes
   his everyday browser, the costs named in section 6 ("What changes for the owner") go back to him with brief 20's
