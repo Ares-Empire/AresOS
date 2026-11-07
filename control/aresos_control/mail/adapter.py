@@ -411,7 +411,7 @@ class Mail:
                 raise Refused("invalid_input", "Composition has no recipients; compose with at least one recipient.")
             # Validate size and complete MIME before reserving; operation id is a fixed-size replacement.
             self.mime(comp, self.message_id("0" * 32 + ":" + "0" * 32))
-            description = {"action": "mail_send", **args, **comp["mail"]}
+            description = {"action": "mail_send", "composition_id": comp["id"], "composition_hash": comp["hash"], **comp["mail"]}
             return description, {"composition": comp}
         if verb == "delete":
             self.check_items(args["items"])
@@ -622,6 +622,13 @@ class Mail:
             stage("folder", "deleted")
             return "done", "Approved empty folder deleted."
         if action == "mail_unsubscribe" and "composition" not in payload:
+            from .dkim import verify_one_click
+            try:
+                signature = verify_one_click(self.message(payload["reference"])["raw"])
+                stage("dkim", "verified:" + signature["domain"])
+            except Refused:
+                stage("dkim", "refused")
+                return "failed", "No valid DKIM covering both unsubscribe headers; no POST attempted. Use header mailto or owner mail program."
             url = urlsplit(payload["target"])
             account = self.account(payload["reference"]["account"])
             connection = http.client.HTTPSConnection(url.hostname, url.port or 443, context=context(account), timeout=20)
@@ -672,8 +679,9 @@ class Mail:
         if verb == "account_add":
             raise Refused("terminal_required", "Owner must run sudo aresos admin mail account add; password is read only from terminal over admin.sock.")
         read = verb in {"accounts", "folders", "search", "read", "thread", "contacts"}
+        summary = canonical({k: v for k, v in args.items() if k in {"account", "id", "reference", "references", "target", "name", "folder", "part", "composition_id", "previous", "add", "remove"}})
         if not read:
-            self.store.write({}, "mail_" + verb, "starting Mail change", outcome="started")
+            self.store.write({}, "mail_" + verb, "starting Mail change " + visible(summary), outcome="started")
         try:
             result = self._call(verb, args)
         except Exception:
@@ -681,10 +689,20 @@ class Mail:
                 self.store.write({}, "mail_" + verb, "Mail change incomplete; inspect server before repeating", outcome="unknown")
             raise
         if not read:
-            self.store.write({}, "mail_" + verb, "Mail change completed", outcome="done")
+            self.store.write({}, "mail_" + verb, "Mail change completed " + visible(summary), outcome="done")
         return result
 
     def _call(self, verb, args):
+        if verb == "account_settings":
+            account = self.account(args["id"], ready=False)
+            if "sent_policy" in args:
+                if not account.get("onboarded"):
+                    raise Refused("onboarding_incomplete", "Review incomplete probes; cannot enable this account by settings.")
+                account["sent_policy"] = args["sent_policy"]
+                account["ready"] = True
+            account.update({k: args[k] for k in ("format", "signature") if k in args})
+            self.store.write({"mail:account:" + args["id"]: account}, "mail_account_settings", "owner set Mail habits/Sent policy")
+            return {"account": self.public_account(account)}
         if verb == "accounts":
             return {"accounts": [self.public_account(a) for _, a in self.store.items("mail:account:")]}
         if verb == "search":

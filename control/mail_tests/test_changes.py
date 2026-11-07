@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from support import MailCase
 from aresos_control.common import ASK_LIMIT, canonical
+from imap_guard_fixture import GuardedIMAPFixture
 from aresos_control.mail.transport import folders, quote, select, uids, ok
 
 
@@ -79,12 +80,16 @@ class Changes(MailCase):
 
     def test_greenmail_nonempty_guard_and_delivery_during_folder_approval(self):
         green = self.add_account('green','greenmail')
+        guard = GuardedIMAPFixture()
+        guard.__enter__()
+        green = {**green, 'imap_host':'localhost', 'imap_port':guard.port}
+        self.engine.store.write({'mail:account:green':green},'fixture','serialized nonempty guard frontend')
         previous = self.account
         self.account = green
         try:
             self.data('folder_create',{'account':'green','name':'SafeLeaf'})
             ref = self.fixture('SafeLeaf')
-            # Actual server guard qualification, not a mock: nonempty refused, empty allowed.
+            # Real GreenMail storage behind a test-only serialized server policy.
             with self.mail.transport.imap(green) as conn:
                 self.assertEqual(conn.delete(quote('SafeLeaf'))[0],'NO')
             green['safe_folder_delete'] = True
@@ -115,6 +120,7 @@ class Changes(MailCase):
             self.assertEqual(self.data('folder_delete',approval)['operation']['state'],'done')
         finally:
             self.account = previous
+            guard.__exit__()
 
     def test_unsafe_folder_delete_refused_subfolders_and_close_never_called(self):
         self.data('folder_create',{'account':'box','name':'Empty'})
@@ -126,3 +132,19 @@ class Changes(MailCase):
             self.data('folders',{'account':'box'})
             target = self.fixture(subject='Delete exact')
             self.data('delete',self.delete_approval([target],'permanent'))
+
+    def test_both_upstream_servers_allow_nonempty_delete_and_are_not_qualified(self):
+        for host in ('dovecot','greenmail'):
+            with self.subTest(server=host):
+                account = self.add_account('unguarded-' + host,host)
+                previous = self.account
+                self.account = account
+                try:
+                    self.data('folder_create',{'account':account['id'],'name':'UpstreamProbe'})
+                    self.fixture('UpstreamProbe')
+                    with self.mail.transport.imap(account) as conn:
+                        self.assertEqual(conn.delete(quote('UpstreamProbe'))[0],'OK')
+                    self.assertFalse(account['safe_folder_delete'])
+                    self.assertEqual(self.call('prepare_folder_delete',{'account':account['id'],'folder':'Anything'})['error']['code'],'unsupported_server')
+                finally:
+                    self.account = previous

@@ -269,7 +269,10 @@ class Engine:
                 if self.store.locked:
                     raise Refused("restore_required", "Confirm restore before account setup.")
                 app = "mail"
-                data = onboard(self, request["arguments"], request["password"])
+                try:
+                    data = onboard(self, request["arguments"], request["password"])
+                finally:
+                    self.adapters["mail"].onboarding_id = None
             elif method == "call":
                 name, arguments = request.get("action"), request.get("arguments")
                 app = BY_NAME[name].app if name in BY_NAME else None

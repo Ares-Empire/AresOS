@@ -6,6 +6,7 @@ from unittest.mock import patch
 from support import MailCase, CERT
 from smtp_fixture import SMTPFixture
 from aresos_control.mail import codec
+from dkim_fixture import signed
 
 
 class Unsubscribe(MailCase):
@@ -51,9 +52,12 @@ class Unsubscribe(MailCase):
         try:
             target = f'https://localhost:{server.server_port}/leave?token=synthetic'
             ref = self.fixture(headers={'List-Unsubscribe':'<' + target + '>', 'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'})
+            raw,key = signed(self.mail.message(ref)['raw'])
+            ref = self.mail.append(self.account,'INBOX',raw)
             approval = self.data('prepare_unsubscribe',{'reference':ref,'target':target})['approval']
             self.assertEqual(requests,[])
-            result = self.data('unsubscribe',approval)['operation']
+            with patch('aresos_control.mail.dkim.dns_txt',return_value=[key]):
+                result = self.data('unsubscribe',approval)['operation']
             self.assertEqual(result['state'],'done',result)
             self.assertEqual(requests[0][0],'/leave?token=synthetic')
             self.assertEqual(requests[0][2],b'List-Unsubscribe=One-Click')
@@ -62,8 +66,11 @@ class Unsubscribe(MailCase):
             self.assertEqual(len(requests),1)
             status[0] = 302
             ref = self.fixture(headers={'List-Unsubscribe':'<' + target + '>', 'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'})
+            raw,key = signed(self.mail.message(ref)['raw'])
+            ref = self.mail.append(self.account,'INBOX',raw)
             approval = self.data('prepare_unsubscribe',{'reference':ref,'target':target})['approval']
-            self.assertEqual(self.data('unsubscribe',approval)['operation']['state'],'partial')
+            with patch('aresos_control.mail.dkim.dns_txt',return_value=[key]):
+                self.assertEqual(self.data('unsubscribe',approval)['operation']['state'],'partial')
             self.assertEqual(len(requests),2)
             unsupported = self.fixture(headers={'List-Unsubscribe':'<https://site.invalid/leave>'})
             self.assertFalse(self.call('prepare_unsubscribe',{'reference':unsupported,'target':'https://site.invalid/leave'})['ok'])

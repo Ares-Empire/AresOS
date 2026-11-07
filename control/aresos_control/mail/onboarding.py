@@ -82,11 +82,12 @@ def onboard(engine, args, password):
             break
         time.sleep(0.2)
     account["sent_policy"] = "server" if mail.sent_matches(account, mail.message_id(result["id"])) else "client"
-    account["ready"] = True
+    account["onboarded"] = True
+    account["ready"] = account["sent_policy"] == "server"
     engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "onboarding complete; Sent policy observed over bounded window", outcome="done")
     if account["sent_policy"] == "client":
         engine.repair("mail", {"operation_id": result["id"], "stage": "sent_copy"})
     mail.onboarding_id = None
     return {"account": mail.public_account(account), "self_probe_operation": result["id"],
             "probe_folder": probe_folder, "sent_detection_window_seconds": 1,
-            "notice": "Client Sent policy means no server copy observed within probe window; owner must confirm delayed server saves before use."}
+            "notice": "Client Sent is only an observation over a bounded window. Account stays unready until owner confirms sent_policy with admin account_settings; no automatic resubmission."}

@@ -44,5 +44,6 @@ Actions (input is the definition's JSON object; --help on any action shows its s
   aresos mail operation_repair [change]
   aresos mail operation_cancel [change]
   aresos mail notice_ack [change]
+  aresos admin mail account_settings [change]
   aresos admin mail onboarding_folder_probe [delete]
   aresos admin mail account_add [change]
