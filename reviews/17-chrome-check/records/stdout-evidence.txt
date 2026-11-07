@@ -1,0 +1,115 @@
+LOGIN_BEFORE_TOOL [{"seq":1,"at":1794025466034,"atMonoMs":115430.999823,"kind":"login-ready"},{"seq":2,"at":1794025466091,"atMonoMs":115488.166565,"kind":"login","method":"POST","url":"/session","body":"member=synthetic-member"},{"seq":3,"at":1794025466094,"atMonoMs":115490.724207,"kind":"owner-page","signedIn":true}]
+EXTERNAL_EXTENSION_INSTALLED fljobgcnceabhckdcaabehamaedbcgbn 0.1.0 /opt/google/chrome/extensions/fljobgcnceabhckdcaabehamaedbcgbn.json
+NATIVE_SAME_UID_PEER {"tabId":-1,"version":"same-user-spoof"} untrusted peer can impersonate host before owner selection; not authenticated
+ATTACH_NATIVE PASS {"tabId":1417308118,"version":"0.1.0"} cookie persisted; tab preceded tool; normal restart
+NATIVE_NO_DEBUG_TCP PASS
+VIEW native {"page":"form","characters":21683,"tokensAt4Chars":5421,"ms":31.29,"elements":80,"frames":1}
+VIEW native {"page":"table","characters":11195,"tokensAt4Chars":2799,"ms":14.95,"elements":44,"frames":1}
+VIEW native {"page":"frames","characters":4660,"tokensAt4Chars":1165,"ms":18.14,"elements":14,"frames":3}
+VIEW native {"page":"shadow","characters":1729,"tokensAt4Chars":433,"ms":8.12,"elements":5,"frames":1}
+VIEW native {"page":"modal","characters":2006,"tokensAt4Chars":502,"ms":8.27,"elements":6,"frames":1}
+VIEW native {"page":"article","characters":119688,"tokensAt4Chars":29922,"ms":116.32,"elements":363,"frames":1}
+FILE_UPLOAD {"name":"synthetic-upload.txt","bytes":35,"sha256":"258041fd231a8e94ade2038e35c709aa171d6c0e583e010676746d6ac88e43ab","pathError":"DOM.setFileInputFiles: \"Error: {\\\"code\\\":-32000,\\\"message\\\":\\\"Not allowed\\\"}\"","method":"explicit file bytes via File + DataTransfer"}
+ACTIONS PASS native fill/select/check/date/file/key/scroll/frames/shadow-read/stale/tab-switch
+HOLD native post release whileHeld=0 after=1 held then exactly one arrival
+HOLD native post drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD native get release whileHeld=0 after=1 held then exactly one arrival
+HOLD native get drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD native fetch release whileHeld=0 after=1 held then exactly one arrival
+HOLD native fetch drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD native xhr release whileHeld=0 after=1 held then exactly one arrival
+HOLD native xhr drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD native beacon release whileHeld=0 after=1 held then exactly one arrival
+HOLD native beacon drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD native autosave release whileHeld=0 after=1 held then exactly one arrival
+HOLD native autosave drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD native autosaveget release whileHeld=0 after=1 held then exactly one arrival
+HOLD native autosaveget drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD native worker release whileHeld=1 after=1 NOT HELD: service-worker request bypassed tab Fetch
+HOLD native worker drop whileHeld=1 after=1 NOT HELD: service-worker request bypassed tab Fetch
+HOLD native cross release whileHeld=0 after=1 held then exactly one arrival
+HOLD native cross drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD native ping release whileHeld=0 after=1 held then exactly one arrival
+HOLD native ping drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD native pixel release whileHeld=0 after=1 held then exactly one arrival
+HOLD native pixel drop whileHeld=0 after=0 held then dropped, zero arrivals
+WEBSOCKET native Fetch leaked; cooperative shim held/released/dropped; worker bypass; Enter gate held/released
+DISCONNECT native {"case":"fetch-native-disconnect","whileHeld":0,"afterDisconnect":[{"seq":25,"at":1794025520199,"atMonoMs":169595.561256,"kind":"http","method":"POST","url":"/receive?case=fetch-native-disconnect","body":"synthetic-fetch-native-disconnect","site":"127.0.0.1:40009","cookie":true}],"result":"disconnect released a request without an approval"}
+EXTERNAL_EXTENSION_INSTALLED mmlmfjhmonkocbjadbfplnigmagldckm 0.5.0 /opt/google/chrome/extensions/mmlmfjhmonkocbjadbfplnigmagldckm.json
+ATTACH_PLAYWRIGHT PASS extension 0.5.0, resolved engine 1.65.0; existing signed-in tab
+VIEW playwright {"page":"form","characters":21685,"tokensAt4Chars":5422,"ms":37.66,"elements":80,"frames":1,"ariaCharacters":1842,"ariaTokensAt4Chars":461,"ariaMs":53.09,"ariaAICharacters":5336,"ariaAITokensAt4Chars":1334,"ariaAIMs":18.41}
+VIEW playwright {"page":"table","characters":11195,"tokensAt4Chars":2799,"ms":17.32,"elements":44,"frames":1,"ariaCharacters":1000,"ariaTokensAt4Chars":250,"ariaMs":47.45,"ariaAICharacters":2374,"ariaAITokensAt4Chars":594,"ariaAIMs":10.75}
+VIEW playwright {"page":"frames","characters":4660,"tokensAt4Chars":1165,"ms":19.27,"elements":14,"frames":3,"ariaCharacters":50,"ariaTokensAt4Chars":13,"ariaMs":42.06,"ariaAICharacters":857,"ariaAITokensAt4Chars":215,"ariaAIMs":75.82}
+VIEW playwright {"page":"shadow","characters":1729,"tokensAt4Chars":433,"ms":9.68,"elements":5,"frames":1,"ariaCharacters":124,"ariaTokensAt4Chars":31,"ariaMs":42.32,"ariaAICharacters":372,"ariaAITokensAt4Chars":93,"ariaAIMs":5.34}
+VIEW playwright {"page":"modal","characters":2007,"tokensAt4Chars":502,"ms":11.46,"elements":6,"frames":1,"ariaCharacters":202,"ariaTokensAt4Chars":51,"ariaMs":43.85,"ariaAICharacters":505,"ariaAITokensAt4Chars":127,"ariaAIMs":5.86}
+VIEW playwright {"page":"article","characters":119691,"tokensAt4Chars":29923,"ms":132.08,"elements":363,"frames":1,"ariaCharacters":38836,"ariaTokensAt4Chars":9709,"ariaMs":74.17,"ariaAICharacters":60480,"ariaAITokensAt4Chars":15120,"ariaAIMs":79.85}
+FILE_UPLOAD {"name":"synthetic-upload.txt","bytes":35,"sha256":"258041fd231a8e94ade2038e35c709aa171d6c0e583e010676746d6ac88e43ab","pathError":"Protocol error (DOM.setFileInputFiles): {\"code\":-32000,\"message\":\"Not allowed\"}","method":"explicit file bytes via File + DataTransfer"}
+ACTIONS PASS playwright fill/select/check/date/file/key/scroll/frames/shadow-read/stale/tab-switch
+HOLD playwright post release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright post drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD playwright get release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright get drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD playwright fetch release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright fetch drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD playwright xhr release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright xhr drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD playwright beacon release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright beacon drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD playwright autosave release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright autosave drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD playwright autosaveget release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright autosaveget drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD playwright worker release whileHeld=1 after=1 NOT HELD: service-worker request bypassed tab Fetch
+HOLD playwright worker drop whileHeld=1 after=1 NOT HELD: service-worker request bypassed tab Fetch
+HOLD playwright cross release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright cross drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD playwright ping release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright ping drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD playwright pixel release whileHeld=0 after=1 held then exactly one arrival
+HOLD playwright pixel drop whileHeld=0 after=0 held then dropped, zero arrivals
+WEBSOCKET playwright Fetch leaked; cooperative shim held/released/dropped; worker bypass; Enter gate held/released
+PUBLIC_PAGE wikipedia Wikipedia, the free encyclopedia search submitted to request gate
+PUBLIC_PAGE news Home - BBC News
+PUBLIC_PAGE demo-form Web form form submitted to request gate
+PUBLIC wikipedia requests=27 loadFalseAlarms=1 actionCandidates=1 guardOnlyDrops=0
+PUBLIC news requests=84 loadFalseAlarms=1 actionCandidates=0 guardOnlyDrops=3
+PUBLIC demo-form requests=7 loadFalseAlarms=0 actionCandidates=1 guardOnlyDrops=0
+PLAYWRIGHT_SAME_UID_PEER {"result":"another same-UID process reused the bound endpoint without new Chrome consent","output":"PEER_READ Web form"}
+DISCONNECT playwright {"case":"fetch-playwright-disconnect","whileHeld":0,"afterDisconnect":[{"seq":48,"at":1794025584346,"atMonoMs":233743.334974,"kind":"http","method":"POST","url":"/receive?case=fetch-playwright-disconnect","body":"synthetic-fetch-playwright-disconnect","site":"127.0.0.1:40009","cookie":true}],"result":"disconnect released a request without an approval"}
+ATTACH_CONSENT PASS running Linux stable; owner enabled inspect and approved connection; TCP port=9222
+VIEW consent {"page":"form","characters":21683,"tokensAt4Chars":5421,"ms":17.49,"elements":80,"frames":1}
+VIEW consent {"page":"table","characters":11194,"tokensAt4Chars":2799,"ms":9.68,"elements":44,"frames":1}
+VIEW consent {"page":"frames","characters":4660,"tokensAt4Chars":1165,"ms":10.91,"elements":14,"frames":3}
+VIEW consent {"page":"shadow","characters":1729,"tokensAt4Chars":433,"ms":5.99,"elements":5,"frames":1}
+VIEW consent {"page":"modal","characters":2006,"tokensAt4Chars":502,"ms":7.11,"elements":6,"frames":1}
+VIEW consent {"page":"article","characters":119687,"tokensAt4Chars":29922,"ms":56.24,"elements":363,"frames":1}
+FILE_UPLOAD {"name":"synthetic-upload.txt","bytes":35,"sha256":"258041fd231a8e94ade2038e35c709aa171d6c0e583e010676746d6ac88e43ab","method":"DOM.setFileInputFiles"}
+ACTIONS PASS consent fill/select/check/date/file/key/scroll/frames/shadow-read/stale/tab-switch
+HOLD consent post release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent post drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD consent get release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent get drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD consent fetch release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent fetch drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD consent xhr release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent xhr drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD consent beacon release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent beacon drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD consent autosave release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent autosave drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD consent autosaveget release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent autosaveget drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD consent worker release whileHeld=1 after=1 NOT HELD: service-worker request bypassed tab Fetch
+HOLD consent worker drop whileHeld=1 after=1 NOT HELD: service-worker request bypassed tab Fetch
+HOLD consent cross release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent cross drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD consent ping release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent ping drop whileHeld=0 after=0 held then dropped, zero arrivals
+HOLD consent pixel release whileHeld=0 after=1 held then exactly one arrival
+HOLD consent pixel drop whileHeld=0 after=0 held then dropped, zero arrivals
+WEBSOCKET consent Fetch leaked; cooperative shim held/released/dropped; worker bypass; Enter gate held/released
+CONSENT_SECOND_PEER {"readWithoutApproval":false,"deniedError":"Unexpected server response: 403"}
+DISCONNECT consent {"case":"fetch-consent-disconnect","whileHeld":0,"afterDisconnect":[{"seq":70,"at":1794025637818,"atMonoMs":287215.036742,"kind":"http","method":"POST","url":"/receive?case=fetch-consent-disconnect","body":"synthetic-fetch-consent-disconnect","site":"127.0.0.1:40009","cookie":true}],"result":"disconnect released a request without an approval"}
+CONSENT_RESTART {"chromeListeners":["LISTEN 0      10         127.0.0.1:9222       0.0.0.0:*    users:((\"chrome\",pid=5332,fd=131))"],"portFileExists":true}
+FINAL_DELIVERY_AUDIT PASS 84 cases, preview bodies match server, no late duplicates
+ALL CHECKS COMPLETE

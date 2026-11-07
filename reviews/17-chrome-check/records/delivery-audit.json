@@ -1,0 +1,422 @@
+[
+  {
+    "case": "post-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "post-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "get-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "get-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "fetch-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "fetch-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "xhr-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "xhr-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "beacon-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "beacon-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "autosave-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "autosave-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "autosaveget-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "autosaveget-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "worker-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "worker-native-drop",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "cross-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "cross-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "ping-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ping-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "pixel-native-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "pixel-native-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "fetch-native-trusted",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ws-native-baseline",
+    "expected": 2,
+    "actual": 2
+  },
+  {
+    "case": "ws-native-shim-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ws-native-shim-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "ws-native-bypass",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ws-native-action-gate",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "post-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "post-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "get-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "get-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "fetch-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "fetch-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "xhr-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "xhr-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "beacon-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "beacon-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "autosave-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "autosave-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "autosaveget-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "autosaveget-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "worker-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "worker-playwright-drop",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "cross-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "cross-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "ping-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ping-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "pixel-playwright-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "pixel-playwright-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "fetch-playwright-trusted",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ws-playwright-baseline",
+    "expected": 2,
+    "actual": 2
+  },
+  {
+    "case": "ws-playwright-shim-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ws-playwright-shim-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "ws-playwright-bypass",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ws-playwright-action-gate",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "post-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "post-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "get-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "get-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "fetch-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "fetch-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "xhr-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "xhr-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "beacon-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "beacon-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "autosave-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "autosave-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "autosaveget-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "autosaveget-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "worker-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "worker-consent-drop",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "cross-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "cross-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "ping-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ping-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "pixel-consent-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "pixel-consent-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "fetch-consent-trusted",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ws-consent-baseline",
+    "expected": 2,
+    "actual": 2
+  },
+  {
+    "case": "ws-consent-shim-release",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ws-consent-shim-drop",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "case": "ws-consent-bypass",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "case": "ws-consent-action-gate",
+    "expected": 1,
+    "actual": 1
+  }
+]

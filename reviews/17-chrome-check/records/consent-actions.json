@@ -1,0 +1,13 @@
+{
+  "fileUploads": [
+    {
+      "name": "synthetic-upload.txt",
+      "bytes": 35,
+      "sha256": "258041fd231a8e94ade2038e35c709aa171d6c0e583e010676746d6ac88e43ab",
+      "method": "DOM.setFileInputFiles"
+    }
+  ],
+  "staleRemoved": "rejected",
+  "staleDocument": "rejected",
+  "tabBinding": "original retained"
+}

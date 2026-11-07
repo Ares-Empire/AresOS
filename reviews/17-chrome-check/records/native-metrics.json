@@ -1,0 +1,50 @@
+[
+  {
+    "page": "form",
+    "characters": 21683,
+    "tokensAt4Chars": 5421,
+    "ms": 31.29,
+    "elements": 80,
+    "frames": 1
+  },
+  {
+    "page": "table",
+    "characters": 11195,
+    "tokensAt4Chars": 2799,
+    "ms": 14.95,
+    "elements": 44,
+    "frames": 1
+  },
+  {
+    "page": "frames",
+    "characters": 4660,
+    "tokensAt4Chars": 1165,
+    "ms": 18.14,
+    "elements": 14,
+    "frames": 3
+  },
+  {
+    "page": "shadow",
+    "characters": 1729,
+    "tokensAt4Chars": 433,
+    "ms": 8.12,
+    "elements": 5,
+    "frames": 1
+  },
+  {
+    "page": "modal",
+    "characters": 2006,
+    "tokensAt4Chars": 502,
+    "ms": 8.27,
+    "elements": 6,
+    "frames": 1
+  },
+  {
+    "page": "article",
+    "characters": 119688,
+    "tokensAt4Chars": 29922,
+    "ms": 116.32,
+    "elements": 363,
+    "frames": 1
+  }
+]

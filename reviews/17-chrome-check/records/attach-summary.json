@@ -1,0 +1,28 @@
+{
+  "run": "42338269145",
+  "attempt": "1",
+  "head": "38b629be5415e4a487ac3bab8314720c4060f2b2",
+  "toolStartedAt": 1794025473122,
+  "native": {
+    "tabId": 1417308118,
+    "version": "0.1.0"
+  },
+  "nativePeer": {
+    "tabId": -1,
+    "version": "same-user-spoof"
+  },
+  "playwrightPeer": {
+    "result": "another same-UID process reused the bound endpoint without new Chrome consent",
+    "output": "PEER_READ Web form"
+  },
+  "consentPeer": {
+    "readWithoutApproval": false,
+    "deniedError": "Unexpected server response: 403"
+  },
+  "consentRestart": {
+    "chromeListeners": [
+      "LISTEN 0      10         127.0.0.1:9222       0.0.0.0:*    users:((\"chrome\",pid=5332,fd=131))"
+    ],
+    "portFileExists": true
+  }
+}

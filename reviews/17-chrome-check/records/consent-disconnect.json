@@ -1,0 +1,18 @@
+{
+  "case": "fetch-consent-disconnect",
+  "whileHeld": 0,
+  "afterDisconnect": [
+    {
+      "seq": 70,
+      "at": 1794025637818,
+      "atMonoMs": 287215.036742,
+      "kind": "http",
+      "method": "POST",
+      "url": "/receive?case=fetch-consent-disconnect",
+      "body": "synthetic-fetch-consent-disconnect",
+      "site": "127.0.0.1:40009",
+      "cookie": true
+    }
+  ],
+  "result": "disconnect released a request without an approval"
+}

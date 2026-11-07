@@ -1,0 +1,112 @@
+- generic [active] [ref=f1e1] [box=32,32,850,1403]:
+  - heading "Long form" [level=1] [ref=f1e2] [box=32,32,850,37]
+  - generic [ref=f1e3] [box=32,90,850,1345]:
+    - group "Profile" [ref=f1e4] [box=44,90,826,409]:
+      - generic [ref=f1e6] [box=70,126,774,24]:
+        - text: Display name
+        - textbox "Display name" [ref=f1e7] [box=167,126,215,24]
+      - generic [ref=f1e8] [box=70,162,774,24]:
+        - text: Email
+        - textbox "Email" [invalid] [ref=f1e9] [box=110,162,215,24]: invalid
+      - generic [ref=f1e10] [box=70,198,774,40]:
+        - text: Notes
+        - textbox "Notes" [ref=f1e11] [box=112,198,182,36]: Synthetic notes
+      - generic [ref=f1e12] [box=70,250,774,21]:
+        - text: Region
+        - combobox "Region" [ref=f1e13] [box=121,250,64,21]:
+          - option "North" [selected] [box=0,0,0,0]
+          - option "South" [box=0,0,0,0]
+      - generic [ref=f1e14] [box=70,283,774,20]:
+        - checkbox "Updates" [checked] [ref=f1e15] [box=74,286,13,13]
+        - text: Updates
+      - generic [ref=f1e16] [box=70,315,774,20]:
+        - radio "Basic" [checked] [ref=f1e17] [box=75,318,13,13]
+        - text: Basic
+      - generic [ref=f1e18] [box=70,347,774,20]:
+        - radio "Plus" [ref=f1e19] [box=75,350,13,13]
+        - text: Plus
+      - generic [ref=f1e20] [box=70,379,774,24]:
+        - text: Start date
+        - textbox "Start date" [ref=f1e21] [box=139,379,138,24]
+      - generic [ref=f1e22] [box=70,415,774,24]:
+        - text: Local file
+        - button "Local file" [ref=f1e23] [box=133,415,303,24]
+      - generic [ref=f1e24] [box=70,451,774,24]:
+        - text: Disabled
+        - textbox "Disabled" [disabled] [ref=f1e25] [box=132,451,215,24]: fixed
+    - generic [ref=f1e26] [box=44,511,826,24]:
+      - text: Extra field 1
+      - textbox "Extra field 1" [ref=f1e27] [box=128,511,215,24]
+    - generic [ref=f1e28] [box=44,547,826,24]:
+      - text: Extra field 2
+      - textbox "Extra field 2" [ref=f1e29] [box=128,547,215,24]
+    - generic [ref=f1e30] [box=44,583,826,24]:
+      - text: Extra field 3
+      - textbox "Extra field 3" [ref=f1e31] [box=128,583,215,24]
+    - generic [ref=f1e32] [box=44,619,826,24]:
+      - text: Extra field 4
+      - textbox "Extra field 4" [ref=f1e33] [box=128,619,215,24]
+    - generic [ref=f1e34] [box=44,655,826,24]:
+      - text: Extra field 5
+      - textbox "Extra field 5" [ref=f1e35] [box=128,655,215,24]
+    - generic [ref=f1e36] [box=44,691,826,24]:
+      - text: Extra field 6
+      - textbox "Extra field 6" [ref=f1e37] [box=128,691,215,24]
+    - generic [ref=f1e38] [box=44,727,826,24]:
+      - text: Extra field 7
+      - textbox "Extra field 7" [ref=f1e39] [box=128,727,215,24]
+    - generic [ref=f1e40] [box=44,763,826,24]:
+      - text: Extra field 8
+      - textbox "Extra field 8" [ref=f1e41] [box=128,763,215,24]
+    - generic [ref=f1e42] [box=44,799,826,24]:
+      - text: Extra field 9
+      - textbox "Extra field 9" [ref=f1e43] [box=128,799,215,24]
+    - generic [ref=f1e44] [box=44,835,826,24]:
+      - text: Extra field 10
+      - textbox "Extra field 10" [ref=f1e45] [box=137,835,215,24]
+    - generic [ref=f1e46] [box=44,871,826,24]:
+      - text: Extra field 11
+      - textbox "Extra field 11" [ref=f1e47] [box=136,871,215,24]
+    - generic [ref=f1e48] [box=44,907,826,24]:
+      - text: Extra field 12
+      - textbox "Extra field 12" [ref=f1e49] [box=137,907,215,24]
+    - generic [ref=f1e50] [box=44,943,826,24]:
+      - text: Extra field 13
+      - textbox "Extra field 13" [ref=f1e51] [box=137,943,215,24]
+    - generic [ref=f1e52] [box=44,979,826,24]:
+      - text: Extra field 14
+      - textbox "Extra field 14" [ref=f1e53] [box=137,979,215,24]
+    - generic [ref=f1e54] [box=44,1015,826,24]:
+      - text: Extra field 15
+      - textbox "Extra field 15" [ref=f1e55] [box=137,1015,215,24]
+    - generic [ref=f1e56] [box=44,1051,826,24]:
+      - text: Extra field 16
+      - textbox "Extra field 16" [ref=f1e57] [box=137,1051,215,24]
+    - generic [ref=f1e58] [box=44,1087,826,24]:
+      - text: Extra field 17
+      - textbox "Extra field 17" [ref=f1e59] [box=137,1087,215,24]
+    - generic [ref=f1e60] [box=44,1123,826,24]:
+      - text: Extra field 18
+      - textbox "Extra field 18" [ref=f1e61] [box=137,1123,215,24]
+    - generic [ref=f1e62] [box=44,1159,826,24]:
+      - text: Extra field 19
+      - textbox "Extra field 19" [ref=f1e63] [box=137,1159,215,24]
+    - generic [ref=f1e64] [box=44,1195,826,24]:
+      - text: Extra field 20
+      - textbox "Extra field 20" [ref=f1e65] [box=137,1195,215,24]
+    - generic [ref=f1e66] [box=44,1231,826,24]:
+      - text: Extra field 21
+      - textbox "Extra field 21" [ref=f1e67] [box=137,1231,215,24]
+    - generic [ref=f1e68] [box=44,1267,826,24]:
+      - text: Extra field 22
+      - textbox "Extra field 22" [ref=f1e69] [box=137,1267,215,24]
+    - generic [ref=f1e70] [box=44,1303,826,24]:
+      - text: Extra field 23
+      - textbox "Extra field 23" [ref=f1e71] [box=137,1303,215,24]
+    - generic [ref=f1e72] [box=44,1339,826,24]:
+      - text: Extra field 24
+      - textbox "Extra field 24" [ref=f1e73] [box=137,1339,215,24]
+    - generic [ref=f1e74] [box=44,1375,826,24]:
+      - text: Extra field 25
+      - textbox "Extra field 25" [ref=f1e75] [box=137,1375,215,24]
+    - button "Submit synthetic form" [ref=f1e76] [box=32,1411,170,24]
