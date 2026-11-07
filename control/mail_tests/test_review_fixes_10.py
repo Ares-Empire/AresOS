@@ -127,9 +127,10 @@ class ReviewFixes10(MailCase):
                                 ok(client.create(quote(source_folder)), 'Fixture replaces source')
                         elif race == 'copy_original_removed':
                             with self.mail.transport.imap(backend) as client:
-                                self.assertEqual(select(client, source_folder), source['uidvalidity'])
+                                self.assertEqual(select(client, source_folder, readonly=False), source['uidvalidity'])
                                 ok(client.uid('STORE', str(source['uid']), '+FLAGS.SILENT', '(\\Deleted)'), 'External client deletes original')
                                 ok(client.uid('EXPUNGE', str(source['uid'])), 'External client expunges original')
+                                self.assertNotIn(source['uid'], uids(client))
                 fixture.after_command = after
                 fixture.commands.clear()
                 result = self.call(verb, {'references': [source], 'target': target})
