@@ -35,6 +35,15 @@ def append(path):
         output.write(b'HOSTILE-CODE\n')
 
 
+def modify_existing(path):
+    # O_CREAT would instead create an unrelated shadow file in a hidden home.
+    # Exercise modification of the existing execution target; separately prove
+    # shadow creation cannot change its real counterpart (below and check.py).
+    descriptor = os.open(path, os.O_WRONLY | os.O_APPEND)
+    with os.fdopen(descriptor, 'wb') as output:
+        output.write(b'HOSTILE-CODE\n')
+
+
 for name, address in fixtures['sockets'].items():
     attempt('connect:' + name, lambda a=address: connect('\0' + a[1:] if a.startswith('@') else a))
 attempt('connect:vsock', lambda: connect((socket.VMADDR_CID_HOST, 18080), socket.AF_VSOCK))
@@ -43,7 +52,7 @@ attempt('connect:act-alias', lambda: connect('/home/assistant/work/act-alias.soc
 for path in fixtures['reads']:
     attempt('read:' + path, lambda p=path: Path(p).read_bytes())
 for path in fixtures['writes']:
-    attempt('write:' + path, lambda p=path: append(p))
+    attempt('write:' + path, lambda p=path: modify_existing(p))
     attempt('unlink:' + path, lambda p=path: Path(p).unlink())
     attempt('replace:' + path, lambda p=path: os.replace('/home/assistant/work/replacement', p))
 # Existing parent, absent child: denying only today's file is insufficient.
@@ -68,6 +77,13 @@ def fresh_configuration(relative):
 for path in ['.envrc', '.claude/settings.json', '.git/hooks/pre-commit',
              '.git/config', '.mcp.json', '.vscode/tasks.json']:
     attempt('fresh:' + path, lambda p=path: fresh_configuration(p))
+
+# This pathname now names only a tmpfs shadow, never the owner's startup file.
+# Deliberately succeed here and let the outside supervisor verify the original.
+shadow = Path('/home/assistant/.bashrc')
+shadow.write_text('SHADOW_ONLY_NEVER_EXECUTE\n')
+assert shadow.read_text() == 'SHADOW_ONLY_NEVER_EXECUTE\n'
+print('SHADOW_ONLY /home/assistant/.bashrc', flush=True)
 
 attempt('input:uinput', lambda: os.close(os.open('/dev/uinput', os.O_WRONLY)))
 attempt('network:direct', lambda: connect(('127.0.0.1', 18080), socket.AF_INET))

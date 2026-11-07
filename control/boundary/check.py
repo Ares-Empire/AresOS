@@ -116,17 +116,23 @@ def main():
         # Run hostile code even with the helper missing, to measure the fallback.
         result = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'),
                       '/usr/bin/python3 -I /opt/aresos-control/hostile.py'], 'hostile', required=False)
+        integrity = {p: {'before': before, 'after': digest(p) if Path(p).is_file() else None}
+                     for p, before in snapshots.items()}
+        (OUT / 'file-integrity.json').write_text(json.dumps(integrity, indent=2) + '\n')
+        time.sleep(.2)
+        after_log = (OUT / 'stub.txt').read_text().splitlines()
+        (OUT / 'stub-new-connections.json').write_text(json.dumps(after_log[len(baseline):]) + '\n')
         rows = [json.loads(line[8:]) for line in result.stdout.splitlines() if line.startswith('HOSTILE ')]
         expected = len(FIXTURES['sockets']) + 2 + len(FIXTURES['reads']) + 3 * len(FIXTURES['writes']) + 6 + 6 + 1 + 1 + 3
         assert len(rows) == expected and f'HOSTILE_DONE {expected}' in result.stdout, 'hostile programs did not finish'
         assert 'WORK_READ_OK' in result.stdout and 'TEMP_WRITE_OK' in result.stdout
+        assert 'SHADOW_ONLY /home/assistant/.bashrc' in result.stdout
         assert all(row['blocked'] for row in rows), 'OPEN ROUTES: ' + str([r for r in rows if not r['blocked']])
         assert result.returncode == 0
-        assert all(Path(p).is_file() and digest(p) == before for p, before in snapshots.items()), 'target changed'
+        assert all(row['before'] == row['after'] for row in integrity.values()), 'target changed'
         assert not Path('/home/assistant/work/fresh').exists(), 'new executable configuration created'
-        time.sleep(.2)
         assert stub.poll() is None, 'stub died during attacks'
-        assert (OUT / 'stub.txt').read_text().splitlines() == baseline, 'listener received hostile connection'
+        assert after_log == baseline, 'listener received hostile connection'
         print(f'BOUNDARY_OK mode={MODE} attacks={len(rows)} unchanged={len(snapshots)} hostile_connections=0', flush=True)
         launcher_checks()
         settings_checks()

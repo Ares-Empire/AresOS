@@ -81,6 +81,14 @@ without a filter can be host unavailability, not policy; the launcher refuses
 the unfiltered session regardless. `/dev/uinput` is a synthetic regular file,
 hidden by bubblewrap's private `/dev`; no actual input event is generated.
 
+For an existing startup target, the mutation test opens without `O_CREAT`.
+Creating a same-named file under the hidden home would only create a tmpfs shadow,
+which the owner's outside shell cannot see. A separate `SHADOW_ONLY` control
+deliberately creates that shadow and the supervisor still requires the real
+startup file's hash to be unchanged. Creation tests also cover real work paths,
+including new subdirectories; they must fail. `file-integrity.json` and
+`stub-new-connections.json` retain independent evidence even on an attack failure.
+
 Each mode uses a fresh container. In `absent`, **both architecture helpers are
 actually removed**, rather than flipping `allowAllUnixSockets` or faking failure.
 The runtime's dependency warning and emitted bwrap command are saved. Missing
