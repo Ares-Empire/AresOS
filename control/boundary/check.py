@@ -52,6 +52,9 @@ def digest(path):
 def main():
     assert MODE in ('present', 'absent')
     print('VERSIONS ' + (ROOT / 'pins.json').read_text().strip(), flush=True)
+    for source in [ROOT / 'sandbox.json', Path('/etc/claude-code/managed-settings.json'),
+                   Path('/etc/claude-code/managed-mcp.json')]:
+        (OUT / source.name).write_bytes(source.read_bytes())
     for args in (['uname', '-a'], ['bwrap', '--version'], ['node', '--version'], ['claude', '--version']):
         run(args, 'version-' + args[0])
     for path in FIXTURES['reads'] + FIXTURES['writes']:
@@ -235,10 +238,17 @@ def settings_checks():
         result = run(['/usr/local/bin/claude', flag, value, '-p', 'do not call a model'], 'flag-' + flag[2:], required=False)
         if result.returncode == 0 or 'disableSideloadFlags' not in result.stdout + result.stderr:
             errors.append(flag)
+    # The auth preflight otherwise stops at /login before checking bypass.
+    # A synthetic noncredential plus a local stub endpoint exercises startup
+    # validation without a model or real provider. Any API request is a failure.
+    stub_before = (OUT / 'stub.txt').read_text()
+    offline = dict(ENV, ANTHROPIC_API_KEY='SYNTHETIC_BOUNDARY_NONCREDENTIAL',
+                   ANTHROPIC_BASE_URL='http://127.0.0.1:18080')
     result = run(['/usr/local/bin/claude', '--dangerously-skip-permissions', '-p', 'do not call a model'],
-                 'bypass-disabled', required=False)
+                 'bypass-disabled', env=offline, required=False)
     if result.returncode == 0 or 'disableBypassPermissionsMode' not in result.stdout + result.stderr:
         errors.append('bypass-disabled')
+    assert (OUT / 'stub.txt').read_text() == stub_before, 'CLI reached fake model endpoint before policy rejection'
     assert not errors, errors
     print('SETTINGS_OK mcp_exclusive marketplace_lock sideload_flags', flush=True)
 
