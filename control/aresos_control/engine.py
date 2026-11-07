@@ -203,7 +203,11 @@ class Engine:
                 if event["action"].startswith("mail_"):
                     # Historical Mail summaries may predate structured marking.
                     entry["summary"] = "Mail audit event"
-                    entry["untrusted_content"] = {"summary": visible(event["summary"]), **event.get("untrusted_content", {})}
+                    content = event.get("untrusted_content", {})
+                    if event["action"] in {"mail_move", "mail_copy"}:
+                        from .mail.filing import audit_content
+                        content = audit_content(content)
+                    entry["untrusted_content"] = {"summary": visible(event["summary"]), **content}
                 elif "untrusted_content" in event:
                     entry["untrusted_content"] = event["untrusted_content"]
                 entries.append(entry)

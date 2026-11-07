@@ -101,6 +101,19 @@ def summary(intent):
             'folders_more_text': 'and ' + str(len(names) - FOLDER_LIMIT) + ' more' if len(names) > FOLDER_LIMIT else ''}
 
 
+def audit_content(content):
+    # Old audit rows are immutable, but their display must not reintroduce the
+    # entire pre-paging location report (or a batch of enormous Message-IDs).
+    if 'filing' in content:
+        intent = content['filing']
+        if 'records' in intent or 'locations' in intent:
+            return {'filing': {'filing_id': intent['id'], 'state': intent['state'],
+                              'message_count': len(intent['sources']), 'locations_action': 'mail_filing_locations'}}
+    if 'references' in content:
+        return {'message_count': len(content['references']), 'locations_action': 'mail_filing_locations'}
+    return content
+
+
 def public_notice(store, notice):
     content = notice['untrusted_content']
     # Old round-10 notices may already contain megabytes. Do not repeat their detail.

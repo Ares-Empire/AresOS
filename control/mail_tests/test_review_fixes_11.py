@@ -241,7 +241,9 @@ class FilingNotices11(unittest.TestCase):
                   'state': 'partial', 'locations': observed, 'reason': 'Old oversized warning. ' * 4000}
         notice = {'id': 'legacy', 'app': 'mail', 'state': 'partial', 'ack': False,
                   'untrusted_content': {'filing_id': 'legacy', 'reason': intent['reason'], 'locations': observed}}
-        self.engine.store.write({'mail:filing:legacy': intent, 'notice:legacy': notice}, 'fixture', 'Legacy filing state')
+        self.engine.store.write({'mail:filing:legacy': intent, 'notice:legacy': notice}, 'mail_move',
+                                'Legacy filing state', untrusted_content={'filing': intent})
+        self.engine.store.write({}, 'mail_move', 'Legacy batch input', untrusted_content={'references': [source] * 30})
         for action in ('control_log', 'control_pending', 'mail_accounts'):
             response = self.request(action)
             section = response['data'] if action.startswith('control_') else response['pending']
