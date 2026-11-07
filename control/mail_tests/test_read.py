@@ -22,18 +22,18 @@ class Reading(MailCase):
                 self.assertEqual(before, self.all_flags())
 
     def test_filters_and_large_folder_cursors_bind_full_state_and_query(self):
-        for i in range(24):
+        for i in range(240):
             self.fixture(subject=f'Invoice {i}', flags='(\\Flagged)' if i == 3 else None,
                          attachments=[('invoice.pdf', b'bytes', 'application/pdf')] if i == 3 else [])
         self.fixture(self.account['special']['trash'], subject='Invoice hidden')
-        page = self.data('search', {'account':'box', 'subject':'Invoice', 'limit':7})
-        self.assertEqual(page['total'], 24)
+        page = self.data('search', {'account':'box', 'subject':'Invoice', 'limit':20})
+        self.assertEqual(page['total'], 240)
         found = list(page['items'])
         while page['cursor']:
-            page = self.data('search', {'account':'box', 'subject':'Invoice', 'limit':7, 'cursor':page['cursor']})
+            page = self.data('search', {'account':'box', 'subject':'Invoice', 'limit':20, 'cursor':page['cursor']})
             found += page['items']
-        self.assertEqual(len(found), 24)
-        self.assertEqual(len({i['reference']['uid'] for i in found}), 24)
+        self.assertEqual(len(found), 240)
+        self.assertEqual(len({i['reference']['uid'] for i in found}), 240)
         args = {'account':'box', 'from':'alice', 'to':self.owner, 'text':'fixture', 'since':'2026-11-01', 'before':'2026-12-01', 'unread':True, 'flagged':True, 'answered':False, 'has_attachment':True}
         self.assertEqual(self.data('search', args)['total'], 1)
         first = self.data('search', {'account':'box'})
@@ -157,3 +157,18 @@ class Reading(MailCase):
             self.assertEqual(self.all_flags(),before)
             approval = self.delete_approval([ref],'permanent')
             self.assertEqual(self.data('delete',approval)['operation']['state'],'done')
+
+    def test_astral_unicode_body_pages_fit_the_actual_result_byte_cap(self):
+        from aresos_control.common import RESULT_LIMIT,canonical
+        ref = self.fixture(text='🦀' * 12000)
+        args,joined = {'reference':ref},''
+        while True:
+            result = self.call('read',args)
+            self.assertTrue(result['ok'],result)
+            self.assertLessEqual(len(canonical(result).encode()),RESULT_LIMIT)
+            page = result['data']
+            joined += page['untrusted_content']['text']
+            if page['next_offset'] is None:
+                break
+            args = {'reference':ref,'offset':page['next_offset'],'cursor':page['cursor']}
+        self.assertEqual(joined.count('🦀'),12000)

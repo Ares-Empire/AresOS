@@ -163,7 +163,9 @@ class Mail:
             raise Refused("stale_reference", "Mail/page state is stale, search again.")
         if offset > len(text):
             raise Refused("invalid_input", "Offset exceeds text length; read from zero.")
-        end = offset + self.PAGE_CHARS
+        end = min(offset + self.PAGE_CHARS, len(text))
+        while len(canonical(text[offset:end]).encode()) > 16384:
+            end = offset + max(1, (end - offset) // 2)
         headers = {h: str(msg.get(h, "")) for h in ("From", "To", "Cc", "Subject", "Date", "Message-ID", "Reply-To", "In-Reply-To", "References", "List-Unsubscribe", "List-Unsubscribe-Post")}
         return {"reference": args["reference"], "flags": m["flags"], "untrusted_content": {"headers": headers, "text": text[offset:end], "attachments": codec.attachments(msg), "unsubscribe": self.unsubscribe_choices(msg)},
                 "part": part, "offset": offset, "next_offset": end if end < len(text) else None,

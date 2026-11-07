@@ -327,8 +327,8 @@ submission without that answer stays for owner inspection even if a Sent copy ap
 Every message reference includes account, folder, UIDVALIDITY, UID and Message-ID.
 UIDVALIDITY changes fail as stale, search again. Reads always use BODY.PEEK and do
 not fetch remote content or send receipts. Source pages use a reversible Latin-1 byte
-mapping; `attachment_save part=source` saves the exact `.eml`. Bodies page at 6,000
-characters; list pages default to five (maximum twenty). Cursors bind to query and
+mapping; `attachment_save part=source` saves the exact `.eml`. Bodies page at up to 6,000
+characters, reduced as needed for the serialized byte cap; list pages default to five (maximum twenty). Cursors bind to query and
 folder/message state. CONDSTORE/QRESYNC are enabled when advertised; full metadata/byte
 re-reads remain authoritative, including on servers with neither extension. History
 scans currently refuse beyond 10,000 messages, and individual source mails beyond the
