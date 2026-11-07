@@ -72,6 +72,10 @@ Three places, each with one job:
    - **S2b, Chrome (brief 17b):** service workers, holding that fails closed when control breaks, long holds while
      the owner answers on the phone, the extension installed by policy, the Claude tab group, and the typed-text rule
      against public sites. Runs while the design is reviewed.
+   - **S2c, Chrome (brief 17c, after 17b, before the Chrome build):** holding messages on live connections
+     (WebSocket, WebRTC, WebTransport) in pages and workers, so sites that keep one open for live updates don't ask
+     on every action; which messages count as sends; and how common such connections are on everyday sites
+     (public pages, published web statistics, and the owner's own usual sites). Raised by `mac-capacity`.
 1. **Design** (`docs/design/CONTROL.md`): the tool contract, the service and its system user, CLI and MCP from one
    definition, the full Mail and Chrome tool lists with inputs and results, and the tests. Written by Claude, because
    it is what Claude will read; reviewed by fresh Codex (frontier model) before anything is built.

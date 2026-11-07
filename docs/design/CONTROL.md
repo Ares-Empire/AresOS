@@ -243,14 +243,22 @@ on the phone, and what common pages do meanwhile, is *17b*.
 ### What can't be held, and what happens there
 
 - **Live connections** (WebSocket, WebTransport, WebRTC): Chrome's request hold doesn't see their messages
-  (*checked* for WebSocket). On a page with such a connection open, the tool can't know what a key or click sends.
-  There, typing, Enter and clicks other than plain links go through `chrome_submit_input`: one asking step that shows
-  the site, the field, the text and the key, done only after approval. *Checked:* holding the key press gave zero
-  arrivals until approval and exactly one after.
+  (*checked* for WebSocket). Many everyday signed-in sites keep one open only for live updates (GitHub, Gmail, Slack,
+  Notion), so asking on every action there would make Chrome tedious. The hold therefore moves to the message: a
+  small script the tool puts into every page, frame and worker before the site's own scripts run wraps the send
+  functions (`WebSocket.send`, `RTCDataChannel.send`, WebTransport writers), and a message that counts as a send is
+  held like a request. *Checked:* this held a WebSocket send on a page it was in from the start; it missed a page that
+  was already loaded before the tool attached, and a socket opened in a worker. *17c:* workers caught before they
+  start, which messages count as sends (those carrying Claude's typed text only, or every message during an action:
+  measured on chat-like fixtures and public pages), and how many everyday sites keep such connections open.
+- **Where the message hold can't be in place** (a tab taken from the owner whose connection was opened before the
+  tool attached, until the page reloads; a page where the wrap provably fails), typing, Enter and clicks other than
+  plain links go through `chrome_submit_input`: one asking step that shows the site, the field, the text and the key,
+  done only after approval. *Checked:* holding the key press gave zero arrivals until approval and exactly one after.
 - **Service workers:** requests a site's service worker sends were not held (*checked*), and requests a page sends
   through its service worker may be invisible to the tab's hold. *17b:* hold at the worker itself, and let the
-  controlled tab bypass its service worker. Until that passes, a page under a service worker counts as a live-
-  connection page.
+  controlled tab bypass its service worker. Until that passes, a page under a service worker is treated like a page
+  without the message hold.
 - **A site that hides what it sends** (encrypts typed text, sends it later in another form, or changes something with
   a plain GET) can get past rules 1 and 2. That is acceptable only on sites the owner chose to use with Claude; rule 3
   is what keeps Claude off other sites without asking.
