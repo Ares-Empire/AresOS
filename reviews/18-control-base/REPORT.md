@@ -364,3 +364,82 @@ migrated; retaining a legacy installation would require a qualified migration or
 owner recovery. No existing record was discarded. **Not verified:** legacy migration,
 physical storage failures, real accounts, phone rendering and image deployment.
 The existing owner qualification gates remain. No additional PLAN-GAP or open question.
+
+## Follow-up fix
+
+**Done — record before SQLite:** `Store.write` now appends/fsyncs the compact
+record (`journal_appended`) before committing the full SQLite event
+(`sqlite_prepared`), applying it (`sqlite_committed`), and syncing the commit
+marker (`journal_committed`). No new boundary or record format was introduced.
+Bodies and app data remain only in SQLite/blobs; the existing privacy, constant-size
+record and SQLite audit tests still pass. `control/README.md` describes the order.
+
+**JUDGMENT-CALL — ordinary-crash cost:** a record without its matching full event
+cannot distinguish a crash from a restored backup. Existing recovery therefore
+locks all app access until the owner runs
+`sudo aresos admin control restore_confirm --input '{"confirm":"invalidate earlier approvals"}'`.
+Confirmation advances the generation, invalidates earlier approvals and retains
+every affected operation as `unknown` with its short description, even an
+unacknowledged reservation. This is also the cost of an ordinary power loss between
+the record sync and the full-event commit. Automatic classification as harmless
+was rejected: the compact record cannot reconstruct the lost payload or prove
+there was no restore. Removing this confirmation later would need additional
+durable proof and corresponding crash/restore tests.
+
+**read/run — recovery with a full event:** when SQLite is not behind any committed
+record and its staged event exactly matches the single uncommitted record, startup
+can finish that local log transaction. A write cannot return to app work before
+its commit marker is synced; no later irreversible work can follow this unfinished
+write under the filesystem durability contract. Earlier irreversible work can
+already have happened before a stage/outcome write. Recovery never executes app
+work, and any recovered `submitting` state becomes `unknown`. No record-only case
+is recovered without the owner.
+
+**Tests:** `crash_worker.py` can target each occurrence of a write boundary and
+take a SQLite backup immediately before that write. The five new
+`Crashes.test_backup_before_first_restart_at_every_*_write` methods run **80 cases**:
+all four boundaries in send/delete reservations, submission, every recipient,
+target and local stage, outcomes, all three repair writes, and restore confirmation
+with both a committed history and an uncommitted tail. The parent copies the backup
+before constructing any engine; it never edits the independent record. Assertions
+require the fence, restore lockout, owner confirmation, `unknown` descriptions,
+earlier-id refusal, durable restart state and no repeated sends/deletes. A sixth
+method adds **68 ordinary-crash cases** across every send/delete/repair write and
+delete reservation, verifying both automatic local recovery and record-only lockout.
+
+**run — failures observed before the fix:** test-only commit `3cf0e09` retains the
+implementation from `a9c0cbd`; `git diff --exit-code a9c0cbd 3cf0e09 --
+control/aresos_control control/launch.py .github/workflows/control-base.yml` printed
+nothing and exited zero. I saw workflows
+[42350144207](https://github.com/Ares-Empire/AresOS/actions/runs/42350144207) and
+[42350147384](https://github.com/Ares-Empire/AresOS/actions/runs/42350147384) fail:
+`Ran 56 tests in 22.586s` / `Ran 56 tests in 39.653s`, both
+`FAILED (failures=20)`. Every `sqlite_prepared` case found the separate record one
+write behind, including missing reservations and repairs. Those five tests and
+their assertions are unchanged after the fix.
+
+**run — passing after the fix:** product `91c46a34fface5f3d5e1bc5b7cddb51e7be05a95`
+passed in [42350285675](https://github.com/Ares-Empire/AresOS/actions/runs/42350285675)
+and [42350289160](https://github.com/Ares-Empire/AresOS/actions/runs/42350289160):
+`Ran 57 tests in 37.074s` / `Ran 57 tests in 30.099s`, both `OK`,
+`Generated artifacts match definitions` and `Control base suite PASS`. These used
+the unchanged Docker command/test script above, Fedora 45 and Python 3.15.0.
+All 51 previous methods remain, with six additions; none skipped or deleted.
+Intentional existing-test changes: ordinary `journal_appended` reservation/send
+crashes now require confirmation; reservations are found by their retained
+description and become `unknown`, and replay is refused after generation change.
+The synthetic missing-staged-event test now kills at `sqlite_prepared`, the new
+boundary where both the compact record and full event exist, preserving its
+original missing-event assertions. Other replay responses retain schema checks.
+The only subsequent changes restore those replay schema checks and append this
+report. PR #6 records the final head and its two completed workflow IDs after the
+final push; six workflow executions total for this fix, including that final pair.
+
+**run / not verified:** local AST parsing printed `Python syntax OK`, generation
+checking printed `Generated artifacts match definitions`, and `git diff --check`
+printed nothing. Docker's local daemon was unavailable; full suite evidence is
+from GitHub containers. The size scan printed
+`Remaining .work files over 500 MB: []`. Pushes used normal pre-push verification,
+without bypass or force. Physical power loss, storage-controller guarantees,
+real accounts, phone rendering and image deployment remain unverified as above.
+No additional PLAN-GAP or open question; no review files changed.
