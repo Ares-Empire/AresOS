@@ -461,11 +461,11 @@ requirement here, with how it is met and how brief 20 tests it.
 
 1. **Its own user.** `aresos-checkpoint` is a system user with no login, no home and no other role: not the tool
    service's user (which holds the mail password), not the browser's, not the owner's or the assistant's. Its state
-   (the guard list and the record of consumed captures) is in a folder only it can read. `checkpoint.sock` is open
-   only to the tool service. Its listening port accepts connections only from the browser user (a firewall rule). The
-   port is below 1024, which ordinary programs can't open, and the checkpoint is started with the right to open it,
-   so no other program can listen there first and pose as it (17e: taking over the port was not tested). The
-   checkpoint refuses to start if the port is taken or if ordinary users may open low ports.
+   (the guard list, the record of consumed captures and Claude's entered text, encrypted) is in a folder only it can
+   read. `checkpoint.sock` is open only to the tool service. Its listening port accepts connections only from the
+   browser user (a firewall rule). The port is below 1024, which ordinary programs can't open, and the checkpoint is
+   started with the right to open low ports and no other privilege, so no other program can listen there first and
+   pose as it (17e: taking over the port was not tested). The checkpoint refuses to start if the port is taken or if ordinary users may open low ports.
    *Test:* the owner's, the assistant's and a coding user's programs can't connect to the port or the socket; a
    program of theirs can't open the port; the checkpoint refuses to start when the port is taken.
 2. **Nothing it sees leaves the machine.** This means the checkpoint adds no way out of its own. It sends nothing
@@ -1002,7 +1002,9 @@ In plain words (re-check 7, section C, and 17e):
 - **Sites see a slightly different client.** The checkpoint's TLS and HTTP/2 fingerprints differ from Chrome's
   (*checked*, 17e Q11). No extra robot checks were seen on 17e's anonymous sample; signed-in sites are untested.
   Pages were about 0.1 s slower in that small sample, and the checkpoint used about 100 to 260 MB of memory.
-- **Some of Chrome's own certificate checks move to the checkpoint** (requirement 4).
+- **Some of Chrome's own certificate checks are lost** (requirement 4): its urgent revocation list, and updates of its
+  lists between images. The checkpoint does Chrome's root, CT and pin checks on the outside connection instead. He
+  decides whether to accept this before everyday use (section 10).
 - **Uploads above the limit fail** rather than going around the checkpoint.
 
 ### Before it becomes his everyday browser (PLAN S2e)
