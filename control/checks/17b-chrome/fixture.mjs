@@ -13,10 +13,12 @@ export async function fixture(out,work,getUpdate){
     window.states=[];window.mark=s=>{states.push({s,at:Date.now()});document.querySelector('#status').textContent=s};
     window.send=(id,kind='fetch',timeout=0)=>{
       const url='/receive?case='+id;mark('started '+id);
+      if(kind==='volatile'){fetch(url,{method:'POST',body:JSON.stringify({text:'synthetic volatile',nonce:Date.now()})}).catch(()=>{});return;}
       if(kind==='form'){document.forms[0].action=url;document.forms[0].requestSubmit();return;}
       if(kind==='xhr'){let x=new XMLHttpRequest();x.open('POST',url);x.timeout=timeout;x.onload=()=>mark('done '+id);x.onerror=()=>mark('error '+id);x.ontimeout=()=>mark('timeout '+id);x.send('synthetic xhr');return;}
       fetch(url,{method:'POST',body:'synthetic fetch',...(timeout?{signal:AbortSignal.timeout(timeout)}:{})}).then(()=>mark('done '+id)).catch(e=>mark(e.name+' '+id));
     };
+    window.delayed=(id,encoding,wait)=>{const field=document.querySelector('#text');field.oninput=()=>setTimeout(()=>{const t=field.value;const data=[t,encodeURIComponent(t),new URLSearchParams({text:t}).toString().slice(5),JSON.stringify(t).slice(1,-1),btoa(unescape(encodeURIComponent(t)))][encoding];fetch('/receive?case='+id,{method:'POST',body:data}).catch(()=>{})},wait)};
     window.retry=id=>{let n=0;const go=()=>{n++;fetch('/receive?case='+id+'&attempt='+n,{method:'POST',body:'synthetic retry',signal:AbortSignal.timeout(1000)}).then(()=>mark('done retry')).catch(()=>{mark('retry '+n);if(n<2)go()})};go()};
     window.worker=async()=>{await navigator.serviceWorker.register('/sw.js');await navigator.serviceWorker.ready;while(!navigator.serviceWorker.controller)await new Promise(r=>setTimeout(r,20));return true};
     window.connectWS=()=>{window.ws=new WebSocket('ws://'+location.host+'/socket');ws.onopen=()=>mark('ws open');ws.onmessage=e=>mark(e.data)};

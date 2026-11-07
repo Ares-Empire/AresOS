@@ -19,7 +19,8 @@ async function dropTab(tabId,reason){
   emit('check.controlEnded',{tabId,reason});
 }
 async function pause(source,p){
-  const r=p.request, typed=matchText(r), fixture=new URL(r.url).pathname==='/receive';
+  const r=p.request, typed=matchText(r), fixture=['/receive','/socket'].includes(new URL(r.url).pathname);
+  if(new URL(r.url).pathname==='/socket')emit('check.socketPause',{source,request:p});
   if(!fixture&&!publicMode)return command(source,'Fetch.continueRequest',{requestId:p.requestId});
   const preview={url:r.url,method:r.method,body:r.postData??null,type:p.resourceType,typed,source};
   if(publicMode){

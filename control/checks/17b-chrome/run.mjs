@@ -55,13 +55,14 @@ async function connect(){
   await bridge.send('Check.enableGate');await bridge.send('Check.config',{});await bridge.send('Network.setBypassServiceWorker',{bypass:true});
   log('CONNECTED',{...c,host:fs.readFileSync(out+'/host-starts.txt','utf8').trim().split('\n').at(-1)});
 }
+function measureSettle(start,requests){let end=start+500;for(const r of requests.filter(r=>r.at>=start).sort((a,b)=>a.at-b.at)){if(r.at>end)break;end=Math.min(start+10000,r.at+500);}return end;}
 const state=()=>bridge.send('Check.state');
 const arrivals=id=>f.arrivals.filter(r=>r.kind==='receive'&&new URL(r.url,f.base).searchParams.get('case')===id);
 async function nav(){await bridge.send('Page.navigate',{url:f.base+'/'});await delay(500);await eventually(()=>evaluate(bridge,"typeof send==='function'"),'fixture ready');}
 async function held(id,kind='fetch',timeout=0){await evaluate(bridge,`send(${JSON.stringify(id)},${JSON.stringify(kind)},${timeout});'started'`);return eventually(async()=>{const s=await state();if(s.errors.length)throw Error(s.errors.join(';'));return s.pending.find(p=>p.url.includes('case='+id));},'held '+id);}
 async function decide(p,release){return bridge.send('Check.decide',{id:p.id,release});}
 async function observe(id,expected){await delay(650);const a=arrivals(id);if(expected!==undefined){assert.equal(a.length,expected,id);audit.set(id,expected);}return a;}
-async function matrix(label,action,{backstop=false,expected}={}){await nav();await bridge.send('Check.config',{backstop});const id='q1-'+label+(backstop?'-dnr':'');const p=await held(id);assert.equal(arrivals(id).length,0);save(id+'-held',await state());await action(p);await delay(1200);const a=await observe(id,expected);log('Q1_'+label+(backstop?'_DNR':''),{id,preview:p,arrivals:a});return a;}
+async function matrix(label,action,{backstop=false,expected}={}){await nav();await bridge.send('Check.config',{backstop});const id='q1-'+label+(backstop?'-dnr':'');const p=await held(id);assert.equal(arrivals(id).length,0);save(id+'-held',await state());await action(p);await delay(1200);const after=bridge?await state():null;save(id+'-after',after);const a=await observe(id,expected);audit.set(id,a.length);log('Q1_'+label+(backstop?'_DNR':''),{id,preview:p,arrivals:a,detachEvents:after?.history.filter(r=>['check.detached','check.controlEnded'].includes(r.method))});return a;}
 try{
  await boot('initial');
  await screenshot(out,'policy-debug-bar');
@@ -69,9 +70,13 @@ try{
  log('Q5_POLICY_INSTALL',{info:await bridge.send('Check.info'),policy:JSON.parse(fs.readFileSync(work+'/policy.json'))});
  await probe('Q5_DISABLE',()=>bridge.send('Check.disable'));
  await probe('Q5_REMOVE',()=>bridge.send('Check.uninstall'));
+ await address('chrome://extensions/?id='+id);await screenshot(out,'policy-extension-controls');
+ await key('ctrl+t');await address('https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn');await delay(2500);await screenshot(out,'claude-blocklisted');await key('ctrl+w');
  log('Q5_HOST_DEFAULT',{starts:fs.readFileSync(out+'/host-starts.txt','utf8')});
  await stop();policy(false);await boot('system-host');
  log('Q5_HOST_POLICY_FALSE',{starts:fs.readFileSync(out+'/host-starts.txt','utf8')});
+ // Policy rejects disable/remove even with a send held.
+ for(const op of ['disable','uninstall']){await nav();const id='q1-policy-'+op,p=await held(id);await probe('Q1_POLICY_'+op,()=>bridge.send(op==='disable'?'Check.disable':'Check.uninstall'));assert.equal(arrivals(id).length,0);await decide(p,false);await observe(id,0);}
  // Q1: controlled detach probes, with a fresh tab attachment between each.
  await matrix('host-dies',async()=>{const pid=Number(fs.readFileSync(out+'/host-pids.txt','utf8').trim().split('\n').at(-1));process.kill(pid,'SIGKILL');},{expected:0});
  await stop();await boot('after-host');
@@ -107,12 +112,16 @@ try{
  // Repeat instead of preserving an in-flight request. Compare before permitting one exact match.
  await nav();await bridge.send('Check.config',{mode:'repeat'});
  const repeated=[];bridge.on('check.repeated',r=>repeated.push(r));
- for(const kind of ['fetch','xhr','form']){
+ for(const kind of ['fetch','xhr','form','volatile']){
    await nav();const id='repeat-'+kind;for(let i=0;i<3;i++){await nav();await evaluate(bridge,`send('${id}','${kind}');'ok'`);await delay(400);}
    const rows=repeated.filter(r=>r.url.includes('case='+id));assert.equal(rows.length,3);assert.equal(arrivals(id).length,0);
-   const first=rows[0];assert.ok(rows.every(r=>r.url===first.url&&r.method===first.method&&r.body===first.body));
-   await nav();await bridge.send('Check.arm',{url:first.url,method:first.method,body:first.body});await evaluate(bridge,`send('${id}','${kind}');'ok'`);await observe(id,1);
-   log('Q1_REPEAT',{kind,attempts:rows,byteMatches:rows.length,normalizedMatches:rows.length,ignoredFields:[]});
+   const first=rows[0],same=r=>r.url===first.url&&r.method===first.method&&r.body===first.body;
+   const normalized=r=>{if(kind!=='volatile')return r.body;const o=JSON.parse(r.body);delete o.nonce;return JSON.stringify(o)};
+   const byteMatches=rows.filter(same).length,normalizedMatches=rows.filter(r=>r.url===first.url&&r.method===first.method&&normalized(r)===normalized(first)).length;
+   assert.equal(normalizedMatches,3);if(kind!=='volatile')assert.equal(byteMatches,3);
+   await nav();await bridge.send('Check.arm',{url:first.url,method:first.method,body:first.body});await evaluate(bridge,`send('${id}','${kind}');'ok'`);await observe(id,kind==='volatile'?0:1);
+   log('Q1_REPEAT',{kind,attempts:rows,comparisons:rows.length-1,byteMatches:byteMatches-1,normalizedMatches:normalizedMatches-1,ignoredFields:kind==='volatile'?['nonce']:[],arrivals:arrivals(id)});
+
  }
  await bridge.send('Check.config',{});await nav();
  // Q2: page through worker, worker target, bypass, and background sync.
@@ -138,7 +147,7 @@ try{
      log('Q2_OWN_SW',{id,release,held:!!p,before,arrivals:a});
    }
  }
- await probe('Q2_SYNC',async()=>{await nav();await evaluate(bridge,'worker()');const id='sw-sync';const supported=await evaluate(bridge,`navigator.serviceWorker.ready.then(async r=>{if(!r.sync)return false;await r.sync.register('${id}');return true})`);await delay(2500);const p=(await state()).pending.find(p=>p.url.includes(id));const before=arrivals(id).length;if(p)await decide(p,false);return {supported,held:!!p,before,arrivals:await observe(id)};});
+ for(const release of [true,false])await probe('Q2_SYNC',async()=>{await nav();await evaluate(bridge,'worker()');const id='sw-sync-'+release;const supported=await evaluate(bridge,`navigator.serviceWorker.ready.then(async r=>{if(!r.sync)return false;await r.sync.register('${id}');return true})`);await delay(2500);const p=(await state()).pending.find(p=>p.url.includes(id));const before=arrivals(id).length;if(p)await decide(p,release);const a=await observe(id);if(p){assert.equal(before,0);assert.equal(a.length,release?1:0);audit.set(id,release?1:0);}return {id,release,supported,held:!!p,before,arrivals:a};});
  await bridge.send('Network.setBypassServiceWorker',{bypass:true});
  for(const kind of ['fetch','xhr','form'])for(const release of [true,false]){await nav();const id='bypass-'+kind+'-'+release;const p=await held(id,kind);assert.equal(arrivals(id).length,0);await decide(p,release);log('Q2_BYPASS',{id,release,arrivals:await observe(id,release?1:0)});}
  // Q3: run waits concurrently; the single 10-minute hold belongs only to final verification.
@@ -158,20 +167,20 @@ try{
  await nav();
  // Q4 detection and handshake: event history is independent of the Fetch gate.
  const events=[];bridge.on('event',e=>{if(/WebSocket|webTransport|dataChannel|peerConnection/i.test(e.method))events.push({at:Date.now(),...e});});
- await evaluate(bridge,"connectWS();'ok'");await delay(1200);const wsPending=(await state()).pending.filter(p=>p.type==='WebSocket');
- log('Q4_WS_HANDSHAKE',{pending:wsPending,server:f.arrivals.filter(r=>r.kind==='ws-open'),events:events.slice()});
+ await evaluate(bridge,"connectWS();'ok'");await delay(1200);const wsState=await state(),wsPending=wsState.pending.filter(p=>p.url.endsWith('/socket'));if(wsPending.length){assert.equal(f.arrivals.filter(r=>r.kind==='ws-open').length,0);await decide(wsPending[0],false);log('Q4_WS_HANDSHAKE_DROP',{arrivals:f.arrivals.filter(r=>r.kind==='ws-open')});await evaluate(bridge,"connectWS();'ok'");const again=await eventually(async()=>(await state()).pending.find(p=>p.url.endsWith('/socket')),'second handshake');await decide(again,true);await delay(500);}
+ log('Q4_WS_HANDSHAKE',{pending:wsPending,socketPauses:wsState.history.filter(r=>r.method==='check.socketPause'),server:f.arrivals.filter(r=>r.kind==='ws-open'),events:events.slice()});
  await evaluate(bridge,"ws.send('synthetic socket');'ok'");await delay(400);
  await bridge.send('Check.detach');await bridge.send('Check.attach',{tabId:selected});await bridge.send('Check.enableGate');events.length=0;await delay(500);
  const oldSocket=await evaluate(bridge,'ws.readyState');await evaluate(bridge,"ws.send('synthetic preattach');'ok'");await delay(400);
  log('Q4_WS_PREATTACH',{readyState:oldSocket,events:events.slice(),server:f.arrivals.filter(r=>r.kind.startsWith('ws'))});
- await probe('Q4_WEBRTC',async()=>{await bridge.send('Media.enable');await evaluate(bridge,'rtc()');await eventually(()=>evaluate(bridge,"channel.readyState==='open'"),'RTC open');await evaluate(bridge,"channel.send('synthetic rtc');'ok'");return {events:events.slice(),states:await evaluate(bridge,'states')};});
+ await probe('Q4_WEBRTC',async()=>{const media=await probe('Q4_MEDIA_DOMAIN',()=>bridge.send('Media.enable'));await evaluate(bridge,'rtc()');await eventually(()=>evaluate(bridge,"channel.readyState==='open'"),'RTC open');await evaluate(bridge,"channel.send('synthetic rtc');'ok'");await delay(300);const before=events.slice();await bridge.send('Check.detach');await bridge.send('Check.attach',{tabId:selected});await bridge.send('Check.enableGate');const offset=events.length;await evaluate(bridge,"channel.send('synthetic preattach rtc');'ok'");await delay(300);return {media,events:before,afterReattachEvents:events.slice(offset),readyState:await evaluate(bridge,'channel.readyState'),states:await evaluate(bridge,'states')};});
  await probe('Q4_WEBTRANSPORT',async()=>{const offset=events.length;await evaluate(bridge,`window.transport=new WebTransport(${JSON.stringify(wtInfo.url)},{serverCertificateHashes:[{algorithm:'sha-256',value:new Uint8Array(${JSON.stringify(wtInfo.hash)})}]});transport.ready.then(()=>mark('wt open')).catch(e=>mark(e.name));'attempted'`);await eventually(()=>evaluate(bridge,"states.some(s=>s.s==='wt open')"),'WebTransport open');await evaluate(bridge,"window.writer=transport.datagrams.writable.getWriter();writer.write(new TextEncoder().encode('synthetic transport'));'ok'");await delay(500);const before=events.slice(offset);await bridge.send('Check.detach');await bridge.send('Check.attach',{tabId:selected});await bridge.send('Check.enableGate');const oldOffset=events.length;await evaluate(bridge,"writer.write(new TextEncoder().encode('synthetic preattach transport'));'ok'");await delay(500);return {events:before,afterReattachEvents:events.slice(oldOffset),states:await evaluate(bridge,'states'),server:fs.readFileSync(out+'/webtransport-server.jsonl','utf8')};});
  await nav();
  // Permanently watch typed text, including sends outside a 500ms settle window.
  const text='Synthetic 17b "a+b" / ✓',encoded=[text,encodeURIComponent(text),new URLSearchParams({text}).toString().slice(5),JSON.stringify(text).slice(1,-1),Buffer.from(text).toString('base64')];
  await bridge.send('Check.config',{texts:[text]});
  for(let i=0;i<encoded.length;i++)for(const wait of [5000,10000]){
-   const id='typed-'+i+'-'+wait;const start=Date.now();await evaluate(bridge,`document.querySelector('#text').value=${JSON.stringify(text)};setTimeout(()=>{fetch('/receive?case=${id}',{method:'POST',body:${JSON.stringify(encoded[i])}}).catch(()=>{})},${wait});'ok'`);
+   const id='typed-'+i+'-'+wait;const start=Date.now();await evaluate(bridge,`delayed('${id}',${i},${wait});document.querySelector('#text').value=${JSON.stringify(text)};document.querySelector('#text').dispatchEvent(new Event('input'));'ok'`);
    const p=await eventually(async()=>(await state()).pending.find(p=>p.url.includes('case='+id)),'delayed text',wait+5000);assert.ok(p.typed.length);assert.equal(arrivals(id).length,0);await decide(p,false);audit.set(id,0);log('Q4_TYPED',{id,encoding:i,delayMs:Date.now()-start,settleMs:500,outsideSettle:true,preview:p});
  }
  const pixel='typed-image';await evaluate(bridge,`document.querySelector('#text').value=${JSON.stringify(text)};window.pixel=new Image();pixel.src='/receive?case=${pixel}&text='+encodeURIComponent(${JSON.stringify(text)});'ok'`);
@@ -186,11 +195,11 @@ try{
  await bridge.send('Check.config',{publicMode:true,texts:[text,'SyntheticFixture17b']});
  for(const [name,url]of [['wikipedia','https://en.wikipedia.org/wiki/Main_Page'],['news','https://www.bbc.com/news'],['demo','https://www.selenium.dev/selenium/web/web-form.html']]){
   await probe('Q4_PUBLIC_'+name,async()=>{const start=Date.now(),offset=pub.length;await bridge.send('Page.navigate',{url});await delay(4000);const title=await evaluate(bridge,'document.title');
-   const action=await evaluate(bridge,`(()=>{const input=document.querySelector(${JSON.stringify(name==='wikipedia'?'input[name=search]':name==='demo'?'input[name="my-text"]':'input[type=search],input[type=text]')});if(!input)return {found:false};input.value='SyntheticFixture17b';input.dispatchEvent(new Event('input',{bubbles:true}));return {found:true,form:!!input.form}})()`);
-   let repeated=[];
+   const actionStart=Date.now();const action=await evaluate(bridge,`(()=>{const input=document.querySelector(${JSON.stringify(name==='wikipedia'?'input[name=search]':name==='demo'?'input[name="my-text"]':'input[type=search],input[type=text]')});if(!input)return {found:false};input.value='SyntheticFixture17b';input.dispatchEvent(new Event('input',{bubbles:true}));return {found:true,form:!!input.form}})()`);
+   let repeated=[];const expected=action.found&&action.form?await evaluate(bridge,`(()=>{const f=document.querySelector('input[value=never]')?.form||Array.from(document.forms).find(f=>Array.from(f.elements).some(e=>e.value==='SyntheticFixture17b'));return f?{method:f.method.toUpperCase(),action:f.action,fields:Array.from(new FormData(f).entries())}:null})()`):null;
    if(action.found&&action.form){for(let i=0;i<(name==='demo'?3:1);i++){const before=pub.length;await evaluate(bridge,`(()=>{const input=document.querySelector(${JSON.stringify(name==='demo'?'input[name="my-text"]':'input[name=search]')});input.form.requestSubmit();return true})()`);await delay(700);repeated.push(pub.slice(before).filter(r=>r.typed.length));}}
    await delay(11000);const requests=pub.slice(offset);const textRequests=requests.filter(r=>r.typed.length);assert.ok(textRequests.every(r=>r.block));const canonical=r=>JSON.stringify({url:r.url,method:r.method,body:r.body});
-   return {title,action,elapsedMs:Date.now()-start,requests,textRequests:textRequests.length,ruleMisses:textRequests.filter(r=>!r.block).length,unlabelledRequests:requests.filter(r=>!r.typed.length).length,repeat:repeated.map(rows=>rows.map(canonical)),ignoredVolatileFields:[],outsideInitialSettle:textRequests.filter(r=>r.at-start>4500).length};});
+   return {title,action,expected,observedFormMiss:expected?!textRequests.length:null,loadTypedFalseAlarms:requests.filter(r=>r.at<actionStart&&r.typed.length).length,elapsedMs:Date.now()-start,requests,textRequests:textRequests.length,ruleMisses:textRequests.filter(r=>!r.block).length,unlabelledRequests:requests.filter(r=>!r.typed.length).length,repeat:repeated.map(rows=>rows.map(canonical)),ignoredVolatileFields:[],actionStart,settleAt:measureSettle(actionStart,requests),outsideActionSettle:textRequests.filter(r=>r.at>measureSettle(actionStart,requests)).length};});
  }
  save('public-traffic',pub);
  // Final independent server log audit catches late arrivals after navigation/teardown.
