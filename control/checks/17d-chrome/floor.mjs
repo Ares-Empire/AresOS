@@ -22,7 +22,7 @@ export default async function(c){
  for(const killed of [false,true]){
   await nav(f.base+'/startup');await rpc('Page.bringToFront');await count('startup-same',0);await count('startup-cross',0);
   const before=f.rows.filter(r=>r.kind==='attempt'&&r.case==='startup-executed').length;
-  await c.close(killed);await c.boot('restored-'+killed,true);await c.eventually(()=>f.rows.filter(r=>r.kind==='attempt'&&r.case==='startup-executed').length>before,'restored first script really ran');await count('startup-same',0);await count('startup-cross',0);
+  if(killed)await delay(7000);await c.close(killed);await c.boot('restored-'+killed,true);await c.eventually(()=>f.rows.filter(r=>r.kind==='attempt'&&r.case==='startup-executed').length>before,'restored first script really ran');await count('startup-same',0);await count('startup-cross',0);
   log('Q2_RESTART',{killed,dynamic:(await state()).dynamic,ready:(await state()).history.filter(e=>e.method==='check.ready'),documents:f.rows.filter(r=>r.kind==='document'&&r.url==='/startup'),arrivals:[...arrivals('startup-same'),...arrivals('startup-cross')]});
  }
 }

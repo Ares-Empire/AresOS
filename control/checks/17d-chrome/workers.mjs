@@ -1,7 +1,7 @@
 export default async function(c){
  const {rpc,ev,nav,log,state,count,delay,f,probe,discovery,save,assert}=c;
  await rpc('Check.mode',{mode:'pass'});await rpc('Check.floor',{domains:['127.0.0.1']});await nav();
- const collect=async(label)=>{await delay(1400);const rows=f.rows.filter(r=>['http','ws-open','ws-message'].includes(r.kind)&&r.case?.startsWith('worker-'));for(const row of rows)discovery(row.case,'autonomous-worker counterexample');log(label,{scripts:f.rows.filter(r=>r.kind==='worker-script'),arrivals:rows,events:(await state()).history,targets:await rpc('Check.targets')});};
+ const collect=async(label)=>{await delay(1400);const rows=f.rows.filter(r=>['http','ws-open','ws-message'].includes(r.kind)&&r.case?.startsWith('worker-'));assert.equal(rows.filter(r=>r.kind==='http'&&!r.case.startsWith('worker-control')).length,0,'guarded workers must not deliver POSTs');for(const row of rows)discovery(row.case,'autonomous-worker counterexample');log(label,{scripts:f.rows.filter(r=>r.kind==='worker-script'),attempts:f.rows.filter(r=>r.kind==='attempt'),arrivals:rows,events:(await state()).history,targets:await rpc('Check.targets')});};
  await ev("(async()=>{window.swreg=await navigator.serviceWorker.register('/sw.js?case=worker-service',{updateViaCache:'none'});await navigator.serviceWorker.ready;return true})()");
  await collect('Q3_NEW_SERVICE');assert.equal(c.arrivals('worker-service-v1-first').filter(r=>r.kind==='http').length,0);
  await probe('Q3_SERVICE_WORKER_DOMAIN',async()=>({result:await rpc('Check.command',{method:'ServiceWorker.enable'})}));
@@ -32,7 +32,7 @@ export default async function(c){
  log('Q3_WORKER_POSITIVE',{rows:c.arrivals('worker-control-v3-first'),events:(await state()).history.filter(e=>e.method==='check.webRequest')});
  await rpc('Check.floor',{domains:['127.0.0.1']});
  // Restart registration is exercised before any page is attached on the next boot.
- await c.close(true);await c.boot('worker-restored',true);await collect('Q2_RESTORED_WORKER');
+ await rpc('Page.bringToFront');await delay(7000);await c.close(true);await c.boot('worker-restored',true);await collect('Q2_RESTORED_WORKER');
  log('Q3_PUSH',{status:'not-checked',reason:'No real push subscription/FCM credentials; debugger-delivered push would violate the requested independent trigger.'});
  // Real HTTP/3 receiver, same inherited fixture/certificate pinning as 17b/17c.
  await probe('Q1_WEBTRANSPORT',async()=>{

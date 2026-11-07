@@ -26,7 +26,7 @@ export default async function(c){
   // If a leftover remains, detach the gate and deliberately try it, proving the receiver consequence.
   const id='leftover-'+cleanup+'-'+ending;await rpc('Check.mode',{mode:'pass'});await send(id);await delay(400);log('Q4_LEFTOVER_RECEIVER',{id,rows:discovery(id,'remaining allowance consequence')});await rpc('Check.rules',{removeRuleIds:[8001]});
  }
- await rpc('Check.cleanup',{enabled:true});await rpc('Check.mode',{mode:'fail'});
+ await rpc('Check.cleanup',{enabled:true});await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'fail'});
  // Full immutable bodies in the wrapper, compared with Chrome's network observations of raw blocked sends.
  for(const [kind,expression]of [
   ['json',"JSON.stringify({delete:42,text:'synthetic'})"],['urlencoded',"new URLSearchParams({delete:'42',text:'synthetic'})"],
@@ -47,7 +47,7 @@ export default async function(c){
    if(kind==='multipart')await ev("testBody.append('later','must not reach receiver');true");
    // Receiver-only oracle: this deliberately passes the gate to qualify the wrapper's stored bytes
    // separately from Chrome's incomplete body view. It does not qualify exact multipart replay.
-   await rpc('Check.mode',{mode:'pass'});await rpc('Check.release',{id:held.id});await delay(1000);const rows=await count('wrap-'+kind,1);assert.equal(rows[0].sha256,held.description.sha256);assert.equal(rows[0].length,held.description.length);log('Q5_FROZEN_RECEIVER',{kind,description:held.description,rows,oracle:'synthetic gate passthrough, not replay qualification'});await rpc('Check.mode',{mode:'fail'});
+   await rpc('Check.mode',{mode:'pass'});await rpc('Check.release',{id:held.id});await c.eventually(()=>c.arrivals('wrap-'+kind).length===1,'frozen receiver '+kind,20000);const rows=await count('wrap-'+kind,1);assert.equal(rows[0].sha256,held.description.sha256);assert.equal(rows[0].length,held.description.length);log('Q5_FROZEN_RECEIVER',{kind,description:held.description,rows,oracle:'synthetic gate passthrough, not replay qualification'});await rpc('Check.mode',{mode:'fail'});
   }
  }
  // Account fingerprint uses both HttpOnly cookies (debugger) and the page's displayed label.
