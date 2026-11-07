@@ -112,7 +112,7 @@ async function snapshotProxy(){
  for(const name of ['events.jsonl'])try{fs.writeFileSync(out+'/checkpoint-'+name,sudo('cat',work+'/private/'+name));}catch{}
  try{save('ledger',await control('state'))}catch{}
 }
-const c={fs,path,assert,sh,sudo,spawn,work,out,phase,here,save,log,hash,f,delay,eventually,address,key,screenshot,x,rpc,ev,nav,connect,boot,close,policy,firewall,control,startProxy,stopProxy,guard,context,send,positive,pending,approve,zero,delivered,rows,arrivals,probe,get selected(){return selected},get chrome(){return chrome}};
+const c={fs,path,assert,sh,sudo,spawn,work,out,phase,here,save,log,hash,f,delay,eventually,address,key,screenshot,x,rpc,ev,nav,connect,boot,close,policy,firewall,control,startProxy,stopProxy,guard,context,send,positive,pending,approve,zero,delivered,expect,rows,arrivals,probe,get selected(){return selected},get chrome(){return chrome}};
 try{
  await startProxy();await boot('initial');
  await rpc('Page.bringToFront');await key('ctrl+t');await address('chrome://sandbox');await screenshot(out,'sandbox');await key('ctrl+w');

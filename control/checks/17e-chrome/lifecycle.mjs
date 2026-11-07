@@ -2,14 +2,14 @@ export default async function(c){
  const {ev,guard,positive,send,pending,control,approve,delivered,zero,log,delay,assert,rpc}=c;
  // Persisted browser-only work exists independently of the checkpoint's queue.
  await positive('e-outbox-control');await guard();
- const stored=await ev(`(async()=>{localStorage.syntheticNamed17e='delete42';const root=await navigator.storage.getDirectory(),f=await root.getFileHandle('outbox17e',{create:true}),w=await f.createWritable();await w.write('delete42');await w.close();globalThis.channel=new BroadcastChannel('17e');channel.postMessage('delete42');return {named:localStorage.syntheticNamed17e,opfs:await (await f.getFile()).text()}})()`);
- await send('e-outbox-later','delete42');await pending('e-outbox-later');await zero('e-outbox-later');log('Q10_UNRESOLVED_STORAGE',{stored,guard:(await control('state')).guard});
+ const stored=await ev(`(async()=>{localStorage.syntheticNamed17e='delete42';const root=await navigator.storage.getDirectory(),f=await root.getFileHandle('outbox17e',{create:true}),w=await f.createWritable();await w.write('delete42');await w.close();globalThis.channel=new BroadcastChannel('17e');channel.postMessage('delete42');return {named:localStorage.syntheticNamed17e,opfs:await (await f.getFile()).text(),idb:await outbox17(true)}})()`);
+ await ev("outbox17().then(value=>send('e-outbox-later',value));true");await pending('e-outbox-later');await zero('e-outbox-later');log('Q10_UNRESOLVED_STORAGE',{stored,guard:(await control('state')).guard});
  await guard(false);await c.nav(c.f.base+'/startup?case=e-restore-control');await delivered('e-restore-control');await ev("history.replaceState(null,'','/startup?case=e-restored-first');true");await guard();
  // Restart checkpoint with guard persisted; it must load state before listening.
  await c.stopProxy();await c.startProxy();assert.equal((await control('state')).guard,true);await send('e-after-proxy-restart');await pending('e-after-proxy-restart');await zero('e-after-proxy-restart');log('Q1_RESTART_BARRIER',{state:await control('state')});
- await c.close(true);await c.boot('restored-with-guard',true,true);const document=await pending('e-restored-first');assert.equal(document.method,'GET');await zero('e-restored-first');await control('approve',{id:document.id});
+ await c.close();await c.boot('restored-with-guard',true,true);const document=await pending('e-restored-first');assert.equal(document.method,'GET');await zero('e-restored-first');await control('approve',{id:document.id});
  const first=await pending('e-restored-first');assert.notEqual(first.id,document.id);assert.equal(first.method,'POST');await zero('e-restored-first');await control('cancel',{id:first.id});log('Q1_RESTORED_FIRST_SCRIPT',{document,first,receiver:c.rows('e-restored-first'),guard:(await control('state')).guard});
- await guard(false);await c.nav();const persisted=await ev("(async()=>({named:localStorage.syntheticNamed17e,opfs:await (await (await (await navigator.storage.getDirectory()).getFileHandle('outbox17e')).getFile()).text()}))()");assert.deepEqual(persisted,stored);log('Q10_BROWSER_RESTART',{persisted,guardRetainedUntilExplicitTestReset:true});await c.context();
+ await guard(false);await c.nav();const persisted=await ev("(async()=>({named:localStorage.syntheticNamed17e,opfs:await (await (await (await navigator.storage.getDirectory()).getFileHandle('outbox17e')).getFile()).text(),idb:await outbox17()}))()");assert.deepEqual(persisted,stored);log('Q10_BROWSER_RESTART',{persisted,guardRetainedUntilExplicitTestReset:true});await c.context();
  for(const point of ['held','before-consume','after-consume']){
   for(const actor of ['native-host','extension','browser','checkpoint']){
    const id=`e-crash-${actor}-${point}`;await positive(id+'-control');await guard();await send(id);const op=await pending(id);await zero(id);
@@ -31,14 +31,22 @@ export default async function(c){
    await guard(false);await c.close(true);await c.boot('recovery-'+actor+'-'+point);await c.context();
   }
  }
- // Kill during actual forwarding, triggered by the independent receiver's
- // first body byte rather than a guessed sleep after approval.
- await positive('e-during-forward-control');await guard();
- await ev("send('e-during-forward',new Uint8Array(25*1024*1024));true");const forwarding=await pending('e-during-forward');let killed;
- c.f.onFirstByte(id=>{if(id==='e-during-forward'&&!killed)killed=c.stopProxy()});
- await control('approve',{id:forwarding.id});await c.eventually(()=>!!killed,'receiver-triggered forwarding crash');await killed;c.f.onFirstByte(undefined);await c.startProxy();await delay(500);
- const recoveredForward=(await control('state')).rows.find(r=>r.id===forwarding.id);assert.equal(recoveredForward.status,'unknown');log('Q6_DURING_FORWARD',{recovered:recoveredForward,receiver:c.rows('e-during-forward')});
- await guard(false);await c.nav();
+ // Kill each actor during forwarding, triggered by the independent receiver's
+ // first body byte rather than a sleep after approval.
+ for(const actor of ['native-host','extension','browser','checkpoint']){
+  const id='e-during-forward-'+actor;await positive(id+'-control');await guard();
+  await ev(`send('${id}',new Uint8Array(25*1024*1024));true`);const forwarding=await pending(id);await zero(id);let killed;
+  c.f.onFirstByte(caseId=>{if(caseId===id&&!killed)killed=(async()=>{
+   if(actor==='checkpoint')await c.stopProxy();
+   else if(actor==='browser')await c.close(true);
+   else if(actor==='native-host'){const pid=Number(c.fs.readFileSync(c.work+'/host-pids.txt','utf8').trim().split('\n').at(-1));c.sudo('kill','-KILL',String(pid));}
+   else {const lines=c.sh('ps',['-u','areschrome','-o','pid,args']).split('\n').filter(s=>s.includes('--extension-process'));assert.ok(lines.length);for(const line of lines)c.sudo('kill','-KILL',line.trim().split(/\s+/)[0]);}
+  })()});
+  await control('approve',{id:forwarding.id});await c.eventually(()=>!!killed,'receiver-triggered forwarding crash');await killed;c.f.onFirstByte(undefined);await delay(500);
+  await c.stopProxy();await c.startProxy();await delay(300);const recovered=(await control('state')).rows.find(r=>r.id===forwarding.id);assert.ok(['unknown','response'].includes(recovered.status));
+  const complete=c.arrivals(id).length;assert.ok(complete<=1);c.expect(id,'http',complete);c.expect(id,'headers',1);log('Q6_DURING_FORWARD',{actor,recovered,receiver:c.rows(id)});
+  await guard(false);await c.close(true);await c.boot('forwarding-recovery-'+actor);await c.context();
+ }
  // Real cancellation observations. Do not equate a JS timeout with an abort.
  for(const variant of ['abort','h2-reset','tab-close','timeout']){
   const id='e-cancel-'+variant;await positive(id+'-control');await guard();
@@ -55,7 +63,8 @@ export default async function(c){
  await guard(false);await c.nav();await guard();await send('e-explicit-cancel');const cancelled=await pending('e-explicit-cancel');await control('cancel',{id:cancelled.id});await delay(200);await assert.rejects(()=>control('approve',{id:cancelled.id}),/NOT_PENDING/);await zero('e-explicit-cancel');log('Q7_ACKNOWLEDGED_CANCEL',{cancelled});
  // Extension removal cannot remove the independent checkpoint. Schedule first;
  // removal necessarily destroys the diagnostic channel.
- await ev("setTimeout(()=>send('e-extension-removed'),4500);true");c.policy(true,false);await c.address('chrome://policy');c.x('mousemove',85,170,'click',1);await delay(5500);const removed=await pending('e-extension-removed');await zero('e-extension-removed');log('Q3_EXTENSION_REMOVAL',{held:removed});
+ await ev("setTimeout(()=>send('e-extension-removed'),20000);true");c.policy(true,false);await c.key('ctrl+t');await c.address('chrome://policy');c.x('mousemove',85,170,'click',1);
+ await c.eventually(async()=>{try{await rpc('Check.state');return false}catch{return true}},'policy actually removed the extension',90000);const removedAt=Date.now();await c.screenshot(c.out,'extension-removed-by-policy');await delay(10000);const removed=await pending('e-extension-removed');assert.ok(removed.capturedAt>removedAt,'request created after confirmed extension removal');await zero('e-extension-removed');log('Q3_EXTENSION_REMOVAL',{removedAt,held:removed});
  // Retiring requires independent receiver receipt AND explicit fixture cleanup;
  // this is an adapter example, not a negative inference from silence.
  log('Q10_RETIREMENT',{automatic:false,reason:'Named storage, OPFS and handoff still unresolved. Empty proxy queue is insufficient.'});

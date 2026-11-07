@@ -199,7 +199,8 @@ class Checkpoint:
         oid = uuid.uuid4().hex
         # Supporting attribution never changes whether an operation is held.
         token = flow.metadata.get('attribution', '')
-        info = dict(case=self.case(flow), kind=kind, length=len(data), sha256=hashlib.sha256(data).hexdigest(), context=self.context, attribution='current' if token in self.tokens else 'uncertain')
+        origin = flow.request.headers.get('origin')
+        info = dict(case=self.case(flow), kind=kind, capturedAt=time.time()*1000, originState='absent' if origin is None else 'opaque' if origin == 'null' else 'present', length=len(data), sha256=hashlib.sha256(data).hexdigest(), context=self.context, attribution='current' if token in self.tokens else 'uncertain')
         if kind in ('http', 'handshake'):
             info['bodySha256'] = flow.metadata.get('captured_body_hash')
             info['method'] = flow.request.method

@@ -23,7 +23,7 @@ export default async function(c){
    await ev(`(async()=>{const p=peer;globalThis.rtcResult='connecting';p.onconnectionstatechange=()=>rtcResult=p.connectionState;await p.setRemoteDescription(${JSON.stringify(answer)});return true})()`);
    // The first datachannel object is retained via createDataChannel wrapper.
    await ev(`globalThis.rtcSendLabel=${JSON.stringify(label)};globalThis.rtcTimer=setInterval(()=>{if(globalThis.data17?.readyState==='open'){data17.send(rtcSendLabel);clearInterval(rtcTimer)}},50);true`);
-   await delay(6000);const state=await ev('({state:peer.connectionState,ice:peer.iceConnectionState,channel:data17?.readyState})');
+   await delay(6000);const state=await ev('({state:peer.connectionState,ice:peer.iceConnectionState,channel:data17?.readyState,errors:rtcErrors,gathering:peer.iceGatheringState})');
    const receiver=fs.existsSync(out+'/rtc-receiver.jsonl')?fs.readFileSync(out+'/rtc-receiver.jsonl','utf8').trim().split('\n').map(JSON.parse).filter(r=>r.case===label):[];
    await ev('clearInterval(rtcTimer);peer.close();true');log('Q8_WEBRTC',{label,tls,state,receiver});return receiver;
   }
