@@ -84,6 +84,7 @@ async function rpc(m,p){
   if(m==='Check.targets')return chrome.debugger.getTargets();
   if(m==='Check.workerAttach'){const s={targetId:p.targetId};await chrome.debugger.attach(s,'1.3');attached.set(p.targetId,s);await prepare(s,true);return {};}
   if(m==='Check.auto'){for(const s of attached.values())if(s.tabId)await cmd(s,'Target.setAutoAttach',{autoAttach:p.enabled,waitForDebuggerOnStart:p.enabled,flatten:true});return {};}
+  if(m==='Check.primaryAuto')return cmd({tabId:selected},'Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:true,flatten:true});
   if(m==='Check.workerCommand')return cmd({targetId:p.targetId},p.method,p.params);
   if(m==='Check.reload'){setTimeout(()=>chrome.runtime.reload(),100);return {};}
   if(m==='Check.update')return new Promise(resolve=>chrome.runtime.requestUpdateCheck((status,details)=>resolve({status,details})));
