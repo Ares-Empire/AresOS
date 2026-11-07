@@ -29,7 +29,7 @@ async function decide(id,release){
     if(p.kind==='form'){body=new URLSearchParams(JSON.parse(d.fields)).toString();if(method==='GET'){url+=(url.includes('?')?'&':'?')+body;body=null;}}
     allowance={url,method,body,source:p.source,inPage:true};allowances.push(allowance);
   }
-  try{const result=await pageCall(p,release);if(release&&!(Array.isArray(result)?result[0]?.result:result.result?.value))throw Error('CALL_GONE_OR_CHANGED');}catch(e){const i=allowances.indexOf(allowance);if(i>=0)allowances.splice(i,1);throw e;}emit('check.decision',{id,release});
+  try{const result=await pageCall(p,release);if(release&&!(Array.isArray(result)?result[0]?.result:result.result?.value))throw Error('CALL_GONE_OR_CHANGED');}catch(e){const i=allowances.indexOf(allowance);if(i>=0)allowances.splice(i,1);if(!release&&/No document with id|No frame with id|No session with given id|Target closed/.test(String(e)))emit('check.dropGone',{id,error:String(e)});else throw e;}emit('check.decision',{id,release});
 }
 async function stop(reason){active=false;for(const p of [...pending.values()]){try{await decide(p.id,false);await pageCall(p,false,true)}catch(e){emit('check.dropGone',{id:p.id,error:String(e)})}}await badge(false);for(const s of attached.values())await cmd(s,'Runtime.evaluate',{expression:'globalThis.__hold17?.end()'}).catch(()=>{});for(const s of attached.values())await chrome.debugger.detach(s).catch(()=>{});attached.clear();allowances.length=0;emit('check.stopped',{reason});}
 async function gate(source,p){
