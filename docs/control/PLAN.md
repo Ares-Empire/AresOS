@@ -87,6 +87,11 @@ Three places, each with one job:
      Draft 9 puts Chrome's own blocking rules under every hold; 17d checks the Chrome facts that rests on: the rules
      act before the request stage, at browser start, for every worker, and an allowance can't outlive control;
      which storage writes Chrome reports; what the tool sees of a blocked request's body.
+     **Done 2026-11-07 (PR #8, CI green twice on `bf4ff66`): the floor does not hold.** Chrome's rules block every
+     non-reading request before the request stage, also at browser start and from workers; but WebSockets opened by
+     shared and service workers bypass every extension rule (Chrome 157 doesn't show them to extensions), and a
+     different send matching an approved send's allowance escapes when control ends while it is paused (24 of 24
+     trials). The frontier re-check 7 weighs a fail-closed boundary outside Chrome before brief 20.
 1. **Design** (`docs/design/CONTROL.md`): done 2026-11-07. Draft 6 after the frontier review (8 blocking) and five
    re-checks (7, 4, 1, 1, then none: ready for brief 18). The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
    with it.
@@ -195,3 +200,7 @@ tasks at any time.
   design draft 9 answers them (Chrome's own blocking rules as the floor under every hold, a guard that ends by itself
   only on evidence). Brief 17d (check of that floor) running; one more frontier re-check after it, then brief 20.
   Owner asked (#67): the strict guard.
+- **2026-11-07, 11:40:** 17d done (PR #8, CI green twice on `bf4ff66`): Chrome's own rules don't make a floor that
+  holds (worker WebSockets bypass them; an allowance lets a different send out when control ends at that instant).
+  Brief 20 waits. Frontier re-check 7 (options: a local checkpoint outside Chrome that every browser request passes
+  through, or a narrower Chrome) running; the owner decides with its result.
