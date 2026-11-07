@@ -167,7 +167,7 @@ class ReviewFixes2(MailCase):
                 self.assertTrue(saved['ok'], saved)
                 path = Path(saved['data']['path'])
                 self.assertEqual(path.read_bytes(), originals[index])
-                self.assertIn(codec.AUTHORED_HEADER.encode(), path.read_bytes())
+                self.assertEqual(codec.AUTHORED_HEADER.encode() in path.read_bytes(), index == 0)
                 if index:
                     self.assertIn(b'Bcc: private-roundtrip@mail.invalid', path.read_bytes())
                 for variant, prefix, suffix in (('original',b'', '.eml'), ('renamed',b'', '.txt'),

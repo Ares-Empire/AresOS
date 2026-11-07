@@ -76,6 +76,13 @@ class ReviewFixes(MailCase):
                         args = {'account':'box', 'mode':mode, 'reference':ref}
                         if style:
                             args.update(forward_as=style, to=['one@mail.invalid'])
+                        if style == 'attachment':
+                            result = self.call('compose', args)
+                            self.assertFalse(result['ok'], result)
+                            self.assertEqual(result['error']['code'], 'file_refused')
+                            self.assertIn('mode=draft', result['error']['message'])
+                            self.assertIn('forward it inline', result['error']['message'])
+                            continue
                         comp = self.data('compose', args)
                         result = self.prepare(comp)
                         if len(text) > 20000:

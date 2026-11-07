@@ -91,8 +91,12 @@ class RebuildAndGuard(unittest.TestCase):
         for kind in ('rfc822', 'global'):
             for encoding in ('base64', 'quoted-printable'):
                 raw = encapsulated(encapsulated(inner, kind, encoding), kind, encoding)
+                with self.assertRaisesRegex(Refused, 'Drafts cannot be attachments'):
+                    codec.rebuild(raw)
+                raw = encapsulated(encapsulated(inner.replace(b'X-AresOS-Authored: 1\r\n', b''), kind, encoding), kind, encoding)
                 clean, texts = codec.rebuild(raw)
-                self.assertIn('Full authored nested words', ''.join(texts))
+                self.assertEqual(texts, [])
+                self.assertTrue(any(b'Full authored nested words' in data for _, data in decoded_nodes(clean)))
                 for headers, data in decoded_nodes(clean):
                     self.assertLessEqual({k.lower() for k in headers}, MESSAGE_HEADERS | MIME_HEADERS)
                     self.assertNotIn(b'private@mail.invalid', data)
@@ -100,13 +104,9 @@ class RebuildAndGuard(unittest.TestCase):
                     self.assertNotIn(b'X-AresOS-Authored:', data)
                 self.assertNotIn(b'X-AresOS-Authored:', clean)
                 guard.check(clean, [], texts)
-                with self.assertRaises(Refused):
-                    guard.check(clean, [], [])
-        # A Drafts source needs disclosure even without an authored marker.
-        clean, texts = codec.rebuild(inner.replace(b'X-AresOS-Authored: 1\r\n', b''), authored=True)
-        self.assertIn('Full authored nested words', ''.join(texts))
-        with self.assertRaises(Refused):
-            guard.check(wrapper(clean), ['Full authored text'], [])
+        # Round 5: Drafts provenance refuses even without a marker.
+        with self.assertRaisesRegex(Refused, 'Drafts cannot be attachments'):
+            codec.rebuild(inner.replace(b'X-AresOS-Authored: 1\r\n', b''), authored=True)
 
     def test_review4_implicit_digest_default_is_preserved_at_every_depth(self):
         for with_from in (False, True):
@@ -141,7 +141,8 @@ class RebuildAndGuard(unittest.TestCase):
         folded = b'Subject: Folded\r\n X-AresOS-Authored \t: 1\r\n\r\nFull folded authored words\r\n'
         with self.assertRaises(Refused):
             guard.check(wrapper(folded), ['Full authored text'], [])
-        guard.check(wrapper(folded), ['Full authored text'], ['Full folded authored words'])
+        with self.assertRaises(Refused):
+            guard.check(wrapper(folded), ['Full authored text'], ['Full folded authored words'])
         # The checker has no import, dynamic import or builder-helper dependency.
         imports = [node for node in ast.walk(ast.parse(Path(guard.__file__).read_text())) if isinstance(node, (ast.Import, ast.ImportFrom))]
         self.assertFalse(any('codec' in ast.dump(node) for node in imports))
@@ -153,7 +154,6 @@ class RebuildAndGuard(unittest.TestCase):
                      'Date: Sat, 07 Nov 2026 10:00:00 +0000\nSubject: Prior subject\n'
                      'To: one@mail.invalid\nCc: \n\nEntire inline body')
         msg = EmailMessage(policy=codec.SMTP_POLICY)
-        msg[codec.AUTHORED_HEADER] = '1'
         msg.set_content(forwarded, cte='quoted-printable')
         guard.check(msg.as_bytes(), [forwarded], [])
         # Exact body integrity is not proof that a by-reference quote was shown.
@@ -162,10 +162,12 @@ class RebuildAndGuard(unittest.TestCase):
         with self.assertRaises(Refused):
             guard.check(msg.as_bytes(), [quoted_marker], [])
         guard.check(msg.as_bytes(), [quoted_marker], [quoted_marker])
-        # A damaged prefix cannot hide a declared encoded MIME entity.
+        # Round 5: a non-text leaf with an incomplete/defective speculative
+        # header block stays opaque. Only declared encodings are interpreted.
         damaged = b'Ordinary prefix\nContent-Transfer-Encoding: base64\n\n' + base64.b64encode(b'Bcc: private@mail.invalid')
-        with self.assertRaises(Refused):
-            guard.check(wrapper(damaged), ['Full authored text'], [])
+        guard.check(wrapper(damaged), ['Full authored text'], [])
+        clean, _ = codec.rebuild(wrapper(damaged))
+        self.assertEqual(codec.decoded(next(codec.parse(clean).iter_attachments())), damaged)
 
     def test_review4_rebuild_and_guard_refuse_depth_size_and_broken_structures(self):
         raw = b'From: peer@mail.invalid\r\nSubject: Deep\r\n\r\nBody\r\n'
