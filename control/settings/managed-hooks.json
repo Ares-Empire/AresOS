@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /bin/sh -c 'if context=$(/usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py hook UserPromptSubmit 2>/dev/null); then printf \"%s\\n\" \"$context\"; fi; exit 0'",
+            "command": "/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /bin/sh -c 'if context=$(/usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py hook UserPromptSubmit 2>/dev/null); then printf \"%s\" \"$context\"; fi; exit 0'",
             "timeout": 15
           }
         ]
