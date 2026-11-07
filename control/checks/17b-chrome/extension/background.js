@@ -2,17 +2,19 @@
 let port, selected, group, mode='hold', backstop=false, nextRule=1, texts=[], publicMode=false, publicDenyAll=false;
 const attached=new Map(), pending=new Map(), history=[], errors=[];
 let permit;
+const denied=new Set();
+const contentKey=p=>JSON.stringify([p.url,p.method,p.body,p.headerHash]);
 const ending=new Map();
-const persist=()=>chrome.storage.session.set({held:[...pending.values()]});
+const persist=()=>chrome.storage.session.set({held:[...pending.values()],denied:[...denied]});
 // Browser-owned debugger state can outlive a crashed extension renderer. Recover only to drop.
-const recovery=(async()=>{const saved=(await chrome.storage.session.get('held')).held||[];for(const p of saved){try{await chrome.debugger.sendCommand(p.source,'Fetch.failRequest',{requestId:p.id,errorReason:'Aborted'});emit('check.recoveredDrop',{id:p.id,url:p.url});}catch(e){emit('check.recoveryUnavailable',{id:p.id,url:p.url,error:String(e)});}}await chrome.storage.session.set({held:[]});})();
+const recovery=(async()=>{const stored=await chrome.storage.session.get(['held','denied']);for(const k of stored.denied||[])denied.add(k);const saved=stored.held||[];for(const p of saved){try{await chrome.debugger.sendCommand(p.source,'Fetch.failRequest',{requestId:p.id,errorReason:'Aborted'});emit('check.recoveredDrop',{id:p.id,url:p.url});}catch(e){emit('check.recoveryUnavailable',{id:p.id,url:p.url,error:String(e)});}}await chrome.storage.session.set({held:[]});})();
 const key=s=>JSON.stringify(s);
 const target=()=>attached.get(selected)||{tabId:selected};
 const command=(s,m,p={})=>chrome.debugger.sendCommand(s,m,p);
 function emit(method,params){history.push({method,params,at:Date.now()});try{port?.postMessage({method,params});}catch{}}
 function matchText(r){const raw=r.url+'\n'+(r.postData||'');return texts.filter(t=>[t,encodeURIComponent(t),encodeURIComponent(t).replace(/%20/g,'+'),JSON.stringify(t).slice(1,-1),btoa(unescape(encodeURIComponent(t)))].some(x=>raw.includes(x)));}
 async function decide(id,release){
-  const p=pending.get(id);if(!p)throw Error('NOT_PENDING');pending.delete(id);await persist();
+  const p=pending.get(id);if(!p)throw Error('NOT_PENDING');pending.delete(id);if(!release)denied.add(contentKey(p));await persist();
   if(p.rule)await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:[p.rule]});
   await command(p.source,release?'Fetch.continueRequest':'Fetch.failRequest',release?{requestId:id}:{requestId:id,errorReason:'Aborted'});
   emit('check.decision',{id,release});
@@ -46,6 +48,7 @@ async function pause(source,p){
     await command(source,matches?'Fetch.continueRequest':'Fetch.failRequest',matches?{requestId:p.requestId}:{requestId:p.requestId,errorReason:'Aborted'});
     emit('check.repeated',{...preview,allowed:!!matches});return;
   }
+  if(denied.has(contentKey(preview))){await command(source,'Fetch.failRequest',{requestId:p.requestId,errorReason:'Aborted'});emit('check.retryDropped',preview);return;}
   if(!port){await command(source,'Fetch.failRequest',{requestId:p.requestId,errorReason:'Aborted'});emit('check.orphanDropped',preview);return;}
   const entry={...preview,source,id:p.requestId,at:Date.now()};
   if(backstop&&source.tabId){

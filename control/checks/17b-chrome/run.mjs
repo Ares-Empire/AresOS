@@ -181,11 +181,12 @@ try{
    for(const release of [true,false]){
      await nav();await evaluate(bridge,'worker()');const id='sw-own-'+release;
      await evaluate(bridge,`navigator.serviceWorker.controller.postMessage({url:'${f.base}/receive?case=${id}'});'ok'`);await delay(500);
-     const p=(await state()).pending.find(p=>p.url.includes(id));const before=arrivals(id).length;if(p)await decide(p,release);const a=await observe(id);if(p){assert.equal(before,0);assert.equal(a.length,release?1:0);audit.set(id,release?1:0);}
+     const p=(await state()).pending.find(p=>p.url.includes(id));const before=arrivals(id).length;if(p)await decide(p,release);if(p&&!release)syncDroppedAt=Date.now();const a=await observe(id);if(p){assert.equal(before,0);assert.equal(a.length,release?1:0);audit.set(id,release?1:0);}
      log('Q2_OWN_SW',{id,release,preview:p,held:!!p,before,arrivals:a});
    }
  }
- for(const release of [true,false])await probe('Q2_SYNC',async()=>{await nav();await evaluate(bridge,'worker()');const id='sw-sync-'+release;const supported=await evaluate(bridge,`navigator.serviceWorker.ready.then(async r=>{if(!r.sync)return false;await r.sync.register('${id}');return true})`);await delay(2500);const p=(await state()).pending.find(p=>p.url.includes(id));const before=arrivals(id).length;if(p)await decide(p,release);const a=await observe(id);if(p){assert.equal(before,0);assert.equal(a.length,release?1:0);audit.set(id,release?1:0);}return {id,release,supported,held:!!p,before,arrivals:a};});
+ let syncDroppedAt;
+ for(const release of [true,false])await probe('Q2_SYNC',async()=>{await nav();await evaluate(bridge,'worker()');const id='sw-sync-'+release;const supported=await evaluate(bridge,`navigator.serviceWorker.ready.then(async r=>{if(!r.sync)return false;await r.sync.register('${id}');return true})`);await delay(2500);const p=(await state()).pending.find(p=>p.url.includes(id));const before=arrivals(id).length;if(p)await decide(p,release);if(p&&!release)syncDroppedAt=Date.now();const a=await observe(id);if(p){assert.equal(before,0);assert.equal(a.length,release?1:0);audit.set(id,release?1:0);}return {id,release,supported,held:!!p,before,arrivals:a};});
  await bridge.send('Network.setBypassServiceWorker',{bypass:true});
  for(const kind of ['fetch','xhr','form'])for(const release of [true,false]){await nav();const id='bypass-'+kind+'-'+release;const p=await held(id,kind);assert.equal(arrivals(id).length,0);await decide(p,release);log('Q2_BYPASS',{id,release,arrivals:await observe(id,release?1:0)});}
  await bridge.send('Network.setBypassServiceWorker',{bypass:false});await nav();await evaluate(bridge,'worker()');const workerOnly=await evaluate(bridge,"fetch('/worker-only').then(r=>r.text())");await bridge.send('Network.setBypassServiceWorker',{bypass:true});const bypassOnly=await evaluate(bridge,"fetch('/worker-only').then(r=>r.text())");assert.equal(workerOnly,'worker-only fixture response');assert.equal(bypassOnly,'not provided without worker');log('Q2_BYPASS_BREAK',{workerOnly,bypassOnly});
@@ -205,6 +206,10 @@ try{
  // Form stays pending for 30 seconds, then completes one navigation.
  await nav();const form=await held('long-form','form');await screenshot(out,'long-form-held');await delay(30000);assert.equal(arrivals('long-form').length,0);await decide(form,true);await observe('long-form',1);await screenshot(out,'long-form-released');log('Q3_FORM',{arrivals:arrivals('long-form')});
  await nav();
+ assert.ok(syncDroppedAt,'background sync drop was exercised');
+ const retry=await eventually(async()=>(await state()).history.find(r=>r.method==='check.retryDropped'&&r.params.url.includes('case=sw-sync-false')),'natural background-sync retry failed immediately',Math.max(1000,360000-(Date.now()-syncDroppedAt)));
+ assert.equal((await state()).pending.filter(p=>p.url.includes('case=sw-sync-false')).length,0);
+ log('Q2_NATURAL_RETRY',{afterDropMs:retry.at-syncDroppedAt,retry,arrivals:await observe('sw-sync-false',0)});
  }
  if(['all','live-public'].includes(phase)){
  // Q4 detection and handshake: event history is independent of the Fetch gate.
