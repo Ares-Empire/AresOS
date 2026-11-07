@@ -67,7 +67,7 @@ class HeaderRules7(unittest.TestCase):
         for flag, name in [('sent','Sent'), ('drafts','Drafts'), ('trash','Trash'), ('junk','Junk'), ('archive','Archive')]:
             listed.append({'name':name, 'delimiter':'/', 'flags':['\\' + flag.upper()]})
         self.assertEqual(resolve(listed)['special']['trash'], 'Trash')
-        for invalid in (listed[:-1], listed + [dict(listed[3], name='OtherTrash')],
+        for invalid in ([f for f in listed if f['name'] != 'Sent'], listed + [dict(listed[3], name='OtherTrash')],
                         [dict(f, flags=f['flags'] + ['\\Noselect']) if f['name'] == 'Trash' else f for f in listed]):
             with self.assertRaisesRegex(Refused, 'account_folders'):
                 resolve(invalid)
@@ -120,6 +120,15 @@ class ReviewFixes7(MailCase):
             expected['Trash'] = []
         elif kind == 'ambiguous':
             expected['Trash'] = ['Cestino','DuplicateTrash']
+        elif kind == 'no_optional':
+            expected['Junk'] = expected['Archive'] = []
+        elif kind in {'archive', 'junk'}:
+            expected[kind.title()] = ['New' + kind.title()]
+        elif kind.startswith('duplicate_'):
+            role = kind.removeprefix('duplicate_').title()
+            expected[role] = sorted(expected[role] + ['Duplicate' + role])
+        elif kind.startswith('missing_'):
+            expected[kind.removeprefix('missing_').title()] = []
         for _ in range(200):
             with self.mail.transport.imap(self.account) as conn:
                 listed = folders(conn)

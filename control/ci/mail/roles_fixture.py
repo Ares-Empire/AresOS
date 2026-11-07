@@ -14,9 +14,16 @@ import time
 def configuration(base, mode):
     if mode == 'default':
         return base
+    if mode == 'no_optional':
+        return base.replace('special_use = \\Junk', '').replace('special_use = \\Archive', '')
     roles = {'trash':('Cestino','NewTrash','Trash'), 'drafts':('Bozze','NewDrafts','Drafts'),
              'sent':('Posta','NewSent','Sent'), 'missing':('Cestino',None,'Trash'),
-             'ambiguous':(None,'DuplicateTrash','Trash')}
+             'ambiguous':(None,'DuplicateTrash','Trash'),
+             'archive':('Archivio','NewArchive','Archive'), 'junk':('Indesiderata','NewJunk','Junk'),
+             'duplicate_archive':(None,'DuplicateArchive','Archive'), 'duplicate_junk':(None,'DuplicateJunk','Junk'),
+             'missing_archive':('Archivio',None,'Archive'), 'missing_junk':('Indesiderata',None,'Junk'),
+             'missing_sent':('Posta',None,'Sent'), 'missing_drafts':('Bozze',None,'Drafts'),
+             'duplicate_sent':(None,'DuplicateSent','Sent'), 'duplicate_drafts':(None,'DuplicateDrafts','Drafts')}
     old, new, flag = roles[mode]
     if old:
         pattern = r'(mailbox "' + old + r'" \{\s+auto = create\s+special_use = )\\' + flag
