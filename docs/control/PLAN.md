@@ -92,6 +92,12 @@ Three places, each with one job:
      shared and service workers bypass every extension rule (Chrome 157 doesn't show them to extensions), and a
      different send matching an approved send's allowance escapes when control ends while it is paused (24 of 24
      trials). The frontier re-check 7 weighs a fail-closed boundary outside Chrome before brief 20.
+   - **S2e, Chrome (brief 17e, before brief 20):** re-check 7 recommends a local checkpoint owned by the tool service
+     (an intercepting proxy set by Chrome policy, with routing enforced by the OS) that holds each complete send from
+     a guarded site and forwards exactly the approved one, once; if it fails, nothing goes out. 17e answers its
+     eleven questions (bypass, connections opened before a guard, attribution, complete bytes, races, crash points,
+     cancellation, other transports, TLS, guard end, and the owner's cost: robot checks, speed, prompts). The owner
+     decides (#68) whether he accepts a checkpoint that decrypts his browser traffic on his machine.
 1. **Design** (`docs/design/CONTROL.md`): done 2026-11-07. Draft 6 after the frontier review (8 blocking) and five
    re-checks (7, 4, 1, 1, then none: ready for brief 18). The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
    with it.
@@ -204,3 +210,6 @@ tasks at any time.
   holds (worker WebSockets bypass them; an allowance lets a different send out when control ends at that instant).
   Brief 20 waits. Frontier re-check 7 (options: a local checkpoint outside Chrome that every browser request passes
   through, or a narrower Chrome) running; the owner decides with its result.
+- **2026-11-07, 12:20:** re-check 7 recommends the local checkpoint (narrower Chrome rejected: an allowance can't tell
+  competing bodies apart; a patched Chromium is a maintained browser fork). Owner asked (#68). Brief 17e (check of the
+  checkpoint and its cost) running meanwhile, so the answer comes with numbers.
