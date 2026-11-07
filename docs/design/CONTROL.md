@@ -502,8 +502,9 @@ requirement here, with how it is met and how brief 20 tests it.
      text Claude entered, the values Claude chose in the form, and what an adapter decodes as content (a recipient,
      a message, a playlist name). Everything else is withheld behind a placeholder, its name included, because a
      field's name can itself carry data: "[field 3: 412 bytes, not shown]", and for content in no known format
-     "[1,830 bytes in an unknown format, not shown]". The same applies to an address: its site and path are shown,
-     and query fields the tool can't show safely are replaced by placeholders the same way. Cookies and
+     "[1,830 bytes in an unknown format, not shown]". The same applies to an address: its site is shown, and path
+     segments and query fields the tool or an adapter can't show safely are replaced by placeholders the same way
+     (`/reset/<token>` reads `/reset/[segment 2: 43 bytes, not shown]`). Cookies and
      authorisation headers are never shown. This holds in every description, to Claude and to the owner, and in the
      tool service's approval log; the hash still covers the real bytes, so the approval binds exactly what goes. A
      token that hides in a field the tool counts as safe is the residual (brief 20 lists the safe fields).
@@ -533,33 +534,46 @@ requirement here, with how it is met and how brief 20 tests it.
      the checkpoint's user may read it and not change it, and the assistant's and the coding user can't write it.
      Anything that can write that folder as the browser user can weaken these checks, just as it could weaken Chrome's
      own.
-   - **Loading.** The checkpoint picks the version Chrome itself would use (the highest complete one, and never one
-     older than the floor Chrome has built in), loads it only when every file is present and parses against the
-     schema the checkpoint was qualified with, switches over in one step for new connections, and otherwise keeps the
-     last good data. The image ships a copy of each as the floor for a fresh installation. All *brief 20*.
+   - **Loading.** The checkpoint uses the version Chrome itself uses, by Chrome's own effective rules for choosing one
+     (including compatibility and the floor Chrome has built in; "the highest complete version" is only where those
+     rules agree, and brief 20 proves the two choose the same), loads it only when every file is present and parses
+     against the schema the checkpoint was qualified with, switches over in one step for new connections, and
+     otherwise keeps the last good data. The image ships a copy of each as the floor for a fresh installation. All
+     *brief 20*.
    - **A version gate.** Chrome ships pinned in the AresOS image together with a checkpoint qualified for exactly that
      Chrome version, so the two change together. If the running Chrome's version differs from the one the checkpoint
      was qualified for, the owner gets a visible notice: "Chrome is newer than its checkpoint; checks a newer Chrome
      makes may be missing until AresOS is updated" (*brief 20* tests the notice).
-   - **Freshness, from the data's own fields.** File times aren't used. The CT log list carries its own timestamp, and
-     Chrome's own limit applies (70 days, after which Chrome itself stops checking CT; the checkpoint pauses instead).
-     The pin list has its own timestamp and Chrome's own age rule. The CRLSet's expiry field applies when it is set;
-     it is optional. Where a format has no expiry or timestamp (a CRLSet without expiry, the root store, which has
-     only a version), freshness is the time it was last confirmed: when a new version was loaded, or when the
-     checkpoint, which sees Chrome's component update checks pass through it, saw the update server answer "no update"
-     for exactly the version it holds, over a connection that passed every check. That time is kept in its record
-     across restarts. Each kind has an age limit, set in brief 20 from Chrome's own update intervals.
+   - **Freshness, only from evidence.** File times aren't used. Data is as fresh as the last evidence for exactly that
+     version: the checkpoint saw it downloaded through itself, or saw the update server answer "no update" for it over
+     a connection that passed every check (the checkpoint sees Chrome's component update checks pass through it).
+     That time is kept in its record across restarts, tied to the version. Loading bytes that are already on disk
+     (after a restart, the image's own copy, a restored folder) keeps their age; it is not evidence. Without evidence
+     for the version held, its freshness is unknown, which counts as out of date. On top of that, a format's own
+     fields apply where it has them: the CT log list's timestamp with Chrome's own limit (70 days, after which Chrome
+     itself stops checking CT; the checkpoint pauses instead), the pin list's timestamp with Chrome's own age rule,
+     and the CRLSet's expiry when it is set (it is optional). Each kind has an age limit, set in brief 20 from
+     Chrome's own update intervals. *Brief 20:* a first start with only the image's copy (unknown, paused until
+     Chrome's update), a restored folder or record whose evidence doesn't match the version on disk (unknown), and
+     ordinary restarts (age kept).
    - **When data is out of date.** The checkpoint refuses new connections to sites and tells the owner ("Chrome's
      security lists are out of date; new connections are paused until Chrome updates them"), on his desktop and, if
      he takes the approval proposal, on his phone. Recovery has an exact contract:
-     - Only Chrome's own component updates get through: requests that carry no extension tag (so they aren't page
-       traffic), go to Google's update hosts (a fixed list in the image), and have the update protocol's shape: an
-       update check naming only Chrome's own component ids and versions, or the download of exactly the package that
-       a previous update answer named. Everything else, page and worker imitations of these included, waits.
+     - It runs only while the extension is present and its tag coverage is verified (it is connected for this browser
+       run, and its own probe requests from a page and a worker arrive tagged). Only then does a missing tag mean the
+       request didn't come from a page or worker. When attribution is lost, recovery stops and new connections stay
+       paused until the extension is back.
+     - While it runs, only Chrome's own component updates get through: requests that carry no extension tag, go to
+       Google's update hosts (a fixed list in the image), and have the update protocol's shape: an update check naming
+       only Chrome's own component ids and versions, or the download of exactly the package that a previous update
+       answer named. Everything else, page and worker imitations of these included, waits.
      - Every TLS check stays on for these connections, with the last good data; only the age limit is waived, and
        only for them.
      - A signed package authenticates what Chrome installs, not the request that fetched it; the request is judged by
-       its shape and by the absence of a tag, as above.
+       its shape and by the absence of a tag while tag coverage is verified, as above.
+     - *Brief 20:* genuine updates recovering from stale data; matching requests from a page and a worker held while
+       coverage is verified, and held again while the extension is gone (recovery stopped); recovery resuming when it
+       is back.
      - The checkpoint loads the new data only when it is complete and valid (above); a package that fails Chrome's
        signature check isn't installed, and the checkpoint keeps waiting.
    - **Chain:** to a root in that root store, used with its limits (for example roots trusted only for certificates
@@ -849,7 +863,9 @@ list kept only in the browser) without any network send, so the checkpoint can't
   doesn't say what it resets; on an ordinary online site too, for example an unsent draft kept in the browser's
   storage): **owner decides (open, section 10)** between (a) such clicks stay free, and (b) on any site without an
   adapter, every click on something that isn't a link and every action other than plain text editing asks first; an
-  adapter frees only interactions inside its qualified coverage.
+  adapter frees only interactions inside its qualified coverage. Under (b) links stay free, so two ways remain: a
+  link's own click handler can clear a draft kept in the browser, and following a link leaves the page, losing a
+  draft held only in its memory.
 - *Tests (brief 20).* For both options: labelled controls and Delete or Backspace asking before the click; other
   ways to activate a control (Enter or Space on a focused control, a context-menu item, a double click, dragging an
   item onto a bin); a page's own confirmation after a destructive click (part of the same approved action) and a
@@ -858,7 +874,9 @@ list kept only in the browser) without any network send, so the checkpoint can't
   an editable area asking. For (a): an unlabelled control on a fixture that keeps a draft in the browser's storage
   stays free, as he chose. For (b): on a site without an adapter, every click other than a link and plain text
   editing asks, on online and offline fixtures alike; on a site with an adapter, interactions inside its coverage go
-  free and those outside it ask.
+  free and those outside it ask. For both: a fixture with a draft kept in the browser's storage and an
+  ordinary-looking link whose click handler clears it, showing that the link goes free under either option (the
+  disclosed exception).
 
 **What Claude may open freely, and data leaving.** A *site* is a registrable domain by the Public Suffix List
 (including its private part, so every `*.github.io` page is its own site), and areas of big platforms where anyone
@@ -1521,8 +1539,9 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
     such as a draft not yet sent.
   - **(b) Clicks ask on sites without an adapter.** On any site without an adapter, every click on something that
     isn't a link, and every action other than plain text editing, asks first; an adapter frees only what its
-    qualified coverage includes. Nothing kept in the browser is deleted without asking, but most of Claude's work on
-    sites without an adapter becomes a series of questions.
+    qualified coverage includes. That covers every button and icon, but not links: a link's own click handler can
+    still clear a draft kept in the browser, and following a link leaves the page, losing a draft held only in its
+    memory. And most of Claude's work on sites without an adapter becomes a series of questions.
   Recommended: (a), because (b) makes Chrome hard to use on every site without an adapter, and what (a) leaves open
   is limited to data that was never sent anywhere.
 
