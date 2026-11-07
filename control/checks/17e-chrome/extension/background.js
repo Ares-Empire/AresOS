@@ -13,7 +13,7 @@ async function tag(tabId,documentId=crypto.randomUUID()){
  documents.set(tabId,{tabId,documentId,value});return value;
 }
 chrome.webNavigation.onCommitted.addListener(p=>{if(p.frameId===0)tag(p.tabId,p.documentId).catch(()=>{});});
-async function attach(tabId){selected=tabId;if(!attached.has(tabId)){await chrome.debugger.attach({tabId},'1.3');attached.add(tabId);}await cmd('Runtime.enable');await cmd('Page.enable');await tag(tabId);return {tabId};}
+async function attach(tabId){selected=tabId;if(!attached.has(tabId)){await chrome.debugger.attach({tabId},'1.3');attached.add(tabId);}await cmd('Runtime.enable');await cmd('Page.enable');await cmd('Network.enable');await tag(tabId);return {tabId};}
 async function rpc(m,p){
  if(m==='Check.state')return {selected,browserGeneration,documents:[...documents.values()],manifest:chrome.runtime.getManifest()};
  if(m==='Check.tag')return {token:await tag(selected,p.documentId)};

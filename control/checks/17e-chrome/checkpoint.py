@@ -55,18 +55,29 @@ def fatal_addon_error():
 addonmanager.safecall = fatal_addon_error
 
 original_body_size = http_layer.HttpStream.check_body_size
+original_consume = http_layer.HttpStream.state_consume_request_body
 
 
 def body_size(self, request):
-    result = yield from original_body_size(self, request)
-    if request and self.flow.metadata.pop('checkpoint_oversized', False):
-        # The stock HTTP/1 size error can leave a large uploader pending while
-        # its unread body is backpressured. End this client connection explicitly.
-        yield commands.CloseConnection(self.context.client)
-    return result
+    if request:
+        declared = self.flow.request.headers.get('content-length')
+        if declared is not None and int(declared) > MAX_BODY:
+            self.flow.metadata['checkpoint_oversized'] = True
+            return False
+    return (yield from original_body_size(self, request))
+
+
+def consume(self, event):
+    if self.flow.metadata.get('checkpoint_oversized') and isinstance(event, http_layer.RequestData):
+        # Drain rejected finite uploads without buffering or sending any byte
+        # upstream. Chrome can otherwise leave fetch pending on an early close.
+        yield from ()
+    else:
+        yield from original_consume(self, event)
 
 
 http_layer.HttpStream.check_body_size = body_size
+http_layer.HttpStream.state_consume_request_body = consume
 
 
 def fail_closed(handler):
@@ -311,9 +322,7 @@ class Checkpoint:
         if declared is not None and int(declared) > MAX_BODY:
             self.record('refused', case=self.case(flow), reason='declared-body-limit', limit=MAX_BODY)
             flow.metadata['checkpoint_oversized'] = True
-            # A synthetic response still waits for the unstreamed upload to
-            # finish. Kill at the headers hook to give the page a prompt failure.
-            flow.kill()
+            flow.response = http.Response.make(413, b'Checkpoint: operation exceeds 32 MiB limit')
             return
         # Reject a page's arbitrary CONNECT tunnel. Chrome's outer CONNECT is
         # handled by the proxy before this decrypted HTTP request hook.
@@ -322,6 +331,9 @@ class Checkpoint:
 
     @fail_closed
     async def request(self, flow):
+        if flow.metadata.get('checkpoint_oversized'):
+            flow.response = http.Response.make(413, b'Checkpoint: operation exceeds 32 MiB limit')
+            return
         if flow.response:
             return
         if flow.request.host.endswith(('.googleapis.com', '.google.com')):
