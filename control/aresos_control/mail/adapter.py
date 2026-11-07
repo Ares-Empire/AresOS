@@ -447,6 +447,8 @@ class Mail:
         else:
             root_texts = [text + generated]
         disclosed = [t for att in mail["attachments"] for t in att.get("authored_text", [])]
+        if all("text" in part for part in mail["generated_parts"] if part["kind"] != "draft_html"):
+            disclosed.extend(root_texts)
         check(raw, root_texts, disclosed, draft)
 
     def message_id(self, operation_id):

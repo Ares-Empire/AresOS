@@ -186,7 +186,10 @@ def check(raw, root_texts, disclosed_texts, draft=False):
             if marked and major == "text" and not root_body and normalized(readable(headers, payload)) not in disclosed_texts:
                 refuse("authored text is not shown in full in the approval")
             marker_allowed = major == "text" and normalized(readable(headers, payload)) in allowed_texts if (own_marker or re.search(rb"(?im)^[ \t]*x-aresos-authored[ \t]*:", payload)) else False
-            lines(payload, marker_allowed=marker_allowed)
+            # Expected body bytes may include quotes approved only by reference.
+            # A literal marker in those bytes needs actual full disclosure too.
+            payload_disclosed = major == "text" and normalized(readable(headers, payload)) in disclosed_texts
+            lines(payload, marker_allowed=payload_disclosed)
             if own_marker and not marker_allowed:
                 refuse("marked non-text payload cannot be disclosed safely")
 

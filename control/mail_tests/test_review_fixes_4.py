@@ -156,6 +156,12 @@ class RebuildAndGuard(unittest.TestCase):
         msg[codec.AUTHORED_HEADER] = '1'
         msg.set_content(forwarded, cte='quoted-printable')
         guard.check(msg.as_bytes(), [forwarded], [])
+        # Exact body integrity is not proof that a by-reference quote was shown.
+        quoted_marker = 'External quote\n\nX-AresOS-Authored: 1\nHidden quoted words'
+        msg.set_content(quoted_marker, cte='quoted-printable')
+        with self.assertRaises(Refused):
+            guard.check(msg.as_bytes(), [quoted_marker], [])
+        guard.check(msg.as_bytes(), [quoted_marker], [quoted_marker])
         # A damaged prefix cannot hide a declared encoded MIME entity.
         damaged = b'Ordinary prefix\nContent-Transfer-Encoding: base64\n\n' + base64.b64encode(b'Bcc: private@mail.invalid')
         with self.assertRaises(Refused):
