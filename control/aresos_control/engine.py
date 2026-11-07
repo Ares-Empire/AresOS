@@ -31,9 +31,15 @@ class Engine:
         return op
 
     def notices(self, app=None):
-        return [{"operation_id": n["id"], "app": n["app"], "state": n["state"],
-                 "untrusted_content": n["untrusted_content"]}
-                for _, n in self.store.items("notice:") if not n.get("ack") and (app is None or n["app"] == app)]
+        from .mail.filing import notice_page
+        page = notice_page(self.store, app=app)
+        if not page['items']:
+            return {}
+        result = {'notices': page['items']}
+        if page['cursor']:
+            result['notices_more'] = {'count': page['total'] - len(page['items']),
+                                      'action': 'mail_filing_notices'}
+        return result
 
     def pending(self, app=None, args=None):
         values = [{"operation_id": op["id"], "app": op["app"], "state": op["state"],
@@ -43,8 +49,7 @@ class Engine:
         # Notifications stay compact; operation_status has the full description, never a truncated approval.
         summaries = [{k: v for k, v in op.items() if k != "description"} for op in values]
         notices = self.notices(app)
-        return self.page(summaries, args or {}, "pending") | {"restore_required": self.store.locked} | (
-            {"notices": notices} if notices else {})
+        return self.page(summaries, args or {}, "pending") | {"restore_required": self.store.locked} | notices
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0
@@ -203,7 +208,7 @@ class Engine:
                     entry["untrusted_content"] = event["untrusted_content"]
                 entries.append(entry)
             notices = self.notices()
-            return self.page(entries, args, "log:" + day) | ({"notices": notices} if notices else {})
+            return self.page(entries, args, "log:" + day) | notices
         app, verb = action.app, action.verb
         adapter = self.adapters[app]
         if verb.startswith("prepare_"):
@@ -234,7 +239,8 @@ class Engine:
             if notice and notice["app"] == app:
                 notice["ack"] = True
                 self.store.write({"notice:" + notice["id"]: notice}, name, "filing notice acknowledged")
-                return {"notice": notice}
+                from .mail.filing import public_notice
+                return {"notice": {**public_notice(self.store, notice), "id": notice["id"], "ack": True}}
             op = self.operation(args["operation_id"], app)
             if not op.get("notice"):
                 raise Refused("refused", "Only cancelled/expired notices may be acknowledged; unresolved work stays visible.")

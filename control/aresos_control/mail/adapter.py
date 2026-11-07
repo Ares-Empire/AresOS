@@ -907,8 +907,12 @@ class Mail:
     def call(self, verb, args):
         if verb == "account_add":
             raise Refused("terminal_required", "Owner must run sudo aresos admin mail account add; password is read only from terminal over admin.sock.")
-        read = verb in {"accounts", "folders", "search", "read", "thread", "contacts"}
+        read = verb in {"accounts", "folders", "search", "read", "thread", "contacts", "filing_locations", "filing_notices"}
         summary = {k: v for k, v in args.items() if k in {"account", "id", "reference", "references", "target", "name", "folder", "part", "composition_id", "previous", "add", "remove"}}
+        if verb in {"move", "copy"}:
+            from .filing import short_name
+            summary = {"message_count": len(args["references"]),
+                       "target": short_name(args.get("target", args.get("target_role", "")))}
         if not read:
             self.store.write({}, "mail_" + verb, "starting Mail change", outcome="started", untrusted_content=summary)
         try:
@@ -922,6 +926,12 @@ class Mail:
         return result
 
     def _call(self, verb, args):
+        if verb == "filing_locations":
+            from .filing import location_page
+            return location_page(self.store, args)
+        if verb == "filing_notices":
+            from .filing import notice_page
+            return notice_page(self.store, args, app="mail")
         if verb == "account_folders":
             account = self.account(args["id"], ready=False)
             with self.transport.imap(account) as client:

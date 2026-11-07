@@ -1,10 +1,11 @@
 """Free filing with durable intent and reporting only after role drift."""
 import imaplib
 import re
+import time
 import uuid
 
 from ..adapters import Uncertain
-from ..common import Refused, sha256, visible
+from ..common import Refused, canonical, digest, sha256, visible
 from .roles import resolve
 from .transport import folders, select, uids, fetch, ok, quote
 
@@ -52,31 +53,139 @@ def folder_role(name, listed):
     return ', '.join(sorted(set(roles))) or 'an ordinary folder'
 
 
+# Leave room for the pending catalogue and its repeated notices in a 48 KiB result.
+NOTICE_LIMIT = 3
+FOLDER_LIMIT = 3
+FOLDER_CHARS = 64
+LOCATION_PAGE_BYTES = 12 * 1024
+
+
+def short_name(name):
+    return name[:FOLDER_CHARS] + ('…' if len(name) > FOLDER_CHARS else '')
+
+
 def warning(verb, listed, observed, changed):
     action = 'moving' if verb == 'move' else 'copying'
     reason = ('The special folders changed while Claude was ' + action + ' these messages. '
               if changed else 'Filing could not be fully verified while Claude was ' + action + ' these messages. ')
     reason += 'Nothing was deleted. '
-    for item in observed:
-        destination = item['last_known_destination']
-        source = item['source']
-        matches = item['observed_locations']
-        if destination and destination in matches:
-            reason += ('They' if verb == 'move' else 'The copies') + ' are now in ' + visible(destination['folder'])
+    filed = [item for item in observed if item['last_known_destination']]
+    if filed:
+        destination = filed[0]['last_known_destination']
+        if all(item['last_known_destination'] in item['observed_locations'] for item in filed):
+            reason += ('They' if verb == 'move' else 'The copies') + ' are now in ' + short_name(destination['folder'])
             reason += ', which is now ' + folder_role(destination['folder'], listed)
-        elif destination:
-            reason += 'The last known destination is ' + visible(destination['folder'])
-            reason += ' (UIDVALIDITY ' + str(destination['uidvalidity']) + ', UID ' + str(destination['uid']) + '); its current location could not be verified'
-        elif source in matches:
-            reason += 'The message stayed in ' + visible(source['folder'])
         else:
-            reason += 'No exact destination was confirmed for the message from ' + visible(source['folder'])
+            reason += 'The last known destination is ' + short_name(destination['folder']) + '; its current location could not be verified'
         if verb == 'copy':
-            reason += '; the originals ' + ('stayed in ' if source in matches else 'could not be verified in ') + visible(source['folder'])
+            present = all(item['source'] in item['observed_locations'] for item in observed)
+            source_names = {item['source']['folder'] for item in observed}
+            source_text = short_name(next(iter(source_names))) if len(source_names) == 1 else 'their source folders'
+            reason += '; the originals ' + ('stayed in ' if present else 'could not be verified in ') + source_text
         reason += '. '
-        if not item['scan_complete']:
-            reason += 'The location scan was interrupted; the listed observations are incomplete. '
+    else:
+        reason += 'No exact destination was confirmed. '
+    if len(filed) != len(observed):
+        reason += 'Some messages were not confirmed filed; read the exact location pages. '
+    if any(not item['scan_complete'] for item in observed):
+        reason += 'The location scan was interrupted; the listed observations are incomplete. '
     return reason + 'Check them in your mail program.'
+
+
+def summary(intent):
+    names = {intent['target']} | {r['folder'] for r in intent['sources']}
+    names.update(ref['folder'] for item in intent.get('locations', []) for ref in item['observed_locations'])
+    return {'reason': intent['reason'], 'filing_id': intent['id'], 'message_count': len(intent['sources']),
+            'folders': [short_name(name) for name in sorted(names)[:FOLDER_LIMIT]],
+            'folders_more': max(0, len(names) - FOLDER_LIMIT),
+            'folders_more_text': 'and ' + str(len(names) - FOLDER_LIMIT) + ' more' if len(names) > FOLDER_LIMIT else ''}
+
+
+def public_notice(store, notice):
+    content = notice['untrusted_content']
+    # Old round-10 notices may already contain megabytes. Do not repeat their detail.
+    if 'locations' in content:
+        intent = store.get('mail:filing:' + notice['id'])
+        if intent:
+            intent['reason'] = warning(intent['verb'], None, intent.get('locations', []), True)
+            content = summary(intent)
+        else:
+            content = {'filing_id': notice['id'], 'reason': 'Filing needs inspection. Nothing was deleted. Check the exact location pages and your mail program.'}
+    return {'operation_id': notice['id'], 'app': notice['app'], 'state': notice['state'],
+            'untrusted_content': visible(content)}
+
+
+def notice_page(store, args=None, app=None):
+    args = args or {}
+    values = [n for _, n in store.items('notice:') if not n.get('ack') and (app is None or n['app'] == app)]
+    values.sort(key=lambda n: (n.get('created_at', 0), n['id']), reverse=True)
+    token = digest(['filing-notices', app, [n['id'] for n in values]])
+    offset = 0
+    if 'cursor' in args:
+        try:
+            version, index = args['cursor'].split(':')
+            offset = int(index)
+            if version != token or not 0 <= offset <= len(values):
+                raise ValueError()
+        except ValueError as exc:
+            raise Refused('stale_reference', 'Notices changed; read again without cursor.') from exc
+    end = min(offset + args.get('limit', NOTICE_LIMIT), len(values))
+    return {'items': [public_notice(store, n) for n in values[offset:end]], 'total': len(values),
+            'cursor': f'{token}:{end}' if end < len(values) else None}
+
+
+def location_pages(observed):
+    # Ordinary records remain structured. A single record can itself be enormous
+    # (identical wire bytes at thousands of UIDs, or one long Message-ID).
+    # JSON fragments preserve that record without truncation or an oversize page.
+    pages, page = [], {'locations': [], 'fragments': []}
+    for index, item in enumerate(observed):
+        item = visible(item)
+        encoded = canonical(item)
+        if len(encoded) > LOCATION_PAGE_BYTES - 100:
+            if page['locations']:
+                pages.append(page)
+                page = {'locations': [], 'fragments': []}
+            # canonical() is ASCII; serializing this string costs at most twice
+            # its length. Fragments concatenate before JSON decoding.
+            for offset in range(0, len(encoded), 6000):
+                pages.append({'locations': [], 'fragments': [{'message_index': index, 'offset': offset,
+                    'total_characters': len(encoded), 'json': encoded[offset:offset + 6000]}]})
+        else:
+            candidate = {'locations': page['locations'] + [item], 'fragments': []}
+            if len(canonical(candidate)) > LOCATION_PAGE_BYTES:
+                pages.append(page)
+                page = {'locations': [item], 'fragments': []}
+            else:
+                page = candidate
+    if page['locations'] or not pages:
+        pages.append(page)
+    return pages
+
+
+def location_page(store, args):
+    filing_id = args['filing_id']
+    prefix = 'mail:filing-locations:' + filing_id + ':'
+    meta = store.get(prefix + 'meta')
+    legacy_pages = None
+    if meta is None:
+        intent = store.get('mail:filing:' + filing_id)
+        if not intent or 'locations' not in intent:
+            raise Refused('stale_reference', 'No recorded filing locations for this id; inspect the filing audit entry.')
+        legacy_pages = location_pages(intent['locations'])
+        meta = {'pages': len(legacy_pages), 'total_messages': len(intent['locations'])}
+    offset = 0
+    if 'cursor' in args:
+        try:
+            owner, index = args['cursor'].split(':')
+            offset = int(index)
+            if owner != filing_id or not 0 <= offset < meta['pages']:
+                raise ValueError()
+        except ValueError as exc:
+            raise Refused('stale_reference', 'Location cursor belongs to another filing or page; read again without cursor.') from exc
+    page = legacy_pages[offset] if legacy_pages is not None else store.get(prefix + str(offset))
+    return {'filing_id': filing_id, 'total_messages': meta['total_messages'], 'untrusted_content': page,
+            'cursor': f'{filing_id}:{offset + 1}' if offset + 1 < meta['pages'] else None}
 
 
 def file_messages(mail, account, client, verb, refs, target, names, needed):
@@ -87,13 +196,18 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
                for source in refs]
     intent = {'id': intent_id, 'verb': verb, 'sources': refs, 'target': target, 'state': 'started', 'records': records}
 
-    def record(state, notice=None):
+    def record(state, notice=None, pages=None):
         intent['state'] = state
         changes = {key: intent}
         if notice:
             changes['notice:' + intent_id] = notice
+        if pages is not None:
+            prefix = 'mail:filing-locations:' + intent_id + ':'
+            changes.update({prefix + str(i): page for i, page in enumerate(pages)})
+            changes[prefix + 'meta'] = {'pages': len(pages), 'total_messages': len(records)}
         mail.store.write(changes, 'mail_' + verb, 'Filing intent ' + intent_id,
-                         outcome=state, untrusted_content={'filing': intent})
+                         outcome=state, untrusted_content={'filing': {'filing_id': intent_id, 'state': state,
+                             'message_count': len(records), 'locations_action': 'mail_filing_locations'}})
 
     baseline = mail.fresh_roles(account, client, names=names, needed=needed)
     record('started')  # Durable before the first remote mutation; restart never resumes it.
@@ -132,8 +246,12 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
     # Preserve every surviving copy; only ordinary owner-approved deletion cleans up.
     observed = locations(mail, account, records)
     reason = warning(verb, listed, observed, changed)
-    content = {'reason': reason, 'locations': observed, 'filing_id': intent_id}
-    notice = {'id': intent_id, 'app': 'mail', 'state': 'partial', 'untrusted_content': content, 'ack': False}
     intent.update(reason=reason, locations=observed)
-    record('partial', notice)
-    return {'state': 'partial', 'items': [], 'reason': reason, 'untrusted_content': content}
+    content = summary(intent)
+    notice = {'id': intent_id, 'app': 'mail', 'state': 'partial', 'untrusted_content': content,
+              'ack': False, 'created_at': time.time_ns()}
+    pages = location_pages(observed)
+    record('partial', notice, pages)
+    first = location_page(mail.store, {'filing_id': intent_id})
+    return {'state': 'partial', 'items': [], 'reason': visible(reason),
+            'untrusted_content': {**visible(content), **first['untrusted_content'], 'cursor': first['cursor']}}

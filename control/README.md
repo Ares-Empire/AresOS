@@ -414,7 +414,7 @@ keys and caller save paths are structured inside escaped `untrusted_content`;
 `control_log` and `aresos log` also mark historical Mail summaries. A mail's
 instructions never become instructions from the audit service.
 
-### Mail rounds 9–10: filing warnings and blob exports
+### Mail rounds 9–11: filing warnings and blob exports
 
 Each role root records its own LIST hierarchy separator. Required-role separator
 changes need the owner's folder setup review; old Trash and Drafts roots keep their
@@ -423,12 +423,23 @@ same owner setup step; separators are read from each listed root, never INBOX.
 
 Free move/copy requires UIDPLUS. A durable filing intent records source references,
 target and per-message progress before acting. After each MOVE/COPY, any role drift
-stops the batch with a partial result and exact COPYUID destinations plus observed
-folder/UID locations and scan completeness. Nothing is moved back or deleted; copies
+stops the batch with a partial result, a compact warning, filing id and counts,
+and the first bounded page of exact COPYUID destinations, observed locations and
+scan completeness. Nothing is moved back or deleted; copies
 are never expunged. Missing COPYUID is partial even when role names remain stable.
 Connection loss during reporting preserves observations so far and records partial.
-The same plain-language warning stays in every following Mail result's pending
-notices and in `aresos log`, including on later days, until `mail_notice_ack` receives
+The newest three compact unacknowledged warnings stay in following Mail results'
+pending notices and in `aresos log`, including on later days; a count points to
+`mail_filing_notices` to page all remaining warnings. Each warning includes the
+filing id, affected-message count and at most three folder names of 64 characters
+(with an ellipsis for longer names and "and N more" for additional folders).
+Exact references remain stored internally and come from `mail_filing_locations`
+with that filing id, following its cursor until null. Pages stay below 12 KiB of
+location content. A single oversized per-message record uses ordered JSON
+fragments instead: concatenate by message_index/offset, then decode JSON once.
+All returned display values escape controls and bidi like audit entries; stored
+references keep their exact values. Location pages remain readable after restart
+and acknowledgment. `mail_notice_ack` receives
 its filing_id as operation_id. This acknowledges the warning only; cleanup requires
 ordinary named `mail_delete` approval. It creates no approval operation. An interrupted
 intent stays visible in the audit log; restart never resumes filing or tries recovery.
