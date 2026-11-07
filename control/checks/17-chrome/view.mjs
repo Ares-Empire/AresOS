@@ -55,7 +55,8 @@ export class PageView {
           const state={};
           for(const prop of ['checked','selected','disabled','required','invalid','expanded','focused','modal','multiselectable'])if(prop in properties)state[prop]=properties[prop];
           const onScreen=!!box && box[0]<size.width&&box[1]<size.height&&box[0]+box[2]>0&&box[1]+box[3]>0;
-          const row={ref,frame:f.id,role,name,...(n.value?{value:n.value.value}:{}),state,box,onScreen};
+          const value=n.value?.value??(['textbox','searchbox','combobox','Date','spinbutton'].includes(role)?'':undefined);
+          const row={ref,frame:f.id,role,name,...(value!==undefined?{value}:{}),state,box,onScreen};
           all.push(row);
           if(ref)this.refs.set(ref,{cdp,frameId:f.id,loaderId:f.loaderId,backendNodeId:n.backendDOMNodeId,contextId:world.executionContextId,role,name});
         }

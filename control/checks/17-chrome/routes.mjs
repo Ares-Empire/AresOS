@@ -7,7 +7,7 @@ import {promisify} from 'node:util';
 import {createHash} from 'node:crypto';
 import {launch,address,key,x,delay,loadUnpacked,screenshot,stopChrome} from './ui.mjs';
 import {websocket,session,evaluate,eventually} from './protocol.mjs';
-import {save,readAndAct,holdChecks} from './checks.mjs';
+import {save,readAndAct,holdChecks,disconnectProbe} from './checks.mjs';
 import {installExternal} from './install.mjs';
 
 const require=createRequire(import.meta.url);
@@ -38,23 +38,22 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     const context=browser.contexts()[0];
     const page=await eventually(()=>context.pages().find(p=>p.url()===fixture.base+'/owner'),'Playwright selected existing tab');
     assert.match(await page.locator('body').innerText(),/Signed in: synthetic member/);
-    const cdp=await context.newCDPSession(page);
+    // Public newCDPSession asks for a browser-target session, which chrome.debugger rejects.
+    // For this pinned experiment, reuse the page session already owned by the upstream bridge.
+    const impl=page._connection.toImpl(page),delegate=impl.delegate;
+    const cdp=delegate._mainFrameSession._client;
     await screenshot(out,'playwright-attached');
     console.log('ATTACH_PLAYWRIGHT PASS','extension 0.5.0, engine 1.65.0; existing signed-in tab');
-    const childSessions=new Map();
     const frameSessions=async()=>{
-      const live=page.frames().filter(f=>f!==page.mainFrame());
-      for(const [f,c]of childSessions)if(!live.includes(f)){await c.detach().catch(()=>{});childSessions.delete(f);}
-      for(const f of live)if(!childSessions.has(f)){try{childSessions.set(f,await context.newCDPSession(f));}catch{/* Same-process frame uses the parent CDP session. */}}
-      return [...childSessions].map(([f,c])=>({sessionId:f._guid,cdp:c}));
+      return [...delegate._sessions.values()].filter(s=>s!==delegate._mainFrameSession).map(s=>({sessionId:s._targetId,cdp:s._client}));
     };
-    results.playwright={metrics:await readAndAct(cdp,fixture,out,'playwright',()=>page.locator('body').ariaSnapshot(),frameSessions),holds:await holdChecks(cdp,fixture,out,'playwright')};
+    results.playwright={metrics:await readAndAct(cdp,fixture,out,'playwright',options=>page.ariaSnapshot(options),frameSessions),holds:await holdChecks(cdp,fixture,out,'playwright')};
     try{
       const peer=await promisify(execFile)(process.execPath,[path.join(here,'peer-probe.mjs'),'playwright',info.endpoint,page.url()],{timeout:6000});
       results.playwright.peer={result:'another same-UID process reused the bound endpoint without new Chrome consent',output:peer.stdout.trim()};
     }catch(e){results.playwright.peer={result:'peer could not reuse endpoint',output:e.stdout?.trim(),error:e.message};}
     console.log('PLAYWRIGHT_SAME_UID_PEER',JSON.stringify(results.playwright.peer));
-    await browser.close();browser=undefined;await stopChrome(chrome);chrome=undefined;
+    results.playwright.disconnect=await disconnectProbe(cdp,fixture,out,'playwright',async()=>browser.close());browser=undefined;await stopChrome(chrome);chrome=undefined;
 
     // Consent-based debugging is enabled from chrome://inspect, never via launch switches.
     chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-consent.log'));await delay(2800);
@@ -77,7 +76,7 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     await screenshot(out,'consent-attached');
     console.log('ATTACH_CONSENT PASS','running Linux stable; owner enabled inspect and approved connection; TCP port='+port);
     results.consent={metrics:await readAndAct(cdpConsent,fixture,out,'consent'),holds:await holdChecks(cdpConsent,fixture,out,'consent')};
-    raw.close();raw=undefined;
+    results.consent.disconnect=await disconnectProbe(cdpConsent,fixture,out,'consent',async()=>raw.close());raw=undefined;
     await stopChrome(chrome);chrome=undefined;
   } finally {
     save(out,'other-routes',results);

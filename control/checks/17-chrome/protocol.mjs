@@ -48,9 +48,10 @@ export async function websocket(endpoint){
 }
 export function session(client,sessionId){
   const s=new EventEmitter();
-  s.send=(m,p={})=>client.send(m,p,sessionId);
+  const root=client.root||client;s.root=root;
+  s.send=(m,p={},childSessionId)=>root.send(m,p,childSessionId||sessionId);
   const handler=e=>{if(e.sessionId===sessionId){s.emit(e.method,e.params);s.emit('event',e);}};
-  client.on('event',handler);s.close=()=>client.off('event',handler);
+  root.on('event',handler);s.close=()=>root.off('event',handler);
   return s;
 }
 export async function evaluate(cdp,expression){

@@ -31,6 +31,9 @@ export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
       const start=performance.now();const text=await aria();
       fs.writeFileSync(`${out}/${route}-aria-${page}.txt`,text);
       Object.assign(metric,{ariaCharacters:text.length,ariaTokensAt4Chars:Math.ceil(text.length/4),ariaMs:Math.round((performance.now()-start)*100)/100});
+      const aiStart=performance.now(),ai=await aria({mode:'ai',boxes:true});
+      fs.writeFileSync(`${out}/${route}-aria-ai-${page}.txt`,ai);
+      Object.assign(metric,{ariaAICharacters:ai.length,ariaAITokensAt4Chars:Math.ceil(ai.length/4),ariaAIMs:Math.round((performance.now()-aiStart)*100)/100});
     }
     metrics.push(metric);console.log('VIEW',route,JSON.stringify(metric));
     if(page==='form'){
@@ -94,6 +97,7 @@ export async function holdChecks(cdp,fixture,out,route){
   for(const kind of kinds)for(const decision of ['release','drop']){
     const c=`${kind}-${route}-${decision}`,before=fixture.arrivals.length;
     await navigate(cdp,fixture.base+'/hold?case='+c);
+    await cdp.send('Page.bringToFront');
     if(kind==='worker')await eventually(async()=>await evaluate(cdp,'document.querySelector("#status").textContent')==='Worker ready','service worker activation');
     const view=new PageView(cdp);await view.enable();const v=await view.read({limit:10000});
     hold.intent={form:['post','get','cross'].includes(kind),typing:kind==='autosave'};
@@ -173,6 +177,17 @@ export async function holdChecks(cdp,fixture,out,route){
   results.push({kind:'ws-action-gate',whileHeld:0,after:matching(fixture.arrivals,gated)});
   console.log('WEBSOCKET',route,'Fetch leaked; cooperative shim held/released/dropped; worker bypass; Enter gate held/released');
   save(out,`${route}-holds`,results);await hold.close();return results;
+}
+
+export async function disconnectProbe(cdp,fixture,out,route,disconnect){
+  const hold=new Hold(cdp);await hold.enable();
+  const c=`fetch-${route}-disconnect`;await navigate(cdp,fixture.base+'/hold?case='+c);
+  await evaluate(cdp,'document.querySelector("#trigger").click()');
+  await eventually(()=>hold.pending.size===1,'request held before disconnect');
+  await delay(500);assert.equal(matching(fixture.arrivals,c).length,0);
+  await disconnect();await delay(1000);
+  const result={case:c,whileHeld:0,afterDisconnect:matching(fixture.arrivals,c),result:matching(fixture.arrivals,c).length?'disconnect released a request without an approval':'no arrival observed after disconnect'};
+  save(out,`${route}-disconnect`,result);console.log('DISCONNECT',route,JSON.stringify(result));return result;
 }
 
 export async function publicChecks(cdp,out,route){
