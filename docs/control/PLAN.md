@@ -97,7 +97,8 @@ Three places, each with one job:
      a guarded site and forwards exactly the approved one, once; if it fails, nothing goes out. 17e answers its
      eleven questions (bypass, connections opened before a guard, attribution, complete bytes, races, crash points,
      cancellation, other transports, TLS, guard end, and the owner's cost: robot checks, speed, prompts). The owner
-     decides (#68) whether he accepts a checkpoint that decrypts his browser traffic on his machine.
+     decides (#70) whether he accepts a checkpoint that decrypts his browser traffic on his machine.
+     **Done 2026-11-07 (PR #10, CI green twice on `64ed6ed`): it holds**; costs and open points in its report.
 1. **Design** (`docs/design/CONTROL.md`): done 2026-11-07. Draft 6 after the frontier review (8 blocking) and five
    re-checks (7, 4, 1, 1, then none: ready for brief 18). The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
    with it.
@@ -218,3 +219,10 @@ tasks at any time.
   odd MIME (a whitespace-only header line, a digest), and forwarded binary attachments got corrupted. A fourth round
   rebuilds attached mails from a short list of allowed headers, adds an independent final scan before sending, and
   keeps binary parts byte-exact. Re-check question #68 replaced by #69 (three options, after 17e's numbers).
+- **2026-11-07, 14:40:** 17e done (PR #10, CI green twice on `64ed6ed`): the checkpoint held every tested send,
+  including WebSockets of shared and service workers opened before the guard; an approval releases exactly one
+  captured send; no crash point lets one out or repeats it. Costs: pages about 0.1 s slower (small sample), no extra
+  robot checks seen, about 100 to 260 MB memory; browser calls and WebTransport refused while it holds; some of
+  Chrome's own services fail its certificate (to fix in brief 20 without exemptions); uncertain attribution holds the
+  whole browser. Owner asked (#70, replaces #68 and #69), recommendation: the checkpoint, calls allowed while no guard
+  is on, and an owner switch to turn it off (which also turns off Claude's Chrome tools). Mail round 5 running.
