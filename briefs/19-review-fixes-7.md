@@ -1,7 +1,8 @@
 # 19-review-fixes-7: fresh special folders, no draft export, approved headers are sent headers
 
 **Goal:** close the final security review of head `ec4a8bba`, findings 1, 2, 3 and 5, and record finding 4 for the
-owner. The review is reproduced below because it lives outside the repo. Approved by the lead on 2026-11-07. Briefs
+owner. The full review is `reviews/19-mail/SECURITY-REVIEW.md`; its findings are summarised below. Approved by the
+lead on 2026-11-07. Briefs
 19 and `19-review-fixes` to `-6` still apply where this brief doesn't change them; where in doubt, their "If unsure"
 rule decides.
 
@@ -89,7 +90,8 @@ rule decides.
 
 Then add a short "Review fixes, round 7" section to `reviews/19-mail/REPORT.md`: each finding, what changed, the
 tests that prove it by name, and the new JUDGMENT-CALLs (finding 4, and that draft attachments can't be saved by
-Claude). Update "For the owner: decisions before merge" in `REPORT.md` and the PR body to match, in plain words.
+Claude). Link `reviews/19-mail/SECURITY-REVIEW.md` from `REPORT.md` next to the `REVIEW*.md` files. Update "For the
+owner: decisions before merge" in `REPORT.md` and the PR body to match, in plain words.
 Regenerate the tool descriptions and `docs/control/TOOLS.md` where behavior changed. Run IDs as in round 6: in
 `REPORT.md`, the runs of the last commit that changes code or tests (both workflows, both passes) and the statement
 that any later commit changes only files under `reviews/`; in the PR body, the runs on the final head.
