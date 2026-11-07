@@ -5,19 +5,21 @@ import {session} from './protocol.mjs';
 // References are document + frame + backend-node identities, never ordinal selectors.
 export class PageView {
   refs=new Map(); children=new Map();
-  constructor(cdp){
-    this.cdp=cdp;
-    cdp.on('Target.attachedToTarget',p=>{
+  constructor(cdp,frameSessions){
+    this.cdp=cdp;this.frameSessions=frameSessions;
+    this.onAttached=p=>{
       if(p.targetInfo.type==='iframe')this.children.set(p.targetInfo.targetId,{cdp:session(cdp,p.sessionId),sessionId:p.sessionId});
-    });
-    cdp.on('Target.detachedFromTarget',p=>{for(const [id,s]of this.children)if(s.sessionId===p.sessionId){s.cdp.close();this.children.delete(id);}});
+    };
+    this.onDetached=p=>{for(const [id,s]of this.children)if(s.sessionId===p.sessionId){s.cdp.close?.();this.children.delete(id);}};
+    if(!frameSessions){cdp.on('Target.attachedToTarget',this.onAttached);cdp.on('Target.detachedFromTarget',this.onDetached);}
   }
   async enable(){
     await this.cdp.send('Page.enable');await this.cdp.send('DOM.enable');await this.cdp.send('Accessibility.enable');
-    await this.cdp.send('Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:false,flatten:true,filter:[{type:'iframe',exclude:false}]});
+    if(!this.frameSessions)await this.cdp.send('Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:false,flatten:true,filter:[{type:'iframe',exclude:false}]});
   }
   async read({offset=0,limit=120}={}){
     const start=performance.now();
+    if(this.frameSessions)this.children=new Map((await this.frameSessions()).map(s=>[s.sessionId,s]));
     const all=[],frames=[],errors=[];
     const visit=async(cdp,childSession)=>{
       let tree;
@@ -91,5 +93,8 @@ export class PageView {
     if(result.exceptionDetails)throw new Error(JSON.stringify(result.exceptionDetails));
     return result.result?.value;
   }
-  close(){for(const c of this.children.values())c.cdp.close();}
+  close(){
+    this.cdp.off('Target.attachedToTarget',this.onAttached);this.cdp.off('Target.detachedFromTarget',this.onDetached);
+    if(!this.frameSessions)for(const c of this.children.values())c.cdp.close?.();
+  }
 }

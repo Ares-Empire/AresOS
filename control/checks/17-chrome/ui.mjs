@@ -22,7 +22,7 @@ export async function loadUnpacked(dir,out,label){
   await screenshot(out,`install-${label}`);
 }
 export function launch(profile,url,log,extra=[]){
-  const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--disable-background-mode','--disable-background-networking','--disable-component-update',...extra,url];
+  const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode','--disable-background-networking','--disable-component-update',...extra,url];
   if(args.some(a=>a==='--no-sandbox'||a.startsWith('--remote-debugging'))) throw new Error('Forbidden launch flag');
   fs.writeFileSync(`${log}.args.json`,JSON.stringify(args,null,2));
   const fd=fs.openSync(log,'a');

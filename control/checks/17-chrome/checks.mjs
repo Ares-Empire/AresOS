@@ -18,8 +18,8 @@ async function press(cdp,keyName){
 }
 function ref(view,name,role){const row=view.elements.find(e=>e.name===name&&(!role||e.role===role));assert.ok(row?.ref,`Missing ${role||''} ${name}`);return row.ref;}
 
-export async function readAndAct(cdp,fixture,out,route,aria){
-  const view=new PageView(cdp);await view.enable();
+export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
+  const view=new PageView(cdp,frameSessions);await view.enable();
   const metrics=[];
   for(const page of ['form','table','frames','shadow','modal','article']){
     await navigate(cdp,fixture.base+'/'+page);
@@ -98,6 +98,7 @@ export async function holdChecks(cdp,fixture,out,route){
     const pending=[...hold.pending.values()].filter(e=>e.preview.address.includes('case='+c));
     const heldLog=matching(fixture.arrivals,c);
     const appearance=await evaluate(cdp,'document.body.innerText');
+    if(kind==='fetch'&&decision==='release'){await cdp.send('Page.bringToFront');await screenshot(out,`${route}-while-fetch-held`);}
     const record={kind,decision,case:c,serverSequenceBefore:before,heldMs:600,whileHeld:heldLog.length,pending:pending.map(e=>({id:e.id,preview:e.preview,hash:e.hash})),appearance};
     if(kind!=='worker')assert.equal(heldLog.length,0,`${c} left before approval`);
     if(pending.length){
