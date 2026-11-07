@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, '/opt/aresos-control')
 from boundary_assertions import validate_managed_mcp
 
 policy = json.loads(Path('/etc/claude-code/managed-settings.json').read_text())
