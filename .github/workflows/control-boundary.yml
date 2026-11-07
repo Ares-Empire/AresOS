@@ -26,6 +26,11 @@ jobs:
           persist-credentials: false
       - name: Build pinned disposable Linux environment
         run: docker build -f control/boundary/Dockerfile -t aresos-boundary .
+      - name: Permit unprivileged namespaces on this disposable runner
+        run: |
+          mkdir -p evidence
+          sysctl -n kernel.apparmor_restrict_unprivileged_userns > evidence/userns-before.txt
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Hostile programs with and without seccomp
         shell: bash
         run: |
@@ -44,6 +49,12 @@ jobs:
         if: always()
         run: |
           printf 'RUN=%s ATTEMPT=%s HEAD=%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" | tee evidence/identity.txt
+      - name: Restore runner namespace policy
+        if: always()
+        run: |
+          if test -f evidence/userns-before.txt; then
+            sudo sysctl -w "kernel.apparmor_restrict_unprivileged_userns=$(cat evidence/userns-before.txt)"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -177,6 +177,20 @@ def launcher_checks():
 
 def settings_checks():
     # No model, login or real credentials. These are configuration CLI commands.
+    server = {'type': 'stdio', 'command': '/usr/bin/python3',
+              'args': ['-I', '/opt/aresos-control/mcp-fixture.py']}
+    put('/home/assistant/.claude.json', json.dumps({'mcpServers': {'rogue-user': server}}))
+    put('/home/assistant/work/.mcp.json', json.dumps({'mcpServers': {'rogue-project': server}}))
+    managed = Path('/etc/claude-code/managed-mcp.json')
+    original = managed.read_bytes()
+    managed.unlink()
+    try:
+        control = run(['/usr/local/bin/claude', 'mcp', 'list'], 'mcp-unmanaged-positive')
+        assert 'rogue-user' in control.stdout and 'rogue-project' in control.stdout
+        assert Path('/home/assistant/work/mcp-started').exists()
+    finally:
+        managed.write_bytes(original)
+    Path('/home/assistant/work/mcp-started').unlink()
     checks = [
         ('mcp-list', ['mcp', 'list'], 0, 'No MCP servers'),
         ('mcp-add', ['mcp', 'add', '--transport', 'http', 'hostile', 'https://example.com/mcp'], 1, 'exclusive control'),
@@ -185,6 +199,7 @@ def settings_checks():
     for name, args, code, message in checks:
         result = run(['/usr/local/bin/claude', *args], name, required=False)
         assert result.returncode == code and message.lower() in (result.stdout + result.stderr).lower(), name
+    assert not Path('/home/assistant/work/mcp-started').exists(), 'unmanaged MCP executed under exclusive policy'
     for flag, value in [('--plugin-dir', '/home/assistant/work'), ('--plugin-url', 'https://example.com/plugin'),
                         ('--agents', '{}'), ('--mcp-config', '{"mcpServers":{"evil":{"command":"false"}}}')]:
         result = run(['/usr/local/bin/claude', flag, value, '-p', 'do not call a model'], 'flag-' + flag[2:], required=False)
