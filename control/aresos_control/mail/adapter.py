@@ -366,6 +366,8 @@ class Mail:
                     raise Refused("proxy_required", "Local attachments must be imported by the caller-side proxy.")
                 if self.store.get("blob:" + digest(item)) != item:
                     raise Refused("stale_reference", "Not an imported caller blob; attach a path through the proxy.")
+                if "last_changed" not in item:
+                    raise Refused("proxy_required", "Local Mail attachments need caller-side last change metadata; import the path through the proxy again.")
                 data = self.blobs.read(item["sha256"])
                 if len(data) != item["size"]:
                     raise Refused("stale_reference", "Attachment bytes changed; import again.")

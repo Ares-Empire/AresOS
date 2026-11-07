@@ -312,6 +312,11 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 4096
+                },
+                "last_changed": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
                 }
               },
               "required": [
@@ -500,6 +505,11 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 4096
+              },
+              "last_changed": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
               }
             },
             "required": [

@@ -1,4 +1,5 @@
 """Caller-side descriptor-relative Linux file transfers. No home path reaches toold."""
+from datetime import datetime
 import os
 from pathlib import Path
 import re
@@ -83,7 +84,7 @@ class FilePolicy:
         finally:
             os.close(other)
 
-    def read(self, path, checkpoint=lambda _: None):
+    def read(self, path, checkpoint=lambda _: None, mail_metadata=False):
         _, relative = self.locate(path)
         if not relative:
             raise Refused("file_refused", "Choose a regular file inside the folder.")
@@ -111,7 +112,11 @@ class FilePolicy:
                 raise Refused("file_refused", "File changed during import; import again when stable.")
             self.real_directory(parent_fd, parent)
             # A replacement after this point is harmless: all subsequent use is these bytes.
-            return bytes(data), {"sha256": sha256(data), "size": len(data), "name": Path(path).name, "real_path": real_path}
+            reference = {"sha256": sha256(data), "size": len(data), "name": Path(path).name, "real_path": real_path}
+            if mail_metadata:
+                changed = datetime.fromtimestamp(max(after.st_mtime_ns, after.st_ctime_ns) / 1_000_000_000).astimezone()
+                reference["last_changed"] = changed.isoformat(timespec="microseconds") + " [" + changed.tzname() + "]"
+            return bytes(data), reference
         except OSError as exc:
             raise Refused("file_refused", "File path contains a link, missing or non-regular component, or is inaccessible; choose a safe regular file.") from exc
         finally:

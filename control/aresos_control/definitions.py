@@ -17,7 +17,8 @@ def array(item, limit=16):
 
 REF = obj({"scope": string(64), "epoch": string(64), "id": string(64), "revision": {"type": "integer", "minimum": 1}})
 BLOB = obj({"sha256": string(64), "size": {"type": "integer", "minimum": 0},
-            "name": string(128), "real_path": string()})
+            "name": string(128), "real_path": string(), "last_changed": string(128)},
+           ["sha256", "size", "name", "real_path"])
 APPROVAL = obj({"operation_id": string(80), "description": {"type": "object"}})
 OP = obj({"operation_id": string(80)})
 PAGE = obj({"cursor": string(512), "limit": {"type": "integer", "minimum": 1, "maximum": 10}}, [])

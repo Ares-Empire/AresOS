@@ -32,7 +32,7 @@ class Proxy:
             if verb == "file_import":
                 if self.files is None:
                     raise Refused("file_refused", "No caller file folders configured; ask the owner to configure them.")
-                data, file_ref = self.files.read(arguments["path"])
+                data, file_ref = self.files.read(arguments["path"], mail_metadata=True) if self.app == "mail" else self.files.read(arguments["path"])
                 return self.client.upload(self.app, file_ref, data)
             if verb == "file_save":
                 if self.files is None:
@@ -55,7 +55,7 @@ class Proxy:
                     if "path" in item:
                         if self.files is None:
                             raise Refused("file_refused", "No allowed caller folders configured.")
-                        data, ref = self.files.read(item["path"])
+                        data, ref = self.files.read(item["path"], mail_metadata=True)
                         result = self.client.upload("mail", ref, data)
                         if not result["ok"]:
                             return result

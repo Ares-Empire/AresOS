@@ -296,3 +296,34 @@ class ReviewFixes4(MailCase):
             self.assertEqual(smtp.auth_count, len(cases))
             self.assertEqual(smtp.arrivals(), [])
 
+    def test_review4_local_last_changed_is_max_mtime_ctime_in_caller_zone_and_frozen_in_approval(self):
+        with patch.dict(os.environ, {'TZ':'UTC-02'}), self.caller() as (proxy, home):
+            expected, payloads = {}, []
+            for index, offset in enumerate((-86400, 86400)):
+                path = home / 'Documents' / f'changed-{index}.txt'
+                data = b'Caller file ' + str(index).encode()
+                path.write_bytes(data)
+                os.chown(path, 26101, 26101)
+                stamp = time.time() + offset
+                os.utime(path, (stamp, stamp))
+                info = path.stat()
+                expected[str(path)] = max(info.st_mtime_ns, info.st_ctime_ns) / 1_000_000_000
+                payloads.append(data)
+            result = proxy('compose', {'account':'box', 'to':['one@mail.invalid'], 'text':'Caller timestamps', 'attachments':[{'path':path} for path in expected]})
+            self.assertTrue(result['ok'], result)
+            comp = result['data']
+            prepared = proxy('prepare_send', {k:comp[k] for k in ('composition_id', 'composition_hash')})
+            self.assertTrue(prepared['ok'], prepared)
+            approval = prepared['data']['approval']
+            for item in approval['description']['attachments']:
+                self.assertIn('+02:00 [', item['last_changed'])
+                observed = datetime.fromisoformat(item['last_changed'].split(' [', 1)[0]).timestamp()
+                self.assertAlmostEqual(observed, expected[item['real_path']], places=5)
+                self.assertEqual(item['sha256'], sha256(Path(item['real_path']).read_bytes()))
+                self.assertEqual(item['size'], Path(item['real_path']).stat().st_size)
+                Path(item['real_path']).write_bytes(b'Changed after approval')
+            delivered = proxy('send', approval)
+            self.assertTrue(delivered['ok'], delivered)
+            self.assertEqual(delivered['data']['operation']['state'], 'done', delivered)
+        raw, = self.arrivals('one@mail.invalid', delivered['data']['operation']['stages']['message_id'])
+        self.assertEqual([codec.decoded(p) for p in codec.parse(raw).iter_attachments()], payloads)
