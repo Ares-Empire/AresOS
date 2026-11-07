@@ -15,7 +15,7 @@ export default async function(c){
  f.bump();await rpc('Check.detach');await c.address(f.base+'/');await delay(2500);await collect('Q3_NAVIGATION_UPDATE');
  await rpc('Check.attach',{tabId:c.selected});await nav();
  await probe('Q3_BACKGROUND_SYNC',async()=>{
-  await ev("setTimeout(async()=>{const r=await navigator.serviceWorker.ready;await r.sync.register('synthetic-floor-sync')},600);true");await rpc('Check.detach');await delay(3500);await collect('Q3_SYNC_NO_PAGE_DEBUGGER');return {rows:f.rows.filter(r=>r.case?.includes('-sync')),registration:'real SyncManager.register, no dispatchSyncEvent'};
+  await ev("setTimeout(async()=>{const r=await navigator.serviceWorker.ready;await r.sync.register('synthetic-floor-sync')},37000);true");await rpc('Check.detach');await delay(35000);const idle=await rpc('Check.targets');assert.ok(!idle.some(t=>t.url.includes('sw.js?case=worker-service')),'worker dormant before real background sync');log('Q3_SYNC_IDLE_TARGETS',{targets:idle,at:Date.now()});await delay(5000);await collect('Q3_SYNC_NO_PAGE_DEBUGGER');assert.ok(f.rows.some(r=>r.kind==='attempt'&&r.case==='worker-service-v3-sync'),'real sync event fired');return {rows:f.rows.filter(r=>r.case?.includes('-sync')),registration:'real SyncManager.register after worker idle, no dispatchSyncEvent'};
  });
  await rpc('Check.attach',{tabId:c.selected});await nav();
  await ev("window.shared=new SharedWorker('/worker.js?shared&case=worker-shared');shared.port.start();true");await collect('Q3_NEW_SHARED');discovery('worker-shared-v3-first','worker websocket floor coverage');
