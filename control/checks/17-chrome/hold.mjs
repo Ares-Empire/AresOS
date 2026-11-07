@@ -15,29 +15,43 @@ export function classify(p,{form=false,typing=false}={}){
 export class Hold extends EventEmitter {
   pending=new Map(); history=[]; errors=[]; trusted=new Set(); publicMode=false;
   constructor(cdp){
-    super();this.cdp=cdp;
-    this.listener=p=>{this.pause(p).catch(e=>{this.errors.push(e.message);this.emit('problem',e);});};
+    super();this.cdp=cdp;this.network=new Map();this.cancelled=new Set();this.publicRows=new Map();
+    this.onRequest=p=>{const meta={documentURL:p.documentURL,initiator:p.initiator?.type};this.network.set(p.requestId,meta);if(this.publicRows.has(p.requestId))Object.assign(this.publicRows.get(p.requestId),meta);};
+    this.onFailed=p=>{if(p.canceled||p.errorText==='net::ERR_ABORTED')this.cancelled.add(p.requestId);};
+    cdp.on('Network.requestWillBeSent',this.onRequest);
+    cdp.on('Network.loadingFailed',this.onFailed);
+    this.listener=(p,sessionId)=>{this.pause(p,sessionId).catch(async e=>{
+      // Navigation can cancel a request between its pause event and our decision.
+      // Accept only an independently observed network cancellation, never an unknown error.
+      if(this.publicMode&&e.message.includes('Invalid InterceptionId')){
+        await new Promise(r=>setTimeout(r,100));
+        if(this.cancelled.has(p.networkId)){this.history.push({event:'cancelled',networkId:p.networkId,url:p.request.url});return;}
+      }
+      this.errors.push(JSON.stringify({error:e.message,url:p.request.url,networkId:p.networkId,sessionId}));this.emit('problem',e);
+    });};
     cdp.on('Fetch.requestPaused',this.listener);
   }
   async enable(){await this.cdp.send('Network.enable');await this.cdp.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});}
-  async pause(p){
+  async pause(p,sessionId){
+    const send=(method,params)=>this.cdp.send(method,params,sessionId);
     const isFixture=new URL(p.request.url).pathname==='/receive';
     const reason=classify(p,this.intent||{});
     if(this.publicMode){
       // Independent guard: background APIs are dropped even when this candidate rule misses them.
       const drop=!!reason||['XHR','Fetch','Ping','WebSocket'].includes(p.resourceType);
-      this.history.push({url:p.request.url,method:p.request.method,type:p.resourceType,phase:this.phase||'load',reason,decision:drop?'drop':'allow-read'});
-      await this.cdp.send(drop?'Fetch.failRequest':'Fetch.continueRequest',drop?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});return;
+      const row={networkId:p.networkId,url:p.request.url,method:p.request.method,type:p.resourceType,...this.network.get(p.networkId),phase:this.phase||'load',reason,decision:drop?'drop':'allow-read'};
+      this.publicRows.set(p.networkId,row);this.history.push(row);
+      await send(drop?'Fetch.failRequest':'Fetch.continueRequest',drop?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});return;
     }
     if(!isFixture||this.trusted.has(new URL(p.request.url).origin)){
-      await this.cdp.send('Fetch.continueRequest',{requestId:p.requestId});return;
+      await send('Fetch.continueRequest',{requestId:p.requestId});return;
     }
     let data=p.request.postData??null;
     if(data===null&&p.request.hasPostData&&p.networkId){
       try{data=(await this.cdp.send('Network.getRequestPostData',{requestId:p.networkId})).postData;}catch{/* Explicit missing-data flag below. */}
     }
     const preview={site:new URL(p.request.url).origin,address:p.request.url,method:p.request.method,data,bodyEntries:p.request.postDataEntries||null,bodyUnavailable:!!p.request.hasPostData&&data===null,type:p.resourceType};
-    const entry={id:p.requestId,preview,hash:fingerprint(preview),state:'held',at:Date.now()};
+    const entry={id:p.requestId,sessionId,preview,hash:fingerprint(preview),state:'held',at:Date.now()};
     this.pending.set(entry.id,entry);this.history.push(entry);this.emit('held',entry);
   }
   async decide(id,decision,hash){
@@ -46,12 +60,14 @@ export class Hold extends EventEmitter {
     if(entry.hash!==hash)throw new Error('PREVIEW_MISMATCH');
     // Consume before the call: a transport failure means unknown, never automatic retry.
     this.pending.delete(id);entry.state='unknown';entry.decidedAt=Date.now();
-    await this.cdp.send(decision==='release'?'Fetch.continueRequest':'Fetch.failRequest',decision==='release'?{requestId:id}:{requestId:id,errorReason:'Aborted'});
+    await this.cdp.send(decision==='release'?'Fetch.continueRequest':'Fetch.failRequest',decision==='release'?{requestId:id}:{requestId:id,errorReason:'Aborted'},entry.sessionId);
     entry.state=decision==='release'?'released':'dropped';
   }
   async close(){
     for(const entry of this.pending.values())await this.decide(entry.id,'drop',entry.hash);
     await this.cdp.send('Fetch.disable');this.cdp.off('Fetch.requestPaused',this.listener);
+    this.cdp.off('Network.requestWillBeSent',this.onRequest);
+    this.cdp.off('Network.loadingFailed',this.onFailed);
     if(this.errors.length)throw new Error('Hold event errors: '+this.errors.join(';'));
   }
 }

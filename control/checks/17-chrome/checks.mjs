@@ -7,9 +7,9 @@ import {evaluate,eventually} from './protocol.mjs';
 import {delay,address,key,screenshot} from './ui.mjs';
 
 export const save=(out,name,value)=>fs.writeFileSync(`${out}/${name}.json`,JSON.stringify(value,null,2)+'\n');
-export async function navigate(cdp,url){
+export async function navigate(cdp,url,ready='complete'){
   const r=await cdp.send('Page.navigate',{url});if(r.errorText)throw new Error(r.errorText);
-  await eventually(async()=>await evaluate(cdp,'location.href')===url&&await evaluate(cdp,'document.readyState')==='complete','navigate '+url);
+  await eventually(async()=>await evaluate(cdp,'location.href')===url&&(ready==='interactive'?await evaluate(cdp,'document.readyState')!=='loading':await evaluate(cdp,'document.readyState')==='complete'),'navigate '+url);
   await delay(250);
 }
 async function press(cdp,keyName){
@@ -198,7 +198,7 @@ export async function publicChecks(cdp,out,route){
     const record={name,url};
     try{
       hold.phase='load';
-      await navigate(cdp,url);await delay(2000);
+      await navigate(cdp,url,'interactive');await delay(2000);
       record.title=await evaluate(cdp,'document.title');
       record.textSample=(await evaluate(cdp,'document.body.innerText')).slice(0,800);
       if(name==='wikipedia'){
@@ -214,11 +214,17 @@ export async function publicChecks(cdp,out,route){
       }
     }catch(e){record.error=e.message;}
     record.requests=hold.history.slice(start);results.push(record);
+    console.log('PUBLIC_PAGE',name,record.title||record.error,record.action||'');
+    hold.intent={};
+  }
+  for(const record of results){
+    // Attribute late/unload analytics to their source document, not to the next site.
+    const origin=new URL(record.url).origin;
+    record.requests=hold.history.filter(r=>{try{return new URL(r.documentURL).origin===origin;}catch{return false;}});
     record.loadFalseAlarms=record.requests.filter(r=>r.reason&&r.phase==='load').length;
     record.actionCandidates=record.requests.filter(r=>r.reason&&r.phase==='action').length;
     record.guardOnlyDrops=record.requests.filter(r=>!r.reason&&r.decision==='drop').length;
-    console.log('PUBLIC',name,record.title||record.error,'requests='+record.requests.length,'loadFalseAlarms='+record.loadFalseAlarms,'actionCandidates='+record.actionCandidates,'guardOnlyDrops='+record.guardOnlyDrops,record.action||'');
-    hold.intent={};
+    console.log('PUBLIC',record.name,'requests='+record.requests.length,'loadFalseAlarms='+record.loadFalseAlarms,'actionCandidates='+record.actionCandidates,'guardOnlyDrops='+record.guardOnlyDrops);
   }
   save(out,`${route}-public-sites`,results);await hold.close();return results;
 }
