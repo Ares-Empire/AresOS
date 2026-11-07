@@ -1,0 +1,16 @@
+- generic [active] [ref=f3e1] [box=32,32,850,216]:
+  - heading "Frame test" [level=1] [ref=f3e2] [box=32,32,850,37]
+  - iframe [ref=f3e3] [box=32,90,304,154]:
+    - generic [ref=f4e1] [box=32,32,221,126]:
+      - heading "same frame" [level=2] [ref=f4e2] [box=32,32,221,28]
+      - generic [ref=f4e3] [box=44,80,197,42]:
+        - text: Frame note
+        - textbox "Frame note" [ref=f4e4] [box=44,98,215,24]: frame-original
+      - button "Frame action" [ref=f4e5] [box=32,134,109,24]
+  - iframe [ref=f3e4] [box=336,90,304,154]:
+    - generic [ref=f5e1] [box=32,32,221,126]:
+      - heading "cross frame" [level=2] [ref=f5e2] [box=32,32,221,28]
+      - generic [ref=f5e3] [box=44,80,197,42]:
+        - text: Frame note
+        - textbox "Frame note" [ref=f5e4] [box=44,98,215,24]: frame-original
+      - button "Frame action" [ref=f5e5] [box=32,134,109,24]

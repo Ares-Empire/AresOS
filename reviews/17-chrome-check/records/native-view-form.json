@@ -1,0 +1,1345 @@
+{
+  "format": "aresos-check-ax-layout-v1",
+  "frames": [
+    {
+      "id": "82240ACF613AAC258B30D2234C7A19FD",
+      "parent": null,
+      "url": "http://127.0.0.1:40009/form",
+      "document": "EA4147C87BE79703DDED309437EF4A8A",
+      "coordinates": "frame viewport CSS pixels",
+      "viewport": {
+        "height": 857,
+        "visibility": "visible",
+        "width": 1440
+      },
+      "text": "Long form\nExtra field 1\nExtra field 2\nExtra field 3\nExtra field 4\nExtra field 5\nExtra field 6\nExtra field 7\nExtra field 8\nExtra field 9\nExtra field 10\nExtra field 11\nExtra field 12\nExtra field 13\nExtra field 14\nExtra field 15\nExtra field 16\nExtra field 17\nExtra field 18\nExtra field 19\nExtra field 20\nExtra field 21\nExtra field 22\nExtra field 23\nExtra field 24\nExtra field 25\nSubmit synthetic form\nProfile\nDisplay name\nEmail\nNotes\nRegion\nStart date\nLocal file\nDisabled\ninvalid\nSynthetic notes\nfixed\n/\n/\nmm\ndd\nyyyy"
+    }
+  ],
+  "elements": [
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:90",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "RootWebArea",
+      "name": "Long form",
+      "state": {
+        "focused": true
+      },
+      "box": [
+        0,
+        0,
+        1440,
+        857
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:98",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "heading",
+      "name": "Long form",
+      "state": {},
+      "box": [
+        32,
+        32,
+        850,
+        37
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:54",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "form",
+      "name": "",
+      "state": {},
+      "box": [
+        32,
+        90.4375,
+        850,
+        1344.59375
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:99",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "group",
+      "name": "Profile",
+      "state": {
+        "invalid": "false"
+      },
+      "box": [
+        44,
+        90.4375,
+        826,
+        408.59375
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:138",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        511.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:140",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        547.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:142",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        583.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:144",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        619.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:146",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        655.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:148",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        691.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:150",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        727.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:152",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        763.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:154",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        799.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:156",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        835.03125,
+        826,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:158",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        871.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:160",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        907.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:162",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        943.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:164",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        979.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:166",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1015.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:168",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1051.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:170",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1087.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:172",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1123.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:174",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1159.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:176",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1195.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:178",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1231.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:180",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1267.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:182",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1303.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:184",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1339.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:186",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        44,
+        1375.03125,
+        826,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:188",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "button",
+      "name": "Submit synthetic form",
+      "state": {
+        "invalid": "false"
+      },
+      "box": [
+        32,
+        1411.03125,
+        169.828125,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:100",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "Legend",
+      "name": "",
+      "state": {},
+      "box": [
+        58,
+        90.4375,
+        49.359375,
+        18
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:101",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        70,
+        126.03125,
+        774,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:103",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        70,
+        162.03125,
+        774,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:105",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        70,
+        198.03125,
+        774,
+        40
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:107",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        70,
+        250.03125,
+        774,
+        21
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:86",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "checkbox",
+      "name": "Updates",
+      "state": {
+        "checked": "true",
+        "invalid": "false"
+      },
+      "box": [
+        74,
+        286.03125,
+        13,
+        13
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:87",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "radio",
+      "name": "Basic",
+      "state": {
+        "checked": "true",
+        "invalid": "false"
+      },
+      "box": [
+        75,
+        318.03125,
+        13,
+        13
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:88",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "radio",
+      "name": "Plus",
+      "state": {
+        "checked": "false",
+        "invalid": "false"
+      },
+      "box": [
+        75,
+        350.03125,
+        13,
+        13
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:123",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        70,
+        379.03125,
+        774,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:133",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        70,
+        415.03125,
+        774,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:136",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "LabelText",
+      "name": "",
+      "state": {},
+      "box": [
+        70,
+        451.03125,
+        774,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:61",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 1",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        128.484375,
+        511.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:62",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 2",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        128.484375,
+        547.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:63",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 3",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        128.484375,
+        583.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:64",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 4",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        128.484375,
+        619.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:65",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 5",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        128.484375,
+        655.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:66",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 6",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        128.484375,
+        691.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:67",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 7",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        128.484375,
+        727.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:68",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 8",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        128.484375,
+        763.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:69",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 9",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        128.484375,
+        799.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:70",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 10",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        835.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:71",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 11",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        136.203125,
+        871.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:72",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 12",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        907.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:73",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 13",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        943.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:74",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 14",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        979.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:75",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 15",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1015.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:76",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 16",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1051.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:77",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 17",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1087.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:78",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 18",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1123.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:79",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 19",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1159.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:80",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 20",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1195.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:81",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 21",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1231.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:82",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 22",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1267.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:83",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 23",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1303.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:84",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 24",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1339.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:85",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Extra field 25",
+      "value": "",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        137.390625,
+        1375.03125,
+        215,
+        24
+      ],
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:55",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Display name",
+      "value": "",
+      "state": {
+        "required": true,
+        "invalid": "false"
+      },
+      "box": [
+        166.9375,
+        126.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:56",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Email",
+      "value": "invalid",
+      "state": {
+        "required": false,
+        "invalid": "true"
+      },
+      "box": [
+        110.015625,
+        162.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:57",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Notes",
+      "value": "Synthetic notes",
+      "state": {
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        111.796875,
+        198.03125,
+        182,
+        36
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:58",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "combobox",
+      "name": "Region",
+      "value": "North",
+      "state": {
+        "invalid": "false",
+        "expanded": false
+      },
+      "box": [
+        120.703125,
+        250.03125,
+        64,
+        21
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:59",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "Date",
+      "name": "Start date",
+      "value": "",
+      "state": {
+        "invalid": "false"
+      },
+      "box": [
+        139.375,
+        379.03125,
+        138,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:89",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "button",
+      "name": "Local file",
+      "value": "No file chosen",
+      "state": {
+        "invalid": "false"
+      },
+      "box": [
+        133.15625,
+        415.03125,
+        303,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:60",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "textbox",
+      "name": "Disabled",
+      "value": "fixed",
+      "state": {
+        "disabled": true,
+        "required": false,
+        "invalid": "false"
+      },
+      "box": [
+        132.265625,
+        451.03125,
+        215,
+        24
+      ],
+      "inViewport": true,
+      "onScreen": true
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:110",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "MenuListPopup",
+      "name": "",
+      "state": {},
+      "box": null,
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:132",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "button",
+      "name": "Show date picker Show date picker",
+      "state": {},
+      "box": null,
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:114",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "option",
+      "name": "North",
+      "state": {
+        "selected": true
+      },
+      "box": null,
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:117",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "option",
+      "name": "South",
+      "state": {
+        "selected": false
+      },
+      "box": null,
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:127",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "spinbutton",
+      "name": "Month Month",
+      "value": 0,
+      "state": {
+        "required": false
+      },
+      "box": null,
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:129",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "spinbutton",
+      "name": "Day Day",
+      "value": 0,
+      "state": {
+        "required": false
+      },
+      "box": null,
+      "inViewport": false,
+      "onScreen": false
+    },
+    {
+      "ref": "root:82240ACF613AAC258B30D2234C7A19FD:EA4147C87BE79703DDED309437EF4A8A:131",
+      "frame": "82240ACF613AAC258B30D2234C7A19FD",
+      "role": "spinbutton",
+      "name": "Year Year",
+      "value": 0,
+      "state": {
+        "required": false
+      },
+      "box": null,
+      "inViewport": false,
+      "onScreen": false
+    }
+  ],
+  "offset": 0,
+  "total": 80,
+  "next": null,
+  "errors": [],
+  "ms": 31.29
+}

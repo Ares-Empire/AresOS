@@ -1,0 +1,984 @@
+[
+  {
+    "kind": "post",
+    "decision": "release",
+    "case": "post-native-release",
+    "serverSequenceBefore": 6,
+    "heldMs": 600,
+    "triggeredMonoMs": 130866.934425,
+    "observedMonoMs": 131579.802711,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-2.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=post-native-release",
+          "method": "POST",
+          "data": "case=post-native-release&message=synthetic-post-native-release",
+          "bodyEntries": [
+            {
+              "bytes": "Y2FzZT1wb3N0LW5hdGl2ZS1yZWxlYXNlJm1lc3NhZ2U9c3ludGhldGljLXBvc3QtbmF0aXZlLXJlbGVhc2U="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "53c8bc58e2f64eb34bbf23f1a6eb6b2bfdd1250272918d2ce0e36b9ac7139be4",
+        "pausedMonoMs": 130878.475186
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold post-native-release\nMessage\nSend fixture\nsynthetic-post-native-release"
+    },
+    "decidedMonoMs": 131677.08327,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 7,
+        "at": 1794025482283,
+        "atMonoMs": 131679.735166,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=post-native-release",
+        "body": "case=post-native-release&message=synthetic-post-native-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "post",
+    "decision": "drop",
+    "case": "post-native-drop",
+    "serverSequenceBefore": 7,
+    "heldMs": 600,
+    "triggeredMonoMs": 132483.240075,
+    "observedMonoMs": 133194.130313,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-4.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=post-native-drop",
+          "method": "POST",
+          "data": "case=post-native-drop&message=synthetic-post-native-drop",
+          "bodyEntries": [
+            {
+              "bytes": "Y2FzZT1wb3N0LW5hdGl2ZS1kcm9wJm1lc3NhZ2U9c3ludGhldGljLXBvc3QtbmF0aXZlLWRyb3A="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "f6314863616740d77b1a315e2ba5d7d427b71b81b7265e989830c7f1dc93dc70",
+        "pausedMonoMs": 132496.444939
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold post-native-drop\nMessage\nSend fixture\nsynthetic-post-native-drop"
+    },
+    "decidedMonoMs": 133296.171047,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "get",
+    "decision": "release",
+    "case": "get-native-release",
+    "serverSequenceBefore": 7,
+    "heldMs": 600,
+    "triggeredMonoMs": 133999.150262,
+    "observedMonoMs": 134704.907607,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-6.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=get-native-release&message=synthetic-get-native-release",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "form submission, including GET",
+        "hash": "21ee9a83aeb51cf4eb1cdc7249d5fb5d32aa7d0c550d73af072dbc9244f76ae4",
+        "pausedMonoMs": 134011.765366
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold get-native-release\nMessage\nSend fixture\nsynthetic-get-native-release"
+    },
+    "decidedMonoMs": 134801.153912,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 8,
+        "at": 1794025485406,
+        "atMonoMs": 134803.064006,
+        "kind": "http",
+        "method": "GET",
+        "url": "/receive?case=get-native-release&message=synthetic-get-native-release",
+        "body": "",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "get",
+    "decision": "drop",
+    "case": "get-native-drop",
+    "serverSequenceBefore": 8,
+    "heldMs": 600,
+    "triggeredMonoMs": 135602.988928,
+    "observedMonoMs": 136316.776167,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-8.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=get-native-drop&message=synthetic-get-native-drop",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "form submission, including GET",
+        "hash": "998cf3b1138c5687fb88551deb80ac5720c34007f30af683e054d1ec081ee825",
+        "pausedMonoMs": 135615.758835
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold get-native-drop\nMessage\nSend fixture\nsynthetic-get-native-drop"
+    },
+    "decidedMonoMs": 136414.477217,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "fetch",
+    "decision": "release",
+    "case": "fetch-native-release",
+    "serverSequenceBefore": 8,
+    "heldMs": 600,
+    "triggeredMonoMs": 137116.85656,
+    "observedMonoMs": 137822.460755,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-10.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=fetch-native-release",
+          "method": "POST",
+          "data": "synthetic-fetch-native-release",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWZldGNoLW5hdGl2ZS1yZWxlYXNl"
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "59dd38cc8d72b2943d482263c12ae578e33b5346812e7427809b8b7dafe28987",
+        "pausedMonoMs": 137121.860209
+      }
+    ],
+    "appearance": "Hold fetch-native-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 137921.486454,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 9,
+        "at": 1794025488527,
+        "atMonoMs": 137923.528167,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=fetch-native-release",
+        "body": "synthetic-fetch-native-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "fetch",
+    "decision": "drop",
+    "case": "fetch-native-drop",
+    "serverSequenceBefore": 9,
+    "heldMs": 600,
+    "triggeredMonoMs": 138818.98792,
+    "observedMonoMs": 139523.151549,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-12.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=fetch-native-drop",
+          "method": "POST",
+          "data": "synthetic-fetch-native-drop",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWZldGNoLW5hdGl2ZS1kcm9w"
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "843b34a80fea82d0ce09b88442b40592982f7daa5e0f2e2375126ed44d9a2314",
+        "pausedMonoMs": 138824.015512
+      }
+    ],
+    "appearance": "Hold fetch-native-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 139524.966022,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "xhr",
+    "decision": "release",
+    "case": "xhr-native-release",
+    "serverSequenceBefore": 9,
+    "heldMs": 600,
+    "triggeredMonoMs": 140230.995202,
+    "observedMonoMs": 140936.134888,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-14.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=xhr-native-release",
+          "method": "POST",
+          "data": "synthetic-xhr-native-release",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLXhoci1uYXRpdmUtcmVsZWFzZQ=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "f15752db306422de0ad2b74bd062eb7fe8050516f73e6ac8d5df21e669be4ec5",
+        "pausedMonoMs": 140236.374412
+      }
+    ],
+    "appearance": "Hold xhr-native-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 140937.953837,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 10,
+        "at": 1794025491543,
+        "atMonoMs": 140939.492823,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=xhr-native-release",
+        "body": "synthetic-xhr-native-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "xhr",
+    "decision": "drop",
+    "case": "xhr-native-drop",
+    "serverSequenceBefore": 10,
+    "heldMs": 600,
+    "triggeredMonoMs": 141738.130802,
+    "observedMonoMs": 142443.237867,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-16.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=xhr-native-drop",
+          "method": "POST",
+          "data": "synthetic-xhr-native-drop",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLXhoci1uYXRpdmUtZHJvcA=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "9b45d616881826b3f44e749da87eeaac9181d309f7ee03ba03456bf42655de0c",
+        "pausedMonoMs": 141742.9625
+      }
+    ],
+    "appearance": "Hold xhr-native-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 142445.080597,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "beacon",
+    "decision": "release",
+    "case": "beacon-native-release",
+    "serverSequenceBefore": 10,
+    "heldMs": 600,
+    "triggeredMonoMs": 143139.731914,
+    "observedMonoMs": 143844.874151,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-18.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=beacon-native-release",
+          "method": "POST",
+          "data": "synthetic-beacon-native-release",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWJlYWNvbi1uYXRpdmUtcmVsZWFzZQ=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "daa3d8a3aea6d858bf7f876f2b41952e8d5ebca6915b95503c7513811ad9ed5a",
+        "pausedMonoMs": 143144.424942
+      }
+    ],
+    "appearance": "Hold beacon-native-release\nMessage\nSend fixture\n\nQueued beacon",
+    "decidedMonoMs": 143846.78437,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 11,
+        "at": 1794025494451,
+        "atMonoMs": 143848.321138,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=beacon-native-release",
+        "body": "synthetic-beacon-native-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "beacon",
+    "decision": "drop",
+    "case": "beacon-native-drop",
+    "serverSequenceBefore": 11,
+    "heldMs": 600,
+    "triggeredMonoMs": 144648.578506,
+    "observedMonoMs": 145354.516282,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-20.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=beacon-native-drop",
+          "method": "POST",
+          "data": "synthetic-beacon-native-drop",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWJlYWNvbi1uYXRpdmUtZHJvcA=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "88c18a5d5d3e6110331c57eff18042e7d5fb42fd5563725c42b8229a625d1c1d",
+        "pausedMonoMs": 144653.461958
+      }
+    ],
+    "appearance": "Hold beacon-native-drop\nMessage\nSend fixture\n\nQueued beacon",
+    "decidedMonoMs": 145356.626261,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "autosave",
+    "decision": "release",
+    "case": "autosave-native-release",
+    "serverSequenceBefore": 11,
+    "heldMs": 600,
+    "triggeredMonoMs": 146060.846914,
+    "observedMonoMs": 146766.168442,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-22.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosave-native-release",
+          "method": "POST",
+          "data": "synthetic-autosave",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWF1dG9zYXZl"
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "9ac42487b20d93f62387eb34a463bbce094a3304735b7b3db6cad5a0e0e9bb3d",
+        "pausedMonoMs": 146066.053577
+      }
+    ],
+    "appearance": "Hold autosave-native-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 146768.042135,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 12,
+        "at": 1794025497373,
+        "atMonoMs": 146769.644597,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=autosave-native-release",
+        "body": "synthetic-autosave",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "autosave",
+    "decision": "drop",
+    "case": "autosave-native-drop",
+    "serverSequenceBefore": 12,
+    "heldMs": 600,
+    "triggeredMonoMs": 147571.851956,
+    "observedMonoMs": 148279.14412,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-24.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosave-native-drop",
+          "method": "POST",
+          "data": "synthetic-autosave",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWF1dG9zYXZl"
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "793787cc5c0ea09db1501a6fa6e00f0420e71daf7736a7156a783b980ef858ff",
+        "pausedMonoMs": 147578.326891
+      }
+    ],
+    "appearance": "Hold autosave-native-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 148280.849175,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "autosaveget",
+    "decision": "release",
+    "case": "autosaveget-native-release",
+    "serverSequenceBefore": 12,
+    "heldMs": 600,
+    "triggeredMonoMs": 148983.339382,
+    "observedMonoMs": 149588.441399,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-26.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosaveget-native-release&message=synthetic-autosave",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "request during typing",
+        "hash": "7acd23be917823e00d6ba4d31ea0155e09bdbac82092bdb985d72ed9082adced",
+        "pausedMonoMs": 148988.528124
+      }
+    ],
+    "appearance": "Hold autosaveget-native-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 149590.562892,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 13,
+        "at": 1794025500195,
+        "atMonoMs": 149592.202119,
+        "kind": "http",
+        "method": "GET",
+        "url": "/receive?case=autosaveget-native-release&message=synthetic-autosave",
+        "body": "",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "autosaveget",
+    "decision": "drop",
+    "case": "autosaveget-native-drop",
+    "serverSequenceBefore": 13,
+    "heldMs": 600,
+    "triggeredMonoMs": 150398.539533,
+    "observedMonoMs": 151104.068893,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-28.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosaveget-native-drop&message=synthetic-autosave",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "request during typing",
+        "hash": "60b9c1b61dc9c950583888f13c5efee5a917d21449a945a13b01426af1d5796b",
+        "pausedMonoMs": 150404.034245
+      }
+    ],
+    "appearance": "Hold autosaveget-native-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 151105.972192,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "worker",
+    "decision": "release",
+    "case": "worker-native-release",
+    "serverSequenceBefore": 13,
+    "heldMs": 600,
+    "triggeredMonoMs": 151817.023637,
+    "observedMonoMs": 152521.324433,
+    "whileHeld": 1,
+    "pending": [],
+    "appearance": "Hold worker-native-release\nMessage\nSend fixture\n\nWorker sent",
+    "result": "NOT HELD: service-worker request bypassed tab Fetch",
+    "after": [
+      {
+        "seq": 14,
+        "at": 1794025502425,
+        "atMonoMs": 151821.948117,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=worker-native-release",
+        "body": "synthetic-worker-data",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "worker",
+    "decision": "drop",
+    "case": "worker-native-drop",
+    "serverSequenceBefore": 14,
+    "heldMs": 600,
+    "triggeredMonoMs": 152825.209307,
+    "observedMonoMs": 153530.964575,
+    "whileHeld": 1,
+    "pending": [],
+    "appearance": "Hold worker-native-drop\nMessage\nSend fixture\n\nWorker sent",
+    "result": "NOT HELD: service-worker request bypassed tab Fetch",
+    "after": [
+      {
+        "seq": 15,
+        "at": 1794025503433,
+        "atMonoMs": 152830.327192,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=worker-native-drop",
+        "body": "synthetic-worker-data",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "cross",
+    "decision": "release",
+    "case": "cross-native-release",
+    "serverSequenceBefore": 15,
+    "heldMs": 600,
+    "triggeredMonoMs": 153835.076404,
+    "observedMonoMs": 154549.626414,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-32.0",
+        "preview": {
+          "site": "http://localhost:37863",
+          "address": "http://localhost:37863/receive?case=cross-native-release",
+          "method": "POST",
+          "data": "case=cross-native-release&message=synthetic-cross-native-release",
+          "bodyEntries": [
+            {
+              "bytes": "Y2FzZT1jcm9zcy1uYXRpdmUtcmVsZWFzZSZtZXNzYWdlPXN5bnRoZXRpYy1jcm9zcy1uYXRpdmUtcmVsZWFzZQ=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "851c4e22f31bc32ae1535a27d170c4091a12a4e353f04706db5b7b8c780442a9",
+        "pausedMonoMs": 153854.32588
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold cross-native-release\nMessage\nSend fixture\nsynthetic-cross-native-release"
+    },
+    "decidedMonoMs": 154651.391796,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 16,
+        "at": 1794025505257,
+        "atMonoMs": 154653.557167,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=cross-native-release",
+        "body": "case=cross-native-release&message=synthetic-cross-native-release",
+        "site": "localhost:37863",
+        "cookie": false
+      }
+    ]
+  },
+  {
+    "kind": "cross",
+    "decision": "drop",
+    "case": "cross-native-drop",
+    "serverSequenceBefore": 16,
+    "heldMs": 600,
+    "triggeredMonoMs": 155481.193662,
+    "observedMonoMs": 156198.206479,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-35.0",
+        "preview": {
+          "site": "http://localhost:37863",
+          "address": "http://localhost:37863/receive?case=cross-native-drop",
+          "method": "POST",
+          "data": "case=cross-native-drop&message=synthetic-cross-native-drop",
+          "bodyEntries": [
+            {
+              "bytes": "Y2FzZT1jcm9zcy1uYXRpdmUtZHJvcCZtZXNzYWdlPXN5bnRoZXRpYy1jcm9zcy1uYXRpdmUtZHJvcA=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "46a83df4f052c27563c0f514c5cbba75ccb44af92196be33fefd9192aa82cabc",
+        "pausedMonoMs": 155502.28583
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold cross-native-drop\nMessage\nSend fixture\nsynthetic-cross-native-drop"
+    },
+    "decidedMonoMs": 156294.816278,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "ping",
+    "decision": "release",
+    "case": "ping-native-release",
+    "serverSequenceBefore": 16,
+    "heldMs": 600,
+    "triggeredMonoMs": 156989.066704,
+    "observedMonoMs": 157700.706737,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-37.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=ping-native-release",
+          "method": "POST",
+          "data": "PING",
+          "bodyEntries": [
+            {
+              "bytes": "UElORw=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "999beb5ec4bb156b6ee6f4fffacec2b80f132adfa2db0dd7e82528079f71cc71",
+        "pausedMonoMs": 157000.294348
+      }
+    ],
+    "appearance": "Waiting page. Synthetic fixture.",
+    "decidedMonoMs": 157702.972567,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 17,
+        "at": 1794025508308,
+        "atMonoMs": 157704.626382,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=ping-native-release",
+        "body": "PING",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "ping",
+    "decision": "drop",
+    "case": "ping-native-drop",
+    "serverSequenceBefore": 17,
+    "heldMs": 600,
+    "triggeredMonoMs": 158501.419911,
+    "observedMonoMs": 159212.37908,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-40.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=ping-native-drop",
+          "method": "POST",
+          "data": "PING",
+          "bodyEntries": [
+            {
+              "bytes": "UElORw=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "7d53abeb057462caed6cc096ed8d28d72ba097fe4cdf217fd0792382a1566850",
+        "pausedMonoMs": 158512.344835
+      }
+    ],
+    "appearance": "Waiting page. Synthetic fixture.",
+    "decidedMonoMs": 159214.732374,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "pixel",
+    "decision": "release",
+    "case": "pixel-native-release",
+    "serverSequenceBefore": 17,
+    "heldMs": 600,
+    "triggeredMonoMs": 159918.464953,
+    "observedMonoMs": 160622.815131,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-43.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=pixel-native-release&message=synthetic-pixel-native-release",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Image"
+        },
+        "classifierReason": null,
+        "hash": "555997830d6ce483734c1c554bc98b922350967b176a6b15853fcc86984db0b5",
+        "pausedMonoMs": 159923.274782
+      }
+    ],
+    "appearance": "Hold pixel-native-release\nMessage\nSend fixture\n\nPixel send queued",
+    "decidedMonoMs": 160624.975167,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 18,
+        "at": 1794025511230,
+        "atMonoMs": 160626.526632,
+        "kind": "http",
+        "method": "GET",
+        "url": "/receive?case=pixel-native-release&message=synthetic-pixel-native-release",
+        "body": "",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "pixel",
+    "decision": "drop",
+    "case": "pixel-native-drop",
+    "serverSequenceBefore": 18,
+    "heldMs": 600,
+    "triggeredMonoMs": 161429.367788,
+    "observedMonoMs": 162134.124258,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-45.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=pixel-native-drop&message=synthetic-pixel-native-drop",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Image"
+        },
+        "classifierReason": null,
+        "hash": "fd4f6e748115b3014b8a2e01310c9ce6c057c8361a0ec38c94467cbd0a076903",
+        "pausedMonoMs": 161434.073395
+      }
+    ],
+    "appearance": "Hold pixel-native-drop\nMessage\nSend fixture\n\nPixel send queued",
+    "decidedMonoMs": 162135.915912,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "trusted-origin",
+    "after": [
+      {
+        "seq": 19,
+        "at": 1794025513434,
+        "atMonoMs": 162831.319104,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=fetch-native-trusted",
+        "body": "synthetic-fetch-native-trusted",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "ws-baseline",
+    "result": "Fetch did not pause WebSocket frame",
+    "after": [
+      {
+        "seq": 20,
+        "at": 1794025513828,
+        "atMonoMs": 163224.454892,
+        "kind": "ws",
+        "url": "/ws?case=ws-native-baseline",
+        "body": "synthetic-ws-native-baseline"
+      }
+    ],
+    "observed": 1
+  },
+  {
+    "kind": "ws-preload-existing-document",
+    "result": "new-document shim did not change the existing tab document",
+    "after": [
+      {
+        "seq": 20,
+        "at": 1794025513828,
+        "atMonoMs": 163224.454892,
+        "kind": "ws",
+        "url": "/ws?case=ws-native-baseline",
+        "body": "synthetic-ws-native-baseline"
+      },
+      {
+        "seq": 21,
+        "at": 1794025513831,
+        "atMonoMs": 163228.210662,
+        "kind": "ws",
+        "url": "/ws?case=ws-native-baseline",
+        "body": "synthetic-ws-native-baseline"
+      }
+    ]
+  },
+  {
+    "kind": "ws-shim",
+    "decision": "release",
+    "whileHeld": 0,
+    "pending": [
+      {
+        "data": "synthetic-ws-native-shim-release",
+        "id": 1,
+        "url": "ws://127.0.0.1:40009/ws?case=ws-native-shim-release"
+      }
+    ],
+    "after": [
+      {
+        "seq": 22,
+        "at": 1794025514731,
+        "atMonoMs": 164128.072627,
+        "kind": "ws",
+        "url": "/ws?case=ws-native-shim-release",
+        "body": "synthetic-ws-native-shim-release"
+      }
+    ]
+  },
+  {
+    "kind": "ws-shim",
+    "decision": "drop",
+    "whileHeld": 0,
+    "pending": [
+      {
+        "data": "synthetic-ws-native-shim-drop",
+        "id": 1,
+        "url": "ws://127.0.0.1:40009/ws?case=ws-native-shim-drop"
+      }
+    ],
+    "after": []
+  },
+  {
+    "kind": "ws-shim-bypass",
+    "result": "worker WebSocket bypassed new-document shim",
+    "after": [
+      {
+        "seq": 23,
+        "at": 1794025516533,
+        "atMonoMs": 165929.76141,
+        "kind": "ws",
+        "url": "/ws?case=ws-native-bypass",
+        "body": "synthetic-worker-bypass"
+      }
+    ]
+  },
+  {
+    "kind": "ws-action-gate",
+    "whileHeld": 0,
+    "after": [
+      {
+        "seq": 24,
+        "at": 1794025517428,
+        "atMonoMs": 166825.235947,
+        "kind": "ws",
+        "url": "/ws?case=ws-native-action-gate",
+        "body": "synthetic-ws-native-action-gate"
+      }
+    ]
+  }
+]

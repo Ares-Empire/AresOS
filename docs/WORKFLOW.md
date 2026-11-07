@@ -20,7 +20,7 @@ Work one package at a time. Run up to about three at once only when they touch d
      "Read AGENTS.md and briefs/NN-slug.md, then execute the brief fully. Push the branch and open a PR. Do not merge." \
      > ../AresOS-NN-slug.log 2>&1
    ```
-   `$BUILD_MODEL` and the other model names are the current picks in `CLAUDE.md`.
+   `$BUILD_MODEL` is the model picked for this package (`CLAUDE.md`, "Codex models").
 4. **Review (fresh Codex).** A reviewer that didn't write the code checks the PR against the brief. See "Package review" in `docs/REVIEW.md`.
 5. **Integrate (Claude).** This is not a second full review. Claude:
    - confirms the PR head is the commit that was reviewed

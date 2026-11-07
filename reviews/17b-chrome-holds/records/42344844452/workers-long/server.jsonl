@@ -1,0 +1,15 @@
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dgpeoalalaeeicmmpbgbleeflfdjgbinc%26v%3D0.0.0.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794031152975}
+{"kind":"crx","url":"/extension.crx","at":1794031153035}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dgpeoalalaeeicmmpbgbleeflfdjgbinc%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794031175206}
+{"kind":"receive","url":"/receive?case=sw-page-fetch-true","method":"POST","body":"synthetic fetch","at":1794031182876}
+{"kind":"receive","url":"/receive?case=sw-page-xhr-true","method":"POST","body":"synthetic xhr","at":1794031187439}
+{"kind":"receive","url":"/receive?case=sw-page-form-true","method":"POST","body":"value=synthetic+form","at":1794031192010}
+{"kind":"receive","url":"/receive?case=sw-own-true","method":"POST","body":"synthetic worker","at":1794031196480}
+{"kind":"receive","url":"/receive?case=sw-sync-true","method":"POST","body":"synthetic sync","at":1794031201835}
+{"kind":"receive","url":"/receive?case=bypass-fetch-true","method":"POST","body":"synthetic fetch","at":1794031206688}
+{"kind":"receive","url":"/receive?case=bypass-xhr-true","method":"POST","body":"synthetic xhr","at":1794031209044}
+{"kind":"receive","url":"/receive?case=bypass-form-true","method":"POST","body":"value=synthetic+form","at":1794031211501}
+{"kind":"receive","url":"/receive?case=long-retry&attempt=2","method":"POST","body":"synthetic retry","at":1794031215436}
+{"kind":"receive","url":"/receive?case=long-30000","method":"POST","body":"synthetic fetch","at":1794031244400}
+{"kind":"receive","url":"/receive?case=long-120000","method":"POST","body":"synthetic fetch","at":1794031334401}
+{"kind":"receive","url":"/receive?case=long-form","method":"POST","body":"value=synthetic+form","at":1794031367006}

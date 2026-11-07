@@ -1,0 +1,928 @@
+[
+  {
+    "kind": "post",
+    "decision": "release",
+    "case": "post-playwright-release",
+    "serverSequenceBefore": 29,
+    "heldMs": 600,
+    "triggeredMonoMs": 187529.22213,
+    "observedMonoMs": 188236.950148,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-2",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=post-playwright-release",
+          "method": "POST",
+          "data": "case=post-playwright-release&message=synthetic-post-playwright-release",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "4871d00ee59c0f5292bd88bb58ef2b28b56320576c4436ee9ed22ab22802ce30",
+        "pausedMonoMs": 187541.805917
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold post-playwright-release\nMessage\nSend fixture\nsynthetic-post-playwright-release"
+    },
+    "decidedMonoMs": 188334.961949,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 30,
+        "at": 1794025538941,
+        "atMonoMs": 188337.775313,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=post-playwright-release",
+        "body": "case=post-playwright-release&message=synthetic-post-playwright-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "post",
+    "decision": "drop",
+    "case": "post-playwright-drop",
+    "serverSequenceBefore": 30,
+    "heldMs": 600,
+    "triggeredMonoMs": 189045.963898,
+    "observedMonoMs": 189751.563862,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-4",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=post-playwright-drop",
+          "method": "POST",
+          "data": "case=post-playwright-drop&message=synthetic-post-playwright-drop",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "6a419c3ca1dac609ea18084de4478afcaa906f21249f9944c21b71cf0fc41363",
+        "pausedMonoMs": 189061.05168
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold post-playwright-drop\nMessage\nSend fixture\nsynthetic-post-playwright-drop"
+    },
+    "decidedMonoMs": 189849.373586,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "get",
+    "decision": "release",
+    "case": "get-playwright-release",
+    "serverSequenceBefore": 30,
+    "heldMs": 600,
+    "triggeredMonoMs": 190556.368438,
+    "observedMonoMs": 191262.724317,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-6",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=get-playwright-release&message=synthetic-get-playwright-release",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "form submission, including GET",
+        "hash": "1ef38fd4b52dfe34131908985af69e3994bb1e7724a89c79df9387da079764c2",
+        "pausedMonoMs": 190568.836849
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold get-playwright-release\nMessage\nSend fixture\nsynthetic-get-playwright-release"
+    },
+    "decidedMonoMs": 191359.875502,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 31,
+        "at": 1794025541966,
+        "atMonoMs": 191362.717389,
+        "kind": "http",
+        "method": "GET",
+        "url": "/receive?case=get-playwright-release&message=synthetic-get-playwright-release",
+        "body": "",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "get",
+    "decision": "drop",
+    "case": "get-playwright-drop",
+    "serverSequenceBefore": 31,
+    "heldMs": 600,
+    "triggeredMonoMs": 192065.742492,
+    "observedMonoMs": 192770.907133,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-8",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=get-playwright-drop&message=synthetic-get-playwright-drop",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "form submission, including GET",
+        "hash": "d78d6bd5f6013cf96be450298f7074f91a904fef9e8cdadb1b8b1c603b15713f",
+        "pausedMonoMs": 192078.260944
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold get-playwright-drop\nMessage\nSend fixture\nsynthetic-get-playwright-drop"
+    },
+    "decidedMonoMs": 192874.990326,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "fetch",
+    "decision": "release",
+    "case": "fetch-playwright-release",
+    "serverSequenceBefore": 31,
+    "heldMs": 600,
+    "triggeredMonoMs": 193583.421465,
+    "observedMonoMs": 194290.394602,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-10",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=fetch-playwright-release",
+          "method": "POST",
+          "data": "synthetic-fetch-playwright-release",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Fetch"
+        },
+        "classifierReason": "non-read method",
+        "hash": "1bc51fc12dff2df7a2589c7363ec2f49f64f71908264090a24955c5a4a35b550",
+        "pausedMonoMs": 193590.051622
+      }
+    ],
+    "appearance": "Hold fetch-playwright-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 194392.298175,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 32,
+        "at": 1794025544998,
+        "atMonoMs": 194394.793717,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=fetch-playwright-release",
+        "body": "synthetic-fetch-playwright-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "fetch",
+    "decision": "drop",
+    "case": "fetch-playwright-drop",
+    "serverSequenceBefore": 32,
+    "heldMs": 600,
+    "triggeredMonoMs": 195199.057427,
+    "observedMonoMs": 195905.255723,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-12",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=fetch-playwright-drop",
+          "method": "POST",
+          "data": "synthetic-fetch-playwright-drop",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Fetch"
+        },
+        "classifierReason": "non-read method",
+        "hash": "5da5082c49d672fc1c29867815ee7ed37653243342b647b2a5bdf29170455f55",
+        "pausedMonoMs": 195205.488344
+      }
+    ],
+    "appearance": "Hold fetch-playwright-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 195907.435982,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "xhr",
+    "decision": "release",
+    "case": "xhr-playwright-release",
+    "serverSequenceBefore": 32,
+    "heldMs": 600,
+    "triggeredMonoMs": 196615.602633,
+    "observedMonoMs": 197323.443178,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-14",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=xhr-playwright-release",
+          "method": "POST",
+          "data": "synthetic-xhr-playwright-release",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "5071db5668f8cee94e902a27214c3e900d238fb50951030e34472323e22a4300",
+        "pausedMonoMs": 196621.81033
+      }
+    ],
+    "appearance": "Hold xhr-playwright-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 197325.516804,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 33,
+        "at": 1794025547931,
+        "atMonoMs": 197327.504061,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=xhr-playwright-release",
+        "body": "synthetic-xhr-playwright-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "xhr",
+    "decision": "drop",
+    "case": "xhr-playwright-drop",
+    "serverSequenceBefore": 33,
+    "heldMs": 600,
+    "triggeredMonoMs": 198032.749257,
+    "observedMonoMs": 198739.109412,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-16",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=xhr-playwright-drop",
+          "method": "POST",
+          "data": "synthetic-xhr-playwright-drop",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "6b83f14ab4e18fcff4ef4736c441a19187f6fd6a33a225a1009f029eed260eaf",
+        "pausedMonoMs": 198039.201831
+      }
+    ],
+    "appearance": "Hold xhr-playwright-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 198741.197253,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "beacon",
+    "decision": "release",
+    "case": "beacon-playwright-release",
+    "serverSequenceBefore": 33,
+    "heldMs": 600,
+    "triggeredMonoMs": 199446.994952,
+    "observedMonoMs": 200152.838428,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-18",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=beacon-playwright-release",
+          "method": "POST",
+          "data": "synthetic-beacon-playwright-release",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "e564dc2538f160081fc173a767cced8e643be9790711680b789e887ada2cc25d",
+        "pausedMonoMs": 199453.475627
+      }
+    ],
+    "appearance": "Hold beacon-playwright-release\nMessage\nSend fixture\n\nQueued beacon",
+    "decidedMonoMs": 200154.92759,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 34,
+        "at": 1794025550760,
+        "atMonoMs": 200157.256603,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=beacon-playwright-release",
+        "body": "synthetic-beacon-playwright-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "beacon",
+    "decision": "drop",
+    "case": "beacon-playwright-drop",
+    "serverSequenceBefore": 34,
+    "heldMs": 600,
+    "triggeredMonoMs": 200862.4156,
+    "observedMonoMs": 201569.103854,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-20",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=beacon-playwright-drop",
+          "method": "POST",
+          "data": "synthetic-beacon-playwright-drop",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "2ca07940faab3a3255499bfe834b6a6913f8cb7ef99dae78edd874e630debb6f",
+        "pausedMonoMs": 200869.585888
+      }
+    ],
+    "appearance": "Hold beacon-playwright-drop\nMessage\nSend fixture\n\nQueued beacon",
+    "decidedMonoMs": 201571.230893,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "autosave",
+    "decision": "release",
+    "case": "autosave-playwright-release",
+    "serverSequenceBefore": 34,
+    "heldMs": 600,
+    "triggeredMonoMs": 202282.699444,
+    "observedMonoMs": 202989.976837,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-22",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosave-playwright-release",
+          "method": "POST",
+          "data": "synthetic-autosave",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Fetch"
+        },
+        "classifierReason": "non-read method",
+        "hash": "efd01747b54177b1e1b4d17b5caab746715e4c0e0dd5cabd254950f21259ffbc",
+        "pausedMonoMs": 202288.817625
+      }
+    ],
+    "appearance": "Hold autosave-playwright-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 202991.978945,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 35,
+        "at": 1794025553597,
+        "atMonoMs": 202994.046526,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=autosave-playwright-release",
+        "body": "synthetic-autosave",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "autosave",
+    "decision": "drop",
+    "case": "autosave-playwright-drop",
+    "serverSequenceBefore": 35,
+    "heldMs": 600,
+    "triggeredMonoMs": 203703.28814,
+    "observedMonoMs": 204408.551652,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-24",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosave-playwright-drop",
+          "method": "POST",
+          "data": "synthetic-autosave",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Fetch"
+        },
+        "classifierReason": "non-read method",
+        "hash": "c24a82ac8a8aa9a1d05a3dfc540a45cccabc7350b8de5f85d181a55552e611be",
+        "pausedMonoMs": 203709.851789
+      }
+    ],
+    "appearance": "Hold autosave-playwright-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 204410.560448,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "autosaveget",
+    "decision": "release",
+    "case": "autosaveget-playwright-release",
+    "serverSequenceBefore": 35,
+    "heldMs": 600,
+    "triggeredMonoMs": 205123.710436,
+    "observedMonoMs": 205830.13658,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-26",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosaveget-playwright-release&message=synthetic-autosave",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Fetch"
+        },
+        "classifierReason": "request during typing",
+        "hash": "ee79a5f95325c561d4e7b1c548ffb66dd9e0149dafcdec02b9c154e7cdaf8a50",
+        "pausedMonoMs": 205130.096563
+      }
+    ],
+    "appearance": "Hold autosaveget-playwright-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 205832.343953,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 36,
+        "at": 1794025556438,
+        "atMonoMs": 205834.851559,
+        "kind": "http",
+        "method": "GET",
+        "url": "/receive?case=autosaveget-playwright-release&message=synthetic-autosave",
+        "body": "",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "autosaveget",
+    "decision": "drop",
+    "case": "autosaveget-playwright-drop",
+    "serverSequenceBefore": 36,
+    "heldMs": 600,
+    "triggeredMonoMs": 206556.201848,
+    "observedMonoMs": 207262.206299,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-28",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosaveget-playwright-drop&message=synthetic-autosave",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Fetch"
+        },
+        "classifierReason": "request during typing",
+        "hash": "6b2a161f886a2ce9c73115796bb351e89fae54a4f466a834d16c2dd0db45940b",
+        "pausedMonoMs": 206562.131862
+      }
+    ],
+    "appearance": "Hold autosaveget-playwright-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 207264.391292,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "worker",
+    "decision": "release",
+    "case": "worker-playwright-release",
+    "serverSequenceBefore": 36,
+    "heldMs": 600,
+    "triggeredMonoMs": 207985.433168,
+    "observedMonoMs": 208690.12536,
+    "whileHeld": 1,
+    "pending": [],
+    "appearance": "Hold worker-playwright-release\nMessage\nSend fixture\n\nWorker sent",
+    "result": "NOT HELD: service-worker request bypassed tab Fetch",
+    "after": [
+      {
+        "seq": 37,
+        "at": 1794025558598,
+        "atMonoMs": 207995.302998,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=worker-playwright-release",
+        "body": "synthetic-worker-data",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "worker",
+    "decision": "drop",
+    "case": "worker-playwright-drop",
+    "serverSequenceBefore": 37,
+    "heldMs": 600,
+    "triggeredMonoMs": 209005.716034,
+    "observedMonoMs": 209711.924276,
+    "whileHeld": 1,
+    "pending": [],
+    "appearance": "Hold worker-playwright-drop\nMessage\nSend fixture\n\nWorker sent",
+    "result": "NOT HELD: service-worker request bypassed tab Fetch",
+    "after": [
+      {
+        "seq": 38,
+        "at": 1794025559614,
+        "atMonoMs": 209010.781339,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=worker-playwright-drop",
+        "body": "synthetic-worker-data",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "cross",
+    "decision": "release",
+    "case": "cross-playwright-release",
+    "serverSequenceBefore": 38,
+    "heldMs": 600,
+    "triggeredMonoMs": 210023.449241,
+    "observedMonoMs": 210729.782592,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-32",
+        "preview": {
+          "site": "http://localhost:37863",
+          "address": "http://localhost:37863/receive?case=cross-playwright-release",
+          "method": "POST",
+          "data": "case=cross-playwright-release&message=synthetic-cross-playwright-release",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "ffe1924fff6b321103ebbe9938e3ef841d70f86c7ed74280e873279db512f2cb",
+        "pausedMonoMs": 210042.593836
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold cross-playwright-release\nMessage\nSend fixture\nsynthetic-cross-playwright-release"
+    },
+    "decidedMonoMs": 210829.628572,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 39,
+        "at": 1794025561436,
+        "atMonoMs": 210832.648386,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=cross-playwright-release",
+        "body": "case=cross-playwright-release&message=synthetic-cross-playwright-release",
+        "site": "localhost:37863",
+        "cookie": false
+      }
+    ]
+  },
+  {
+    "kind": "cross",
+    "decision": "drop",
+    "case": "cross-playwright-drop",
+    "serverSequenceBefore": 39,
+    "heldMs": 600,
+    "triggeredMonoMs": 211567.666456,
+    "observedMonoMs": 212274.493969,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-34",
+        "preview": {
+          "site": "http://localhost:37863",
+          "address": "http://localhost:37863/receive?case=cross-playwright-drop",
+          "method": "POST",
+          "data": "case=cross-playwright-drop&message=synthetic-cross-playwright-drop",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "07ac0b6bbc8cf58ea6c78621719991de7e9d2f5fdc52229e1fbc7141c6b17dd7",
+        "pausedMonoMs": 211586.978654
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold cross-playwright-drop\nMessage\nSend fixture\nsynthetic-cross-playwright-drop"
+    },
+    "decidedMonoMs": 212374.048511,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "ping",
+    "decision": "release",
+    "case": "ping-playwright-release",
+    "serverSequenceBefore": 39,
+    "heldMs": 600,
+    "triggeredMonoMs": 213082.45975,
+    "observedMonoMs": 213788.438893,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-36",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=ping-playwright-release",
+          "method": "POST",
+          "data": "PING",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "ad1827422535fbdf7ccd3b6bdaabfd31193b520ac69c1392fa1d13bb0166efcd",
+        "pausedMonoMs": 213093.978321
+      }
+    ],
+    "appearance": "Waiting page. Synthetic fixture.",
+    "decidedMonoMs": 213790.994924,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 40,
+        "at": 1794025564396,
+        "atMonoMs": 213793.231522,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=ping-playwright-release",
+        "body": "PING",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "ping",
+    "decision": "drop",
+    "case": "ping-playwright-drop",
+    "serverSequenceBefore": 40,
+    "heldMs": 600,
+    "triggeredMonoMs": 214499.463312,
+    "observedMonoMs": 215205.790791,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-39",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=ping-playwright-drop",
+          "method": "POST",
+          "data": "PING",
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "b19e2c547729aef5720dadf5f4465f71728b2d072241f7f0b2776a6bb5503ff5",
+        "pausedMonoMs": 214510.476381
+      }
+    ],
+    "appearance": "Waiting page. Synthetic fixture.",
+    "decidedMonoMs": 215208.214228,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "pixel",
+    "decision": "release",
+    "case": "pixel-playwright-release",
+    "serverSequenceBefore": 40,
+    "heldMs": 600,
+    "triggeredMonoMs": 215921.656526,
+    "observedMonoMs": 216628.472136,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-42",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=pixel-playwright-release&message=synthetic-pixel-playwright-release",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Image"
+        },
+        "classifierReason": null,
+        "hash": "1cad022882d9ac0334dc62cef43d78db62796ab35d5b3f571122918a54157390",
+        "pausedMonoMs": 215928.684799
+      }
+    ],
+    "appearance": "Hold pixel-playwright-release\nMessage\nSend fixture\n\nPixel send queued",
+    "decidedMonoMs": 216630.602367,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 41,
+        "at": 1794025567236,
+        "atMonoMs": 216633.164966,
+        "kind": "http",
+        "method": "GET",
+        "url": "/receive?case=pixel-playwright-release&message=synthetic-pixel-playwright-release",
+        "body": "",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "pixel",
+    "decision": "drop",
+    "case": "pixel-playwright-drop",
+    "serverSequenceBefore": 41,
+    "heldMs": 600,
+    "triggeredMonoMs": 217339.140274,
+    "observedMonoMs": 218045.634129,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "pw-route-44",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=pixel-playwright-drop&message=synthetic-pixel-playwright-drop",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Image"
+        },
+        "classifierReason": null,
+        "hash": "9521448493d8527696dfe63208c4091e4f687053b1c4b9bfcc07d1ab22005951",
+        "pausedMonoMs": 217344.825148
+      }
+    ],
+    "appearance": "Hold pixel-playwright-drop\nMessage\nSend fixture\n\nPixel send queued",
+    "decidedMonoMs": 218047.599097,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "trusted-origin",
+    "after": [
+      {
+        "seq": 42,
+        "at": 1794025569348,
+        "atMonoMs": 218745.326267,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=fetch-playwright-trusted",
+        "body": "synthetic-fetch-playwright-trusted",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "ws-baseline",
+    "result": "Fetch did not pause WebSocket frame",
+    "after": [
+      {
+        "seq": 43,
+        "at": 1794025569739,
+        "atMonoMs": 219135.589728,
+        "kind": "ws",
+        "url": "/ws?case=ws-playwright-baseline",
+        "body": "synthetic-ws-playwright-baseline"
+      }
+    ],
+    "observed": 1
+  },
+  {
+    "kind": "ws-preload-existing-document",
+    "result": "new-document shim did not change the existing tab document",
+    "after": [
+      {
+        "seq": 43,
+        "at": 1794025569739,
+        "atMonoMs": 219135.589728,
+        "kind": "ws",
+        "url": "/ws?case=ws-playwright-baseline",
+        "body": "synthetic-ws-playwright-baseline"
+      },
+      {
+        "seq": 44,
+        "at": 1794025569743,
+        "atMonoMs": 219139.858061,
+        "kind": "ws",
+        "url": "/ws?case=ws-playwright-baseline",
+        "body": "synthetic-ws-playwright-baseline"
+      }
+    ]
+  },
+  {
+    "kind": "ws-shim",
+    "decision": "release",
+    "whileHeld": 0,
+    "pending": [
+      {
+        "data": "synthetic-ws-playwright-shim-release",
+        "id": 1,
+        "url": "ws://127.0.0.1:40009/ws?case=ws-playwright-shim-release"
+      }
+    ],
+    "after": [
+      {
+        "seq": 45,
+        "at": 1794025570648,
+        "atMonoMs": 220045.197981,
+        "kind": "ws",
+        "url": "/ws?case=ws-playwright-shim-release",
+        "body": "synthetic-ws-playwright-shim-release"
+      }
+    ]
+  },
+  {
+    "kind": "ws-shim",
+    "decision": "drop",
+    "whileHeld": 0,
+    "pending": [
+      {
+        "data": "synthetic-ws-playwright-shim-drop",
+        "id": 1,
+        "url": "ws://127.0.0.1:40009/ws?case=ws-playwright-shim-drop"
+      }
+    ],
+    "after": []
+  },
+  {
+    "kind": "ws-shim-bypass",
+    "result": "worker WebSocket bypassed new-document shim",
+    "after": [
+      {
+        "seq": 46,
+        "at": 1794025572457,
+        "atMonoMs": 221853.999971,
+        "kind": "ws",
+        "url": "/ws?case=ws-playwright-bypass",
+        "body": "synthetic-worker-bypass"
+      }
+    ]
+  },
+  {
+    "kind": "ws-action-gate",
+    "whileHeld": 0,
+    "after": [
+      {
+        "seq": 47,
+        "at": 1794025573356,
+        "atMonoMs": 222752.753955,
+        "kind": "ws",
+        "url": "/ws?case=ws-playwright-action-gate",
+        "body": "synthetic-ws-playwright-action-gate"
+      }
+    ]
+  }
+]

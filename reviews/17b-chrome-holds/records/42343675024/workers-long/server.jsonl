@@ -1,0 +1,17 @@
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Diefhimfbekkiamfgfcdmelbefelocffb%26v%3D0.0.0.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794030097085}
+{"kind":"crx","url":"/extension.crx","at":1794030097125}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Diefhimfbekkiamfgfcdmelbefelocffb%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794030116815}
+{"kind":"receive","url":"/receive?case=sw-page-fetch-true","method":"POST","body":"synthetic fetch","at":1794030126350}
+{"kind":"receive","url":"/receive?case=sw-page-xhr-true","method":"POST","body":"synthetic xhr","at":1794030130901}
+{"kind":"receive","url":"/receive?case=sw-page-form-true","method":"POST","body":"value=synthetic+form","at":1794030135452}
+{"kind":"receive","url":"/receive?case=sw-own-true","method":"POST","body":"synthetic worker","at":1794030139905}
+{"kind":"receive","url":"/receive?case=sw-sync-true","method":"POST","body":"synthetic sync","at":1794030145245}
+{"kind":"receive","url":"/receive?case=bypass-fetch-true","method":"POST","body":"synthetic fetch","at":1794030150084}
+{"kind":"receive","url":"/receive?case=bypass-xhr-true","method":"POST","body":"synthetic xhr","at":1794030152419}
+{"kind":"receive","url":"/receive?case=bypass-form-true","method":"POST","body":"value=synthetic+form","at":1794030154862}
+{"kind":"receive","url":"/receive?case=long-retry&attempt=2","method":"POST","body":"synthetic retry","at":1794030158862}
+{"kind":"receive","url":"/receive?case=long-30000","method":"POST","body":"synthetic fetch","at":1794030187837}
+{"kind":"receive","url":"/receive?case=long-120000","method":"POST","body":"synthetic fetch","at":1794030277841}
+{"kind":"receive","url":"/receive?case=long-600000","method":"POST","body":"synthetic fetch","at":1794030757841}
+{"kind":"receive","url":"/receive?case=long-form","method":"POST","body":"value=synthetic+form","at":1794030790487}
+{"kind":"receive","url":"/receive?case=sw-sync-false","method":"POST","body":"synthetic sync","at":1794030792004}

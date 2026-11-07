@@ -1,0 +1,3 @@
+{"kind": "connect", "at": 1794029760846.0889, "headers": {":scheme": "https", ":method": "CONNECT", ":authority": "127.0.0.1:4433", ":path": "/check", ":protocol": "webtransport", "sec-webtransport-http3-draft02": "1", "origin": "http://127.0.0.1:42247"}}
+{"kind": "datagram", "at": 1794029760945.374, "body": "synthetic transport"}
+{"kind": "datagram", "at": 1794029761825.9746, "body": "synthetic preattach transport"}

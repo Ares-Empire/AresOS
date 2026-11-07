@@ -1,0 +1,984 @@
+[
+  {
+    "kind": "post",
+    "decision": "release",
+    "case": "post-consent-release",
+    "serverSequenceBefore": 51,
+    "heldMs": 600,
+    "triggeredMonoMs": 249475.270741,
+    "observedMonoMs": 250180.558552,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-2.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=post-consent-release",
+          "method": "POST",
+          "data": "case=post-consent-release&message=synthetic-post-consent-release",
+          "bodyEntries": [
+            {
+              "bytes": "Y2FzZT1wb3N0LWNvbnNlbnQtcmVsZWFzZSZtZXNzYWdlPXN5bnRoZXRpYy1wb3N0LWNvbnNlbnQtcmVsZWFzZQ=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "a305765b09e159bb09b65102b33416209f9854cfadacaa7c04abb349a0e481bf",
+        "pausedMonoMs": 249487.429717
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold post-consent-release\nMessage\nSend fixture\nsynthetic-post-consent-release"
+    },
+    "decidedMonoMs": 250280.285312,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 52,
+        "at": 1794025600885,
+        "atMonoMs": 250282.051174,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=post-consent-release",
+        "body": "case=post-consent-release&message=synthetic-post-consent-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "post",
+    "decision": "drop",
+    "case": "post-consent-drop",
+    "serverSequenceBefore": 52,
+    "heldMs": 600,
+    "triggeredMonoMs": 251078.526011,
+    "observedMonoMs": 251783.34446,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-4.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=post-consent-drop",
+          "method": "POST",
+          "data": "case=post-consent-drop&message=synthetic-post-consent-drop",
+          "bodyEntries": [
+            {
+              "bytes": "Y2FzZT1wb3N0LWNvbnNlbnQtZHJvcCZtZXNzYWdlPXN5bnRoZXRpYy1wb3N0LWNvbnNlbnQtZHJvcA=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "9ae50ec7681e0d5346f37e09700b5cd0369ce4507fcd567008870dd440609393",
+        "pausedMonoMs": 251090.276894
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold post-consent-drop\nMessage\nSend fixture\nsynthetic-post-consent-drop"
+    },
+    "decidedMonoMs": 251883.072417,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "get",
+    "decision": "release",
+    "case": "get-consent-release",
+    "serverSequenceBefore": 52,
+    "heldMs": 600,
+    "triggeredMonoMs": 252580.914162,
+    "observedMonoMs": 253286.505642,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-6.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=get-consent-release&message=synthetic-get-consent-release",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "form submission, including GET",
+        "hash": "42677773c7d639615b9d13376a5f34802426e63f38ab9bff8553650aef680aaa",
+        "pausedMonoMs": 252590.877295
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold get-consent-release\nMessage\nSend fixture\nsynthetic-get-consent-release"
+    },
+    "decidedMonoMs": 253387.62113,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 53,
+        "at": 1794025603993,
+        "atMonoMs": 253389.794467,
+        "kind": "http",
+        "method": "GET",
+        "url": "/receive?case=get-consent-release&message=synthetic-get-consent-release",
+        "body": "",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "get",
+    "decision": "drop",
+    "case": "get-consent-drop",
+    "serverSequenceBefore": 53,
+    "heldMs": 600,
+    "triggeredMonoMs": 254185.048167,
+    "observedMonoMs": 254889.20161,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-8.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=get-consent-drop&message=synthetic-get-consent-drop",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "form submission, including GET",
+        "hash": "138d0703b9a4c22010eb0372606c8208993337cff28372decf6ad1219ec40d4f",
+        "pausedMonoMs": 254197.043672
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold get-consent-drop\nMessage\nSend fixture\nsynthetic-get-consent-drop"
+    },
+    "decidedMonoMs": 254988.616804,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "fetch",
+    "decision": "release",
+    "case": "fetch-consent-release",
+    "serverSequenceBefore": 53,
+    "heldMs": 600,
+    "triggeredMonoMs": 255692.808099,
+    "observedMonoMs": 256397.418955,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-10.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=fetch-consent-release",
+          "method": "POST",
+          "data": "synthetic-fetch-consent-release",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWZldGNoLWNvbnNlbnQtcmVsZWFzZQ=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "362dd594ad5366a9e69d6cb4afef09217e868ac1e40eb62dbde3decd7eccc374",
+        "pausedMonoMs": 255696.946141
+      }
+    ],
+    "appearance": "Hold fetch-consent-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 256499.818138,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 54,
+        "at": 1794025607104,
+        "atMonoMs": 256501.315676,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=fetch-consent-release",
+        "body": "synthetic-fetch-consent-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "fetch",
+    "decision": "drop",
+    "case": "fetch-consent-drop",
+    "serverSequenceBefore": 54,
+    "heldMs": 600,
+    "triggeredMonoMs": 257391.752038,
+    "observedMonoMs": 258097.916694,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-12.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=fetch-consent-drop",
+          "method": "POST",
+          "data": "synthetic-fetch-consent-drop",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWZldGNoLWNvbnNlbnQtZHJvcA=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "8abee417ef87bcd0ab0d84269e52fa1e5efe93cdabc41076ebc332fb012d91ca",
+        "pausedMonoMs": 257395.75365
+      }
+    ],
+    "appearance": "Hold fetch-consent-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 258099.298597,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "xhr",
+    "decision": "release",
+    "case": "xhr-consent-release",
+    "serverSequenceBefore": 54,
+    "heldMs": 600,
+    "triggeredMonoMs": 258793.529121,
+    "observedMonoMs": 259498.137415,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-14.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=xhr-consent-release",
+          "method": "POST",
+          "data": "synthetic-xhr-consent-release",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLXhoci1jb25zZW50LXJlbGVhc2U="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "598509b1e66cc82b40078f554441b46029d8ba676da0232203f8570e43b322b0",
+        "pausedMonoMs": 258797.608369
+      }
+    ],
+    "appearance": "Hold xhr-consent-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 259499.48626,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 55,
+        "at": 1794025610104,
+        "atMonoMs": 259500.741068,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=xhr-consent-release",
+        "body": "synthetic-xhr-consent-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "xhr",
+    "decision": "drop",
+    "case": "xhr-consent-drop",
+    "serverSequenceBefore": 55,
+    "heldMs": 600,
+    "triggeredMonoMs": 260294.820523,
+    "observedMonoMs": 260999.164831,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-16.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=xhr-consent-drop",
+          "method": "POST",
+          "data": "synthetic-xhr-consent-drop",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLXhoci1jb25zZW50LWRyb3A="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "fffd4b94e0632f793c3612104a0e057d5d409e51c43749419f6a9f292475b988",
+        "pausedMonoMs": 260298.832938
+      }
+    ],
+    "appearance": "Hold xhr-consent-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 261000.518096,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "beacon",
+    "decision": "release",
+    "case": "beacon-consent-release",
+    "serverSequenceBefore": 55,
+    "heldMs": 600,
+    "triggeredMonoMs": 261694.629698,
+    "observedMonoMs": 262399.844509,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-18.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=beacon-consent-release",
+          "method": "POST",
+          "data": "synthetic-beacon-consent-release",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWJlYWNvbi1jb25zZW50LXJlbGVhc2U="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "a1f9590eac3c9165fcf1182296a39741b30a6968c2652e8385cc2d2fe1749d20",
+        "pausedMonoMs": 261698.811043
+      }
+    ],
+    "appearance": "Hold beacon-consent-release\nMessage\nSend fixture\n\nQueued beacon",
+    "decidedMonoMs": 262401.160582,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 56,
+        "at": 1794025613006,
+        "atMonoMs": 262402.484009,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=beacon-consent-release",
+        "body": "synthetic-beacon-consent-release",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "beacon",
+    "decision": "drop",
+    "case": "beacon-consent-drop",
+    "serverSequenceBefore": 56,
+    "heldMs": 600,
+    "triggeredMonoMs": 263196.64292,
+    "observedMonoMs": 263900.591644,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-20.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=beacon-consent-drop",
+          "method": "POST",
+          "data": "synthetic-beacon-consent-drop",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWJlYWNvbi1jb25zZW50LWRyb3A="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "df55c5989d6815333159db6ebe5e2fa807e24f38266343a518cdef0a63dd6a8b",
+        "pausedMonoMs": 263200.348848
+      }
+    ],
+    "appearance": "Hold beacon-consent-drop\nMessage\nSend fixture\n\nQueued beacon",
+    "decidedMonoMs": 263902.101266,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "autosave",
+    "decision": "release",
+    "case": "autosave-consent-release",
+    "serverSequenceBefore": 56,
+    "heldMs": 600,
+    "triggeredMonoMs": 264594.796092,
+    "observedMonoMs": 265299.134939,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-22.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosave-consent-release",
+          "method": "POST",
+          "data": "synthetic-autosave",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWF1dG9zYXZl"
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "e04639f4ee75d5dd537de472d51790ffe2cdbc48bba2d6a677f07c641b00d74b",
+        "pausedMonoMs": 264599.078635
+      }
+    ],
+    "appearance": "Hold autosave-consent-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 265300.544976,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 57,
+        "at": 1794025615905,
+        "atMonoMs": 265301.75563,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=autosave-consent-release",
+        "body": "synthetic-autosave",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "autosave",
+    "decision": "drop",
+    "case": "autosave-consent-drop",
+    "serverSequenceBefore": 57,
+    "heldMs": 600,
+    "triggeredMonoMs": 266094.762595,
+    "observedMonoMs": 266799.398667,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-24.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosave-consent-drop",
+          "method": "POST",
+          "data": "synthetic-autosave",
+          "bodyEntries": [
+            {
+              "bytes": "c3ludGhldGljLWF1dG9zYXZl"
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "non-read method",
+        "hash": "349191afbb2f9b9780d7bfa7613bdf75aca6f51587df0b3e8e66912e65480253",
+        "pausedMonoMs": 266099.153518
+      }
+    ],
+    "appearance": "Hold autosave-consent-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 266800.724971,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "autosaveget",
+    "decision": "release",
+    "case": "autosaveget-consent-release",
+    "serverSequenceBefore": 57,
+    "heldMs": 600,
+    "triggeredMonoMs": 267495.143396,
+    "observedMonoMs": 268200.956985,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-26.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosaveget-consent-release&message=synthetic-autosave",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "request during typing",
+        "hash": "52381286ecd3254daf464c17ef7333053f7f77d29849110e390c080a7bbb1394",
+        "pausedMonoMs": 267499.621263
+      }
+    ],
+    "appearance": "Hold autosaveget-consent-release\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 268202.322325,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 58,
+        "at": 1794025618807,
+        "atMonoMs": 268203.627301,
+        "kind": "http",
+        "method": "GET",
+        "url": "/receive?case=autosaveget-consent-release&message=synthetic-autosave",
+        "body": "",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "autosaveget",
+    "decision": "drop",
+    "case": "autosaveget-consent-drop",
+    "serverSequenceBefore": 58,
+    "heldMs": 600,
+    "triggeredMonoMs": 268996.349345,
+    "observedMonoMs": 269701.535717,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-28.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=autosaveget-consent-drop&message=synthetic-autosave",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "XHR"
+        },
+        "classifierReason": "request during typing",
+        "hash": "9cc99477bc0b422e7fe5e0b909640c93d23c747bf7c25855baaefa6ff032ed45",
+        "pausedMonoMs": 269000.564908
+      }
+    ],
+    "appearance": "Hold autosaveget-consent-drop\nMessage\nSend fixture\n\nWaiting for network",
+    "decidedMonoMs": 269703.117772,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "worker",
+    "decision": "release",
+    "case": "worker-consent-release",
+    "serverSequenceBefore": 58,
+    "heldMs": 600,
+    "triggeredMonoMs": 270397.547157,
+    "observedMonoMs": 271101.848415,
+    "whileHeld": 1,
+    "pending": [],
+    "appearance": "Hold worker-consent-release\nMessage\nSend fixture\n\nWorker sent",
+    "result": "NOT HELD: service-worker request bypassed tab Fetch",
+    "after": [
+      {
+        "seq": 59,
+        "at": 1794025621010,
+        "atMonoMs": 270406.562454,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=worker-consent-release",
+        "body": "synthetic-worker-data",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "worker",
+    "decision": "drop",
+    "case": "worker-consent-drop",
+    "serverSequenceBefore": 59,
+    "heldMs": 600,
+    "triggeredMonoMs": 271397.564615,
+    "observedMonoMs": 272102.16362,
+    "whileHeld": 1,
+    "pending": [],
+    "appearance": "Hold worker-consent-drop\nMessage\nSend fixture\n\nWorker sent",
+    "result": "NOT HELD: service-worker request bypassed tab Fetch",
+    "after": [
+      {
+        "seq": 60,
+        "at": 1794025622004,
+        "atMonoMs": 271401.31157,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=worker-consent-drop",
+        "body": "synthetic-worker-data",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "cross",
+    "decision": "release",
+    "case": "cross-consent-release",
+    "serverSequenceBefore": 60,
+    "heldMs": 600,
+    "triggeredMonoMs": 272394.466083,
+    "observedMonoMs": 273099.464677,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-32.0",
+        "preview": {
+          "site": "http://localhost:37863",
+          "address": "http://localhost:37863/receive?case=cross-consent-release",
+          "method": "POST",
+          "data": "case=cross-consent-release&message=synthetic-cross-consent-release",
+          "bodyEntries": [
+            {
+              "bytes": "Y2FzZT1jcm9zcy1jb25zZW50LXJlbGVhc2UmbWVzc2FnZT1zeW50aGV0aWMtY3Jvc3MtY29uc2VudC1yZWxlYXNl"
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "e4b8252f4088e3b9ef4066042de50da761d3713da899729e55e4b73dfe29975c",
+        "pausedMonoMs": 272408.451267
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold cross-consent-release\nMessage\nSend fixture\nsynthetic-cross-consent-release"
+    },
+    "decidedMonoMs": 273202.644341,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 61,
+        "at": 1794025623808,
+        "atMonoMs": 273204.535261,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=cross-consent-release",
+        "body": "case=cross-consent-release&message=synthetic-cross-consent-release",
+        "site": "localhost:37863",
+        "cookie": false
+      }
+    ]
+  },
+  {
+    "kind": "cross",
+    "decision": "drop",
+    "case": "cross-consent-drop",
+    "serverSequenceBefore": 61,
+    "heldMs": 600,
+    "triggeredMonoMs": 274017.091344,
+    "observedMonoMs": 274721.559409,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-35.0",
+        "preview": {
+          "site": "http://localhost:37863",
+          "address": "http://localhost:37863/receive?case=cross-consent-drop",
+          "method": "POST",
+          "data": "case=cross-consent-drop&message=synthetic-cross-consent-drop",
+          "bodyEntries": [
+            {
+              "bytes": "Y2FzZT1jcm9zcy1jb25zZW50LWRyb3AmbWVzc2FnZT1zeW50aGV0aWMtY3Jvc3MtY29uc2VudC1kcm9w"
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Document"
+        },
+        "classifierReason": "non-read method",
+        "hash": "f151c0ee901f0c173da79a8f3e4140a9ad7020032975e017d1d9673ea8e51e94",
+        "pausedMonoMs": 274030.468266
+      }
+    ],
+    "appearance": {
+      "state": "document navigation held; cached pre-action text",
+      "text": "Hold cross-consent-drop\nMessage\nSend fixture\nsynthetic-cross-consent-drop"
+    },
+    "decidedMonoMs": 274820.819557,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "ping",
+    "decision": "release",
+    "case": "ping-consent-release",
+    "serverSequenceBefore": 61,
+    "heldMs": 600,
+    "triggeredMonoMs": 275515.928889,
+    "observedMonoMs": 276220.958659,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-37.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=ping-consent-release",
+          "method": "POST",
+          "data": "PING",
+          "bodyEntries": [
+            {
+              "bytes": "UElORw=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "3b0773cfc7fc80467c9641518b692fc17437ff5fc5386b954ca810a8af9cc97f",
+        "pausedMonoMs": 275524.541839
+      }
+    ],
+    "appearance": "Waiting page. Synthetic fixture.",
+    "decidedMonoMs": 276222.679436,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 62,
+        "at": 1794025626827,
+        "atMonoMs": 276223.96727,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=ping-consent-release",
+        "body": "PING",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "ping",
+    "decision": "drop",
+    "case": "ping-consent-drop",
+    "serverSequenceBefore": 62,
+    "heldMs": 600,
+    "triggeredMonoMs": 277016.523145,
+    "observedMonoMs": 277721.329713,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-40.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=ping-consent-drop",
+          "method": "POST",
+          "data": "PING",
+          "bodyEntries": [
+            {
+              "bytes": "UElORw=="
+            }
+          ],
+          "bodyUnavailable": false,
+          "type": "Ping"
+        },
+        "classifierReason": "non-read method",
+        "hash": "0ead07fd0e9f8a6eec684073b73d4aa93d87c5cf3f981c49eb18f2d73764319b",
+        "pausedMonoMs": 277025.066671
+      }
+    ],
+    "appearance": "Waiting page. Synthetic fixture.",
+    "decidedMonoMs": 277723.437627,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "pixel",
+    "decision": "release",
+    "case": "pixel-consent-release",
+    "serverSequenceBefore": 62,
+    "heldMs": 600,
+    "triggeredMonoMs": 278415.903653,
+    "observedMonoMs": 279120.414139,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-43.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=pixel-consent-release&message=synthetic-pixel-consent-release",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Image"
+        },
+        "classifierReason": null,
+        "hash": "652d405fbc4bd702a11529dbe8acff834bf7937fc25c4250a2a6e8e43e0df1c3",
+        "pausedMonoMs": 278419.621717
+      }
+    ],
+    "appearance": "Hold pixel-consent-release\nMessage\nSend fixture\n\nPixel send queued",
+    "decidedMonoMs": 279122.063357,
+    "result": "held then exactly one arrival",
+    "after": [
+      {
+        "seq": 63,
+        "at": 1794025629728,
+        "atMonoMs": 279125.103059,
+        "kind": "http",
+        "method": "GET",
+        "url": "/receive?case=pixel-consent-release&message=synthetic-pixel-consent-release",
+        "body": "",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "pixel",
+    "decision": "drop",
+    "case": "pixel-consent-drop",
+    "serverSequenceBefore": 63,
+    "heldMs": 600,
+    "triggeredMonoMs": 279915.659379,
+    "observedMonoMs": 280620.326706,
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": "interception-job-45.0",
+        "preview": {
+          "site": "http://127.0.0.1:40009",
+          "address": "http://127.0.0.1:40009/receive?case=pixel-consent-drop&message=synthetic-pixel-consent-drop",
+          "method": "GET",
+          "data": null,
+          "bodyEntries": null,
+          "bodyUnavailable": false,
+          "type": "Image"
+        },
+        "classifierReason": null,
+        "hash": "1201dcb1048fb8758611e4c86e29d6fe26cb2ee937a5577ffa5e4b66ffff2287",
+        "pausedMonoMs": 279919.146343
+      }
+    ],
+    "appearance": "Hold pixel-consent-drop\nMessage\nSend fixture\n\nPixel send queued",
+    "decidedMonoMs": 280621.631213,
+    "result": "held then dropped, zero arrivals",
+    "after": []
+  },
+  {
+    "kind": "trusted-origin",
+    "after": [
+      {
+        "seq": 64,
+        "at": 1794025631913,
+        "atMonoMs": 281310.204274,
+        "kind": "http",
+        "method": "POST",
+        "url": "/receive?case=fetch-consent-trusted",
+        "body": "synthetic-fetch-consent-trusted",
+        "site": "127.0.0.1:40009",
+        "cookie": true
+      }
+    ]
+  },
+  {
+    "kind": "ws-baseline",
+    "result": "Fetch did not pause WebSocket frame",
+    "after": [
+      {
+        "seq": 65,
+        "at": 1794025632297,
+        "atMonoMs": 281693.925568,
+        "kind": "ws",
+        "url": "/ws?case=ws-consent-baseline",
+        "body": "synthetic-ws-consent-baseline"
+      }
+    ],
+    "observed": 1
+  },
+  {
+    "kind": "ws-preload-existing-document",
+    "result": "new-document shim did not change the existing tab document",
+    "after": [
+      {
+        "seq": 65,
+        "at": 1794025632297,
+        "atMonoMs": 281693.925568,
+        "kind": "ws",
+        "url": "/ws?case=ws-consent-baseline",
+        "body": "synthetic-ws-consent-baseline"
+      },
+      {
+        "seq": 66,
+        "at": 1794025632300,
+        "atMonoMs": 281696.49281,
+        "kind": "ws",
+        "url": "/ws?case=ws-consent-baseline",
+        "body": "synthetic-ws-consent-baseline"
+      }
+    ]
+  },
+  {
+    "kind": "ws-shim",
+    "decision": "release",
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": 1,
+        "url": "ws://127.0.0.1:40009/ws?case=ws-consent-shim-release",
+        "data": "synthetic-ws-consent-shim-release"
+      }
+    ],
+    "after": [
+      {
+        "seq": 67,
+        "at": 1794025633192,
+        "atMonoMs": 282588.725424,
+        "kind": "ws",
+        "url": "/ws?case=ws-consent-shim-release",
+        "body": "synthetic-ws-consent-shim-release"
+      }
+    ]
+  },
+  {
+    "kind": "ws-shim",
+    "decision": "drop",
+    "whileHeld": 0,
+    "pending": [
+      {
+        "id": 1,
+        "url": "ws://127.0.0.1:40009/ws?case=ws-consent-shim-drop",
+        "data": "synthetic-ws-consent-shim-drop"
+      }
+    ],
+    "after": []
+  },
+  {
+    "kind": "ws-shim-bypass",
+    "result": "worker WebSocket bypassed new-document shim",
+    "after": [
+      {
+        "seq": 68,
+        "at": 1794025634973,
+        "atMonoMs": 284370.302371,
+        "kind": "ws",
+        "url": "/ws?case=ws-consent-bypass",
+        "body": "synthetic-worker-bypass"
+      }
+    ]
+  },
+  {
+    "kind": "ws-action-gate",
+    "whileHeld": 0,
+    "after": [
+      {
+        "seq": 69,
+        "at": 1794025635858,
+        "atMonoMs": 285255.249872,
+        "kind": "ws",
+        "url": "/ws?case=ws-consent-action-gate",
+        "body": "synthetic-ws-consent-action-gate"
+      }
+    ]
+  }
+]

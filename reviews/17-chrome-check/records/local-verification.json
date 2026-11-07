@@ -1,0 +1,129 @@
+{
+  "checked_code_head": "38b629be5415e4a487ac3bab8314720c4060f2b2",
+  "browser_execution": "none; static syntax checks only",
+  "node_checks": [
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/checks.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "5c8a68c626186a5253daec533073c2707dcc69937315c407489f51ee13072545"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/extension/background.js"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "28099d8f06bcc7614c7c5d09d774165965be72afff68f89099bc9ed783704f1e"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/extension/select.js"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "7cdea36eafe08911f5eca42a13174d9271c41e415f45785311bc176edab1ab7c"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/fixture.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "98fdd54af38d8a7994a2605e5416acd75ccf51ce401ed275a7cd7faf1fa9e7fa"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/hold.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "2938f2b0f20e9172b1b5ce33c7f84758129b08ba46c9101990f2183dd714cd20"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/install.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "f98e5afdb2967e0c419ece264f67cf5d586596b2ef22a9df07dc9f6d8a47a91c"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/peer-probe.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "ab458564aa1132b51cf070430f96ae4d2c90abf27a3163ece27af1ecade163cc"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/protocol.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "5787414325bfa54ef869c9f727bf98182467962520d202cd3ebd39bb5e86704e"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/routes.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "4c53ef499688b637b24117c1fe2ebd578ea2b9e77d87fa7109a46b62bd3a136e"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/run.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "8f6b285495481dcf1b828d6995892413e0e522266c02297861dabd92fc8695a5"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/ui.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "3a8177cde996465de22543f2d4dcd0747efa9a527fcf0d70a613487ca5eba759"
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "control/checks/17-chrome/view.mjs"
+      ],
+      "exit": 0,
+      "output": "",
+      "source_sha256": "6162ab74c7f3d39d9a7b74d5034a8cfd0263e29c06392584b53368afe1a152be"
+    }
+  ],
+  "python": "ast.parse passed; native host not executed locally",
+  "inventory_threshold_bytes": 500000000,
+  "large_work_files": []
+}

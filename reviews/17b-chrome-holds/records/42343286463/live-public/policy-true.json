@@ -1,0 +1,9 @@
+{
+  "ExtensionInstallForcelist": [
+    "lmfbojbifpdjbljokjkdfcggfebakoii;http://127.0.0.1:42247/update.xml"
+  ],
+  "ExtensionInstallBlocklist": [
+    "fcoeoabgfenejglbffodgkkbkcdhcgfn"
+  ],
+  "NativeMessagingUserLevelHosts": true
+}
