@@ -216,31 +216,37 @@ tasks at any time.
 - **2026-11-07, 10:05:** 17c done (PR #7, CI green twice on `8f1f196`). Design draft 8 takes its results into
   section 6 (holding inside the page as the normal path; the site guard settled: short and rare, and strict while
   on). Frontier re-check of section 6 next, then brief 20 (Chrome) after the owner's "merge" and brief 19 (Mail).
-- **2026-11-07, 10:50:** brief 19 (Mail) running with a Claude package lead, on brief 18's branch (before the
+- **2026-11-07, 10:15:** brief 19 (Mail) running with a Claude package lead, on brief 18's branch (before the
   owner's "merge", to use this week's Codex allowance). Re-check 6 of section 6: CHANGES-NEEDED, four blocking;
   design draft 9 answers them (Chrome's own blocking rules as the floor under every hold, a guard that ends by itself
   only on evidence). Brief 17d (check of that floor) running; one more frontier re-check after it, then brief 20.
   Owner asked (#67): the strict guard.
-- **2026-11-07, 11:40:** 17d done (PR #8, CI green twice on `bf4ff66`): Chrome's own rules don't make a floor that
+- **2026-11-07, 11:30:** 17d done (PR #8, CI green twice on `bf4ff66`): Chrome's own rules don't make a floor that
   holds (worker WebSockets bypass them; an allowance lets a different send out when control ends at that instant).
   Brief 20 waits. Frontier re-check 7 (options: a local checkpoint outside Chrome that every browser request passes
   through, or a narrower Chrome) running; the owner decides with its result.
-- **2026-11-07, 12:20:** re-check 7 recommends the local checkpoint (narrower Chrome rejected: an allowance can't tell
+- **2026-11-07, 11:40:** re-check 7 recommends the local checkpoint (narrower Chrome rejected: an allowance can't tell
   competing bodies apart; a patched Chromium is a maintained browser fork). Owner asked (#68). Brief 17e (check of the
   checkpoint and its cost) running meanwhile, so the answer comes with numbers.
-- **2026-11-07, 12:45:** brief 19 (Mail, PR #9): 26 tools, 57 base and 75 Mail tests green twice, 89 crash cases.
+- **2026-11-07, 12:40:** brief 19 (Mail, PR #9): 26 tools, 57 base and 75 Mail tests green twice, 89 crash cases.
   Three fix rounds closed every finding except one area: an attached mail can still carry the owner's Bcc through
   odd MIME (a whitespace-only header line, a digest), and forwarded binary attachments got corrupted. A fourth round
   rebuilds attached mails from a short list of allowed headers, adds an independent final scan before sending, and
   keeps binary parts byte-exact. Re-check question #68 replaced by #69 (three options, after 17e's numbers).
-- **2026-11-07, 14:40:** 17e done (PR #10, CI green twice on `64ed6ed`): the checkpoint held every tested send,
+- **2026-11-07, 14:00:** 17e done (PR #10, CI green twice on `64ed6ed`): the checkpoint held every tested send,
   including WebSockets of shared and service workers opened before the guard; an approval releases exactly one
   captured send; no crash point lets one out or repeats it. Costs: pages about 0.1 s slower (small sample), no extra
   robot checks seen, about 100 to 260 MB memory; browser calls and WebTransport refused while it holds; some of
   Chrome's own services fail its certificate (to fix in brief 20 without exemptions); uncertain attribution holds the
   whole browser. Owner asked (#70, replaces #68 and #69), recommendation: the checkpoint, calls allowed while no guard
   is on, and an owner switch to turn it off (which also turns off Claude's Chrome tools). Mail round 5 running.
-- **2026-11-07, 16:40:** brief 19 (Mail, PR #9) passed its package review (SAFE after six fix rounds; 57 base and
+- **2026-11-07, 14:55:** brief 19 (Mail, PR #9) passed its package review (SAFE after six fix rounds; 57 base and
   103 Mail tests green twice on `ec4a8bba`). Drafts now never leave as attachments and can't be moved out of Drafts;
   nothing Claude sends carries an AresOS header. Final security review by the frontier model running; then the
   owner's choices (11, listed in plain words in its report) and his "merge".
+- **2026-11-07, 16:20:** Mail's final security review (frontier model) found four blocking points the package reviews
+  missed: an encoded subject could show one text in the approval and another to recipients; a renamed Trash allowed a
+  free move into it; a draft's text could leave through a saved file; and a folder-delete race (empty folders only,
+  no mail can be lost: an owner choice). Round 7 fixed the first three (114 Mail tests green twice); round 8 makes
+  Junk and Archive optional so onboarding works on servers that don't mark them. Frontier re-review after round 8.
+  Phone check of the prompt timed out unanswered; restarted for 48 hours (#71 replaces #51).
