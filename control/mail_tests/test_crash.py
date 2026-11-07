@@ -41,7 +41,7 @@ class MailCrashes(MailCase):
                     original = self.fixture()
                     comp_args = {'account':'box','mode':'reply','reference':original,'text':'Reply crash'}
                 comp = adapter.compose(comp_args)
-                approval = engine.reserve('mail','send',comp)['approval']
+                approval = {k:comp[k] for k in ('composition_id','composition_hash')} if action == 'mail_prepare_send' else engine.reserve('mail','send',comp)['approval']
                 if action == 'mail_operation_repair':
                     saved = adapter.local_stage
                     def fail_sent(op,which):

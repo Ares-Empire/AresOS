@@ -37,6 +37,8 @@ class CallerTransfers(MailCase):
         source = home / 'Documents' / 'attachment.pdf'
         source.write_bytes(b'%PDF-original caller bytes\x00\xff')
         os.chown(source,OWNER,OWNER)
+        (self.root / 'sockets').mkdir(mode=0o711)
+        os.chown(self.root / 'sockets',SERVICE,SERVICE)
         config = {'owner_uid':OWNER,'state_dir':str(self.root / 'state'),'evidence_dir':str(self.root / 'independent'),'socket_dir':str(self.root / 'sockets')}
         config_file = self.root / 'service.json'
         config_file.write_text(json.dumps(config))
@@ -112,10 +114,10 @@ class CallerTransfers(MailCase):
         finally:
             daemon.send_signal(signal.SIGTERM)
             stdout,stderr = daemon.communicate(timeout=10)
-            self.assertEqual(daemon.returncode,0,stdout+stderr)
             for path in [self.root / 'state',self.root / 'independent',*list((self.root / 'state').rglob('*')),*list((self.root / 'independent').rglob('*'))]:
                 os.chown(path,os.geteuid(),os.getegid())
             self.engine = Engine(self.root / 'state',self.root / 'independent')
             self.mail = self.engine.adapters['mail']
             home_temp.cleanup()
+            self.assertEqual(daemon.returncode,0,stdout+stderr)
         self.assertEqual(self.mail.message(reference)['flags'],before)
