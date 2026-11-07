@@ -63,32 +63,35 @@ Three places, each with one job:
 
 ## Order of work
 
-0. **Checks before building (now).**
+0. **Checks before building.**
    - **S1, Claude Code's prompt:** done 2026-11-07 ([check](../../reviews/control-checks/2026-11-07-permission-prompt.md)).
    - **S2, Chrome (brief 17):** done 2026-11-07 ([report](../../reviews/17-chrome-check/REPORT.md), PR #3). Our own
      extension attaches to an already-open, signed-in tab with no debugging port; pages read as structure with
      positions; filling and clicking work; form posts, fetches, beacons and autosave are held until approved. Not
      held: a service worker's own requests and WebSocket messages; and a disconnect let a held request go.
-   - **S2b, Chrome (brief 17b):** service workers, holding that fails closed when control breaks, long holds while
-     the owner answers on the phone, the extension installed by policy, the Claude tab group, and the typed-text rule
-     against public sites. Runs while the design is reviewed.
-   - **S2c, Chrome (brief 17c, after 17b, before the Chrome build):** holding messages on live connections
-     (WebSocket, WebRTC, WebTransport) in pages and workers, so sites that keep one open for live updates don't ask
-     on every action; which messages count as sends; and how common such connections are on everyday sites
-     (public pages, published web statistics, and the owner's own usual sites). Raised by `mac-capacity`.
-1. **Design** (`docs/design/CONTROL.md`): the tool contract, the service and its system user, CLI and MCP from one
-   definition, the full Mail and Chrome tool lists with inputs and results, and the tests. Written by Claude, because
-   it is what Claude will read; reviewed by fresh Codex (frontier model) before anything is built.
-2. **Core (brief 18):** the shared base, one test app, and the hostile tests, in containers.
-3. **Mail and Chrome (briefs 19 and 20)**, side by side on the core. Mail is the easier one: a known protocol and a
-   test mail server.
-4. **Tool-user rounds** after each first version (see below); fixes become follow-up briefs.
-5. **Security review** of the whole stack (fresh Codex, frontier), then **qualification in the real AresOS image** in
-   the CI virtual machine. `laptop-aresos` is told before anything under `os/` changes.
-6. **After the first boot on the laptop:** the real mail account, the owner's own Chrome, the system-wide settings,
+   - **S2b, Chrome (brief 17b, running):** service workers, holding that fails closed when control breaks, long holds
+     while the owner answers on the phone, the extension installed by policy, the Claude tab group, the typed-text
+     rule against public sites.
+   - **S2c, Chrome (brief 17c, after 17b, alongside brief 18):** holding messages on live connections in pages and
+     workers; which messages count as sends; how much background a held-by-default tab sees on everyday sites;
+     delayed sends, popups and same-site tabs outside the group; how common all this is on the owner's usual sites.
+     Raised by `mac-capacity` and the design review.
+1. **Design** (`docs/design/CONTROL.md`): draft 2 after the frontier review's 8 blocking findings; the same reviewer
+   checks the fixes. The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner with it.
+2. **Base and boundary (brief 18):** the operation log, the generic MCP proxy and terminal command, a fake app with a
+   send and a delete, file transfer on the caller's side, the managed settings draft, the sandbox boundary on Linux
+   with the fixed hostile programs in CI, and the `Stop` hook. The owner checks a fake send prompt on his phone.
+3. **Early image test (brief 18b):** a minimal, unpublished AresOS build in the CI virtual machine runs the fake app
+   end to end. `laptop-aresos` agrees the `os/ci/` change first.
+4. **Mail and Chrome (briefs 19 and 20)**, side by side on the base, once 18 and the Chrome checks have settled the
+   contracts.
+5. **Tool-user rounds** after each first version; fixes and site adapters become follow-up briefs.
+6. **Security review** of the whole stack (fresh Codex, frontier), then **qualification in the real AresOS image**.
+7. **After the first boot on the laptop:** the real mail account, the owner's own Chrome, the system-wide settings,
    and the first weeks of real use.
 
-Codex (ChatGPT Pro) ends 2026-11-21, so steps 1 to 5 are planned to be done by then.
+Codex (ChatGPT Pro) ends 2026-11-21. That is when Codex stops, not a promise: "completely right" wins over the date,
+and whatever is left after it is built by Claude agents, more slowly.
 
 ## Who does what
 
@@ -145,14 +148,18 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Known sites (asked 2026-11-07, board #48):** may Claude open any site freely, or does the first page on a new
-  site ask once? Recommended: asks once, so a misled Claude can't carry private text off in an address or by typing
-  it into an unknown site. See `CONTROL.md` section 10.
+- **Owner questions (2026-11-07), details in `CONTROL.md` section 10:** data leaving (anything that could carry
+  something Claude wrote asks first; searches on his usual sites free or not), the central session kept apart from
+  coding work, his usual Chrome sites, and a look at a test prompt on his phone.
 
 ## Where it stands
 
 - **2026-11-07:** owner decisions above. S1 done. S2 (brief 17) running (Codex `gpt-6.1-sol`, branch
   `pkg/17-chrome-check`). Design draft for the shared base and Mail: [`docs/design/CONTROL.md`](../design/CONTROL.md);
   its Chrome part waits for S2, then the whole design goes to the frontier review.
-- **2026-11-07, later:** S2 done; Chrome part of the design written from it. S2b (brief 17b) and the frontier review
-  of the whole design run next, side by side.
+- **2026-11-07, later:** S2 done; Chrome part of the design written from it. S2b (brief 17b) running.
+- **2026-11-07, morning:** frontier review: CHANGES-NEEDED, 8 blocking (Linux sandbox can't single out one socket;
+  routes to running code outside the sandbox; "known sites" doesn't stop data leaving; Chrome holding must be the
+  default, not a guess; deleting through a free move; files through the service; truthful descriptions; partial
+  outcomes). Design draft 2 answers all of them; feature list written; order of work changed (boundary and an early
+  image test before the apps). Re-check of the fixes next.
