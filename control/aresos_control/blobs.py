@@ -1,3 +1,4 @@
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -8,18 +9,35 @@ from .storage import sync_directory
 
 
 class Blobs:
-    def __init__(self, directory):
-        self.directory = Path(directory)
+    def __init__(self, directory, limit=FILE_LIMIT):
+        self.directory, self.limit = Path(directory), limit
+        if type(limit) is not int or limit < 1:
+            raise ValueError("File limit must be a positive byte count")
         self.directory.mkdir(exist_ok=True, mode=0o700)
+        # An interrupted upload is never a blob; remove its private staging inode.
+        for temporary in self.directory.glob(".upload-*"):
+            temporary.unlink()
 
     def put(self, data):
-        if len(data) > FILE_LIMIT:
-            raise Refused("invalid_input", "File exceeds 1 MiB; choose a smaller file.")
-        key = sha256(data)
-        fd, temporary = tempfile.mkstemp(dir=self.directory)
+        return self.put_stream([data], len(data), sha256(data))
+
+    def put_stream(self, chunks, size, key):
+        if type(size) is not int or not 0 <= size <= self.limit:
+            raise Refused("file_refused", "File exceeds the configured per-file limit; choose a smaller file.")
+        if not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key):
+            raise Refused("invalid_input", "Not a sha256 blob reference; import the file again.")
+        fd, temporary = tempfile.mkstemp(prefix=".upload-", dir=self.directory)
         try:
+            count, hashed = 0, hashlib.sha256()
             with os.fdopen(fd, "wb") as stream:
-                stream.write(data)
+                for data in chunks:
+                    count += len(data)
+                    if count > size or count > self.limit:
+                        raise Refused("file_refused", "Upload exceeds its declared size or configured limit; import refused.")
+                    stream.write(data)
+                    hashed.update(data)
+                if count != size or hashed.hexdigest() != key:
+                    raise Refused("stale_reference", "Incomplete upload or hash mismatch; import again.")
                 stream.flush()
                 os.fchmod(stream.fileno(), 0o400)
                 os.fsync(stream.fileno())
@@ -33,14 +51,14 @@ class Blobs:
         return key
 
     def read(self, key):
-        if not re.fullmatch(r"[0-9a-f]{64}", key):
+        if not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key):
             raise Refused("invalid_input", "Not a sha256 blob reference; import the file again.")
         try:
             fd = os.open(self.directory / key, os.O_RDONLY | os.O_NOFOLLOW)
             with os.fdopen(fd, "rb") as stream:
-                data = stream.read(FILE_LIMIT + 1)
+                data = stream.read(self.limit + 1)
         except FileNotFoundError as exc:
             raise Refused("stale_reference", "Blob not present after restore; import again and prepare a new operation.") from exc
-        if len(data) > FILE_LIMIT or sha256(data) != key:
-            raise Refused("stale_reference", "Immutable blob failed its hash; stop and recover it before preparing again.")
+        if len(data) > self.limit or sha256(data) != key:
+            raise Refused("stale_reference", "Immutable blob failed its hash or configured size limit; stop and recover it before preparing again.")
         return data

@@ -4,16 +4,16 @@ import uuid
 
 from .adapters import NothingLeft
 from .blobs import Blobs
-from .common import RESULT_LIMIT, Refused, approval_input, canonical, digest, sha256, validate, visible
+from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, canonical, digest, sha256, validate, visible
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .testapp import Receiver, TestApp
 
 
 class Engine:
-    def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None):
+    def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None, file_limit=FILE_LIMIT):
         self.store = Store(state_dir, evidence_dir, checkpoint)
-        self.blobs = Blobs(self.store.state_dir / "blobs")
+        self.blobs = Blobs(self.store.state_dir / "blobs", file_limit)
         self.receiver = Receiver(self.store.evidence_dir, checkpoint)
         self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver)}
         self.ttl = ttl
@@ -206,6 +206,49 @@ class Engine:
             raise Refused("proxy_required", "File transfer must run on the caller side through aresos-mcp or aresos; the service never opens home paths.")
         return adapter.call(verb, args)
 
+    def transfer(self, connection, request):
+        from .protocol import receive, send
+        result = self.request(request)
+        send(connection, result)
+        if not result["ok"]:
+            return
+        offset = 0
+        if request["method"] == "upload":
+            blob = request["file"]
+
+            def chunks():
+                nonlocal offset
+                while True:
+                    frame = receive(connection)
+                    if type(frame) is not dict or type(frame.get("offset")) is not int or frame["offset"] != offset:
+                        raise Refused("invalid_input", "Upload chunks are out of order; import refused.")
+                    if frame == {"end": True, "offset": offset}:
+                        return
+                    if set(frame) != {"offset", "bytes"} or type(frame["bytes"]) is not str:
+                        raise Refused("invalid_input", "Malformed upload chunk; import refused.")
+                    data = base64.b64decode(frame["bytes"], validate=True)
+                    if not 0 < len(data) <= CHUNK_SIZE:
+                        raise Refused("invalid_input", "Use nonempty upload chunks of at most 1 MiB.")
+                    offset += len(data)
+                    yield data
+                    send(connection, {"ok": True, "data": {"offset": offset}})
+
+            self.blobs.put_stream(chunks(), blob["size"], blob["sha256"])
+            self.store.write({"blob:" + digest(blob): blob}, request["app"] + "_file_import", "import immutable blob " + blob["sha256"])
+            send(connection, {"ok": True, "data": {"file": blob}, "pending": self.pending(request["app"])})
+        else:
+            data = self.blobs.read(request["sha256"])
+            while True:
+                frame = receive(connection)
+                if frame == {"end": True, "offset": offset} and offset == len(data):
+                    send(connection, {"ok": True, "data": {"complete": True}})
+                    return
+                if frame != {"offset": offset} or offset == len(data):
+                    raise Refused("invalid_input", "Download chunks are out of order or incomplete; save refused.")
+                chunk = data[offset:offset + CHUNK_SIZE]
+                send(connection, {"ok": True, "data": {"offset": offset, "bytes": base64.b64encode(chunk).decode()}})
+                offset += len(chunk)
+
     def request(self, request, admin=False):
         app = None
         try:
@@ -228,19 +271,18 @@ class Engine:
                 if app not in self.adapters:
                     raise Refused("invalid_input", "Unknown file-transfer app.")
                 if method == "upload":
-                    validate(request.get("file"), {"type": "object"})
-                    data_bytes = base64.b64decode(request["bytes"], validate=True)
-                    blob = request["file"]
                     from .definitions import BLOB
+                    blob = request["file"]
                     validate(blob, BLOB)
-                    if sha256(data_bytes) != blob["sha256"] or len(data_bytes) != blob["size"]:
-                        raise Refused("stale_reference", "Transferred bytes do not match the file reference; import again.")
-                    self.blobs.put(data_bytes)
-                    self.store.write({"blob:" + digest(blob): blob}, app + "_file_import", "import immutable blob " + blob["sha256"])
-                    data = {"file": blob}
+                    if blob["size"] > self.blobs.limit:
+                        raise Refused("file_refused", "File exceeds the service's configured per-file limit.")
+                    if "bytes" in request:
+                        raise Refused("invalid_input", "Use an offset-checked chunk stream for uploads.")
+                    data = {"ready": True}
                 elif method == "download":
                     key = request["sha256"]
-                    data = {"sha256": key, "bytes": base64.b64encode(self.blobs.read(key)).decode()}
+                    data_bytes = self.blobs.read(key)
+                    data = {"sha256": key, "size": len(data_bytes)}
                     self.store.write({}, app + "_file_save", "export blob " + key + "; caller must report save outcome", outcome="started")
                 else:
                     self.store.write({}, app + "_file_save", "caller reports save " + visible(str(request.get("outcome")))[:512],

@@ -3,7 +3,8 @@ import json
 import unicodedata
 
 WIRE_LIMIT = 6 * 1024 * 1024
-FILE_LIMIT = 1024 * 1024
+FILE_LIMIT = 25 * 1024 * 1024
+CHUNK_SIZE = 1024 * 1024
 ASK_LIMIT = 16 * 1024
 RESULT_LIMIT = 48 * 1024
 

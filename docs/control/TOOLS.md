@@ -464,8 +464,7 @@ Result data:
         },
         "size": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 1048576
+          "minimum": 0
         },
         "name": {
           "type": "string",
@@ -547,8 +546,7 @@ Result data:
     },
     "size": {
       "type": "integer",
-      "minimum": 0,
-      "maximum": 1048576
+      "minimum": 0
     }
   },
   "required": [
@@ -626,8 +624,7 @@ Input:
           },
           "size": {
             "type": "integer",
-            "minimum": 0,
-            "maximum": 1048576
+            "minimum": 0
           },
           "name": {
             "type": "string",

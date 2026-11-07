@@ -301,8 +301,7 @@
                 },
                 "size": {
                   "type": "integer",
-                  "minimum": 0,
-                  "maximum": 1048576
+                  "minimum": 0
                 },
                 "name": {
                   "type": "string",
@@ -399,8 +398,7 @@
             },
             "size": {
               "type": "integer",
-              "minimum": 0,
-              "maximum": 1048576
+              "minimum": 0
             }
           },
           "required": [
@@ -491,8 +489,7 @@
               },
               "size": {
                 "type": "integer",
-                "minimum": 0,
-                "maximum": 1048576
+                "minimum": 0
               },
               "name": {
                 "type": "string",

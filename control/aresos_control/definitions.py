@@ -16,7 +16,7 @@ def array(item, limit=16):
 
 
 REF = obj({"scope": string(64), "epoch": string(64), "id": string(64), "revision": {"type": "integer", "minimum": 1}})
-BLOB = obj({"sha256": string(64), "size": {"type": "integer", "minimum": 0, "maximum": 1048576},
+BLOB = obj({"sha256": string(64), "size": {"type": "integer", "minimum": 0},
             "name": string(128), "real_path": string()})
 APPROVAL = obj({"operation_id": string(80), "description": {"type": "object"}})
 OP = obj({"operation_id": string(80)})
@@ -80,7 +80,7 @@ ACTIONS = [
            result=obj({"items": array(obj({"reference": REF, "flagged": {"type": "boolean"}, "untrusted_content": obj({"sender": string(), "subject": string(), "date": string(), "text": string()})}), 10), "cursor": CURSOR})),
     Action("testapp", "flag", "change", obj({"reference": REF, "flagged": {"type": "boolean"}}), "Set a reversible flag on one exact item. Returns its new revision; reaches no receiver.", result=obj({"reference": REF, "flagged": {"type": "boolean"}})),
     Action("testapp", "file_import", "change", obj({"path": string()}), "Import a regular file from configured caller folders. Returns immutable blob sha256, size, name and real path; sends nothing.", result=obj({"file": BLOB})),
-    Action("testapp", "file_save", "change", obj({"sha256": string(64), "folder": string(), "name": string(128)}), "Save immutable blob bytes in an allowed caller folder without overwriting. Returns saved path and hash; never opens the file.", result=obj({"path": string(), "sha256": string(64), "size": {"type": "integer", "minimum": 0, "maximum": 1048576}})),
+    Action("testapp", "file_save", "change", obj({"sha256": string(64), "folder": string(), "name": string(128)}), "Save immutable blob bytes in an allowed caller folder without overwriting. Returns saved path and hash; never opens the file.", result=obj({"path": string(), "sha256": string(64), "size": {"type": "integer", "minimum": 0}})),
     Action("testapp", "prepare_send", "change", obj({"account": {"type": "string", "enum": ["fixture"]},
            "to": array(string(64)), "cc": array(string(64)), "bcc": array(string(64)),
            "subject": string(1024), "text": string(20000), "attachments": array(BLOB, 8)}),

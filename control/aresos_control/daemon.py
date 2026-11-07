@@ -8,7 +8,7 @@ import socket
 import stat
 import struct
 
-from .common import Refused
+from .common import FILE_LIMIT, Refused
 from .engine import Engine
 from .protocol import receive, send
 
@@ -18,7 +18,7 @@ class Daemon:
         self.config = config
         if config["owner_uid"] in {0, os.geteuid()}:
             raise ValueError("Owner must be a non-root user distinct from aresos-tools")
-        self.engine = Engine(config["state_dir"], config["evidence_dir"], config.get("approval_ttl", 900), checkpoint)
+        self.engine = Engine(config["state_dir"], config["evidence_dir"], config.get("approval_ttl", 900), checkpoint, config.get("file_limit", FILE_LIMIT))
         self.selector, self.sockets, self.stopping = selectors.DefaultSelector(), [], False
         directory = Path(config["socket_dir"])
         directory.mkdir(mode=0o711, exist_ok=True)
@@ -51,8 +51,11 @@ class Daemon:
                         if kind == "chrome" or uid != (0 if kind == "admin" else self.config["owner_uid"]):
                             raise Refused("permission_denied", "This peer is not permitted on this socket; use act as owner, admin via sudo. Chrome bridge accepts nothing.")
                         request = receive(connection)
+                        if kind == "act" and type(request) is dict and request.get("method") in {"upload", "download"}:
+                            self.engine.transfer(connection, request)
+                            continue
                         result = self.engine.request(request, admin=kind == "admin")
-                    except (Refused, OSError) as exc:
+                    except (Refused, OSError, ValueError, KeyError, TypeError) as exc:
                         result = {"ok": False, "error": {"code": getattr(exc, "code", "transport_error"), "message": str(exc)}, "pending": {"items": [], "total": 0, "cursor": None}}
                     try:
                         send(connection, result)

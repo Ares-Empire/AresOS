@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from aresos_control.common import FILE_LIMIT, Refused, digest, sha256
 from aresos_control.files import FilePolicy
-from support import EngineCase
+from support import EngineCase, ROOT
 
 
 class Files(EngineCase):
@@ -17,6 +17,23 @@ class Files(EngineCase):
         self.allowed = self.home / "Documents"
         self.allowed.mkdir(parents=True)
         self.policy = FilePolicy(str(self.home), [str(self.allowed)])
+
+    def test_file_limit_defaults_agree_and_configuration_can_raise_them(self):
+        self.assertEqual(FILE_LIMIT, 26214400)
+        self.assertEqual(self.policy.limit, FILE_LIMIT)
+        self.assertEqual(self.engine.blobs.limit, FILE_LIMIT)
+        for setting in ("proxy", "service"):
+            self.assertEqual(json.loads((ROOT / f"control/settings/{setting}.json").read_text())["file_limit"], FILE_LIMIT)
+        file = self.allowed / "raised-limit.bin"
+        with file.open("wb") as stream:
+            stream.truncate(FILE_LIMIT + 1)
+        policy = FilePolicy(str(self.home), [str(self.allowed)], limit=FILE_LIMIT + 1)
+        data, ref = policy.read(str(file))
+        self.assertEqual(len(data), FILE_LIMIT + 1)
+        from aresos_control.blobs import Blobs
+        blobs = Blobs(self.root / "raised-blobs", limit=FILE_LIMIT + 1)
+        self.assertEqual(blobs.put(data), ref["sha256"])
+        self.assertEqual(blobs.read(ref["sha256"]), data)
 
     def test_read_regular_real_path_size_and_opened_descriptor(self):
         file = self.allowed / "notes.txt"
@@ -80,7 +97,7 @@ class Files(EngineCase):
         file = self.allowed / "attachment.txt"
         file.write_bytes(b"approved bytes")
         data, ref = self.policy.read(str(file))
-        imported = self.engine.request({"v": 1, "method": "upload", "app": "testapp", "file": ref, "bytes": base64.b64encode(data).decode()})
+        imported = self.upload(data, ref)
         self.assertTrue(imported["ok"], imported)
         self.assertEqual(stat.S_IMODE((self.root / "state/blobs" / ref["sha256"]).stat().st_mode), 0o400)
         approval = self.reserve(attachments=[ref])
@@ -173,7 +190,8 @@ class Files(EngineCase):
         blob = self.engine.blobs.put(b"bytes")
         result = self.engine.request({"v": 1, "method": "download", "app": "testapp", "sha256": blob})
         self.assertTrue(result["ok"], result)
-        self.assertEqual(base64.b64decode(result["data"]["bytes"]), b"bytes")
+        self.assertEqual(result["data"], {"sha256": blob, "size": 5})
+        self.assertEqual(self.engine.blobs.read(blob), b"bytes")
         invalid = self.engine.request({"v": 1, "method": "upload", "app": "testapp", "file": {"sha256": blob, "size": 5, "name": "file", "real_path": "/fixture/path"}, "bytes": base64.b64encode(b"wrong").decode()})
         self.assertFalse(invalid["ok"])
         self.assertFalse(self.engine.request({"v": 1, "method": "download", "app": "testapp", "sha256": "../control.sqlite"})["ok"])

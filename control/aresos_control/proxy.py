@@ -1,8 +1,7 @@
 import asyncio
-import base64
 import json
 
-from .common import Refused, canonical, validate
+from .common import FILE_LIMIT, Refused, canonical, validate
 from .definitions import APPS, BY_NAME
 from .files import FilePolicy
 from .protocol import Client
@@ -14,7 +13,7 @@ class Proxy:
             raise Refused("invalid_input", "Unknown app; use a configured MCP server.")
         self.app, self.admin = app, admin
         self.client = Client(config["admin_socket"] if admin else config["act_socket"])
-        self.files = FilePolicy(config["home"], config["folders"], config.get("file_limit", 1048576)) if "home" in config else None
+        self.files = FilePolicy(config["home"], config["folders"], config.get("file_limit", FILE_LIMIT)) if "home" in config else None
 
     def tools(self):
         result = self.client.request({"method": "tools", "app": self.app})
@@ -34,15 +33,15 @@ class Proxy:
                 if self.files is None:
                     raise Refused("file_refused", "No caller file folders configured; ask the owner to configure them.")
                 data, file_ref = self.files.read(arguments["path"])
-                return self.client.request({"method": "upload", "app": self.app, "file": file_ref, "bytes": base64.b64encode(data).decode()})
+                return self.client.upload(self.app, file_ref, data)
             if verb == "file_save":
                 if self.files is None:
                     raise Refused("file_refused", "No caller file folders configured.")
-                result = self.client.request({"method": "download", "app": self.app, "sha256": arguments["sha256"]})
+                result, data = self.client.download(self.app, arguments["sha256"], self.files.limit)
                 if not result["ok"]:
                     return result
                 try:
-                    saved = self.files.save(arguments["folder"], arguments["name"], base64.b64decode(result["data"]["bytes"], validate=True), arguments["sha256"])
+                    saved = self.files.save(arguments["folder"], arguments["name"], data, arguments["sha256"])
                 except Exception:
                     self.client.request({"method": "saved", "app": self.app, "outcome": "refused"})
                     raise

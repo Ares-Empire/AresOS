@@ -10,7 +10,7 @@ import tempfile
 import time
 import unittest
 
-from aresos_control.common import canonical
+from aresos_control.common import FILE_LIMIT, WIRE_LIMIT, canonical, sha256
 from aresos_control.protocol import Client, receive, send
 from support import ROOT, WORK, message
 
@@ -104,6 +104,155 @@ class Integration(unittest.TestCase):
         self.assertFalse(self.call(OWNER, "control_restore_confirm", {"confirm": "invalidate earlier approvals"})["ok"])
         self.assertTrue(self.call(0, "testapp_fixture_configure", settings, "admin")["ok"])
         self.assertFalse(self.call(0, "testapp_list", {}, "admin")["ok"])
+
+    def test_25_mib_file_uses_chunks_and_receiver_gets_hashed_snapshot(self):
+        source = self.home / "Documents/large.bin"
+        original = (b"fixture snapshot bytes " * (FILE_LIMIT // 23 + 1))[:FILE_LIMIT - 1]
+        self.assertEqual(len(original), FILE_LIMIT - 1)
+        source.write_bytes(original)
+        os.chown(source, OWNER, OWNER)
+        code = r"""
+import json, os, sys
+from pathlib import Path
+from unittest.mock import patch
+from aresos_control import protocol
+from aresos_control.common import WIRE_LIMIT, canonical, sha256
+from aresos_control.proxy import Proxy
+from support import message
+config, path = json.loads(sys.argv[1]), Path(sys.argv[2])
+proxy = Proxy("testapp", config)
+read = proxy.files.read
+sizes = []
+original_send, original_receive = protocol.send, protocol.receive
+
+def send(connection, value):
+    sizes.append(len(canonical(value).encode()) + 1)
+    return original_send(connection, value)
+
+def receive(connection):
+    value = original_receive(connection)
+    sizes.append(len(canonical(value).encode()) + 1)
+    return value
+
+def snapshot(name):
+    data, ref = read(name)
+    path.unlink()
+    path.write_bytes(b"replacement after reading")
+    return data, ref
+
+with patch.object(proxy.files, "read", side_effect=snapshot), patch.object(protocol, "send", side_effect=send), patch.object(protocol, "receive", side_effect=receive):
+    imported = proxy.call("file_import", {"path": str(path)})
+    assert imported["ok"], imported
+    ref = imported["data"]["file"]
+    prepared = proxy.call("prepare_send", message(attachments=[ref], to=["alpha"], bcc=[]))
+    assert prepared["ok"], prepared
+    sent = proxy.call("send", prepared["data"]["approval"])
+    assert sent["ok"] and sent["data"]["operation"]["state"] == "done", sent
+    saved = proxy.call("file_save", {"sha256": ref["sha256"], "folder": str(path.parent.parent / "Downloads"), "name": "large-saved.bin"})
+    assert saved["ok"], saved
+assert max(sizes) <= WIRE_LIMIT
+print(canonical({"ref": ref, "id": prepared["data"]["approval"]["operation_id"], "frames": len(sizes), "largest": max(sizes)}))
+"""
+        # support is test-only; the actual proxy and service use their production paths.
+        env = {**os.environ, "PYTHONPATH": str(ROOT / "control/tests") + os.pathsep + os.environ["PYTHONPATH"]}
+        result = self.run_user(OWNER, code, canonical(self.proxy_config), str(source), env=env)
+        self.assertEqual(result["ref"]["size"], FILE_LIMIT - 1)
+        self.assertEqual(result["ref"]["sha256"], sha256(original))
+        self.assertGreater(result["frames"], 100)
+        self.assertLessEqual(result["largest"], WIRE_LIMIT)
+        self.assertEqual((self.home / "Downloads/large-saved.bin").read_bytes(), original)
+        self.assertEqual(source.read_bytes(), b"replacement after reading")
+        import sqlite3
+        with sqlite3.connect(self.root / "independent/receiver.sqlite") as receiver:
+            payload, = receiver.execute("SELECT payload FROM arrivals WHERE op=?", (result["id"],)).fetchone()
+        payload = json.loads(payload)
+        self.assertEqual(bytes.fromhex(payload["attachment_bytes"][0]), original)
+        self.assertEqual(payload["attachments"][0]["sha256"], sha256(original))
+        print(f"25 MiB transfer: {result['frames']} frames, largest={result['largest']} bytes (wire limit={WIRE_LIMIT})")
+
+    def test_oversize_file_refused_by_real_proxy_and_service(self):
+        source = self.home / "Documents/too-large.bin"
+        with source.open("wb") as stream:
+            stream.truncate(FILE_LIMIT + 1)
+        os.chown(source, OWNER, OWNER)
+        code = """
+import json, sys
+from aresos_control.proxy import Proxy
+proxy = Proxy("testapp", json.loads(sys.argv[1]))
+print(json.dumps(proxy.call("file_import", {"path": sys.argv[2]})))
+"""
+        self.assertFalse(self.run_user(OWNER, code, canonical(self.proxy_config), str(source))["ok"])
+        result = self.request(OWNER, "act", {"method": "upload", "app": "testapp", "file": {
+            "sha256": "0" * 64, "size": FILE_LIMIT + 1, "name": "large.bin", "real_path": str(source)}})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["code"], "file_refused")
+        self.assertEqual(list((self.root / "state/blobs").iterdir()), [])
+
+    def test_configured_file_limits_are_enforced_by_both_processes(self):
+        source = self.home / "Documents/configured.bin"
+        source.write_bytes(b"x" * 129)
+        os.chown(source, OWNER, OWNER)
+        code = """
+import json, sys
+from aresos_control.proxy import Proxy
+proxy = Proxy("testapp", json.loads(sys.argv[1]))
+print(json.dumps(proxy.call("file_import", {"path": sys.argv[2]})))
+"""
+        limited_proxy = {**self.proxy_config, "file_limit": 128}
+        result = self.run_user(OWNER, code, canonical(limited_proxy), str(source))
+        self.assertFalse(result["ok"])
+        self.daemon.terminate()
+        self.daemon.wait(timeout=8)
+        for path in (self.root / "sockets").glob("*.sock"):
+            path.unlink()
+        self.service_config["file_limit"] = 128
+        Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
+        self.daemon = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "service"],
+                                       preexec_fn=identity(SERVICE), stdout=self.output, stderr=subprocess.STDOUT)
+        for _ in range(100):
+            if (self.root / "sockets/act.sock").exists():
+                break
+            time.sleep(0.03)
+        result = self.run_user(OWNER, code, canonical(self.proxy_config), str(source))
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["code"], "file_refused")
+        source.write_bytes(b"x" * 128)
+        result = self.run_user(OWNER, code, canonical(limited_proxy), str(source))
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["data"]["file"]["size"], 128)
+
+    def test_invalid_upload_streams_leave_no_blob_or_staging_file(self):
+        code = r"""
+import base64, json, socket, sys
+from aresos_control.common import CHUNK_SIZE, sha256
+from aresos_control.protocol import receive, send
+results = []
+for fault in ("cut-off", "incomplete", "reordered", "wrong-hash", "extra-bytes", "large-chunk", "bad-base64"):
+    data = b"fixture-chunk" * 512
+    key = "0" * 64 if fault == "wrong-hash" else sha256(data)
+    with socket.socket(socket.AF_UNIX) as connection:
+        connection.connect(sys.argv[1])
+        send(connection, {"v": 1, "method": "upload", "app": "testapp", "file": {
+            "sha256": key, "size": len(data), "name": "fixture.bin", "real_path": "/fixture/source"}})
+        ready = receive(connection)
+        assert ready["ok"], ready
+        chunk = data[:100] if fault in {"cut-off", "incomplete"} else data + b"extra" if fault == "extra-bytes" else b"x" * (CHUNK_SIZE + 1) if fault == "large-chunk" else data
+        send(connection, {"offset": 100 if fault == "reordered" else 0,
+                          "bytes": "invalid!" if fault == "bad-base64" else base64.b64encode(chunk).decode()})
+        response = receive(connection)
+        if response["ok"]:
+            if fault == "cut-off":
+                connection.shutdown(socket.SHUT_WR)
+            else:
+                send(connection, {"end": True, "offset": len(chunk)})
+            response = receive(connection)
+        assert not response["ok"], (fault, response)
+        results.append(fault)
+print(json.dumps(results))
+"""
+        results = self.run_user(OWNER, code, str(self.root / "sockets/act.sock"))
+        self.assertEqual(len(results), 7)
+        self.assertEqual(list((self.root / "state/blobs").iterdir()), [])
 
     def test_cli_generated_help_admin_and_today_log(self):
         result = self.launch(OWNER, ["cli", "--help"])

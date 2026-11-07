@@ -34,7 +34,9 @@ class FilePolicy:
     def __init__(self, home, folders, limit=FILE_LIMIT):
         self.home = Path(home)
         self.roots = sorted([Path(p) for p in folders], key=lambda p: len(str(p)), reverse=True)
-        self.limit = min(limit, FILE_LIMIT)
+        self.limit = limit
+        if type(limit) is not int or limit < 1:
+            raise ValueError("File limit must be a positive byte count")
         if not self.home.is_absolute():
             raise ValueError("Home must be absolute")
         for root in self.roots:
