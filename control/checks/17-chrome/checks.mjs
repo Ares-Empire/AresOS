@@ -23,6 +23,7 @@ export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
   const metrics=[];
   for(const page of ['form','table','frames','shadow','modal','article']){
     await navigate(cdp,fixture.base+'/'+page);
+    await cdp.send('Page.bringToFront');
     if(page==='frames')await eventually(async()=>{const v=await view.read({limit:10000});return v.frames.length===3;},'three fixture frames');
     const v=await view.read({limit:10000});assert.equal(v.errors.length,0);
     const json=JSON.stringify(v);save(out,`${route}-view-${page}`,v);
@@ -43,6 +44,8 @@ export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
       assert.ok(v.elements.some(e=>e.state.selected===true));
       assert.ok(v.elements.some(e=>e.state.invalid==='true'));
       assert.ok(v.elements.some(e=>e.onScreen===false));
+      assert.equal(v.elements.find(e=>e.name==='Display name').onScreen,true);
+      assert.equal(v.elements.find(e=>e.name==='Extra field 25').onScreen,false);
     }
     if(page==='shadow'){
       await view.act(ref(v,'Shadow note'),'fill','shadow-edited');
@@ -79,6 +82,8 @@ export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
   v=await view.read({limit:10000});const owned=ref(v,'Owner note');
   // Simulate the owner opening a new tab, switching away, then back to a different tab.
   await key('ctrl+t');await address(fixture.base+'/other');
+  const background=await view.read({limit:10000});
+  assert.equal(background.frames[0].viewport.visibility,'hidden');assert.ok(background.elements.every(e=>!e.onScreen));
   await view.act(owned,'fill','tool-owned-tab-only');
   assert.equal(await evaluate(cdp,'document.querySelector("#note").value'),'tool-owned-tab-only');
   await screenshot(out,`${route}-owner-other-tab`);

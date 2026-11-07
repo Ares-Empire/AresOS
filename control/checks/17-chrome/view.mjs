@@ -40,7 +40,7 @@ export class PageView {
           boxes.set(doc.nodes.backendNodeId[ni],[b[0]-doc.scrollOffsetX,b[1]-doc.scrollOffsetY,b[2],b[3]]);
         });
         const world=await cdp.send('Page.createIsolatedWorld',{frameId:f.id,worldName:'aresos-check'});
-        const viewport=await cdp.send('Runtime.evaluate',{expression:'({width:innerWidth,height:innerHeight})',contextId:world.executionContextId,returnByValue:true});
+        const viewport=await cdp.send('Runtime.evaluate',{expression:'({width:innerWidth,height:innerHeight,visibility:document.visibilityState})',contextId:world.executionContextId,returnByValue:true});
         const size=viewport.result.value;
         const ax=await cdp.send('Accessibility.getFullAXTree',{frameId:f.id});
         const text=[];
@@ -54,9 +54,10 @@ export class PageView {
           const properties=Object.fromEntries((n.properties||[]).map(p=>[p.name,p.value.value]));
           const state={};
           for(const prop of ['checked','selected','disabled','required','invalid','expanded','focused','modal','multiselectable'])if(prop in properties)state[prop]=properties[prop];
-          const onScreen=!!box && box[0]<size.width&&box[1]<size.height&&box[0]+box[2]>0&&box[1]+box[3]>0;
+          const inViewport=!!box && box[0]<size.width&&box[1]<size.height&&box[0]+box[2]>0&&box[1]+box[3]>0;
+          const onScreen=size.visibility==='visible'&&inViewport;
           const value=n.value?.value??(['textbox','searchbox','combobox','Date','spinbutton'].includes(role)?'':undefined);
-          const row={ref,frame:f.id,role,name,...(value!==undefined?{value}:{}),state,box,onScreen};
+          const row={ref,frame:f.id,role,name,...(value!==undefined?{value}:{}),state,box,inViewport,onScreen};
           all.push(row);
           if(ref)this.refs.set(ref,{cdp,frameId:f.id,loaderId:f.loaderId,backendNodeId:n.backendDOMNodeId,contextId:world.executionContextId,role,name});
         }
