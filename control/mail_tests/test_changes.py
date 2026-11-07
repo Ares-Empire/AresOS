@@ -90,7 +90,8 @@ class Changes(MailCase):
             for name in guard.special_roles:
                 ok(conn.create(quote(name)), 'fixture special folder')
             from aresos_control.mail.transport import folders
-            green['delimiter'] = next(f['delimiter'] for f in folders(conn) if f['name'] == 'INBOX')
+            from aresos_control.mail.roles import resolve
+            green.update(resolve(folders(conn)))
         self.engine.store.write({'mail:account:green':green}, 'fixture', 'explicit server frontend roles')
         previous = self.account
         self.account = green

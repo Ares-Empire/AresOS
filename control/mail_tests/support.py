@@ -40,8 +40,16 @@ class MailCase(unittest.TestCase):
         self.mail.transport.store_password(account_id, 'pass')
         with self.mail.transport.imap(account) as conn:
             account['capabilities'] = sorted(conn.capabilities)
-            from aresos_control.mail.roles import resolve
-            account.update(resolve(folders(conn)))
+            from aresos_control.mail.roles import resolve, optional_roles
+            listed = folders(conn)
+            if server == 'dovecot':
+                account.update(resolve(listed))
+            else:
+                # Bare GreenMail intentionally lacks required SPECIAL-USE roles;
+                # guard/onboarding tests must still be able to seed its raw store.
+                inbox = next(f for f in listed if f['name'] == 'INBOX')
+                account.update(roots={'inbox': {'folder': 'INBOX', 'delimiter': inbox['delimiter']}},
+                               delimiter=inbox['delimiter'], optional=optional_roles(listed))
         with self.mail.transport.smtp(account) as smtp:
             account['smtp_capabilities'] = sorted(smtp.esmtp_features)
         self.engine.store.write({'mail:account:' + account_id: account}, 'fixture_account', 'synthetic account')

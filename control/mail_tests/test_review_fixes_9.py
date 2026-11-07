@@ -215,7 +215,7 @@ class ReviewFixes9(MailCase):
         self.mail = self.engine.adapters['mail']
         self.assertEqual(self.raw_state(['INBOX', 'CrashTarget']), before)
         self.assertEqual(self.engine.store.items('mail:filing:')[0][1]['state'], 'started')
-        log = self.engine.request({'v': 1, 'method': 'call', 'action': 'control_log', 'arguments': {'limit': 20}})
+        log = self.engine.request({'v': 1, 'method': 'call', 'action': 'control_log', 'arguments': {'limit': 10}})
         self.assertTrue(log['ok'], log)
         events = [e for e in self.engine.store.audit() if e['action'] == 'mail_move']
         self.assertEqual(events[-1]['outcome'], 'started')
@@ -264,8 +264,11 @@ class ReviewFixes9(MailCase):
     def local_proxy(self):
         # Exercise the actual Proxy, Client framing and Engine transfer on a private
         # socket. Distinct-user/installed-daemon qualification remains in the base suite.
-        home = self.root / 'caller'
-        home.mkdir()
+        import tempfile
+        work = Path(__file__).resolve().parents[1] / 'test-work'
+        work.mkdir(exist_ok=True)
+        home_temp = tempfile.TemporaryDirectory(dir=work)
+        home = Path(home_temp.name)
         (home / 'Downloads').mkdir()
         path = self.root / 'fixture.sock'
         listener = socket.socket(socket.AF_UNIX)
@@ -307,6 +310,7 @@ class ReviewFixes9(MailCase):
             self.assertFalse(thread.is_alive())
             self.engine = Engine(self.root / "state", self.root / "independent")
             self.mail = self.engine.adapters["mail"]
+            home_temp.cleanup()
 
     def test_review9_long_draft_hash_cannot_be_saved_by_testapp_and_ordinary_export_is_exact(self):
         with SMTPFixture(self.root) as smtp:
