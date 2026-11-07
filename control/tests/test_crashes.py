@@ -18,6 +18,37 @@ class Crashes(EngineCase):
                                 capture_output=True, text=True, timeout=15)
         self.assertEqual(result.returncode, -signal.SIGKILL, result.stdout + result.stderr)
         self.engine = Engine(self.root / "state", self.root / "independent")
+        latest = {}
+        for event in self.engine.store.events:
+            latest.update({op["id"]: op for op in event["operations"]})
+        for _, op in self.engine.store.items("op:"):
+            self.assertIn(op["id"], latest, "SQLite operation missing from independent record")
+            if not self.engine.store.locked:
+                self.assertEqual(op["state"], latest[op["id"]]["state"])
+
+    def test_uncommitted_record_with_missing_staged_event_requires_restore(self):
+        import sqlite3
+        backup = sqlite3.connect(self.root / "backup.sqlite")
+        self.engine.store.db.backup(backup)
+        backup.close()
+        self.kill_at("journal_appended", "reserve", message(subject="Unacknowledged reservation"))
+        # Remove only the commit marker recovery just wrote, reconstructing the
+        # exact durable independent record at the killed write boundary.
+        self.engine.close()
+        journal = self.root / "independent/operations.jsonl"
+        rows = journal.read_bytes().splitlines(keepends=True)
+        journal.write_bytes(b"".join(rows[:-1]))
+        (self.root / "state/control.sqlite").write_bytes((self.root / "backup.sqlite").read_bytes())
+        self.engine = Engine(self.root / "state", self.root / "independent")
+        self.assertTrue(self.engine.store.locked)
+        restored = self.data("control_restore_confirm", {"confirm": "invalidate earlier approvals"}, admin=True)
+        self.assertEqual(len(restored["unknown"]), 1)
+        op_id = restored["unknown"][0]
+        self.assertEqual(self.engine.operation(op_id)["approval"]["description"]["subject"], "Unacknowledged reservation")
+        self.assertEqual(self.engine.receiver.evidence(op_id)["arrivals"], [])
+        self.restart()
+        self.assertFalse(self.engine.store.locked)
+        self.assertEqual(self.engine.operation(op_id)["state"], "unknown")
 
     def test_kill9_every_send_boundary_never_resubmits(self):
         points = ["sqlite_prepared", "journal_appended", "sqlite_committed", "journal_committed", "revalidated", "submitting",

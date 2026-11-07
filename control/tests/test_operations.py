@@ -145,7 +145,7 @@ class Operations(EngineCase):
 
                     def cross_deadline(*args):
                         result = original(*args)
-                        clock.return_value = 221
+                        clock.return_value = approval["description"]["expires_at"] + 1
                         return result
 
                     with patch.object(adapter, check, side_effect=cross_deadline), \

@@ -163,8 +163,11 @@ print(canonical({"ref": ref, "id": prepared["data"]["approval"]["operation_id"],
         self.assertEqual((self.home / "Downloads/large-saved.bin").read_bytes(), original)
         self.assertEqual(source.read_bytes(), b"replacement after reading")
         import sqlite3
-        with sqlite3.connect(self.root / "independent/receiver.sqlite") as receiver:
+        receiver = sqlite3.connect(self.root / "independent/receiver.sqlite")
+        try:
             payload, = receiver.execute("SELECT payload FROM arrivals WHERE op=?", (result["id"],)).fetchone()
+        finally:
+            receiver.close()
         payload = json.loads(payload)
         self.assertEqual(bytes.fromhex(payload["attachment_bytes"][0]), original)
         self.assertEqual(payload["attachments"][0]["sha256"], sha256(original))
@@ -373,6 +376,13 @@ print(json.dumps(results))
                     self.assertNotIn("Traceback", hook.stderr)
 
     def test_prompt_hook_installation_and_service_failures_are_quiet(self):
+        fd = os.open(self.home, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            hook = subprocess.run(["/usr/bin/python3", "-I", "-S", LAUNCH, "hook", "UserPromptSubmit"],
+                                  preexec_fn=identity(OWNER), stdin=fd, capture_output=True, text=True, timeout=15)
+            self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
+        finally:
+            os.close(fd)
         config = Path("/etc/aresos-control/proxy.json")
         original = config.read_bytes()
         try:

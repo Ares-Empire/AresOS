@@ -36,6 +36,11 @@ class Record(EngineCase):
                 self.assertEqual(self.data("testapp_send", approval)["operation"]["state"], "done")
                 sizes.append(journal.stat().st_size - before)
         self.assertEqual(sizes[0], sizes[1])
+        with patch("aresos_control.engine.time.time", return_value=1000):
+            before = journal.stat().st_size
+            typical = self.reserve()
+            self.data("testapp_send", typical)
+            typical_size = journal.stat().st_size - before
         raw = journal.read_bytes()
         for forbidden in (b"tiny-body-marker", b"private-body-marker", b"private-attachment-marker",
                           b"private-attachment.txt", b"private-path", attachment[:64].hex().encode(), b"Untrusted fixture content"):
@@ -50,6 +55,7 @@ class Record(EngineCase):
         # This send has six durable state/stage records, each with a commit marker.
         print(f"Record growth: tiny send={sizes[0]} bytes; maximum body + 25 MiB send={sizes[1]} bytes; "
               f"6 state/stage records, mean={sizes[0] / 6:.1f} bytes per record including commit")
+        print(f"Record growth: typical three-recipient send={typical_size} bytes across 8 state/stage records")
         self.assertTrue(any("private-body-marker" in canonical(e) for e in self.engine.store.audit()))
         self.assertIn(b"private-attachment-marker", self.engine.blobs.read(key))
 

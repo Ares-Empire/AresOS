@@ -33,8 +33,9 @@ the normal machine-administrator powers. A single serialized dispatcher also
 serializes reservation, cancellation, expiry and the submission boundary. Invalid
 or slow clients get a two-second read deadline; large transfers are capped.
 
-Each connection carries exactly one UTF-8 JSON object, terminated by LF, and one
-response, then closes. Maximum frame: 6 MiB, protocol `v: 1`. No TCP fallback,
+Ordinary connections carry one UTF-8 JSON object terminated by LF and one response,
+then close. File transfers exchange multiple acknowledged frames on one connection.
+Maximum frame: 6 MiB, protocol `v: 1` on the opening request. No TCP fallback,
 pickles, shell execution, path expansion or user-supplied module imports.
 
 ```json
@@ -53,13 +54,30 @@ action, input summary, outcome and operation id. Log dates use the service's
 local timezone. Returned app text is marked `untrusted_content`; descriptions
 instruct the caller to treat it as data.
 
-Three private framing methods implement file movement for public file actions:
-`upload {app,file:{sha256,size,name,real_path},bytes:<base64>}`,
-`download {app,sha256}` and `saved {app,outcome}`. The service never opens a caller
-path. Downloads are transfer frames, not model-facing results. The proxy emits only
-the saved path, size and hash. An export intent is logged before bytes leave the
-service, then its reported success/refusal is logged. A caller crash can therefore
-leave an intent with no completion; inspect the destination instead of overwriting.
+Three private methods implement file movement for public file actions. Both sides
+use raw-byte offsets and chunks of at most **1 MiB**, base64 encoded inside bounded
+frames (about 1.34 MiB each). The sender waits for an acknowledgement before the
+next frame; pipelining and extra messages are refused.
+
+- Upload opens with `upload {app,file:{sha256,size,name,real_path}}` and waits for
+  `data:{ready:true}`. Each `{offset,bytes:<base64>}` receives `data:{offset:<next>}`.
+  `{end:true,offset:<total>}` ends the stream. Only after exact size/hash validation
+  does the service publish its mode-0400 blob and return `data:{file:…}`. Cut-off,
+  incomplete, reordered, oversized or mismatched streams remove their private
+  staging file; service startup also removes staging files left by a crash.
+- Download opens with `download {app,sha256}` and receives `data:{sha256,size}`.
+  The caller requests `{offset}` and receives `data:{offset,bytes:<base64>}` until
+  the declared size, then sends `{end:true,offset:<total>}` for completion. The
+  proxy checks the complete hash before saving. Transfer bytes never become
+  model-facing results; the proxy returns only the saved path, size and hash.
+- `saved {app,outcome}` reports the caller's save success/refusal. Export intent
+  is logged before bytes leave the service. A caller crash can leave an intent
+  without completion; inspect the destination instead of overwriting.
+
+The service never opens a caller path. The default per-file limit is **25 MiB
+(26,214,400 bytes)** on both sides, configurable independently as `file_limit` in
+`settings/proxy.json` and `settings/service.json`; both limits must permit a file.
+Increasing a configured limit does not increase chunk or wire-frame size.
 
 ## Operations and backups
 
@@ -78,26 +96,34 @@ Operation ids are `generation:random-id`. The log stores the exact approval hash
 immutable payload and per-target/stage outcomes. Only the stored payload executes.
 Same id and input returns the existing operation; changed input is refused, even
 after completion. Runtime revalidation precedes a durable `submitting` transition.
-Cancellation and expiry act only on `reserved`. Expiry is polled by the service,
+The default approval lifetime is **900 seconds (15 minutes)**, configurable as
+`approval_ttl` in `settings/service.json`. Cancellation and expiry act only on
+`reserved`. Expiry is polled by the service,
 also checked immediately before submission, and drops the operation without sending.
 Expired/cancelled notices stay visible until explicitly acknowledged. Partial and
 unknown operations remain pending. No restart, status query, repair or hook resubmits.
 
-The database uses SQLite rollback journaling with `synchronous=FULL`. Every mutation
-has a hash-chained event appended and fsynced to a separate record, then the SQLite
-mirror commits, then a matching commit marker is appended and fsynced. Directory
-entries are fsynced when created. A crash in that three-step transaction can replay
-only its single unacknowledged event, never perform app work. Startup turns every
-`submitting` into `unknown`. A database behind the independent committed high-water
-mark is **locked**, and all app calls and transfers are refused.
+The main log uses SQLite rollback journaling with `synchronous=FULL`. Each write
+first stages its complete event in SQLite and commits, then appends and fsyncs a
+compact hash-chained record, applies the event and commits SQLite's head, and
+finally appends/fsyncs a matching commit marker. Directory entries are fsynced
+when created. App work begins only after this sequence completes. On a crash,
+recovery finishes only that single staged transaction, never app work. Startup
+turns every `submitting` operation into `unknown`. A database behind the independent
+committed high-water mark is **locked**, and all app calls/transfers are refused.
+A record with an uncommitted tail also locks if its full staged event is missing.
 
 Back up the state directory (using SQLite's backup API or with the service stopped)
 and immutable blobs. **Never restore, roll back or copy the independent evidence
 directory with that backup.** Defaults are `/var/lib/aresos-tools` and the separate
-`/var/lib/aresos-operation-evidence`. The latter contains descriptions, operation
-ids, state changes, stages and replay information; it is private app data, not
-telemetry. The fake receiver also keeps its separate far-side SQLite fixture there.
-Production Mail/Chrome will use genuinely remote evidence.
+`/var/lib/aresos-operation-evidence`. Its `operations.jsonl` retains only operation
+ids, generations, exact input hashes, the service's short descriptions (action,
+account, recipients/targets, subject/title), and states with timestamps. Sequence,
+format and chain/commit hashes provide the restore fence. Bodies, attachment bytes
+and metadata, item contents, detailed stages and full audit events stay in SQLite
+or the blob store. `aresos log` reads today's audit events from SQLite. The fake
+receiver keeps its separate far-side SQLite fixture in the evidence directory;
+production Mail/Chrome will use genuinely remote evidence.
 
 After an older backup is detected, only the owner can run:
 
@@ -106,12 +132,15 @@ sudo aresos admin control restore_confirm --input '{"confirm":"invalidate earlie
 ```
 
 Confirmation writes a new generation. Missing/newer operations from the independent
-record become `unknown`, retaining their full descriptions. Earlier-generation ids
+record become `unknown`, retaining their short descriptions. Details absent from
+the restored main log cannot be reconstructed from the separate record. Earlier-generation ids
 can be read and locally repaired but never approved or submitted. Reserved operations
 from the restored generation are invalidated. A repair is a new logged operation
 pointing at the old one. A missing/corrupt independent record, a torn journal line or
 an inconsistent chain fails closed and needs owner recovery; the restore command
-does not silently erase corrupt evidence. There is deliberately no journal rotation
+does not silently erase corrupt evidence. This pre-deployment record format is
+version 2; the earlier full-event format fails closed and needs owner recovery
+rather than automatic migration. There is deliberately no journal rotation
 or compaction yet; retaining operation tombstones is essential for safe recovery.
 
 The receiver records every arrival without deduplication so tests cannot hide a
@@ -130,7 +159,8 @@ defaults are Documents, Downloads and Desktop. Roots themselves and every compon
 are opened with directory descriptors and `O_NOFOLLOW`, starting at `/`. Original
 path strings are checked before normalization. Dot components, traversal, credential,
 profile, configuration and startup names are refused. Reads require a regular
-single-link file, at most **1 MiB**, check inode metadata before and after reading,
+single-link file, within the configured limit (default **25 MiB**), check inode
+metadata before and after reading,
 and report the descriptor's real path. Hard-linked credential aliases are refused.
 After import, changing the original has no effect: the service hashes, stores
 mode-0400 blobs and verifies their bytes again before use.
@@ -163,11 +193,16 @@ while work is held/unfinished, unless `stop_hook_active` is already true. That g
 allows the owner to receive a report about work that cannot be resolved. The next
 `UserPromptSubmit` reads again and returns
 `{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"…"}}`.
-No transcript, current directory or prompt path from hook input is opened. Service
-failure becomes visible hook feedback. Input is read in full, including long prompts
-and final assistant messages; malformed input gives stderr feedback with exit 2
-instead of a traceback. Hooks are reminders; service expiry is the
-safety net during interrupts, continuation limits and ended turns.
+Each managed launcher names its event independently of input: `launch.py hook Stop`
+or `launch.py hook UserPromptSubmit`. A different `hook_event_name` is malformed.
+No transcript, current directory or prompt path from hook input is opened. Input
+is read in full, including long prompts and final assistant messages. `Stop` keeps
+its explicit service-failure reminder and malformed-input stderr feedback with
+exit 2. `UserPromptSubmit` exits 0 with no output on any failure, including unreadable
+or malformed input, service failure, and installation/configuration errors, so
+it never discards the owner's prompt. Valid prompt input still adds the pending
+reminder. Hooks are reminders; service expiry is the safety net during interrupts,
+continuation limits and ended turns.
 
 Contract **read**: [Anthropic hooks reference](https://code.claude.com/docs/en/hooks),
 2026-11-07. Target **Claude Code 2.1.319**, as recorded in the council branch's
