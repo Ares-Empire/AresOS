@@ -186,6 +186,28 @@ class Integration(unittest.TestCase):
         prompt = self.launch(OWNER, ["hook"], input=canonical(prompt_input))
         self.assertIn(prepared["operation_id"], json.loads(prompt.stdout)["hookSpecificOutput"]["additionalContext"])
 
+    def test_large_hook_inputs_still_remind_about_pending_work(self):
+        prepared = self.call(OWNER, "testapp_prepare_send", message())
+        self.assertTrue(prepared["ok"], prepared)
+        op_id = prepared["data"]["approval"]["operation_id"]
+        for name, field in (("Stop", "last_assistant_message"), ("UserPromptSubmit", "prompt")):
+            with self.subTest(event=name):
+                event = {"hook_event_name": name, "session_id": "fixture-session", "transcript_path": "/unused",
+                         "cwd": str(self.home), "permission_mode": "default", "stop_hook_active": False,
+                         field: "long pasted content " * 10000}
+                wire = canonical(event)
+                self.assertGreater(len(wire.encode()), 65536)
+                hook = self.launch(OWNER, ["hook"], input=wire)
+                self.assertEqual(hook.returncode, 0, hook.stderr)
+                result = json.loads(hook.stdout)
+                if name == "Stop":
+                    self.assertEqual(result["decision"], "block")
+                    self.assertIn(op_id, result["reason"])
+                else:
+                    self.assertEqual(result["hookSpecificOutput"]["hookEventName"], name)
+                    self.assertIn(op_id, result["hookSpecificOutput"]["additionalContext"])
+                self.assertEqual(hook.stderr, "")
+
     def test_proxy_isolated_from_planted_code_environment_and_pth(self):
         poison = self.home / "Documents/poison"
         poison.mkdir()

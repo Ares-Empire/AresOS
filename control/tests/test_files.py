@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import stat
+from unittest.mock import patch
 
 from aresos_control.common import FILE_LIMIT, Refused, digest, sha256
 from aresos_control.files import FilePolicy
@@ -170,3 +171,51 @@ class Files(EngineCase):
         invalid = self.engine.request({"v": 1, "method": "upload", "app": "testapp", "file": {"sha256": blob, "size": 5, "name": "file", "real_path": "/fixture/path"}, "bytes": base64.b64encode(b"wrong").decode()})
         self.assertFalse(invalid["ok"])
         self.assertFalse(self.engine.request({"v": 1, "method": "download", "app": "testapp", "sha256": "../control.sqlite"})["ok"])
+
+    def test_failed_save_cleanup_preserves_a_racing_replacement(self):
+        saved = self.allowed / "race.txt"
+        moved = self.home / "moved-export.txt"
+        original_stat, original_truncate = os.stat, os.ftruncate
+        replacement = None
+
+        def replace():
+            nonlocal replacement
+            if replacement is None:
+                saved.rename(moved)
+                saved.write_bytes(b"unrelated replacement")
+                saved.chmod(0o640)
+                replacement = saved.stat()
+
+        def checked_then_replaced(path, *args, **kwargs):
+            result = original_stat(path, *args, **kwargs)
+            if path == saved.name and kwargs.get("dir_fd") is not None:
+                replace()
+            return result
+
+        def truncate_pinned(fd, size):
+            replace()
+            return original_truncate(fd, size)
+
+        def fail(point):
+            if point == "published":
+                raise Refused("file_refused", "fixture: reject after publication")
+
+        with patch("aresos_control.files.os.stat", side_effect=checked_then_replaced), \
+             patch("aresos_control.files.os.ftruncate", side_effect=truncate_pinned), self.assertRaises(Refused):
+            self.policy.save(str(self.allowed), saved.name, b"exported", sha256(b"exported"), fail)
+        self.assertIsNotNone(replacement)
+        self.assertTrue(saved.exists(), "cleanup deleted the replacement")
+        self.assertEqual(saved.stat(), replacement)
+        self.assertEqual(saved.read_bytes(), b"unrelated replacement")
+        self.assertEqual(moved.read_bytes(), b"")
+
+    def test_failed_save_clears_hardlink_alias_outside_allowed_folders(self):
+        saved, alias = self.allowed / "linked.txt", self.home / "outside-alias.txt"
+
+        def link(point):
+            if point == "published":
+                os.link(saved, alias)
+
+        with self.assertRaises(Refused):
+            self.policy.save(str(self.allowed), saved.name, b"exported", sha256(b"exported"), link)
+        self.assertEqual(alias.read_bytes(), b"", "refused save left readable exported bytes in an alias")

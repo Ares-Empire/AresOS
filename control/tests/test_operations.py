@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import sqlite3
 import time
+from unittest.mock import Mock, patch
 
 from aresos_control.common import ASK_LIMIT, Refused, approval_input, canonical, digest, visible
 from aresos_control.definitions import ACTIONS, BY_NAME, tools_for
@@ -114,6 +115,40 @@ class Operations(EngineCase):
         self.assertEqual(adapter.drop.call_count, 2)
         self.assertEqual(self.engine.receiver.evidence(expired["operation_id"])["arrivals"], [])
 
+    def test_deadline_crossed_during_adapter_checks_never_submits(self):
+        for verb in ("send", "delete"):
+            for check in ("revalidate", "has_submission_evidence"):
+                with self.subTest(verb=verb, check=check), patch("aresos_control.engine.time.time", return_value=100) as clock:
+                    if verb == "send":
+                        approval = self.reserve()
+                    else:
+                        ref = self.data("testapp_list")["items"][0]["reference"]
+                        approval = self.data("testapp_prepare_delete", {"references": [ref]})["approval"]
+                    before = self.engine.store.get("testapp")
+                    adapter = self.engine.adapters["testapp"]
+                    original = getattr(adapter, check)
+
+                    def cross_deadline(*args):
+                        result = original(*args)
+                        clock.return_value = 221
+                        return result
+
+                    with patch.object(adapter, check, side_effect=cross_deadline), \
+                         patch.object(adapter, "drop", wraps=adapter.drop) as drop, \
+                         patch.object(adapter, "execute", wraps=adapter.execute) as execute:
+                        result = self.data("testapp_" + verb, approval)
+                        self.assertEqual(result["operation"]["state"], "failed")
+                        self.assertEqual(result["operation"]["reason"], "expired: nothing submitted")
+                        self.assertEqual(result["operation"]["stages"], {})
+                        drop.assert_called_once()
+                        execute.assert_not_called()
+                        self.assertEqual(self.data("testapp_" + verb, approval), result)
+                        drop.assert_called_once()
+                    self.assertEqual(self.engine.receiver.evidence(approval["operation_id"])["arrivals"], [])
+                    self.assertEqual(self.engine.store.get("testapp"), before)
+                    self.restart()
+                    self.assertEqual(self.data("testapp_" + verb, approval), result)
+
     def test_exact_references_metadata_and_delete_targets(self):
         listing = self.data("testapp_list", {"limit": 2})
         refs = [i["reference"] for i in listing["items"]]
@@ -154,10 +189,27 @@ class Operations(EngineCase):
         result = self.call("testapp_prepare_send", message(text="x" * ASK_LIMIT))
         self.assertEqual(result["error"]["code"], "asking_input_too_large")
         self.assertEqual(len(self.engine.store.items("op:")), count)
-        duplicate = self.reserve()
-        self.engine.receiver.accept(duplicate["operation_id"], "alpha", {})
-        self.assertFalse(self.call("testapp_send", duplicate)["ok"])
-        self.assertEqual(self.engine.receiver.evidence(duplicate["operation_id"])["arrivals"], ["alpha"])
+        for following in ("cancel", "expiry"):
+            with self.subTest(following=following):
+                duplicate = self.reserve()
+                op_id = duplicate["operation_id"]
+                self.engine.receiver.accept(op_id, "alpha", {})
+                evidence = self.engine.receiver.evidence(op_id)
+                self.assertFalse(self.call("testapp_send", duplicate)["ok"])
+                self.assertEqual(evidence["arrivals"], ["alpha"])
+                op = self.data("testapp_operation_status", {"operation_id": op_id})["operation"]
+                self.assertEqual(op["state"], "unknown")
+                self.assertEqual(op["stages"]["preflight_evidence"], evidence)
+                self.assertIn("never submit again", op["reason"])
+                self.restart()
+                if following == "cancel":
+                    self.assertFalse(self.call("testapp_operation_cancel", {"operation_id": op_id})["ok"])
+                else:
+                    with patch("aresos_control.engine.time.time", return_value=op["expires"] + 1):
+                        self.engine.expire()
+                self.assertEqual(self.engine.operation(op_id)["state"], "unknown")
+                self.assertEqual(self.data("testapp_send", duplicate)["operation"], op)
+                self.assertEqual(self.engine.receiver.evidence(op_id), evidence)
 
     def test_read_is_unchanged_bounded_untrusted_and_errors_actionable(self):
         initial = self.engine.store.get("testapp")
