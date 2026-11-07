@@ -1,8 +1,9 @@
 # The control layer: design
 
-**Status:** draft 2, 2026-11-07. Covers the shared base, Mail and Chrome. Revised after the frontier review
-([`2026-11-07-REVIEW.md`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking findings); the same
-reviewer checks the fixes before brief 18 is written. Chrome rests on brief 17's check; points marked *17b* and
+**Status:** draft 3, 2026-11-07. Covers the shared base, Mail and Chrome. Revised after the frontier review
+([`2026-11-07-REVIEW.md`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking findings) and its re-check
+([`2026-11-07-RECHECK.md`](../../reviews/control-design/2026-11-07-RECHECK.md)); the same reviewer checks draft 3
+before brief 18 is written. Chrome rests on brief 17's check; points marked *17b* and
 *17c* are checked next.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
@@ -109,15 +110,26 @@ two actions.
      `failed` (nothing left the machine); `unknown` (it may have happened: a lost server answer, a crash after the
      submission). Nothing is ever retried by itself. `<app>_operation_status` shows an operation; repairs (save the
      missing Sent copy, set the missing flag) are their own actions and never submit again.
-   - **Expiry:** an approval waiting longer than its limit is dropped, never carried out later.
-   - **Restores:** the log carries a generation; the service refuses to start on a log older than the last one it
-     wrote, so a restored backup can't revive old operations.
-4. **Files cross between users only on the caller's side.** The service never opens a path in the owner's home.
-   The MCP proxy, running as the owner, opens the file (regular files only, symlinks not followed, the real path
-   shown), and hands the bytes over; the service keeps them as an unchangeable copy by hash and sends exactly those.
-   Saving goes the other way: the service hands bytes, and the proxy writes them only into the allowed folders
-   (`~/Downloads` and the folders the settings name), with safe file names, never overwriting, never into
-   configuration or start-up places.
+   - **States and cancelling:** `reserved` → `submitting` → `done`, `partial`, `failed` or `unknown`. An operation
+     can be cancelled or expire only while `reserved` (then it is `failed`: nothing left); once `submitting` has been
+     recorded it runs to an outcome. An approval waiting longer than its limit expires.
+   - **Restarts and restores:** nothing resumes by itself after a restart; an operation found `submitting` becomes
+     `unknown`. A restored older log could forget a send that happened after the backup, so the log's generation is
+     also kept outside the backed-up files, a log older than it is refused unless the owner restores it with an
+     owner-only command (which marks everything recent `unknown`), and mail adds a check that survives any local
+     restore: the Message-ID is derived from the operation id, and before submitting, the service looks for that
+     Message-ID in Sent and refuses if it is there.
+4. **Files cross between users only on the caller's side, and only from and to allowed folders.** The service never
+   opens a path in the owner's home. The MCP proxy, running as the owner, opens the file and hands the bytes over;
+   the service keeps them as an unchangeable copy by hash and sends exactly those. Claude Code's file-tool limits
+   don't apply to MCP tools, so the proxy enforces its own:
+   - **Reading** (attachments, uploads) only from the allowed folders (`~/Documents`, `~/Downloads`, `~/Desktop` and
+     the folders the settings name), never from places that hold credentials or configuration (`~/.ssh`,
+     `~/.gnupg`, `~/.config`, `~/.local/share`, the browser profile, `~/.claude`, any dotfile), opened component by
+     component under the allowed folder without following symlinks, regular files only, with a size limit. The
+     prompt shows the real path.
+   - **Saving** the other way: only into the allowed folders, with safe file names, never overwriting, never into
+     configuration or start-up places.
 5. **Reading changes nothing.** Mail is fetched with `BODY.PEEK`; flags are compared before and after in the tests.
 6. **Readable, bounded results.** Compact structured results with the important fields first. Long content is paged
    (`cursor`), and every result has a size cap, so a huge mail or page never floods Claude's context.
@@ -126,9 +138,12 @@ two actions.
    content, and the tool descriptions tell Claude that. Whatever a mail says, any send or delete still asks.
 9. **Everything that changes something is logged.** Time, action, input summary, outcome. `aresos log` shows the
    owner what Claude did today.
-10. **Nothing waiting is forgotten.** Anything held or unfinished (a site's request held after Claude's action
-    returned, a `partial` mail) shows up in every following result of that app, and Claude can't end its turn while
-    something is held: a managed `Stop` hook lists it and sends Claude back to decide (submit, which asks, or drop).
+10. **Nothing waiting is forgotten, and nothing waits forever.** Anything held or unfinished (a site's request held
+    after Claude's action returned, a `partial` mail) shows up in every following result of that app. A managed
+    `Stop` hook sends Claude back to decide before it ends its turn; a managed `UserPromptSubmit` hook puts anything
+    that became held after the turn ended in front of Claude with the owner's next message. Neither is the safety
+    net (a `Stop` hook doesn't run on an interrupt and has a continuation limit): every hold has a time limit and is
+    dropped, never sent, when it runs out.
 
 ## 5. Mail
 
@@ -152,14 +167,14 @@ fails.
 | `mail_thread` | read | reference | the conversation in order, across all folders but Trash and Junk |
 | `mail_attachment_save` | change | reference, part (or the whole mail as `.eml`), folder (an allowed folder, default `~/Downloads`) | saved path and sha256; never overwrites, never opens or runs the file |
 | `mail_contacts` | read | text | addresses the owner has written to or received from, with names |
-| `mail_compose` | change | new mail, or `reply` / `reply_all` / `forward` to a reference; text (plain or formatted); attachments (local files or parts of other mails) | a *composition* kept by the service: its id, hash and the whole mail as it would go out (from, to, cc, bcc, subject, text, quoted part by reference, attachments with sha256, threading headers). Nothing is sent. |
+| `mail_compose` | change | new mail, or `reply` / `reply_all` / `forward` to a reference, or an existing draft to send or change; text (plain or formatted); attachments (local files or parts of other mails) | a *composition* kept by the service: its id, hash and the whole mail as it would go out (from, to, cc, bcc, subject, text, quoted part by reference, attachments with sha256, threading headers). Nothing is sent. |
 | `mail_draft_save` | change | a composition, optionally replacing an existing draft | the draft's reference in Drafts |
 | `mail_send` | **send** | the composition's id and hash, account, from, to, cc, bcc, subject, Claude's own text in full, the quoted and forwarded parts by reference, attachments by name, size and sha256, `request_id` | the operation's outcome per recipient and stage (rule 4.3): Message-ID, Sent copy, answered flag |
-| `mail_move` | change | references, target folder (never Trash: that is `mail_delete`) | the new references |
-| `mail_flag` | change | references, flags to add or remove (read, flagged, answered) | the new flags |
+| `mail_move`, `mail_copy` | change | references, target folder (never Trash: that is `mail_delete`) | the new references |
+| `mail_flag` | change | references, flags and keywords to add or remove (read, flagged, answered, the owner's own keywords) | the new flags |
 | `mail_folder_create`, `mail_folder_rename` | change | account, name | the folder |
 | `mail_delete` | **delete** | items, each `{reference, from, subject, date}`; to the Trash or for good; `request_id` | the outcome per item |
-| `mail_folder_delete` | **delete** | account, folder, and its exact contents (normally none) | the outcome |
+| `mail_folder_delete` | **delete** | account, folder (must be empty and without subfolders) | the outcome |
 | `mail_operation_status`, `mail_operation_repair` | read, change | operation id; for repair which stage (Sent copy, flag) | the operation's stages; a repair never submits again |
 | `mail_unsubscribe` | **send** | reference, and the unsubscribe address or mail the message's own header names, `request_id` | the outcome |
 
@@ -170,7 +185,11 @@ How each one works:
   composition and refuses if the input doesn't match it. A long quoted thread therefore never has to pass through
   Claude, and still can't be altered.
 - **Replies** use Reply-To where set, never address the owner's own addresses (reply-all removes them), and build
-  In-Reply-To and References from the original. Bcc recipients never appear in the headers that others receive.
+  In-Reply-To and References from the original. A reply to the owner's own sent mail goes to that mail's original
+  To and Cc, as Apple Mail does. Bcc recipients never appear in the headers that others receive.
+- **Threads** are built from Message-ID, In-Reply-To and References. A mail without a Message-ID gets an internal id
+  (account, folder, UIDVALIDITY, UID) that is never put into outgoing headers; a reply to it has no In-Reply-To.
+  Mails sharing one Message-ID are all kept, ordered by date and marked as duplicates.
 - **Formatted mail:** the owner's mails can be plain or formatted (HTML with a plain-text part); which is the default,
   and the signature, are the owner's habits (section 10). Incoming HTML is turned into readable text with links kept.
 - **Sending:** SMTP submission over TLS. The server's answer per recipient is recorded: some accepted and some refused
@@ -183,9 +202,13 @@ How each one works:
 - **Deleting for good** uses `UID EXPUNGE` on exactly the named messages, and is refused on a server without
   `UIDPLUS`. The service never calls IMAP `CLOSE` on a mailbox it may write to (that can remove other messages marked
   deleted); it uses `UNSELECT`. To the Trash uses `MOVE`.
-- **Deleting a folder:** the service first renames it to a private name (so nothing new is filed into it), checks that
-  its contents are exactly what the owner approved, and only then deletes it; otherwise it renames it back and
-  refuses.
+- **Deleting a folder** works only on an empty folder without subfolders; its mails are deleted first with
+  `mail_delete` (exact messages, asking). The service records the operation, renames the folder to a private name so
+  that filters and other mail programs stop filing into it, checks that it is still empty, and deletes it; otherwise
+  it renames it back and refuses. A crash in between is finished or undone from the operation log. What remains is a
+  mail program deliberately filing into the private name in the moment between the check and the delete; IMAP has
+  no conditional delete, and this is named here rather than hidden. The real server's behaviour is checked at
+  onboarding.
 - **Transport security:** both connections use an explicitly verifying TLS context (Python's `IMAP4_SSL` doesn't
   verify by default), with hostname checking and no plaintext fallback. The password is sent only after the check.
 - **Passwords:** set once by the owner with an owner-only command (`aresos mail account add`), stored in a file only
@@ -276,34 +299,48 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 | `chrome_wait` | read | wait for text, an element or the page to settle |
 | `chrome_pending` | read | what is held in a tab: pending sends and background requests |
 | `chrome_submit` | **send** | let one pending send go, with the description and content the service gave (below) |
-| `chrome_submit_input` | **send** | where the message hold can't be in place (below): type and press as one step, after approval |
-| `chrome_submit_trusted` | send, free | as `chrome_submit`, refused unless the owner's trusted list allows exactly this |
+| `chrome_submit_input` | **send** | where the message hold can't be in place (below), on a site with an adapter: type and press as one step, after approval |
+| `chrome_submit_trusted` | send, free | as `chrome_submit`, only for an operation a site adapter recognises and the owner's trusted list allows |
 | `chrome_open_site` | **send** | open an address that isn't free to open (below), with the full address in the input |
 | `chrome_drop` | change | drop held requests; nothing leaves |
 | `chrome_operation_status` | read | an operation's stages (rule 4.3) |
 | `chrome_sites` | owner-only | the owner's lists of known and trusted sites |
 
 Every acting result says what happened (new page, dialog, download), the elements that changed, and anything held.
-While a tab has something held, it accepts only reading, `chrome_submit…` and `chrome_drop`.
+While a tab has a pending send, it accepts only reading, `chrome_submit…` and `chrome_drop`; background holds
+(below) don't block it.
 
 ### What leaves a Claude tab, and how it is held
 
-The rule: **nothing that isn't plainly reading leaves a Claude tab without approval.** When the tool isn't sure, the
-request is held, never let go. The service holds every request the tab and everything it started (frames, popups,
-workers) makes, at Chrome's request stage, before it leaves the browser, and sorts it:
+The rule: **nothing Claude caused or entered leaves a Claude tab without approval, and when the tool can't tell, the
+request is held, never let go.** The service holds every request the tab and everything it started (frames, popups,
+workers) makes, at Chrome's request stage, before it leaves the browser, and sorts it by cause and content, never by
+timing alone:
 
-- **Plain reading goes:** GET or HEAD without a body, carrying none of Claude's text: a page opened by following a
-  link or an address given to Claude, images, scripts, styles, fonts, and the data a page loads to show something.
-- **Everything else is held:** any other method; form submissions; beacons, pings and reports; opening a WebSocket;
-  and any request carrying text Claude typed into the page, as typed or URL-, form-, JSON- or base64-encoded. Timing
-  doesn't matter: a deletion the page schedules twelve seconds after a click, an autosave after a pause and an "undo
-  send" delay are held the same way.
-- **One action, one approval.** Held requests caused by one action form one *pending send*, so a form that sends
-  three requests asks once. Held requests no action explains (the site's own telemetry, the owner's own clicks) are
-  listed as *background* in `chrome_pending`; Claude drops them (free) or submits them (asks). Known tracking
-  addresses are dropped without being listed. How much background there is on everyday sites is measured in 17c.
+- **Caused by Claude: held as a pending send.** The tool follows each request's initiator, including the chain of
+  timers, promises and callbacks behind it, back to its origin. A request that leads back to a click, key or other
+  input Claude made is Claude's, however late it comes: a deletion scheduled twelve seconds after a click, an "undo
+  send" delay, a retry of a dropped send. Requests caused by one action form one pending send, so a form that sends
+  three requests asks once.
+- **After Claude entered something: held.** In a document where Claude has typed, chosen, ticked or uploaded
+  anything that hasn't been sent with approval, every request that isn't plain reading is held, whoever caused it,
+  because the page may carry Claude's input in any form (an autosave on a timer, a sync). Any request anywhere that
+  carries Claude's typed text (as typed or URL-, form-, JSON- or base64-encoded) is held too.
+- **Plain reading goes:** GET or HEAD without a body and without Claude's text: pages, images, scripts, styles,
+  fonts, the data a page loads to show something. Reading has to stay free, or no page would load. Which pages Claude
+  may open at all is the next rule.
+- **The page's own activity goes:** in a document Claude hasn't entered anything into, requests the page makes on
+  its own (when it loads, on its own timers, after the owner's own clicks) and that carry none of Claude's text.
+- **Reading through POST.** Many apps load data with POST (GraphQL queries, Notion, Google's apps). A GraphQL
+  request is sorted by its own operation type (a query reads, a mutation sends); other apps need a site adapter to
+  tell reading from sending. Without one, such a request caused by Claude is held, so clicking around those apps
+  asks until their adapter exists. 17c measures how often that happens on everyday sites.
+- **Unknown cause: held, in the background.** A request whose cause the tool can't establish is held and listed as
+  *background* in `chrome_pending`. Background holds don't block the tab: Claude can keep reading and acting, drop
+  them (free) or submit them (asks). Of repeated requests to the same address (polling) only the newest is kept;
+  known tracking addresses are dropped without being listed; every background hold expires and is dropped.
 - **Dropping is final.** A page that retries a dropped send produces a new held request, marked as a retry; it never
-  goes by itself. Releasing or closing a tab, and control ending, drop what it held.
+  goes by itself.
 
 A pending send stops the action; its result reads `held` with the **service's description** (rule 4.1): what Claude
 did (the click on "Delete" in the row "Invoice 42"), the page's address and title, the signed-in name the page shows
@@ -312,27 +349,40 @@ possible and the raw bytes' hash. Claude passes exactly that to `chrome_submit`,
 Before release the service checks that the page, the element and the bytes are still the same, and releases each
 request once. *Checked:* held sends reached the fixture server zero times while held, exactly once after release and
 never after drop, for posted forms, search forms, `fetch` and XHR posts, beacons, autosave, a form posting to another
-site, link pings and a data-bearing image.
+site, link pings and a data-bearing image. *17c:* tracing causes through timers, promises and workers, with no
+request of Claude's ever counted as the page's own.
 
 Outcomes follow rule 4.3: the site's answer is recorded but doesn't prove the business step worked (`done` means the
 site accepted the request); the page gave up waiting or the tab closed before release is `failed`; the connection
 broke after release is `unknown`. How long a held send survives while the owner answers on the phone, and what common
 pages do meanwhile, is *17b*.
 
-**What Claude may open freely, and data leaving.** Claude follows links on a page and opens addresses it was given
-(by the owner, in a mail, from bookmarks or history) freely, on sites it has used before. Anything that could carry
-something Claude wrote to a site asks first: an address Claude composed itself (with a path or query of its own), and
-the first page on a new site (`chrome_open_site`, showing the full address). Whether a search on a known site is free
-or asks too is the owner's call (section 10).
+**What Claude may open freely, and data leaving.** A *site* is a registrable domain by the Public Suffix List
+(including its private part, so every `*.github.io` page is its own site), and areas of big platforms where anyone
+can publish (public forms, user pages) count as their own sites. Claude follows links on a page and opens addresses
+it was given (by the owner, in a mail, from bookmarks or history) freely, on sites it has used before. These ask
+first, with the full address shown (`chrome_open_site`): an address Claude composed itself (with a path or query of
+its own), the first page on a new site, a redirect that lands on a site that isn't free to open, and anything on the
+local network (the router, other devices, `localhost`). Whether a search on a site the owner uses is free or asks
+is the owner's call (section 10). What remains even then: a hostile script on a site the owner uses can encode what
+Claude types there and send it as plain page traffic; only asking before typing on such sites would close that.
 
-**The trusted list** names a site and what is free there (for example "post messages", "submit forms"). Deleting is
-never free (the DELETE method, or a control the page labels delete or remove). Pages that can approve Claude's own
-actions or change its settings (claude.ai, the Anthropic console, Aresus, Chrome's settings, password and extension
-pages) can't be opened in a Claude tab at all; that list is fixed in the image.
+**Other tabs of the same site.** A Claude tab can pass data to the owner's own tabs of the same site through the
+browser's shared channels (a shared worker, a broadcast channel, storage). Those tabs and workers are attached in
+*guard* mode: whatever they send that carries Claude's typed text is held like in a Claude tab. Where a context can't
+be guarded, the tool refuses to type in a Claude tab of that site while it exists. When a tab leaves the group, the
+same guard stays on for that site until the browser closes, for anything Claude typed that wasn't sent with approval.
 
-**Site adapters.** Where the generic description isn't enough to judge (a request with opaque ids, a canvas editor),
-a small adapter for that site decodes its requests into a clear operation ("delete the repository X", "send to the
-conversation Y") and binds the approval to it. Adapters are written for the owner's usual sites first, after the
+**The trusted list** frees sends only through a site adapter: an entry names a site and operations its adapter
+recognises (for example "post a message in a chat", "add to the basket"). Without an adapter nothing is free, because
+methods and button labels don't say what a request does. Deleting and paying are never free. Pages that can approve
+Claude's own actions or change its settings (claude.ai, the Anthropic console, Aresus, Chrome's settings, password
+and extension pages) can't be opened in a Claude tab at all; that list is fixed in the image.
+
+**Site adapters.** Where the generic rules aren't enough to judge or to work smoothly (a request with opaque ids, an
+app that reads through POST, a chat on a live connection, a canvas editor), a small adapter for that site decodes its
+requests into clear operations ("delete the repository X", "send to the conversation Y"), tells reading from
+sending, and binds the approval to the operation. Adapters are written for the owner's usual sites first, after the
 tool-user rounds show where they are needed.
 
 ### What can't be held, and what happens there
@@ -347,20 +397,19 @@ tool-user rounds show where they are needed.
   start, which messages count as sends (those carrying Claude's typed text only, or every message during an action:
   measured on chat-like fixtures and public pages), and how many everyday sites keep such connections open.
 - **Where the message hold can't be in place** (a tab taken from the owner whose connection was opened before the
-  tool attached, until the page reloads; a page where the wrap provably fails), typing, Enter and clicks other than
-  plain links go through `chrome_submit_input`: one asking step that shows the site, the field, the text and the key,
-  done only after approval. *Checked:* holding the key press gave zero arrivals until approval and exactly one after.
+  tool attached, until the page reloads; a page where the wrap provably fails), the tool can't see what a key or
+  click sends. There, typing, Enter and clicks other than plain links are refused, unless a site adapter establishes
+  the account, the conversation or target and the text: then `chrome_submit_input` does them as one asking step with
+  that description, after re-checking it right before acting. Usually reloading the page brings the message hold
+  back. *Checked:* holding the key press gave zero arrivals until approval and exactly one after.
 - **Service workers:** requests a site's service worker sends were not held (*checked*), and requests a page sends
   through its service worker may be invisible to the tab's hold. *17b:* hold at the worker itself, and let the
   controlled tab bypass its service worker. Until that passes, a page under a service worker is treated like a page
   without the message hold.
 - **A site that changes something with a plain GET** (against the web's rules, rare on reputable sites) can't be told
   from reading without knowing the site; and **a site that hides what it sends** (encrypts typed text before sending
-  it) defeats the typed-text match, though its non-GET requests are still held. Both are why new sites ask first and
-  why site adapters exist.
-- **Other tabs of the same site outside the group** can receive data from a Claude tab through the browser's shared
-  channels (a shared worker, a broadcast channel, storage) and send it unheld. *17c:* how common that is and whether
-  the tool can hold those channels too; until then, the tool warns when a same-site tab outside the group is open.
+  it) defeats the typed-text match, though its other requests after Claude typed are still held. Both are why new
+  sites ask first and why site adapters exist.
 
 ### Fail closed
 
@@ -393,7 +442,12 @@ way for Claude to get its own code run outside the sandbox, or to reach a site w
   - MCP servers: exactly the set in `managed-mcp.json` (that also shuts out plugin servers and `--mcp-config`), and
     Claude in Chrome not among them. Each server is a root-owned program with a fixed interpreter, isolated mode and
     a fixed environment (section 2), so a writable file can't be loaded into it.
-  - Hooks: only managed ones (`allowManagedHooksOnly`), each a root-owned program.
+  - Hooks: only managed ones (`allowManagedHooksOnly`), each a root-owned program with the same fixed interpreter,
+    isolated mode and environment as the MCP proxy.
+  - Claude Code itself: the central session is the command-line Claude Code, started by a root-owned launcher with
+    a fixed environment (nothing like `NODE_OPTIONS` that loads code into it), with no IDE, desktop-app, SDK or
+    browser integration. SDK hooks and in-process MCP servers, which the managed switches still allow, therefore
+    have no way in.
   - Plugins and mods: none (`strictKnownMarketplaces: []`, `disableSideloadFlags`, every plugin off in
     `enabledPlugins`); a check in brief 18 confirms that this also keeps out plugin LSP servers, monitors and mods,
     or finds the switch that does.
@@ -411,8 +465,9 @@ way for Claude to get its own code run outside the sandbox, or to reach a site w
   keyring and Claude Code's sign-in files hidden from its file view; no session D-Bus.
 - **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
   the list is locked (`allowManagedDomainsOnly`), and it contains only what the owner allows (section 10). `WebFetch`
-  isn't limited by that list; it gets its own permission rule (asks, or off). How much network and which credentials
-  the central session's terminal has at all is an owner question (section 10).
+  and `WebSearch` aren't limited by that list; each gets its own permission rule under the owner's data rule
+  (section 10): a fetched address Claude composed and a search query both carry Claude's text out. How much network
+  and which credentials the central session's terminal has at all is an owner question (section 10).
 - **Approval surfaces:** Claude must never approve its own prompt. Pages that can (claude.ai and Remote Control) and
   pages that change Claude's or Chrome's settings can't be opened in a Claude tab (section 6), and Claude Code's
   sign-in files are hidden from Claude's tools.
@@ -477,13 +532,20 @@ Settings checks: the prompt's "Yes, and don't ask again" choice must not switch 
   in a plain address (a public form on a big platform), and a search there carries what Claude typed. Recommendation:
   following links on a page and opening addresses Claude was given stay free on sites it has used; **anything that
   could carry something Claude wrote asks first**: an address it composed itself, the first page on a new site, a
-  form, an autosave. Open choice within that: whether searches on sites the owner uses are free (fewer prompts; a
-  search box rarely shows its queries to anyone else) or ask too. The same rule applies to `WebFetch`.
+  form, an autosave. Open choice within that: whether searches on sites the owner uses are free or ask too. A free
+  search does hand the query to that site (and its search provider); the bet is that the owner's usual sites aren't
+  hostile, at the price of fewer prompts. Even with every search asking, a hostile script on a site the owner uses
+  could encode what Claude types there (section 6); only asking before typing would close that, which is against
+  owner decision 2 and is not recommended. The same rule applies to `WebFetch` and `WebSearch`.
 - **The central session and coding work.** A session that reads the owner's mail and can also push to GitHub or reach
   the internet from its terminal can leak without any prompt (a `git push` or `gh` call with private text).
   Recommendation: the AresOS assistant session that has the app tools gets a terminal with no internet and no
-  credentials; coding work runs in separate Claude sessions without the app tools, as on the Mac today. The other
-  way: one session for everything, with the terminal's network locked to a list and `git push` and `gh` asking.
+  credentials; coding work runs in separate Claude sessions without the app tools, as on the Mac today. Separate has
+  to be enforced, not only configured: the managed settings apply to every session on the machine, so coding sessions
+  run as their own Linux user, with no access to `act.sock`, the assistant's transcripts or the owner's browser, and
+  the assistant's user holds no coding credentials. The other way: one session for everything, with the terminal's
+  network locked to a list; asking only for `git push` and `gh` would not cover every other way to send text to an
+  allowed host.
 - **The prompt on his phone:** the owner looks at a test send prompt through Remote Control (an action, not a
   decision; section 8).
 

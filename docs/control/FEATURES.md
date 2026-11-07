@@ -6,7 +6,7 @@ for the first two apps, so nothing is left out without saying so. Each feature h
 reason why it waits. The owner adds to it and decides what can wait; nothing moves to *later* or *never* without
 being written here.
 
-- **first:** in the first release, with a test and in the tool-user rounds.
+- **first:** in the first release, with a test, and each one a task in the tool-user rounds.
 - **later:** planned; why it waits is given.
 - **owner:** the owner does it himself, by design.
 - **never:** not offered to Claude, with the reason.
@@ -22,7 +22,7 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Add an account, set or change its password | `aresos admin mail account …` | owner | owner: passwords never pass through Claude |
 | Folders with counts | `mail_folders` | read | first |
 | Create, rename a folder | `mail_folder_create`, `mail_folder_rename` | change | first |
-| Delete a folder (with its exact contents) | `mail_folder_delete` | delete | first |
+| Delete a folder (empty, without subfolders; its mails deleted first) | `mail_folder_delete` | delete | first |
 | Search by sender, recipient, subject, text, dates, flags, attachments | `mail_search` | read | first |
 | Read a mail: headers, text, HTML as readable text, attachments list | `mail_read` | read | first |
 | Read the raw source of a mail | `mail_read` (part `source`) | read | first |
@@ -32,8 +32,8 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Formatted mail (bold, lists, links) and plain mail | `mail_compose` | change | first; the default is the owner's habit |
 | Signature | `mail_compose` from the account's configuration | change | first; text from the owner |
 | Attach local files, or attachments of other mails | `mail_compose` | change | first |
-| Save, update and delete drafts; send a draft | `mail_draft_save`, `mail_delete`, `mail_send` | change, delete, send | first |
-| Move and copy between folders (not to Trash) | `mail_move` | change | first |
+| Save, update and delete drafts; send a draft | `mail_draft_save`, `mail_delete`; `mail_compose` from the draft, then `mail_send` | change, delete, send | first |
+| Move and copy between folders (not to Trash) | `mail_move`, `mail_copy` | change | first |
 | Mark read and unread, flag, answered, custom keywords | `mail_flag` | change | first |
 | Delete to the Trash, or for good; empty the Trash | `mail_delete` | delete | first |
 | Mark as junk or not junk | `mail_move` to or from Junk | change | first |
@@ -68,8 +68,9 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Downloads: list, save into an allowed folder | `chrome_downloads` | read, change | first |
 | Bookmarks and history: find addresses | `chrome_bookmarks`, `chrome_history` | read | first |
 | Submit a form, post, send a message, any request that sends | `chrome_submit` | send | first |
-| Typing and Enter where the message hold can't be in place | `chrome_submit_input` | send | first |
-| Sends on the owner's trusted sites | `chrome_submit_trusted` | send, free | first; deleting and paying are never free |
+| Typing and Enter where the message hold can't be in place | `chrome_submit_input` | send | first, on sites with an adapter; refused elsewhere (reloading the page usually brings the normal hold back) |
+| Sends on the owner's trusted sites | `chrome_submit_trusted` | send, free | first, for operations a site adapter recognises; deleting and paying are never free |
+| Apps that read through POST (Notion, Google's apps) | site adapter; GraphQL sorted by itself | | first for the owner's usual sites; elsewhere Claude's clicks there ask until an adapter exists |
 | Drop what a page wanted to send | `chrome_drop` | change | first |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; passwords never pass through Claude |

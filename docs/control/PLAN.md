@@ -73,11 +73,13 @@ Three places, each with one job:
      while the owner answers on the phone, the extension installed by policy, the Claude tab group, the typed-text
      rule against public sites.
    - **S2c, Chrome (brief 17c, after 17b, alongside brief 18):** holding messages on live connections in pages and
-     workers; which messages count as sends; how much background a held-by-default tab sees on everyday sites;
-     delayed sends, popups and same-site tabs outside the group; how common all this is on the owner's usual sites.
-     Raised by `mac-capacity` and the design review.
-1. **Design** (`docs/design/CONTROL.md`): draft 2 after the frontier review's 8 blocking findings; the same reviewer
-   checks the fixes. The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner with it.
+     workers; tracing each request's cause through timers, promises and workers back to Claude's input; guard mode
+     for same-site tabs and workers outside the group; how much background and reading-through-POST everyday sites
+     produce (which of the owner's usual sites need an adapter); delayed sends and popups. Raised by `mac-capacity`
+     and the design review.
+1. **Design** (`docs/design/CONTROL.md`): draft 3 after the frontier review (8 blocking) and its re-check (7 still
+   partly open); the same reviewer checks draft 3. The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
+   with it.
 2. **Base and boundary (brief 18):** the operation log, the generic MCP proxy and terminal command, a fake app with a
    send and a delete, file transfer on the caller's side, the managed settings draft, the sandbox boundary on Linux
    with the fixed hostile programs in CI, and the `Stop` hook. The owner checks a fake send prompt on his phone.
