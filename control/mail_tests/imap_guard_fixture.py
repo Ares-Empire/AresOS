@@ -14,8 +14,9 @@ from support import CERT
 
 
 class GuardedIMAPFixture:
-    def __init__(self, host='greenmail', port=3993):
+    def __init__(self, host='greenmail', port=3993, mode='guard', error_text=b'Synthetic failure', backend_password=None):
         fixture = self
+        self.mode, self.error_text = mode, error_text
         self.lock = threading.Lock()
         self.server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.server_context.load_cert_chain(CERT / 'tls.crt',CERT / 'tls.key')
@@ -56,13 +57,38 @@ class GuardedIMAPFixture:
                                 return
                             tag,command,*rest = line.split(b' ',2)
                             with fixture.lock:
+                                if ((fixture.mode == 'echo_login' and command.upper() == b'LOGIN')
+                                    or (fixture.mode == 'echo_store' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'STORE '))
+                                    or (fixture.mode == 'echo_expunge' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'EXPUNGE '))):
+                                    self.wfile.write(tag + b' BAD ' + fixture.error_text + b'\r\n')
+                                    continue
+                                if fixture.mode == 'expunge_failure' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'EXPUNGE '):
+                                    self.wfile.write(tag + b' NO [UNAVAILABLE] Synthetic cleanup failure\r\n')
+                                    continue
+                                if command.upper() == b'LOGIN' and backend_password is not None:
+                                    # Accept the test's distinct secret while the real backend uses its fixed fixture password.
+                                    line = tag + b' LOGIN ' + rest[0].split(b' ',1)[0] + b' "' + backend_password.encode() + b'"\r\n'
                                 if command.upper() == b'DELETE' and rest:
                                     name = rest[0].strip()
                                     backend.write(b'GUARD STATUS ' + name + b' (MESSAGES)\r\n')
                                     state = response(b'GUARD',False)
                                     count = re.search(rb'MESSAGES (\d+)',state)
                                     if not count or int(count[1]) != 0:
+                                        if fixture.mode in {'inuse','permission','generic'}:
+                                            reason = {'inuse':b'[INUSE] Temporary refusal', 'permission':b'[NOPERM] Nonempty folder inaccessible', 'generic':b'Permission denied'}[fixture.mode]
+                                            self.wfile.write(tag + b' NO ' + reason + b'\r\n')
+                                            continue
+                                        if fixture.mode == 'missing_probe':
+                                            backend.write(b'ERASE SELECT ' + name + b'\r\n')
+                                            response(b'ERASE',False)
+                                            backend.write(b'MARK UID STORE 1:* +FLAGS.SILENT (\\Deleted)\r\n')
+                                            response(b'MARK',False)
+                                            backend.write(b'EXPUNGE UID EXPUNGE 1:*\r\n')
+                                            response(b'EXPUNGE',False)
                                         self.wfile.write(tag + b' NO [CANNOT] Nonempty DELETE forbidden by fixture policy\r\n')
+                                        continue
+                                    if fixture.mode == 'empty_delete_failure':
+                                        self.wfile.write(tag + b' NO [UNAVAILABLE] Empty cleanup failed\r\n')
                                         continue
                                 backend.write(line)
                                 literal = re.search(rb'\{(\d+)(\+)?\}\r\n$',line)

@@ -11,12 +11,13 @@ from support import CERT
 
 
 class SMTPFixture:
-    def __init__(self, root, mode='normal', on_data=None, starttls=False, advertise_starttls=True):
+    def __init__(self, root, mode='normal', on_data=None, starttls=False, advertise_starttls=True, error_text=b'Synthetic failure'):
         self.database = root / 'smtp.sqlite'
         with closing(sqlite3.connect(self.database)) as db:
             db.execute('CREATE TABLE IF NOT EXISTS arrivals(id INTEGER PRIMARY KEY, recipients TEXT, raw BLOB)')
             db.commit()
         self.mode, self.on_data, self.auth_count = mode, on_data, 0
+        self.error_text = error_text
         self.starttls, self.advertise_starttls = starttls, advertise_starttls
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.context.load_cert_chain(CERT / 'tls.crt', CERT / 'tls.key')
@@ -50,9 +51,9 @@ class SMTPFixture:
                         if not encrypted:
                             raise AssertionError('Password before TLS')
                         fixture.auth_count += 1
-                        send(b'235 authenticated')
+                        send(b'535 ' + fixture.error_text if fixture.mode == 'echo_auth' else b'235 authenticated')
                     elif verb == b'MAIL':
-                        send(b'250 sender ok')
+                        send(b'550 ' + fixture.error_text if fixture.mode == 'echo_mail' else b'250 sender ok')
                     elif verb == b'RCPT':
                         recipient = line.decode().split('<',1)[1].split('>',1)[0]
                         if recipient.startswith('refuse'):
@@ -79,7 +80,7 @@ class SMTPFixture:
                             fixture.on_data(raw)
                         if fixture.mode == 'lost_answer':
                             return
-                        send(b'250 accepted')
+                        send(b'554 ' + fixture.error_text if fixture.mode == 'echo_data' else b'250 accepted')
                     elif verb == b'QUIT':
                         send(b'221 bye')
                         return
