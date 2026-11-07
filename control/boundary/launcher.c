@@ -14,7 +14,8 @@ int main(int argc, char **argv) {
         "PATH=/usr/local/bin:/usr/bin:/bin", "HOME=/home/assistant",
         "USER=assistant", "LOGNAME=assistant", "LANG=C.UTF-8",
         "TERM=xterm-256color", "DISABLE_AUTOUPDATER=1",
-        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1", NULL
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
+        "CLAUDE_CODE_AUTO_CONNECT_IDE=false", NULL
     };
     char *const args[] = {
         "/usr/bin/python3", "-I", "/opt/aresos-control/launch.py", NULL

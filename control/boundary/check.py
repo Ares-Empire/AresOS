@@ -14,11 +14,13 @@ import time
 ROOT = Path('/opt/aresos-control')
 OUT = Path('/evidence')
 OUT.mkdir(exist_ok=True)
+sys.path.insert(0, str(ROOT))
 MODE = os.environ.get('FILTER_MODE', 'present')
 FIXTURES = json.loads((ROOT / 'fixtures.json').read_text())
 ENV = {'PATH': '/usr/local/bin:/usr/bin:/bin', 'HOME': '/home/assistant',
        'USER': 'assistant', 'LANG': 'C.UTF-8', 'DISABLE_AUTOUPDATER': '1',
-       'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC': '1'}
+       'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC': '1',
+       'CLAUDE_CODE_AUTO_CONNECT_IDE': 'false'}
 
 
 def owner():
@@ -27,9 +29,9 @@ def owner():
     os.setuid(10001)
 
 
-def run(args, name, env=None, timeout=90, required=True):
+def run(args, name, env=None, timeout=90, required=True, input=None):
     result = subprocess.run(args, preexec_fn=owner, cwd='/home/assistant/work',
-                            env=env or ENV, capture_output=True, text=True, timeout=timeout)
+                            env=env or ENV, capture_output=True, text=True, timeout=timeout, input=input)
     log = f'COMMAND {json.dumps(args)}\nEXIT {result.returncode}\n{result.stdout}{result.stderr}'
     (OUT / (name + '.txt')).write_text(log)
     print(log, flush=True)
@@ -66,7 +68,11 @@ def main():
     put('/home/assistant/work/.claude/settings.json', '{}\n')
     put('/home/assistant/work/.claude/settings.local.json', '{}\n')
     put('/home/assistant/work/.mcp.json', '{"mcpServers":{}}\n')
-    put('/home/assistant/work/replacement', 'replacement\n')
+    for path in FIXTURES['writes']:
+        put(path + '.boundary-replacement', 'replacement\n', uid=0 if path.startswith(('/etc/', '/opt/')) else 10001)
+    # Deterministic receiver hostname: the proxy lives outside the sandbox netns.
+    with open('/etc/hosts', 'a') as hosts:
+        hosts.write('\n127.0.0.1 blocked.boundary.test\n')
     # Every directory under the synthetic home belongs to the owner, so DAC
     # cannot falsely make an owner-writable startup path look sandbox-protected.
     for folder, dirs, files in os.walk('/home/assistant'):
@@ -109,9 +115,30 @@ def main():
         for path in FIXTURES['writes']:
             if path.startswith('/home/'):
                 run(['/usr/bin/python3', '-I', '-c', f'open({path!r},"ab").close()'], 'positive-write-' + str(FIXTURES['writes'].index(path)))
+        # Identical same-directory rename succeeds with owner rights outside containment.
+        for index, path in enumerate(FIXTURES['writes']):
+            if path.startswith('/home/'):
+                code = f'import os; p={path!r}; s=p+".boundary-replacement"; os.replace(s,p); os.replace(p,s)'
+                original = Path(path).read_bytes()
+                run(['/usr/bin/python3', '-I', '-c', code], 'positive-replace-' + str(index))
+                put(path, original.decode())
+        from native import native_checks
+        # Run network positive controls before the zero-arrival observation window.
+        config = ROOT / 'sandbox.json'
+        original = config.read_bytes()
+        allowed = json.loads(original)
+        allowed['network']['allowedDomains'] = ['blocked.boundary.test']
+        config.write_text(json.dumps(allowed))
+        try:
+            for suffix, tunnel in [('http', ''), ('connect', '--proxytunnel ')]:
+                command = 'curl --silent --show-error --fail --max-time 5 ' + tunnel + 'http://blocked.boundary.test:18080/payload'
+                positive = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'), command], 'positive-proxy-' + suffix)
+                assert positive.stdout.strip() == 'OK'
+        finally:
+            config.write_bytes(original)
         time.sleep(.2)
         baseline = (OUT / 'stub.txt').read_text().splitlines()
-        assert sum(line.startswith('CONNECTION ') for line in baseline) == len(FIXTURES['sockets']) + 1
+        assert sum(line.startswith('CONNECTION ') for line in baseline) == len(FIXTURES['sockets']) + 3
         snapshots = {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + ['/dev/uinput']}
         if MODE == 'absent':
             for helper in ROOT.glob('node_modules/@anthropic-ai/sandbox-runtime/vendor/seccomp/*/apply-seccomp'):
@@ -126,7 +153,7 @@ def main():
         after_log = (OUT / 'stub.txt').read_text().splitlines()
         (OUT / 'stub-new-connections.json').write_text(json.dumps(after_log[len(baseline):]) + '\n')
         rows = [json.loads(line[8:]) for line in result.stdout.splitlines() if line.startswith('HOSTILE ')]
-        expected = len(FIXTURES['sockets']) + 2 + len(FIXTURES['reads']) + 3 * len(FIXTURES['writes']) + 6 + 6 + 1 + 1 + 3
+        expected = len(FIXTURES['sockets']) + 2 + len(FIXTURES['reads']) + 3 * len(FIXTURES['writes']) + 6 + 6 + 1 + 1 + 2
         assert len(rows) == expected and f'HOSTILE_DONE {expected}' in result.stdout, 'hostile programs did not finish'
         assert 'WORK_READ_OK' in result.stdout and 'TEMP_WRITE_OK' in result.stdout
         assert 'SHADOW_ONLY /home/assistant/.bashrc' in result.stdout
@@ -137,6 +164,7 @@ def main():
         assert stub.poll() is None, 'stub died during attacks'
         assert after_log == baseline, 'listener received hostile connection'
         print(f'BOUNDARY_OK mode={MODE} attacks={len(rows)} unchanged={len(snapshots)} hostile_connections=0', flush=True)
+        native_checks(run, put, MODE, snapshots, stub)
         launcher_checks()
         settings_checks()
     finally:

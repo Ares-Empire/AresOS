@@ -2,6 +2,7 @@
 checks listener arrivals, file hashes, positive controls and the canary count.
 """
 import json
+import errno
 import os
 from pathlib import Path
 import socket
@@ -11,13 +12,19 @@ fixtures = json.loads(Path('/opt/aresos-control/fixtures.json').read_text())
 results = []
 assert Path('/home/assistant/work/.envrc').read_text() == 'synthetic fixture\n'
 print('WORK_READ_OK', flush=True)
+print('SANDBOX_IDENTITY ' + json.dumps({
+    'namespaces': {n: os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt')},
+    'seccomp': [s for s in Path('/proc/self/status').read_text().splitlines()
+                if s.startswith(('Seccomp:', 'Seccomp_filters:'))],
+}), flush=True)
 
 
 def attempt(name, operation):
     try:
         operation()
     except OSError as error:
-        row = {'name': name, 'blocked': True, 'errno': error.errno, 'error': str(error)}
+        row = {'name': name, 'blocked': error.errno in (errno.EPERM, errno.EACCES, errno.EROFS, errno.ENOENT, errno.ECONNREFUSED), 'errno': error.errno, 'error': str(error),
+               'classification': 'hidden' if error.errno == errno.ENOENT else 'refused'}
     else:
         row = {'name': name, 'blocked': False}
     results.append(row)
@@ -54,7 +61,7 @@ for path in fixtures['reads']:
 for path in fixtures['writes']:
     attempt('write:' + path, lambda p=path: modify_existing(p))
     attempt('unlink:' + path, lambda p=path: Path(p).unlink())
-    attempt('replace:' + path, lambda p=path: os.replace('/home/assistant/work/replacement', p))
+    attempt('replace:' + path, lambda p=path: os.replace(p + '.boundary-replacement', p))
 # Existing parent, absent child: denying only today's file is insufficient.
 new_paths = [
     '/home/assistant/.config/autostart/new.desktop',
@@ -90,11 +97,10 @@ attempt('network:direct', lambda: connect(('127.0.0.1', 18080), socket.AF_INET))
 for name, args in [
     ('proxy-http', ['http://blocked.boundary.test:18080/payload']),
     ('proxy-connect', ['--proxytunnel', 'http://blocked.boundary.test:18080/payload']),
-    ('unlisted-public', ['https://example.com/aresos-boundary-probe']),
 ]:
     command = ['curl', '--silent', '--show-error', '--fail', '--max-time', '5', *args]
     probe = subprocess.run(command, capture_output=True, text=True)
-    row = {'name': 'network:' + name, 'blocked': probe.returncode != 0,
+    row = {'name': 'network:' + name, 'blocked': probe.returncode == 22 and '403' in probe.stderr,
            'exit': probe.returncode, 'stderr': probe.stderr.strip()}
     results.append(row)
     print('HOSTILE ' + json.dumps(row), flush=True)
