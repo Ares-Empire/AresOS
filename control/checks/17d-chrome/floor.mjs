@@ -1,0 +1,29 @@
+export default async function(c){
+ const {rpc,ev,nav,log,state,count,delay,f,end,restart,arrivals,discovery,save}=c;
+ // Positive controls qualify each generator; form navigation is last.
+ await rpc('Check.mode',{mode:'pass'});
+ for(const kind of ['fetch','xhr','beacon','ping','ws','form']){await nav();const id='control-'+kind;await ev(`attempt('${id}','${kind}')`);await count(id,1);}
+ await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'fail'});
+ for(const kind of ['fetch','xhr','beacon','ping','ws','form'])for(const cross of [false,true]){
+  await nav();await rpc('Check.clear');const id='floor-'+kind+'-'+cross;await ev(`attempt('${id}','${kind}',${cross})`);await delay(600);await count(id,0);const s=await state();log('Q1_BLOCK',{id,kind,cross,gate:s.history.filter(e=>e.method==='check.gate'),events:s.history,arrivals:arrivals(id)});
+ }
+ // Session rule covers a foreign frame, even when its initiator is not guarded.
+ await nav();await rpc('Check.floor',{tabId:c.selected});await ev(`window.foreign=document.createElement('iframe');foreign.src='${f.base.replace('127.0.0.1','localhost')}/';document.body.append(foreign);true`);await delay(700);
+ await rpc('Check.command',{method:'Runtime.evaluate',params:{expression:`true`}});
+ const frames=await rpc('Page.getFrameTree'),foreign=frames.frameTree.childFrames[0].frame.id;
+ const world=await rpc('Page.createIsolatedWorld',{frameId:foreign,worldName:'17d-frame'});
+ await rpc('Runtime.evaluate',{expression:`fetch('/receive?case=foreign-frame',{method:'POST',body:'synthetic foreign'}).catch(()=>{});true`,contextId:world.executionContextId,returnByValue:true});await count('foreign-frame',0);log('Q1_FOREIGN_FRAME',{frames,events:(await state()).history.slice(-20)});
+ // Park at Fetch if Chrome exposes it, then break control while producers keep running.
+ for(const ending of ['detach','reload','update','worker-crash','host-loss','normal','kill','policy']){
+  await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'park'});await rpc('Check.clear');const id='ending-'+ending;
+  await ev(`attempt('${id}');setTimeout(()=>attempt('${id}-after'),600);true`);await delay(150);save(id+'-before',await state());await end(ending);await delay(800);
+  log('Q1_END',{ending,before:discovery(id,'ending-control diagnostic'),after:discovery(id+'-after','requests while/after ending control'),zero:arrivals(id).length+arrivals(id+'-after').length===0});await restart('after-'+ending);
+ }
+ // Persisted dynamic guard; no automatic debugger attach at extension/browser start.
+ await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'pass'});
+ for(const killed of [false,true]){
+  await nav(f.base+'/startup');await count('startup-same',0);await count('startup-cross',0);
+  await c.close(killed);await c.boot('restored-'+killed,true);await delay(800);await count('startup-same',0);await count('startup-cross',0);
+  log('Q2_RESTART',{killed,dynamic:(await state()).dynamic,ready:(await state()).history.filter(e=>e.method==='check.ready'),documents:f.rows.filter(r=>r.kind==='document'&&r.url==='/startup'),arrivals:[...arrivals('startup-same'),...arrivals('startup-cross')]});
+ }
+}
