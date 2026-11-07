@@ -6,7 +6,8 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [REVIEW-3.md](REVIEW-3.md), [REVIEW-4.md](REVIEW-4.md),
 [REVIEW-5.md](REVIEW-5.md), [REVIEW-6.md](REVIEW-6.md),
 [REVIEW-7.md](REVIEW-7.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md),
-and [SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md).
+[SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md), and
+[SECURITY-REVIEW-3.md](SECURITY-REVIEW-3.md).
 
 ## For the owner: decisions before merge
 
@@ -27,7 +28,7 @@ and [SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md).
 - **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
 - **Approval format:** send and delete use the existing base approval format, with one reserved operation identifier and its complete description, unchanged through submission. A separate mail-specific format was rejected to keep callers and approval checks compatible.
 
-- **Filing rollback:** if special-folder roles change during a move or copy, the service immediately tries to return the messages or remove only the new copies. A returned move gets new message numbers; incomplete undo reports where matching messages were observed and never retries after restart. The alternative is to disable free filing entirely; this run follows the lead's explicit rollback rule.
+- **Filing after a folder-role race (round 10):** mail stays where the move or copy put it; nothing is moved back or deleted. You get a warning with the observed folders and message numbers in every following Mail result and `aresos log` until acknowledged; cleaning up copies requires the ordinary delete approval. If a special role moves to the target and back between the command and the check, the result can say done: the mail is in the intended target, which has no protected role at the end, and nothing is lost. Disabling free filing entirely was the alternative; changing this later affects only filing and its warnings.
 - **Stopping rule from the lead:** Claude can always write a file itself and attach it, and the approval then shows only its name, size and change time; that is the open owner question about Claude-written files. Any further finding of the kind “text Claude wrote reaches an attachment by a new route” is settled by your answer on how attachments are shown, not by another fix round. Blocking findings of any other kind still count.
 
 **assumed / needs your own check with the real account:**
@@ -36,7 +37,167 @@ and [SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md).
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
 
+## Review fixes, round 10
+
+**Done:** implements `briefs/19-review-fixes-10.md` against
+[SECURITY-REVIEW-3.md](SECURITY-REVIEW-3.md). This section supersedes round 9's
+filing rollback behavior and judgment call; its other fixes remain unchanged.
+
+- **Finding 1 — unsafe MOVE recovery:** `mail/filing.py` retains the prechecks,
+  durable pre-action intent, exact COPYUID mapping and post-command role check.
+  Role drift stops the batch with `partial`. There is no return MOVE, recovery
+  STORE or EXPUNGE. All batch members, including untouched messages, are included
+  in the location report. New destination UIDs come from COPYUID; observed
+  references include folder, UIDVALIDITY and UID. Missing COPYUID or a failed
+  scan remains partial and distinguishes observations from last-known locations.
+- **Finding 2 — last surviving COPY:** copies stay where the server put them.
+  The service never expunges a copy, even if another client removed the original.
+  The warning says the original could not be verified rather than claiming it
+  remained present. Cleanup is ordinary named `mail_delete` with owner approval.
+- **Owner notice:** the same plain-language warning appears in the result and
+  `pending.notices` on each following Mail result. The owner's `aresos log` also
+  repeats outstanding notices, including on later days. Notices survive restart;
+  `mail_notice_ack` takes the filing_id as operation_id and acknowledges only the
+  warning. No approval operation is created. Acknowledgment cannot resolve a
+  partial/unknown approved operation or move/delete anything.
+- **Should-fix — interrupted reporting:** `locations()` catches production
+  transport `Uncertain` as well as IMAP errors, retains all observations collected
+  so far with `scan_complete=false`, and persists the final partial outcome and
+  notice together. A handled connection loss leaves no started intent. The
+  existing deliberate process-crash test still leaves visible started intent;
+  restart never retries or recovers it automatically.
+- **Descriptions:** `mail/definitions.py`, generated tools and `docs/control/TOOLS.md`
+  describe preservation, notices, acknowledgment and approved cleanup.
+  `control/README.md` describes the same behavior and remaining timing window.
+
+**Tests:** new methods are in `control/mail_tests/test_review_fixes_10.py`.
+All server regressions invoke Engine/Mail through the existing scripted TLS IMAP
+frontend over pinned real Dovecot storage. No real account or provider is used.
+
+| Finding / behavior | Regression method |
+| --- | --- |
+| Trash reassigned to emptied source after MOVE; source replaced before the former recovery point; COPY original externally removed before post-check. Each preserves the surviving message in the exact destination, preserves unrelated Deleted mail, reports partial with matching notice/log text, and uses zero approval operations or recovery commands | `ReviewFixes10.test_review10_review_reproductions_preserve_survivors_with_exact_locations_and_notices` (three cases) |
+| Drafts reassigned after COPY: both original and new copy remain, exact references and plain-language text identify both; no EXPUNGE | `ReviewFixes10.test_review10_copy_race_reports_preserved_original_and_copy_without_expunge` |
+| Frontend sends BYE during location scan after the first exact observation; production abort becomes Uncertain, partial observations and final outcome persist | `ReviewFixes10.test_review10_connection_loss_during_location_scan_persists_partial_observations` |
+| Batch stops after its first race; both moved and untouched members have exact observed locations; only one MOVE issued | `ReviewFixes10.test_review10_batch_stops_after_race_and_reports_untouched_messages` |
+| Transient Trash designation before command and removed before post-check; intended target remains, state done and no recovery or notice | `ReviewFixes10.test_review10_transient_role_round_trip_is_done_without_recovery` (MOVE and COPY) |
+| Plain-Python context-manager connection loss preserves observations and last-known COPYUID reference | `FilingReporting10.test_review10_scan_retains_observations_when_transport_raises_uncertain` |
+| Durable notices have no approval operation, survive restart and later-day log paging, are scoped to Mail and disappear only after acknowledgment | `FilingReporting10.test_review10_notices_are_separate_from_approval_operations_and_survive_next_day` |
+
+**Changed earlier expectations:** only
+`ReviewFixes9.test_review9_role_races_undo_move_and_copy_for_trash_drafts_archive`
+changes existing assertions: all twelve Trash/Drafts/Archive × MOVE/COPY × before/after
+command cases now expect partial and preserved target messages, with originals
+remaining for COPY, rather than refused and automatic recovery. The plain-language
+warning and intent state expectations change accordingly. Exact bytes, unrelated
+Deleted preservation, source/target intent and zero approval assertions remain,
+and every case now also checks the persistent warning. The historical method
+name is retained for traceability. No other earlier assertion changes. In particular,
+`test_review9_failed_undo_and_missing_copyuid_are_partial_with_exact_observed_locations`,
+`test_review9_stable_roles_complete_and_uidplus_is_required_before_mutation`, and
+`test_review9_filing_crash_leaves_visible_intent_and_restart_never_repeats_or_undoes`
+are unchanged; the first now verifies partial preservation without reaching its
+old failure hooks. Stable ordinary moves/copies still end done.
+
+**Base files changed and why:** `engine.py` extends the existing pending/log and
+notice_ack paths with durable non-approval filing notices in `notice:` records;
+this avoids inventing an approval for a free action. `definitions.py` adds optional
+notice output to owner pending/log schemas; Mail notice_ack accepts its notice
+result as well as the original operation result. Generated control/Mail tool schemas
+and tool documentation stay in sync. The scripted frontend adds an opt-in BYE hook
+for actual connection-loss tests. No `control/tests/`, workflow, OS or mod file changed.
+
+**Verified — last code/test head `58391d9ed5c85f6e502294afe0fe94eb63517c40`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Independent base 42397927553 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42397927553/attempts/1) | `Ran 58 tests in 50.395s`; `OK`; `Control base suite PASS` |
+| [Independent base 42397927553 attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42397927553/attempts/2) | `Ran 58 tests in 49.369s`; `OK`; `Control base suite PASS` |
+| [Mail 42397927554 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42397927554/attempts/1) | `Ran 58 tests in 39.201s`; `Control base suite PASS`; `Ran 139 tests in 470.541s`; `OK`; `Control Mail suite PASS` |
+| [Mail 42397927554 attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42397927554/attempts/2) | `Ran 58 tests in 51.752s`; `Control base suite PASS`; `Ran 139 tests in 503.196s`; `OK`; `Control Mail suite PASS` |
+
+Both base passes run the whole brief-18 suite from the merged starting head,
+now 58 tests. Mail also runs this whole suite before its 139 Mail methods
+(132 earlier plus seven round-10 methods). The corrected-head [boundary run 42397927555](https://github.com/Ares-Empire/AresOS/actions/runs/42397927555)
+also passes (hostile programs with and without seccomp, and coding policy/user isolation).
+Both Mail passes print `Generated artifacts match definitions` and every new
+round-10 method plus all twelve revised round-9 cases print `... ok`. Both retain
+`Mail delete kill-9 cases: 26; unnamed Deleted messages survive`,
+`Mail send kill-9 cases: 45; no repeated SMTP DATA`, and
+`Mail reservation/repair kill-9 cases: 16; no SMTP during repair/restart`.
+No cancelled or failed run counts as green evidence. Workflow second passes are
+reruns of their original run IDs, with no additional push.
+
+**Initial container failure, fixed without changing the assertion:** on
+`8381156b48d19906123d01ff3ce83dce00f9ae8e`,
+[Mail 42397016202 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42397016202/attempts/1)
+printed `Ran 58 tests in 51.646s`, `Control base suite PASS`, then
+`Ran 139 tests in 500.887s`, `FAILED (failures=1)`. The COPY-original-removed
+fixture had opened the external client's source read-only, so it never removed
+the original. The empty-source preservation assertion caught it. Commit
+`58391d9e` changes only that new fixture to select read-write and adds an immediate
+server UID-absence assertion; the existing assertions and all production code
+remain unchanged. All other 138 methods passed, including the other two
+reproductions, the actual BYE scan and all twelve revised round-9 cases.
+Earlier base [42397016189 attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42397016189/attempts/1)
+(`Ran 58 tests in 46.378s`) and
+[attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42397016189/attempts/2)
+(`Ran 58 tests in 50.826s`) both printed `OK`, `Control base suite PASS`;
+[boundary 42397016219](https://github.com/Ares-Empire/AresOS/actions/runs/42397016219)
+also passed. These earlier passes are not substituted for the corrected-head
+checks above. The fixture failure costs one extra push and three workflow IDs
+beyond the planned two-push/six-ID batch.
+
+**Local checks:** `python3 control/generate.py --check` prints
+`Generated artifacts match definitions`. AST parsing every `control/**/*.py`
+prints `Python syntax OK: 78 files`. All direct `unittest.TestCase` classes in
+`control/mail_tests/test*.py` run locally with
+`PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`:
+`Ran 24 tests in 0.241s`, `OK` (timing from the first complete local pass).
+`git diff --check` prints nothing. These commands run again before the report push.
+An initial local invocation reported two errors: missing host cryptography and a
+new test looking for Mail notices in the control-only result envelope. Both were
+resolved before the first push: test dependencies live only in ignored
+`.work/round10/vendor`, and the test checks the Mail envelope and owner log output.
+No system software or runtime dependency changed. Linux workflows use the unchanged
+pinned dependency lock; local cryptography 46.0.3/jsonschema 4.25.1 are only portable
+pre-push checks, not container qualification.
+
+The local baseline check
+`PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/baseline-check.py`
+loads only `filing.py` from `5c93fbe0` into an isolated module and runs the new
+interrupted-scan regression: it prints `FAILED (errors=1)` with the uncaught
+`Uncertain`, then `Baseline 5c93fbe0 reproduction confirmed: Uncertain escapes locations()`.
+The same regression passes on this code. This is deliberate red/green evidence,
+not a passing baseline claim. A first scratch invocation omitted PYTHONPATH and
+failed at import; the command above is the corrected, actually executed check.
+
+**JUDGMENT-CALL:** if a role moves to the target and back between MOVE/COPY and the
+post-check, equal snapshots cannot detect it. The result can be done with mail in
+the intended target; the target has no protected role at the end and nothing is
+lost. Preserve-and-report replaces automatic undo: an undo has its own uncloseable
+identity/role race and can lose the last copy. Disabling free filing was rejected
+by the lead's explicit rule. Changing the choice later is confined to filing and
+its reference/notice contract. This replaces round 9's undo judgment call above.
+
+**Not verified:** real-account setup and owner/recipient-program presentation remain
+the checks listed above. Automated protocol tests establish message preservation,
+not how the warnings feel in daily use. No screenshots apply to this service change.
+
+**PLAN-GAP:** none new. Source disappearance by another client is reported honestly;
+this service cannot claim that an external client kept the original. A hard process
+crash still leaves the deliberate unfinished audit record, as before. The lead's
+merge of main was already in the starting head; the earlier merge-conflict note is
+historical, not a current blocker.
+
+**Open questions:** no new question; the owner decisions above remain for merge.
+No file in `.work/` exceeds 500 MB. This round batches the two pre-existing local
+lead commits with the code/test push. Later commits in this round change only files
+under `reviews/`; final-head runs are recorded in draft PR #9 after the report push.
+
 ## Review fixes, round 9
+
+Historical verification below; round 10 replaces its automatic-undo behavior.
 
 **read — Done:** implements `briefs/19-review-fixes-9.md` against
 [SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md). The original security review's
@@ -176,13 +337,9 @@ O_PATH and the container's jsonschema dependency are unavailable locally. It is 
 green evidence; the complete Linux container runs above are authoritative. No host
 software was installed and no Linux-only assertion was changed for this Mac.
 
-**JUDGMENT-CALL — read:** follows the lead's specified rollback policy. Free filing
-can briefly enter a newly designated role before it is detected and returned;
-returned messages receive new UIDs. Without exact undo proof the result is partial
-and the owner must inspect the reported locations, never retry automatically.
-Disabling all free filing would avoid this protocol window but was rejected by the
-brief's explicit requested behavior. Removing this policy later affects only the
-filing tools and their outcome/reference contract. Origin restrictions mean old
+**JUDGMENT-CALL — superseded by round 10:** automatic undo was removed because it
+has its own role/identity race and can delete the last copy. See the round-10
+judgment call and the owner decision above. Origin restrictions mean old
 hashes without origin metadata cannot download; make a new explicit export or
 caller import rather than guessing old provenance.
 
