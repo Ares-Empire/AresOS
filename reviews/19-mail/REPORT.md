@@ -2,6 +2,187 @@
 
 Builds on draft PR #6. No merge, force push, real account or model run.
 
+## Review fixes, round 5
+
+**read — scope:** implements `briefs/19-review-fixes-5.md` against REVIEW-5's
+`4316545`, superseding attachment disclosure/marker and text-reparsing policies
+in the historical sections below. No base implementation/tests, protected paths
+or `REVIEW*.md` files change. Only synthetic addresses/accounts were used.
+
+- **Finding 1; points 1 and 5 — draft text cannot hide in an attachment:**
+  `adapter.py` refuses an original marked or SPECIAL-USE Drafts source before
+  reconstruction, including explicit source/part attachments and attached forwards.
+  `codec.py` refuses original marked ancestors/containers/decoded descendants
+  before dropping headers, including folded markers with CR, LF or CRLF endings.
+  The refusal names `mode=draft` and forwarding inline.
+  Those body/quote paths preserve literal header-like text in full; oversized
+  approvals refuse without reserving. A moved marked draft also accepts
+  `mode=draft`, so the advertised alternative remains usable. Tests:
+  `ReviewFixes5.test_review5_header_like_saved_draft_source_and_parts_refused_even_after_move_copy`,
+  `ReviewFixes5.test_review5_special_use_drafts_and_nested_draft_ancestors_refused_before_rebuild`,
+  `ReviewFixes5.test_review5_header_like_draft_sent_itself_discloses_whole_body_and_long_body_refuses`.
+  They cover the free compose/save round trip, 23,100 Subject characters originally
+  written as body text, saved/moved/copied markers, unmarked Drafts, nested encoded
+  containers and extracted text/binary descendants. No approval truncation.
+- **Point 2 — draft-only marker:** only `draft_save` writes the marker; the MIME
+  builder emits no private headers on outgoing mail or attachments. Sending a
+  draft creates a new unmarked message, and the Sent copy is unmarked too.
+  Received and newly sent mail can still be forwarded as `.eml` attachments.
+  `ReviewFixes5.test_review5_all_modes_smtp_and_sent_have_no_private_headers_and_sent_can_forward`
+  independently decodes sink/Sent bytes for new plain, new formatted, reply,
+  reply-all, inline forward, attached forward and draft, then forwards the owner's
+  new Sent copy as an attachment. Move/copy marker persistence is covered above.
+- **Finding 2; point 3 — independent guard:** `guard.py` imports nothing from the
+  builder. Every actual header block rejects a marker, whatever the container or
+  child type; every decoded non-body leaf rejects marker lines even if a caller
+  supplies supposedly disclosed text. Only a saved draft's root header (during
+  draft-save validation) and fully disclosed literal main-body text are allowed.
+  `DraftAndTextGuard.test_review5_markers_on_containers_and_decoded_leaves_always_refuse`
+  and `ReviewFixes5.test_review5_builder_bypass_marked_containers_fail_compose_and_send_no_data_or_replay`
+  exercise marked multipart/opaque children, marked message/rfc822/opaque children
+  and a base64 leaf, bypassing the builder at compose, prepare, both send checks
+  and replay. Exact-before-DATA rejection leaves `failed`, no DATA and no receipt.
+  `DraftAndTextGuard.test_review5_literal_main_body_marker_needs_full_disclosure_and_no_header_marker`
+  retains the distinction between by-reference body integrity and full disclosure.
+- **Finding 3; point 4 — literal text:** text leaves are decoded and line-scanned,
+  never parsed as nested mail in either implementation. Non-text bytes are walked
+  as an entity only after a complete well-formed header block ending at a truly
+  empty line. Declared containers, digest defaults and transfer encodings retain
+  strict validation/bounds. Tests:
+  `DraftAndTextGuard.test_review5_text_payloads_never_become_nested_mail`,
+  `DraftAndTextGuard.test_review5_opaque_bytes_need_complete_well_formed_headers`,
+  `ReviewFixes5.test_review5_prose_colon_first_line_new_plain_formatted_reply_and_text_attachment`.
+  FYI/Status prose goes through compose, prepare and the SMTP sink in both formats
+  and new/reply modes; header-like text attachments retain their bytes. A literal
+  Bcc text-file line still refuses with round 4's clear explanation. Existing
+  binary, implicit digest, malformed encoding and pre-DATA Bcc tests remain.
+
+**read — earlier marker expectation changed (point 2):**
+`ReviewFixes2.test_review2_1_saved_draft_and_bcc_sent_refused_through_real_proxy_even_renamed`
+and `ReviewFixes3.test_review3_1_export_punctuation_malformed_and_mbox_refused_by_real_proxy`
+now assert the marker on the draft export only, and its absence on the Sent export.
+Their exact-export, Bcc-presence and proxy refusal checks remain.
+
+**PLAN-GAP / read — conflicting test instructions:** point 2 says “No other
+earlier test changes,” but points 1, 3 and 4 require the opposite of several earlier
+assertions. Keeping those assertions would require sending a now-forbidden draft
+attachment, accepting a container marker after disclosure, or reparsing text.
+I used this brief's “If unsure: Refuse” rule to resolve the conflict and asked for
+clarification while continuing independent work; no answer arrived before this
+reversible resolution. All 85 earlier Mail test methods and their original cases
+remain; ten methods were added. No test was skipped or deleted. These additional expectations were changed, explicitly:
+
+- `ReviewFixes.test_review_1_moved_and_copied_draft_reply_and_both_forwards_keep_provenance`:
+  attached forward refuses immediately; inline/reply full-text and size checks stay.
+- `HeaderAndEncoding.test_review3_2_recursive_encoding_and_provenance_before_text_classification`:
+  marked containers refuse; unmarked versions still prove recursive Bcc removal;
+  declared text stays byte-exact literal text, as point 4 requires.
+- `ReviewFixes3.test_review3_2_received_two_level_encoded_messages_in_all_composition_modes`:
+  all 24 marked combinations refuse, while 24 unmarked received-source combinations
+  still submit and verify recursive Bcc removal, body presence and approved hashes.
+  The draft-mode source itself is a saved draft without inherited attachments;
+  its explicit attachments come from the unmarked received mail.
+- `ReviewFixes3.test_review3_2_large_encoded_marked_draft_is_not_approved_by_hash`:
+  compose refuses instead of waiting for the oversized-approval refusal.
+- `ReviewFixes3.test_review3_guard_extracted_marked_body_keeps_ancestor_provenance`:
+  all original extracted text/HTML/PDF paths refuse instead of being disclosed/sent;
+  the encoded phantom-path refusal remains.
+- `RebuildAndGuard.test_review4_allowlist_all_nested_headers_and_original_provenance`:
+  marked/Drafts sources refuse before rebuild; unmarked versions retain every
+  allowlist, private-address-removal and payload-presence check.
+- `RebuildAndGuard.test_review4_guard_checks_every_decoded_leaf_and_literal_private_lines`:
+  even a purportedly disclosed folded attachment marker refuses.
+- `RebuildAndGuard.test_review4_guard_parses_literals_and_approved_inline_forward_text`:
+  the valid outgoing fixture has no root marker. A defective speculative non-text
+  header block stays opaque and byte-exact under point 4; real declared encodings
+  remain checked by the unchanged broken-structure tests.
+
+**JUDGMENT-CALL / read — forwarded mail is a file:** a received or sent message
+forwarded as an attachment reaches recipients as `forward.eml`, of type
+`application/octet-stream`, rather than a `message/rfc822` attached-mail object
+that their program can render inline. This freezes the rebuilt bytes and approved
+hash without reserializing binary leaves. Native attached-mail presentation was
+rejected because it reintroduces the earlier byte-preservation problem; changing
+this needs matching exact-byte tests and recipient-program qualification. These
+are recipient programs, not assumptions about the owner's account. Documentation
+read on 2026-11-07; none of these clients was run, and none of these sources
+promises presentation for this exact MIME type:
+
+| Recipient program | Evidence and practical expectation |
+| --- | --- |
+| Apple Mail on Mac | **read:** [Apple's attachment guide](https://support.apple.com/guide/mail/mlhlp1123/mac) documents Open With, preview and saving. **assumed:** this `.eml` is a file the recipient opens/saves, possibly opening a separate message through a suitable app; inline mail rendering is unqualified. |
+| Outlook | **read:** [Microsoft's `.eml` guide](https://support.microsoft.com/en-us/outlook/mail/open-eml-msg-and-oft-files-in-new-outlook-and-outlook-on-the-web) documents opening a saved `.eml` in new Outlook by double-click/Open With or dropping it in the reading pane, including Outlook on the web. **assumed:** recipients can save this attachment then use that route; exact attachment-chip/preview behavior is unqualified. |
+| Thunderbird | **read:** [Mozilla's attachment guide](https://support.mozilla.org/en-US/kb/how-use-attachments) documents Save and Open with the default application for the file type. **assumed:** an `.eml` association can open the downloaded message; exact octet-stream preview and inline rendering are unqualified. |
+| Gmail on the web | **read:** [its `.eml` guide](https://support.google.com/mail/answer/9261412?hl=en) says downloaded EML files require a desktop mail client. **assumed:** recipients can download this file and use that route; this guide does not establish web preview for our exact MIME. |
+| iOS Mail | **read:** [Apple's download guide](https://support.apple.com/guide/iphone/iph7fe7a50a7/ios) documents touch-and-hold, Save to Files and Share to another app. **assumed:** this is the fallback for our `.eml`; installed-app handling and inline preview are unqualified. |
+
+**JUDGMENT-CALL / read — draft boundary:** any marked mail, including an older
+Sent copy produced before round 5, is conservatively a draft for attachment refusal.
+No free tool strips the marker. Forwarding inline shows its complete text or
+refuses the oversized approval. Likewise any extracted part of a marked/Drafts
+source refuses, including an ordinary binary attachment; no exception silently
+releases draft-derived material. Relaxing this needs an explicit provenance policy.
+
+**run — local verification:**
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests python3 -m unittest test_review_fixes_5.DraftAndTextGuard test_review_fixes_4.RebuildAndGuard test_review_fixes_3.HeaderAndEncoding test_review_fixes_2.LocalMailDetection -v`
+printed `Ran 14 tests` / `OK`.
+`python3 control/generate.py --check` printed `Generated artifacts match definitions`;
+AST parsing printed `Python syntax OK`; `git diff --check` was silent. The local
+`.work/round5/adapter-check.py` and `earlier-adapter-check.py` each printed
+`Ran 6 tests` / `OK` with in-memory transport substitutes (no JSON-schema oracle);
+these are not server evidence. `.work/round5/baseline-check.py` loads `4316545`:
+all four new guard test methods fail there (10 failed subcases / 3 errors), then
+it prints `All four new unit regressions fail on 4316545 as expected`. The current
+four pass. No Docker daemon was available locally; no host installation ran.
+
+**run — last code/test commit `451d353c605747e6c35060a9f70c045aff1b991a`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail push 42374466907](https://github.com/Ares-Empire/AresOS/actions/runs/42374466907) | `Ran 57 tests in 44.247s`; `OK`; `Control base suite PASS`; `Ran 95 tests in 223.546s`; `OK`; `Control Mail suite PASS` |
+| [Mail PR 42374471965](https://github.com/Ares-Empire/AresOS/actions/runs/42374471965) | `Ran 57 tests in 43.609s`; `OK`; `Control base suite PASS`; `Ran 95 tests in 235.887s`; `OK`; `Control Mail suite PASS` |
+| [Independent base 42374471710, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42374471710/attempts/1) | `Ran 57 tests in 52.977s`; `OK`; `Control base suite PASS` |
+| [Independent base 42374471710, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42374471710/attempts/2) | `Ran 57 tests in 47.726s`; `OK`; `Control base suite PASS` |
+
+Both Mail passes run `bash control/ci/mail/run.sh`: generated verification, all
+57 unchanged brief-18 tests, isolated pinned servers, all 95 Mail tests (ten new
+round-5 methods, including folded-marker subcases) and the original crash/kill
+coverage. The independent base workflow executes `bash control/ci/test.sh` in
+pinned Fedora. Any later commit changes only `reviews/19-mail/REPORT.md`; the PR
+body records both workflows and both passes on the final report-inclusive head.
+
+**run — superseded executions:** initial `5bba9bfe` Mail
+[42373773375](https://github.com/Ares-Empire/AresOS/actions/runs/42373773375) and
+[42373777624](https://github.com/Ares-Empire/AresOS/actions/runs/42373777624)
+each printed `Ran 95 tests` / `FAILED (failures=39, errors=11)`. All ten new tests
+passed; failures were confined to the ten earlier methods enumerated above with
+superseded marker/disclosure/text expectations. Initial base
+[42373777605](https://github.com/Ares-Empire/AresOS/actions/runs/42373777605) passed.
+After aligning those expectations, interim `a46f0895` Mail
+[42374008406](https://github.com/Ares-Empire/AresOS/actions/runs/42374008406) and
+[42374011747](https://github.com/Ares-Empire/AresOS/actions/runs/42374011747)
+printed `Ran 95 tests` / `Control Mail suite PASS`; independent base
+[42374011744](https://github.com/Ares-Empire/AresOS/actions/runs/42374011744)
+passed both attempts. Original folded marker lines needed the same CR/LF/CRLF
+handling as the guard, so `451d353c` tightened original/ancestor checks and added
+subcases, requiring a fresh verification head. These earlier passes are not final
+code evidence. Eleven workflow executions were used through code verification;
+final report-head verification adds four, exceeding the approximate ten-run
+budget to retain coverage under the changed policy and verify the correction.
+
+**run — closing scope/size checks:** all 85 earlier Mail test methods remain and
+ten were added; base tests, protected paths and `REVIEW*.md` are untouched.
+Generated artifacts match. Normal pushes used verification, with no force push or
+`--no-verify`; every run commit has the required model trailer. No `.work` file
+is over 500 MiB; no large downloads, images or extracted layers were created.
+
+
+**Not verified / assumed:** real recipient-client `.eml` presentation, real-account
+qualification and tool-user/approval usability still need owner testing. Ordinary
+local-file authorship remains the deferred design question. **Open questions:**
+the lead should review the explicit test-instruction conflict and recipient-file
+presentation judgment call before merge. No merge performed.
+
 ## Review fixes, round 4
 
 **read — scope:** closes the three findings in `REVIEW-4.md` on `1aaa8ff`.
@@ -670,18 +851,18 @@ three (push Mail, PR Mail, PR base), within the brief's approximate twenty-run b
   local stage. A Sent copy alone does not identify all accepted/refused recipients.
   Unknown without that proof remains for owner inspection; no new SMTP path exists
   in repair. Relaxing this requires qualified per-recipient server evidence.
-- **read — exact attached mail bytes (updated round 4):** every outgoing mail
-  attachment is rebuilt anew from the brief's message/MIME header allowlists,
+- **read — exact attached mail bytes (updated round 5):** received and sent
+  mail attachments are rebuilt from the brief's message/MIME header allowlists,
   recursively, including implicit digest messages. Original Bcc, all Resent and
-  unlisted headers and the original authored marker cannot survive. Authored
-  provenance is decided first, and reserved allowed Content-Description metadata
-  preserves its full-disclosure requirement. Original decoded binary leaves stay
-  byte-exact; headers, folding and transfer encoding may change even without Bcc.
-  Frozen octet-stream attachment MIME binds the approved rebuilt hash to the exact
-  sent attachment bytes. Read/source-save exports remain original. Passing original
-  blocks through or deleting only selected headers was rejected after repeated
-  bypasses. Changing this later needs matching builder/independent-check regressions
-  and owner qualification of recipient-client `.eml` presentation.
+  unlisted headers cannot survive. Marked/Drafts sources, ancestors and nested
+  messages refuse before reconstruction; no attachment disclosure exception remains.
+  Original decoded binary leaves stay byte-exact; headers, folding and transfer
+  encoding may change even without Bcc. The frozen octet-stream `.eml` binds the
+  approved hash to sent bytes. Read/source-save exports remain original. Passing
+  original blocks through or deleting only selected headers was rejected after
+  repeated bypasses. Native recipient attached-mail presentation is unqualified;
+  see round 5's sourced recipient-program/file presentation judgment call. Changing
+  this needs exact-byte tests and owner qualification of the new MIME behavior.
 - **read — bounds:** 25 MiB per transferred file, 64 MiB per encoded source/outgoing mail,
   6,000-character body pages, 20 summary items/page maximum and a 10,000-message full
   history scan bound. Search retains summaries rather than all fetched bodies;
