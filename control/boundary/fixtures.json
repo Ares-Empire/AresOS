@@ -1,0 +1,49 @@
+{
+  "sockets": {
+    "act": "/run/aresos-tools/act.sock",
+    "admin": "/run/aresos-tools/admin.sock",
+    "chrome": "/run/aresos-tools/chrome.sock",
+    "dbus": "/run/user/10001/bus",
+    "wayland": "/run/user/10001/wayland-0",
+    "x11": "/tmp/.X11-unix/X0",
+    "abstract": "@aresos-boundary-abstract"
+  },
+  "reads": [
+    "/var/lib/aresos-tools/state.sqlite",
+    "/var/lib/aresos-tools/passwords.json",
+    "/home/assistant/.config/google-chrome/Default/Cookies",
+    "/home/assistant/.local/share/keyrings/login.keyring",
+    "/home/assistant/.claude/.credentials.json",
+    "/home/assistant/.claude.json"
+  ],
+  "writes": [
+    "/home/assistant/.bashrc", "/home/assistant/.bash_profile",
+    "/home/assistant/.bash_login", "/home/assistant/.profile",
+    "/home/assistant/.zshrc", "/home/assistant/.zprofile", "/home/assistant/.zshenv",
+    "/home/assistant/.gitconfig",
+    "/home/assistant/.config/fish/config.fish",
+    "/home/assistant/.config/autostart/hostile.desktop",
+    "/home/assistant/.config/systemd/user/hostile.service",
+    "/home/assistant/.local/share/applications/hostile.desktop",
+    "/home/assistant/.local/bin/hostile",
+    "/home/assistant/.config/google-chrome/NativeMessagingHosts/hostile.json",
+    "/home/assistant/work/.git/hooks/pre-commit",
+    "/home/assistant/work/.git/config",
+    "/home/assistant/work/.envrc",
+    "/home/assistant/work/.claude/settings.json",
+    "/home/assistant/work/.claude/settings.local.json",
+    "/home/assistant/work/.mcp.json",
+    "/home/assistant/work/.vscode/tasks.json",
+    "/home/assistant/work/.idea/workspace.xml",
+    "/home/assistant/work/nested/.git/hooks/pre-commit",
+    "/home/assistant/work/nested/.git/config",
+    "/home/assistant/work/nested/.envrc",
+    "/home/assistant/work/nested/.claude/settings.json",
+    "/home/assistant/work/nested/.mcp.json",
+    "/home/assistant/work/nested/.vscode/tasks.json",
+    "/home/assistant/.claude/settings.json",
+    "/etc/claude-code/managed-settings.json",
+    "/etc/claude-code/managed-mcp.json",
+    "/opt/aresos-control/launch.py"
+  ]
+}

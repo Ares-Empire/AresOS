@@ -1,0 +1,81 @@
+{
+  "allowManagedPermissionRulesOnly": true,
+  "allowManagedHooksOnly": true,
+  "disableSideloadFlags": true,
+  "strictKnownMarketplaces": [],
+  "enabledPlugins": {},
+  "disableCommandPluginSources": true,
+  "allowAllClaudeAiMcps": false,
+  "allowClaudeInChromeWithManagedMcp": false,
+  "permissions": {
+    "defaultMode": "default",
+    "disableBypassPermissionsMode": "disable",
+    "blockWritesOutsideWorkingDirectories": true,
+    "blockReadsOutsideWorkingDirectories": true,
+    "additionalDirectories": [],
+    "allow": [],
+    "ask": ["WebFetch", "WebSearch"],
+    "deny": [
+      "Read(//run/aresos-tools/**)",
+      "Read(//var/lib/aresos-tools/**)",
+      "Read(~/.config/**)",
+      "Read(~/.local/share/keyrings/**)",
+      "Read(~/.claude/**)",
+      "Read(~/.claude.json)",
+      "Edit(~/.claude/**)",
+      "Edit(~/.claude.json)",
+      "Edit(~/.config/**)",
+      "Edit(~/.local/share/applications/**)",
+      "Edit(~/.local/bin/**)",
+      "Edit(~/.bashrc)",
+      "Edit(~/.bash_profile)",
+      "Edit(~/.bash_login)",
+      "Edit(~/.profile)",
+      "Edit(~/.zshrc)",
+      "Edit(~/.zprofile)",
+      "Edit(~/.zshenv)",
+      "Edit(~/.gitconfig)",
+      "Edit(**/.git/hooks/**)",
+      "Edit(**/.git/config)",
+      "Edit(**/.envrc)",
+      "Edit(**/.claude/**)",
+      "Edit(**/.mcp.json)",
+      "Edit(**/.vscode/**)",
+      "Edit(**/.idea/**)",
+      "Edit(//etc/claude-code/**)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [],
+    "enableWeakerNestedSandbox": false,
+    "network": {
+      "allowManagedDomainsOnly": true,
+      "allowedDomains": [],
+      "deniedDomains": [],
+      "allowAllUnixSockets": false,
+      "allowLocalBinding": false
+    },
+    "filesystem": {
+      "allowManagedReadPathsOnly": true,
+      "denyRead": [
+        "/home", "/root", "/run/aresos-tools", "/var/lib/aresos-tools",
+        "/run/user", "/tmp/.X11-unix"
+      ],
+      "allowRead": ["/home/assistant/work"],
+      "allowWrite": ["/home/assistant/work"],
+      "denyWrite": [
+        "~/.bashrc", "~/.bash_profile", "~/.bash_login", "~/.profile",
+        "~/.zshrc", "~/.zprofile", "~/.zshenv", "~/.gitconfig",
+        "~/.config", "~/.local", "~/.claude", "~/.claude.json",
+        "/etc/claude-code", "/opt/aresos-control",
+        "/home/assistant/work/**/.git/hooks", "/home/assistant/work/**/.git/config",
+        "/home/assistant/work/**/.envrc", "/home/assistant/work/**/.claude",
+        "/home/assistant/work/**/.mcp.json", "/home/assistant/work/**/.vscode",
+        "/home/assistant/work/**/.idea"
+      ]
+    }
+  }
+}

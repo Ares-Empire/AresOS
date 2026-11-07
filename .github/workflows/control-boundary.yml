@@ -1,0 +1,52 @@
+name: Control boundary
+on:
+  push:
+    branches: ['pkg/18b-control-boundary', main]
+    paths:
+      - 'control/boundary/**'
+      - 'control/settings/**'
+      - 'reviews/18b-control-boundary/**'
+      - '.github/workflows/control-boundary.yml'
+  pull_request:
+    paths:
+      - 'control/boundary/**'
+      - 'control/settings/**'
+      - 'reviews/18b-control-boundary/**'
+      - '.github/workflows/control-boundary.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  hostile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build pinned disposable Linux environment
+        run: docker build -f control/boundary/Dockerfile -t aresos-boundary .
+      - name: Hostile programs with and without seccomp
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/present evidence/absent
+          for mode in present absent; do
+            docker run --rm --network none \
+              --security-opt seccomp=unconfined --security-opt apparmor=unconfined \
+              -e FILTER_MODE="$mode" \
+              -v "$PWD/evidence/$mode:/evidence" aresos-boundary \
+              2>&1 | tee "evidence/$mode-console.txt"
+          done
+      - name: Separate coding policy and user
+        run: bash control/boundary/isolation.sh
+      - name: Run identity
+        if: always()
+        run: |
+          printf 'RUN=%s ATTEMPT=%s HEAD=%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" | tee evidence/identity.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: control-boundary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/
+          retention-days: 30
