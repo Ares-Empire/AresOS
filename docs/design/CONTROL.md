@@ -574,7 +574,8 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 | `chrome_close_tab` | change | close a Claude tab; anything held there is dropped |
 | `chrome_read`, `chrome_read_form`, `chrome_find` | read | the page view; one form with its options; text search on the page |
 | `chrome_navigate` | change | in a Claude tab: an address, back, forward, reload |
-| `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll` | change | act on elements by reference, each with what Claude expects it to hold; fill sets text, dates and dropdowns as a person would; `chrome_fill_form` fills several fields in one call |
+| `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll` | change | act on elements by reference, each with what Claude expects it to hold; fill sets text, dates and dropdowns as a person would; `chrome_fill_form` fills several fields in one call; a control the page labels as destructive is refused here (below) |
+| `chrome_click_destructive` | **delete** | click a control the page labels as destructive, or press Delete or Backspace outside a text field, only after approval; the approval says the click may delete data kept only in this browser (below) |
 | `chrome_dialog` | change | accept, dismiss or answer a page's own dialog (alert, confirm, prompt) |
 | `chrome_upload` | change | put a local file into a file field; the bytes come through the caller's side (rule 4.4), the extension gets no general file access (*checked*, 17) |
 | `chrome_downloads` | read, change | list downloads; save one into an allowed folder (rule 4.4) |
@@ -586,6 +587,7 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 | `chrome_open_site` | **send** | open an address that isn't free to open (below), with the full address in the input |
 | `chrome_drop` | change | drop held operations; nothing leaves |
 | `chrome_end_guard` | **send** (asks) | end a site's guard where it didn't end by itself; the input shows what of Claude's may be left there and what the page stored; afterwards the owner's own sends there go unchecked |
+| `chrome_end_call` | **send** (asks) | end the owner's running call in Chrome so that Claude can act; the approval names the call's tab and the site Claude wants to act on (calls, below) |
 | `chrome_operation_status` | read | an operation's stages (rule 4.3) |
 | `chrome_sites` | owner-only | the owner's lists: his usual sites, the sites Claude has used, and his "don't ask again" entries, to see and revoke |
 | `chrome_checkpoint` | owner-only | switch the checkpoint to pass-through and back (a way out of a fault: below) |
@@ -693,6 +695,22 @@ site accepted the request); a send dropped, expired or cancelled before forwardi
 being forwarded, or whose answer was lost, is `unknown` (*checked*, 17e Q6: a forwarded operation can stay `unknown`
 even when the site completed it). Pages give up on their own timeouts (*checked*, 17c); a page that gave up shows its
 own error, and Claude acts again for a new hold.
+
+**Clicks that may delete data kept only in the browser.** A page can delete its own local data (an offline draft, a
+list kept only in the browser) without any network send, so the checkpoint can't hold that (re-check 7). So a click on
+a control the page labels as destructive asks first, on every site, before the click happens. Destructive means its
+accessible name or role says delete, remove, discard, clear, empty or trash, in English and German at least
+(löschen, entfernen, verwerfen, leeren, Papierkorb), matched as whole words; a site adapter may add more words and
+controls. Pressing Delete or Backspace outside a text field counts the same. `chrome_click` and `chrome_press` refuse
+such a control ("this control may delete; use `chrome_click_destructive`"), and `chrome_click_destructive` (effect
+delete, asks) clicks it only after approval. The approval names the control as the page labels it, the page and the
+site, and says plainly that the click may delete data kept only in this browser. If the click then makes the page
+send something, that send waits at the checkpoint and asks as usual, showing what is really sent. With a qualified
+site adapter, its destructive actions ask in advance and are described exactly ("delete the draft 'Offer' kept in
+this browser"); the sends that follow go without a second question only when each one validates against the
+adapter's contract for exactly the approved operation (as for a recognised action, below), and anything else asks.
+What remains, named plainly: **an unlabelled control (an icon without a name, or a name that doesn't say it deletes)
+that deletes data stored only in the browser is not caught.** Naming it here doesn't make it allowed; it is a gap.
 
 **What Claude may open freely, and data leaving.** A *site* is a registrable domain by the Public Suffix List
 (including its private part, so every `*.github.io` page is its own site), and areas of big platforms where anyone
@@ -861,8 +879,8 @@ each likely needs, to be confirmed when its adapter is built:
   it, as end-to-end encrypted chats do) defeats the entered-text check, though its other sends after Claude acted are
   still held. Both are why new sites ask first and why site adapters exist.
 - **What a page deletes inside the browser** (an offline draft, a list kept only in the browser) needs no network
-  send, so the checkpoint can't hold it. An adapter can make such a click ask first, before Claude's action; without
-  one, Claude's click there acts at once.
+  send, so the checkpoint can't hold it. A click on a control the page labels as destructive asks first, before the
+  click (above); an unlabelled control that deletes such data is not caught.
 - **What the page gave up on without saying so** (a JavaScript timeout with no abort): the send still waits and would
   go if approved later (*checked*, 17e Q7). The description shows how long it has waited and whether the page shows
   an error.
@@ -895,7 +913,9 @@ In plain words (re-check 7, section C, and 17e):
   approved was sent, and at most once" is guaranteed; a crash while sending can leave it not sent or sent in part
   (`unknown`), and "the site did what the description says" is not guaranteed. Descriptions come from
   adapters and the page and are marked as such.
-- **Deleting data stored only in the browser isn't a network send,** so the checkpoint can't hold it (above).
+- **Deleting data stored only in the browser isn't a network send,** so the checkpoint can't hold it. Claude's click
+  on a control labelled delete, remove, discard, clear, empty or trash (or the German words) asks first; a control
+  without such a label that deletes data kept only in the browser is not caught.
 - **If the checkpoint breaks, browsing stops.** Pages fail with Chrome's own error; nothing goes direct. His way out is
   the pass-through switch (condition 3, below). If the checkpoint restarts, Chrome restarts with its tabs (requirement
   5).
@@ -942,8 +962,9 @@ a real call service). When a guard starts, the barrier cuts every such tunnel, b
 tab a call belongs to or what it carries. So:
 
 - A call running when Claude would start acting: Claude's acting step is refused with "the owner is in a call in
-  Chrome; acting now ends it", reading stays free, and Claude asks him. With his OK, Claude acts and the call ends;
-  the extension says why.
+  Chrome; acting now ends it", and reading stays free. To go on, either he ends the call himself, or Claude asks with
+  `chrome_end_call`, whose approval on the approval surface names the call and the site; only that answer lets
+  Claude act, never Claude's word that he agreed. The extension says why the call ended.
 - While a guard stays on (strict, above), new calls in Chrome don't connect; the extension says so and shows the guard
   he can end.
 - Calls outside Chrome are not affected.
