@@ -240,3 +240,7 @@ tasks at any time.
   Chrome's own services fail its certificate (to fix in brief 20 without exemptions); uncertain attribution holds the
   whole browser. Owner asked (#70, replaces #68 and #69), recommendation: the checkpoint, calls allowed while no guard
   is on, and an owner switch to turn it off (which also turns off Claude's Chrome tools). Mail round 5 running.
+- **2026-11-07, 16:40:** brief 19 (Mail, PR #9) passed its package review (SAFE after six fix rounds; 57 base and
+  103 Mail tests green twice on `ec4a8bba`). Drafts now never leave as attachments and can't be moved out of Drafts;
+  nothing Claude sends carries an AresOS header. Final security review by the frontier model running; then the
+  owner's choices (11, listed in plain words in its report) and his "merge".
