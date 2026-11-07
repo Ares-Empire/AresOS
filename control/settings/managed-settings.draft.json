@@ -4,6 +4,7 @@
   "disableSideloadFlags": true,
   "strictKnownMarketplaces": [],
   "enabledPlugins": {},
+  "syncClaudeAiPlugins": false,
   "disableCommandPluginSources": true,
   "allowAllClaudeAiMcps": false,
   "allowClaudeInChromeWithManagedMcp": false,
@@ -71,10 +72,7 @@
         "~/.zshrc", "~/.zprofile", "~/.zshenv", "~/.gitconfig",
         "~/.config", "~/.local", "~/.claude", "~/.claude.json",
         "/etc/claude-code", "/opt/aresos-control",
-        "/home/assistant/work/**/.git/hooks", "/home/assistant/work/**/.git/config",
-        "/home/assistant/work/**/.envrc", "/home/assistant/work/**/.claude",
-        "/home/assistant/work/**/.mcp.json", "/home/assistant/work/**/.vscode",
-        "/home/assistant/work/**/.idea"
+        "/home/assistant/work"
       ]
     }
   }

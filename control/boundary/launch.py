@@ -21,10 +21,17 @@ def trusted(path):
 
 
 def main():
-    for path in (ROOT, Path(__file__), FILTER, CLAUDE,
+    for path in (ROOT, Path(__file__), FILTER, CLAUDE, ROOT / 'pins.json',
+                 ROOT / 'run.mjs', ROOT / 'seccomp-canary.py',
+                 Path('/usr/local/bin/node'), Path('/usr/bin/python3'),
                  ROOT / 'sandbox.json', Path('/etc/claude-code/managed-settings.json'),
                  Path('/etc/claude-code/managed-mcp.json')):
         trusted(path)
+    # An empty enabledPlugins map is not a wildcard deny. Refuse a pre-existing
+    # install rather than assume marketplace install policy unloads its LSP.
+    plugins = Path('/home/assistant/.claude/plugins/installed_plugins.json')
+    if plugins.exists() and json.loads(plugins.read_text()).get('plugins'):
+        raise ValueError('central session must have no installed plugins')
     if not os.access(FILTER, os.X_OK):
         raise ValueError('seccomp helper missing or not executable')
     expected = json.loads((ROOT / 'pins.json').read_text())['seccomp_x64_sha256']

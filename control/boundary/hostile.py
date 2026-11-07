@@ -45,15 +45,27 @@ for path in fixtures['writes']:
     attempt('unlink:' + path, lambda p=path: Path(p).unlink())
     attempt('replace:' + path, lambda p=path: os.replace('/home/assistant/work/replacement', p))
 # Existing parent, absent child: denying only today's file is insufficient.
-for path in [
+new_paths = [
     '/home/assistant/.config/autostart/new.desktop',
     '/home/assistant/.config/systemd/user/new.service',
     '/home/assistant/work/.git/hooks/new-hook',
     '/home/assistant/work/.claude/new.json',
     '/home/assistant/work/nested/.claude/new.json',
     '/home/assistant/work/.vscode/new.json',
-]:
+]
+for path in new_paths:
     attempt('create:' + path, lambda p=path: append(p))
+
+
+def fresh_configuration(relative):
+    target = Path('/home/assistant/work/fresh') / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    append(target)
+
+
+for path in ['.envrc', '.claude/settings.json', '.git/hooks/pre-commit',
+             '.git/config', '.mcp.json', '.vscode/tasks.json']:
+    attempt('fresh:' + path, lambda p=path: fresh_configuration(p))
 
 attempt('input:uinput', lambda: os.close(os.open('/dev/uinput', os.O_WRONLY)))
 attempt('network:direct', lambda: connect(('127.0.0.1', 18080), socket.AF_INET))
@@ -69,7 +81,9 @@ for name, args in [
     results.append(row)
     print('HOSTILE ' + json.dumps(row), flush=True)
 
-# Proves arbitrary harmless code really ran and the work folder remains writable.
-Path('/home/assistant/work/positive-control').write_text('sandbox executed\n')
+# Proves arbitrary harmless code really ran. Shell writes are confined to temp:
+# Linux denyWrite cannot express recursive config exclusions in a writable tree.
+Path('/tmp/claude').mkdir(exist_ok=True)
+Path('/tmp/claude/positive-control').write_text('sandbox executed\n')
 print('HOSTILE_DONE ' + str(len(results)), flush=True)
 raise SystemExit(0 if all(row['blocked'] for row in results) else 1)

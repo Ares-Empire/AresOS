@@ -117,11 +117,12 @@ def main():
         result = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'),
                       '/usr/bin/python3 -I /opt/aresos-control/hostile.py'], 'hostile', required=False)
         rows = [json.loads(line[8:]) for line in result.stdout.splitlines() if line.startswith('HOSTILE ')]
-        assert rows and 'HOSTILE_DONE ' in result.stdout, 'hostile programs did not finish'
-        assert Path('/home/assistant/work/positive-control').read_text() == 'sandbox executed\n'
+        expected = len(FIXTURES['sockets']) + 2 + len(FIXTURES['reads']) + 3 * len(FIXTURES['writes']) + 6 + 6 + 1 + 1 + 3
+        assert len(rows) == expected and f'HOSTILE_DONE {expected}' in result.stdout, 'hostile programs did not finish'
         assert all(row['blocked'] for row in rows), 'OPEN ROUTES: ' + str([r for r in rows if not r['blocked']])
         assert result.returncode == 0
         assert all(Path(p).is_file() and digest(p) == before for p, before in snapshots.items()), 'target changed'
+        assert not Path('/home/assistant/work/fresh').exists(), 'new executable configuration created'
         time.sleep(.2)
         assert stub.poll() is None, 'stub died during attacks'
         assert (OUT / 'stub.txt').read_text().splitlines() == baseline, 'listener received hostile connection'

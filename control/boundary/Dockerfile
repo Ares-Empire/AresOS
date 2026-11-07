@@ -5,7 +5,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /opt/aresos-control
 COPY control/boundary/package*.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund \
-    && ln -s /opt/aresos-control/node_modules/@anthropic-ai/claude-code-linux-x64/bin/claude /usr/local/bin/claude
+    && ln -s /opt/aresos-control/node_modules/@anthropic-ai/claude-code-linux-x64/claude /usr/local/bin/claude \
+    && test -x /usr/local/bin/claude
 COPY control/boundary/ ./
 COPY control/settings/ /etc/claude-code/
 RUN gcc -static -O2 -Wall -Wextra -Werror launcher.c -o /usr/local/bin/aresos-assistant \
