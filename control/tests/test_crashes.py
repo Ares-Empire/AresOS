@@ -259,11 +259,15 @@ class Crashes(EngineCase):
                 if op["state"] == "reserved":
                     self.assertEqual(before, [])
                     self.data("testapp_operation_cancel", {"operation_id": op["id"]})
-                replay = self.call("testapp_send", approval)
-                self.assertEqual(replay["ok"], point != "journal_appended")
+                if point == "journal_appended":
+                    self.assertEqual(self.call("testapp_send", approval)["error"]["code"], "refused")
+                else:
+                    self.data("testapp_send", approval)
                 self.restart()
-                replay = self.call("testapp_send", approval)
-                self.assertEqual(replay["ok"], point != "journal_appended")
+                if point == "journal_appended":
+                    self.assertEqual(self.call("testapp_send", approval)["error"]["code"], "refused")
+                else:
+                    self.data("testapp_send", approval)
                 self.assertEqual(self.engine.receiver.evidence(op["id"])["arrivals"], before)
 
     def test_kill9_reservation_boundaries_never_sends(self):
