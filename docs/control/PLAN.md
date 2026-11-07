@@ -38,17 +38,13 @@ acting):
    checkpoint's memory). The five conditions under S2e apply before it becomes his everyday browser.
 7. **Chrome asks, and he can say "don't ask again" for an action (#52):** offered only for kinds of action a site
    adapter recognises, set by him at approval through a channel Claude can't answer, kept in the owner-only list,
-   visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free. (Scope open,
-   2026-11-07: his answer was general; whether it also covers mail bound to an exact recipient set, and deleting and
-   paying, is asked in `CONTROL.md` section 10. Never on WhatsApp Web: the checkpoint can't read its encrypted
-   messages.)
+   visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free. (Scope settled
+   by decision 15. Never on WhatsApp Web: the checkpoint can't read its encrypted messages.)
 8. **Assistant apart from coding (#53):** the session holding mail and Chrome runs apart from coding sessions; they
    coordinate only through messages that go via the tool service, and a message from the assistant asks like a
-   send. (Open, 2026-11-07: which of his folders the assistant may read and which it may change, `CONTROL.md`
-   section 10.)
+   send. (His folders: decision 17.)
 9. **His usual signed-in sites (#50), so far:** WhatsApp Web, Gemini, Gmail, Deezer (more to come). They are the
-   first adapter targets. (Open, 2026-11-07: how Claude sends on WhatsApp Web, `CONTROL.md` section 10; the default
-   is asking per message.)
+   first adapter targets. (How Claude sends on WhatsApp Web: decision 16.)
 10. **Claude in Chrome stays for his own use (#58); AresOS's Claude Code rules apply machine-wide and change only
     with his admin password (#59).**
 12. **The site guard is strict (#67):** it ends by itself only once the tool can see the site stored nothing of
@@ -59,7 +55,33 @@ acting):
     image rules.
 11. **Approval on the phone must read like a mail (#71):** the first phone test showed the raw tool call ("code
     basically, not a clean email"). Phone test 2 compares the tool asking him itself (MCP elicitation) with a
-    readable summary in Claude Code's prompt; decision 1 changes with its result.
+    readable summary in Claude Code's prompt; decision 1 changes with its result. (All phone tests done; the surface
+    is still open as board #78, `CONTROL.md` section 7.)
+
+**Answers of 2026-11-07, evening** (relayed by the lead, his words in quotes):
+
+14. **Unlabelled local-only deletion: "a)".** Clicks on controls that don't say they delete stay free; labelled
+    destructive controls and Delete or Backspace outside plain text editing ask; the gap (an unlabelled control can
+    delete something kept only in the browser) is accepted as stated.
+15. **"Don't ask again": "yes".** Offered for mail bound to an exact set of recipients, in the Mail tools and in Gmail.
+    Deleting and paying always ask.
+16. **WhatsApp Web: "a)".** Claude asks per message, as one approval of the bounded set of encrypted frames,
+    described "as the page shows it".
+17. **His folders: "pretty much everything no? like running claude with dangerously skip permissions just like I do
+    now".** The assistant may change everything in his home folders except hidden settings and start-up places
+    (dotfiles, autostart, shell start-up files, symlinks). Code lives in the coding user's own home, so coding
+    sessions keep reading their repositories and never read his folders. Inside its sandbox the assistant works
+    without permission prompts, as in his bypass sessions now; only sends and deletes ask (overwriting asks as a
+    delete). This settles `sandbox.autoAllowBashIfSandboxed`: true. (Refined by the lead after re-check 15: a change
+    to an existing file, a whole replacement included, is free because its previous version is first kept for 30 days
+    in a store Claude can't write, which he restores from; deleting asks.)
+18. **`WebFetch` and `WebSearch`: "a)".** Searches are free, as on his usual sites in Chrome; fetching an address
+    Claude composed asks; an address from him or from a page is free.
+19. **The checkpoint's certificate limits: "okay",** accepted as stated (client certificates, no "continue anyway",
+    a pause when Chrome's lists are out of date, a visible notice if Chrome is ever newer than its checkpoint).
+20. **Merging, a new rule: "A safe merge shouldnt need permission should it?"** From now on the lead merges a PR
+    without asking once its review says SAFE (or READY for a design), CI is green twice, and he has answered its
+    judgment calls. Anything under "Owner decides" in `CLAUDE.md` still asks.
 
 ## How sending stays under the owner's control
 
@@ -167,7 +189,7 @@ and whatever is left after it is built by Claude agents, more slowly.
 
 | Who | Does | Reports to |
 |---|---|---|
-| `mac-aresos-control` (Claude, lead) | the plan, the design, the tool lists (what Claude will read), briefs, checking results, merges after the owner's "merge", the owner's questions | the owner |
+| `mac-aresos-control` (Claude, lead) | the plan, the design, the tool lists (what Claude will read), briefs, checking results, merges (without asking once the review says SAFE or READY, CI is green twice and the owner has answered the judgment calls: decision 20), the owner's questions | the owner |
 | Codex workhorse (`gpt-6.1-sol`, xhigh) | checks (S2) and builds: one run per package in its own worktree, tested on GitHub's Linux machines | its package lead; for S2 the lead |
 | Codex workhorse, fresh (`gpt-6.1-sol`, high, read-only) | package reviews | its package lead |
 | Codex frontier, fresh (`gpt-6-astra`, xhigh) | the design review and the final security review: the base for every later app, and the security boundary | the lead |
@@ -179,8 +201,8 @@ and whatever is left after it is built by Claude agents, more slowly.
 Why this split: Codex has the capacity for building and reviewing until 2026-11-21, and every review is a fresh
 context. Claude judges the tools from the user's side because Claude is the one who will use them. Package leads
 keep build logs and review rounds out of the lead's context, so the lead keeps the overview and the owner gets short
-answers. Briefs live on their package branch and reach `main` with the package; nothing is pushed to `main` without
-the owner's "merge".
+answers. Briefs live on their package branch and reach `main` with the package; nothing reaches `main` except by a
+merge under decision 20 (or the owner's "merge" where it doesn't apply).
 
 ## Everyday tasks the tools must handle
 
@@ -214,19 +236,14 @@ tasks at any time.
 ## Open
 
 - The exact system-wide settings: once the tools exist (decision 3). Draft in `control/settings/` (briefs 18, 18b).
-  One value to settle there: brief 18b's draft sets `sandbox.autoAllowBashIfSandboxed: false`, which hands sandboxed
-  terminal commands to the ordinary permission rules instead of allowing them outright; what those do depends on the
-  permission mode (in 18b's run an unapproved `sleep 2` still ran). Recommended: keep Claude Code's default (true). The
-  sandbox holds without a prompt (18b), and extra prompts wear down attention for the send and delete prompts that
-  matter.
+  `sandbox.autoAllowBashIfSandboxed` is settled as true (decision 17): brief 18b's draft value `false` changes to
+  `true` when the settings are written.
 - Language and libraries: decided in the design, after S2.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** #73 (the approval surface, after the phone tests); and in `CONTROL.md` section 10:
-  what the checkpoint's certificate checks still can't do, unlabelled local-only deletion, which of his folders the
-  assistant may read and change, for which actions "don't ask again" is offered, how Claude sends on WhatsApp Web,
-  and `WebFetch` and `WebSearch`.
+- **Owner questions still open:** #78, the approval surface (`CONTROL.md` sections 7 and 10). Everything else in
+  section 10 was answered on 2026-11-07 (decisions 14 to 19).
 
 **Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
 
@@ -355,3 +372,16 @@ tasks at any time.
   and he is asked; late frames form a separate set with its own question; frames held before composing never go with
   a set's release. Opening a chat has its own collection deadline and approval expiry. Folder option (b) says plainly
   that coding programs holding files open are ended at the switch. Re-check 14 next.
+- **2026-11-07, 19:27:** design drafts 10 to 16 merged (PR #11, `c7ba7a71`). The owner answered every open question but
+  the approval surface (decisions 14 to 20): unlabelled local-only deletion "a)"; "don't ask again" "yes" for mail
+  bound to exact recipients, with deleting and paying always asking; WhatsApp "a)"; his folders "pretty much
+  everything", the assistant working without prompts inside its sandbox and only sends and deletes asking;
+  `WebFetch` and `WebSearch` "a)"; the certificate limits "okay"; and a new rule that safe merges need no
+  permission. Built into the design on branch `control/owner-answers-1107`. Open: the approval surface (#78).
+- **2026-11-07, 19:33:** frontier re-check 15 of the owner's answers: recorded faithfully, four enforcement gaps. Fixed
+  on the same branch: a fetch is free only for an address recorded with its origin (his message, or a link in a page
+  or mail a reading tool returned), never one from terminal output, a file Claude wrote or an echoed argument; every
+  change to an existing file in his folders is free because its previous version is first kept for 30 days in the
+  tool service's version store (refused if that fails), and only deleting asks; every gating hook blocks when it
+  fails; coding programs holding his files open are ended before the assistant's writes are switched on; the
+  terminal's own folders are disposable scratch.
