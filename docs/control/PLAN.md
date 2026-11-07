@@ -39,8 +39,9 @@ acting):
 7. **Chrome asks, and he can say "don't ask again" for an action (#52):** offered only for kinds of action a site
    adapter recognises, set by him at approval through a channel Claude can't answer, kept in the owner-only list,
    visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free. (Scope open,
-   2026-11-07: his answer was general; whether it also covers mail bound to an exact recipient set, deleting and
-   paying, and WhatsApp Web is asked in `CONTROL.md` section 10.)
+   2026-11-07: his answer was general; whether it also covers mail bound to an exact recipient set, and deleting and
+   paying, is asked in `CONTROL.md` section 10. Never on WhatsApp Web: the checkpoint can't read its encrypted
+   messages.)
 8. **Assistant apart from coding (#53):** the session holding mail and Chrome runs apart from coding sessions; they
    coordinate only through messages that go via the tool service, and a message from the assistant asks like a
    send. (Open, 2026-11-07: which of his folders the assistant may read and which it may change, `CONTROL.md`
@@ -341,3 +342,10 @@ tasks at any time.
   "don't ask again" for mail bound to exact recipients (recommended: offer), deleting and paying (recommended: always
   ask) and WhatsApp Web (recommended: not at all), and how Claude sends on WhatsApp Web (recommended: asking per
   message, the default). Re-check 12 next.
+- **2026-11-07, 18:11:** frontier re-check 12 of draft 14
+  ([RECHECK-12](../../reviews/control-design/2026-11-07-RECHECK-12.md)): every re-check 11 point closed; the WhatsApp
+  approval shape open. Design draft 15: on WhatsApp Web each message is one page-trusting approval of a bounded set of
+  encrypted frames captured from the start of Claude's composing to Enter, forwarded in order at most once or dropped
+  whole, said plainly to be weaker than a verified send; "don't ask again" is never offered there (a technical limit).
+  Folder option (b) separates saving new files from approved replacement and removes the coding user's access first;
+  "Claude fills in, he sends" says his Send is still held while the site is guarded. Re-check 13 next.

@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 14, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+**Status:** draft 15, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -29,8 +29,10 @@ contract (paths, what the trust rests on, a version gate, freshness from the dat
 out of date). After the eleventh re-check ([11](../../reviews/control-design/2026-11-07-RECHECK-11.md)), draft 14
 discloses option (b)'s exceptions, counts only evidence as freshness, ties recovery to verified tag coverage, and
 turns three points settled more narrowly than the owner asked into owner questions (his folders, the scope of "don't
-ask again", WhatsApp Web). Points marked *checked* name the check that showed them; points marked *brief 20* must be
-shown by the Chrome build's own tests before anything relies on them.
+ask again", WhatsApp Web). After the twelfth re-check ([12](../../reviews/control-design/2026-11-07-RECHECK-12.md)),
+draft 15 defines WhatsApp Web's approval as one page-trusting approval of a bounded set of encrypted captures and
+removes "don't ask again" there. Points marked *checked* name the check that showed them; points marked *brief 20*
+must be shown by the Chrome build's own tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps
@@ -177,7 +179,8 @@ two actions.
      files), which the owner can read and the coding user can't (section 7), with safe file names, never
      overwriting, never into configuration or start-up places. Whether the assistant may also change folders of
      his is **owner decides (open, section 10)**; if he picks some, writes there go through the tool service with
-     these same limits, and the coding user can't read those folders.
+     these same limits, and the coding user can't read those folders. There, saving a new file never replaces an
+     existing one; replacing an existing file is its own action, and it asks.
 5. **Reading changes nothing.** Mail is fetched with `BODY.PEEK`; flags are compared before and after in the tests.
 6. **Readable, bounded results.** Compact structured results with the important fields first. Long content is paged
    (`cursor`), and every result has a size cap, so a huge mail or page never floods Claude's context.
@@ -235,7 +238,9 @@ How each one works:
 - **"Don't ask again" for mail: owner decides (open, section 10).** If he takes it, an entry names the account and
   an exact set of recipients (To, Cc and Bcc together, for example only himself), set and revoked only through his
   own channels (section 6); a free send action then sends without asking only a composition whose recipients are
-  exactly that set, and every other mail asks.
+  exactly that set, compared with the recipients of the actual submission (in Gmail, with the recipients the adapter
+  validates in the captured send), and every other mail asks. The entry covers any future mail to exactly those
+  addresses, not only repeats of one mail.
 - **Replies** use Reply-To where set, never address the owner's own addresses (reply-all removes them), and build
   In-Reply-To and References from the original. A reply to the owner's own sent mail goes to that mail's original
   To and Cc, as Apple Mail does. Bcc recipients never appear in the headers that others receive.
@@ -746,9 +751,10 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 
 Every acting result says what happened (new page, dialog, download), the elements that changed, and anything held.
 While a tab has a pending send, it accepts only reading, `chrome_submit…` and `chrome_drop`; background holds (below)
-don't block it. Draft 9's `chrome_submit_input` (type and press as one step after approval, where the page's message
-hold couldn't be in place) is gone: the checkpoint sees every live message, also on connections opened before the
-tool attached, so typing and Enter are ordinary actions and the message they cause waits like any send.
+don't block it, and neither does a WhatsApp Web message set while Claude is still composing (site adapters, below).
+Draft 9's `chrome_submit_input` (type and press as one step after approval, where the page's message hold couldn't be
+in place) is gone: the checkpoint sees every live message, also on connections opened before the tool attached, so
+typing and Enter are ordinary actions and the message they cause waits like any send.
 
 ### What leaves a Claude tab, and how it is held
 
@@ -868,7 +874,8 @@ list kept only in the browser) without any network send, so the checkpoint can't
   durably, like a captured send, and recorded as consumed before the click reaches Chrome; the count of sends that
   follow is kept durably too. The sends that follow go without a second question only while each validates against
   that description, within its limit and before its expiry; anything else, and anything after it is used up, asks. A
-  contract's recognition is never a reusable permission: each destructive operation is one approval.
+  contract's recognition is never a reusable permission: each destructive operation is one approval, unless the
+  owner allows "don't ask again" for a recognised kind of deletion (his open choice, section 10).
 - **An unlabelled control that deletes data kept only in the browser** (an icon without a name, a "Reset" that
   doesn't say what it resets; on an ordinary online site too, for example an unsent draft kept in the browser's
   storage): **owner decides (open, section 10)** between (a) such clicks stay free, and (b) on any site without an
@@ -992,12 +999,13 @@ The owner can free a kind of action from asking, within these limits:
   add to playlist" or "GitHub: star". Never for a send the tool doesn't recognise: one POST to `/graphql` looks like
   any other, so freeing "this address" would free everything sent there. A kind that sends a message to other people
   names one conversation whose identity the adapter validates in the captured bytes, never "any chat".
-- **Mail, deleting and paying, and WhatsApp: owner decides (open, section 10).** His answer (#52) was general, and
-  earlier drafts offered "don't ask again" more narrowly than he asked. Open: (1) mail sends, in the Mail tools and
-  in Gmail, bound to an exact set of recipients (for example mails to himself); recommended: offer it. (2) Deleting
-  and paying; recommended: always ask, which he can overrule. (3) WhatsApp Web, where the checkpoint can't check
-  what is inside the encrypted messages, so "don't ask again" there would trust the page's own display;
-  recommended: not at all. Until he answers, none of the three is offered.
+- **Mail, and deleting and paying: owner decides (open, section 10).** His answer (#52) was general, and earlier
+  drafts offered "don't ask again" more narrowly than he asked. Open: (1) mail sends, in the Mail tools and in Gmail,
+  bound to an exact set of recipients (for example mails to himself); recommended: offer it. (2) Deleting and paying,
+  for kinds an adapter recognises; recommended: always ask, which he can overrule. Until he answers, neither is
+  offered.
+- **Never on WhatsApp Web.** This is a technical limit, not a choice: the checkpoint can't check what is inside
+  WhatsApp's encrypted messages, so nothing sent there can skip the question.
 - **Bound to its exact scope:** the site, the signed-in account, the target where the kind has one, the action, the
   permitted parameters and the adapter contract's version. Each release validates the complete captured operation
   against that scope again; anything else asks. An entry never covers another account or site.
@@ -1052,11 +1060,35 @@ each likely needs, to be confirmed when its adapter is built:
   of the page: the conversation, the text, the message shown as waiting. The site also sends things that reach other
   people without being messages: read receipts when a chat is opened, "typing…" while text is entered, presence.
   What the adapter can see of the encrypted bytes (timing, size, the page's own state) only describes; it can't
-  recognise anything. So by default every send there after Claude acted asks, one question per message: the message
-  and what Enter caused with it (the typing notice) grouped, and opening a chat (its read receipts) one question too,
-  each described from the page and marked "as the page shows it", because the checkpoint can't check what is inside.
-  "Don't ask again" there is the owner's open question above (recommended: not at all). "Claude fills in, he sends"
-  is an option he can choose for this site. The hardest of the four.
+  recognise anything, so nothing there can skip the question, and a message is approved as a *set of opaque
+  captures*:
+  - **The set.** From the moment Claude starts composing in a tab (its first key or fill in the message box), every
+    outgoing frame on that tab's WhatsApp connections is captured into one set, in order: typing and presence
+    frames, the message itself, and any other encrypted traffic of the page in that time, which can't be told apart
+    from them. Typing keeps working while the set grows; unlike other pending sends, the set doesn't stop Claude's
+    next keys. Enter or the send control freezes the set.
+  - **The approval** shows the page's own description, marked "as the page shows it": the chat's name, the message
+    text, attachments by name and size, and the number and total size of the captures in the set. On approval the
+    whole set is forwarded in order, at most once; on decline all of it is dropped (the page may then show the
+    message as failed, or reconnect).
+  - **Bounds.** A set has a limit on captures, bytes and time (set in brief 20). Past any of them it is refused and
+    dropped with a clear reason ("too much encrypted traffic to approve as one message"), and Claude is told.
+    Holding the set holds that tab's other WhatsApp traffic too; if the approval takes long, the page may reconnect.
+  - **Opening a chat** sends read receipts. The frames after that click form a set the same way, frozen when
+    Claude's next step begins or its time limit passes, and asking "opening this chat may send read receipts to its
+    members, as the page shows it".
+  - **What this guarantees, and why it is weaker.** The checkpoint guarantees that exactly the captured frames go,
+    in order, at most once, and nothing else. It can't show that they carry the text shown to the chat shown, or
+    that the set holds nothing more, because it can't read them: the approval trusts the page's own display. A
+    verified operation on other sites binds the approval to what the bytes say; here it binds only to which bytes.
+  - *Tests (brief 20):* typing before Enter (the set grows, typing keeps working), unrelated encrypted traffic mixed
+    into the set, decline (all dropped), the time limit (refused and dropped), each bound, and a crash of the
+    checkpoint, the tool service and Chrome before the freeze, after it, after approval and while forwarding (never
+    forwarded twice, never in part reported as done).
+  - **"Claude fills in, he sends"** is an option he can choose for this site (section 10). It doesn't make the holds
+    disappear: while the site is guarded, his own press of Send is held and put to him like any of his sends on a
+    guarded site (above), and read receipts and typing traffic stay subject to the same holds.
+  The hardest of the four.
 - **Gemini.** Google's app talks through POST calls in Google's own format, reading included (loading a chat), like
   Google Docs in 17c. The adapter decodes the call names to tell reading from sending: asking a question (which sends
   Claude's text to Google), deleting a chat, sharing one. "Ask a question" is a candidate for "don't ask again".
@@ -1246,9 +1278,9 @@ qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on
     (hostile test); unknown fields, mixed batches and unknown protocol versions ask; a free operation batched with or
     preceded by unapproved ones doesn't take them along; an adapter update that widens a kind suspends the entry;
     revocation racing a release (the release either happened before the revocation was recorded or is refused);
-    refused for unrecognised sends, and for mail, deleting, paying and WhatsApp Web as the owner decides (until then
-    refused; a mail entry, if he allows it, matching only its exact recipient set); Claude Code's own "don't ask again"
-    stays inert.
+    refused for unrecognised sends and always on WhatsApp Web, and for mail, deleting and paying as the owner decides
+    (until then refused; a mail entry, if he allows it, matching only its exact recipient set); Claude Code's own
+    "don't ask again" stays inert.
 17. **The separate browser user on Fedora with KDE,** with the owner's profile and sign-ins moved once: display,
     sound, camera and microphone, notifications (the owner's own-send notifications reach his desktop), the file
     chooser, the keyring, downloads; the native host as that user; the launcher always used (desktop entry, links
@@ -1364,8 +1396,12 @@ very long input must be shown in full or refused, also on the phone.
   temporary files (the launcher gives the assistant its own temporary folders) all live in the assistant's own
   folders, which the owner can read and the coding user can't. The owner's folders the assistant may read are
   read-only to it, so it can't plant anything there for a coding session to pick up. If he lets it change some of his
-  folders (owner decides, open: section 10), the coding user loses read access to exactly those folders, so the rule
-  holds. The assistant's user can't
+  folders (owner decides, open: section 10), the coding user loses read access to exactly those folders, and loses it
+  before the assistant can write there: coding programs that still hold a file or folder there open are ended, and a
+  folder with another way in for the coding user (a hard link, a mount, a link from a coding folder) is refused until
+  that way is closed. *Test (if he picks it):* a coding program holding a file open in the folder and a hard link to
+  a file in it, both before the switch; after it, the coding user reads nothing there, and the assistant's first
+  write happens only after that. The assistant's user can't
   connect to the coding user's local services either (a firewall rule by user on the machine's own addresses), so a
   fetch to a local address can't carry text across. Otherwise a mail's text written into a file could be read by a
   coding session and sent with its network access, with no prompt (re-check 8). Anything that should cross goes
@@ -1404,8 +1440,8 @@ Whatever surface he chooses must:
 3. **Be out of Claude's reach:** no page, socket, file, key or input device Claude can use can answer it or change
    what it shows.
 4. **Work at the laptop and on the phone** when he is away, with the same text.
-5. **Offer "don't ask again"** where it is allowed (section 6; for mail, deleting, paying and WhatsApp the owner
-   decides, open: section 10), written to the owner-only list.
+5. **Offer "don't ask again"** where it is allowed (section 6; for mail, deleting and paying the owner decides,
+   open: section 10; never on WhatsApp Web), written to the owner-only list.
 6. **Decide once:** the first answer counts, a second or late answer is refused, an expired question sends nothing.
 
 **Proposal: approvals get their own screen in his Aresus iPhone app,** with a local approval window on AresOS's own
@@ -1570,22 +1606,24 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
   folders, so he copies its results himself.
   - **(a) As now:** read-only access to the folders he picks; its own folders for everything it writes.
   - **(b) Folders it may change:** he picks folders the assistant may change, and the coding user can't read those
-    folders. Writes go through the tool service with rule 4.4's limits (no dotfiles, no start-up places, no
-    symlinks). Creating, renaming and moving within those folders are free; overwriting and deleting ask; moving to
-    the Trash is a delete.
+    folders; its access is removed before the assistant can write there, open files included. Writes go through the
+    tool service with rule 4.4's limits (no dotfiles, no start-up places, no symlinks). Saving a new file, creating a
+    folder, renaming and moving within those folders are free, but never onto an existing name: they can't replace
+    anything. Replacing an existing file and deleting ask; moving to the Trash is a delete.
   Either way, coding sessions can't read what the assistant writes. Recommended: (b).
 - **"Don't ask again": for which actions** (section 6). His answer (#52) was general; earlier drafts offered it only
   for site actions an adapter recognises. Open:
   - **Mail sends**, in the Mail tools and in Gmail, bound to an exact set of recipients (for example mails to
-    himself). Recommended: offer it.
-  - **Deleting and paying.** Recommended: always ask; he can overrule this.
-  - **WhatsApp Web.** The checkpoint can't check what is inside the encrypted messages, so "don't ask again" there
-    would trust the page's own display of what is sent. Offer it with that warning, or not at all. Recommended: not
-    at all.
-- **How Claude sends on WhatsApp Web** (section 6). (a) Claude asks per message, with the adapter's description of
-  the conversation and text marked "as the page shows it", since the checkpoint can't read the encrypted message;
-  (b) Claude fills in, and he presses send himself. Recommended: (a), the default; (b) stays available if he prefers
-  it.
+    himself). It then covers any future mail to exactly those addresses, not only repeats of one mail. Recommended:
+    offer it.
+  - **Deleting and paying**, for kinds an adapter recognises. Recommended: always ask; he can overrule this.
+  WhatsApp Web is not among them: the checkpoint can't check what is inside its encrypted messages, so nothing there
+  can skip the question (a technical limit).
+- **How Claude sends on WhatsApp Web** (section 6). (a) Claude asks once per message: the approval covers the set of
+  encrypted frames captured while it composed, in order, with the page's description of the chat and text marked "as
+  the page shows it", since the checkpoint can't read them. (b) Claude fills in, and he presses Send himself; while
+  the site is guarded, his Send is still held and put to him, and read receipts and typing traffic are held as
+  before. Recommended: (a), the default; (b) stays available if he prefers it.
 
 **Answered on 2026-11-07 and built into this draft:** data leaving in Chrome (decision 7: searches on his usual sites
 are free, anything else that could carry Claude's text asks; section 6); the central session apart from coding work
@@ -1596,8 +1634,7 @@ and 7); the checkpoint with his hard requirements (decision 6; section 6); the s
 
 - Outgoing mail formatted (like Apple Mail) or plain by default, and the signature (a habit for CLAUDE.md, not a tool
   rule).
-- Which of his folders the assistant may read (read-only, section 2), and which work folders Claude's file tools use
-  (section 7). The assistant writes only into its own folders, which he can read and coding sessions can't.
+- Which work folders Claude's file tools use (section 7).
 - The feature list in [`FEATURES.md`](../control/FEATURES.md): anything missing, and what can wait.
 - **What the checkpoint costs, with brief 20's numbers.** He agreed "if that's not a security risk". Before it becomes
   his everyday browser, the costs named in section 6 ("What changes for the owner") go back to him with brief 20's
