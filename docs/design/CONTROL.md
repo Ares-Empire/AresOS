@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 9, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+**Status:** draft 10, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -9,10 +9,14 @@ brief 17b's Chrome results (section 6: fail, then repeat; the policy install; th
 workers). Draft 8 adds brief 17c's (section 6: holding inside the page as the normal path, what the hold protects
 against and what it doesn't, workers, live messages, the restart, the owner's own sends, the site guard settled); the
 reviewer's sixth re-check ([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points
-there, and draft 9 answers them: Chrome's own blocking rules as a floor under every hold, a site guard that ends by
-itself only on evidence, workers covered by that floor whoever starts them, and no repeat without the complete bytes.
-Points marked *17d* are checked by brief 17d before the Chrome build; points marked *brief 20* must be shown by the
-Chrome build's own tests before anything relies on them.
+there, and draft 9 answered them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that
+floor doesn't hold (worker WebSockets pass it; an allowance lets a different send out when control ends), and the
+seventh re-check ([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside
+Chrome, which brief 17e showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard
+requirements for it, decision 6), makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and
+his usual sites (decision 9), and adds to section 7 the assistant apart from coding sessions (decision 8) and the
+approval surface, left open until the phone test. Points marked *checked* name the check that showed them; points
+marked *brief 20* must be shown by the Chrome build's own tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps
@@ -1028,11 +1032,11 @@ way for Claude to get its own code run outside the sandbox, or to reach a site w
   (`allowAllUnixSockets: false` plus the seccomp filter, section 2); the browser profile, `/run/aresos-tools`, the
   keyring and Claude Code's sign-in files hidden from its file view; no session D-Bus.
 - **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
-  the list is locked (`allowManagedDomainsOnly`), and it contains only what the owner allows (section 10). `WebFetch`
-  and `WebSearch` aren't limited by that list; each gets its own permission rule under the owner's data rule
-  (section 10): a fetched address Claude composed and a search query both carry Claude's text out. Until the owner
-  answers, both ask on every call. The assistant's terminal has no credentials and reaches only the hosts on the
-  owner's list (decision 8, below).
+  the list is locked (`allowManagedDomainsOnly`), and it contains only what the owner allows: nothing by default, so
+  the assistant's terminal, which also holds no credentials, can't carry text out (below). `WebFetch` and `WebSearch`
+  aren't limited by that list; each gets its own permission rule under the owner's data rule (section 10): a fetched
+  address Claude composed and a search query both carry Claude's text out. Until the owner answers, both ask on every
+  call.
 - **Approval surfaces:** Claude must never approve its own prompt. Pages that can (claude.ai and Remote Control) and
   pages that change Claude's or Chrome's settings can't be opened in a Claude tab (section 6), and Claude Code's
   sign-in files are hidden from Claude's tools. Which surface the owner approves on is open (below).
@@ -1062,7 +1066,8 @@ very long input must be shown in full or refused, also on the phone.
 
 - The session with Mail and Chrome (the *assistant*) runs as its own Linux user, `aresos-assistant`, started by the
   root-owned launcher, with the sandbox and settings above. Its terminal has no credentials (no Git or GitHub sign-in,
-  no cloud keys) and reaches only the hosts on the owner's list. Only its user can use `act.sock`.
+  no cloud keys) and reaches only the hosts on the owner's list, which is empty by default. Only its user can use
+  `act.sock`.
 - Coding sessions run as another user and have no app tools. The managed files are machine-wide, so a coding session
   on the same machine gets the same `managed-mcp.json` and starts the app tool servers too. They refuse at once for
   any user but the assistant's (brief 18b, *checked*: "AresOS MCP proxy requires the configured assistant user"),
@@ -1160,48 +1165,30 @@ Candidates:
 
 ## 10. Open questions
 
-**For the owner (asked 2026-11-07):**
+**For the owner, open:**
 
-- **Data leaving** (replaces the first "known sites" question). The review showed that a "known sites" list alone
-  doesn't stop a misled Claude from carrying private text off: a site the owner uses can host a form that accepts data
-  in a plain address (a public form on a big platform), and a search there carries what Claude typed. Recommendation:
-  following links on a page and opening addresses Claude was given stay free on sites it has used; **anything that
-  could carry something Claude wrote asks first**: an address it composed itself, the first page on a new site, a
-  form, an autosave. Open choice within that: whether searches on sites the owner uses are free or ask too. A free
-  search does hand the query to that site (and its search provider); the bet is that the owner's usual sites aren't
-  hostile, at the price of fewer prompts. Even with every search asking, a hostile script on a site the owner uses
-  could encode what Claude types there into plain reading traffic, or send it on a live connection it keeps away from
-  the wrap (section 6, *checked* on a fixture); refusing input or limiting where such pages load from would close
-  that, at a large cost to owner decision 2, and is not recommended. The tool notices an unheld WebSocket message
-  afterwards and stops input on that site. The same rule
-  applies to `WebFetch` and `WebSearch`: an address whose origin the tool can't establish asks.
-- **The central session and coding work.** A session that reads the owner's mail and can also push to GitHub or reach
-  the internet from its terminal can leak without any prompt (a `git push` or `gh` call with private text).
-  Recommendation: the AresOS assistant session that has the app tools gets a terminal with no internet and no
-  credentials; coding work runs in separate Claude sessions without the app tools, as on the Mac today. Separate has
-  to be enforced, not only configured: the managed settings apply to every session on the machine, so coding sessions
-  run as their own Linux user inside a container with its own managed settings (on Bazzite, a toolbox or distrobox
-  container), with no access to `act.sock`, the assistant's transcripts or the owner's browser, and the assistant's
-  user holds no coding credentials. The other way: one session for everything, with the terminal's
-  network locked to a list; asking only for `git push` and `gh` would not cover every other way to send text to an
-  allowed host.
-- **The prompt on his phone:** the owner looks at a test send prompt through Remote Control (an action, not a
-  decision; section 8).
-- **Claude in Chrome on AresOS** (asked 2026-11-07, board #58). The central session can't load it either way
-  (`managed-mcp.json` lists only the control layer's servers; a hostile test checks that). Blocking it by Chrome
-  policy (section 6) adds a little safety but takes the side panel from the owner's own use. Recommended: keep it for
-  him. Until he answers, the image blocks it as section 6 says; if he keeps it, only that policy entry goes, and the
-  `managed-mcp.json` exclusion and its hostile test stay.
-- **Machine-wide rules** (board #59): the managed settings apply to every Claude Code session on the machine and
-  change only with the admin password. That is what makes them hold; coding sessions get their own rules only if
-  they run apart (above).
+- **The approval surface** (board #71 and #73): decided with the third phone test (section 7: the requirements any
+  surface must meet, and the candidates). Where he sets "don't ask again" follows from it (section 6).
+- **`WebFetch` and `WebSearch` for the assistant.** Claude Code's own web tools don't go through Chrome or the
+  checkpoint. Recommended: the same data rule as in Chrome, so a fetched address Claude composed and every search
+  ask first; a fetch of an address he or a page gave stays free. Until he answers, both ask on every call (section 7).
+
+**Answered on 2026-11-07 and built into this draft:** data leaving in Chrome (decision 7: searches on his usual sites
+are free, anything else that could carry Claude's text asks; section 6); the central session apart from coding work
+(decision 8; section 7); Claude in Chrome kept for his own use and the machine-wide rules (decision 10; sections 6
+and 7); the checkpoint with his hard requirements (decision 6; section 6); the strict guard (decision 12; section 6).
 
 **For the owner, later:**
 
 - Outgoing mail formatted (like Apple Mail) or plain by default, and the signature (a habit for CLAUDE.md, not a tool
   rule).
-- Which folders Claude may read and write outside the app tools (section 7).
+- Which folders Claude may read and write outside the app tools (section 7), which are also the folders shared with
+  the assistant's user (section 2).
 - The feature list in [`FEATURES.md`](../control/FEATURES.md): anything missing, and what can wait.
+- **What the checkpoint costs, with brief 20's numbers.** He agreed "if that's not a security risk". Before it becomes
+  his everyday browser, the costs named in section 6 ("What changes for the owner") go back to him with brief 20's
+  measurements, in particular Chrome's own extra certificate checks moving to the checkpoint, calls stopping while a
+  guard is on, and how often a strict guard waits for his click.
 
 **Settled by this design, for the re-check:**
 
@@ -1209,5 +1196,6 @@ Candidates:
   `email` for Mail with explicitly verifying TLS contexts, the official MCP Python SDK pinned and shipped in the
   image. Chrome: the extension in JavaScript (required), the native host a small Python relay, and the page view and
   hold rules in the Python service, talking DevTools protocol through the extension; the page wrap is the
-  extension's own script. The Node code of briefs 17, 17b and 17c is the reference (check code, not product code);
-  brief 20 ports what it settled.
+  extension's own script. The checkpoint is a Python add-on on a pinned mitmproxy core (17e used 12.2.1, with one
+  version-specific seam for WebSocket control frames that is checked again on every upgrade). The code of briefs 17
+  to 17e is the reference (check code, not product code); brief 20 ports what it settled.
