@@ -1,0 +1,7 @@
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dbbakikpjpafacfddaobfckebkcihcmlk%26v%3D0.0.0.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794031138300}
+{"kind":"crx","url":"/extension.crx","at":1794031138337}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dbbakikpjpafacfddaobfckebkcihcmlk%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794031160191}
+{"kind":"ws-open","at":1794031165652}
+{"kind":"ws-frame","body":"synthetic socket","at":1794031166858}
+{"kind":"ws-frame","body":"synthetic preattach","at":1794031167889}
+{"kind":"update","url":"/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dbbakikpjpafacfddaobfckebkcihcmlk%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc","at":1794031257859}

@@ -1,0 +1,1716 @@
+{
+  "phase": "safety",
+  "longHold": false,
+  "run": "42343286463",
+  "head": "68bfaec829fc103248d9336a23814f3d748325e2",
+  "cases": [
+    {
+      "name": "CONNECTED",
+      "tabId": 1836292350,
+      "group": 1023341455,
+      "version": "0.2.0",
+      "host": "user"
+    },
+    {
+      "name": "Q5_POLICY_INSTALL",
+      "info": {
+        "description": "",
+        "enabled": true,
+        "homepageUrl": "",
+        "hostPermissions": [
+          "<all_urls>"
+        ],
+        "id": "ckmmohhplmpebggkidifghnjidinagpe",
+        "installType": "admin",
+        "isApp": false,
+        "mayDisable": false,
+        "name": "AresOS 17b holds CHECK ONLY",
+        "offlineEnabled": false,
+        "optionsUrl": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/select.html",
+        "permissions": [
+          "debugger",
+          "declarativeNetRequest",
+          "management",
+          "nativeMessaging",
+          "storage",
+          "tabGroups",
+          "tabs"
+        ],
+        "shortName": "AresOS 17b holds CHECK ONLY",
+        "type": "extension",
+        "updateUrl": "http://127.0.0.1:38919/update.xml",
+        "version": "0.2.0",
+        "versionName": ""
+      },
+      "policy": {
+        "ExtensionInstallForcelist": [
+          "ckmmohhplmpebggkidifghnjidinagpe;http://127.0.0.1:38919/update.xml"
+        ],
+        "ExtensionInstallBlocklist": [
+          "fcoeoabgfenejglbffodgkkbkcdhcgfn"
+        ],
+        "NativeMessagingUserLevelHosts": true
+      }
+    },
+    {
+      "name": "Q5_HOST_DEFAULT",
+      "starts": "user\n"
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836292411,
+      "group": 2038463768,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q5_HOST_POLICY_FALSE",
+      "starts": "user\nsystem\n"
+    },
+    {
+      "name": "Q1_POLICY_END",
+      "op": "disable",
+      "error": "Transport closed"
+    },
+    {
+      "name": "Q1_policy-disable",
+      "id": "q1-policy-disable",
+      "preview": {
+        "networkId": "4627.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-policy-disable",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292411
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029756113
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-policy-disable",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029756232
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836292474,
+      "group": 1968992764,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_POLICY_END",
+      "op": "uninstall",
+      "error": "Check.uninstall: \"Error: Extension ckmmohhplmpebggkidifghnjidinagpe cannot be modified by user.\""
+    },
+    {
+      "name": "Q1_policy-uninstall",
+      "id": "q1-policy-uninstall",
+      "preview": {
+        "networkId": "4871.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-policy-uninstall",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292474
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029769415
+      },
+      "arrivals": [],
+      "detachEvents": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836292541,
+      "group": 361429799,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_DNR_APPROVED",
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=dnr-approved-release",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029782835
+        }
+      ]
+    },
+    {
+      "name": "Q1_DNR_DROP",
+      "arrivals": []
+    },
+    {
+      "name": "Q1_host-dies",
+      "id": "q1-host-dies",
+      "preview": {
+        "networkId": "5097.11",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-host-dies",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292541
+        },
+        "id": "interception-job-9.0",
+        "at": 1794029785181
+      },
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836292612,
+      "group": 2001022824,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_service-socket",
+      "id": "q1-service-socket",
+      "preview": {
+        "networkId": "5405.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-service-socket",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292612
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029798590
+      },
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836292687,
+      "group": 1753749862,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_detach",
+      "id": "q1-detach",
+      "preview": {
+        "networkId": "5632.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-detach",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292687
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029811842
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-detach",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029811846
+        }
+      ],
+      "detachEvents": []
+    },
+    {
+      "name": "Q1_reload",
+      "id": "q1-reload",
+      "preview": {
+        "networkId": "5632.8",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-reload",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292687
+        },
+        "id": "interception-job-6.0",
+        "at": 1794029814220
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-reload",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029814338
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836292766,
+      "group": 558928268,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_devtools",
+      "id": "q1-devtools",
+      "preview": {
+        "networkId": "5866.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-devtools",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292766
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029828819
+      },
+      "arrivals": [],
+      "detachEvents": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836292849,
+      "group": 542253910,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_detach_DNR",
+      "id": "q1-detach-dnr",
+      "preview": {
+        "networkId": "6112.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-detach-dnr",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292849
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029843852,
+        "rule": 1
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-detach-dnr",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029843959
+        }
+      ],
+      "detachEvents": []
+    },
+    {
+      "name": "Q1_DNR_NEW_REQUEST",
+      "before": 1,
+      "after": 1,
+      "rules": [
+        {
+          "action": {
+            "type": "block"
+          },
+          "condition": {
+            "regexFilter": "^http://127\\.0\\.0\\.1:38919/receive\\?case=q1-detach-dnr$",
+            "requestMethods": [
+              "post"
+            ],
+            "tabIds": [
+              1836292849
+            ]
+          },
+          "id": 1,
+          "priority": 1
+        }
+      ]
+    },
+    {
+      "name": "Q1_reload_DNR",
+      "id": "q1-reload-dnr",
+      "preview": {
+        "networkId": "6112.9",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-reload-dnr",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292849
+        },
+        "id": "interception-job-6.0",
+        "at": 1794029847040,
+        "rule": 2
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-reload-dnr",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029847263
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836292936,
+      "group": 2007675056,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_devtools_DNR",
+      "id": "q1-devtools-dnr",
+      "preview": {
+        "networkId": "6346.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-devtools-dnr",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836292936
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029861732,
+        "rule": 1
+      },
+      "arrivals": [],
+      "detachEvents": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836293027,
+      "group": 56273923,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_MANAGED_BAR",
+      "shown": false,
+      "evidence": "policy-debug-bar.png; no owner Cancel UI on force-installed extension"
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1539897078,
+      "group": 1690703670,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_NONFORCED_INSTALL",
+      "info": {
+        "description": "",
+        "enabled": true,
+        "homepageUrl": "",
+        "hostPermissions": [
+          "<all_urls>"
+        ],
+        "id": "ckmmohhplmpebggkidifghnjidinagpe",
+        "installType": "sideload",
+        "isApp": false,
+        "mayDisable": true,
+        "name": "AresOS 17b holds CHECK ONLY",
+        "offlineEnabled": false,
+        "optionsUrl": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/select.html",
+        "permissions": [
+          "debugger",
+          "declarativeNetRequest",
+          "management",
+          "nativeMessaging",
+          "storage",
+          "tabGroups",
+          "tabs"
+        ],
+        "shortName": "AresOS 17b holds CHECK ONLY",
+        "type": "extension",
+        "updateUrl": "http://127.0.0.1:38919/update.xml",
+        "version": "0.2.0",
+        "versionName": ""
+      }
+    },
+    {
+      "name": "Q1_cancel",
+      "id": "q1-cancel",
+      "preview": {
+        "networkId": "6818.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-cancel",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1539897078
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029887641
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-cancel",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029887851
+        }
+      ],
+      "detachEvents": [
+        {
+          "method": "check.detached",
+          "params": {
+            "source": {
+              "tabId": 1539897078
+            },
+            "reason": "canceled_by_user"
+          },
+          "at": 1794029887753
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1539897135,
+      "group": 1457166724,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_cancel_DNR",
+      "id": "q1-cancel-dnr",
+      "preview": {
+        "networkId": "7308.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-cancel-dnr",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1539897135
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029901691,
+        "rule": 1
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-cancel-dnr",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029902000
+        }
+      ],
+      "detachEvents": [
+        {
+          "method": "check.detached",
+          "params": {
+            "source": {
+              "tabId": 1539897135
+            },
+            "reason": "canceled_by_user"
+          },
+          "at": 1794029901904
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1539897196,
+      "group": 1748180238,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_NONFORCED_END",
+      "op": "disable",
+      "error": "Transport closed"
+    },
+    {
+      "name": "Q1_nonforced-disable",
+      "id": "q1-nonforced-disable",
+      "preview": {
+        "networkId": "7548.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-nonforced-disable",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1539897196
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029915970
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-nonforced-disable",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029916090
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836293122,
+      "group": 1917825316,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 602518239,
+      "group": 1665019101,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_NONFORCED_END",
+      "op": "uninstall",
+      "error": "Transport closed"
+    },
+    {
+      "name": "Q1_nonforced-uninstall",
+      "id": "q1-nonforced-uninstall",
+      "preview": {
+        "networkId": "8008.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-nonforced-uninstall",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 602518239
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029940293
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-nonforced-uninstall",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794029940436
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836293221,
+      "group": 535578054,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_tab-close",
+      "id": "q1-tab-close",
+      "preview": {
+        "networkId": "8717.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-tab-close",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836293221
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029953805
+      },
+      "arrivals": [],
+      "detachEvents": [
+        {
+          "method": "check.detached",
+          "params": {
+            "source": {
+              "tabId": 1836293221
+            },
+            "reason": "target_closed"
+          },
+          "at": 1794029953821
+        },
+        {
+          "method": "check.controlEnded",
+          "params": {
+            "tabId": 1836293221,
+            "reason": "left Claude group"
+          },
+          "at": 1794029953829
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836293323,
+      "group": 633553598,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_chrome-normal",
+      "id": "q1-chrome-normal",
+      "preview": {
+        "networkId": "8960.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-chrome-normal",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836293323
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029967205
+      },
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836293429,
+      "group": 308873297,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_chrome-kill",
+      "id": "q1-chrome-kill",
+      "preview": {
+        "networkId": "9211.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-chrome-kill",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836293429
+        },
+        "id": "interception-job-3.0",
+        "at": 1794029980566
+      },
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836293429,
+      "group": 1525784193,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_WORKER_STOP_DELIVERY",
+      "before": [
+        {
+          "attached": false,
+          "id": "52B87D098A715788B0ADDF5A41236C42",
+          "title": "Service Worker chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/background.js",
+          "type": "worker",
+          "url": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/background.js"
+        },
+        {
+          "attached": false,
+          "id": "A0BF113332200916DBCF4902F92AEEEA",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "F2DB0881944AB33768896505707030A6",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+        },
+        {
+          "attached": true,
+          "id": "015CCB071273B98CF56CE42D9233D862",
+          "tabId": 1836293429,
+          "title": "17b synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38919/"
+        },
+        {
+          "attached": false,
+          "id": "673480975D08595D8339CFBF608AE9A8",
+          "tabId": 1836293483,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/select.html?url=http%3A%2F%2F127.0.0.1%3A38919%2F"
+        }
+      ],
+      "preview": {
+        "networkId": "9436.3",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-worker-stop",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836293429
+        },
+        "id": "interception-job-1.0",
+        "at": 1794029990941
+      },
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836293429,
+      "group": 1147307507,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q1_STOP_WORKER",
+      "status": "observed",
+      "before": [
+        {
+          "attached": false,
+          "id": "52B87D098A715788B0ADDF5A41236C42",
+          "title": "Service Worker chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/background.js",
+          "type": "worker",
+          "url": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/background.js"
+        },
+        {
+          "attached": false,
+          "id": "A0BF113332200916DBCF4902F92AEEEA",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "F2DB0881944AB33768896505707030A6",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+        },
+        {
+          "attached": true,
+          "id": "015CCB071273B98CF56CE42D9233D862",
+          "tabId": 1836293429,
+          "title": "17b synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38919/"
+        },
+        {
+          "attached": false,
+          "id": "673480975D08595D8339CFBF608AE9A8",
+          "tabId": 1836293483,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/select.html?url=http%3A%2F%2F127.0.0.1%3A38919%2F"
+        }
+      ],
+      "after": [
+        {
+          "attached": false,
+          "id": "BAD5DA0BFF6D86886E2C0FE748B30275",
+          "title": "Service Worker chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/background.js",
+          "type": "worker",
+          "url": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/background.js"
+        },
+        {
+          "attached": false,
+          "id": "A0BF113332200916DBCF4902F92AEEEA",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "F2DB0881944AB33768896505707030A6",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+        },
+        {
+          "attached": true,
+          "id": "015CCB071273B98CF56CE42D9233D862",
+          "tabId": 1836293429,
+          "title": "17b synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:38919/"
+        },
+        {
+          "attached": false,
+          "id": "A0881A2BED6FC3FF3F4EC9B450C25FD2",
+          "tabId": 1836293484,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/select.html?url=http%3A%2F%2F127.0.0.1%3A38919%2F"
+        },
+        {
+          "attached": false,
+          "id": "673480975D08595D8339CFBF608AE9A8",
+          "tabId": 1836293483,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/select.html?url=http%3A%2F%2F127.0.0.1%3A38919%2F"
+        }
+      ],
+      "state": {
+        "selected": 1836293429,
+        "group": 1147307507,
+        "groupInfo": {
+          "collapsed": false,
+          "color": "blue",
+          "id": 1147307507,
+          "shared": false,
+          "title": "Claude",
+          "windowId": 1836293428
+        },
+        "pending": [],
+        "history": [
+          {
+            "method": "check.recoveredDrop",
+            "params": {
+              "id": "interception-job-1.0",
+              "url": "http://127.0.0.1:38919/receive?case=q1-worker-stop"
+            },
+            "at": 1794029993002
+          },
+          {
+            "method": "check.recoveredAttachment",
+            "params": {
+              "tabId": 1836293429,
+              "attachError": "Error: Another debugger is already attached to the tab with id: 1836293429."
+            },
+            "at": 1794029994824
+          }
+        ],
+        "errors": [],
+        "version": "0.2.0",
+        "rules": []
+      },
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836293541,
+      "group": 1516424740,
+      "version": "0.2.0",
+      "host": "system"
+    },
+    {
+      "name": "Q5_UPDATE_CHECK",
+      "status": "update_available",
+      "details": {
+        "version": "0.2.1"
+      }
+    },
+    {
+      "name": "Q1_policy-update",
+      "id": "q1-policy-update",
+      "preview": {
+        "networkId": "9736.5",
+        "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+        "headers": {
+          "Accept": "*/*",
+          "Content-Type": "text/plain;charset=UTF-8",
+          "Origin": "http://127.0.0.1:38919",
+          "Referer": "http://127.0.0.1:38919/",
+          "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": "\"Linux\"",
+          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+        },
+        "url": "http://127.0.0.1:38919/receive?case=q1-policy-update",
+        "method": "POST",
+        "body": "synthetic fetch",
+        "type": "XHR",
+        "typed": [],
+        "source": {
+          "tabId": 1836293541
+        },
+        "id": "interception-job-3.0",
+        "at": 1794030006997
+      },
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=q1-policy-update",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794030007094
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1836293656,
+      "group": 2127801374,
+      "version": "0.2.1",
+      "host": "system"
+    },
+    {
+      "name": "Q5_UPDATED",
+      "version": "0.2.1",
+      "updates": [
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.0.0.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029727995
+        },
+        {
+          "kind": "crx",
+          "url": "/extension.crx",
+          "at": 1794029728079
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029750138
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029763516
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029776769
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029792452
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029805860
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029822707
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029837800
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029855609
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029870815
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dexternal%26uc",
+          "at": 1794029895734
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dexternal%26uc",
+          "at": 1794029910905
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029924421
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029947719
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029961106
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029974490
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794029985425
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794030001038
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.0%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794030007035
+        },
+        {
+          "kind": "crx",
+          "url": "/extension.crx",
+          "at": 1794030007044
+        },
+        {
+          "kind": "update",
+          "url": "/update.xml?os=linux&arch=x64&prod=chromecrx&prodchannel=&prodversion=157.0.8103.38&lang=en-US&acceptformat=crx3,puff&x=id%3Dckmmohhplmpebggkidifghnjidinagpe%26v%3D0.2.1%26installsource%3Dnotfromwebstore%26installedby%3Dpolicy%26uc",
+          "at": 1794030018303
+        }
+      ]
+    },
+    {
+      "name": "Q1_REPEAT_DETACH",
+      "arrivals": []
+    },
+    {
+      "name": "Q1_REPEAT",
+      "kind": "fetch",
+      "attempts": [
+        {
+          "networkId": "10008.9",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-fetch",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        },
+        {
+          "networkId": "10008.12",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-fetch",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        },
+        {
+          "networkId": "10008.15",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-fetch",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        }
+      ],
+      "approvedAttempts": [
+        {
+          "networkId": "10008.18",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-fetch",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": true
+        }
+      ],
+      "duplicateBlocked": true,
+      "comparisons": 2,
+      "byteMatches": 2,
+      "normalizedMatches": 2,
+      "ignoredFields": [],
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=repeat-fetch",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794030028707
+        }
+      ]
+    },
+    {
+      "name": "Q1_REPEAT",
+      "kind": "xhr",
+      "attempts": [
+        {
+          "networkId": "10008.26",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-xhr",
+          "method": "POST",
+          "body": "synthetic xhr",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        },
+        {
+          "networkId": "10008.29",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-xhr",
+          "method": "POST",
+          "body": "synthetic xhr",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        },
+        {
+          "networkId": "10008.32",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-xhr",
+          "method": "POST",
+          "body": "synthetic xhr",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        }
+      ],
+      "approvedAttempts": [
+        {
+          "networkId": "10008.35",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-xhr",
+          "method": "POST",
+          "body": "synthetic xhr",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": true
+        }
+      ],
+      "duplicateBlocked": true,
+      "comparisons": 2,
+      "byteMatches": 2,
+      "normalizedMatches": 2,
+      "ignoredFields": [],
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=repeat-xhr",
+          "method": "POST",
+          "body": "synthetic xhr",
+          "at": 1794030034328
+        }
+      ]
+    },
+    {
+      "name": "Q1_REPEAT",
+      "kind": "form",
+      "attempts": [
+        {
+          "networkId": "E094D9D2F3DE9A07C1C545062E8DDAC6",
+          "headerHash": "2b6cb856871c2ca6878cc482a37353f717bd1e84276df0ff9e4ae654e2375485",
+          "headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-form",
+          "method": "POST",
+          "body": "value=synthetic+form",
+          "type": "Document",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        },
+        {
+          "networkId": "9562956FA41BD5E3CE8A72B1969FFBEC",
+          "headerHash": "2b6cb856871c2ca6878cc482a37353f717bd1e84276df0ff9e4ae654e2375485",
+          "headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-form",
+          "method": "POST",
+          "body": "value=synthetic+form",
+          "type": "Document",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        },
+        {
+          "networkId": "93220A2AC7AC4194ADE36BE8F5C736A3",
+          "headerHash": "2b6cb856871c2ca6878cc482a37353f717bd1e84276df0ff9e4ae654e2375485",
+          "headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-form",
+          "method": "POST",
+          "body": "value=synthetic+form",
+          "type": "Document",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        }
+      ],
+      "approvedAttempts": [
+        {
+          "networkId": "E71F66203E7117B6AC1330B834A23BE1",
+          "headerHash": "2b6cb856871c2ca6878cc482a37353f717bd1e84276df0ff9e4ae654e2375485",
+          "headers": {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-form",
+          "method": "POST",
+          "body": "value=synthetic+form",
+          "type": "Document",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": true
+        }
+      ],
+      "duplicateBlocked": true,
+      "comparisons": 2,
+      "byteMatches": 2,
+      "normalizedMatches": 2,
+      "ignoredFields": [],
+      "arrivals": [
+        {
+          "kind": "receive",
+          "url": "/receive?case=repeat-form",
+          "method": "POST",
+          "body": "value=synthetic+form",
+          "at": 1794030039970
+        }
+      ]
+    },
+    {
+      "name": "Q1_REPEAT",
+      "kind": "volatile",
+      "attempts": [
+        {
+          "networkId": "10008.57",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-volatile",
+          "method": "POST",
+          "body": "{\"text\":\"synthetic volatile\",\"nonce\":1794030042820}",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        },
+        {
+          "networkId": "10008.60",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-volatile",
+          "method": "POST",
+          "body": "{\"text\":\"synthetic volatile\",\"nonce\":1794030043738}",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        },
+        {
+          "networkId": "10008.63",
+          "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+          "headers": {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "http://127.0.0.1:38919",
+            "Referer": "http://127.0.0.1:38919/",
+            "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+          },
+          "url": "http://127.0.0.1:38919/receive?case=repeat-volatile",
+          "method": "POST",
+          "body": "{\"text\":\"synthetic volatile\",\"nonce\":1794030044657}",
+          "type": "XHR",
+          "typed": [],
+          "source": {
+            "tabId": 1836293656
+          },
+          "allowed": false
+        }
+      ],
+      "approvedAttempts": [],
+      "duplicateBlocked": true,
+      "comparisons": 2,
+      "byteMatches": 0,
+      "normalizedMatches": 2,
+      "ignoredFields": [
+        "nonce"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "FINAL_DELIVERY_AUDIT",
+      "status": "PASS",
+      "cases": 25
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "run": "42344844452",
+  "artifact": "chrome-check-42344844452-1-workers-long",
+  "source_summary_sha256": "8d101af4244ee908dff46ade47eeacf5f1d40e7be7dffdf30cc0393ce1ed6725",
+  "reduction": "Public requests reduced to synthetic carriers/counts/fingerprints; unrelated hold history and ephemeral WS handshake keys omitted",
+  "source_chrome_version_sha256": "110a77e1e84248e63d70a24b03762d751c5e03ccd78c6f935266fea8a9bb6ea7",
+  "chrome_version_normalization": "Trailing whitespace trimmed; raw stdout remains in CI artifact"
+}

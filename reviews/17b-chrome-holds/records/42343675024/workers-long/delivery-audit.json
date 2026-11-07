@@ -1,0 +1,117 @@
+[
+  {
+    "id": "sw-page-fetch-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "sw-page-fetch-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "sw-page-xhr-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "sw-page-xhr-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "sw-page-form-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "sw-page-form-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "sw-own-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "sw-own-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "sw-sync-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "sw-sync-false",
+    "expected": 0,
+    "actual": 1
+  },
+  {
+    "id": "bypass-fetch-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "bypass-fetch-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "bypass-xhr-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "bypass-xhr-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "bypass-form-true",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "bypass-form-false",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "long-retry",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "long-30000",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "long-120000",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "long-600000",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "long-abort",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "long-xhr",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "long-form",
+    "expected": 1,
+    "actual": 1
+  }
+]

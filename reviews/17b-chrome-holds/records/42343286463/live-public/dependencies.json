@@ -1,0 +1,15 @@
+{
+  "name": "aresos-chrome-feasibility-check",
+  "dependencies": {
+    "playwright": {
+      "version": "1.65.0",
+      "resolved": "https://registry.npmjs.org/playwright/-/playwright-1.65.0.tgz",
+      "overridden": false
+    },
+    "ws": {
+      "version": "8.18.3",
+      "resolved": "https://registry.npmjs.org/ws/-/ws-8.18.3.tgz",
+      "overridden": false
+    }
+  }
+}
