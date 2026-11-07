@@ -14,8 +14,9 @@ RUN gcc -static -O2 -Wall -Wextra -Werror launcher.c -o /usr/local/bin/aresos-as
     && useradd --uid 10001 --create-home assistant \
     && useradd --uid 10002 --no-create-home aresos-tools \
     && useradd --uid 10003 --create-home coder \
-    && mkdir -p /home/assistant/work /home/coder/work \
+    && mkdir -p /home/assistant/work /home/coder/work /tmp/claude \
     && chown assistant:assistant /home/assistant/work \
+    && chown assistant:assistant /tmp/claude && chmod 700 /tmp/claude \
     && chown coder:coder /home/coder/work \
     && cp /etc/claude-code/managed-settings.draft.json /etc/claude-code/managed-settings.json \
     && python3 /opt/aresos-control/configure.py \
