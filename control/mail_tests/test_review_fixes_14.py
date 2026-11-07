@@ -106,6 +106,8 @@ class ServerJSON14(MailCase):
                 os.chown(path, service_uid, service_uid)
             config = {'owner_uid': owner, 'state_dir': str(self.root / 'state'), 'evidence_dir': str(self.root / 'independent'),
                       'socket_dir': str(self.root / 'sockets')}
+            from boundary_test_support import install_boundary
+            config.update(install_boundary(self.root / 'boundary', config['socket_dir']))
             config_file = self.root / 'strict-service.json'
             config_file.write_text(json.dumps(config))
             proxy_config = {'act_socket': str(self.root / 'sockets/act.sock')}

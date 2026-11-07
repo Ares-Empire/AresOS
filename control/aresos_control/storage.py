@@ -8,7 +8,7 @@ import sqlite3
 import time
 import uuid
 
-from .common import Refused, canonical, digest, visible
+from .common import Refused, canonical, digest, json_value, visible
 
 
 def sync_directory(path):
@@ -48,6 +48,7 @@ class Store:
         if self.state_dir.resolve() == self.evidence_dir.resolve() or self.evidence_dir.resolve().is_relative_to(self.state_dir.resolve()):
             raise ValueError("Independent evidence must be outside the backup tree")
         self.checkpoint = checkpoint
+        self.write_failed = False
         for directory in (self.state_dir, self.evidence_dir):
             directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.journal = open(self.evidence_dir / "operations.jsonl", "a+b", buffering=0)
@@ -147,6 +148,7 @@ class Store:
         self.checkpoint("journal_committed")
 
     def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done", untrusted_content=None):
+        self.ensure_writable()
         if self.locked and not restoring:
             raise Refused("restore_required", "Older log detected; sudo aresos admin control restore_confirm must invalidate earlier approvals first.")
         operations = {v["id"]: v for k, v in changes.items() if k.startswith("op:")}
@@ -163,17 +165,26 @@ class Store:
                  "outcome": operation["state"] if operation else outcome, "operation_id": operation_id,
                  "set": changes, "record": record}
         if untrusted_content is not None:
+            json_value(untrusted_content)
             event["untrusted_content"] = visible(untrusted_content)
+        # Validate and serialize the COMPLETE event before the independent fence.
+        encoded = canonical(json_value(event))
         # Fence the write before even its prepared event can enter a backup.
         # A crash here may need owner confirmation: compact metadata cannot
         # reconstruct the full event, and absence cannot prove no restore.
+        self.write_failed = True
         self._append(record)
         self.events.append(record)
         self.checkpoint("journal_appended")
         with self.db:
-            self.db.execute("INSERT OR REPLACE INTO events VALUES (?,?)", (record["seq"], canonical(event)))
+            self.db.execute("INSERT OR REPLACE INTO events VALUES (?,?)", (record["seq"], encoded))
         self.checkpoint("sqlite_prepared")
         self._finish(event)
+        self.write_failed = False
+
+    def ensure_writable(self):
+        if self.write_failed:
+            raise Refused('journal_incomplete', 'A journal transaction did not finish; all writes are refused until service restart recovery has run.')
 
     def audit(self):
         head = self.db.execute("SELECT seq FROM head WHERE id=1").fetchone()[0]
@@ -192,6 +203,7 @@ class Store:
         return self.get("generation")
 
     def confirm_restore(self):
+        self.ensure_writable()
         if not self.locked:
             raise Refused("refused", "No older log is awaiting confirmation.")
         if len(self.events) > self.committed:

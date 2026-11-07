@@ -2,7 +2,8 @@ import asyncio
 import json
 import sys
 
-from .common import FILE_LIMIT, JSONInputError, Refused, display_json, require_question, strict_json_loads, validate
+from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, display_json, require_question, strict_json_loads, validate
+from .definitions import obj, string
 from .definitions import APPS, BY_NAME
 from .files import FilePolicy
 from .protocol import Client
@@ -101,17 +102,50 @@ class StrictMCPInput:
         from mcp.shared.message import SessionMessage
         async for line in self.source:
             try:
-                strict_json_loads(line)
-            except JSONInputError as exc:
-                exc.for_actions([self.app + "_" + name for name in exc.values("params", "name") if isinstance(name, str)])
+                request = strict_json_loads(line)
+                validate(request, obj({'jsonrpc': {'type': 'string', 'enum': ['2.0']},
+                    'id': {'anyOf': [{'type': 'string', 'maxLength': 512}, {'type': 'integer'}, {'type': 'null'}]},
+                    'method': string(128), 'params': {'type': 'object'}}, ['jsonrpc', 'method']), 'MCP envelope')
+                if request['method'] == 'tools/call':
+                    validate(request.get('params'), obj({'name': string(128), 'arguments': {'type': 'object'},
+                        '_meta': {'type': 'object'}}, ['name']), 'MCP tools/call')
+            except Refused as exc:
+                if isinstance(exc, JSONInputError):
+                    exc.for_actions([self.app + "_" + name for name in exc.values("params", "name") if isinstance(name, str)])
+                    candidates = exc.values('id')
+                else:
+                    candidates = [request.get('id')] if type(request) is dict else []
                 # Answer every candidate id when even the id field is repeated.
-                ids = list(dict.fromkeys(v for v in exc.values("id") if type(v) in {str, int})) or [None]
+                ids = list(dict.fromkeys(v for v in candidates if type(v) in {str, int})) or [None]
                 for request_id in ids:
                     error = {"jsonrpc": "2.0", "id": request_id, "error": {
                         "code": -32602, "message": str(exc), "data": {"code": exc.code}}}
                     await self.errors.send(SessionMessage(types.jsonrpc_message_adapter.validate_json(json.dumps(error), by_name=False)))
                 continue
-            yield line
+            yield line.decode('utf-8') if isinstance(line, bytes) else line
+
+
+class MCPLineInput:
+    """Read bounded binary lines so text decoding cannot substitute invalid bytes."""
+    def __init__(self, stream):
+        self.stream = stream
+
+    async def __aiter__(self):
+        import anyio
+        while True:
+            line = await anyio.to_thread.run_sync(self.stream.readline, WIRE_LIMIT + 1)
+            if not line:
+                return
+            if len(line) > WIRE_LIMIT:
+                # Drain the rest without retaining an unbounded line or dispatching it.
+                tail = line
+                while not tail.endswith(b'\n'):
+                    tail = await anyio.to_thread.run_sync(self.stream.readline, WIRE_LIMIT + 1)
+                    if not tail:
+                        break
+                yield b'\x00'
+            else:
+                yield line
 
 
 async def serve(app, config):
@@ -119,8 +153,6 @@ async def serve(app, config):
     import mcp_types as types
     from mcp.server.lowlevel import Server
     from mcp.server.stdio import stdio_server
-    import anyio
-
     proxy = Proxy(app, config)
     offered = {tool["name"]: tool for tool in proxy.tools()}
 
@@ -141,7 +173,7 @@ async def serve(app, config):
                                     structured_content=result, is_error=not result["ok"])
 
     server = Server("aresos-" + app, version="0.1.0", on_list_tools=list_tools, on_call_tool=call_tool)
-    stdin = StrictMCPInput(app, anyio.wrap_file(sys.stdin))
+    stdin = StrictMCPInput(app, MCPLineInput(sys.stdin.buffer))
     async with stdio_server(stdin=stdin) as (read_stream, write_stream):
         stdin.errors = write_stream
         await server.run(read_stream, write_stream, server.create_initialization_options())

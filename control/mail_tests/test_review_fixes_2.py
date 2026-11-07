@@ -125,6 +125,8 @@ class ReviewFixes2(MailCase):
         sockets.mkdir(mode=0o711)
         os.chown(sockets, service, service)
         config = {'owner_uid':owner, 'state_dir':str(self.root / 'state'), 'evidence_dir':str(self.root / 'independent'), 'socket_dir':str(sockets)}
+        from boundary_test_support import install_boundary
+        config.update(install_boundary(self.root / 'boundary', config['socket_dir']))
         config_file = self.root / 'service.json'
         config_file.write_text(json.dumps(config))
         proxy_config = {'act_socket':str(sockets / 'act.sock'), 'admin_socket':str(sockets / 'admin.sock'),

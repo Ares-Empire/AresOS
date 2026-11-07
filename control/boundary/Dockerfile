@@ -10,6 +10,7 @@ RUN npm ci --ignore-scripts --no-audit --no-fund \
     && ln -s /opt/aresos-control/node_modules/@anthropic-ai/sandbox-runtime /usr/local/lib/node_modules/@anthropic-ai/sandbox-runtime \
     && test -x /usr/local/bin/claude
 COPY control/boundary/ ./
+COPY control/aresos_control/ ./aresos_control/
 COPY control/settings/ /etc/claude-code/
 RUN python3 -m unittest -v test_native \
     && gcc -static -O2 -Wall -Wextra -Werror launcher.c -o /usr/local/bin/aresos-assistant \
@@ -22,6 +23,7 @@ RUN python3 -m unittest -v test_native \
     && chown assistant:assistant /tmp/claude && chmod 700 /tmp/claude \
     && chown coder:coder /home/coder/work \
     && cp /etc/claude-code/managed-settings.draft.json /etc/claude-code/managed-settings.json \
+    && python3 -c 'from aresos_control.boundary import Boundary; Boundary().require(); print("Installed boundary precondition PASS")' \
     && python3 /opt/aresos-control/configure.py \
     && chmod -R go-w /opt/aresos-control /etc/claude-code
 CMD ["python3", "-I", "/opt/aresos-control/check.py"]

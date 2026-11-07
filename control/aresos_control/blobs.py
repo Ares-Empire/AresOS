@@ -10,7 +10,8 @@ from .storage import sync_directory
 
 
 class Blobs:
-    def __init__(self, directory, limit=FILE_LIMIT):
+    def __init__(self, directory, limit=FILE_LIMIT, ensure_writable=lambda: None):
+        self.ensure_writable = ensure_writable
         self.directory, self.limit = Path(directory), limit
         if type(limit) is not int or limit < 1:
             raise ValueError("File limit must be a positive byte count")
@@ -23,6 +24,7 @@ class Blobs:
         return self.put_stream([data], len(data), sha256(data), origin)
 
     def put_stream(self, chunks, size, key, origin="internal"):
+        self.ensure_writable()
         if origin not in {"internal", "composition_part", "draft_body", "draft_html", "quoted_mail", "wire", "caller_import", "export"}:
             raise ValueError("Unknown service blob origin")
         if type(size) is not int or not 0 <= size <= self.limit:

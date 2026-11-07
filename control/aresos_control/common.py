@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 import unicodedata
 
 WIRE_LIMIT = 6 * 1024 * 1024
@@ -8,6 +9,8 @@ CHUNK_SIZE = 1024 * 1024
 ASK_LIMIT = 16 * 1024
 QUESTION_LIMIT = 4096
 RESULT_LIMIT = 48 * 1024
+JSON_DEPTH_LIMIT = 64
+JSON_INTEGER_LIMIT = 2**63 - 1
 
 
 class Refused(Exception):
@@ -22,12 +25,12 @@ class _JSONPairs(list):
 
 class JSONInputError(Refused):
     def __init__(self, raw):
-        super().__init__("invalid_input", "Malformed JSON, repeated fields or non-finite numbers are refused; send one unchanged JSON request.")
+        super().__init__("invalid_input", "Malformed, oversized or deeply nested JSON, repeated fields, invalid UTF-8/Unicode and out-of-range numbers are refused; send one unchanged JSON request.")
         # Recover routing/id candidates without collapsing any repeated field.
         # This tree is only for refusing input, never for executing it.
         try:
-            self.pairs = json.loads(raw, object_pairs_hook=_JSONPairs, parse_constant=lambda _: None)
-        except (ValueError, UnicodeError):
+            self.pairs = _decode_json(raw, _JSONPairs)
+        except (ValueError, UnicodeError, RecursionError):
             self.pairs = None
 
     def values(self, *path):
@@ -43,6 +46,80 @@ class JSONInputError(Refused):
         return self
 
 
+def json_value(value):
+    """Also validate internal/programmatic values before serialization or dispatch."""
+    pending = [(value, 0)]
+    while pending:
+        item, depth = pending.pop()
+        if depth > JSON_DEPTH_LIMIT:
+            raise ValueError("JSON nesting exceeds 64 levels")
+        if type(item) is str:
+            item.encode('utf-8', errors='strict')
+        elif type(item) is int:
+            if abs(item) > JSON_INTEGER_LIMIT:
+                raise ValueError("JSON integer exceeds signed 63-bit magnitude")
+        elif type(item) is float:
+            if not math.isfinite(item):
+                raise ValueError("Non-finite JSON number")
+        elif type(item) in {list, dict, _JSONPairs}:
+            if type(item) is dict:
+                if any(type(k) is not str for k in item):
+                    raise ValueError("JSON keys must be strings")
+                children = [*item.keys(), *item.values()]
+            elif type(item) is _JSONPairs:
+                children = [v for pair in item for v in pair]
+            else:
+                children = item
+            pending.extend((child, depth + 1) for child in children)
+        elif item is not None and type(item) is not bool:
+            raise ValueError("Not a JSON value")
+    return value
+
+
+def _decode_json(raw, pairs):
+    # Scan the syntax depth before Python's recursive decoder sees the input.
+    if isinstance(raw, bytes):
+        if len(raw) > WIRE_LIMIT:
+            raise ValueError("JSON exceeds 6 MiB")
+        raw = raw.decode('utf-8', errors='strict')
+    if type(raw) is not str or len(raw.encode('utf-8', errors='strict')) > WIRE_LIMIT or raw.startswith('\ufeff'):
+        raise ValueError("JSON encoding or byte limit")
+    depth, quoted, escaped = 0, False, False
+    for char in raw:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif char == '\\':
+                escaped = True
+            elif char == '"':
+                quoted = False
+        elif char == '"':
+            quoted = True
+        elif char in '[{':
+            depth += 1
+            if depth > JSON_DEPTH_LIMIT:
+                raise ValueError("JSON nesting exceeds 64 levels")
+        elif char in ']}':
+            depth -= 1
+
+    def integer(token):
+        if len(token.lstrip('-')) > 19 or abs(value := int(token)) > JSON_INTEGER_LIMIT:
+            raise ValueError("JSON integer exceeds signed 63-bit magnitude")
+        return value
+
+    def floating(token):
+        value = float(token)
+        if not math.isfinite(value):
+            raise ValueError("Non-finite JSON number")
+        return value
+
+    def nonfinite(_):
+        raise ValueError("Non-finite JSON number")
+
+    return json_value(json.loads(raw, object_pairs_hook=pairs, parse_float=floating,
+                                 parse_int=integer, parse_constant=nonfinite))
+
+
 def strict_json_loads(raw):
     def object_pairs(pairs):
         seen = set()
@@ -52,12 +129,9 @@ def strict_json_loads(raw):
             seen.add(key)
         return dict(pairs)
 
-    def nonfinite(_):
-        raise ValueError("Non-finite JSON number")
-
     try:
-        return json.loads(raw, object_pairs_hook=object_pairs, parse_constant=nonfinite)
-    except (ValueError, UnicodeError) as exc:
+        return _decode_json(raw, object_pairs)
+    except (ValueError, UnicodeError, RecursionError) as exc:
         raise JSONInputError(raw) from exc
 
 

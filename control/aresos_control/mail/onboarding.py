@@ -47,6 +47,8 @@ def qualify_folder_delete(engine, account, probe_folder, ref):
 
 
 def onboard(engine, args, password):
+    engine.boundary.require()
+    engine.store.ensure_writable()
     mail = engine.adapters["mail"]
     account_id = args["id"]
     previous = engine.store.get("mail:account:" + account_id)
@@ -107,6 +109,7 @@ def onboard(engine, args, password):
             break
         time.sleep(0.2)
     account["sent_policy"] = "server" if mail.sent_matches(account, mail.message_id(result["id"])) else "client"
+    engine.boundary.require()
     account["onboarded"] = True
     account["ready"] = account["sent_policy"] == "server"
     engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "onboarding complete; Sent policy observed over bounded window", outcome="done")

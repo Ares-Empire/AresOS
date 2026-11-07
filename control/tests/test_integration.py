@@ -15,6 +15,7 @@ import unittest
 from aresos_control.common import FILE_LIMIT, WIRE_LIMIT, canonical, sha256
 from aresos_control.protocol import Client, receive, send
 from support import ROOT, WORK, message
+from boundary_test_support import install_boundary
 
 OWNER, SERVICE, OTHER = 23101, 23102, 23103
 LAUNCH = "/usr/libexec/aresos-control/launch.py"
@@ -47,6 +48,7 @@ class Integration(unittest.TestCase):
             os.chown(path, SERVICE, SERVICE)
         self.service_config = {"owner_uid": OWNER, "state_dir": str(self.root / "state"),
                                "evidence_dir": str(self.root / "independent"), "socket_dir": str(self.root / "sockets"), "approval_ttl": 120}
+        self.service_config.update(install_boundary(self.root / 'boundary', self.service_config['socket_dir']))
         self.proxy_config = {"act_socket": str(self.root / "sockets/act.sock"), "admin_socket": str(self.root / "sockets/admin.sock"),
                              "home": str(self.home), "folders": [str(self.home / name) for name in ("Documents", "Downloads", "Desktop")]}
         Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
@@ -112,6 +114,33 @@ class Integration(unittest.TestCase):
         self.assertFalse(self.call(OWNER, "control_restore_confirm", {"confirm": "invalidate earlier approvals"})["ok"])
         self.assertTrue(self.call(0, "testapp_fixture_configure", settings, "admin")["ok"])
         self.assertFalse(self.call(0, "testapp_list", {}, "admin")["ok"])
+
+    def test_round15_same_uid_socket_and_installed_cli_require_policy_then_execute_once(self):
+        prepared = self.call(OWNER, 'testapp_prepare_send', message(to=['alpha'], bcc=[]))
+        self.assertTrue(prepared['ok'], prepared)
+        approval = prepared['data']['approval']
+        path = Path(self.service_config['managed_settings'])
+        original = path.read_bytes()
+        try:
+            path.unlink()
+            for verb, args in [('prepare_send', message()), ('send', approval)]:
+                result = self.call(OWNER, 'testapp_' + verb, args)
+                self.assertEqual(result['error']['code'], 'boundary_not_installed', result)
+                terminal = self.launch(OWNER, ['cli', 'testapp', verb, '--input', json.dumps(args)])
+                self.assertEqual(terminal.returncode, 1, terminal.stderr)
+                self.assertEqual(json.loads(terminal.stdout)['error']['code'], 'boundary_not_installed')
+            ref = self.call(OWNER, 'testapp_list', {})['data']['items'][0]['reference']
+            self.assertTrue(self.call(OWNER, 'testapp_flag', {'reference': ref, 'flagged': True})['ok'])
+            status = self.call(OWNER, 'testapp_operation_status', {'operation_id': approval['operation_id']})['data']
+            self.assertEqual(status['operation']['state'], 'reserved')
+            self.assertEqual(status['evidence']['arrivals'], [])
+        finally:
+            path.write_bytes(original)
+            path.chmod(0o644)
+        first = self.call(OWNER, 'testapp_send', approval)
+        self.assertTrue(first['ok'], first)
+        self.assertEqual(first['data']['operation']['state'], 'done')
+        self.assertEqual(self.call(OWNER, 'testapp_send', approval)['data'], first['data'])
 
     def test_25_mib_file_uses_chunks_and_receiver_gets_hashed_snapshot(self):
         source = self.home / "Documents/large.bin"

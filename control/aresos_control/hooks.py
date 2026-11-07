@@ -5,7 +5,8 @@ expiry in the service is the safety net, even when a hook is not called.
 """
 import sys
 
-from .common import Refused, canonical, strict_json_loads, visible
+from .common import WIRE_LIMIT, Refused, canonical, strict_json_loads, validate, visible
+from .definitions import obj
 from .protocol import Client
 
 
@@ -25,7 +26,11 @@ def output(event, pending):
 
 def main(config, name):
     try:
-        event = strict_json_loads(sys.stdin.buffer.read())
+        event = strict_json_loads(sys.stdin.buffer.read(WIRE_LIMIT + 1))
+        validate(event, obj({**{key: {'type': 'string', 'maxLength': WIRE_LIMIT} for key in (
+            'session_id', 'transcript_path', 'cwd', 'permission_mode', 'last_assistant_message', 'prompt')},
+            'hook_event_name': {'type': 'string', 'enum': ['Stop', 'UserPromptSubmit']},
+            'stop_hook_active': {'type': 'boolean'}}, ['hook_event_name']), 'hook')
         if not isinstance(event, dict) or event.get("hook_event_name") != name:
             raise Refused("invalid_input", "Hook input must be an object matching the launcher event.")
         try:

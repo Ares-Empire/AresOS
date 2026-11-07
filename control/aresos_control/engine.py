@@ -5,6 +5,8 @@ import uuid
 
 from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
+from .boundary import Boundary
+from .requests import envelope, UPLOAD_CHUNK, DOWNLOAD_CHUNK
 from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, digest, require_question, validate, visible
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
@@ -13,9 +15,10 @@ from .mail.adapter import Mail
 
 
 class Engine:
-    def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None, file_limit=FILE_LIMIT):
+    def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None, file_limit=FILE_LIMIT, boundary_config=None):
+        self.boundary = Boundary(boundary_config)
         self.store = Store(state_dir, evidence_dir, checkpoint)
-        self.blobs = Blobs(self.store.state_dir / "blobs", file_limit)
+        self.blobs = Blobs(self.store.state_dir / "blobs", file_limit, self.store.ensure_writable)
         self.receiver = Receiver(self.store.evidence_dir, checkpoint)
         self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver), "mail": Mail(self.store, self.blobs)}
         self.ttl = ttl
@@ -65,7 +68,7 @@ class Engine:
         return {"items": values[offset:end], "total": len(values), "cursor": f"{token}:{end}" if end < len(values) else None}
 
     def expire(self):
-        if self.store.locked:
+        if self.store.locked or self.store.write_failed:
             return
         for key, op in self.store.items("op:"):
             if op["state"] == "reserved" and time.time() >= op["expires"]:
@@ -74,6 +77,8 @@ class Engine:
                 self.adapters[op["app"]].drop(op)
 
     def reserve(self, app, verb, arguments):
+        self.boundary.require()
+        self.store.ensure_writable()
         adapter = self.adapters[app]
         question, description, payload = adapter.prepare(verb, arguments)
         op_id = self.store.generation + ":" + uuid.uuid4().hex
@@ -99,6 +104,8 @@ class Engine:
         self.store.checkpoint("stage:" + name)
 
     def submit(self, action, args):
+        self.boundary.require()
+        self.store.ensure_writable()
         op = self.operation(args["operation_id"], action.app)
         if op["generation"] != self.store.generation:
             raise Refused("refused", "Earlier-generation approval invalidated by restore; status and evidence remain readable. Never resubmit.")
@@ -190,6 +197,8 @@ class Engine:
         if action.effect in {"send", "delete"}:
             require_question(args)
         validate(args, action.input)
+        if action.effect != 'read':
+            self.store.ensure_writable()
         if self.store.locked and name != "control_restore_confirm":
             raise Refused("restore_required", "Older log refused; owner must confirm restore before any app access.")
         if name == "control_restore_confirm":
@@ -272,6 +281,7 @@ class Engine:
                 nonlocal offset
                 while True:
                     frame = receive(connection)
+                    validate(frame, UPLOAD_CHUNK, 'upload chunk')
                     if type(frame) is not dict or type(frame.get("offset")) is not int or frame["offset"] != offset:
                         raise Refused("invalid_input", "Upload chunks are out of order; import refused.")
                     if frame == {"end": True, "offset": offset}:
@@ -292,6 +302,7 @@ class Engine:
             data = self.blobs.require_origin(request["sha256"], "export")
             while True:
                 frame = receive(connection)
+                validate(frame, DOWNLOAD_CHUNK, 'download chunk')
                 if frame == {"end": True, "offset": offset} and offset == len(data):
                     send(connection, {"ok": True, "data": {"complete": True}}, result=True)
                     return
@@ -304,8 +315,7 @@ class Engine:
     def request(self, request, admin=False):
         app = None
         try:
-            if type(request) is not dict or request.get("v") != 1:
-                raise Refused("invalid_input", "Use protocol version 1 and an object request.")
+            envelope(request)
             method = request.get("method")
             if method == "tools":
                 app = request.get("app")
@@ -313,6 +323,7 @@ class Engine:
                     raise Refused("invalid_input", "Unknown app; inspect configured MCP servers.")
                 data = {"tools": tools_for(app)}
             elif method == "mail_account_add" and admin:
+                self.store.ensure_writable()
                 from .mail.onboarding import onboard
                 from .mail.definitions import ACCOUNT_CONFIG
                 validate(request["arguments"], ACCOUNT_CONFIG)
@@ -328,6 +339,7 @@ class Engine:
                 app = BY_NAME[name].app if name in BY_NAME else None
                 data = self.dispatch(name, arguments, admin)
             elif method in {"upload", "download", "saved"} and not admin:
+                self.store.ensure_writable()
                 if self.store.locked:
                     raise Refused("restore_required", "Confirm restored log before transferring files.")
                 app = request.get("app")

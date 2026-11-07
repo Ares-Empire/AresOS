@@ -31,7 +31,7 @@ class Mail:
     def __init__(self, store, blobs):
         self.store, self.blobs = store, blobs
         self.transport = Transport(store.state_dir / "mail-passwords")
-        self.wires = Blobs(store.state_dir / "mail-wire", 64 * 1024 * 1024)
+        self.wires = Blobs(store.state_dir / "mail-wire", 64 * 1024 * 1024, store.ensure_writable)
 
     def account(self, account_id, ready=True):
         value = self.store.get("mail:account:" + account_id)
