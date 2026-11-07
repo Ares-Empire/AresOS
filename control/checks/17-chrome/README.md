@@ -51,7 +51,9 @@ find that ID in `server.jsonl` to check delivery independently. A released reque
 consumed before continuing it; neither transport failures nor subsequent calls retry a send.
 
 Public-site experiments use no accounts, synthetic input, and request interception to drop
-submissions. A separate guard drops background Fetch/XHR/Ping requests even if the candidate
+submissions. They use Playwright's paired request lifecycle; the raw native Fetch prototype hit
+stale/unpaired interception handles during live-site navigation and is not qualified for that use.
+A separate guard drops background Fetch/XHR/Ping requests even if the candidate
 classifier calls them reads. Site availability or anti-bot failures must be reported as limited
 observations, not as successful coverage.
 

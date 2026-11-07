@@ -7,7 +7,7 @@ import {promisify} from 'node:util';
 import {createHash} from 'node:crypto';
 import {launch,address,key,x,delay,loadUnpacked,screenshot,stopChrome} from './ui.mjs';
 import {websocket,session,evaluate,eventually} from './protocol.mjs';
-import {save,readAndAct,holdChecks,disconnectProbe} from './checks.mjs';
+import {save,readAndAct,holdChecks,disconnectProbe,publicChecks} from './checks.mjs';
 import {installExternal} from './install.mjs';
 
 const require=createRequire(import.meta.url);
@@ -52,6 +52,8 @@ export async function otherRoutes({here,work,out,profile,fixture}){
       return [...delegate._sessions.values()].filter(s=>s!==delegate._mainFrameSession).map(s=>({sessionId:s._targetId,cdp:s._client}));
     };
     results.playwright={metrics:await readAndAct(cdp,fixture,out,'playwright',options=>page.ariaSnapshot(options),frameSessions),holds:await holdChecks(cdp,fixture,out,'playwright')};
+    try{results.playwright.public=await publicChecks(cdp,out,'playwright');}
+    catch(error){results.publicFailure=error.message;console.log('PUBLIC_CHECK_FAILED (will fail the run)',error.message);}
     try{
       const peer=await promisify(execFile)(process.execPath,[path.join(here,'peer-probe.mjs'),'playwright',info.endpoint,page.url()],{timeout:6000});
       results.playwright.peer={result:'another same-UID process reused the bound endpoint without new Chrome consent',output:peer.stdout.trim()};

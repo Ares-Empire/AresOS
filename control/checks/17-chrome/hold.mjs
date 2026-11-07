@@ -17,8 +17,8 @@ export class Hold extends EventEmitter {
   pwRoutes=new Map(); pwSequence=0;
   inFlight=new Set(); documents=new Set(); currentDocument=null;
   constructor(cdp){
-    super();this.cdp=cdp;this.network=new Map();this.cancelled=new Set();this.publicRows=new Map();
-    this.onRequest=p=>{const meta={documentURL:p.documentURL,initiator:p.initiator?.type};this.network.set(p.requestId,meta);if(this.publicRows.has(p.requestId))Object.assign(this.publicRows.get(p.requestId),meta);};
+    super();this.cdp=cdp;this.network=new Map();this.networkByUrl=new Map();this.cancelled=new Set();this.publicRows=new Map();
+    this.onRequest=p=>{const meta={documentURL:p.documentURL,initiator:p.initiator?.type};this.network.set(p.requestId,meta);this.networkByUrl.set(p.request.method+' '+p.request.url,meta);if(this.publicRows.has(p.requestId))Object.assign(this.publicRows.get(p.requestId),meta);};
     this.onFailed=p=>{if(p.canceled||p.errorText==='net::ERR_ABORTED')this.cancelled.add(p.requestId);};
     this.onFrame=p=>{if(!p.frame.parentId){this.currentDocument=p.frame.url;this.documents.add(p.frame.url);}};
     cdp.on('Network.requestWillBeSent',this.onRequest);
@@ -56,7 +56,10 @@ export class Hold extends EventEmitter {
         this.pwRoutes.set(id,route);
         const type={document:'Document',xhr:'XHR',fetch:'Fetch',ping:'Ping',image:'Image'}[request.resourceType()]||request.resourceType();
         const data=request.postData();
-        await this.pause({requestId:id,request:{url:request.url(),method:request.method(),postData:data,hasPostData:data!==null},resourceType:type});
+        let documentURL;
+        try{documentURL=request.isNavigationRequest()?request.url():request.frame().url();}catch{documentURL=this.cdp.pwPage.url();}
+        const metadata=this.networkByUrl.get(request.method()+' '+request.url())||{documentURL};
+        await this.pause({requestId:id,request:{url:request.url(),method:request.method(),postData:data,hasPostData:data!==null},resourceType:type,metadata});
       };
       await this.cdp.pwPage.route('**/*',this.pwHandler);
     }else await this.cdp.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});
@@ -68,7 +71,7 @@ export class Hold extends EventEmitter {
     if(this.publicMode){
       // Independent guard: background APIs are dropped even when this candidate rule misses them.
       const drop=!!reason||['XHR','Fetch','Ping','WebSocket'].includes(p.resourceType);
-      const row={networkId:p.networkId,url:p.request.url,method:p.request.method,type:p.resourceType,...this.network.get(p.networkId),phase:this.phase||'load',reason,decision:drop?'drop':'allow-read'};
+      const row={networkId:p.networkId,url:p.request.url,method:p.request.method,type:p.resourceType,...(p.metadata||this.network.get(p.networkId)),phase:this.phase||'load',reason,decision:drop?'drop':'allow-read'};
       this.publicRows.set(p.networkId,row);this.history.push(row);
       await send(drop?'Fetch.failRequest':'Fetch.continueRequest',drop?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});return;
     }
