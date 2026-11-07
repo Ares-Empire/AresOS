@@ -2,6 +2,119 @@
 
 Builds on draft PR #6. No merge, force push, real account or model run.
 
+## Review fixes, round 2
+
+**read — scope:** closes only findings 1–3 in `REVIEW-2.md` on `300cd06`,
+following `briefs/19-review-fixes-2.md`. The five added tests are in
+`control/mail_tests/test_review_fixes_2.py`; `control/tests/`, the review files
+and the brief's other protected paths are untouched.
+
+- **Finding 2 — every outgoing mail source:** compose uses one attachment path
+  for explicit sources, nested RFC822 messages, multipart containers, automatic
+  forwards and draft attachments. It recursively removes Bcc/Resent-Bcc before
+  hashing, names the transformation in approval and freezes the approved bytes.
+  Opaque mail parts are recognized by bytes even when renamed. Original read/save
+  bytes are retained. Test:
+  `ReviewFixes2.test_review2_2_explicit_sent_source_nested_message_and_container_in_every_mode`
+  sends a Bcc-bearing client-saved Sent copy, explicitly attaches its source plus
+  nested RFC822/container/renamed parts in new, reply, reply-all, both forward
+  styles and draft modes, then checks received decoded bytes and approved hashes.
+  It also compares source read/save bytes with the untouched Sent original.
+- **Finding 1 — local mail round trip:** composition refuses caller-imported
+  `.eml`/`.msg` names case-insensitively, or bytes with a leading RFC822 header
+  block containing From plus any specified identifying header. Detection tolerates
+  a UTF-8 BOM and leading whitespace; headers after the first empty line do not
+  count. The error directs the caller to forward or attach by exact reference.
+  Tests:
+  `ReviewFixes2.test_review2_1_saved_draft_and_bcc_sent_refused_through_real_proxy_even_renamed`
+  exports a marked 21,000-character draft and a Bcc-bearing Sent source with the
+  actual daemon/proxy under distinct Linux UIDs. Imports are refused for the
+  originals, renamed `.txt` copies, BOM/blank-line/whitespace variants, and mail
+  extensions containing ordinary text. Ordinary PDF/text attachments still reach
+  the recipient unchanged through compose, prepare-send and send.
+  `LocalMailDetection.test_review2_1_header_detection_bom_whitespace_case_and_first_empty_line`
+  covers every identifying header and negative header/body cases.
+- **Finding 3 — exact typed evidence:** the minimal base-engine change delegates
+  Mail stage validation to the adapter. Known stage keys, recipient/reference
+  keys, numeric outcomes, hashes and Message-IDs stay exact; invalid stage text
+  is refused before storage. Only the explicit diagnostic field and other
+  free-text error messages are credential-scrubbed. Existing transport category
+  handling and password/AUTH-encoding guards remain in force.
+  Tests:
+  `ReviewFixes2.test_review2_3_password_collisions_preserve_acceptance_hashes_and_repair`
+  uses `accepted:250` and a deterministic substring shared by the stored
+  composition/wire hashes as passwords. Successful sends and failed-Sent repairs
+  preserve exact acceptance/hash evidence and produce exactly one SMTP arrival.
+  `ReviewFixes2.test_review2_3_only_diagnostics_are_scrubbed_and_server_text_is_not_evidence`
+  also collides with keys, ids, Message-IDs and addresses, rejects diagnostic text
+  as typed evidence, and checks diagnostic redaction. Round 1's four password-echo
+  tests still check results, act/MCP/CLI, SQLite, the independent record and output.
+
+**read — regression basis:** `300cd06` attached explicit sources unchanged, accepted
+the exported caller blobs, and scrubbed stage names/values indiscriminately. The
+new received-byte, refusal and exact-evidence/repair assertions fail those paths;
+no old assertion was weakened, skipped or deleted.
+
+**read — JUDGMENT-CALL, saved mail files:** the owner cannot attach a saved `.eml`
+or `.msg` from his folders, even when harmless. He forwards the mail itself or
+attaches its exact source reference instead. Tracking local-file authorship by
+hash was rejected in favor of the brief's explicit refusal rule: renamed mail
+and leading preambles cannot bypass the authored-text/Bcc paths. Relaxing this
+later needs a provenance/disclosure design and new regression expectations.
+
+**read — PLAN-GAP for the lead, no implementation:** other local files Claude
+writes with its own file tools (`.txt`, `.md`, `.csv`, PDF, etc.) still attach by
+name, size, real path and sha256 as design §5 specifies. Claude-authored text can
+therefore travel without being read in the prompt. Closing that requires an owner
+design decision, such as full disclosure of text-like attachments or showing each
+local file's modification time in approval.
+
+**run — local checks:** `python3 control/generate.py` printed
+`Generated tools, help, reference and ask rules`; `--check` printed
+`Generated artifacts match definitions`; AST parsing printed `Python syntax OK`;
+`git diff --check` printed nothing. The isolated `LocalMailDetection` unittest
+printed `Ran 1 test` and `OK`. A local attempt at the typed-evidence test with a
+synthetic account fixture stopped with `ModuleNotFoundError: No module named
+'jsonschema'`; it is not counted as passing evidence. Docker reported
+`Cannot connect to the Docker daemon`; no host software was installed.
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 .work/round2-regressions.py`
+loaded `300cd06`'s adapter/engine with in-memory substitutes, reproduced each
+reported defect, then checked current sanitized source bytes, renamed-mail
+refusal and exact acceptance evidence. It printed `Finding 2: 300cd06
+explicit-source Bcc leak reproduced; current sanitized bytes PASS`, `Finding 1:
+300cd06 exported-mail blob bypass reproduced; current renamed-mail refusal PASS`,
+and `Finding 3: 300cd06 acceptance evidence corruption reproduced; current exact
+evidence PASS`. These local substitutes do not count as real-server/proxy tests.
+The protected-path check printed `Protected-path check PASS`; the worktree size
+scan printed `Remaining .work files over 500 MB: []`.
+
+**run — implementation head `7f3bac52919c2704a39921113c17fa826aae9aa9`:**
+
+| Workflow | Exact relevant output |
+| --- | --- |
+| [Mail push 42365438930](https://github.com/Ares-Empire/AresOS/actions/runs/42365438930) | `Ran 57 tests in 47.474s`; `Control base suite PASS`; `Ran 65 tests in 156.655s`; `OK`; `Control Mail suite PASS` |
+| [Mail PR 42365441676](https://github.com/Ares-Empire/AresOS/actions/runs/42365441676) | `Ran 57 tests in 37.949s`; `Control base suite PASS`; `Ran 65 tests in 141.729s`; `OK`; `Control Mail suite PASS` |
+| [Independent base 42365441680](https://github.com/Ares-Empire/AresOS/actions/runs/42365441680) | `Ran 57 tests in 47.792s`; `OK`; `Control base suite PASS` |
+
+Both Mail runs printed `Generated artifacts match definitions`; each new
+`test_review2_*` and each round-1 password-echo test printed `... ok`.
+Original Mail crash output remained `Mail delete kill-9 cases: 26; unnamed Deleted
+messages survive`, `Mail send kill-9 cases: 45; no repeated SMTP DATA`, and
+`Mail reservation/repair kill-9 cases: 16; no SMTP during repair/restart`; the two
+other remote-boundary cases also passed (89 total). Logs are workflow artifacts.
+
+**read — final-head validation location:** this report is the only change after
+the implementation head. The final report-inclusive head, its two Mail run
+IDs, and both attempts of its independent base run are recorded in
+[draft PR #9's validation section](https://github.com/Ares-Empire/AresOS/pull/9)
+after the final push. That stable link supplies the final-head run IDs without
+changing the tested commit merely to insert subsequently allocated IDs here.
+Each Mail execution includes all unchanged brief 18 tests, the complete Mail
+suite, generated-artifact verification and the original kill-9 cases.
+
+**assumed / owner gate:** real-account qualification and approval/mail-client
+presentation remain unverified; the owner-facing gates below still apply.
+
 ## Review fixes
 
 **read — scope:** fixes findings 1–5 of `REVIEW.md` on `bc38016`, following
@@ -24,7 +137,8 @@ Builds on draft PR #6. No merge, force push, real account or model run.
   `test_review_2_nested_rfc822_and_frozen_eml_bcc_removed`.
 - **Finding 3:** transport errors carry controlled messages and numeric SMTP
   refusal evidence. Engine submission/repair no longer persist exception text;
-  stages and refusal diagnostics additionally scrub passwords and AUTH encodings.
+  refusal diagnostics additionally scrub passwords and AUTH encodings. Typed
+  stage scrubbing was superseded by round 2's validation above.
   Connection loss still produces an uncertain outcome, including loss after an
   actual UID EXPUNGE. The small base-engine change is necessary because it catches
   adapter failures before the outer request sanitizer sees them.
@@ -281,11 +395,13 @@ three (push Mail, PR Mail, PR base), within the brief's approximate twenty-run b
   local stage. A Sent copy alone does not identify all accepted/refused recipients.
   Unknown without that proof remains for owner inspection; no new SMTP path exists
   in repair. Relaxing this requires qualified per-recipient server evidence.
-- **read — exact forward bytes (review finding 2):** forwarded `.eml` files use
+- **read — exact attached mail bytes (review findings 2, rounds 1–2):** forwarded
+  and explicitly attached mail sources, including multipart containers, use
   octet-stream attachment MIME to freeze the approved bytes. Bcc and Resent-Bcc
   are removed recursively before hashing; reserialization may change folding
   when sanitization is required. Sources with no private headers retain their
-  original bytes. Preserving Bcc-bearing originals was rejected because it leaks
+  original bytes; read/source-save exports remain original even with Bcc.
+  Preserving Bcc-bearing outgoing originals was rejected because it leaks
   private recipients. Reverting would reintroduce that disclosure; client `.eml`
   presentation remains an owner qualification item.
 - **read — bounds:** 25 MiB per transferred file, 64 MiB per encoded source/outgoing mail,
