@@ -17,6 +17,7 @@ async function rpc(m,p){
  if(m==='Check.reload'){setTimeout(()=>chrome.runtime.reload(),100);return {};}
  if(m==='Check.open')return chrome.tabs.create(p);
  if(m==='Check.attach')return attach(p.tabId);
+ if(m==='Check.detach'){await chrome.debugger.detach({tabId:selected});attached.delete(selected);return {};}
  if(m==='Check.close')return chrome.tabs.remove(p.tabId||selected);
  if(m==='Check.targets')return chrome.debugger.getTargets();
  if(m==='Check.worker'){await chrome.debugger.attach({targetId:p.targetId},'1.3');return {};}

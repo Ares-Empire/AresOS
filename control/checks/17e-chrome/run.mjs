@@ -35,6 +35,10 @@ fs.writeFileSync(work+'/host-pids.txt','');sudo('chown','areschrome:areschrome',
 fs.writeFileSync(work+'/host.json',JSON.stringify({name:'org.aresos.chrome_check',description:'17e disposable check',path:work+'/host',type:'stdio',allowed_origins:[`chrome-extension://${extId}/`]}));
 sudo('install','-D','-m','644',work+'/host.json','/etc/opt/chrome/native-messaging-hosts/org.aresos.chrome_check.json');
 let chrome,bridge,proxy,selected,proxied=true;
+const samples=[];
+const sampleTimer=setInterval(()=>{
+ try{const text=sh('ps',['-u','aresproxy','-o','pid=,pcpu=,rss=,vsz=,time=']);for(const line of text.trim().split('\n')){const [pid,cpu,rssKiB,vszKiB,cpuTime]=line.trim().split(/\s+/);samples.push({at:Date.now(),mode:proxied?'checkpoint':'direct',pid:Number(pid),cpu:Number(cpu),rssKiB:Number(rssKiB),vszKiB:Number(vszKiB),cpuTime});}}catch{}
+},1000);
 function policy(mode=true,extension=true){
  proxied=mode;
  const roots=['proxy-root.pem','fixture-ca.pem'].map(n=>new X509Certificate(fs.readFileSync(work+'/'+n)).raw.toString('base64'));
@@ -118,7 +122,7 @@ try{
  save('delivery-audit',[...expectations.values()].map(e=>({...e,actual:arrivals(e.id,e.kind).length})));
  log('FINAL_RECEIVER_AUDIT',{status:'PASS',assertions:expectations.size,receiverRows:f.rows.length});console.log('ALL 17E CHECKS COMPLETE',phase);
 }finally{
- await snapshotProxy();save('summary',summary);await screenshot(out,'final').catch(()=>{});await close();await stopProxy();f.close();
+ clearInterval(sampleTimer);save('resource-samples',samples);await snapshotProxy();save('summary',summary);await screenshot(out,'final').catch(()=>{});await close();await stopProxy();f.close();
  // Raw Chrome/mitmproxy consoles can include URLs; retain a count only.
  for(const name of ['chrome-console.log','proxy-console.log']){const file=work+'/'+name;if(fs.existsSync(file)){log('PRIVATE_DIAGNOSTIC',{name,bytes:fs.statSync(file).size});fs.rmSync(file)}}
  try{save('firewall-final',{rules:sudo('nft','list','table','inet','e17')})}catch{}

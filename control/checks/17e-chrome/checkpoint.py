@@ -203,6 +203,8 @@ class Checkpoint:
         if kind in ('http', 'handshake'):
             info['bodySha256'] = flow.metadata.get('captured_body_hash')
             info['method'] = flow.request.method
+        if kind == 'ws-control' and flow.websocket.close_reason is not None:
+            info['payloadSha256'] = hashlib.sha256(flow.websocket.close_reason.encode()).hexdigest()
         if len(self.pending) >= 256 or self.total+len(data) > MAX_TOTAL or len(data) > MAX_BODY:
             self.record('refused', **info, reason='buffer-limit')
             return False
@@ -232,11 +234,17 @@ class Checkpoint:
                 os.kill(os.getpid(), signal.SIGKILL)
             while self.stall == 'before-consume':
                 await asyncio.sleep(.02)
+            if op['context'] != self.context or flow.client_conn.timestamp_end:
+                self.status(oid, 'cancelled')
+                return False
             self.status(oid, 'consumed')
             if self.fault == 'after-consume':
                 os.kill(os.getpid(), signal.SIGKILL)
             while self.stall == 'after-consume':
                 await asyncio.sleep(.02)
+            if op['context'] != self.context or flow.client_conn.timestamp_end:
+                self.status(oid, 'cancelled')
+                return False
             return True
         except (asyncio.TimeoutError, asyncio.CancelledError):
             self.status(oid, 'cancelled')
