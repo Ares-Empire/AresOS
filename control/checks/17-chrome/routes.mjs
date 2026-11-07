@@ -42,6 +42,7 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     // For this pinned experiment, reuse the page session already owned by the upstream bridge.
     const impl=page._connection.toImpl(page),delegate=impl.delegate;
     const cdp=delegate._mainFrameSession._client;
+    cdp.pwPage=page;
     await screenshot(out,'playwright-attached');
     console.log('ATTACH_PLAYWRIGHT PASS','extension 0.5.0, engine 1.65.0; existing signed-in tab');
     const frameSessions=async()=>{

@@ -93,15 +93,15 @@ export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
 const matching=(arrivals,c)=>arrivals.filter(r=>['http','ws'].includes(r.kind)&&(r.url?.includes('case='+c)||r.body?.includes('case='+c)));
 export async function holdChecks(cdp,fixture,out,route){
   const hold=new Hold(cdp);await hold.enable();const results=[];
-  const kinds=['post','get','fetch','xhr','beacon','autosave','worker','cross','ping'];
+  const kinds=['post','get','fetch','xhr','beacon','autosave','autosaveget','worker','cross','ping','pixel'];
   for(const kind of kinds)for(const decision of ['release','drop']){
     const c=`${kind}-${route}-${decision}`,before=fixture.arrivals.length;
     await navigate(cdp,fixture.base+'/hold?case='+c);
     await cdp.send('Page.bringToFront');
     if(kind==='worker')await eventually(async()=>await evaluate(cdp,'document.querySelector("#status").textContent')==='Worker ready','service worker activation');
     const view=new PageView(cdp);await view.enable();const v=await view.read({limit:10000});
-    hold.intent={form:['post','get','cross'].includes(kind),typing:kind==='autosave'};
-    if(kind==='autosave')await view.act(ref(v,'Message'),'fill','synthetic-autosave');
+    hold.intent={form:['post','get','cross'].includes(kind),typing:kind.startsWith('autosave')};
+    if(kind.startsWith('autosave'))await view.act(ref(v,'Message'),'fill','synthetic-autosave');
     else await view.act(ref(v,kind==='ping'?'Follow fixture link with ping':'Send fixture'),'click');
     await eventually(()=>[...hold.pending.values()].some(e=>e.preview.address.includes('case='+c))||matching(fixture.arrivals,c).length,'held or leaked '+c);
     await delay(600);
@@ -114,10 +114,11 @@ export async function holdChecks(cdp,fixture,out,route){
       : await evaluate(cdp,'document.body.innerText');
     if(['post','get','cross'].includes(kind))await screenshot(out,`${route}-while-${kind}-${decision}-held`);
     if(kind==='fetch'&&decision==='release'){await cdp.send('Page.bringToFront');await screenshot(out,`${route}-while-fetch-held`);}
-    const record={kind,decision,case:c,serverSequenceBefore:before,heldMs:600,whileHeld:heldLog.length,pending:pending.map(e=>({id:e.id,preview:e.preview,hash:e.hash})),appearance};
+    const record={kind,decision,case:c,serverSequenceBefore:before,heldMs:600,whileHeld:heldLog.length,pending:pending.map(e=>({id:e.id,preview:e.preview,classifierReason:e.classifierReason,hash:e.hash})),appearance};
     if(kind!=='worker')assert.equal(heldLog.length,0,`${c} left before approval`);
     if(pending.length){
       assert.equal(pending.length,1);const entry=pending[0];
+      if(kind==='pixel')assert.equal(entry.classifierReason,null,'pixel exfiltration is a measured classifier miss');
       await assert.rejects(()=>hold.decide(entry.id,decision,'changed-preview'),/PREVIEW_MISMATCH/);
       await hold.decide(entry.id,decision,entry.hash);
       await assert.rejects(()=>hold.decide(entry.id,decision,entry.hash),/NOT_PENDING/);

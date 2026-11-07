@@ -57,11 +57,13 @@ export async function fixtures(out) {
           kind==='beacon'?`navigator.sendBeacon('${target}',input.value);status.textContent='Queued beacon';`:
           kind==='worker'?`navigator.serviceWorker.controller.postMessage({case:'${c}'});`:
           kind==='ws'?`socket.send(input.value);status.textContent='WebSocket send returned';`:
+          kind==='pixel'?`const image=new Image();image.src='${target}&message='+encodeURIComponent(input.value);status.textContent='Pixel send queued';`:
+          kind==='autosaveget'?`fetch('${target}&message='+encodeURIComponent(input.value)).then(()=>status.textContent='Sent').catch(()=>status.textContent='Dropped');`:
           `fetch('${target}',{method:'POST',body:input.value}).then(()=>status.textContent='Sent').catch(()=>status.textContent='Dropped');`}
         };
         ${kind==='ws'?`const socket=new WebSocket('ws://'+location.host+'/ws?case=${c}');socket.onopen=()=>status.textContent='Socket ready';input.onkeydown=e=>{if(e.key==='Enter')send()};`:''}
         ${kind==='worker'?`navigator.serviceWorker.register('/sw.js').then(()=>navigator.serviceWorker.ready).then(()=>{const ready=()=>{status.textContent='Worker ready'};if(navigator.serviceWorker.controller)ready();else navigator.serviceWorker.addEventListener('controllerchange',ready,{once:true})});navigator.serviceWorker.onmessage=()=>status.textContent='Worker sent';`:''}
-        ${kind==='autosave'?'input.oninput=send;':''}
+        ${kind.startsWith('autosave')?'input.oninput=send;':''}
         document.querySelector('#trigger').onclick=send;
       </script>`;
       return res.end(html('Hold '+c, '<h1>Hold '+c+'</h1>'+content));

@@ -14,6 +14,7 @@ export function classify(p,{form=false,typing=false}={}){
 }
 export class Hold extends EventEmitter {
   pending=new Map(); history=[]; errors=[]; trusted=new Set(); publicMode=false;
+  pwRoutes=new Map(); pwSequence=0;
   constructor(cdp){
     super();this.cdp=cdp;this.network=new Map();this.cancelled=new Set();this.publicRows=new Map();
     this.onRequest=p=>{const meta={documentURL:p.documentURL,initiator:p.initiator?.type};this.network.set(p.requestId,meta);if(this.publicRows.has(p.requestId))Object.assign(this.publicRows.get(p.requestId),meta);};
@@ -31,9 +32,32 @@ export class Hold extends EventEmitter {
     });};
     cdp.on('Fetch.requestPaused',this.listener);
   }
-  async enable(){await this.cdp.send('Network.enable');await this.cdp.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});}
+  async command(method,params,sessionId){
+    if(this.cdp.pwPage&&params.requestId){
+      const route=this.pwRoutes.get(params.requestId);if(!route)throw Error('NOT_PENDING: Playwright route');
+      this.pwRoutes.delete(params.requestId);
+      return method==='Fetch.continueRequest'?route.continue():route.abort('aborted');
+    }
+    return this.cdp.send(method,params,sessionId);
+  }
+  async enable(){
+    await this.cdp.send('Network.enable');
+    if(this.cdp.pwPage){
+      // Playwright's network manager owns Fetch and auto-continues unknown raw pauses.
+      // Use its routing API, not a second competing Fetch consumer on the same session.
+      this.cdp.off('Fetch.requestPaused',this.listener);
+      this.pwHandler=async route=>{
+        const request=route.request(),id='pw-route-'+(++this.pwSequence);
+        this.pwRoutes.set(id,route);
+        const type={document:'Document',xhr:'XHR',fetch:'Fetch',ping:'Ping',image:'Image'}[request.resourceType()]||request.resourceType();
+        const data=request.postData();
+        await this.pause({requestId:id,request:{url:request.url(),method:request.method(),postData:data,hasPostData:data!==null},resourceType:type});
+      };
+      await this.cdp.pwPage.route('**/*',this.pwHandler);
+    }else await this.cdp.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});
+  }
   async pause(p,sessionId){
-    const send=(method,params)=>this.cdp.send(method,params,sessionId);
+    const send=(method,params)=>this.command(method,params,sessionId);
     const isFixture=new URL(p.request.url).pathname==='/receive';
     const reason=classify(p,this.intent||{});
     if(this.publicMode){
@@ -51,7 +75,7 @@ export class Hold extends EventEmitter {
       try{data=(await this.cdp.send('Network.getRequestPostData',{requestId:p.networkId})).postData;}catch{/* Explicit missing-data flag below. */}
     }
     const preview={site:new URL(p.request.url).origin,address:p.request.url,method:p.request.method,data,bodyEntries:p.request.postDataEntries||null,bodyUnavailable:!!p.request.hasPostData&&data===null,type:p.resourceType};
-    const entry={id:p.requestId,sessionId,preview,hash:fingerprint(preview),state:'held',at:Date.now()};
+    const entry={id:p.requestId,sessionId,preview,classifierReason:reason,hash:fingerprint(preview),state:'held',at:Date.now()};
     this.pending.set(entry.id,entry);this.history.push(entry);this.emit('held',entry);
   }
   async decide(id,decision,hash){
@@ -60,12 +84,14 @@ export class Hold extends EventEmitter {
     if(entry.hash!==hash)throw new Error('PREVIEW_MISMATCH');
     // Consume before the call: a transport failure means unknown, never automatic retry.
     this.pending.delete(id);entry.state='unknown';entry.decidedAt=Date.now();
-    await this.cdp.send(decision==='release'?'Fetch.continueRequest':'Fetch.failRequest',decision==='release'?{requestId:id}:{requestId:id,errorReason:'Aborted'},entry.sessionId);
+    await this.command(decision==='release'?'Fetch.continueRequest':'Fetch.failRequest',decision==='release'?{requestId:id}:{requestId:id,errorReason:'Aborted'},entry.sessionId);
     entry.state=decision==='release'?'released':'dropped';
   }
   async close(){
     for(const entry of this.pending.values())await this.decide(entry.id,'drop',entry.hash);
-    await this.cdp.send('Fetch.disable');this.cdp.off('Fetch.requestPaused',this.listener);
+    if(this.cdp.pwPage)await this.cdp.pwPage.unroute('**/*',this.pwHandler);
+    else await this.cdp.send('Fetch.disable');
+    this.cdp.off('Fetch.requestPaused',this.listener);
     this.cdp.off('Network.requestWillBeSent',this.onRequest);
     this.cdp.off('Network.loadingFailed',this.onFailed);
     if(this.errors.length)throw new Error('Hold event errors: '+this.errors.join(';'));
