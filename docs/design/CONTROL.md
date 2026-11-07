@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 13, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+**Status:** draft 14, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -26,8 +26,11 @@ destructive action approved in advance. The tenth re-check
 ([10](../../reviews/control-design/2026-11-07-RECHECK-10.md)) closed the input barrier and the advance approval; draft
 13 states both options for unlabelled local-only deletion truthfully and makes Chrome's own security data a precise
 contract (paths, what the trust rests on, a version gate, freshness from the data's own fields, recovery when it is
-out of date). Points marked *checked* name the check that showed them; points marked *brief 20* must be shown by the
-Chrome build's own tests before anything relies on them.
+out of date). After the eleventh re-check ([11](../../reviews/control-design/2026-11-07-RECHECK-11.md)), draft 14
+discloses option (b)'s exceptions, counts only evidence as freshness, ties recovery to verified tag coverage, and
+turns three points settled more narrowly than the owner asked into owner questions (his folders, the scope of "don't
+ask again", WhatsApp Web). Points marked *checked* name the check that showed them; points marked *brief 20* must be
+shown by the Chrome build's own tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps

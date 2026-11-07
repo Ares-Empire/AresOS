@@ -38,12 +38,16 @@ acting):
    checkpoint's memory). The five conditions under S2e apply before it becomes his everyday browser.
 7. **Chrome asks, and he can say "don't ask again" for an action (#52):** offered only for kinds of action a site
    adapter recognises, set by him at approval through a channel Claude can't answer, kept in the owner-only list,
-   visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free.
+   visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free. (Scope open,
+   2026-11-07: his answer was general; whether it also covers mail bound to an exact recipient set, deleting and
+   paying, and WhatsApp Web is asked in `CONTROL.md` section 10.)
 8. **Assistant apart from coding (#53):** the session holding mail and Chrome runs apart from coding sessions; they
    coordinate only through messages that go via the tool service, and a message from the assistant asks like a
-   send.
+   send. (Open, 2026-11-07: which of his folders the assistant may read and which it may change, `CONTROL.md`
+   section 10.)
 9. **His usual signed-in sites (#50), so far:** WhatsApp Web, Gemini, Gmail, Deezer (more to come). They are the
-   first adapter targets.
+   first adapter targets. (Open, 2026-11-07: how Claude sends on WhatsApp Web, `CONTROL.md` section 10; the default
+   is asking per message.)
 10. **Claude in Chrome stays for his own use (#58); AresOS's Claude Code rules apply machine-wide and change only
     with his admin password (#59).**
 12. **The site guard is strict (#67):** it ends by itself only once the tool can see the site stored nothing of
@@ -218,7 +222,10 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** #73 (phone test 2).
+- **Owner questions still open:** #73 (the approval surface, after the phone tests); and in `CONTROL.md` section 10:
+  what the checkpoint's certificate checks still can't do, unlabelled local-only deletion, which of his folders the
+  assistant may read and change, for which actions "don't ask again" is offered, how Claude sends on WhatsApp Web,
+  and `WebFetch` and `WebSearch`.
 
 **Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
 
@@ -324,3 +331,13 @@ tasks at any time.
   read from its user-data directory, trusted on Chrome's verified installation and the folder's protection, Chrome and
   checkpoint pinned together with a visible notice if they ever differ, freshness from the data's own fields, and an
   exact recovery contract when it is out of date. Re-check 11 next.
+- **2026-11-07, 18:05:** frontier re-check 11 of draft 13
+  ([RECHECK-11](../../reviews/control-design/2026-11-07-RECHECK-11.md)): two points partly closed. Design draft 14:
+  option (b) for unlabelled deletion discloses that links stay free; freshness of Chrome's security data counts only
+  evidence for the version held (no evidence means out of date); recovery from out-of-date data runs only while the
+  extension's tag coverage is verified; path segments get placeholders. Three points that mac-capacity found settled
+  more narrowly than the owner asked are now owner questions in `CONTROL.md` section 10, with recommendations: which
+  of his folders the assistant may change (recommended: he picks some, coding sessions lose read access to them),
+  "don't ask again" for mail bound to exact recipients (recommended: offer), deleting and paying (recommended: always
+  ask) and WhatsApp Web (recommended: not at all), and how Claude sends on WhatsApp Web (recommended: asking per
+  message, the default). Re-check 12 next.
