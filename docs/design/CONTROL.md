@@ -491,15 +491,17 @@ requirement here, with how it is met and how brief 20 tests it.
      operation a site adapter ties to Claude's action. Being on a guarded site is not enough. The owner's own tabs
      there, everything held only because attribution was uncertain, and Chrome's own service sends are shown to the
      owner only, never described to Claude.
-   - **Sign-in material is never shown.** Cookies, authorisation headers, and tokens and passwords in headers,
-     addresses or bodies are replaced by "[sign-in data, N bytes]" in every description, to Claude and to the owner,
-     and in the tool service's approval log; the hash still covers the real bytes. The tool recognises the common
-     forms (cookies, `Authorization`, token and anti-forgery fields and parameters) and an adapter adds a site's own;
-     a token in a form neither knows can still show (brief 20 lists the forms recognised).
+   - **Safe fields only.** A description shows only fields the tool or a site adapter knows are safe to show: the
+     text Claude entered, the values Claude chose in the form, and what an adapter decodes as content (a recipient,
+     a message, a playlist name). Everything else is withheld and named, never shown: "[field `token`: 412 bytes,
+     not shown]", and for content in no known format "[1,830 bytes in an unknown format, not shown]". Cookies and
+     authorisation headers are never shown. This holds in every description, to Claude and to the owner, and in the
+     tool service's approval log; the hash still covers the real bytes, so the approval binds exactly what goes. A
+     token that hides in a field the tool counts as safe is the residual (brief 20 lists the safe fields).
    *Test:* every outgoing connection of the checkpoint matches one Chrome asked for; it writes no file outside its
    state folder; core dumps are off; Claude's tools return nothing of an operation held in the owner's own tab on a
    guarded site, held for uncertain attribution, or sent by Chrome's services; marker tokens in cookies, headers,
-   addresses and bodies never appear in a description or the approval log.
+   addresses, unknown fields and opaque bodies never appear in a description or the approval log.
 3. **No bodies, cookies or secrets in logs.** Its logs and its record hold ids, lengths, hashes, states, the site and
    the method; never bodies, header values, cookies, passwords, query strings or socket messages. Claude's entered
    text is in the record only encrypted (above). Messages of the proxy core are filtered the same way (errors only,
@@ -670,7 +672,7 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 | `chrome_open_site` | **send** | open an address that isn't free to open (below), with the full address in the input |
 | `chrome_drop` | change | drop held operations; nothing leaves |
 | `chrome_end_guard` | **send** (asks) | end a site's guard where it didn't end by itself; the input shows what of Claude's may be left there and what the page stored; afterwards the owner's own sends there go unchecked |
-| `chrome_end_call` | **send** (asks) | end the owner's running call in Chrome so that Claude can act; the approval names the call's tab and the site Claude wants to act on (calls, below) |
+| `chrome_end_call` | **send** (asks) | end every peer connection in Chrome (all calls) so that Claude can act; the approval says so and names the site Claude wants to act on and the calls the tool can see; the set is checked again right before cutting (calls, below) |
 | `chrome_operation_status` | read | an operation's stages (rule 4.3) |
 | `chrome_sites` | owner-only | the owner's lists: his usual sites, the sites Claude has used, and his "don't ask again" entries, to see and revoke |
 | `chrome_checkpoint` | owner-only | switch the checkpoint to pass-through and back (a way out of a fault: below) |
@@ -883,10 +885,11 @@ owner decides it himself, on a surface outside every page:
   send held and the guard on.
 - **Sends whose cause can't be seen:** a send from a worker that serves several tabs carries no trace of whose click
   caused it (*checked*, 17c). On a guarded site it is held. It can't be attributed to Claude's work, so it isn't
-  described to Claude (requirement 2); Claude sees only that something unresolved is held on that site. When the owner
-  was using one of the site's tabs just before (input the tool didn't send), it is also put to him as a notification:
-  a guess about his notification, never an exemption. Otherwise it stays visible as unresolved on the details page and
-  in the site's guard. Each such send is one operation; the first answer decides it at once, and the same send
+  described to Claude (requirement 2); Claude sees only that something unresolved is held on that site. It goes to
+  the owner's approval surface (section 7), where he can answer it at the laptop or, under the proposal there, on his
+  phone, never only to the laptop's details page. When he was using one of the site's tabs just before (input the
+  tool didn't send), the extension's desktop notification shows it too: a guess about his notification, never an
+  exemption. Each such send is one operation; the first answer from any surface decides it at once, and the same send
   reported through several attached sessions counts once (*brief 20*).
 
 This is the owner deciding about his own click, not an approval of Claude's actions; those stay with the approval
@@ -1079,8 +1082,11 @@ tab a call belongs to or what it carries. So:
 
 - A call running when Claude would start acting: Claude's acting step is refused with "the owner is in a call in
   Chrome; acting now ends it", and reading stays free. To go on, either he ends the call himself, or Claude asks with
-  `chrome_end_call`, whose approval on the approval surface names the call and the site; only that answer lets
-  Claude act, never Claude's word that he agreed. The extension says why the call ended.
+  `chrome_end_call`. Because the barrier cuts every peer connection and can't tell which tab each belongs to, the
+  approval is for all of them as one set: "end every call in Chrome so that Claude can act on this site", listing
+  the calls the tool can see. Right before cutting, the tool checks the set again; if it changed while he was asked
+  (a second call started), it asks again. Only his answer lets Claude act, never Claude's word that he agreed. The
+  extension says why the calls ended.
 - While a guard stays on (strict, above), new calls in Chrome don't connect; the extension says so and shows the guard
   he can end.
 - Calls outside Chrome are not affected.
@@ -1092,19 +1098,24 @@ independent receiver's own log), and the everyday tasks in `PLAN.md` (Chrome tas
 machines with branded Chrome; the whole set runs twice on the recorded Chrome version (re-check 7). Synthetic fixtures
 qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on a pinned mitmproxy core:
 
-1. **No way around it** (17e Q1 again, on the product): IPv4, IPv6, localhost, link-local, redirects, workers, QUIC
-   and the checkpoint down; the firewall rule surviving the image's firewall reloads; a Chrome started without the
-   launcher can't browse; nobody else can listen on the checkpoint's port.
+1. **No way around it** (17e Q1 again, on the product): real connections from Chrome's user over IPv4, IPv6,
+   localhost, link-local and a container's address, redirects, workers, QUIC and the checkpoint down, each before and
+   after the image's firewall service reloads its rules; a Chrome started without the launcher can't browse; nobody
+   else can listen on the checkpoint's port.
 2. **Connections opened before a guard and the barrier** (17e Q2): pre-opened HTTP/2 and page, dedicated, shared and
    service-worker sockets; input only after the barrier is confirmed.
 3. **Conservative attribution** (17e Q3): forged, stale and missing tags, opaque origins, foreign frames, hand-offs
    across origins, the extension removed; tab-less workers of a frame's site; Claude's entered text held in any tab;
-   the page-made Chrome sends (push subscription, passkey, payment) refused on a guarded site; real web-push delivery
-   from an independent publisher to a guarded site's worker, held.
-4. **Readiness and uncertain reading:** everything, GET and HEAD included, held at every start until the guards and
-   Claude's entered text are restored; Chrome and Claude's tools only after the ready report; afterwards an uncertain
-   GET or HEAD carrying Claude's entered text held, across restarts of the checkpoint, the service and the browser
-   and loss of the extension; a damaged record never reports ready.
+   the page-made Chrome sends (push subscription, passkey, payment) refused on a guarded site; real web push: a
+   message from an independent publisher shown delivered to a guarded site's worker (a positive control: the worker
+   ran), and then zero arrivals at receivers of anything that worker sends without approval.
+4. **Readiness, uncertain reading and the input barrier:** everything, GET and HEAD included, held at every start
+   until the guards and Claude's entered text are restored; Chrome and Claude's tools only after the ready report;
+   afterwards an uncertain GET or HEAD carrying Claude's entered text held, across restarts of the checkpoint, the
+   service and the browser and loss of the extension; a damaged record never reports ready; every input recorded and
+   acknowledged before it reaches Chrome, with the checkpoint, the tool service and Chrome each killed between
+   Claude's call and the record, between the record and the input, and right after the input, and a page then
+   retrying a GET that carries the text (held).
 5. **Complete operations** (17e Q4) with the product's read, drain and size limits, including WebSocket ping and pong
    frames that carry data (17e gated them at its seam; brief 20 shows them held by a receiver test).
 6. **One approval, one capture, and the context still the same** (17e Q5): competitors held; the account and document
@@ -1114,14 +1125,18 @@ qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on
    tool service's operation log and the checkpoint's record agree after each crash.
 8. **Cancellation and the 15-minute lifecycle:** an HTTP/2 stream reset seen and recorded as cancelled (open in 17e);
    abort, tab closing, expiry and the page script's cancel; a late approval refused; a hold waiting the full 15
-   minutes for an approval, with HTTP/2 cancellation along the way, ending as `failed` with nothing sent.
+   minutes for an approval, with HTTP/2 cancellation along the way, ending as `failed` with nothing sent; and an
+   approval that arrives just before the 15 minutes end, forwarded at most once and correctly recorded.
 9. **Other transports and calls:** WebTransport refused always and WebRTC while a guard is on, with a clear error
    where the page script can give one; a call through a relay over TCP and TLS working while no guard is on
    (positive control on a real call service), cut at the barrier; the acting refusal while a call runs, and acting
-   only after the owner's answer to `chrome_end_call`.
+   only after the owner's answer to `chrome_end_call`, which covers every call as one set; a second call that starts
+   while that question waits makes it ask again.
 10. **The owner's five requirements** (above), each with its test: every trust location after stop, crash, rotation
-    and pass-through, in the profile's contexts and Chrome's own; the exact upstream TLS cases; attribution before
-    anything reaches Claude and sign-in data redacted.
+    and pass-through, in the profile's contexts and Chrome's own, with only roots this checkpoint installed removed;
+    the upstream TLS cases with Chrome's own current lists and their age limits; attribution before anything reaches
+    Claude, safe-field descriptions with unknown fields and opaque content withheld; unattributed sends of the
+    owner's tabs reaching his approval surface, also on the phone.
 11. **Chrome's own services** (above), with no guard and under active guards, also with attribution lost: trust in
     Chrome's own network context with no exemptions; Safe Browsing with a working positive control; a fresh component
     download; the extension's update; sync; page-made imitations of their requests held; the list of features that
@@ -1264,8 +1279,11 @@ very long input must be shown in full or refused, also on the phone.
   through the approved-send channel (next point). The owner himself can copy a file across; Claude can't.
   *Test:* the assistant writes a content marker through every path it has (its file tools, a saved attachment, a
   Chrome download, its terminal's temporary files, its session records); a coding session and plain programs of the
-  coding user search everything they can read and find none; plus the follow-ups from the 18b review (the real and
-  the effective user id, rogue user and project MCP configurations: `PLAN.md`, "Follow-ups").
+  coding user search everything they can read and find none; the coding user runs real services on its own
+  addresses (IPv4, IPv6 and a container's address), and the assistant's programs (outside and inside the sandbox,
+  and its web fetch) try real connections to each, before and after the firewall's rules are reloaded, and none
+  arrives; plus the follow-ups from the 18b review (the real and the effective user id, rogue user and project MCP
+  configurations: `PLAN.md`, "Follow-ups").
 - They coordinate only through the tool service. A message from the assistant to a coding session is a send: it
   asks, and the approval shows the full text and the receiving session. Messages from coding sessions reach the
   assistant as untrusted content, like a mail (rule 4.8), and never count as an approval. This message tool comes in
@@ -1325,8 +1343,11 @@ What this adds to the trust boundary:
 - **One canonical description.** The service writes each question as one canonical description and signs it: the
   operation id and the log's generation, the account, every target, the complete set of what would go (for Chrome
   each captured operation's id and hash, for mail the composition's hash with its attachments' hashes), the time it
-  expires, and for "Don't ask again" the exact scope the entry would get (section 6). Both the phone's signature and
-  the window's answer cover the hash of exactly that description.
+  expires, and for "Don't ask again" the exact scope the entry would get (section 6). A destructive action approved in
+  advance (section 6) has no captures yet, so its question carries the bounded advance operation instead: the adapter
+  contract's version, the account, the exact targets, the permitted effects, the limit on what may follow and the
+  expiry; it is consumed once. Both the phone's signature and the window's answer cover the hash of exactly that
+  description.
 - **The device key.** Made in the phone's secure hardware, it never leaves the phone. It is usable only with the faces
   enrolled in Face ID at the time (Apple's `biometryCurrentSet`), with no passcode fallback, so someone who knows the
   passcode can't approve; changing Face ID makes the key unusable, and he enrols again. Every decision is signed over
@@ -1349,6 +1370,12 @@ What this adds to the trust boundary:
   links that open by themselves, no executable markup; a formatted mail is shown as its text, with control and
   direction-changing characters escaped (rule 4.1). *Test:* the complete readable mail on the phone itself (a long
   text, Bcc, attachments, odd characters), and on the laptop's window.
+- **Adversarial tests,** each ending with nothing sent and no entry written: a relay that swaps the phone's or the
+  service's key during enrolment; answers that are altered, replayed, signed by a revoked phone, or sent for an
+  expired question or one of an earlier log generation; the phone and the laptop answering at the same moment, with
+  the tool service killed in between (exactly one answer counts, also after the restart); Face ID changed after
+  enrolment (the key no longer works); and an attempt to answer with the phone's passcode instead of Face ID
+  (refused).
 - **A lost phone.** The key works only with his face. He revokes the phone from the laptop; questions still show in
   the laptop's window. Questions waiting for that phone expire as below.
 - **The server or the phone down.** At the laptop the window still asks. Away from it, a question nobody answers
