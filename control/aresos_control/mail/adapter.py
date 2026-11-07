@@ -18,7 +18,7 @@ from ..adapters import NothingLeft, Uncertain
 from ..blobs import Blobs
 from ..common import Refused, canonical, digest, sha256, visible
 from . import codec
-from .transport import Transport, folders, select, fetch, fetch_headers, uids, ok, quote, context
+from .transport import Transport, folders, select, fetch, fetch_headers, uids, ok, quote, context, nonempty_refusal
 
 
 class Mail:
@@ -38,7 +38,10 @@ class Mail:
         return value
 
     def public_account(self, account):
-        return {k: account[k] for k in ("id", "addresses", "capabilities", "smtp_capabilities", "special", "sent_policy", "safe_folder_delete", "format", "signature", "ready")}
+        return {k: account[k] for k in ("id", "addresses", "capabilities", "smtp_capabilities", "special", "sent_policy", "safe_folder_delete", "format", "signature", "ready")} | {"folder_delete_reason": account.get("folder_delete_reason", "Not qualified by onboarding.")}
+
+    def authored(self, message):
+        return self.under(self.account(message["reference"]["account"]), message["reference"]["folder"], "drafts") or codec.AUTHORED_HEADER in message["msg"]
 
     def snapshot(self, account_id, selected=None, project=None, headers_only=False):
         account = self.account(account_id)
@@ -232,8 +235,13 @@ class Mail:
             if part is None:
                 raise Refused("stale_reference", "MIME part is stale, read again.")
             data, name, content_type = codec.decoded(part), part.get_filename() or "attachment", part.get_content_type()
-        return data, {"sha256": self.blobs.put(data), "size": len(data), "name": name, "type": content_type,
-                      "source": {"reference": args["reference"], "part": args["part"]}}
+        item = {"sha256": self.blobs.put(data), "size": len(data), "name": name, "type": content_type,
+                "source": {"reference": args["reference"], "part": args["part"]}}
+        node = m["msg"] if args["part"] == "source" else part
+        texts = codec.approval_texts(node, self.authored(m))
+        if texts:
+            item["authored_text"] = texts
+        return data, item
 
     def composition(self, args):
         comp = self.store.get("mail:composition:" + args["composition_id"])
@@ -285,13 +293,20 @@ class Mail:
                 if not subject.casefold().startswith("fwd:"):
                     subject = "Fwd: " + subject
                 if args.get("forward_as", "inline") == "attachment":
-                    data = original["raw"]
-                    attachment_refs.append({"name": "forward.eml", "size": len(data), "sha256": self.blobs.put(data), "type": "message/rfc822", "source": {"reference": original["reference"], "part": "source"}})
+                    data = codec.without_bcc(original["raw"])
+                    att = {"name": "forward.eml", "size": len(data), "sha256": self.blobs.put(data), "type": "message/rfc822", "source": {"reference": original["reference"], "part": "source"}, "transformation": "Original mail with Bcc and Resent-Bcc removed, including nested messages."}
+                    texts = codec.approval_texts(codec.parse(data), self.authored(original))
+                    if texts:
+                        att["authored_text"] = texts
+                    attachment_refs.append(att)
                     quote_text = ""
                 else:
                     quote_text = "\n\n---------- Forwarded mail ----------\n" + "\n".join(h + ": " + str(msg.get(h, "")) for h in ("From", "Date", "Subject", "To", "Cc")) + "\n\n" + codec.body(msg)
                     for item in codec.attachments(msg):
-                        _, att = self.attachment({"reference": original["reference"], "part": item["part"]})
+                        data, att = self.attachment({"reference": original["reference"], "part": item["part"]})
+                        if att["type"] == "message/rfc822" or att["name"].lower().endswith(".eml"):
+                            data = codec.without_bcc(data)
+                            att.update(size=len(data), sha256=self.blobs.put(data), transformation="Original mail with Bcc and Resent-Bcc removed, including nested messages.")
                         attachment_refs.append(att)
             else:
                 if not self.under(account, original["reference"]["folder"], "drafts"):
@@ -302,7 +317,7 @@ class Mail:
                 quote_text = ""
                 if "text" not in args:
                     data = codec.body(msg).encode("utf8")
-                    generated.append({"kind":"draft_body", "source":original["reference"], "sha256":self.blobs.put(data), "size":len(data)})
+                    generated.append({"kind":"draft_body", "source":original["reference"], "sha256":self.blobs.put(data), "size":len(data), "text":data.decode("utf8")})
                     html_part = msg.get_body(preferencelist=("html",))
                     if html_part is not None:
                         html_data = codec.decoded(html_part)
@@ -310,13 +325,20 @@ class Mail:
                             html_data = html_data.decode(html_part.get_content_charset() or "utf8","replace").encode("utf8")
                         except LookupError:
                             html_data = html_data.decode("utf8","replace").encode("utf8")
-                        generated.append({"kind":"draft_html", "source":original["reference"], "sha256":self.blobs.put(html_data), "size":len(html_data)})
+                        html_info = {"kind":"draft_html", "source":original["reference"], "sha256":self.blobs.put(html_data), "size":len(html_data)}
+                        readable = codec.html_text(html_data.decode("utf8"))
+                        if readable.strip() != data.decode("utf8").strip():
+                            html_info["text"] = readable
+                        generated.append(html_info)
                 for item in codec.attachments(msg):
                     _, att = self.attachment({"reference": original["reference"], "part": item["part"]})
                     attachment_refs.append(att)
             if quote_text:
                 data = quote_text.encode("utf8")
-                generated.append({"kind": "quoted_mail", "source": original["reference"], "sha256": self.blobs.put(data), "size": len(data)})
+                part = {"kind": "quoted_mail", "source": original["reference"], "sha256": self.blobs.put(data), "size": len(data)}
+                if self.authored(original):
+                    part["text"] = quote_text
+                generated.append(part)
         seen = set()
         def unique(values):
             out = []
@@ -361,6 +383,7 @@ class Mail:
         mail = comp["mail"]
         utf8 = any(not codec.mailbox(v).isascii() for v in [mail["from"]] + mail["to"] + mail["cc"] + mail["bcc"])
         msg = EmailMessage(policy=codec.SMTP_POLICY.clone(utf8=utf8))
+        msg[codec.AUTHORED_HEADER] = "1"
         for key, value in (("From", mail["from"]), ("To", ", ".join(mail["to"])), ("Cc", ", ".join(mail["cc"])),
                            ("Subject", mail["subject"]), ("Message-ID", message_id), ("Date", formatdate(localtime=False))):
             if value:
@@ -385,7 +408,7 @@ class Mail:
             msg.set_content(text + generated, cte="quoted-printable")
         for item in mail["attachments"]:
             data = self.blobs.read(item["sha256"])
-            # .eml as octet-stream preserves the exact original bytes (no email reserialization).
+            # Freeze the approved bytes, including any Bcc removal performed during compose.
             major, minor = item["type"].split("/", 1)
             if item["type"] == "message/rfc822":
                 major, minor = "application", "octet-stream"
@@ -433,6 +456,8 @@ class Mail:
         if verb == "onboarding_folder_probe":
             if not args["folder"].startswith("AresOS-probe-"):
                 raise Refused("refused", "Not a disposable onboarding folder.")
+            if args.get("empty"):
+                args = {**args, "empty_state": self.safe_folder(self.account(args["account"]), args["folder"], empty=True)}
             return {"action": "mail_onboarding_folder_probe", **args}, args
         if verb == "send":
             comp = self.composition(args)
@@ -611,10 +636,15 @@ class Mail:
         action, payload = operation["action"], operation["payload"]
         if action == "mail_onboarding_folder_probe":
             account = self.account(payload["account"])
+            if "empty_state" in payload and self.safe_folder(account, payload["folder"], empty=True) != payload["empty_state"]:
+                raise Refused("stale_approval", "Probe cleanup folder changed; owner must inspect it.")
             with self.transport.imap(account) as client:
                 response = client.delete(quote(payload["folder"]))
-            stage("folder_probe", "refused" if response[0] != "OK" else "deleted")
-            return ("refused", "Server refused deleting nonempty disposable folder.") if response[0] != "OK" else ("done", "Server deleted disposable contents; ordinary folder deletion disabled.")
+            qualified = nonempty_refusal(response)
+            stage("folder_probe", "nonempty_refusal" if qualified else "unqualified")
+            if qualified:
+                return "refused", "Server specifically refused nonempty DELETE; survival and cleanup still need verification."
+            return ("done" if response[0] == "OK" else "refused"), "Disposable DELETE completed or protection unproven; inspect onboarding qualification."
         if action == "mail_delete":
             # Complete set validated before the first mutation; each exact UID is pinned again at use.
             self.check_items(payload["items"])

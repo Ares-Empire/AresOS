@@ -76,6 +76,8 @@ class Engine:
 
     def stage(self, op_id, name, outcome):
         op = self.operation(op_id)
+        if op["app"] == "mail":
+            name, outcome = (self.adapters["mail"].transport.scrub(v) for v in (name, outcome))
         op["stages"][name] = outcome
         self.store.write({"op:" + op_id: op}, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
         self.store.checkpoint("stage:" + name)
@@ -116,10 +118,12 @@ class Engine:
         try:
             state, reason = adapter.execute(op, lambda name, outcome: self.stage(op["id"], name, outcome))
         except NothingLeft as exc:
-            state, reason = "failed", str(exc)
+            state, reason = "failed", "Submission stopped before delivery; no mail submitted." if action.app == "mail" else str(exc)
         except Exception as exc:
             # Unqualified adapter errors cannot prove that the far side did nothing.
-            state, reason = "unknown", "Submission outcome uncertain; inspect evidence, never retry. " + str(exc)
+            state, reason = "unknown", "Submission outcome uncertain; inspect evidence, never retry."
+        if action.app == "mail":
+            reason = self.adapters["mail"].transport.scrub(reason)
         op = self.operation(op["id"])
         op["state"], op["reason"] = state, reason
         self.store.checkpoint("before_outcome")
@@ -150,7 +154,7 @@ class Engine:
             repair["state"], repair["reason"] = "done", "Local repair completed; never submitted."
             changes = {"op:" + op_id: repair, "op:" + old["id"]: old}
         except Refused as exc:
-            repair["state"], repair["reason"] = "failed", "Local repair refused before acting: " + str(exc)
+            repair["state"], repair["reason"] = "failed", "Local repair refused before acting; inspect operation status." if app == "mail" else "Local repair refused before acting: " + str(exc)
             changes = {"op:" + op_id: repair}
         except Exception:
             repair["state"], repair["reason"] = "unknown", "Local repair uncertain; inspect far-side stage evidence. Never submit."
@@ -311,4 +315,7 @@ class Engine:
         except (OSError, imaplib.IMAP4.error, Uncertain):
             return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app)}
         except (Refused, ValueError, KeyError, TypeError) as exc:
-            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": str(exc)}, "pending": self.pending(app)}
+            message = str(exc) if isinstance(exc, Refused) else "Invalid input or unsupported server data; inspect the tool schema and operation status."
+            if app == "mail":
+                message = self.adapters["mail"].transport.scrub(message)
+            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app)}

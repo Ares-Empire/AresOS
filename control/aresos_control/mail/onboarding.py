@@ -3,8 +3,46 @@ from email.message import EmailMessage
 import time
 import uuid
 
-from ..common import Refused
+from ..common import Refused, digest
 from .transport import folders, select, ok, quote
+
+
+def qualify_folder_delete(engine, account, probe_folder, ref):
+    mail = engine.adapters["mail"]
+    from ..definitions import BY_NAME
+    account["safe_folder_delete"] = False
+    account["folder_delete_reason"] = "Nonempty DELETE protection not proven: generic, unrelated or transient refusal, or deletion succeeded."
+    try:
+        approval = engine.reserve("mail", "onboarding_folder_probe", {"account": account["id"], "folder": probe_folder})["approval"]
+        result = engine.submit(BY_NAME["mail_onboarding_folder_probe"], approval)["operation"]
+        candidate = result["state"] == "refused" and result["stages"].get("folder_probe") == "nonempty_refusal"
+        with mail.transport.imap(account) as client:
+            exists = probe_folder in [f["name"] for f in folders(client)]
+        if not exists:
+            account["folder_delete_reason"] = "Probe folder did not survive nonempty DELETE; protection not proven."
+            return
+        # Re-fetch the exact UIDVALIDITY/UID/Message-ID, never a lookalike replacement.
+        mail.message(ref)
+        cleanup = engine.reserve("mail", "delete", {"items": [mail.named_item(ref)], "mode": "permanent"})["approval"]
+        result = engine.submit(BY_NAME["mail_delete"], cleanup)["operation"]
+        if result["state"] != "done" or result["stages"].get("target:" + digest(ref)) != "expunged":
+            account["folder_delete_reason"] = "Exact probe UID EXPUNGE cleanup failed; owner must inspect probe folder and operation status."
+            return
+        mail.safe_folder(account, probe_folder, empty=True)
+        if not candidate:
+            account["folder_delete_reason"] += " Exact probe removed; empty folder retained for owner cleanup."
+            return
+        cleanup = engine.reserve("mail", "onboarding_folder_probe", {"account": account["id"], "folder": probe_folder, "empty": True})["approval"]
+        result = engine.submit(BY_NAME["mail_onboarding_folder_probe"], cleanup)["operation"]
+        with mail.transport.imap(account) as client:
+            exists = probe_folder in [f["name"] for f in folders(client)]
+        if result["state"] != "done" or exists:
+            account["folder_delete_reason"] = "Empty probe folder DELETE cleanup failed; owner must inspect probe folder and operation status."
+            return
+        account["safe_folder_delete"] = True
+        account["folder_delete_reason"] = "Qualified: nonempty-specific NO, exact probe survived, exact UID EXPUNGE and empty-folder DELETE succeeded."
+    except (Refused, OSError):
+        account["folder_delete_reason"] = "Probe survival or cleanup could not be verified; owner must inspect probe folder and operation status. Folder deletion stays disabled."
 
 
 def onboard(engine, args, password):
@@ -52,22 +90,8 @@ def onboard(engine, args, password):
     message.set_content("Synthetic onboarding data only.")
     from .codec import SMTP_POLICY
     ref = mail.append(account, probe_folder, message.as_bytes(policy=SMTP_POLICY))
-    # These owner-only probe actions use the SAME durable operation engine.
-    approval = engine.reserve("mail", "onboarding_folder_probe", {"account": account_id, "folder": probe_folder})["approval"]
-    result = engine.submit(__import__("aresos_control.definitions", fromlist=["BY_NAME"]).BY_NAME["mail_onboarding_folder_probe"], approval)["operation"]
-    account["safe_folder_delete"] = result["state"] == "refused"
-    # Remove only synthetic messages via exact, logged UID EXPUNGE; no broad cleanup.
-    with mail.transport.imap(account) as client:
-        existing = [f["name"] for f in folders(client)]
-    if probe_folder in existing:
-        items = [mail.named_item(ref)]
-        cleanup = engine.reserve("mail", "delete", {"items": items, "mode": "permanent"})["approval"]
-        engine.submit(__import__("aresos_control.definitions", fromlist=["BY_NAME"]).BY_NAME["mail_delete"], cleanup)
-        if account["safe_folder_delete"]:
-            engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "record server-enforced DELETE refusal")
-            cleanup = engine.reserve("mail", "folder_delete", {"account": account_id, "folder": probe_folder})["approval"]
-            engine.submit(__import__("aresos_control.definitions", fromlist=["BY_NAME"]).BY_NAME["mail_folder_delete"], cleanup)
-        # Unsafe server: harmless empty probe remains for the owner; no unsafe DELETE.
+    # These owner-only probes and their exact cleanup use the same durable engine.
+    qualify_folder_delete(engine, account, probe_folder, ref)
     engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "folder probe recorded; SMTP self-probe follows", outcome="started")
     comp = mail.compose({"account": account_id, "to": [account["addresses"][0]], "subject": "AresOS onboarding self-probe", "text": "Synthetic setup check. No reply needed."})
     approval = engine.reserve("mail", "send", comp)["approval"]

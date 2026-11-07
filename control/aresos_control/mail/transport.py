@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import base64
 import imaplib
 import os
 import re
@@ -32,9 +33,20 @@ def ok(response, purpose):
     return response[1]
 
 
+def nonempty_refusal(response):
+    if response[0] != "NO":
+        return False
+    text = b" ".join(row for row in response[1] if isinstance(row, bytes)).upper()
+    codes = re.findall(rb"\[([A-Z0-9-]+)(?:[^\]]*)\]", text)
+    # CANNOT alone is generic too; require explicit nonempty semantics as well.
+    return (all(code == b"CANNOT" for code in codes)
+            and bool(re.search(rb"NON[- ]?EMPTY|NOT EMPTY|CONTAINS MESSAGES|HOLDS MAIL", text)))
+
+
 class Transport:
     def __init__(self, password_dir):
         self.password_dir = password_dir
+        self.secrets = set()
         password_dir.mkdir(mode=0o700, exist_ok=True)
         os.chmod(password_dir, 0o700)
 
@@ -49,6 +61,7 @@ class Transport:
                 value = stream.read(8193)
                 if not value or len(value) > 8192:
                     raise OSError()
+                self.remember(account["username"], value)
                 return value
         except OSError as exc:
             raise Refused("account_password", "Service password is missing, unreadable or not private; owner must add the account again over admin.sock.") from exc
@@ -70,6 +83,25 @@ class Transport:
             if os.path.exists(name):
                 os.unlink(name)
 
+    def remember(self, username, password):
+        values = [password, "\0" + username + "\0" + password, username + "\0" + username + "\0" + password]
+        self.secrets.add(password)
+        self.secrets.add(password.replace("\\", "\\\\").replace('"', '\\"'))
+        for value in values:
+            self.secrets.add(base64.b64encode(value.encode()).decode())
+
+    def scrub(self, value):
+        if isinstance(value, str):
+            for secret in sorted(self.secrets, key=len, reverse=True):
+                if secret:
+                    value = value.replace(secret, "[credential removed]")
+            return value
+        if isinstance(value, list):
+            return [self.scrub(v) for v in value]
+        if isinstance(value, dict):
+            return {self.scrub(k): self.scrub(v) for k, v in value.items()}
+        return value
+
     @contextmanager
     def imap(self, account):
         client = None
@@ -82,6 +114,8 @@ class Transport:
                 # Read HIGHESTMODSEQ where available; full re-reads remain authoritative.
                 client.enable("QRESYNC" if "QRESYNC" in client.capabilities else "CONDSTORE")
             yield client
+        except imaplib.IMAP4.error:
+            raise Refused("imap_error", "IMAP command failed; inspect operation status before repeating changes. No automatic retry.") from None
         finally:
             if client is not None:
                 # LOGOUT never expunges; CLOSE does. UNSELECT where supported.
@@ -90,7 +124,10 @@ class Transport:
                         client.unselect()
                     client.logout()
                 except (OSError, imaplib.IMAP4.error):
-                    client.shutdown()
+                    try:
+                        client.shutdown()
+                    except OSError:
+                        pass
 
     @contextmanager
     def smtp(self, account):
@@ -108,6 +145,13 @@ class Transport:
                 raise Refused("refused", "Only implicit TLS or required STARTTLS submission is supported.")
             client.login(account["username"], self.password(account))
             yield client
+        except smtplib.SMTPResponseException as exc:
+            # Retain DATA's numeric refusal evidence, never its untrusted response text.
+            raise type(exc)(exc.smtp_code, b"SMTP command refused; inspect operation status.") from None
+        except smtplib.SMTPException as exc:
+            if isinstance(exc, smtplib.SMTPNotSupportedError):
+                raise smtplib.SMTPNotSupportedError("Required SMTP capability unavailable; no plaintext fallback.") from None
+            raise smtplib.SMTPException("SMTP transport failed; inspect operation status. No automatic retry.") from None
         finally:
             if client is not None:
                 # A QUIT failure cannot change a recorded successful DATA answer.

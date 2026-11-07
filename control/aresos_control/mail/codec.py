@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 from ..common import Refused, sha256
 
 SMTP_POLICY = policy.SMTP.clone(cte_type="7bit", max_line_length=78)
+AUTHORED_HEADER = "X-AresOS-Authored"
 
 
 def parse(raw):
@@ -133,6 +134,39 @@ def body(msg):
         return text_part(msg)
     selected = msg.get_body(preferencelist=("plain", "html"))
     return text_part(selected) if selected is not None else ""
+
+
+def approval_texts(msg, authored=False):
+    """Markers travel with MIME bytes, including through IMAP COPY/MOVE and nesting."""
+    authored = authored or AUTHORED_HEADER in msg
+    if msg.is_multipart():
+        return [text for child in msg.get_payload() for text in approval_texts(child, authored)]
+    if (msg.get_filename() or "").lower().endswith(".eml"):
+        return approval_texts(parse(decoded(msg)), authored)
+    if authored and msg.get_content_type() in {"text/plain", "text/html"}:
+        return [text_part(msg)]
+    return []
+
+
+def without_bcc(raw):
+    msg = parse(raw)
+    changed = False
+    for part in msg.walk():
+        for header in ("Bcc", "Resent-Bcc"):
+            if header in part:
+                del part[header]
+                changed = True
+        # Our attached .eml files use octet-stream to freeze their wire bytes.
+        if not part.is_multipart() and (part.get_filename() or "").lower().endswith(".eml"):
+            data = decoded(part)
+            clean = without_bcc(data)
+            if clean != data:
+                del part["Content-Transfer-Encoding"]
+                part.set_payload(clean)
+                from email.encoders import encode_base64
+                encode_base64(part)
+                changed = True
+    return msg.as_bytes(policy=SMTP_POLICY) if changed else raw
 
 
 def timestamp(msg):
