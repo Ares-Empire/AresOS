@@ -213,3 +213,8 @@ tasks at any time.
 - **2026-11-07, 12:20:** re-check 7 recommends the local checkpoint (narrower Chrome rejected: an allowance can't tell
   competing bodies apart; a patched Chromium is a maintained browser fork). Owner asked (#68). Brief 17e (check of the
   checkpoint and its cost) running meanwhile, so the answer comes with numbers.
+- **2026-11-07, 12:45:** brief 19 (Mail, PR #9): 26 tools, 57 base and 75 Mail tests green twice, 89 crash cases.
+  Three fix rounds closed every finding except one area: an attached mail can still carry the owner's Bcc through
+  odd MIME (a whitespace-only header line, a digest), and forwarded binary attachments got corrupted. A fourth round
+  rebuilds attached mails from a short list of allowed headers, adds an independent final scan before sending, and
+  keeps binary parts byte-exact. Re-check question #68 replaced by #69 (three options, after 17e's numbers).
