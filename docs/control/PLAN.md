@@ -69,9 +69,11 @@ Three places, each with one job:
      extension attaches to an already-open, signed-in tab with no debugging port; pages read as structure with
      positions; filling and clicking work; form posts, fetches, beacons and autosave are held until approved. Not
      held: a service worker's own requests and WebSocket messages; and a disconnect let a held request go.
-   - **S2b, Chrome (brief 17b, running):** service workers, holding that fails closed when control breaks, long holds
-     while the owner answers on the phone, the extension installed by policy, the Claude tab group, the typed-text
-     rule against public sites.
+   - **S2b, Chrome (brief 17b):** done 2026-11-07 ([report](../../reviews/17b-chrome-holds/REPORT.md), PR #4). A
+     request paused inside Chrome leaks when the extension is reloaded, updated, disabled or detached, so sends are
+     failed at once and repeated exactly once after approval ("fail, then repeat"). Service workers are held by
+     attaching to them. Installed by policy, the extension can't be switched off, but Chrome hides its debugging
+     bar, so the extension shows its own sign and Stop button.
    - **S2c, Chrome (brief 17c, after 17b, alongside brief 18):** holding messages on live connections in pages and
      workers; tracing each request's cause through timers, promises and workers back to Claude's input; guard mode
      for same-site tabs and workers outside the group; how much background and reading-through-POST everyday sites

@@ -1,13 +1,13 @@
 # The control layer: design
 
-**Status:** draft 6, 2026-11-07; the frontier reviewer's last check says ready for brief 18
-([`RECHECK-5`](../../reviews/control-design/2026-11-07-RECHECK-5.md)). Covers the shared base, Mail and Chrome. Revised after the frontier review
-([`2026-11-07-REVIEW.md`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking findings) and its re-check
-and re-checks ([`RECHECK`](../../reviews/control-design/2026-11-07-RECHECK.md),
-[`RECHECK-2`](../../reviews/control-design/2026-11-07-RECHECK-2.md),
-[`RECHECK-3`](../../reviews/control-design/2026-11-07-RECHECK-3.md),
-[`RECHECK-4`](../../reviews/control-design/2026-11-07-RECHECK-4.md): the owner's Chrome confirmation, specified here). Chrome rests on brief 17's check; points marked *17b* and
-*17c* are checked next.
+**Status:** draft 7, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
+([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
+[3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
+[5](../../reviews/control-design/2026-11-07-RECHECK-5.md)) ended at "ready for brief 18" on draft 6. Draft 7 adds
+brief 17b's Chrome results (section 6: fail, then repeat; the policy install; the owner's own stop control; service
+workers); the reviewer checks those with brief 17c's results before the Chrome build. Points marked *17c* are
+checked next.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps
@@ -233,24 +233,31 @@ password is sent.
 
 ## 6. Chrome
 
-Built on brief 17's check: branded Chrome stable 157 on GitHub's Linux machines, synthetic profile and fixture sites
-([report](../../reviews/17-chrome-check/REPORT.md), PR #3). What the check showed is marked *checked*; what brief 17b
-still has to show is marked *17b*.
+Built on briefs 17 and 17b: branded Chrome stable 157 on GitHub's Linux machines, synthetic profiles and fixture sites
+([17 report](../../reviews/17-chrome-check/REPORT.md), PR #3; [17b report](../../reviews/17b-chrome-holds/REPORT.md),
+PR #4). What the checks showed is marked *checked*; what brief 17c still has to show is marked *17c*.
 
 ### How the tool reaches Chrome
 
-- **Our own small extension** (Manifest V3, using `chrome.debugger`), installed by the image through Chrome's managed
-  policy, so it can't be removed or swapped from the profile. Chrome starts its **native messaging host**, registered
-  system-wide under `/etc/opt/chrome/native-messaging-hosts/`; the host only relays between the extension and the
-  service's `chrome.sock`. *Checked:* attaches to a tab that was opened and signed in before the tool started, with
-  no debugging port and Chrome's sandbox on. `--load-extension` no longer works in branded Chrome; the policy install
-  route is *17b*.
+- **Our own small extension** (Manifest V3, using `chrome.debugger`), installed and updated by the image through
+  Chrome's `ExtensionInstallForcelist` policy with a local update manifest: the owner can't disable or remove it, and
+  a new version arrives through the manifest (*checked*). It has no `management` permission (with it, an extension
+  can disable itself, which released a held request: *checked*), and developer mode is off by policy so nobody
+  reloads it by hand. Chrome starts its **native messaging host**, registered system-wide under
+  `/etc/opt/chrome/native-messaging-hosts/`, with the `NativeMessagingUserLevelHosts` policy off: otherwise a
+  user-level registration of the same name wins (*checked*). The system manifest and the host program are root-owned
+  in the image. The host only relays between the extension and the service's `chrome.sock`. *Checked:* attaches to
+  a tab that was opened and signed in before the tool started, with no debugging port and Chrome's sandbox on.
+  Claude in Chrome's extension (`fcoeoabgfenejglbffodgkkbkcdhcgfn`) is blocked by `ExtensionInstallBlocklist`
+  (*checked*).
 - **Rejected:** Chrome's own consent attach (`chrome://inspect`) opens a debugging listener on port 9222 that stays
   on after a restart (*checked*), against the owner's no-debugging-port rule. Playwright's bridge extension works,
   but any local program that finds its endpoint can drive the page (*checked*); our own extension keeps that channel
   inside the service.
-- While Claude controls a tab, Chrome shows its "started debugging this browser" bar. Pressing Cancel there ends
-  Claude's control at once (what that does to a held send: see "Fail closed").
+- **The owner always sees and can stop it.** Chrome hides its "started debugging this browser" bar for a
+  policy-installed extension (*checked*), so the extension shows its own: the Claude tab group's colour, a badge on
+  its toolbar button while Claude is working, and in its popup a **Stop** button that fails everything held, then
+  ends control. Stopping never sends anything.
 - The host runs as the owner's user, like Chrome. A program running as the owner outside the sandbox could pretend
   to be it (*checked*); that is the desktop trust model of section 2. Claude can't, because its terminal is
   sandboxed and its file tools can't write the places that start programs (section 7).
@@ -367,10 +374,28 @@ never after drop, for posted forms, search forms, `fetch` and XHR posts, beacons
 site, link pings and a data-bearing image. *17c:* tracing causes through timers, promises and workers, with no
 request of Claude's ever counted as the page's own.
 
+**How a send is held, in practice (17b).** A request paused inside Chrome is not safe to keep while the owner decides:
+when the extension is reloaded, updated, disabled or detached, Chrome lets a paused request go, and a blocking rule
+added beforehand doesn't stop it (*checked*). So the baseline is **fail, then repeat**:
+
+- The request is stopped and failed at once; its exact content is captured, and that capture is what the owner's
+  prompt shows. The page sees an ordinary failed send.
+- After approval, the service grants one allowance for exactly that request (method, full address, body and a hash of
+  its headers) and Claude repeats the action; the first matching request goes out, once, and the allowance is used
+  up. A repeat that differs in anything, including a changing token or timestamp, is refused (*checked* on fixtures
+  and a public demo form, aborted). No field is ever ignored automatically.
+- Sites whose requests change on every attempt need a site adapter to describe and repeat the operation, or the
+  owner's approved input instead (`chrome_submit_input` rules).
+- What this costs: the page shows a failed send before the approved one, and some sites lose a draft or token on a
+  failed send. *17c* tests holding the send inside the page instead (the page's own send functions wrapped before its
+  scripts run, so no request exists until approval and nothing can leak when the extension stops), which would bring
+  back an ordinary waiting page on honest sites, with fail-then-repeat as the catch-all for anything the wrap misses.
+
 Outcomes follow rule 4.3: the site's answer is recorded but doesn't prove the business step worked (`done` means the
 site accepted the request); the page gave up waiting or the tab closed before release is `failed`; the connection
-broke after release is `unknown`. How long a held send survives while the owner answers on the phone, and what common
-pages do meanwhile, is *17b*.
+broke after release is `unknown`. Chrome kept an ordinary request paused for ten minutes and then delivered it once,
+but pages give up on their own timeouts (*checked*); under fail-then-repeat the owner's approval waits on the
+captured request, not on the page.
 
 **What Claude may open freely, and data leaving.** A *site* is a registrable domain by the Public Suffix List
 (including its private part, so every `*.github.io` page is its own site), and areas of big platforms where anyone
@@ -446,10 +471,13 @@ tool-user rounds show where they are needed.
   the account, the conversation or target and the text: then `chrome_submit_input` does them as one asking step with
   that description, after re-checking it right before acting. Usually reloading the page brings the message hold
   back. *Checked:* holding the key press gave zero arrivals until approval and exactly one after.
-- **Service workers:** requests a site's service worker sends were not held (*checked*), and requests a page sends
-  through its service worker may be invisible to the tab's hold. *17b:* hold at the worker itself, and let the
-  controlled tab bypass its service worker. Until that passes, a page under a service worker is treated like a page
-  without the message hold.
+- **Service workers:** the tool attaches to the site's service worker itself, which holds what the page sends through
+  the worker, what the worker sends on its own, and background sync (*checked*). Telling the tab to bypass its worker
+  also works but breaks features that only the worker provides (*checked*), so it isn't used. A worker can serve the
+  owner's own tabs too, so its site is guarded as in "Other tabs of the same site". Failing a request doesn't cancel
+  what the site queued: background sync retried a rejected request five minutes later (*checked*), so exact repeats
+  of a dropped request are refused at once, and that list is kept across restarts with the site guard. *17c:* new
+  and replaced workers caught before their first request, and workers shared between tabs.
 - **A site that changes something with a plain GET** (against the web's rules, rare on reputable sites) can't be told
   from reading without knowing the site; and **a site that hides what it sends** (encrypts typed text before sending
   it) defeats the typed-text match, though its other requests after Claude typed are still held. Both are why new
@@ -457,13 +485,13 @@ tool-user rounds show where they are needed.
 
 ### Fail closed
 
-A held send must never go out because control broke. *Checked:* when the controller disconnected, Chrome let the
-held request go, on all three routes. Required: the extension keeps holding and drops what it held when the service
-or the host goes away; a held send outlives neither its page nor a time limit (then it is dropped, never sent); and
-for the ways control ends that the extension doesn't choose (Cancel on the bar, DevTools opened, the extension
-updated or crashed, Chrome closed), *17b* tests a backstop that blocks the held request first. If no backstop holds,
-the fallback is "fail, then repeat": the request is stopped and failed at once, and after approval the action is done
-again and only the matching request goes out. The Chrome part isn't finished until one of the two passes.
+A held send must never go out because control broke. With fail-then-repeat nothing is paused inside Chrome, so
+there is nothing for a reload, update, disable or detach to release. Checked separately: when the host or the
+service's socket went away, or the extension's worker crashed, held requests were failed, not sent; Chrome closing
+sent nothing; DevTools opened beside the tool didn't end control. A held request whose page or tab goes away, or
+whose time runs out, is dropped, never sent. Live-connection detection after a re-attach uses Chrome's own event
+stream plus a per-page inventory of open connections (*checked* on fixtures); where that inventory can't be complete,
+the page counts as one where the message hold isn't in place.
 
 ### Tests
 
