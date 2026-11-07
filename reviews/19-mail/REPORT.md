@@ -2,19 +2,26 @@
 
 Builds on draft PR #6. No merge, force push, real account or model run.
 
+Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
+[REVIEW-3.md](REVIEW-3.md), [REVIEW-4.md](REVIEW-4.md),
+[REVIEW-5.md](REVIEW-5.md), [REVIEW-6.md](REVIEW-6.md),
+[REVIEW-7.md](REVIEW-7.md), and [SECURITY-REVIEW.md](SECURITY-REVIEW.md).
+
 ## For the owner: decisions before merge
 
 **read — still-open JUDGMENT-CALLs and PLAN-GAPs across all rounds:**
 
 - **Draft revisions and deletion:** editing or sending keeps the old draft, so revisions can accumulate. This keeps every deletion behind its own named approval; silently replacing or removing drafts was rejected.
 - **Conservative draft protection:** draft text, including quoted history, must fit wholly in approval; any part of a draft, even a binary file, refuses attachment, and older marked Sent copies get the same protection. A narrower policy could allow more attachments and long threads, but would need a reliable way to distinguish who wrote each part; Drafts now also refuses move/copy, while sending itself, forwarding inline and approved deletion remain the routes out.
+- **Saving draft attachments:** Claude cannot save any draft part or its source to your folders, even a PDF. Save draft attachments in your mail program, or have Claude send the draft itself with `mode=draft`; allowing exports would require reliable provenance on decoded files and full disclosure on reimport.
+- **Changed special folders:** if Sent, Drafts, Trash, Junk or Archive is missing, duplicated or changes on the server, mail changes stop until you fix the server roles and review/record them with `sudo aresos admin mail account_folders`. Earlier Trash and Drafts folders stay protected after that refresh; automatically accepting changed roles or unprotecting the old folders was rejected because it can let drafts escape or turn a free move into deletion.
 - **Forwarded mail is a file:** attached forwarding sends a rebuilt `.eml` file that recipients may need to save and open, and drops private or unlisted headers while preserving decoded binary files. Native inline attached-mail presentation and original header bytes were rejected to keep the approved bytes exact and private recipients protected; recipient-program presentation remains untested.
 - **Saved mail files:** attaching a saved `.eml` or `.msg` from your folders is refused, even if harmless; forward the mail itself or use its exact mail reference. Allowing local saved mail would need a different provenance and disclosure policy.
 - **Ordinary local files and timestamps:** local files show their path, name, size, hash and last change time, but that time does not prove authorship, and Claude-written file text can still travel without appearing in the prompt. Showing text-like files wholly in approval is the unresolved alternative; this run deliberately leaves that design question open.
 - **Strict content refusals:** malformed or unsupported mail and even a literal `Bcc:` line in a text file can refuse attachment. Guessing encodings, trusting file labels or silently editing that text was rejected; support for additional cases needs tests for both the builder and the final check.
 - **Size and performance limits:** very large messages, threads and folders may refuse: files cap at 25 MiB, encoded mail at 64 MiB, approvals at 16 KiB and history scans at 10,000 messages, with bounded pages and nesting. Smaller selected folders are the current choice over unlimited scans; a durable incremental index and large-account performance work remain deferred.
 - **Sent setup:** when a short probe finds no Sent copy, setup asks you to confirm whether the client or server saves it rather than guessing from absence. Automatic negative detection would need a proven time bound for the real account.
-- **Folder deletion:** tools delete empty folders only if onboarding proves the server blocks deletion when mail arrives; neither test server qualifies on its own. Until the real account qualifies, delete folders in your mail program rather than relying on a race-prone tool check.
+- **Folder deletion:** deletion only runs where the server refuses to delete a folder that holds mail, so no mail can be lost. If another mail program renames the approved empty folder and creates a new empty one with the same name in the same instant, the new empty one is deleted instead; the alternative is to remove folder deletion from the tools. Neither test server qualifies on its own, so the real account's guard still needs your check.
 - **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
 - **Approval format:** send and delete use the existing base approval format, with one reserved operation identifier and its complete description, unchanged through submission. A separate mail-specific format was rejected to keep callers and approval checks compatible.
 
@@ -23,6 +30,195 @@ Builds on draft PR #6. No merge, force push, real account or model run.
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 7
+
+**read — Done / scope:** implements `briefs/19-review-fixes-7.md`, findings
+1, 2, 3 and 5 of [SECURITY-REVIEW.md](SECURITY-REVIEW.md). Finding 4 remains
+an owner decision below, as the brief directs; no attempt is made to close its
+identity race with another non-atomic check. The security review and all earlier
+`REVIEW*.md` files are untouched.
+
+1. **Fresh special folders:** `mail/roles.py` resolves unique, selectable current
+   Sent, Drafts, Trash, Junk and Archive roles plus INBOX. `adapter.py` compares
+   those roles and the delimiter with owner setup before moves/copies, deletes,
+   draft save, folder changes, each draft-protection decision and send preflight,
+   including Sent evidence, the last pre-DATA check and Sent repair/copy. A
+   missing, ambiguous, unselectable or different mapping refuses with the owner
+   setup command. `mail_account_folders` is owner-only on `admin.sock`: first
+   inspect escaped current roles, then repeat with their `roles_hash`; changed
+   proposals refuse, no account re-add or probe mail occurs, and old Trash/Drafts
+   roots and their original delimiters stay protected. Onboarding also requires
+   complete roles rather than recording an ambiguous/partial configuration.
+2. **No draft export:** `mail_attachment_save` refuses every draft part and its
+   source before storing export bytes or writing a caller file, using fresh roles,
+   the marker and exact-reference IMAP Draft flags. Nested/ancestor provenance is
+   inspected too. The error names saving in the owner's mail program and sending
+   the draft itself with `mode=draft`. Ordinary received/sent exports retain their
+   original bytes after safe inspection. This closes the exact decoded-body route,
+   without implementing the deferred ordinary-local-file policy.
+3. **Approved headers are sent headers:** `codec.py` refuses encoded-word syntax,
+   C0/C1 controls and the brief's listed bidi/invisible characters in authored
+   subjects and names; original parsed headers are decoded Unicode before storage,
+   and derived formatting characters remain escaped in approval. Names appear
+   beside explicit addresses. `guard.py` independently parses the exact wire
+   Subject/From/To/Cc, compares decoded subject, display names and addresses against
+   the immutable composition, and compares the full SMTP envelope with approved
+   To/Cc/Bcc. It shares no builder decisions or helpers. Checks run at composition
+   and on the bytes immediately before DATA; mismatch fails without submission and
+   cannot submit on replay. Threading headers also reject controls.
+4. **Audit trust:** Mail change summaries are fixed service text, with references,
+   folder/file names and other external values in structured escaped
+   `untrusted_content`. The shared `Store.write` accepts that optional metadata;
+   Mail's compact independent-record descriptions also mark external values.
+   Brief 18's `engine.py` needs the small stage/file-save/log changes because those
+   common paths otherwise turn recipient stage keys, caller paths and historical
+   Mail summaries into trusted free text. `control_log` and the CLI preserve the
+   marking, including on historical Mail summaries; other apps' stage behavior is
+   unchanged. No base test is edited.
+
+**read — tests proving each rule** (`control/mail_tests/test_review_fixes_7.py`):
+
+| Test | Coverage |
+| --- | --- |
+| `test_review7_real_dovecot_trash_role_change_blocks_old_new_destinations_then_owner_refresh` | Dovecot changes its actual LIST Trash role over the same user storage; move/copy into new and old Trash refuses, server UID/byte/flag state stays unchanged and zero approvals are reserved; owner hash review/record restores ordinary moves; both protected Trash roots refuse free entry; approved delete alone reaches NewTrash. |
+| `test_review7_real_dovecot_drafts_role_change_protects_both_sources_and_exports` | Actual LIST Drafts reassignment; old/new unmarked drafts refuse move/copy, attaching source/parts and export, with unchanged server state; old/new roots stay protected after owner refresh and ordinary moves work. |
+| `test_review7_missing_ambiguous_roles_and_sent_change_refuse_all_change_preflights` | Missing/duplicate Trash and changed Sent refuse move/copy, compose, draft-save, export, folder create/rename/delete and approved delete/send before mutation/DATA; owner setup cannot record incomplete roles. |
+| `test_review7_exact_draft_decoded_body_export_route_real_proxy_no_file_no_smtp` | Compose long draft → save → real proxy export part 1/source refuses and writes no file; reattach missing path fails; no operation or SMTP delivery. |
+| `test_review7_draft_html_pdf_marker_flag_and_received_parts_through_proxy` | Every MIME path, HTML, PDF and source refuses for Drafts, a flagged INBOX message and a marked Archive message; no caller file; ordinary received PDF saves byte-exactly and server flags/bytes remain unchanged. |
+| `test_review7_headers_reject_security_review_inputs_and_show_derived_names_exactly` | Review's Base64 subject, encoded CR/LF subject/name, RLO authored name and encoded sender/Bcc refuse; reply subject/name decode, derived RLO is escaped, homoglyph name appears with its address and arrives unchanged; derived C0/C1 subjects refuse. |
+| `test_review7_wire_subject_bypass_fails_compose_and_before_data_without_replay` | Builder bypass with decoded subject different from approval refuses compose/prepare, fails the send and replay without DATA; bypassing the first check also fails the independent final boundary. |
+| `test_review7_hostile_message_id_is_structured_escaped_in_control_and_cli_log` | A hostile Message-ID with instruction text, C0, C1 and RLO is flagged through the real proxy; actual CLI log and cross-app control log show it only in marked escaped fields, never a free-text summary. |
+| `HeaderRules7.test_review7_written_headers_refuse_encoded_words_controls_and_formatting` | Every prohibited control/formatting code point in subjects and display names, encoded words, derived-control refusal and literal homoglyph preservation. |
+| `HeaderRules7.test_review7_independent_guard_compares_decoded_headers_and_exact_envelope` | Exact decoded Subject, From/To/Cc names and addresses; wrong, missing, extra and reordered SMTP envelope recipients refuse independently. |
+| `HeaderRules7.test_review7_roles_reject_missing_ambiguous_unselectable_and_casefold_flags` | Missing, duplicate and Noselect roles refuse; flag matching is case-insensitive. |
+
+The Dovecot fixture reloads fixed disposable-server configurations for role
+changes, missing roles and duplicates against the same persisted user mailbox
+storage, then restores the default configuration after each such test.
+The tests assert Dovecot's LIST flags and actual UIDs/bytes/flags, rather than
+mocking the adapter's folder resolver. The GreenMail nonempty guard remains a
+test-only serialized frontend over real GreenMail storage; that frontend now
+supplies explicit roles for its role-less backend.
+
+**read — required earlier-test setup changes:**
+`ReviewFixes2.test_review2_1_saved_draft_and_bcc_sent_refused_through_real_proxy_even_renamed`
+and `ReviewFixes3.test_review3_1_export_punctuation_malformed_and_mbox_refused_by_real_proxy`
+now assert that draft export refuses/no file exists, then seed an owner-created
+file with those exact draft bytes to retain every local-import detection check.
+Sent exports and all their original byte/Bcc checks remain.
+`ReviewFixes3.test_review3_2_received_two_level_encoded_messages_in_all_composition_modes`
+now asserts nested-draft source export refuses and still checks exact original
+bytes through raw read; received source exports still check original bytes.
+`Changes.test_greenmail_nonempty_guard_and_delivery_during_folder_approval`
+keeps its GreenMail backend and every assertion, adding explicit selectable
+server-frontend roles at setup. `Changes.test_both_upstream_servers_allow_nonempty_delete_and_are_not_qualified`
+seeds the probe directly through owner IMAP because role-less GreenMail now
+refuses tool folder creation; all upstream deletion/guard assertions stay.
+No test is weakened, skipped or deleted; these are the setup/behavior changes
+forced by the new export and complete-role requirements.
+
+**JUDGMENT-CALL / read — folder identity race (finding 4):** folder deletion only
+runs where the server refuses to delete a folder that holds mail, so no mail can
+be lost. If another mail program renames the approved empty folder and creates a
+new empty one with the same name in the same instant, the new empty one is
+deleted instead. The alternative is to remove folder deletion from the tools.
+This round retains it as the brief directs; removing the action later would
+change the catalogue and generated docs and retire its approval path.
+
+**JUDGMENT-CALL / read — draft attachments cannot be saved by Claude:** even a PDF
+or other binary attachment of a draft refuses export. The owner uses his mail
+program to save it, or Claude sends the draft itself with `mode=draft` under the
+existing draft rules. Allowing exports would require reliable decoded-file
+provenance and a disclosure policy for reimport; checking names or extensions
+was rejected because the review's exact plain-text route defeats them.
+
+**JUDGMENT-CALL / read — conservative role refresh:** require all five SPECIAL-USE
+roles and retain former Trash/Drafts protection after owner refresh. Supporting
+partially configured accounts or unprotecting former roots would be more
+permissive, but risks free deletion or losing draft provenance; changing it later
+needs an explicit migration/provenance rule and regression coverage. The two-step
+owner command can restore the current mapping by restoring server roles and
+reviewing them again; remembered protections would need an explicit future
+migration to remove. Recording roles does not enable incomplete onboarding.
+
+**PLAN-GAP / read:** the ordinary caller-file authorship question remains open,
+as listed for the owner. Finding 4 is deliberately retained as a JUDGMENT-CALL;
+no other feature/design gap is pursued in this round.
+
+**Not verified / assumed:** real-account onboarding and role setup, approvals on
+terminal/phone, the seven everyday tasks and recipients' `.eml` presentation need
+the owner's checks listed above. No real account or model was used.
+
+**Open questions:** the owner decisions above, especially retaining folder
+deletion and refusing all draft exports, remain before merge.
+
+**run — local verification:**
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests python3 -m unittest test_review_fixes_7.HeaderRules7 test_review_fixes_5.DraftAndTextGuard test_review_fixes_4.RebuildAndGuard test_review_fixes_3.HeaderAndEncoding test_review_fixes_2.LocalMailDetection -q`
+printed `Ran 17 tests in 0.140s` / `OK`. `python3 control/generate.py --check`
+printed `Generated artifacts match definitions`; syntax parsing and the six
+Dovecot fixture configuration checks printed
+`Python syntax and all Dovecot role configurations OK`; `bash -n control/ci/mail/run.sh`
+and `git diff --check` were silent. Docker locally printed `Cannot connect to
+the Docker daemon`; real server/container evidence comes only from GitHub.
+
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control python3 .work/round7/baseline-check.py`
+loaded `ec4a8bba`'s actual codec and adapter in memory and compared current decisions.
+It printed `Baseline accepts concealed encoded-word subject; current refuses`,
+`Baseline exports 23002 draft-body bytes; current refuses before writing a blob`,
+and `Baseline promotes a hostile Message-ID into audit summary; current keeps structured metadata`.
+These are local decision comparisons, not real-proxy/server evidence.
+
+**run — initial executions and corrections:** last initial test commit `cecf6ff8`:
+Mail push [42381322641](https://github.com/Ares-Empire/AresOS/actions/runs/42381322641)
+printed `Ran 57 tests in 38.582s` / `OK` / `Control base suite PASS`, then
+`Ran 118 tests in 312.232s` / `FAILED (failures=14, errors=1)`;
+Mail PR [42381328230](https://github.com/Ares-Empire/AresOS/actions/runs/42381328230)
+printed `Ran 118 tests in 316.016s` / the same failures and error. Independent base
+[42381328212](https://github.com/Ares-Empire/AresOS/actions/runs/42381328212)
+printed `Ran 57 tests in 47.787s` / `OK` / `Control base suite PASS`.
+The new SNI fixture did not change Dovecot's storage roles, caught by three new
+role-test methods (14 assertion/subtest failures); it now reloads real fixture
+configuration and proves readiness with fresh LIST, then restores default LIST
+before teardown. The earlier restore test found that structured compact Mail
+records had hidden its historical top-level recipient field: restore now preserves
+that status shape while retaining marked compact evidence. The existing crash
+assertions were not changed. Importing a TestCase directly also accidentally
+rediscovered four earlier methods; using its module-qualified helper removes
+those duplicate executions, keeping all 103 original methods plus 11 new methods.
+Derived attachment filename formatting is now escaped in approval, with a new
+assertion; derived subject formatting is checked too.
+
+**run — last code/test commit `41b781fa4f281cd906247bca385fc34edae8b8bc`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail push 42382284217](https://github.com/Ares-Empire/AresOS/actions/runs/42382284217) | `Ran 57 tests in 47.971s`; `OK`; `Control base suite PASS`; `Ran 114 tests in 308.269s`; `OK`; `Control Mail suite PASS` |
+| [Mail PR 42382289517](https://github.com/Ares-Empire/AresOS/actions/runs/42382289517) | `Ran 57 tests in 43.168s`; `OK`; `Control base suite PASS`; `Ran 114 tests in 297.569s`; `OK`; `Control Mail suite PASS` |
+| [Independent base 42382289552, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42382289552/attempts/1) | `Ran 57 tests in 42.503s`; `OK`; `Control base suite PASS` |
+| [Independent base 42382289552, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42382289552/attempts/2) | `Ran 57 tests in 36.897s`; `OK`; `Control base suite PASS` |
+
+Both Mail passes run `bash control/ci/mail/run.sh`: generated-artifact verification,
+all 57 unchanged brief-18 base tests, isolated pinned real servers and all 114 Mail
+tests (103 earlier methods and 11 new ones). Both print
+`Mail delete kill-9 cases: 26; unnamed Deleted messages survive`,
+`Mail send kill-9 cases: 45; no repeated SMTP DATA`, and
+`Mail reservation/repair kill-9 cases: 16; no SMTP during repair/restart`.
+Both independent base attempts run `bash control/ci/test.sh` in pinned Fedora.
+
+Any later commit changes only files under `reviews/`; this run's closing commit
+changes only `reviews/19-mail/REPORT.md`. The PR body records both workflows and
+both passes on the final head. The three initial executions and four corrected-code
+executions are listed above; correcting the initial run accounts for going slightly
+beyond the approximate ten-run target when the final report head is checked too.
+
+**run — closing checks:** syntax-tree comparison printed
+`All 103 earlier Mail test methods retained; 11 new methods`.
+The scope check printed `Protected-path and review-file check PASS`;
+`git diff --check` was silent. The size scan printed
+`Remaining .work files over 500 MB: []`; no large download or extracted image was
+created. Every push used the normal privacy hook, without force push or
+`--no-verify`, and every run commit includes the required model trailer.
 
 ## Review fixes, round 6
 
