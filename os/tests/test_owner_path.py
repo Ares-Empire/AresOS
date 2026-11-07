@@ -450,6 +450,10 @@ class OwnerPathTest(unittest.TestCase):
         for term in ('seating and battery photos','firmware screen showing both drives',
                      'after-fit','2026-11-09','qualified repairer first'):
             self.assertIn(term,fitting)
+        # The negative fitting trials stay visible until the maintainer checks their results.
+        for term in ('Expendable fitting trial','Damaged-battery photograph','**before screw**',
+                     '**before connectors/reconnection**'):
+            self.assertIn(term,fitting)
         gates=('Media pins','LOQ shortcuts and recovery menu','Live KDE / installed keyboard',
                'Tools-stick physical lifecycle','NVIDIA deferred Flatpak work',
                'Windows record helper / independent undo','Token retirement','Early hardware / P1a')
