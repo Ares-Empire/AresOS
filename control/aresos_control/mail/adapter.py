@@ -235,13 +235,18 @@ class Mail:
             if part is None:
                 raise Refused("stale_reference", "MIME part is stale, read again.")
             data, name, content_type = codec.decoded(part), part.get_filename() or "attachment", part.get_content_type()
-            if outgoing and part.is_multipart() and content_type != "message/rfc822":
-                data = part.as_bytes(policy=codec.SMTP_POLICY)
         node = m["msg"] if args["part"] == "source" else part
-        mail_source = (args["part"] == "source" or node.is_multipart() or content_type == "message/rfc822"
+        mail_source = (args["part"] == "source" or node.is_multipart() or content_type.startswith("message/")
                        or name.lower().endswith(".eml") or codec.is_mail(data))
-        if outgoing and mail_source:
-            data = codec.without_bcc(data)
+        if outgoing:
+            if args["part"] == "source":
+                data = codec.without_bcc(data)
+                node = codec.parse(codec.mail_content(data))
+            else:
+                # Inspect the wrapper before decoding: email's tree can hide an encoded message.
+                clean = codec.without_bcc(node.as_bytes(policy=policy.default.clone(linesep="\r\n", cte_type="8bit")))
+                node = codec.parse(clean)
+                data = clean if node.is_multipart() or content_type.startswith("message/") else codec.decoded(node)
         item = {"sha256": self.blobs.put(data), "size": len(data), "name": name, "type": content_type,
                 "source": {"reference": args["reference"], "part": args["part"]}}
         if outgoing and mail_source:
@@ -367,7 +372,7 @@ class Mail:
                 att = {**item, "type": "application/octet-stream"}
             attachment_refs.append(att)
         for att in attachment_refs:
-            if att["type"] == "message/rfc822" or att["type"].startswith("multipart/"):
+            if att["type"].startswith(("message/", "multipart/")):
                 att["source_type"], att["type"] = att["type"], "application/octet-stream"
         mail = {"account": account["id"], "from": sender, "to": to, "cc": cc, "bcc": bcc,
                 "subject": codec.clean_header(subject), "text": args.get("text", ""), "format": args.get("format", "formatted" if any(p["kind"] == "draft_html" for p in generated) else account["format"]),
@@ -380,6 +385,7 @@ class Mail:
         if mail["format"] == "formatted":
             codec.formatted(mail["text"])
         comp = {"id": uuid.uuid4().hex, "hash": digest(mail), "mail": mail}
+        self.check_mime(comp, self.mime(comp, self.message_id("0" * 32 + ":" + "0" * 32)))
         self.store.write({"mail:composition:" + comp["id"]: comp}, "mail_compose", "stored immutable composition " + comp["id"])
         return {"composition_id": comp["id"], "composition_hash": comp["hash"], "mail": visible(mail), "untrusted_content": {"derived_mail_fields": True}}
 
@@ -421,6 +427,21 @@ class Mail:
         if len(raw) > self.wires.limit:
             raise Refused("file_refused", "Encoded whole mail exceeds 64 MiB limit; reduce attachments.")
         return raw
+
+    def check_mime(self, comp, raw, draft=False):
+        from .guard import check
+        mail = comp["mail"]
+        text = mail["text"] + ("\n\n" + mail["signature"] if mail["signature"] else "")
+        generated = "".join(self.blobs.read(p["sha256"]).decode("utf8") for p in mail["generated_parts"] if p["kind"] != "draft_html")
+        draft_html = "".join(self.blobs.read(p["sha256"]).decode("utf8") for p in mail["generated_parts"] if p["kind"] == "draft_html")
+        if mail["format"] == "formatted":
+            plain, html = codec.formatted(text)
+            from html import escape
+            root_texts = [plain + generated, codec.html_text(html + draft_html if draft_html else html + ("<pre>" + escape(generated) + "</pre>" if generated else ""))]
+        else:
+            root_texts = [text + generated]
+        disclosed = [t for att in mail["attachments"] for t in att.get("authored_text", [])]
+        check(raw, root_texts, disclosed, draft)
 
     def message_id(self, operation_id):
         return "<" + operation_id.replace(":", ".") + "@mail.aresos.invalid>"
@@ -468,7 +489,7 @@ class Mail:
             if not comp["mail"]["to"] + comp["mail"]["cc"] + comp["mail"]["bcc"]:
                 raise Refused("invalid_input", "Composition has no recipients; compose with at least one recipient.")
             # Validate size and complete MIME before reserving; operation id is a fixed-size replacement.
-            self.mime(comp, self.message_id("0" * 32 + ":" + "0" * 32))
+            self.check_mime(comp, self.mime(comp, self.message_id("0" * 32 + ":" + "0" * 32)))
             description = {"action": "mail_send", "composition_id": comp["id"], "composition_hash": comp["hash"], **comp["mail"]}
             return description, {"composition": comp}
         if verb == "delete":
@@ -604,6 +625,7 @@ class Mail:
                     (accepted if code in {250, 251, 252} else refused).append(recipient)
                 if not accepted:
                     raise NothingLeft("All recipients refused; no DATA sent.")
+                self.check_mime(comp, raw)
                 stage("smtp_data", "attempting")
                 started_data = True
                 code, _ = smtp.data(raw)
@@ -741,6 +763,10 @@ class Mail:
                 connection.close()
         comp = payload["composition"]
         raw = self.mime(comp, self.message_id(operation["id"]))
+        try:
+            self.check_mime(comp, raw)
+        except Refused as exc:
+            raise NothingLeft("Outgoing MIME guard refused the exact wire bytes; nothing submitted.") from exc
         stage("message_id", self.message_id(operation["id"]))
         stage("wire_sha256", self.wires.put(raw))
         if comp["mail"]["bcc"]:
@@ -846,6 +872,7 @@ class Mail:
             if not folder or "UIDPLUS" not in account["capabilities"]:
                 raise Refused("unsupported_server", "Draft save needs SPECIAL-USE Drafts and UIDPLUS for exact APPEND reference.")
             raw = self.mime(comp, "<draft." + uuid.uuid4().hex + "@mail.aresos.invalid>", draft=True)
+            self.check_mime(comp, raw, draft=True)
             return {"reference": self.append(account, folder, raw, "(\\Draft)"), "previous_retained": args.get("previous"),
                     "next": "Delete previous only via named delete approval."}
         if verb in {"folder_create", "folder_rename"}:

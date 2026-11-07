@@ -1,4 +1,5 @@
 import base64
+import binascii
 from datetime import timezone
 from email import policy
 from email.parser import BytesParser
@@ -6,6 +7,7 @@ from email.utils import getaddresses, parsedate_to_datetime
 from html import escape
 from html.parser import HTMLParser
 import re
+import quopri
 from urllib.parse import urlsplit
 
 from ..common import Refused, sha256
@@ -31,12 +33,12 @@ def is_mail(raw):
     for line in mail_content(raw).splitlines():
         if not line.strip():
             break
-        match = re.match(rb"[ \t]*([A-Za-z0-9-]+):", line)
+        match = re.match(rb"[ \t]*([\x21-\x39\x3b-\x7e]+)[ \t]*:", line)
         if match:
             headers.add(match[1].lower())
-        elif not headers or line[:1] not in (b" ", b"\t"):
-            return False
-    return b"from" in headers and bool(headers & {b"date", b"subject", b"message-id", b"received", b"mime-version"})
+    return b"from" in headers and bool(headers & {
+        b"date", b"subject", b"message-id", b"received", b"mime-version",
+        b"bcc", b"resent-bcc", b"x-aresos-authored"})
 
 
 def clean_header(value):
@@ -113,7 +115,7 @@ class ReadableHTML(HTMLParser):
 
 def html_text(value):
     parser = ReadableHTML()
-    parser.feed(value)
+    parser.feed(value.replace("\r\n", "\n").replace("\r", "\n"))
     return re.sub(r"\n[ \t]*\n[ \t]*\n+", "\n\n", "".join(parser.text)).strip()
 
 
@@ -157,40 +159,103 @@ def body(msg):
     return text_part(selected) if selected is not None else ""
 
 
+def _transfer(msg, payload):
+    encoding = str(msg.get("Content-Transfer-Encoding", "7bit")).strip().lower()
+    try:
+        if encoding == "base64":
+            return base64.b64decode(re.sub(rb"[ \t\r\n]", b"", payload), validate=True)
+        if encoding == "quoted-printable":
+            if re.search(rb"=(?![0-9a-fA-F]{2}|\r?\n)", payload):
+                raise ValueError("broken quoted-printable")
+            return quopri.decodestring(payload)
+        if encoding in {"7bit", "8bit", "binary"}:
+            if encoding == "7bit" and not payload.isascii():
+                raise ValueError("non-ASCII 7bit payload")
+            return payload
+    except (ValueError, binascii.Error) as exc:
+        raise Refused("file_refused", "Broken mail transfer encoding; cannot inspect outgoing attachment safely.") from exc
+    raise Refused("file_refused", "Unknown mail transfer encoding; cannot inspect outgoing attachment safely.")
+
+
+def _outgoing(raw, authored=False, depth=0):
+    """Normalize encapsulated messages before trusting the parser's MIME tree."""
+    if depth > 40:
+        raise Refused("file_refused", "Mail nesting exceeds the safe inspection limit.")
+    content = mail_content(raw)
+    split = re.search(rb"\r\n\r\n|\n\n|\r\r", content)
+    head, payload = (content[:split.start()], content[split.end():]) if split else (content, b"")
+    continuation = False
+    for index, line in enumerate(re.split(rb"\r\n|\n|\r", head)):
+        if index == 0 and line.startswith(b"From ") and not re.match(rb"From[ \t]*:", line):
+            continue
+        if line[:1] in (b" ", b"\t") and continuation:
+            continue
+        if not re.fullmatch(rb"[\x21-\x39\x3b-\x7e]+:[^\r\n]*", line):
+            raise Refused("file_refused", "Mail has a defective header block; cannot inspect outgoing attachment safely.")
+        continuation = True
+    headers = BytesParser(policy=policy.default).parsebytes(head + b"\r\n\r\n", headersonly=True)
+    if headers.defects or any(value.defects for value in headers.values()):
+        raise Refused("file_refused", "Mail has a defective header block; cannot inspect outgoing attachment safely.")
+    for name in ("Content-Type", "Content-Transfer-Encoding", "Content-Disposition"):
+        if len(headers.get_all(name, [])) > 1:
+            raise Refused("file_refused", "Mail has ambiguous MIME headers; cannot inspect outgoing attachment safely.")
+    msg = parse(content)
+    authored = authored or AUTHORED_HEADER in headers
+    changed, texts = False, []
+    for name in ("Bcc", "Resent-Bcc"):
+        if name in msg:
+            del msg[name]
+            changed = True
+    major = headers.get_content_maintype()
+    encoding = str(headers.get("Content-Transfer-Encoding", "7bit")).strip().lower()
+    if major == "message":
+        if headers.get_content_type() not in {"message/rfc822", "message/global"}:
+            raise Refused("file_refused", "Unsupported encapsulated message type; cannot inspect outgoing attachment safely.")
+        data = _transfer(headers, payload)
+        clean, texts = _outgoing(data, authored, depth + 1)
+        if clean != data or encoding not in {"7bit", "8bit", "binary"}:
+            del msg["Content-Transfer-Encoding"]
+            msg.set_payload([parse(mail_content(clean))])
+            changed = True
+    elif major == "multipart":
+        if encoding not in {"7bit", "8bit", "binary"}:
+            raise Refused("file_refused", "Transfer-encoded multipart mail is unsupported; nothing can be sent unchecked.")
+        if msg.defects or not msg.is_multipart():
+            raise Refused("file_refused", "Broken multipart mail; cannot inspect outgoing attachment safely.")
+        children = []
+        for child in msg.get_payload():
+            if child.defects or any(value.defects for value in child.values()):
+                raise Refused("file_refused", "Mail has a defective nested header block; cannot inspect outgoing attachment safely.")
+            child_raw = child.as_bytes(policy=policy.default.clone(linesep="\r\n", cte_type="8bit"))
+            clean, child_texts = _outgoing(child_raw, authored, depth + 1)
+            children.append(parse(clean) if clean != child_raw else child)
+            changed = changed or clean != child_raw
+            texts.extend(child_texts)
+        msg.set_payload(children)
+    else:
+        data = _transfer(headers, payload)
+        data_head = re.split(rb"\r\n\r\n|\n\n|\r\r", mail_content(data), maxsplit=1)[0]
+        mime_entity = re.search(rb"(?im)^(?:content-type[ \t]*:[ \t\r\n]*(?:multipart|message)/|x-aresos-authored[ \t]*:)", data_head)
+        if is_mail(data) or mime_entity or (msg.get_filename() or "").lower().endswith((".eml", ".msg")):
+            clean, texts = _outgoing(data, authored, depth + 1)
+            if clean != data:
+                del msg["Content-Transfer-Encoding"]
+                msg.set_payload(clean)
+                from email.encoders import encode_base64
+                encode_base64(msg)
+                changed = True
+        elif authored and msg.get_content_type() in {"text/plain", "text/html"}:
+            texts = [text_part(msg)]
+    return (msg.as_bytes(policy=SMTP_POLICY) if changed else raw), texts
+
+
 def approval_texts(msg, authored=False):
-    """Markers travel with MIME bytes, including through IMAP COPY/MOVE and nesting."""
-    authored = authored or AUTHORED_HEADER in msg
-    if msg.is_multipart():
-        return [text for child in msg.get_payload() for text in approval_texts(child, authored)]
-    if authored and msg.get_content_type() in {"text/plain", "text/html"}:
-        return [text_part(msg)]
-    data = decoded(msg)
-    if (msg.get_filename() or "").lower().endswith(".eml") or is_mail(data):
-        return approval_texts(parse(mail_content(data)), authored)
-    return []
+    """Markers travel with MIME bytes, including encoded encapsulated messages."""
+    return _outgoing(msg.as_bytes(policy=policy.default.clone(linesep="\r\n", cte_type="8bit")), authored)[1]
 
 
 def without_bcc(raw):
-    msg = parse(mail_content(raw))
-    changed = False
-    for part in msg.walk():
-        for header in ("Bcc", "Resent-Bcc"):
-            if header in part:
-                del part[header]
-                changed = True
-        # Our attached .eml files use octet-stream to freeze their wire bytes.
-        if not part.is_multipart():
-            data = decoded(part)
-            if not (part.get_filename() or "").lower().endswith(".eml") and not is_mail(data):
-                continue
-            clean = without_bcc(data)
-            if clean != data:
-                del part["Content-Transfer-Encoding"]
-                part.set_payload(clean)
-                from email.encoders import encode_base64
-                encode_base64(part)
-                changed = True
-    return msg.as_bytes(policy=SMTP_POLICY) if changed else raw
+    return _outgoing(raw)[0]
 
 
 def timestamp(msg):
