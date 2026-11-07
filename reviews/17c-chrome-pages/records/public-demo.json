@@ -1,0 +1,65 @@
+{
+  "name": "Q1_PUBLIC_DEMO",
+  "repeats": [
+    {
+      "before": {
+        "text": "Web form\nText input\n Password\n Textarea\n Disabled input\n Readonly input\nReturn to index\nDropdown (select)\nOpen this select menu\nOne\nTwo\nThree\n Dropdow",
+        "url": "https://www.selenium.dev/selenium/web/web-form.html"
+      },
+      "candidate": {
+        "id": "network:interception-job-1663.0",
+        "network": true,
+        "url": "https://www.selenium.dev/selenium/web/submitted-form.html?my-text=Synthetic17c&my-password=&my-textarea=&my-readonly=Readonly+input&my-select=Open+this+select+menu&my-datalist=&my-file=&my-check=on&my-radio=on&my-colors=%23563d7c&my-date=&my-range=5&my-hidden=",
+        "method": "GET",
+        "body": null,
+        "headerHash": "28addf88e956ca890f82069b7211018ca02971068d2f5bf170cf8edf9320f7ed",
+        "source": {
+          "tabId": 1831079183
+        },
+        "type": "Document",
+        "bodyLength": 0,
+        "block": true
+      }
+    },
+    {
+      "before": {
+        "text": "Web form\nText input\n Password\n Textarea\n Disabled input\n Readonly input\nReturn to index\nDropdown (select)\nOpen this select menu\nOne\nTwo\nThree\n Dropdow",
+        "url": "https://www.selenium.dev/selenium/web/web-form.html"
+      },
+      "candidate": {
+        "id": "network:interception-job-1670.0",
+        "network": true,
+        "url": "https://www.selenium.dev/selenium/web/submitted-form.html?my-text=Synthetic17c&my-password=&my-textarea=&my-readonly=Readonly+input&my-select=Open+this+select+menu&my-datalist=&my-file=&my-check=on&my-radio=on&my-colors=%23563d7c&my-date=&my-range=5&my-hidden=",
+        "method": "GET",
+        "body": null,
+        "headerHash": "28addf88e956ca890f82069b7211018ca02971068d2f5bf170cf8edf9320f7ed",
+        "source": {
+          "tabId": 1831079183
+        },
+        "type": "Document",
+        "bodyLength": 0,
+        "block": true
+      }
+    },
+    {
+      "before": {
+        "text": "Web form\nText input\n Password\n Textarea\n Disabled input\n Readonly input\nReturn to index\nDropdown (select)\nOpen this select menu\nOne\nTwo\nThree\n Dropdow",
+        "url": "https://www.selenium.dev/selenium/web/web-form.html"
+      },
+      "candidate": {
+        "id": "network:interception-job-1677.0",
+        "network": true,
+        "url": "https://www.selenium.dev/selenium/web/submitted-form.html?my-text=Synthetic17c&my-password=&my-textarea=&my-readonly=Readonly+input&my-select=Open+this+select+menu&my-datalist=&my-file=&my-check=on&my-radio=on&my-colors=%23563d7c&my-date=&my-range=5&my-hidden=",
+        "method": "GET",
+        "body": null,
+        "headerHash": "28addf88e956ca890f82069b7211018ca02971068d2f5bf170cf8edf9320f7ed",
+        "source": {
+          "tabId": 1831079183
+        },
+        "type": "Document",
+        "bodyLength": 0,
+        "block": true
+      }
+    }
+  ]
+}

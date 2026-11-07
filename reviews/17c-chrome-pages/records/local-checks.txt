@@ -1,0 +1,4 @@
+SYNTAX PASS (10 JavaScript files)
+MAC_RUN_REFUSAL PASS (exit 1 before browser setup)
+PUBLIC_DOCUMENT_ATTRIBUTION PASS (every retained candidate belongs to its current document)
+WORK_FILES_OVER_500_MB []

@@ -1,0 +1,1356 @@
+{
+  "phase": "pages",
+  "head": "589c53bd31cf4a230424fcc147ead0bf8289c8f3",
+  "run": "42355697966",
+  "cases": [
+    {
+      "name": "CONNECTED",
+      "tabId": 859155498,
+      "group": 1766355069,
+      "version": "0.3.0"
+    },
+    {
+      "name": "Q1_PLAIN_READ_AND_LOCAL_STREAM",
+      "held": 0
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-fetch-true",
+      "kind": "fetch",
+      "release": true,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-fetch-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-fetch-true",
+          "done hold-fetch-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "hold-fetch-true",
+          "url": "/receive?case=hold-fetch-true",
+          "method": "POST",
+          "body": "synthetic fetch",
+          "at": 1794040218174
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-fetch-false",
+      "kind": "fetch",
+      "release": false,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-fetch-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-fetch-false",
+          "AbortError hold-fetch-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-xhr-true",
+      "kind": "xhr",
+      "release": true,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-xhr-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-xhr-true",
+          "done hold-xhr-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "hold-xhr-true",
+          "url": "/receive?case=hold-xhr-true",
+          "method": "POST",
+          "body": "synthetic xhr",
+          "at": 1794040220139
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-xhr-false",
+      "kind": "xhr",
+      "release": false,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-xhr-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-xhr-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-beacon-true",
+      "kind": "beacon",
+      "release": true,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-beacon-true",
+          "beacon accepted true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-beacon-true",
+          "beacon accepted true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "hold-beacon-true",
+          "url": "/receive?case=hold-beacon-true",
+          "method": "POST",
+          "body": "synthetic beacon",
+          "at": 1794040222120
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-beacon-false",
+      "kind": "beacon",
+      "release": false,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-beacon-false",
+          "beacon accepted true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-beacon-false",
+          "beacon accepted true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-form-submit-true",
+      "kind": "form-submit",
+      "release": true,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-form-submit-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "url": "http://127.0.0.1:40903/receive?case=hold-form-submit-true"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "hold-form-submit-true",
+          "url": "/receive?case=hold-form-submit-true",
+          "method": "POST",
+          "body": "value=synthetic+form",
+          "at": 1794040224094
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-form-submit-false",
+      "kind": "form-submit",
+      "release": false,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-form-submit-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-form-submit-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-form-request-true",
+      "kind": "form-request",
+      "release": true,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-form-request-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "url": "http://127.0.0.1:40903/receive?case=hold-form-request-true"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "hold-form-request-true",
+          "url": "/receive?case=hold-form-request-true",
+          "method": "POST",
+          "body": "value=synthetic+form",
+          "at": 1794040226058
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-form-request-false",
+      "kind": "form-request",
+      "release": false,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-form-request-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-form-request-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-form-event-true",
+      "kind": "form-event",
+      "release": true,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-form-event-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "url": "http://127.0.0.1:40903/receive?case=hold-form-event-true"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "hold-form-event-true",
+          "url": "/receive?case=hold-form-event-true",
+          "method": "POST",
+          "body": "value=synthetic+form",
+          "at": 1794040228022
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-form-event-false",
+      "kind": "form-event",
+      "release": false,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-form-event-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-form-event-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-ws-true",
+      "kind": "ws",
+      "release": true,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-ws-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-ws-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": [
+        {
+          "kind": "ws",
+          "case": "hold-ws-true",
+          "body": "{\"case\":\"hold-ws-true\",\"text\":\"synthetic ws\"}",
+          "at": 1794040229981
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-ws-false",
+      "kind": "ws",
+      "release": false,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-ws-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-ws-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-rtc-true",
+      "kind": "rtc",
+      "release": true,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-rtc-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-rtc-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": [
+        {
+          "kind": "rtc",
+          "case": "hold-rtc-true",
+          "url": "/receipt?case=hold-rtc-true&body=%7B%22case%22%3A%22hold-rtc-true%22%2C%22text%22%3A%22synthetic%20rtc%22%7D",
+          "method": "GET",
+          "body": "{\"case\":\"hold-rtc-true\",\"text\":\"synthetic rtc\"}",
+          "at": 1794040232067
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-rtc-false",
+      "kind": "rtc",
+      "release": false,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-rtc-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-rtc-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_WRITER",
+      "id": "hold-writer-true",
+      "release": true,
+      "rows": [
+        {
+          "kind": "datagram",
+          "at": 1794040234257.6174,
+          "body": "{\"case\":\"hold-writer-true\",\"text\":\"synthetic wt\"}",
+          "case": "hold-writer-true"
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-writer-true",
+      "kind": "writer",
+      "release": true,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-writer-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-writer-true"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": [
+        {
+          "kind": "datagram",
+          "at": 1794040234257.6174,
+          "body": "{\"case\":\"hold-writer-true\",\"text\":\"synthetic wt\"}",
+          "case": "hold-writer-true"
+        }
+      ]
+    },
+    {
+      "name": "Q1_WRITER",
+      "id": "hold-writer-false",
+      "release": false,
+      "rows": [
+        {
+          "kind": "datagram",
+          "at": 1794040234257.6174,
+          "body": "{\"case\":\"hold-writer-true\",\"text\":\"synthetic wt\"}",
+          "case": "hold-writer-true"
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOLD",
+      "id": "hold-writer-false",
+      "kind": "writer",
+      "release": false,
+      "before": {
+        "failures": [],
+        "states": [
+          "waiting hold-writer-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "after": {
+        "states": [
+          "waiting hold-writer-false"
+        ],
+        "url": "http://127.0.0.1:40903/"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_ABORT",
+      "states": [
+        "TimeoutError"
+      ]
+    },
+    {
+      "name": "Q1_CHANGED_FORM",
+      "refused": true
+    },
+    {
+      "name": "Q1_DOCUMENT_ID",
+      "old": {
+        "tabId": 859155498,
+        "frameId": 0,
+        "documentId": "CFAF244DD1245D24EAE0F45B75781F88"
+      },
+      "fresh": {
+        "tabId": 859155498,
+        "frameId": 0,
+        "documentId": "072306C583778148C65BC4F682C042D7"
+      }
+    },
+    {
+      "name": "Q1_FRAME",
+      "id": "frame-same-true",
+      "release": true,
+      "source": {
+        "tabId": 859155498,
+        "frameId": 21,
+        "documentId": "82602FAB4AF1C41F13AB6B5CA9442971"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "frame-same-true",
+          "url": "/receive?case=frame-same-true",
+          "method": "POST",
+          "body": "synthetic frame",
+          "at": 1794040239581
+        }
+      ]
+    },
+    {
+      "name": "Q1_FRAME",
+      "id": "frame-blank-true",
+      "release": true,
+      "source": {
+        "tabId": 859155498,
+        "frameId": 22,
+        "documentId": "B666684A44E784C41E037DCC8C0B6DB9"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "frame-blank-true",
+          "url": "/receive?case=frame-blank-true",
+          "method": "POST",
+          "body": "synthetic frame",
+          "at": 1794040240906
+        }
+      ]
+    },
+    {
+      "name": "Q1_FRAME",
+      "id": "frame-srcdoc-true",
+      "release": true,
+      "source": {
+        "tabId": 859155498,
+        "frameId": 23,
+        "documentId": "76022F746ABE9F1B5447B208A2753AC3"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "frame-srcdoc-true",
+          "url": "/receive?case=frame-srcdoc-true",
+          "method": "POST",
+          "body": "synthetic frame",
+          "at": 1794040242231
+        }
+      ]
+    },
+    {
+      "name": "Q1_FRAME",
+      "id": "frame-same-false",
+      "release": false,
+      "source": {
+        "tabId": 859155498,
+        "frameId": 24,
+        "documentId": "AA8AF874D11D0D4185D826A14B33D0FE"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_FRAME",
+      "id": "frame-blank-false",
+      "release": false,
+      "source": {
+        "tabId": 859155498,
+        "frameId": 25,
+        "documentId": "E11CA51BD6036BA762614149CE1C75E1"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_FRAME",
+      "id": "frame-srcdoc-false",
+      "release": false,
+      "source": {
+        "tabId": 859155498,
+        "frameId": 26,
+        "documentId": "22E64A34F92A444B44385B0AD22DB481"
+      },
+      "arrivals": []
+    },
+    {
+      "name": "Q1_CROSS_FRAME",
+      "id": "frame-cross-true",
+      "release": true,
+      "source": {
+        "tabId": 859155498,
+        "frameId": 27,
+        "documentId": "F57AF5E832F058DCAAEB8B6AB77EE0E0"
+      },
+      "tree": {
+        "frameTree": {
+          "frame": {
+            "adFrameStatus": {
+              "adFrameType": "none"
+            },
+            "crossOriginIsolatedContextType": "NotIsolated",
+            "domainAndRegistry": "",
+            "gatedAPIFeatures": [],
+            "id": "AAF572DAEA881A74D62494C3A1D9E613",
+            "loaderId": "2F33BF535B40A06AB5DC669319F71814",
+            "mimeType": "text/html",
+            "secureContextType": "SecureLocalhost",
+            "securityOrigin": "http://127.0.0.1:40903",
+            "securityOriginDetails": {
+              "isLocalhost": true
+            },
+            "url": "http://127.0.0.1:40903/"
+          }
+        }
+      }
+    },
+    {
+      "name": "Q1_CROSS_FRAME",
+      "id": "frame-cross-false",
+      "release": false,
+      "source": {
+        "tabId": 859155498,
+        "frameId": 28,
+        "documentId": "4F3EB834C2196CD304537F04F898B3B7"
+      },
+      "tree": {
+        "frameTree": {
+          "frame": {
+            "adFrameStatus": {
+              "adFrameType": "none"
+            },
+            "crossOriginIsolatedContextType": "NotIsolated",
+            "domainAndRegistry": "",
+            "gatedAPIFeatures": [],
+            "id": "AAF572DAEA881A74D62494C3A1D9E613",
+            "loaderId": "130429EEF9B8690BA102F4888E90AAE7",
+            "mimeType": "text/html",
+            "secureContextType": "SecureLocalhost",
+            "securityOrigin": "http://127.0.0.1:40903",
+            "securityOriginDetails": {
+              "isLocalhost": true
+            },
+            "url": "http://127.0.0.1:40903/"
+          }
+        }
+      }
+    },
+    {
+      "name": "Q1_HOSTILE_HTTP",
+      "id": "hostile-original",
+      "caught": true,
+      "networkFallback": true,
+      "toStringNative": false,
+      "children": [
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "EF615978F9A3FC253E075316C7FBDA38"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "BE302F3244D4CC1A654055725E724524",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040246880
+        },
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "B250133BA859D0AF9C0BEBB138122B80"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "28FA99F283C3689F2EE4EAAE6DE1D0BE",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040247905
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOSTILE_HTTP",
+      "id": "hostile-fresh-frame",
+      "caught": true,
+      "networkFallback": false,
+      "toStringNative": null,
+      "children": [
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "EF615978F9A3FC253E075316C7FBDA38"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "BE302F3244D4CC1A654055725E724524",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040246880
+        },
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "B250133BA859D0AF9C0BEBB138122B80"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "28FA99F283C3689F2EE4EAAE6DE1D0BE",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040247905
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOSTILE_HTTP",
+      "id": "hostile-prototype",
+      "caught": true,
+      "networkFallback": true,
+      "toStringNative": null,
+      "children": [
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "EF615978F9A3FC253E075316C7FBDA38"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "BE302F3244D4CC1A654055725E724524",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040246880
+        },
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "B250133BA859D0AF9C0BEBB138122B80"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "28FA99F283C3689F2EE4EAAE6DE1D0BE",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040247905
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOSTILE_HTTP",
+      "id": "hostile-toString",
+      "caught": true,
+      "networkFallback": true,
+      "toStringNative": false,
+      "children": [
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "EF615978F9A3FC253E075316C7FBDA38"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "BE302F3244D4CC1A654055725E724524",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040246880
+        },
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "B250133BA859D0AF9C0BEBB138122B80"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "28FA99F283C3689F2EE4EAAE6DE1D0BE",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040247905
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOSTILE_HTTP",
+      "id": "hostile-blob-worker",
+      "caught": true,
+      "networkFallback": false,
+      "toStringNative": null,
+      "children": [
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "EF615978F9A3FC253E075316C7FBDA38"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "BE302F3244D4CC1A654055725E724524",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040246880
+        },
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "B250133BA859D0AF9C0BEBB138122B80"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "28FA99F283C3689F2EE4EAAE6DE1D0BE",
+              "title": "",
+              "type": "iframe",
+              "url": ""
+            },
+            "waiting": true
+          },
+          "at": 1794040247905
+        },
+        {
+          "method": "check.child",
+          "params": {
+            "source": {
+              "tabId": 859155498,
+              "sessionId": "E04231143F60078DFC1BD0422B8C94C4"
+            },
+            "info": {
+              "attached": true,
+              "browserContextId": "27A6927F7E278A0BAC10EE9517E6F6A5",
+              "canAccessOpener": false,
+              "parentFrameId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "parentId": "AAF572DAEA881A74D62494C3A1D9E613",
+              "targetId": "3B87A9F52F8FB44C0285C5E877A47BD0",
+              "title": "blob:http://127.0.0.1:40903/1807c75d-c468-4cd8-944f-8e91b1db540a",
+              "type": "worker",
+              "url": "blob:http://127.0.0.1:40903/1807c75d-c468-4cd8-944f-8e91b1db540a"
+            },
+            "waiting": true
+          },
+          "at": 1794040254415
+        }
+      ]
+    },
+    {
+      "name": "Q1_HOSTILE_LIVE_COUNTEREXAMPLE",
+      "arrivals": [
+        {
+          "kind": "ws",
+          "case": "hostile-live",
+          "body": "{\"case\":\"hostile-live\",\"text\":\"synthetic bypass\"}",
+          "at": 1794040255786
+        }
+      ]
+    },
+    {
+      "name": "Q1_FAIL_REPEAT",
+      "first": {
+        "id": "network:interception-job-99.0",
+        "network": true,
+        "url": "http://127.0.0.1:40903/receive?case=fallback-repeat",
+        "method": "POST",
+        "body": "synthetic repeat",
+        "headerHash": "f9a38d43ae35b57790b7f6ea1cb36ead8fdc1747eb7d0a64edb0cfc95789048a",
+        "source": {
+          "tabId": 859155498
+        },
+        "type": "XHR"
+      },
+      "arrivals": [
+        {
+          "kind": "http",
+          "case": "fallback-repeat",
+          "url": "/receive?case=fallback-repeat",
+          "method": "POST",
+          "body": "synthetic repeat",
+          "at": 1794040256707
+        }
+      ],
+      "singleUse": true
+    },
+    {
+      "name": "Q1_END",
+      "ending": "page-reload",
+      "ids": [
+        "end-page-reload-fetch",
+        "end-page-reload-xhr",
+        "end-page-reload-beacon",
+        "end-page-reload-form-request",
+        "end-page-reload-ws",
+        "end-page-reload-rtc",
+        "end-page-reload-writer"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859155566,
+      "group": 959582611,
+      "version": "0.3.0"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "detach",
+      "ids": [
+        "end-detach-fetch",
+        "end-detach-xhr",
+        "end-detach-beacon",
+        "end-detach-form-request",
+        "end-detach-ws",
+        "end-detach-rtc",
+        "end-detach-writer"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859155644,
+      "group": 2005953937,
+      "version": "0.3.0"
+    },
+    {
+      "name": "Q6_STOP",
+      "active": false,
+      "badge": "STOP",
+      "history": [
+        {
+          "method": "check.decision",
+          "params": {
+            "id": "{\"tabId\":859155644,\"frameId\":0,\"documentId\":\"7E46539D98B48CE954C34B71EB25C0E9\"}:5",
+            "release": false
+          },
+          "at": 1794040287437
+        },
+        {
+          "method": "check.decision",
+          "params": {
+            "id": "{\"tabId\":859155644,\"frameId\":0,\"documentId\":\"7E46539D98B48CE954C34B71EB25C0E9\"}:6",
+            "release": false
+          },
+          "at": 1794040287438
+        },
+        {
+          "method": "check.decision",
+          "params": {
+            "id": "{\"tabId\":859155644,\"frameId\":0,\"documentId\":\"7E46539D98B48CE954C34B71EB25C0E9\"}:7",
+            "release": false
+          },
+          "at": 1794040287439
+        },
+        {
+          "method": "check.stopped",
+          "params": {
+            "reason": "popup Stop"
+          },
+          "at": 1794040287442
+        }
+      ]
+    },
+    {
+      "name": "Q1_END",
+      "ending": "stop",
+      "ids": [
+        "end-stop-fetch",
+        "end-stop-xhr",
+        "end-stop-beacon",
+        "end-stop-form-request",
+        "end-stop-ws",
+        "end-stop-rtc",
+        "end-stop-writer"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859155738,
+      "group": 999688210,
+      "version": "0.3.0"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "reload",
+      "ids": [
+        "end-reload-fetch",
+        "end-reload-xhr",
+        "end-reload-beacon",
+        "end-reload-form-request",
+        "end-reload-ws",
+        "end-reload-rtc",
+        "end-reload-writer"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859155847,
+      "group": 226656796,
+      "version": "0.3.0"
+    },
+    {
+      "name": "Q1_UPDATE_REQUEST",
+      "status": "update_available",
+      "details": {
+        "version": "0.3.1"
+      }
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859155847,
+      "group": 920447160,
+      "version": "0.3.1"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "update",
+      "ids": [
+        "end-update-fetch",
+        "end-update-xhr",
+        "end-update-beacon",
+        "end-update-form-request",
+        "end-update-ws",
+        "end-update-rtc",
+        "end-update-writer"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859155970,
+      "group": 837440220,
+      "version": "0.3.1"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "host-loss",
+      "ids": [
+        "end-host-loss-fetch",
+        "end-host-loss-xhr",
+        "end-host-loss-beacon",
+        "end-host-loss-form-request",
+        "end-host-loss-ws",
+        "end-host-loss-rtc",
+        "end-host-loss-writer"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859156111,
+      "group": 1359525098,
+      "version": "0.3.1"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "chrome-normal",
+      "ids": [
+        "end-chrome-normal-fetch",
+        "end-chrome-normal-xhr",
+        "end-chrome-normal-beacon",
+        "end-chrome-normal-form-request",
+        "end-chrome-normal-ws",
+        "end-chrome-normal-rtc",
+        "end-chrome-normal-writer"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859156276,
+      "group": 146429676,
+      "version": "0.3.1"
+    },
+    {
+      "name": "Q1_END",
+      "ending": "chrome-kill",
+      "ids": [
+        "end-chrome-kill-fetch",
+        "end-chrome-kill-xhr",
+        "end-chrome-kill-beacon",
+        "end-chrome-kill-form-request",
+        "end-chrome-kill-ws",
+        "end-chrome-kill-rtc",
+        "end-chrome-kill-writer"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859156282,
+      "group": 194088193,
+      "version": "0.3.1"
+    },
+    {
+      "name": "Q1_DISABLE_EVIDENCE",
+      "transportError": "No extension connected",
+      "refreshMs": 8975
+    },
+    {
+      "name": "Q1_END",
+      "ending": "disable",
+      "ids": [
+        "end-disable-fetch",
+        "end-disable-xhr",
+        "end-disable-beacon",
+        "end-disable-form-request",
+        "end-disable-ws",
+        "end-disable-rtc",
+        "end-disable-writer"
+      ],
+      "arrivals": []
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 859156460,
+      "group": 1427335624,
+      "version": "0.3.1"
+    },
+    {
+      "name": "Q6_INDICATORS",
+      "state": {
+        "selected": 859156460,
+        "group": 1427335624,
+        "groupInfo": {
+          "collapsed": false,
+          "color": "blue",
+          "id": 1427335624,
+          "shared": false,
+          "title": "Claude",
+          "windowId": 859156449
+        },
+        "active": true,
+        "pending": [],
+        "history": [
+          {
+            "method": "check.pageEvent",
+            "params": {
+              "event": "installed",
+              "failures": [],
+              "source": {
+                "tabId": 859156458,
+                "frameId": 0,
+                "documentId": "CF226676D8871441806DADA6A3797DAB"
+              }
+            },
+            "at": 1794040391531
+          },
+          {
+            "method": "check.pageEvent",
+            "params": {
+              "event": "installed",
+              "failures": [],
+              "source": {
+                "tabId": 859156457,
+                "frameId": 0,
+                "documentId": "235844E340F9B8B5565778E5D9C93BF1"
+              }
+            },
+            "at": 1794040391723
+          },
+          {
+            "method": "check.pageEvent",
+            "params": {
+              "event": "installed",
+              "failures": [],
+              "source": {
+                "tabId": 859156517,
+                "frameId": 17,
+                "documentId": "B4B1E523D6B252EFEDA8AD80956F87AB"
+              }
+            },
+            "at": 1794040392581
+          },
+          {
+            "method": "check.pageEvent",
+            "params": {
+              "event": "installed",
+              "failures": [],
+              "source": {
+                "tabId": 859156456,
+                "frameId": 0,
+                "documentId": "CFE82E8023DF50E06DC55660F1D270F9"
+              }
+            },
+            "at": 1794040393979
+          },
+          {
+            "method": "check.gateReady",
+            "params": {
+              "source": {
+                "tabId": 859156460
+              },
+              "url": "http://127.0.0.1:40903/"
+            },
+            "at": 1794040394208
+          }
+        ],
+        "errors": [],
+        "guards": [],
+        "badge": "ON",
+        "manifest": {
+          "action": {
+            "default_popup": "popup.html"
+          },
+          "background": {
+            "service_worker": "background.js"
+          },
+          "content_scripts": [
+            {
+              "all_frames": true,
+              "js": [
+                "wrap.js"
+              ],
+              "match_origin_as_fallback": true,
+              "matches": [
+                "<all_urls>"
+              ],
+              "run_at": "document_start",
+              "world": "MAIN"
+            },
+            {
+              "all_frames": true,
+              "js": [
+                "relay.js"
+              ],
+              "match_origin_as_fallback": true,
+              "matches": [
+                "<all_urls>"
+              ],
+              "run_at": "document_start"
+            }
+          ],
+          "host_permissions": [
+            "<all_urls>"
+          ],
+          "manifest_version": 3,
+          "name": "AresOS 17c pages CHECK ONLY",
+          "options_page": "select.html",
+          "permissions": [
+            "debugger",
+            "tabs",
+            "tabGroups",
+            "nativeMessaging",
+            "storage",
+            "scripting",
+            "notifications",
+            "declarativeNetRequest"
+          ],
+          "update_url": "http://127.0.0.1:40903/update.xml",
+          "version": "0.3.1"
+        }
+      }
+    },
+    {
+      "name": "FINAL_DELIVERY_AUDIT",
+      "status": "PASS",
+      "cases": 100
+    }
+  ]
+}
