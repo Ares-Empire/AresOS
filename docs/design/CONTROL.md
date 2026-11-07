@@ -150,8 +150,8 @@ two actions.
      submitting, the service refuses if that Message-ID is already in Sent. Not finding it there proves nothing.
 4. **Files cross between users only on the caller's side, and only from and to allowed folders.** The service never
    opens a path in the owner's home. The MCP proxy, running as the assistant's user (section 2), opens the file and
-   hands the bytes over; the service keeps them as an unchangeable copy by hash and sends exactly those. Claude Code's file-tool limits
-   don't apply to MCP tools, so the proxy enforces its own:
+   hands the bytes over; the service keeps them as an unchangeable copy by hash and sends exactly those. Claude Code's
+   file-tool limits don't apply to MCP tools, so the proxy enforces its own:
    - **Reading** (attachments, uploads) only from the allowed folders: the assistant's own, and the owner's folders
      he shared with it read-only (for example `~/Documents`, `~/Downloads`, `~/Desktop`); never from places that
      hold credentials or configuration (`~/.ssh`,
@@ -273,8 +273,8 @@ doesn't hold: WebSockets opened by shared and service workers pass every extensi
 to extensions), and when control ends while an allowed request is paused, a different send to the same address goes
 out (24 of 24 trials). Re-check 7 recommended a checkpoint outside Chrome, and 17e showed that it holds. So every send
 from a guarded place now waits at that checkpoint, outside Chrome, and only the captured send the owner approved goes
-out, at most once. Chrome's blocking rules no longer protect anything, and fail-then-repeat and URL allowances are gone. The
-extension and the page script stay, for everything except deciding what leaves.
+out, at most once. Chrome's blocking rules no longer protect anything, and fail-then-repeat and URL allowances are
+gone. The extension and the page script stay, for everything except deciding what leaves.
 
 ### How the tool reaches Chrome
 
@@ -636,7 +636,7 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 | `chrome_downloads` | read, change | list downloads; save one into an allowed folder (rule 4.4) |
 | `chrome_bookmarks`, `chrome_history` | read | the owner's bookmarks and history, to find addresses |
 | `chrome_wait` | read | wait for text, an element or the page to settle |
-| `chrome_pending` | read | what is held for Claude's tabs and guarded sites: pending sends and background holds |
+| `chrome_pending` | read | what is held that is attributed to Claude's work: pending sends and background holds (nothing of the owner's own tabs: requirement 2) |
 | `chrome_submit` | **send** | let one pending send go: the captured operations the service described, by id and hash (below) |
 | `chrome_submit_trusted` | send, free | as `chrome_submit`, only for an operation a site adapter recognises as a kind the owner set to "don't ask again" (below) |
 | `chrome_open_site` | **send** | open an address that isn't free to open (below), with the full address in the input |
@@ -692,17 +692,17 @@ site, and the service sorts each by cause and content, never by timing alone:
 - **The page's own activity goes** only in a document Claude hasn't acted on: requests the page makes by itself
   (when it loads, on its own timers, after the owner's own clicks) that carry none of Claude's text.
 - **Reading through POST.** Many apps load data with POST (GraphQL queries, Notion, Google's apps). Such a request
-  counts as reading only when a qualified site adapter recognises it as reading ("recognised", below). That a
-  GraphQL request is written out as a `query` is a hint, not proof that the server changes nothing (re-check 8);
-  stored queries, batches, mutations and Claude's text inline or in variables are never reading (*checked* on
-  fixtures in the page, 17c: all were held). Without an adapter, such requests after Claude acted are held like any
-  other POST, so working in those apps asks until their adapter exists. *Checked* on ten public sites without signing in (17c and
-  17d, provisional: workers and live connections were switched off for safety, visits were short, and counts cover
-  the main document; they are what the after-acting rule would hold, not prompts): GitHub, Wikipedia and a news site
+  counts as reading only when a qualified site adapter recognises it as reading ("recognised", below). That a GraphQL
+  request is written out as a `query` is a hint, not proof that the server changes nothing (re-check 8); stored
+  queries, batches, mutations and Claude's text inline or in variables are never reading (*checked* on fixtures in the
+  page, 17c: all were held). Without an adapter, such requests after Claude acted are held like any other POST, so
+  working in those apps asks until their adapter exists. *Checked* on ten public sites without signing in (17c and
+  17d, provisional: workers and live connections were switched off for safety, visits were short, and counts cover the
+  main document; they are what the after-acting rule would hold, not prompts): GitHub, Wikipedia and a news site
   stayed usable with a few holds at most; Amazon and Google search held about a dozen each, mostly telemetry, which
-  goes to the background list or is dropped as tracking; Notion and Google Docs read through POST and need an
-  adapter; YouTube, Reddit and Stack Overflow showed the test machine a bot check and stay unmeasured. 17e's reading
-  visits gave the same results through the checkpoint as direct (*checked*, 17e Q11). Signed-in use is measured in the
+  goes to the background list or is dropped as tracking; Notion and Google Docs read through POST and need an adapter;
+  YouTube, Reddit and Stack Overflow showed the test machine a bot check and stay unmeasured. 17e's reading visits
+  gave the same results through the checkpoint as direct (*checked*, 17e Q11). Signed-in use is measured in the
   tool-user rounds, on the owner's usual sites.
 - **Unknown cause: held, in the background.** An operation whose cause the tool can't establish is held and listed
   as *background* in `chrome_pending`. Background holds don't block the tab: Claude can keep reading and acting, drop
@@ -784,8 +784,9 @@ A Claude tab can pass data or queued work to the owner's own tabs of the same si
 channels (a shared worker, a broadcast channel, storage) or keep it for later (an offline outbox that retries after a
 restart). So a site is *guarded*: every context of it, in any tab and any worker, is held at the checkpoint like a
 Claude tab, and the extension attaches to its tabs for descriptions. What they send that isn't plain reading is held:
-listed as background when the page sent it by itself, and put to the owner (next part) when his own input caused it
-(*checked*, 17c: an owner's click in another tab that emptied Claude's queue was held, through local storage and
+when the page sent it by itself, listed as background for Claude if it comes from a Claude tab and on the owner's
+details page if it comes from his own tabs (requirement 2); and put to the owner (next part) when his own input caused
+it (*checked*, 17c: an owner's click in another tab that emptied Claude's queue was held, through local storage and
 through a worker shared by both tabs; 17e Q10: an IndexedDB outbox, a write to local storage by property name, the
 origin's private file system and a broadcast hand-off kept the guard on, and their later sending was held).
 
@@ -841,11 +842,12 @@ owner decides it himself, on a surface outside every page:
   forging messages from a page or content script, and creating input from the sandbox. Every attempt must leave the
   send held and the guard on.
 - **Sends whose cause can't be seen:** a send from a worker that serves several tabs carries no trace of whose click
-  caused it (*checked*, 17c). On a guarded site it is held as background for Claude and, when the owner was using one
-  of the site's tabs just before (input the tool didn't send), also put to him: a guess about his notification, never
-  an exemption. Outside that window it stays visible as unresolved on the details page and in the site's guard. Both
-  places show one operation; the first answer decides it at once, and the same send reported through several attached
-  sessions counts once (*brief 20*).
+  caused it (*checked*, 17c). On a guarded site it is held. It can't be attributed to Claude's work, so it isn't
+  described to Claude (requirement 2); Claude sees only that something unresolved is held on that site. When the owner
+  was using one of the site's tabs just before (input the tool didn't send), it is also put to him as a notification:
+  a guess about his notification, never an exemption. Otherwise it stays visible as unresolved on the details page and
+  in the site's guard. Each such send is one operation; the first answer decides it at once, and the same send
+  reported through several attached sessions counts once (*brief 20*).
 
 This is the owner deciding about his own click, not an approval of Claude's actions; those stay with the approval
 surface (section 7).
@@ -856,8 +858,8 @@ narrower match isn't safe: a page's timer that empties Claude's queue leaves no 
 send has no trace of whose click caused it, so a page can send Claude's queued deletion to another address than the
 one that was held. What keeps the notifications few: site adapters for his usual sites that recognise reading (which
 then goes without a question), guards that end when an adapter shows nothing is left, and his one click when Claude is
-done on a site without one. Known tracking requests are dropped, not asked. The tool-user rounds count these notifications
-on an ordinary day (section 8); the target is close to zero.
+done on a site without one. Known tracking requests are dropped, not asked. The tool-user rounds count these
+notifications on an ordinary day (section 8); the target is close to zero.
 
 ### "Don't ask again" (decision 7)
 
@@ -1257,15 +1259,33 @@ What this adds to the trust boundary:
   operation waits, not what it says. The phone's notification carries no content. The server can delay or drop a
   question (then nothing is sent, below), but it can't read one and can't approve one. The tool service needs one new
   network path, to that server only.
-- **The device key.** Made in the phone's secure hardware, it never leaves the phone, and each use needs Face ID
-  (only his face, not the phone's passcode, so that someone who knows the passcode can't approve). Every decision is
-  signed over the operation id, its hash, the answer and the question's own one-time value, so it can't be used for
-  another operation or replayed. The tool service verifies it against the key he enrolled.
-- **Enrolment and revocation.** He enrols the phone once at the laptop with an owner-only command (`sudo aresos
-  admin approvals enrol`, his password): the laptop shows a code the phone scans, the phone's keys go into the
-  owner-only list in the tool service, and the phone keeps the service's key. Claude can't enrol (it needs his
-  password and his phone). `sudo aresos admin approvals` lists enrolled phones with their last use, and `… revoke`
-  removes one at once.
+- **One canonical description.** The service writes each question as one canonical description and signs it: the
+  operation id and the log's generation, the account, every target, the complete set of what would go (for Chrome
+  each captured operation's id and hash, for mail the composition's hash with its attachments' hashes), the time it
+  expires, and for "Don't ask again" the exact scope the entry would get (section 6). Both the phone's signature and
+  the window's answer cover the hash of exactly that description.
+- **The device key.** Made in the phone's secure hardware, it never leaves the phone. It is usable only with the faces
+  enrolled in Face ID at the time (Apple's `biometryCurrentSet`), with no passcode fallback, so someone who knows the
+  passcode can't approve; changing Face ID makes the key unusable, and he enrols again. Every decision is signed over
+  the description's hash, the answer and the question's one-time value. The tool service verifies it against the key
+  he enrolled.
+- **Enrolment.** Once, at the laptop, with an owner-only command (`sudo aresos admin approvals enrol`, his password).
+  The code the phone scans on the laptop's screen carries the service's key and a one-time enrolment secret, so they
+  never pass through the relay. The phone answers through the relay with its keys, bound to that secret; then the
+  laptop and the phone both show a short code made from both keys, and he confirms they match. A relay that swapped a
+  key fails here. Claude can't enrol: it needs his password and his phone.
+- **Revocation.** `sudo aresos admin approvals` lists enrolled phones with their last use; `… revoke` removes one at
+  once: from then on its answers are refused, also to questions already sent.
+- **Answers refused:** one whose description hash doesn't match (altered), one whose one-time value was used before
+  (replayed), one after the question expired, one to a question of an earlier log generation (after a restore, rule
+  4.3), and one signed by a revoked key.
+- **First answer wins, atomically.** The tool service records the first valid answer durably in the operation log
+  before it acts; a later answer from the other surface is refused and shown as "already decided". After a crash the
+  recorded answer stands; an operation with no recorded answer has none and expires.
+- **Inert display.** The app and the window show descriptions as plain text: no remote images or other resources, no
+  links that open by themselves, no executable markup; a formatted mail is shown as its text, with control and
+  direction-changing characters escaped (rule 4.1). *Test:* the complete readable mail on the phone itself (a long
+  text, Bcc, attachments, odd characters), and on the laptop's window.
 - **A lost phone.** The key works only with his face. He revokes the phone from the laptop; questions still show in
   the laptop's window. Questions waiting for that phone expire as below.
 - **The server or the phone down.** At the laptop the window still asks. Away from it, a question nobody answers
