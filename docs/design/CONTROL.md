@@ -46,6 +46,7 @@ as an operation before it acts, and every result says exactly what it refers to 
 | Chrome bridge | Our own extension and native messaging host (section 6). | |
 | Chrome | The owner's browser, with his profile and sign-ins, started only by a root-owned launcher (section 6). | user `aresos-browser` |
 | The assistant | The Claude Code session that has the app tools (section 7, decision 8). | user `assistant` |
+| Coding sessions | Claude Code sessions for coding work, without the app tools (section 7). | user `coder` |
 | Claude Code settings | `/etc/claude-code/managed-settings.json` and `managed-mcp.json`, owned by root (section 7). Exact values come once the tools exist (owner decision 3). | |
 
 **Who can reach what:**
@@ -56,7 +57,7 @@ as an operation before it acts, and every result says exactly what it refers to 
 | Claude through its MCP tools (local MCP servers run outside the sandbox) | yes; send and delete ask first | no | no | only through the tools |
 | Claude's terminal commands (sandboxed) | no | no | no | no |
 | Claude's file tools (Read, Edit, Write; outside the sandbox) | no (they don't open sockets) | no | no: another user's files, plus deny rules | no |
-| Coding sessions (another user, section 7) | no; the MCP proxy refuses them | no | no | no |
+| Coding sessions (user `coder`, section 7) | no; the MCP proxy refuses them | no | no | no |
 | `aresos-toold` | | | yes | yes |
 
 **Why Claude's terminal reaches no socket.** On Linux, Claude Code's sandbox can't let one Unix socket through and
@@ -72,9 +73,13 @@ the protection doesn't depend on the separate helper alone (brief 18b, *checked*
 
 A program that runs as the assistant's user outside the sandbox can use `act.sock` without asking. That is the
 normal desktop trust model (the owner's own programs could equally type into Chrome); the line this design draws is
-around Claude, and section 7 lists every way Claude could start such a program and how each is closed. Because the
-assistant runs as its own user, the files it may read and write in the owner's home (the allowed folders of rule 4.4)
-are shared with that user explicitly, folder by folder; which ones is the owner's choice (section 10).
+around Claude, and section 7 lists every way Claude could start such a program and how each is closed.
+
+**Three users, and what each can read.** The owner (his own user), the assistant (`assistant`) and coding sessions
+(`coder`, as in brief 18b's isolation check) are separate users; coding sessions never run as the owner. The
+assistant writes only into its own folders (rule 4.4), which the owner can read and the coding user can't; it may
+read the owner's allowed folders, which he shares with it folder by folder, read-only (which ones is his choice,
+section 10). So nothing the assistant writes is readable by a coding session (section 7).
 
 ## 3. One definition per action
 
@@ -144,17 +149,18 @@ two actions.
      again (a missing Sent copy) run as new operations that point to the old one. Mail adds evidence on the server: the Message-ID is derived from the operation id, and before
      submitting, the service refuses if that Message-ID is already in Sent. Not finding it there proves nothing.
 4. **Files cross between users only on the caller's side, and only from and to allowed folders.** The service never
-   opens a path in the owner's home. The MCP proxy, running as the assistant's user with access to the owner's allowed
-   folders (section 2), opens the file and hands the bytes over;
-   the service keeps them as an unchangeable copy by hash and sends exactly those. Claude Code's file-tool limits
+   opens a path in the owner's home. The MCP proxy, running as the assistant's user (section 2), opens the file and
+   hands the bytes over; the service keeps them as an unchangeable copy by hash and sends exactly those. Claude Code's file-tool limits
    don't apply to MCP tools, so the proxy enforces its own:
-   - **Reading** (attachments, uploads) only from the allowed folders (`~/Documents`, `~/Downloads`, `~/Desktop` and
-     the folders the settings name), never from places that hold credentials or configuration (`~/.ssh`,
+   - **Reading** (attachments, uploads) only from the allowed folders: the assistant's own, and the owner's folders
+     he shared with it read-only (for example `~/Documents`, `~/Downloads`, `~/Desktop`); never from places that
+     hold credentials or configuration (`~/.ssh`,
      `~/.gnupg`, `~/.config`, `~/.local/share`, the browser profile, `~/.claude`, any dotfile), opened component by
      component under the allowed folder without following symlinks, regular files only, with a size limit. The
      prompt shows the real path.
-   - **Saving** the other way: only into the allowed folders, with safe file names, never overwriting, never into
-     configuration or start-up places.
+   - **Saving** the other way: only into the assistant's own output folders (saved attachments, downloads, work
+     files), which the owner can read and the coding user can't (section 7), with safe file names, never
+     overwriting, never into configuration or start-up places.
 5. **Reading changes nothing.** Mail is fetched with `BODY.PEEK`; flags are compared before and after in the tests.
 6. **Readable, bounded results.** Compact structured results with the important fields first. Long content is paged
    (`cursor`), and every result has a size cap, so a huge mail or page never floods Claude's context.
@@ -299,8 +305,9 @@ extension and the page script stay, for everything except deciding what leaves.
   policy is machine-wide and the checkpoint accepts only the browser user. On Fedora with KDE this needs: the owner's
   profile moved to that user once, with its sign-ins; the display, sound, camera, microphone, notifications and the
   file chooser through filtered access to the owner's desktop session (nothing else of it); Chrome's own password and
-  cookie encryption through a keyring of that user, not the plain store 17e used; downloads into the owner's allowed
-  folders. All *brief 20*.
+  cookie encryption through a keyring of that user, not the plain store 17e used; his own downloads reaching him, and
+  Claude's reaching only the assistant's folders (`chrome_downloads`); none of the browser user's files readable by
+  the coding user. All *brief 20*.
 - **The owner always sees and can stop it.** Chrome hides its "started debugging this browser" bar for a
   policy-installed extension (*checked*, 17b), so the extension shows its own: the Claude tab group's colour, a badge
   on its toolbar button while Claude is working (the button pinned by policy), and in its popup a **Stop** button
@@ -1122,7 +1129,8 @@ very long input must be shown in full or refused, also on the phone.
   root-owned launcher, with the sandbox and settings above. Its terminal has no credentials (no Git or GitHub sign-in,
   no cloud keys) and reaches only the hosts on the owner's list, which is empty by default. Only its user can use
   `act.sock`.
-- Coding sessions run as another user and have no app tools. The managed files are machine-wide, so a coding session
+- Coding sessions run as the coding user, `coder` (as in brief 18b's isolation check), never as the owner, and have
+  no app tools. The managed files are machine-wide, so a coding session
   on the same machine gets the same `managed-mcp.json` and starts the app tool servers too. They refuse at once for
   any user but the assistant's (brief 18b, *checked*: "AresOS MCP proxy requires the configured assistant user"), and
   the service checks the caller's user again on every connection (briefs 18, 18b). So non-assistant users are refused
@@ -1132,6 +1140,19 @@ very long input must be shown in full or refused, also on the phone.
   Coding sessions that need other Claude Code settings (network to code hosts, writable work trees, their own
   credentials) run in their own container with their own settings files, keeping brief 18b's isolation, not a toolbox
   or distrobox default (re-check 6).
+- **No shared files, no local connection.** What the assistant can write and what coding sessions can read never
+  overlap: downloads, saved attachments, work files, session records (Claude Code's transcripts and memory) and
+  temporary files (the launcher gives the assistant its own temporary folders) all live in the assistant's own
+  folders, which the owner can read and the coding user can't. The owner's folders the assistant may read are
+  read-only to it, so it can't plant anything there for a coding session to pick up. The assistant's user can't
+  connect to the coding user's local services either (a firewall rule by user on the machine's own addresses), so a
+  fetch to a local address can't carry text across. Otherwise a mail's text written into a file could be read by a
+  coding session and sent with its network access, with no prompt (re-check 8). Anything that should cross goes
+  through the approved-send channel (next point). The owner himself can copy a file across; Claude can't.
+  *Test:* the assistant writes a content marker through every path it has (its file tools, a saved attachment, a
+  Chrome download, its terminal's temporary files, its session records); a coding session and plain programs of the
+  coding user search everything they can read and find none; plus the follow-ups from the 18b review (the real and
+  the effective user id, rogue user and project MCP configurations: `PLAN.md`, "Follow-ups").
 - They coordinate only through the tool service. A message from the assistant to a coding session is a send: it
   asks, and the approval shows the full text and the receiving session. Messages from coding sessions reach the
   assistant as untrusted content, like a mail (rule 4.8), and never count as an approval. This message tool comes in
@@ -1275,8 +1296,8 @@ and 7); the checkpoint with his hard requirements (decision 6; section 6); the s
 
 - Outgoing mail formatted (like Apple Mail) or plain by default, and the signature (a habit for CLAUDE.md, not a tool
   rule).
-- Which folders Claude may read and write outside the app tools (section 7), which are also the folders shared with
-  the assistant's user (section 2).
+- Which of his folders the assistant may read (read-only, section 2), and which work folders Claude's file tools use
+  (section 7). The assistant writes only into its own folders, which he can read and coding sessions can't.
 - The feature list in [`FEATURES.md`](../control/FEATURES.md): anything missing, and what can wait.
 - **What the checkpoint costs, with brief 20's numbers.** He agreed "if that's not a security risk". Before it becomes
   his everyday browser, the costs named in section 6 ("What changes for the owner") go back to him with brief 20's
