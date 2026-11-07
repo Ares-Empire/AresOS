@@ -260,6 +260,10 @@ class Checkpoint:
     def requestheaders(self, flow):
         flow.request.stream = False
         flow.metadata['attribution'] = flow.request.headers.pop('x-ares-check', '')
+        declared = flow.request.headers.get('content-length')
+        if declared is not None and int(declared) > MAX_BODY:
+            self.record('refused', case=self.case(flow), reason='declared-body-limit', limit=MAX_BODY)
+            flow.response = http.Response.make(413, b'Checkpoint: operation exceeds 32 MiB limit')
         # Reject a page's arbitrary CONNECT tunnel. Chrome's outer CONNECT is
         # handled by the proxy before this decrypted HTTP request hook.
         if flow.request.method == 'CONNECT':

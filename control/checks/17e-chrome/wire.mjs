@@ -5,6 +5,8 @@ import http from 'node:http';
 import WebSocket from '../17-chrome/node_modules/ws/wrapper.mjs';
 export default async function(c){
  const {guard,pending,approve,control,zero,delivered,log,assert,delay}=c;
+ const big=Buffer.alloc(34*1024*1024);
+ await new Promise((resolve,reject)=>{const r=http.request(c.f.base+'/receive?case=e-oversized-control',{method:'POST',headers:{'content-length':big.length}},res=>{res.resume();res.on('end',resolve)});r.on('error',reject);r.end(big)});await delivered('e-oversized-control');assert.equal(c.arrivals('e-oversized-control')[0].length,big.length);log('Q4_OVERSIZE_POSITIVE',{receiver:c.rows('e-oversized-control'),client:'independent direct HTTP control'});
  function chunked(id,complete=true){
   const r=http.request({host:'127.0.0.1',port:18080,path:c.f.base+'/receive?case='+id,method:'POST',headers:{'transfer-encoding':'chunked','content-type':'application/octet-stream'}},res=>res.resume());r.on('error',()=>{});r.write(Buffer.from([0,1,2]));r.write(Buffer.from([128,255]));if(complete)r.end();return r;
  }
