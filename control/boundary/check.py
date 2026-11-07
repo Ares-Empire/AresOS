@@ -222,19 +222,24 @@ def settings_checks():
     checks = [
         ('mcp-list', ['mcp', 'list'], 0, 'No MCP servers'),
         ('mcp-add', ['mcp', 'add', '--transport', 'http', 'hostile', 'https://example.com/mcp'], 1, 'exclusive control'),
-        ('marketplace-add', ['plugin', 'marketplace', 'add', 'https://example.com/marketplace.json'], 1, 'strictKnownMarketplaces'),
+        ('marketplace-add', ['plugin', 'marketplace', 'add', 'https://example.com/marketplace.json'], 1, 'No external marketplaces are allowed'),
     ]
+    errors = []
     for name, args, code, message in checks:
         result = run(['/usr/local/bin/claude', *args], name, required=False)
-        assert result.returncode == code and message.lower() in (result.stdout + result.stderr).lower(), name
+        if result.returncode != code or message.lower() not in (result.stdout + result.stderr).lower():
+            errors.append(name)
     assert not Path('/home/assistant/work/mcp-started').exists(), 'unmanaged MCP executed under exclusive policy'
     for flag, value in [('--plugin-dir', '/home/assistant/work'), ('--plugin-url', 'https://example.com/plugin'),
                         ('--agents', '{}'), ('--mcp-config', '{"mcpServers":{"evil":{"command":"false"}}}')]:
         result = run(['/usr/local/bin/claude', flag, value, '-p', 'do not call a model'], 'flag-' + flag[2:], required=False)
-        assert result.returncode != 0 and 'disableSideloadFlags' in result.stdout + result.stderr, flag
+        if result.returncode == 0 or 'disableSideloadFlags' not in result.stdout + result.stderr:
+            errors.append(flag)
     result = run(['/usr/local/bin/claude', '--dangerously-skip-permissions', '-p', 'do not call a model'],
                  'bypass-disabled', required=False)
-    assert result.returncode != 0 and 'disableBypassPermissionsMode' in result.stdout + result.stderr
+    if result.returncode == 0 or 'disableBypassPermissionsMode' not in result.stdout + result.stderr:
+        errors.append('bypass-disabled')
+    assert not errors, errors
     print('SETTINGS_OK mcp_exclusive marketplace_lock sideload_flags', flush=True)
 
 

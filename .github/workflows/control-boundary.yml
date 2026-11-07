@@ -25,6 +25,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Build pinned disposable Linux environment
+        id: build
         run: docker build -f control/boundary/Dockerfile -t aresos-boundary .
       - name: Permit unprivileged namespaces on this disposable runner
         run: |
@@ -36,15 +37,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p evidence/present evidence/absent
+          result=0
           for mode in present absent; do
-            docker run --rm --network none \
+            if ! docker run --rm --network none \
               --security-opt seccomp=unconfined --security-opt apparmor=unconfined \
               --security-opt systempaths=unconfined \
               -e FILTER_MODE="$mode" \
               -v "$PWD/evidence/$mode:/evidence" aresos-boundary \
-              2>&1 | tee "evidence/$mode-console.txt"
+              2>&1 | tee "evidence/$mode-console.txt"; then
+              result=1
+            fi
           done
+          exit "$result"
       - name: Separate coding policy and user
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: bash control/boundary/isolation.sh
       - name: Run identity
         if: always()
