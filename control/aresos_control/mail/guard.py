@@ -20,6 +20,13 @@ def check(raw, root_texts, disclosed_texts, draft=False):
     root_texts = {normalized(text) for text in root_texts}
     disclosed_texts = {normalized(text) for text in disclosed_texts}
 
+    def readable(headers, payload):
+        try:
+            text = payload.decode(headers.get_content_charset() or "utf8", "strict")
+        except (UnicodeError, LookupError):
+            refuse("text cannot be decoded exactly for disclosure")
+        return html_text(text) if headers.get_content_type() == "text/html" else text
+
     def walk(data, inherited=False, root_body=False, depth=0):
         if depth > 40:
             refuse("mail nesting exceeds the safe inspection limit")
@@ -73,6 +80,8 @@ def check(raw, root_texts, disclosed_texts, draft=False):
             chunks, current, closed = [], None, False
             for line in payload.splitlines(keepends=True):
                 marker = line.rstrip(b"\r\n").rstrip(b" \t")
+                if marker.startswith(delimiter) and marker not in {delimiter, delimiter + b"--"}:
+                    refuse("ambiguous multipart boundary suffix")
                 if marker in {delimiter, delimiter + b"--"}:
                     if current is not None:
                         chunk = b"".join(current)
@@ -89,6 +98,12 @@ def check(raw, root_texts, disclosed_texts, draft=False):
             for chunk in chunks:
                 walk(chunk, marked, root_body, depth + 1)
             return
+        if root_body and headers.get_content_type() in {"text/plain", "text/html"}:
+            # Inline forwards have displayed From/Subject lines; these bytes are the
+            # constructed body, checked exactly against the composition and quote blobs.
+            if normalized(readable(headers, payload)) not in root_texts:
+                refuse("generated body differs from the approved composition")
+            return
         payload_head = re.split(rb"\r\n\r\n|\n\n|\r\r", mail_content(payload), maxsplit=1)[0]
         frozen_entity = re.search(rb"(?im)^(?:content-type[ \t]*:[ \t\r\n]*(?:multipart|message)/|x-aresos-authored[ \t]*:)", payload_head)
         mail_name = (headers.get_filename() or "").lower().endswith((".eml", ".msg"))
@@ -99,14 +114,7 @@ def check(raw, root_texts, disclosed_texts, draft=False):
             walk(payload, marked if not root_body else AUTHORED_HEADER in headers, False, depth + 1)
             return
         if headers.get_content_type() in {"text/plain", "text/html"}:
-            try:
-                text = payload.decode(headers.get_content_charset() or "utf8", "strict")
-            except (UnicodeError, LookupError):
-                refuse("text cannot be decoded exactly for disclosure")
-            if headers.get_content_type() == "text/html":
-                text = html_text(text)
-            allowed = root_texts if root_body and not attached else disclosed_texts
-            if (marked or root_body and not attached) and normalized(text) not in allowed:
+            if marked and normalized(readable(headers, payload)) not in disclosed_texts:
                 refuse("authored text is not shown in full in the approval")
         elif AUTHORED_HEADER in headers:
             refuse("marked non-text payload cannot be disclosed safely")

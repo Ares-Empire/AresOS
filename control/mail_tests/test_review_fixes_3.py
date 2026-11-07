@@ -20,7 +20,7 @@ from aresos_control.mail import codec, guard
 
 def encapsulated(inner, kind='rfc822', encoding='base64'):
     # Encode header names too: permissive parsers sometimes see through ASCII-only QP.
-    payload = base64.encodebytes(inner) if encoding == 'base64' else b'=\r\n'.join(
+    payload = base64.encodebytes(inner).replace(b'\n', b'\r\n') if encoding == 'base64' else b'=\r\n'.join(
         b''.join(b'=%02X' % byte for byte in inner[start:start + 24]) for start in range(0, len(inner), 24))
     return (b'From: nested@mail.invalid\r\nSubject: Encapsulated\r\nContent-Type: message/' + kind.encode()
             + b'\r\nContent-Transfer-Encoding: ' + encoding.encode() + b'\r\n\r\n' + payload)
@@ -71,6 +71,8 @@ class HeaderAndEncoding(unittest.TestCase):
             with self.assertRaises(Refused):
                 guard.check(raw, ['Root text'], [])
             guard.check(codec.without_bcc(raw), ['Root text'], [])
+        with self.assertRaises(Refused):
+            guard.check(container.replace(b'--x\r\n', b'--x-invalid\r\n'), [], [])
 
     def test_review3_2_recursive_encoding_and_provenance_before_text_classification(self):
         inner = b'From: synthetic@mail.invalid\r\nSubject: Inner\r\nBcc: private@mail.invalid\r\nResent-Bcc: private@mail.invalid\r\nX-AresOS-Authored: 1\r\n\r\nEntire authored nested text\r\n'
@@ -80,7 +82,7 @@ class HeaderAndEncoding(unittest.TestCase):
                     with self.subTest(kind=kind, encoding=encoding, outer_type=outer_type):
                         nested = encapsulated(encapsulated(inner, kind, encoding), kind, encoding)
                         raw = (b'From: outer@mail.invalid\r\nSubject: Outer\r\nContent-Type: ' + outer_type.encode()
-                               + b'\r\nContent-Transfer-Encoding: base64\r\n\r\n' + base64.encodebytes(nested))
+                               + b'\r\nContent-Disposition: attachment; filename="source.bin"\r\nContent-Transfer-Encoding: base64\r\n\r\n' + base64.encodebytes(nested))
                         clean = codec.without_bcc(raw)
                         texts = codec.approval_texts(codec.parse(clean))
                         self.assertIn('Entire authored nested text', ''.join(texts))
@@ -227,6 +229,38 @@ class ReviewFixes3(MailCase):
                                                   'attachments':[{'reference':ref, 'part':part}]})
                     self.assertFalse(result['ok'], result)
                     self.assertEqual(result['error']['code'], 'file_refused')
+
+    def test_review3_guard_extracted_marked_body_keeps_ancestor_provenance(self):
+        inner = EmailMessage()
+        inner['From'], inner['Subject'] = self.peer, 'Marked enclosed body'
+        inner[codec.AUTHORED_HEADER] = '1'
+        inner.set_content('Entire extracted authored body')
+        inner.add_alternative('<p>Distinct extracted HTML body</p>', subtype='html')
+        outer = EmailMessage()
+        outer['From'], outer['Subject'] = self.peer, 'Unmarked outer'
+        outer.set_content('Untrusted outer text')
+        outer.add_attachment(inner)
+        ref = self.fixture(msg=outer)
+        comp = self.compose(attachments=[{'reference':ref, 'part':'1.2.1.1'}, {'reference':ref, 'part':'1.2.1.2'}])
+        approval = self.data('prepare_send', {k:comp[k] for k in ('composition_id','composition_hash')})['approval']
+        for text in ('Entire extracted authored body', 'Distinct extracted HTML body'):
+            self.assertIn(text, canonical(approval))
+        stored = self.mail.composition(comp)
+        raw = self.mail.mime(stored, '<extracted@mail.invalid>')
+        for part in codec.parse(raw).iter_attachments():
+            self.assertIn(codec.AUTHORED_HEADER, part)
+        incomplete = {**stored, 'mail':{**stored['mail'], 'attachments':[{**att, 'authored_text':[]} for att in stored['mail']['attachments']]}}
+        with self.assertRaises(Refused):
+            self.mail.check_mime(incomplete, raw)
+        sent = self.send(approval)
+        self.assertEqual(sent['state'], 'done', sent)
+        received, = self.arrivals('one@mail.invalid', sent['stages']['message_id'])
+        self.assertIn('Entire extracted authored body', codec.text_part(list(codec.parse(received).iter_attachments())[0]))
+        _, encoded = self.nested_fixture('rfc822', 'base64', 'Encoded authored body')
+        result = self.call('compose', {'account':'box', 'to':['one@mail.invalid'], 'text':'Refuse parser phantom child',
+                                       'attachments':[{'reference':encoded,'part':'1.2.1'}]})
+        self.assertFalse(result['ok'], result)
+        self.assertEqual(result['error']['code'], 'file_refused')
 
     def test_review3_guard_bypassed_sanitizer_refuses_compose_prepare_and_send_without_data(self):
         for private in (True, False):

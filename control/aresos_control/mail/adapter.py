@@ -236,6 +236,14 @@ class Mail:
                 raise Refused("stale_reference", "MIME part is stale, read again.")
             data, name, content_type = codec.decoded(part), part.get_filename() or "attachment", part.get_content_type()
         node = m["msg"] if args["part"] == "source" else part
+        authored = self.authored(m)
+        if args["part"] != "source":
+            for path, ancestor in codec.parts(m["msg"]).items():
+                if args["part"] == path or args["part"].startswith(path + "."):
+                    authored = authored or codec.AUTHORED_HEADER in ancestor
+                    if (outgoing and args["part"] != path and ancestor.get_content_maintype() == "message"
+                            and str(ancestor.get("Content-Transfer-Encoding", "7bit")).lower().strip() not in {"7bit", "8bit", "binary"}):
+                        raise Refused("file_refused", 'Encoded message descendants have no stable decoded MIME path; attach the enclosing part or part: "source".')
         mail_source = (args["part"] == "source" or node.is_multipart() or content_type.startswith("message/")
                        or name.lower().endswith(".eml") or codec.is_mail(data))
         if outgoing:
@@ -251,9 +259,11 @@ class Mail:
                 "source": {"reference": args["reference"], "part": args["part"]}}
         if outgoing and mail_source:
             item["transformation"] = "Original mail with Bcc and Resent-Bcc removed, including nested messages."
-        texts = codec.approval_texts(node, self.authored(m))
+        texts = codec.approval_texts(node, authored)
         if texts:
             item["authored_text"] = texts
+        if outgoing and authored:
+            item["authored"] = True
         return data, item
 
     def composition(self, args):
@@ -423,6 +433,8 @@ class Mail:
             if item["type"] == "message/rfc822":
                 major, minor = "application", "octet-stream"
             msg.add_attachment(data, maintype=major, subtype=minor, filename=codec.clean_header(item["name"]), cte="base64")
+            if item.get("authored"):
+                msg.get_payload()[-1][codec.AUTHORED_HEADER] = "1"
         raw = msg.as_bytes()
         if len(raw) > self.wires.limit:
             raise Refused("file_refused", "Encoded whole mail exceeds 64 MiB limit; reduce attachments.")
