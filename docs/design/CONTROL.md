@@ -1096,7 +1096,9 @@ each likely needs, to be confirmed when its adapter is built:
     verified operation on other sites binds the approval to what the bytes say; here it binds only to which bytes.
   - *Tests (brief 20):* typing before Enter (the set grows, typing keeps working); the message produced after Send
     (encryption finishing later, a worker) landing in the set during collection; a frame after the freeze held in a
-    separate set; a frame held before composing began staying held when the set is released; unrelated encrypted
+    separate set; a frame held before composing began: on another connection it stays held when the set is
+    released; on the same connection the approved set waits until that earlier frame has its own decision (order is
+    kept); unrelated encrypted
     traffic mixed into the set; decline (all dropped); the approval expiring (dropped); each bound (refused and
     dropped); opening a chat with no further step (collection ends at its time limit, the question asks, and
     unanswered it expires and is dropped); and a crash of the checkpoint, the tool service and Chrome during
