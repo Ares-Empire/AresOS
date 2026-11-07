@@ -305,6 +305,10 @@ class ReviewFixes(MailCase):
             with patch('aresos_control.mail.transport.context', side_effect=lambda a: context({**a,'ca_file':str(CERT / 'tls.crt')})):
                 response = self.engine.request({'v':1, 'method':'mail_account_add', 'arguments':args, 'password':'pass'}, admin=True)
             self.assertTrue(response['ok'], response)
+            # Account listing now verifies optional roles over a fresh TLS session.
+            recorded = self.mail.account(account_id, ready=False)
+            recorded['ca_file'] = str(CERT / 'tls.crt')
+            self.engine.store.write({'mail:account:' + account_id: recorded}, 'fixture', 'trust isolated fixture certificate')
             account = next(a for a in self.data('accounts')['accounts'] if a['id'] == account_id)
             self.assertEqual(response['data']['account'], account)
             if mode == 'inuse':

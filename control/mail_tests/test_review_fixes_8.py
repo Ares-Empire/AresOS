@@ -54,8 +54,14 @@ class ReviewFixes8(MailCase):
     switch_roles = round7.ReviewFixes7.switch_roles
     record_roles = round7.ReviewFixes7.record_roles
     server_state = round7.ReviewFixes7.server_state
-    tearDown = round7.ReviewFixes7.tearDown
     keys = round7.ReviewFixes7.keys
+
+    def tearDown(self):
+        try:
+            if getattr(self, '_roles_changed', False):
+                self.configure_roles('default')
+        finally:
+            super().tearDown()
 
     def statuses(self):
         accounts = self.data('accounts')['accounts']
