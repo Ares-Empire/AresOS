@@ -67,20 +67,26 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Upload a local file | `chrome_upload` | change | first |
 | Downloads: list, save into an allowed folder | `chrome_downloads` | read, change | first |
 | Bookmarks and history: find addresses | `chrome_bookmarks`, `chrome_history` | read | first |
-| Submit a form, post, send a message, any request that sends | `chrome_submit` | send | first |
-| Typing and Enter where the message hold can't be in place | `chrome_submit_input` | send | first, on sites with an adapter; refused elsewhere (reloading the page usually brings the normal hold back) |
-| Sends on the owner's trusted sites | `chrome_submit_trusted` | send, free | first, for operations a site adapter recognises; deleting and paying are never free |
-| Apps that read through POST (Notion, Google's apps) | site adapter; GraphQL sorted by itself | | first for the owner's usual sites (17c: Notion and Google Docs need one); elsewhere Claude's clicks there ask until an adapter exists |
+| Submit a form, post, send a message, any request that sends | `chrome_submit` | send | first: the send waits at the checkpoint outside Chrome, and exactly the approved captured send goes, once |
+| Typing and Enter on chat sites (messages on a live connection) | `chrome_fill`, `chrome_press`, then `chrome_submit` | change, then send | first: the message waits at the checkpoint, also on connections opened before Claude started; chats that encrypt in the page (WhatsApp Web) need an adapter for a readable description |
+| "Don't ask again" for a kind of action | `chrome_submit_trusted` | send, free | first, for kinds a site adapter recognises ("Deezer: add to playlist"), set and revoked only by the owner; never for unrecognised sends, deleting, paying or mail |
+| See and revoke "don't ask again" entries | `chrome_sites`; the extension's details page | owner | owner: Claude can't write the list |
+| Searches on the owner's usual sites | `chrome_fill`, `chrome_press` | send, free | first: free there (decision 7; the list of usual sites is the owner's); elsewhere a search carrying Claude's text asks |
+| Apps that read through POST (Gemini, Gmail, Notion, Google's apps) | site adapter; GraphQL sorted by itself | | first for the owner's usual sites (17c: Notion and Google Docs need one); elsewhere Claude's clicks there ask until an adapter exists |
 | Drop what a page wanted to send | `chrome_drop` | change | first |
-| End a site's guard where it didn't end by itself (the owner's own sends there are checked until then) | `chrome_end_guard`, or the extension's details page | send (asks) | first |
+| End a site's guard (it ends by itself only where a site adapter shows nothing of Claude's is left; the owner's own sends there are checked until then) | `chrome_end_guard`, or one click on the extension's notice when Claude is done there | send (asks) | first |
+| Switch the checkpoint to pass-through after a fault (Claude's Chrome tools off until it's back) | `chrome_checkpoint` (`sudo aresos admin chrome checkpoint …`) | owner | owner: only when no guard holds leftovers, or after he has seen them |
+| Calls in Chrome (voice, video, screen sharing to a peer) | | owner | owner: work only while no guard is on and Claude isn't acting; cut when a guard starts (Claude asks first if a call is running) |
+| Sites that need WebTransport or WebRTC data channels | | | refused while a guard is on; work otherwise |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; passwords never pass through Claude |
-| Pay, order, transfer money | `chrome_submit` | send | first, always asking, never on the trusted list |
+| Pay, order, transfer money | `chrome_submit` | send | first, always asking, never "don't ask again" |
 | Drag and drop, hover menus | `chrome_drag`, `chrome_hover` | change | later: after the tool-user rounds show where they're needed |
 | Canvas editors and maps (text drawn, not in the page structure) | site adapter, or a last-resort picture | | later: per site, as the rounds show |
 | Save or print a page as PDF | `chrome_export_pdf` to an allowed folder | change | later |
 | Add and remove bookmarks | `chrome_bookmarks` | change | later |
 | Windows: move tabs between windows | | | later |
-| Site adapters for the owner's usual sites | per site | | after the tool-user rounds; sites from the owner's list |
+| Site adapters for the owner's usual sites | per site | | first: WhatsApp Web, Gemini, Gmail, Deezer (decision 9; WhatsApp Web may end as "Claude fills in, the owner sends"); more after the tool-user rounds |
+| Gmail in Chrome: send a mail | `chrome_submit` through the Gmail adapter | send | first, always asking, never "don't ask again"; the approval reads like a mail |
 | Chrome's settings, passwords, extensions; claude.ai | | | never: these could change Claude's own limits or approve its own actions |
 | Screenshots as the way to see a page | | | never as the main path (owner); a picture only where a site adapter says it's the last resort |
