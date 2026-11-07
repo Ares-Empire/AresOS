@@ -38,12 +38,13 @@ acting):
    checkpoint's memory). The five conditions under S2e apply before it becomes his everyday browser.
 7. **Chrome asks, and he can say "don't ask again" for an action (#52):** offered only for kinds of action a site
    adapter recognises, set by him at approval through a channel Claude can't answer, kept in the owner-only list,
-   visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free.
+   visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free. (Scope settled
+   by decision 15. Never on WhatsApp Web: the checkpoint can't read its encrypted messages.)
 8. **Assistant apart from coding (#53):** the session holding mail and Chrome runs apart from coding sessions; they
    coordinate only through messages that go via the tool service, and a message from the assistant asks like a
-   send.
+   send. (His folders: decision 17.)
 9. **His usual signed-in sites (#50), so far:** WhatsApp Web, Gemini, Gmail, Deezer (more to come). They are the
-   first adapter targets.
+   first adapter targets. (How Claude sends on WhatsApp Web: decision 16.)
 10. **Claude in Chrome stays for his own use (#58); AresOS's Claude Code rules apply machine-wide and change only
     with his admin password (#59).**
 12. **The site guard is strict (#67):** it ends by itself only once the tool can see the site stored nothing of
@@ -54,7 +55,33 @@ acting):
     image rules.
 11. **Approval on the phone must read like a mail (#71):** the first phone test showed the raw tool call ("code
     basically, not a clean email"). Phone test 2 compares the tool asking him itself (MCP elicitation) with a
-    readable summary in Claude Code's prompt; decision 1 changes with its result.
+    readable summary in Claude Code's prompt; decision 1 changes with its result. (All phone tests done; the surface
+    is still open as board #78, `CONTROL.md` section 7.)
+
+**Answers of 2026-11-07, evening** (relayed by the lead, his words in quotes):
+
+14. **Unlabelled local-only deletion: "a)".** Clicks on controls that don't say they delete stay free; labelled
+    destructive controls and Delete or Backspace outside plain text editing ask; the gap (an unlabelled control can
+    delete something kept only in the browser) is accepted as stated.
+15. **"Don't ask again": "yes".** Offered for mail bound to an exact set of recipients, in the Mail tools and in Gmail.
+    Deleting and paying always ask.
+16. **WhatsApp Web: "a)".** Claude asks per message, as one approval of the bounded set of encrypted frames,
+    described "as the page shows it".
+17. **His folders: "pretty much everything no? like running claude with dangerously skip permissions just like I do
+    now".** The assistant may change everything in his home folders except hidden settings and start-up places
+    (dotfiles, autostart, shell start-up files, symlinks). Code lives in the coding user's own home, so coding
+    sessions keep reading their repositories and never read his folders. Inside its sandbox the assistant works
+    without permission prompts, as in his bypass sessions now; only sends and deletes ask (overwriting asks as a
+    delete). This settles `sandbox.autoAllowBashIfSandboxed`: true. (Refined by the lead after re-check 15: a change
+    to an existing file, a whole replacement included, is free because its previous version is first kept for 30 days
+    in a store Claude can't write, which he restores from; deleting asks.)
+18. **`WebFetch` and `WebSearch`: "a)".** Searches are free, as on his usual sites in Chrome; fetching an address
+    Claude composed asks; an address from him or from a page is free.
+19. **The checkpoint's certificate limits: "okay",** accepted as stated (client certificates, no "continue anyway",
+    a pause when Chrome's lists are out of date, a visible notice if Chrome is ever newer than its checkpoint).
+20. **Merging, a new rule: "A safe merge shouldnt need permission should it?"** From now on the lead merges a PR
+    without asking once its review says SAFE (or READY for a design), CI is green twice, and he has answered its
+    judgment calls. Anything under "Owner decides" in `CLAUDE.md` still asks.
 
 ## How sending stays under the owner's control
 
@@ -162,7 +189,7 @@ and whatever is left after it is built by Claude agents, more slowly.
 
 | Who | Does | Reports to |
 |---|---|---|
-| `mac-aresos-control` (Claude, lead) | the plan, the design, the tool lists (what Claude will read), briefs, checking results, merges after the owner's "merge", the owner's questions | the owner |
+| `mac-aresos-control` (Claude, lead) | the plan, the design, the tool lists (what Claude will read), briefs, checking results, merges (without asking once the review says SAFE or READY, CI is green twice and the owner has answered the judgment calls: decision 20), the owner's questions | the owner |
 | Codex workhorse (`gpt-6.1-sol`, xhigh) | checks (S2) and builds: one run per package in its own worktree, tested on GitHub's Linux machines | its package lead; for S2 the lead |
 | Codex workhorse, fresh (`gpt-6.1-sol`, high, read-only) | package reviews | its package lead |
 | Codex frontier, fresh (`gpt-6-astra`, xhigh) | the design review and the final security review: the base for every later app, and the security boundary | the lead |
@@ -174,8 +201,8 @@ and whatever is left after it is built by Claude agents, more slowly.
 Why this split: Codex has the capacity for building and reviewing until 2026-11-21, and every review is a fresh
 context. Claude judges the tools from the user's side because Claude is the one who will use them. Package leads
 keep build logs and review rounds out of the lead's context, so the lead keeps the overview and the owner gets short
-answers. Briefs live on their package branch and reach `main` with the package; nothing is pushed to `main` without
-the owner's "merge".
+answers. Briefs live on their package branch and reach `main` with the package; nothing reaches `main` except by a
+merge under decision 20 (or the owner's "merge" where it doesn't apply).
 
 ## Everyday tasks the tools must handle
 
@@ -209,16 +236,21 @@ tasks at any time.
 ## Open
 
 - The exact system-wide settings: once the tools exist (decision 3). Draft in `control/settings/` (briefs 18, 18b).
-  One value to settle there: brief 18b's draft sets `sandbox.autoAllowBashIfSandboxed: false`, which hands sandboxed
-  terminal commands to the ordinary permission rules instead of allowing them outright; what those do depends on the
-  permission mode (in 18b's run an unapproved `sleep 2` still ran). Recommended: keep Claude Code's default (true). The
-  sandbox holds without a prompt (18b), and extra prompts wear down attention for the send and delete prompts that
-  matter.
+  `sandbox.autoAllowBashIfSandboxed` is settled as true (decision 17): brief 18b's draft value `false` changes to
+  `true` when the settings are written.
 - Language and libraries: decided in the design, after S2.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** #73 (phone test 2).
+- **Owner questions still open:** #78, the approval surface (`CONTROL.md` sections 7 and 10). Everything else in
+  section 10 was answered on 2026-11-07 (decisions 14 to 19).
+
+**Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
+
+- `control/launch.py`: the MCP proxy's identity guard checks only the real user id; it should check both the real and
+  the effective user id, with a regression test for a mismatch.
+- `control/boundary/isolation.py`: the coding-user check should also plant rogue user and project MCP servers and
+  check that they never appear or start.
 
 ## Where it stands
 
@@ -275,3 +307,81 @@ tasks at any time.
   no mail can be lost: an owner choice). Round 7 fixed the first three (114 Mail tests green twice); round 8 makes
   Junk and Archive optional so onboarding works on servers that don't mark them. Frontier re-review after round 8.
   Phone check of the prompt timed out unanswered; restarted for 48 hours (#71 replaces #51).
+- **2026-11-07, 17:17:** brief 18b merged (PR #5, `6b2667f`); two follow-ups from its merge-fix review under Open.
+  Design draft 10 written (branch `control/design-draft-10`): section 6 rebuilt on the local checkpoint of 17e (no
+  Chrome blocking rules, no URL allowances); the owner's five hard requirements for it (decision 6) as design
+  requirements with their tests, including a fresh root per start (Chrome re-reads its trust policy while running, so
+  the launcher restarts Chrome with the checkpoint); Chrome's own services trusted without exemptions; the strict
+  guard; "don't ask again" for recognised kinds only; his four usual sites as the first adapters; the residuals in
+  plain words; the five conditions before everyday use, and calls only while no guard is on. Section 7 adds the
+  assistant apart from coding sessions, and the approval surface: the phone tests are done (on the phone, Claude
+  Code's prompt reads as code in every shape tried; the tool's own question never arrived), and the proposal (an
+  approval screen in Aresus, end-to-end encrypted and signed on the phone, with a local approval window at the laptop;
+  alternative: approving only at the laptop) is open for the owner. Frontier re-check 8 of the diff next, then brief
+  20.
+- **2026-11-07, 17:38:** frontier re-check 8 of draft 10: CHANGES-NEEDED, six blocking points
+  ([RECHECK-8](../../reviews/control-design/2026-11-07-RECHECK-8.md)). Design draft 11 answers them on the same
+  branch: everything, GET and HEAD included, held at every checkpoint start until the guards and Claude's entered text
+  (kept encrypted) are restored, then an uncertain GET or HEAD passes only when the entered-text check clears it;
+  clicks on controls labelled as destructive (English and German) ask before the click, with the unlabelled ones
+  named as a gap; "recognised" means the complete operation validates against a qualified adapter contract, so a
+  GraphQL query is not reading by itself and WhatsApp Web's sends always ask; three users (owner, assistant, coding
+  user `coder`) with nothing the assistant writes readable by coding sessions; every place the root is installed,
+  reconciled at each start and removed at stop, with Chrome restarted whenever the root changes; the exact upstream
+  TLS checks, with what is lost (Chrome's urgent revocation list, updates between images, client certificates) as an
+  owner question before everyday use. Should-fixes too: attribution before anything reaches Claude, sign-in data
+  redacted, the Aresus approval protocol in full, ending a call only on his answer, and brief 20's added tests.
+  Re-check 9 next.
+- **2026-11-07, 17:49:** frontier re-check 9 of draft 11
+  ([RECHECK-9](../../reviews/control-design/2026-11-07-RECHECK-9.md)): three of the six points closed (recognised
+  actions, the shared-file route, root removal), three partly, one new. Design draft 12 on the same branch: every
+  acting input is recorded and acknowledged by the checkpoint before it reaches Chrome; an unlabelled control that may
+  delete data kept only in the browser is a new owner question (recommended: such clicks stay free); the upstream
+  checks use Chrome's own current revocation list, root list, CT log list and pins from its component folders, with
+  age limits, and match Chrome 157 on stapling; a destructive action approved in advance is one bounded advance
+  operation, used once; plus the should-fixes (safe-field descriptions, unattributed sends to his approval surface,
+  `chrome_end_call` for all calls as one set, real firewall tests, the Aresus adversarial tests). Re-check 10 next.
+- **2026-11-07, 17:57:** frontier re-check 10 of draft 12
+  ([RECHECK-10](../../reviews/control-design/2026-11-07-RECHECK-10.md)): the input barrier and the advance approval
+  closed; unlabelled local-only deletion and Chrome's security data still open. Design draft 13: both deletion options
+  stated truthfully for the owner (option (a) also leaves drafts kept in storage on ordinary online sites; (b) asks on
+  every site without an adapter), with objects inside editable areas counting as destructive; Chrome's security data
+  read from its user-data directory, trusted on Chrome's verified installation and the folder's protection, Chrome and
+  checkpoint pinned together with a visible notice if they ever differ, freshness from the data's own fields, and an
+  exact recovery contract when it is out of date. Re-check 11 next.
+- **2026-11-07, 18:05:** frontier re-check 11 of draft 13
+  ([RECHECK-11](../../reviews/control-design/2026-11-07-RECHECK-11.md)): two points partly closed. Design draft 14:
+  option (b) for unlabelled deletion discloses that links stay free; freshness of Chrome's security data counts only
+  evidence for the version held (no evidence means out of date); recovery from out-of-date data runs only while the
+  extension's tag coverage is verified; path segments get placeholders. Three points that mac-capacity found settled
+  more narrowly than the owner asked are now owner questions in `CONTROL.md` section 10, with recommendations: which
+  of his folders the assistant may change (recommended: he picks some, coding sessions lose read access to them),
+  "don't ask again" for mail bound to exact recipients (recommended: offer), deleting and paying (recommended: always
+  ask) and WhatsApp Web (recommended: not at all), and how Claude sends on WhatsApp Web (recommended: asking per
+  message, the default). Re-check 12 next.
+- **2026-11-07, 18:11:** frontier re-check 12 of draft 14
+  ([RECHECK-12](../../reviews/control-design/2026-11-07-RECHECK-12.md)): every re-check 11 point closed; the WhatsApp
+  approval shape open. Design draft 15: on WhatsApp Web each message is one page-trusting approval of a bounded set of
+  encrypted frames captured from the start of Claude's composing to Enter, forwarded in order at most once or dropped
+  whole, said plainly to be weaker than a verified send; "don't ask again" is never offered there (a technical limit).
+  Folder option (b) separates saving new files from approved replacement and removes the coding user's access first;
+  "Claude fills in, he sends" says his Send is still held while the site is guarded. Re-check 13 next.
+- **2026-11-07, 18:15:** frontier re-check 13 of draft 15
+  ([RECHECK-13](../../reviews/control-design/2026-11-07-RECHECK-13.md)): one WhatsApp timing point open. Design draft
+  16: after Send, a short collection phase gathers the message the page produces a little later, then the set freezes
+  and he is asked; late frames form a separate set with its own question; frames held before composing never go with
+  a set's release. Opening a chat has its own collection deadline and approval expiry. Folder option (b) says plainly
+  that coding programs holding files open are ended at the switch. Re-check 14 next.
+- **2026-11-07, 19:27:** design drafts 10 to 16 merged (PR #11, `c7ba7a71`). The owner answered every open question but
+  the approval surface (decisions 14 to 20): unlabelled local-only deletion "a)"; "don't ask again" "yes" for mail
+  bound to exact recipients, with deleting and paying always asking; WhatsApp "a)"; his folders "pretty much
+  everything", the assistant working without prompts inside its sandbox and only sends and deletes asking;
+  `WebFetch` and `WebSearch` "a)"; the certificate limits "okay"; and a new rule that safe merges need no
+  permission. Built into the design on branch `control/owner-answers-1107`. Open: the approval surface (#78).
+- **2026-11-07, 19:33:** frontier re-check 15 of the owner's answers: recorded faithfully, four enforcement gaps. Fixed
+  on the same branch: a fetch is free only for an address recorded with its origin (his message, or a link in a page
+  or mail a reading tool returned), never one from terminal output, a file Claude wrote or an echoed argument; every
+  change to an existing file in his folders is free because its previous version is first kept for 30 days in the
+  tool service's version store (refused if that fails), and only deleting asks; every gating hook blocks when it
+  fails; coding programs holding his files open are ended before the assistant's writes are switched on; the
+  terminal's own folders are disposable scratch.

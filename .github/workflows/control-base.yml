@@ -1,16 +1,16 @@
 name: Control base
+# One run per pull-request push: no separate push trigger (it doubled every run and every failure email).
+# For "passes twice", rerun the same run (gh run rerun <id>) instead of pushing again.
 on:
-  push:
-    branches: [pkg/18-control-base]
-    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/18-control-base/**', '.github/workflows/control-base.yml']
   pull_request:
     branches: [main]
     paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/18-control-base/**', '.github/workflows/control-base.yml']
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: control-base-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   containers:
     runs-on: ubuntu-24.04
