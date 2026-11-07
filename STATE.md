@@ -90,5 +90,19 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
    `reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md` (wins over that council's VERDICT). Led by the Claude
    session `mac-aresos-control`; it changes nothing under `os/`, `mod/` or the install docs without telling
    `laptop-aresos` first.
+   - **On main (owner's "merge", 2026-11-07):** the plan and design (PR #2, design draft 9), the shared base (brief
+     18, PR #6), the sandbox boundary (brief 18b, PR #5, merged as `6b2667f`) and the Chrome checks 17 to 17e (PRs #3,
+     #4, #7, #8, #10). Check 17e showed that a local checkpoint outside Chrome holds every tested send; the owner chose
+     it (with hard security requirements, `PLAN.md` decisions 6 to 13).
+   - **Done, not merged:** all three phone approval tests (2026-11-07). On the phone, Claude Code's prompt reads as
+     code in every shape tried (the raw tool call, a hook's readable reason, one readable text field), and the tool's
+     own question (MCP elicitation) never reached the phone; in the terminal at the laptop the prompt is readable. The
+     owner decides on the proposed approval screen in Aresus (`docs/design/CONTROL.md`, section 7).
+   - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
+     design draft 16 (WhatsApp Web's approval as one bounded set of encrypted captures, with a short collection phase after Send; owner questions on his
+     folders, the scope of "don't ask again" and how Claude sends on WhatsApp Web; `docs/design/CONTROL.md` section 10
+     lists every open owner question).
+   - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
+     rule), then brief 20 (Chrome) on the final design draft, once a re-check finds no blocking point.
 
 Codex Pro runs until 2026-11-21.

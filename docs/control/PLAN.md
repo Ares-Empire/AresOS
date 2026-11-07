@@ -38,12 +38,17 @@ acting):
    checkpoint's memory). The five conditions under S2e apply before it becomes his everyday browser.
 7. **Chrome asks, and he can say "don't ask again" for an action (#52):** offered only for kinds of action a site
    adapter recognises, set by him at approval through a channel Claude can't answer, kept in the owner-only list,
-   visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free.
+   visible and revocable. Unrecognised sends always ask once. Searches on his usual sites are free. (Scope open,
+   2026-11-07: his answer was general; whether it also covers mail bound to an exact recipient set, and deleting and
+   paying, is asked in `CONTROL.md` section 10. Never on WhatsApp Web: the checkpoint can't read its encrypted
+   messages.)
 8. **Assistant apart from coding (#53):** the session holding mail and Chrome runs apart from coding sessions; they
    coordinate only through messages that go via the tool service, and a message from the assistant asks like a
-   send.
+   send. (Open, 2026-11-07: which of his folders the assistant may read and which it may change, `CONTROL.md`
+   section 10.)
 9. **His usual signed-in sites (#50), so far:** WhatsApp Web, Gemini, Gmail, Deezer (more to come). They are the
-   first adapter targets.
+   first adapter targets. (Open, 2026-11-07: how Claude sends on WhatsApp Web, `CONTROL.md` section 10; the default
+   is asking per message.)
 10. **Claude in Chrome stays for his own use (#58); AresOS's Claude Code rules apply machine-wide and change only
     with his admin password (#59).**
 12. **The site guard is strict (#67):** it ends by itself only once the tool can see the site stored nothing of
@@ -218,7 +223,17 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** #73 (phone test 2).
+- **Owner questions still open:** #73 (the approval surface, after the phone tests); and in `CONTROL.md` section 10:
+  what the checkpoint's certificate checks still can't do, unlabelled local-only deletion, which of his folders the
+  assistant may read and change, for which actions "don't ask again" is offered, how Claude sends on WhatsApp Web,
+  and `WebFetch` and `WebSearch`.
+
+**Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
+
+- `control/launch.py`: the MCP proxy's identity guard checks only the real user id; it should check both the real and
+  the effective user id, with a regression test for a mismatch.
+- `control/boundary/isolation.py`: the coding-user check should also plant rogue user and project MCP servers and
+  check that they never appear or start.
 
 ## Where it stands
 
@@ -275,3 +290,68 @@ tasks at any time.
   no mail can be lost: an owner choice). Round 7 fixed the first three (114 Mail tests green twice); round 8 makes
   Junk and Archive optional so onboarding works on servers that don't mark them. Frontier re-review after round 8.
   Phone check of the prompt timed out unanswered; restarted for 48 hours (#71 replaces #51).
+- **2026-11-07, 17:17:** brief 18b merged (PR #5, `6b2667f`); two follow-ups from its merge-fix review under Open.
+  Design draft 10 written (branch `control/design-draft-10`): section 6 rebuilt on the local checkpoint of 17e (no
+  Chrome blocking rules, no URL allowances); the owner's five hard requirements for it (decision 6) as design
+  requirements with their tests, including a fresh root per start (Chrome re-reads its trust policy while running, so
+  the launcher restarts Chrome with the checkpoint); Chrome's own services trusted without exemptions; the strict
+  guard; "don't ask again" for recognised kinds only; his four usual sites as the first adapters; the residuals in
+  plain words; the five conditions before everyday use, and calls only while no guard is on. Section 7 adds the
+  assistant apart from coding sessions, and the approval surface: the phone tests are done (on the phone, Claude
+  Code's prompt reads as code in every shape tried; the tool's own question never arrived), and the proposal (an
+  approval screen in Aresus, end-to-end encrypted and signed on the phone, with a local approval window at the laptop;
+  alternative: approving only at the laptop) is open for the owner. Frontier re-check 8 of the diff next, then brief
+  20.
+- **2026-11-07, 17:38:** frontier re-check 8 of draft 10: CHANGES-NEEDED, six blocking points
+  ([RECHECK-8](../../reviews/control-design/2026-11-07-RECHECK-8.md)). Design draft 11 answers them on the same
+  branch: everything, GET and HEAD included, held at every checkpoint start until the guards and Claude's entered text
+  (kept encrypted) are restored, then an uncertain GET or HEAD passes only when the entered-text check clears it;
+  clicks on controls labelled as destructive (English and German) ask before the click, with the unlabelled ones
+  named as a gap; "recognised" means the complete operation validates against a qualified adapter contract, so a
+  GraphQL query is not reading by itself and WhatsApp Web's sends always ask; three users (owner, assistant, coding
+  user `coder`) with nothing the assistant writes readable by coding sessions; every place the root is installed,
+  reconciled at each start and removed at stop, with Chrome restarted whenever the root changes; the exact upstream
+  TLS checks, with what is lost (Chrome's urgent revocation list, updates between images, client certificates) as an
+  owner question before everyday use. Should-fixes too: attribution before anything reaches Claude, sign-in data
+  redacted, the Aresus approval protocol in full, ending a call only on his answer, and brief 20's added tests.
+  Re-check 9 next.
+- **2026-11-07, 17:49:** frontier re-check 9 of draft 11
+  ([RECHECK-9](../../reviews/control-design/2026-11-07-RECHECK-9.md)): three of the six points closed (recognised
+  actions, the shared-file route, root removal), three partly, one new. Design draft 12 on the same branch: every
+  acting input is recorded and acknowledged by the checkpoint before it reaches Chrome; an unlabelled control that may
+  delete data kept only in the browser is a new owner question (recommended: such clicks stay free); the upstream
+  checks use Chrome's own current revocation list, root list, CT log list and pins from its component folders, with
+  age limits, and match Chrome 157 on stapling; a destructive action approved in advance is one bounded advance
+  operation, used once; plus the should-fixes (safe-field descriptions, unattributed sends to his approval surface,
+  `chrome_end_call` for all calls as one set, real firewall tests, the Aresus adversarial tests). Re-check 10 next.
+- **2026-11-07, 17:57:** frontier re-check 10 of draft 12
+  ([RECHECK-10](../../reviews/control-design/2026-11-07-RECHECK-10.md)): the input barrier and the advance approval
+  closed; unlabelled local-only deletion and Chrome's security data still open. Design draft 13: both deletion options
+  stated truthfully for the owner (option (a) also leaves drafts kept in storage on ordinary online sites; (b) asks on
+  every site without an adapter), with objects inside editable areas counting as destructive; Chrome's security data
+  read from its user-data directory, trusted on Chrome's verified installation and the folder's protection, Chrome and
+  checkpoint pinned together with a visible notice if they ever differ, freshness from the data's own fields, and an
+  exact recovery contract when it is out of date. Re-check 11 next.
+- **2026-11-07, 18:05:** frontier re-check 11 of draft 13
+  ([RECHECK-11](../../reviews/control-design/2026-11-07-RECHECK-11.md)): two points partly closed. Design draft 14:
+  option (b) for unlabelled deletion discloses that links stay free; freshness of Chrome's security data counts only
+  evidence for the version held (no evidence means out of date); recovery from out-of-date data runs only while the
+  extension's tag coverage is verified; path segments get placeholders. Three points that mac-capacity found settled
+  more narrowly than the owner asked are now owner questions in `CONTROL.md` section 10, with recommendations: which
+  of his folders the assistant may change (recommended: he picks some, coding sessions lose read access to them),
+  "don't ask again" for mail bound to exact recipients (recommended: offer), deleting and paying (recommended: always
+  ask) and WhatsApp Web (recommended: not at all), and how Claude sends on WhatsApp Web (recommended: asking per
+  message, the default). Re-check 12 next.
+- **2026-11-07, 18:11:** frontier re-check 12 of draft 14
+  ([RECHECK-12](../../reviews/control-design/2026-11-07-RECHECK-12.md)): every re-check 11 point closed; the WhatsApp
+  approval shape open. Design draft 15: on WhatsApp Web each message is one page-trusting approval of a bounded set of
+  encrypted frames captured from the start of Claude's composing to Enter, forwarded in order at most once or dropped
+  whole, said plainly to be weaker than a verified send; "don't ask again" is never offered there (a technical limit).
+  Folder option (b) separates saving new files from approved replacement and removes the coding user's access first;
+  "Claude fills in, he sends" says his Send is still held while the site is guarded. Re-check 13 next.
+- **2026-11-07, 18:15:** frontier re-check 13 of draft 15
+  ([RECHECK-13](../../reviews/control-design/2026-11-07-RECHECK-13.md)): one WhatsApp timing point open. Design draft
+  16: after Send, a short collection phase gathers the message the page produces a little later, then the set freezes
+  and he is asked; late frames form a separate set with its own question; frames held before composing never go with
+  a set's release. Opening a chat has its own collection deadline and approval expiry. Folder option (b) says plainly
+  that coding programs holding files open are ended at the switch. Re-check 14 next.
