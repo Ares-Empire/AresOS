@@ -68,7 +68,10 @@ class ReviewFixes(MailCase):
         self.data('folder_create', {'account':'box', 'name':'Draft-copies'})
         for verb in ('move', 'copy'):
             for text in ('Authored words must remain visible', 'x' * 21000):
-                ref = self.save(text)
+                saved = self.save(text)
+                # Round 6 forbids leaving Drafts; simulate a pre-existing marked
+                # draft elsewhere without using a now-forbidden move as setup.
+                ref = self.mail.append(self.account, "INBOX", self.mail.message(saved)["raw"])
                 ref = self.data(verb, {'references':[ref], 'target':'Draft-copies'})['items'][0]
                 self.assertIn(codec.AUTHORED_HEADER, self.mail.message(ref)['msg'])
                 for mode, style in (('reply',None), ('reply_all',None), ('forward','inline'), ('forward','attachment')):

@@ -40,7 +40,10 @@ class Mail:
         return {k: account[k] for k in ("id", "addresses", "capabilities", "smtp_capabilities", "special", "sent_policy", "safe_folder_delete", "format", "signature", "ready")} | {"folder_delete_reason": account.get("folder_delete_reason", "Not qualified by onboarding.")}
 
     def authored(self, message):
-        return self.under(self.account(message["reference"]["account"]), message["reference"]["folder"], "drafts") or codec.has_authored_marker(codec.split_entity(message["raw"])[0])
+        # message() fetches FLAGS with BODY.PEEK for this exact, validated reference.
+        return (any(flag.casefold() == "\\draft" for flag in message["flags"])
+                or self.under(self.account(message["reference"]["account"]), message["reference"]["folder"], "drafts")
+                or codec.has_authored_marker(codec.split_entity(message["raw"])[0]))
 
     def snapshot(self, account_id, selected=None, project=None, headers_only=False):
         account = self.account(account_id)
@@ -321,7 +324,7 @@ class Mail:
                         attachment_refs.append(att)
             else:
                 if not self.authored(original):
-                    raise Refused("invalid_input", "mode=draft requires the draft marker or SPECIAL-USE Drafts.")
+                    raise Refused("invalid_input", "mode=draft requires the draft marker, \\Draft flag or SPECIAL-USE Drafts.")
                 to = args.get("to", codec.addresses(msg, "To"))
                 cc = args.get("cc", codec.addresses(msg, "Cc"))
                 bcc = args.get("bcc", codec.addresses(msg, "Bcc"))
@@ -901,6 +904,10 @@ class Mail:
             if not refs or len({r["account"] for r in refs}) != 1 or len({canonical(r) for r in refs}) != len(refs):
                 raise Refused("invalid_input", "Name distinct references from exactly one account.")
             account = self.account(refs[0]["account"])
+            # Check the complete set before any UID mutation, including mixed batches.
+            # An unmarked owner's draft would lose provenance outside this folder.
+            if verb != "flag" and any(self.under(account, ref["folder"], "drafts") for ref in refs):
+                raise Refused("refused", "Messages in SPECIAL-USE Drafts or its subfolders cannot be moved/copied; send it with mail_compose mode=draft, or delete it with mail_delete (which asks the owner).")
             if verb != "flag" and self.under(account, args["target"], "trash"):
                 raise Refused("refused", "Moving/copying to Trash is deletion; use named prepare_delete/delete approval.")
             for ref in refs:

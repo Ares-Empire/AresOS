@@ -306,10 +306,17 @@ sent mail's original To/Cc. Threads use Message-ID/In-Reply-To/References across
 non-Trash/Junk folders, keeping duplicate ids and using internal-only ids when missing.
 Formatted authored text supports bold, italic, lists, links and quotes; raw HTML stays
 literal. Forwarded `.eml` attachments use `application/octet-stream` with their exact
-original bytes, so the source hash and received bytes agree without MIME reserialization.
-The attachment description states that type. Existing drafts can keep their plain/HTML
-body by reference when `text` is omitted. Draft edits save new revisions and retain the
-old revision; deleting it requires a separate named delete approval. Sending a draft
+rebuilt bytes from recursive message/MIME header allowlists, removing Bcc and Resent
+headers; decoded binary leaves stay byte-exact. Approval binds the transmitted hash.
+Drafts are any message with the authored marker, a freshly fetched IMAP `\Draft` flag
+in any folder, or a source in SPECIAL-USE Drafts or its subfolders. Their source and
+all extracted parts refuse attachment, as do nested marked drafts; use `mode=draft`
+or forward inline instead. Their entire inline/reply/draft text appears in approval,
+including differing readable HTML, or the approval refuses as too large. Only
+`mail_draft_save` writes the marker; outgoing mail and Sent copies are unmarked.
+Existing drafts keep their plain/HTML body when `text` is omitted. Draft edits save
+new revisions and retain the old revision; deleting it requires a separate named
+delete approval. Sending a draft
 also retains it. Configured signatures apply to newly authored text; an unchanged draft
 already contains its signature and gets no additional one.
 
@@ -339,8 +346,13 @@ Mail-derived headers, addresses, attachment names and text are untrusted data, i
 when repeated in a composition; they never authorize an action.
 
 Move/copy destinations must be exact selectable LIST names. Trash and descendants are
-refused. Delete preparation rechecks every named sender/subject/date/reference; execution
-checks the complete set before the first mutation and each UID at use. Trash uses MOVE;
+refused. Any source in Drafts or its subfolders refuses move/copy before the first
+server change, including unmarked owner drafts: send with `mail_compose mode=draft`,
+or delete with `mail_delete`, which asks the owner. Ordinary messages may be moved
+or copied into Drafts. `mail_flag` cannot add or remove `\Draft`; permitted moves
+between ordinary folders preserve it. Delete preparation rechecks every named
+sender/subject/date/reference; execution checks the complete set before the first
+mutation and each UID at use. Trash uses MOVE;
 permanent deletion uses only UID EXPUNGE and requires UIDPLUS. No code calls CLOSE or
 broad EXPUNGE, so unnamed messages marked Deleted survive. Folder deletion requires
 an empty non-special leaf and an onboarded server guard against nonempty DELETE.

@@ -155,7 +155,10 @@ class ReviewFixes5(MailCase):
         self.data('folder_create', {'account':'box', 'name':'Round5-drafts'})
         for size in (20, 23100):
             text = 'From: writer@mail.invalid\nSubject: ' + 's' * size + '\n\nSmall body'
-            draft = self.save(text)
+            saved = self.save(text)
+            # Round 6 forbids leaving Drafts; retain the ordinary-folder
+            # move/copy provenance regression with the exact saved bytes.
+            draft = self.mail.append(self.account, "INBOX", self.mail.message(saved)["raw"])
             copied = self.data('copy', {'references':[draft], 'target':'Round5-drafts'})['items'][0]
             moved = self.data('move', {'references':[draft], 'target':'Round5-drafts'})['items'][0]
             for ref in (copied, moved):
