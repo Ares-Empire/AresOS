@@ -96,6 +96,8 @@ ACTIONS = [
     Action("testapp", "fixture_configure", "change", FIXTURE_CONFIG,
            "Owner configures the fake receiver's failure behavior. Returns settings. Test fixture only, never offered to Claude.", True, result=FIXTURE_CONFIG),
 ]
+from .mail.definitions import actions as mail_actions
+ACTIONS += mail_actions(Action)
 BY_NAME = {a.name: a for a in ACTIONS}
 APPS = {a.app for a in ACTIONS}
 

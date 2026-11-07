@@ -8,6 +8,7 @@ from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_inpu
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .testapp import Receiver, TestApp
+from .mail.adapter import Mail
 
 
 class Engine:
@@ -15,7 +16,7 @@ class Engine:
         self.store = Store(state_dir, evidence_dir, checkpoint)
         self.blobs = Blobs(self.store.state_dir / "blobs", file_limit)
         self.receiver = Receiver(self.store.evidence_dir, checkpoint)
-        self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver)}
+        self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver), "mail": Mail(self.store, self.blobs)}
         self.ttl = ttl
 
     def close(self):
@@ -260,6 +261,14 @@ class Engine:
                 if app not in APPS:
                     raise Refused("invalid_input", "Unknown app; inspect configured MCP servers.")
                 data = {"tools": tools_for(app)}
+            elif method == "mail_account_add" and admin:
+                from .mail.onboarding import onboard
+                from .mail.definitions import ACCOUNT_CONFIG
+                validate(request["arguments"], ACCOUNT_CONFIG)
+                if self.store.locked:
+                    raise Refused("restore_required", "Confirm restore before account setup.")
+                app = "mail"
+                data = onboard(self, request["arguments"], request["password"])
             elif method == "call":
                 name, arguments = request.get("action"), request.get("arguments")
                 app = BY_NAME[name].app if name in BY_NAME else None
@@ -295,5 +304,7 @@ class Engine:
             if method != "download" and len(canonical(result).encode()) > RESULT_LIMIT and method != "tools":
                 raise Refused("result_too_large", "Result exceeds 49152 bytes; request a smaller page. Check status before repeating changes.")
             return result
+        except (OSError, __import__("imaplib").IMAP4.error, __import__("aresos_control.adapters", fromlist=["Uncertain"]).Uncertain):
+            return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app)}
         except (Refused, ValueError, KeyError, TypeError) as exc:
             return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": str(exc)}, "pending": self.pending(app)}

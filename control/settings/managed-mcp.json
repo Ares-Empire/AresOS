@@ -4,12 +4,47 @@
     "testapp": {
       "type": "stdio",
       "command": "/usr/bin/env",
-      "args": ["-i", "PATH=/usr/bin:/bin", "LANG=C.UTF-8", "/usr/bin/python3", "-I", "-S", "/usr/libexec/aresos-control/launch.py", "proxy", "testapp"]
+      "args": [
+        "-i",
+        "PATH=/usr/bin:/bin",
+        "LANG=C.UTF-8",
+        "/usr/bin/python3",
+        "-I",
+        "-S",
+        "/usr/libexec/aresos-control/launch.py",
+        "proxy",
+        "testapp"
+      ]
     },
     "control": {
       "type": "stdio",
       "command": "/usr/bin/env",
-      "args": ["-i", "PATH=/usr/bin:/bin", "LANG=C.UTF-8", "/usr/bin/python3", "-I", "-S", "/usr/libexec/aresos-control/launch.py", "proxy", "control"]
+      "args": [
+        "-i",
+        "PATH=/usr/bin:/bin",
+        "LANG=C.UTF-8",
+        "/usr/bin/python3",
+        "-I",
+        "-S",
+        "/usr/libexec/aresos-control/launch.py",
+        "proxy",
+        "control"
+      ]
+    },
+    "mail": {
+      "type": "stdio",
+      "command": "/usr/bin/env",
+      "args": [
+        "-i",
+        "PATH=/usr/bin:/bin",
+        "LANG=C.UTF-8",
+        "/usr/bin/python3",
+        "-I",
+        "-S",
+        "/usr/libexec/aresos-control/launch.py",
+        "proxy",
+        "mail"
+      ]
     }
   }
 }
