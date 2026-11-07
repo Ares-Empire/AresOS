@@ -515,6 +515,14 @@
     "control/checks/17e-chrome/wire.mjs"
   ],
   "retainedEvidenceNormalization": {
-    "*/chrome-version.txt": "Removed the trailing ASCII space emitted by google-chrome-stable --version; version text unchanged. Raw output remains in workflow artifacts."
+    "*/chrome-version.txt": "Removed the trailing ASCII space emitted by google-chrome-stable --version; version text unchanged. Raw output remains in workflow artifacts.",
+    "lifecycle/summary.json": "The two Q10 stored/persisted diagnostic fields originally echoed an eight-byte synthetic outbox constant. Replace only those values with UTF-8 length and SHA-256; independent receiver logs and all measured comparisons/results are unchanged. Earlier workflow logs and the earlier review commit contain the fixture constant, without any real account data."
+  },
+  "postEvidenceChanges": {
+    "control/checks/17e-chrome/lifecycle.mjs": {
+      "previousSha256": "4586fb9ade9ea9ca0c665f10ca51f112c5475491ea174570ca08db4938f3a56b",
+      "currentSha256": "2cbac2e8fcf1b58392c41edcf15c5d43a2f2b788ffaa96ff7fa0324675c1f8a3",
+      "change": "Only diagnostic representation and failure presentation: raw queue values remain in RAM for an exact key/value comparison, but successful/failing assertions do not print them. The final corrected head is verified twice and linked in the PR."
+    }
   }
 }

@@ -29,9 +29,18 @@
     {
       "name": "Q10_UNRESOLVED_STORAGE",
       "stored": {
-        "idb": "delete42",
-        "named": "delete42",
-        "opfs": "delete42"
+        "idb": {
+          "length": 8,
+          "sha256": "3ccbeefed4eb9cf5e581ad085a608413dfb544c661710aed9b7819ecebfa55b6"
+        },
+        "named": {
+          "length": 8,
+          "sha256": "3ccbeefed4eb9cf5e581ad085a608413dfb544c661710aed9b7819ecebfa55b6"
+        },
+        "opfs": {
+          "length": 8,
+          "sha256": "3ccbeefed4eb9cf5e581ad085a608413dfb544c661710aed9b7819ecebfa55b6"
+        }
       },
       "guard": true
     },
@@ -141,9 +150,18 @@
     {
       "name": "Q10_BROWSER_RESTART",
       "persisted": {
-        "idb": "delete42",
-        "named": "delete42",
-        "opfs": "delete42"
+        "idb": {
+          "length": 8,
+          "sha256": "3ccbeefed4eb9cf5e581ad085a608413dfb544c661710aed9b7819ecebfa55b6"
+        },
+        "named": {
+          "length": 8,
+          "sha256": "3ccbeefed4eb9cf5e581ad085a608413dfb544c661710aed9b7819ecebfa55b6"
+        },
+        "opfs": {
+          "length": 8,
+          "sha256": "3ccbeefed4eb9cf5e581ad085a608413dfb544c661710aed9b7819ecebfa55b6"
+        }
       },
       "guardRetained": true
     },
