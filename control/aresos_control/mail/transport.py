@@ -159,3 +159,14 @@ def fetch(client, uid, limit):
         if isinstance(row, tuple) and re.search(rb"\bUID " + str(uid).encode() + rb"\b", row[0]):
             return row[1], sorted(f.decode("ascii", "replace") for f in imaplib.ParseFlags(row[0]))
     raise Refused("stale_reference", "Message is stale, search again.")
+
+
+def fetch_headers(client, uid):
+    data = ok(client.uid("FETCH", str(uid), "(UID FLAGS RFC822.SIZE BODY.PEEK[HEADER])"), "UID headers PEEK")
+    for row in data:
+        if isinstance(row, tuple) and re.search(rb"\bUID " + str(uid).encode() + rb"\b", row[0]):
+            size = re.search(rb"RFC822.SIZE (\d+)", row[0])
+            if not size:
+                raise Refused("unsupported_server", "Server omitted message size from header fetch.")
+            return row[1], sorted(f.decode("ascii", "replace") for f in imaplib.ParseFlags(row[0])), int(size[1])
+    raise Refused("stale_reference", "Message is stale, search again.")

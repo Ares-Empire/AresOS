@@ -18,7 +18,7 @@ from ..adapters import NothingLeft, Uncertain
 from ..blobs import Blobs
 from ..common import Refused, canonical, digest, sha256, visible
 from . import codec
-from .transport import Transport, folders, select, fetch, uids, ok, quote, context
+from .transport import Transport, folders, select, fetch, fetch_headers, uids, ok, quote, context
 
 
 class Mail:
@@ -40,9 +40,9 @@ class Mail:
     def public_account(self, account):
         return {k: account[k] for k in ("id", "addresses", "capabilities", "smtp_capabilities", "special", "sent_policy", "safe_folder_delete", "format", "signature", "ready")}
 
-    def snapshot(self, account_id, selected=None):
+    def snapshot(self, account_id, selected=None, project=None, headers_only=False):
         account = self.account(account_id)
-        messages, state = [], []
+        messages, state, message_states, scanned = [], [], [], 0
         with self.transport.imap(account) as client:
             listed = folders(client)
             names = [f["name"] for f in listed if "\\Noselect" not in f["flags"]]
@@ -56,17 +56,26 @@ class Mail:
                 validity = select(client, folder)
                 modseq = client.response("HIGHESTMODSEQ")[1] if "CONDSTORE" in client.capabilities else None
                 ids = uids(client)
-                if len(ids) + len(messages) > self.SCAN_LIMIT:
+                scanned += len(ids)
+                if scanned > self.SCAN_LIMIT:
                     raise Refused("scan_too_large", "History exceeds scan limit; search selected smaller folders or use owner's mail program.")
                 for uid in ids:
-                    raw, flags = fetch(client, uid, self.blobs.limit)
+                    if headers_only:
+                        raw, flags, size = fetch_headers(client, uid)
+                    else:
+                        raw, flags = fetch(client, uid, self.wires.limit)
+                        size = len(raw)
                     msg = codec.parse(raw)
                     ref = {"account": account_id, "folder": folder, "uidvalidity": validity, "uid": uid,
                            "message_id": str(msg.get("Message-ID", ""))}
-                    messages.append({"reference": ref, "raw": raw, "msg": msg, "flags": flags})
+                    message_states.append([ref, sha256(raw), flags, size])
+                    message = {"reference": ref, "raw": raw, "msg": msg, "flags": flags, "size": size}
+                    projected = project(message) if project else message
+                    if projected is not None:
+                        messages.append(projected)
                 state.append([folder, validity, ids, [v.decode("ascii") for v in (modseq or []) if v]])
         # Includes flags and bytes, not just UIDNEXT: works without CONDSTORE/QRESYNC.
-        version = digest([state, [[m["reference"], sha256(m["raw"]), m["flags"]] for m in messages]])
+        version = digest([state, message_states])
         return messages, version
 
     def message(self, reference, writable=False, client=None):
@@ -75,7 +84,7 @@ class Mail:
             validity = select(conn, reference["folder"], readonly=not writable)
             if validity != reference["uidvalidity"]:
                 raise Refused("stale_reference", "Folder UIDVALIDITY changed: stale, search again.")
-            raw, flags = fetch(conn, reference["uid"], self.blobs.limit)
+            raw, flags = fetch(conn, reference["uid"], self.wires.limit)
             msg = codec.parse(raw)
             if str(msg.get("Message-ID", "")) != reference["message_id"]:
                 raise Refused("stale_reference", "Message identity changed: stale, search again.")
@@ -107,13 +116,12 @@ class Mail:
 
     def summary(self, message):
         msg = message["msg"]
-        return {"reference": message["reference"], "flags": message["flags"], "size": len(message["raw"]),
+        return {"reference": message["reference"], "flags": message["flags"], "size": message.get("size", len(message["raw"])),
                 "untrusted_content": {"from": str(msg.get("From", "")), "to": str(msg.get("To", "")),
                   "subject": str(msg.get("Subject", "")), "date": str(msg.get("Date", "")),
                   "preview": codec.body(msg)[:160], "attachment_names": [a["name"] for a in codec.attachments(msg)]}}
 
     def search(self, args):
-        messages, version = self.snapshot(args["account"], args.get("folders"))
         def matches(m):
             msg = m["msg"]
             for field in ("from", "to", "subject", "text"):
@@ -137,7 +145,10 @@ class Mail:
                     if (arg == "since" and day < cutoff) or (arg == "before" and day >= cutoff):
                         return False
             return True
-        values = [self.summary(m) for m in sorted(messages, key=lambda m: (codec.timestamp(m["msg"]), canonical(m["reference"])), reverse=True) if matches(m)]
+        values, version = self.snapshot(args["account"], args.get("folders"), project=lambda m: {**self.summary(m), "_sort_date": codec.timestamp(m["msg"])} if matches(m) else None)
+        values.sort(key=lambda m: (m["_sort_date"], canonical(m["reference"])), reverse=True)
+        for value in values:
+            value.pop("_sort_date")
         scope = {k: v for k, v in args.items() if k not in {"cursor", "limit"}}
         return self.page(values, args, version, ["search", scope])
 
@@ -177,7 +188,7 @@ class Mail:
         account = self.account(args["reference"]["account"])
         if any(self.under(account, args["reference"]["folder"], k) for k in ("trash", "junk")):
             raise Refused("refused", "Threads exclude Trash/Junk; read this mail directly or move it back first.")
-        messages, version = self.snapshot(args["reference"]["account"])
+        messages, version = self.snapshot(args["reference"]["account"], headers_only=True)
         def ids(m):
             return set(codec.message_ids(" ".join(str(m["msg"].get(h, "")) for h in ("Message-ID", "In-Reply-To", "References"))))
         connected, keys = [seed], ids(seed)
@@ -200,7 +211,7 @@ class Mail:
 
     def contacts(self, args):
         account = self.account(args["account"])
-        messages, version = self.snapshot(args["account"])
+        messages, version = self.snapshot(args["account"], headers_only=True)
         own = {codec.mailbox(x).casefold() for x in account["addresses"]}
         result = {}
         for m in messages:
@@ -504,7 +515,7 @@ class Mail:
             ids = ok(client.uid("SEARCH", None, "HEADER", "Message-ID", quote(message_id)), "Search Sent evidence")[0]
             result = []
             for uid in (ids or b"").split():
-                raw, flags = fetch(client, int(uid), self.blobs.limit)
+                raw, flags, _ = fetch_headers(client, int(uid))
                 if str(codec.parse(raw).get("Message-ID", "")) == message_id:
                     result.append({"account": account["id"], "folder": folder, "uidvalidity": validity, "uid": int(uid), "message_id": message_id})
             return result
@@ -817,7 +828,7 @@ class Mail:
                         for key, operator in (("add", "+FLAGS.SILENT"), ("remove", "-FLAGS.SILENT")):
                             if args[key]:
                                 ok(client.uid("STORE", str(ref["uid"]), operator, "(" + " ".join(args[key]) + ")"), "Set flags")
-                        _, flags = fetch(client, ref["uid"], self.blobs.limit)
+                        _, flags = fetch(client, ref["uid"], self.wires.limit)
                         result.append({"reference": ref, "flags": flags})
                     else:
                         ok(client.uid(verb.upper(), str(ref["uid"]), quote(args["target"])), "UID " + verb.upper())

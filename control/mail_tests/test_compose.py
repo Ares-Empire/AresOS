@@ -148,3 +148,15 @@ class Composing(MailCase):
         self.assertEqual(failure['error']['code'], 'smtputf8_required')
         result = self.compose(to=['user@bücher.invalid'])
         self.assertEqual(result['mail']['to'], ['user@xn--bcher-kva.invalid'])
+
+    def test_large_encoded_mail_keeps_per_attachment_cap_and_search_retains_only_summaries(self):
+        # Raw MIME may exceed the per-file transfer cap while each attachment is valid.
+        ref = self.fixture(attachments=[('large.bin', b'x' * (20 * 1024 * 1024), 'application/octet-stream')])
+        self.assertGreater(len(self.mail.message(ref)['raw']),self.engine.blobs.limit)
+        summary = self.data('search',{'account':'box','subject':'café'})['items'][0]
+        self.assertEqual(summary['reference'],ref)
+        self.assertEqual(summary['untrusted_content']['attachment_names'],['large.bin'])
+        read = self.data('read',{'reference':ref})
+        self.assertEqual(read['untrusted_content']['attachments'][0]['size'],20 * 1024 * 1024)
+        contacts = self.data('contacts',{'account':'box'})
+        self.assertEqual(contacts['total'],1)
