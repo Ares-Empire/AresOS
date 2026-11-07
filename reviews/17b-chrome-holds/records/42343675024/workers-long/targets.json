@@ -1,0 +1,53 @@
+[
+  {
+    "attached": false,
+    "id": "BA5711C67EBD8C2C30CF2E905295BD4A",
+    "title": "Service Worker http://127.0.0.1:42933/sw.js",
+    "type": "worker",
+    "url": "http://127.0.0.1:42933/sw.js"
+  },
+  {
+    "attached": false,
+    "id": "68D08B829C95677B8EF3030EF7556E0E",
+    "title": "Service Worker chrome-extension://iefhimfbekkiamfgfcdmelbefelocffb/background.js",
+    "type": "worker",
+    "url": "chrome-extension://iefhimfbekkiamfgfcdmelbefelocffb/background.js"
+  },
+  {
+    "attached": false,
+    "id": "1CBB689282EBDD0BA5A03138648DAAE4",
+    "title": "Service Worker chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js",
+    "type": "worker",
+    "url": "chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js"
+  },
+  {
+    "attached": false,
+    "id": "A27A7D2B0944B4593E07F37046F7C579",
+    "title": "Omnibox Popup",
+    "type": "other",
+    "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+  },
+  {
+    "attached": false,
+    "id": "5533795E37C06B16618B92BE38C197C7",
+    "title": "Omnibox Popup",
+    "type": "other",
+    "url": "chrome://omnibox-popup.top-chrome/"
+  },
+  {
+    "attached": true,
+    "id": "7BCD018C42E7E0ED09E3D8210A5C9697",
+    "tabId": 766086114,
+    "title": "17b synthetic fixture",
+    "type": "page",
+    "url": "http://127.0.0.1:42933/"
+  },
+  {
+    "attached": false,
+    "id": "AECE882D135F4164131069EA80F4345D",
+    "tabId": 766086121,
+    "title": "Choose fixture tab",
+    "type": "page",
+    "url": "chrome-extension://iefhimfbekkiamfgfcdmelbefelocffb/select.html?url=http%3A%2F%2F127.0.0.1%3A42933%2F"
+  }
+]

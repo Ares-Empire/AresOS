@@ -1,0 +1,66 @@
+[
+  {
+    "path": "records/42343675024/workers-long/summary.json",
+    "sha256": "977f38af8d1f067a8b8370de968c2f19d794ebba6ffde394d1a3c102c30bd165"
+  },
+  {
+    "path": "records/42343675024/workers-long/dependencies.json",
+    "sha256": "287b3ac035646b8174e5854bef3bd0064e9c7f12095a1c38b82935564be04d6f"
+  },
+  {
+    "path": "records/42343675024/workers-long/webtransport-certificate.json",
+    "sha256": "dab3da3ea310d6e352ec75e7f472bd54f4e64d2e6ffc65f0fe1397fb033a2f17"
+  },
+  {
+    "path": "records/42343675024/workers-long/platform.txt",
+    "sha256": "db977d60466311d79c981c7020bd7df235db781a9dee491b267f1fc0d6a58d25"
+  },
+  {
+    "path": "records/42343675024/workers-long/provenance.json",
+    "sha256": "97c88f6ad15fa1b9c94b6332d5c45785fd5181741690acd0082b19b7234e402b"
+  },
+  {
+    "path": "records/42343675024/workers-long/targets.json",
+    "sha256": "58c6e03088590c4c00577425e4b5097868ec74efa61b29d387c3c29b56e66f3e"
+  },
+  {
+    "path": "records/42343675024/workers-long/policy-false.json",
+    "sha256": "6dded4367371d4bc83bc5cd1192fdce8e756d5b7e6d2fb237da671e68d929487"
+  },
+  {
+    "path": "records/42343675024/workers-long/server.jsonl",
+    "sha256": "2d59b05bb52cb39c83e66cab525c093caed9333135c4fe2edc5c665ca2a59be1"
+  },
+  {
+    "path": "records/42343675024/workers-long/processes.json",
+    "sha256": "4dd87ad33831b4fb92b5c0441ae44b4e73c045e0d10840ddb555335a5c9859ad"
+  },
+  {
+    "path": "records/42343675024/workers-long/chrome-version.txt",
+    "sha256": "c187fe1cdb226bd619c6eacd3d218fd6832044bf33e488d731b5f8246d1606cf"
+  },
+  {
+    "path": "records/42343675024/workers-long/delivery-audit.json",
+    "sha256": "b29fc7c92e5a9c0153e798951dfc23c51a55c239d47946556aa0ad33495aa808"
+  },
+  {
+    "path": "records/42343675024/workers-long/run.txt",
+    "sha256": "98e47986772d7cc60302f605d0b46c8b837ff55336d98b458ede770c3bfe9d13"
+  },
+  {
+    "path": "records/42343675024/workers-long/host-starts.txt",
+    "sha256": "da2bfdb2ead179f3b09d23b272b405cce08bd411a99a54fa19cb49782b19a9ed"
+  },
+  {
+    "path": "records/42343675024/workers-long/policy-true.json",
+    "sha256": "81a13249c44fb5ed033a5f4e2ad45bc9866da37e640e2caf14e524b9fa5e39c4"
+  },
+  {
+    "path": "records/42343675024/workers-long/head.txt",
+    "sha256": "be3dc82ef2f81a359477b186d006afc183e86dcd95e4795809c36ce709b76299"
+  },
+  {
+    "path": "records/42343675024/workers-long/python-dependencies.txt",
+    "sha256": "a55ccbc6b01c12c18487ba3c2e40eea5fb1431718c3f04eea92436a9f9956da0"
+  }
+]

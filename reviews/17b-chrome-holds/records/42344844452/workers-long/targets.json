@@ -1,0 +1,53 @@
+[
+  {
+    "attached": false,
+    "id": "86BC00B6FCE5AF37B4D622D379B67AC0",
+    "title": "Service Worker http://127.0.0.1:39745/sw.js",
+    "type": "worker",
+    "url": "http://127.0.0.1:39745/sw.js"
+  },
+  {
+    "attached": false,
+    "id": "7890713B7F7CC990994CF41E39A3D02B",
+    "title": "Service Worker chrome-extension://gpeoalalaeeicmmpbgbleeflfdjgbinc/background.js",
+    "type": "worker",
+    "url": "chrome-extension://gpeoalalaeeicmmpbgbleeflfdjgbinc/background.js"
+  },
+  {
+    "attached": false,
+    "id": "28FD1A8818032D20CDB12717C971BE52",
+    "title": "Service Worker chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js",
+    "type": "worker",
+    "url": "chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js"
+  },
+  {
+    "attached": true,
+    "id": "2BAFFC6DA6B389C003238931285ECD96",
+    "tabId": 771051756,
+    "title": "17b synthetic fixture",
+    "type": "page",
+    "url": "http://127.0.0.1:39745/"
+  },
+  {
+    "attached": false,
+    "id": "CAAE478E18297B5F8F767FB10184AA2A",
+    "title": "Omnibox Popup",
+    "type": "other",
+    "url": "chrome://omnibox-popup.top-chrome/"
+  },
+  {
+    "attached": false,
+    "id": "2B3680AD91DB3E1EBA049F87FE1A0F03",
+    "title": "Omnibox Popup",
+    "type": "other",
+    "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+  },
+  {
+    "attached": false,
+    "id": "3F3F56939F99F3750EC505FC2C5C546C",
+    "tabId": 771051763,
+    "title": "Choose fixture tab",
+    "type": "page",
+    "url": "chrome-extension://gpeoalalaeeicmmpbgbleeflfdjgbinc/select.html?url=http%3A%2F%2F127.0.0.1%3A39745%2F"
+  }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "id": "typed-0-5000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-0-10000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-1-5000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-1-10000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-2-5000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-2-10000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-3-5000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-3-10000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-4-5000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-4-10000",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-image",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "typed-negative",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "group-out",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "group-out-second",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "group-close",
+    "expected": 0,
+    "actual": 0
+  }
+]

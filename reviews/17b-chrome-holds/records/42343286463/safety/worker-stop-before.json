@@ -1,0 +1,68 @@
+{
+  "p": {
+    "networkId": "9436.3",
+    "headerHash": "92f53c81c1fd31f11a1a9de354d5758f31204678064a09bb0f943d37873f6e4c",
+    "headers": {
+      "Accept": "*/*",
+      "Content-Type": "text/plain;charset=UTF-8",
+      "Origin": "http://127.0.0.1:38919",
+      "Referer": "http://127.0.0.1:38919/",
+      "sec-ch-ua": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Linux\"",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+    },
+    "url": "http://127.0.0.1:38919/receive?case=q1-worker-stop",
+    "method": "POST",
+    "body": "synthetic fetch",
+    "type": "XHR",
+    "typed": [],
+    "source": {
+      "tabId": 1836293429
+    },
+    "id": "interception-job-1.0",
+    "at": 1794029990941
+  },
+  "before": [
+    {
+      "attached": false,
+      "id": "52B87D098A715788B0ADDF5A41236C42",
+      "title": "Service Worker chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/background.js",
+      "type": "worker",
+      "url": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/background.js"
+    },
+    {
+      "attached": false,
+      "id": "A0BF113332200916DBCF4902F92AEEEA",
+      "title": "Omnibox Popup",
+      "type": "other",
+      "url": "chrome://omnibox-popup.top-chrome/"
+    },
+    {
+      "attached": false,
+      "id": "F2DB0881944AB33768896505707030A6",
+      "title": "Omnibox Popup",
+      "type": "other",
+      "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html"
+    },
+    {
+      "attached": true,
+      "id": "015CCB071273B98CF56CE42D9233D862",
+      "tabId": 1836293429,
+      "title": "17b synthetic fixture",
+      "type": "page",
+      "url": "http://127.0.0.1:38919/"
+    },
+    {
+      "attached": false,
+      "id": "673480975D08595D8339CFBF608AE9A8",
+      "tabId": 1836293483,
+      "title": "Choose fixture tab",
+      "type": "page",
+      "url": "chrome-extension://ckmmohhplmpebggkidifghnjidinagpe/select.html?url=http%3A%2F%2F127.0.0.1%3A38919%2F"
+    }
+  ],
+  "processes": [
+    "   9462 /opt/google/chrome/chrome --type=renderer --crashpad-handler-pid=9336 --enable-crash-reporter=, --user-data-dir=/home/runner/work/AresOS/AresOS/.work/17b-chrome/profile --extension-process --change-stack-guard-on-fork=enable --ozone-platform=x11 --disable-gpu-compositing --lang=en-US --num-raster-threads=2 --enable-main-frame-before-activation --renderer-client-id=8 --launch-time-ticks=336955998 --shared-files=v8_context_snapshot_data:100 --metrics-shmem-handle=4,i,7179728317043098548,14389029694793754228,1572864 --field-trial-handle=3,i,16743758306818119198,2005873371876865862,262144 --variations-seed-version=20261106-170047.808000-production --pseudonymization-salt-handle=7,i,15583901439786387085,2359457903801494112,4 --trace-process-track-uuid=3190708993808206286"
+  ]
+}
