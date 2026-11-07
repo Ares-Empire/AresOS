@@ -99,6 +99,20 @@ Three places, each with one job:
      cancellation, other transports, TLS, guard end, and the owner's cost: robot checks, speed, prompts). The owner
      decides (#70) whether he accepts a checkpoint that decrypts his browser traffic on his machine.
      **Done 2026-11-07 (PR #10, CI green twice on `64ed6ed`): it holds**; costs and open points in its report.
+     **Conditions before Chrome with the checkpoint becomes the owner's everyday browser** (mac-capacity's scope
+     check, 2026-11-07; brief 20 and the tool-user rounds must meet them, otherwise the fallback is "Claude fills
+     in, the owner sends"):
+     1. *Unrelated tabs:* how often his other tabs stall while Claude works on one site (uncertain attribution holds
+        the whole browser) is measured on his usual sites (#50); target zero. A call in his own tab when a guard
+        starts is named in the design, and he knows before answering #70 that calls in Chrome stop while Claude acts.
+     2. *Chrome's own protection:* brief 20 shows Safe Browsing (with a positive control) and component updates
+        working through the checkpoint, not only "trust fixed".
+     3. *A way out of a fault:* an owner-only switch turns the checkpoint to pass-through when no guard holds
+        leftovers, with Claude's Chrome tools off until it is repaired; where leftovers exist, they are shown first.
+     4. *Prompts:* adapters and grouping for his usual sites bring the 18 separate decisions of 17e's fixture down to
+        about one per real action.
+     5. *His real sites:* after the first boot, a short check on his signed-in sites (for example Google, GitHub, his
+        bank), browsing them himself, for robot checks and breakage; 17e's sample was anonymous.
 1. **Design** (`docs/design/CONTROL.md`): done 2026-11-07. Draft 6 after the frontier review (8 blocking) and five
    re-checks (7, 4, 1, 1, then none: ready for brief 18). The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
    with it.
