@@ -1,6 +1,7 @@
 // Synthetic fixture, never loaded on a public site.
 window.events=[];const mark=(kind,value)=>{events.push({kind,value,at:Date.now()});document.querySelector('#status').textContent=JSON.stringify(events.slice(-4));};
 document.addEventListener('click',e=>mark('click',{id:e.target.id,trusted:e.isTrusted}),true);
+document.querySelector('#upload').addEventListener('change',()=>{window.selectedDisk17=document.querySelector('#upload').files[0];fetch('/attempt?case=file-chosen&name='+encodeURIComponent(selectedDisk17?.name||'none')).catch(()=>{});mark('file-selected',selectedDisk17?.name||'none');});
 window.attempt=(id,kind='fetch',cross=false)=>{
  const url=(cross?'http://localhost:'+location.port:'')+'/receive?case='+id;mark('attempt',{id,kind,cross});
  if(kind==='xhr'){const r=new XMLHttpRequest();r.open('POST',url);r.onload=()=>mark('xhr-ok',id);r.onerror=()=>mark('xhr-error',id);r.send('synthetic xhr');}
