@@ -415,7 +415,8 @@ The rule: **uncertainty widens what is held, never the reverse.**
   carries it (as typed, or URL-, form-, JSON- or base64-encoded). Draft 9 could check this only where the page script
   was in place; the checkpoint sees everything (*brief 20*; 17c *checked* the match in the page). The checkpoint keeps
   these texts with the guards in its private record, encrypted at rest with a key the system keeps for this service
-  alone (a service credential tied to the machine), and deletes each text when its guard ends.
+  alone (a service credential tied to the machine), and deletes each text when its guard ends. Each text is recorded
+  before the input that enters it reaches Chrome (the barrier, below).
 - Requests of other extensions carry that extension's own origin, set by Chrome; they are the owner's own tools, and
   what he installs is his decision. Claude in Chrome is one of them (decision 10).
 - **Chrome's own services** (Safe Browsing, component updates, sync) make requests no extension sees, so they carry no
@@ -442,9 +443,18 @@ plain links). The tool tells the checkpoint, which records the guard durably, re
 (live sockets of that site's contexts now hold their next message; tunnels it can't read are cut: calls, below), and
 only then confirms. Only after that confirmation does the tool send Claude's click or key (*checked*, 17e Q2: under
 concurrent HTTP and socket traffic the guard was recorded and confirmed before input; traffic sent before the barrier
-can still arrive after it, and is not Claude's). Because the checkpoint restores its guards and Claude's entered text
-before it reports ready, a restored page's first send after a restart of Chrome or of the checkpoint is held before
-the extension has attached (*checked* for the guards, 17e Q1; the entered text, *brief 20*).
+can still arrive after it, and is not Claude's).
+
+**Every input passes the barrier, not only the first.** Before the tool sends any acting input to Chrome (a click, a
+key, a fill, a choice, an upload), the checkpoint durably records everything that input changes in its classification
+(the guard, if it is the first; that the document is now one Claude acted in; any text Claude enters with it) and
+acknowledges. Only then does the input go to Chrome. A crash before the acknowledgement means the input never reached
+Chrome; a crash after it means the checkpoint already knows the input, so after restoring it classifies a page's
+retry exactly as before. Because the checkpoint restores all of this before it reports ready, a restored page's first
+send after a restart of Chrome or of the checkpoint is held before the extension has attached (*checked* for the
+guards, 17e Q1; the rest, *brief 20*, with the checkpoint, the tool service and Chrome each killed between Claude's
+call and the record, between the record and the input, and right after the input, and a page then retrying a GET
+that carries the text).
 
 **Cancellation.** A held operation is cancelled when the checkpoint sees it given up before forwarding: the page
 aborts it, the tab or connection closes, its hold expires, or the page script reports an explicit cancel. It is then
@@ -498,45 +508,56 @@ requirement here, with how it is met and how brief 20 tests it.
    *Test:* runs with marker strings in cookies, headers, bodies, query strings and socket messages; afterwards no log,
    journal entry, record, crash output or temporary file contains a marker in readable form. (17e did this for its
    own records and found and fixed one leak of a fixture value: *checked*, 17e Q11.)
-4. **Upstream TLS: the exact checks, and what is lost.** Before any byte of a request goes to a site, the checkpoint
-   checks that site's connection itself. Any failure ends it with an error page in Chrome; there is no fallback and
-   no "accept anyway".
-   - **Chain:** to a root in Chrome's own root list (the Chrome Root Store as Chrome 157 ships it, with its limits per
-     root, such as roots trusted only for certificates issued before a date), updated with the image. The checkpoint's
-     own root is in no list but Chrome's (requirement 5).
+4. **Upstream TLS: Chrome's own checks, with Chrome's own current data.** Before any byte of a request goes to a site,
+   the checkpoint checks that site's connection itself, the way Chrome 157 would. Any failure ends it with an error
+   page in Chrome; there is no fallback and no "accept anyway".
+   - **Chrome's current security data.** The checkpoint reads the data Chrome's component updater keeps current, from
+     Chrome's component folders in the browser user's profile, which the checkpoint's user may read and not change:
+     the CRLSet (Chrome's revocation list), the Chrome Root Store (its roots and their limits), and the CT log list with
+     the pin list. It checks each file's signature where its format carries one, and picks up a new version for new
+     connections. The image ships a copy of each as the floor for a fresh installation. All of this is *brief 20*:
+     which folders and formats, which carry signatures, and how a change is picked up.
+   - **Staleness.** Each kind of data has an age limit, set in brief 20 from Chrome's own update intervals and its own
+     limit for the CT log list. When a limit is passed, the checkpoint refuses new connections to sites and tells the
+     owner ("Chrome's security lists are out of date; new connections are paused until Chrome updates them"), on his
+     desktop and, if he takes the approval proposal, on his phone. So that Chrome can update them, the only requests it
+     still lets through are Chrome's component updater fetching those same components, recognised by the update
+     protocol and never by host name; Chrome checks those downloads' signatures itself.
+   - **Chain:** to a root in that root store, used with its limits (for example roots trusted only for certificates
+     issued before a date). The checkpoint's own root is in no list but Chrome's (requirement 5).
    - **Name and dates:** the host name against the certificate's names (no fallback to the common name); every
      certificate in the chain within its dates and meant for its use; Chrome's minimum key sizes and signature
      algorithms.
    - **Protocol:** TLS 1.2 or 1.3 only.
-   - **Certificate Transparency:** Chrome's CT policy: the number of signed certificate timestamps from distinct log
-     operators that Chrome requires for the certificate's lifetime, each checked against Chrome's list of logs,
-     shipped with the image.
-   - **Pinned keys:** Chrome's built-in pin list (the keys Chrome expects for certain sites, Google's among them),
-     shipped with the image.
-   - **Revocation:** a stapled OCSP answer is checked when the site sends one: a valid answer saying revoked ends the
-     connection; an invalid or out-of-date one counts as none. A certificate marked "must staple" fails without a
-     valid stapled answer (Chrome itself doesn't enforce that mark). No online revocation lookups: Chrome doesn't make
-     them either, and they would tell the issuer which sites he visits.
+   - **Certificate Transparency:** Chrome's complete CT policy as Chrome 157 applies it, pinned to that version: each
+     log's state with its dates (for example usable, read-only, retired), how many signed timestamps are required by
+     the certificate's lifetime and by how they are delivered (in the certificate, in the handshake, or in a stapled
+     answer), the rule on distinct log operators, and each timestamp's signature checked against its log's key.
+     Chrome's later rule changes are taken over with its version (*brief 20*: one test per rule).
+   - **Pinned keys:** Chrome's pin list, from the same component.
+   - **Revocation:** the CRLSet, applied as Chrome applies it. It carries most security-relevant revocations that
+     certificate authorities publish, and certificates Chrome blocks itself because they were misissued or their key
+     was compromised (re-check 9, Chrome 157's security FAQ). Stapled OCSP answers and the "must staple" mark are
+     treated exactly as Chrome 157's verifier treats them, no stricter (re-check 9), so a site that works directly in
+     Chrome works through the checkpoint. No online revocation lookups: Chrome doesn't make them either, and they
+     would tell the issuer which sites he visits.
    - *Checked* (17e Q9): an invalid upstream certificate gave a failure and zero requests at the receiver; HSTS kept
      working; a Google address that Chrome pins worked through the local root, as Chrome documents. Everything else
      here is *brief 20*.
 
-   **What is lost, in plain words.** Chrome exempts a locally added root from its own CT and pin checks (re-check 7,
-   Chrome's security FAQ); the checkpoint does those checks on the outside connection instead, as above. What it
-   can't replicate, to be accepted by the owner before everyday use (section 10):
-   - **Chrome's urgent revocation list (CRLSets).** Chrome downloads a short list of certificates revoked in a hurry,
-     usually because a site's key was stolen, and refuses them. The checkpoint can't use that list, so such a
-     certificate is accepted until it expires, unless the site staples a revocation answer. It protects against
-     someone who has stolen a site's key and can also get between him and that site. Rare: the list itself covers
-     only a small number of urgent cases.
-   - **Updates between images.** Chrome updates its root list, its CT log list and its pin list in the background;
-     the checkpoint's copies are as new as the image. An authority Chrome stops trusting after the image was built is
-     still trusted until the next image. Chrome drops a whole authority about once a year; image updates come much
-     more often.
-   - **Client certificates:** sites that ask the browser for one don't work.
-   *Test:* expired, wrong-name, self-signed, unknown-root, distrusted-root, missing or invalid timestamps, wrong
-   pinned key, a revoked stapled answer, "must staple" without a staple, and an old protocol each fail with zero
-   requests at the receiver; HSTS; the checkpoint's root is in no trust list but Chrome's.
+   **What is still lost, in plain words** (for the owner to accept before everyday use, section 10):
+   - **Sites that ask the browser for a client certificate** don't work.
+   - **No "continue anyway".** Chrome lets him click through a certificate warning, for example on his router's or
+     printer's own page, whose certificate the device made itself. Through the checkpoint such a page doesn't open.
+   - **Out-of-date lists pause browsing.** If Chrome can't update its lists for a long time, new connections pause
+     until it can; Chrome on its own would go on (and with an old CT list it stops checking CT).
+   - **Version differences.** The checkpoint copies Chrome 157's rules; when a later Chrome changes them, the
+     checkpoint follows with its own update, and until then a site can behave differently in the two.
+   *Test:* each with zero requests at the receiver: expired, wrong-name, self-signed, unknown-root, a root used past
+   its limits, a certificate on the CRLSet, missing or invalid timestamps and each CT policy rule, a wrong pinned key,
+   an old protocol; valid, missing, stale and invalid stapled answers, with and without "must staple", giving the same
+   result as Chrome 157 directly; HSTS; out-of-date lists pausing new connections while Chrome's component update still
+   gets through, and a page imitating that update held; the checkpoint's root in no trust list but Chrome's.
 5. **A key that rotates and can issue nothing while the checkpoint is stopped.**
    - **Every place the root goes, and nowhere else:** (a) Chrome's policy `CACertificates`, which the profile's
      network contexts read and re-read while Chrome runs (Chrome 157's policy definition: `dynamic_refresh: true`,
@@ -545,8 +566,10 @@ requirement here, with how it is met and how brief 20 tests it.
      that user's own certificate database, which re-check 8 calls plausible but not yet shown to work for that context
      (*brief 20*). Chrome's own context has no way to update trust while running (re-check 8, Chromium 157 source), so
      it learns a new root only when Chrome starts.
-   - **A fresh root per start.** A root-owned start step runs before the checkpoint. It first reconciles: it removes
-     every root that isn't this run's from both places (left over from a crash or a power loss). Then it makes a new
+   - **A fresh root per start.** A root-owned start step runs before the checkpoint. It first reconciles: from both
+     places it removes every root this checkpoint installed earlier (left over from a crash or a power loss),
+     identified by the fixed name its roots carry and the fingerprints in its record, and never touches any other
+     trust entry. Then it makes a new
      root key and certificate (allowed only to sign site certificates, valid a few days at most), writes the
      certificate into both places, and hands the key to the checkpoint as a service credential: memory that isn't
      swapped, readable only by the checkpoint's user, gone when the service stops. It deletes its own copy; the key is
@@ -635,7 +658,7 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 | `chrome_read`, `chrome_read_form`, `chrome_find` | read | the page view; one form with its options; text search on the page |
 | `chrome_navigate` | change | in a Claude tab: an address, back, forward, reload |
 | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll` | change | act on elements by reference, each with what Claude expects it to hold; fill sets text, dates and dropdowns as a person would; `chrome_fill_form` fills several fields in one call; a control the page labels as destructive is refused here (below) |
-| `chrome_click_destructive` | **delete** | click a control the page labels as destructive, or press Delete or Backspace outside a text field, only after approval; the approval says the click may delete data kept only in this browser (below) |
+| `chrome_click_destructive` | **delete** | click a control the page labels as destructive, or press Delete or Backspace outside a text field, only after approval; the approval says the click may delete data kept only in this browser; with a qualified adapter, an approval of one bounded advance operation (below) |
 | `chrome_dialog` | change | accept, dismiss or answer a page's own dialog (alert, confirm, prompt) |
 | `chrome_upload` | change | put a local file into a file field; the bytes come through the caller's side (rule 4.4), the extension gets no general file access (*checked*, 17) |
 | `chrome_downloads` | read, change | list downloads; save one into an allowed folder (rule 4.4) |
@@ -756,20 +779,32 @@ even when the site completed it). Pages give up on their own timeouts (*checked*
 own error, and Claude acts again for a new hold.
 
 **Clicks that may delete data kept only in the browser.** A page can delete its own local data (an offline draft, a
-list kept only in the browser) without any network send, so the checkpoint can't hold that (re-check 7). So a click on
-a control the page labels as destructive asks first, on every site, before the click happens. Destructive means its
-accessible name or role says delete, remove, discard, clear, empty or trash, in English and German at least
-(löschen, entfernen, verwerfen, leeren, Papierkorb), matched as whole words; a site adapter may add more words and
-controls. Pressing Delete or Backspace outside a text field counts the same. `chrome_click` and `chrome_press` refuse
-such a control ("this control may delete; use `chrome_click_destructive`"), and `chrome_click_destructive` (effect
-delete, asks) clicks it only after approval. The approval names the control as the page labels it, the page and the
-site, and says plainly that the click may delete data kept only in this browser. If the click then makes the page
-send something, that send waits at the checkpoint and asks as usual, showing what is really sent. With a qualified
-site adapter, its destructive actions ask in advance and are described exactly ("delete the draft 'Offer' kept in
-this browser"); the sends that follow go without a second question only when each one validates against the
-adapter's contract for exactly the approved operation (as for a recognised action, below), and anything else asks.
-What remains, named plainly: **an unlabelled control (an icon without a name, or a name that doesn't say it deletes)
-that deletes data stored only in the browser is not caught.** Naming it here doesn't make it allowed; it is a gap.
+list kept only in the browser) without any network send, so the checkpoint can't hold that (re-check 7).
+
+- **Labelled destructive controls ask first,** on every site, before the click happens. Destructive means the
+  control's accessible name or role says delete, remove, discard, clear, empty or trash, in English and German at
+  least (löschen, entfernen, verwerfen, leeren, Papierkorb), matched as whole words; a site adapter may add more words
+  and controls. Pressing Delete or Backspace outside a text field (an editable area counts as a text field) counts the
+  same. `chrome_click` and `chrome_press` refuse such a control ("this control may delete; use
+  `chrome_click_destructive`"), and `chrome_click_destructive` (effect delete, asks) clicks it only after approval.
+  The approval names the control as the page labels it, the page and the site, and says plainly that the click may
+  delete data kept only in this browser. It covers the click only: if the page then sends something, that send waits
+  at the checkpoint and asks with its own approval, showing what is really sent.
+- **A destructive action approved in advance,** only with a qualified site adapter. The approval comes before the
+  click and names one bounded *advance operation*: the adapter contract's version, the account, the exact targets
+  (by the site's own stable ids), the permitted effects ("delete these two drafts, kept in this browser and on the
+  server"), a limit on how many requests or messages may follow and in what order, and an expiry. It is consumed
+  once, durably, like a captured send. The sends that follow go without a second question only while each validates
+  against that description, within its limit and before its expiry; anything else, and anything after it is used
+  up, asks. A contract's recognition is never a reusable permission: each destructive operation is one approval.
+- **An unlabelled control that deletes data kept only in the browser** (an icon without a name, a "Reset" that
+  doesn't say what it resets): **owner decides (open, section 10)** between (a) clicks there stay free, and (b) on a
+  site without an adapter that keeps its data in the browser, every click other than a plain link asks first.
+- *Tests (brief 20), for whichever he picks:* other ways to activate a control (Enter or Space on a focused control,
+  a context-menu item, a double click, dragging an item onto a bin); a page's own confirmation after a destructive
+  click (part of the same approved action) and a confirmation reached by another route (asks); and ordinary text
+  editing staying free, including typing, Backspace and Delete inside text fields and editable areas
+  (`contenteditable`).
 
 **What Claude may open freely, and data leaving.** A *site* is a registrable domain by the Public Suffix List
 (including its private part, so every `*.github.io` page is its own site), and areas of big platforms where anyone
@@ -957,7 +992,7 @@ each likely needs, to be confirmed when its adapter is built:
   still held. Both are why new sites ask first and why site adapters exist.
 - **What a page deletes inside the browser** (an offline draft, a list kept only in the browser) needs no network
   send, so the checkpoint can't hold it. A click on a control the page labels as destructive asks first, before the
-  click (above); an unlabelled control that deletes such data is not caught.
+  click (above); what happens with an unlabelled one is the owner's decision (section 10).
 - **What the page gave up on without saying so** (a JavaScript timeout with no abort): the send still waits and would
   go if approved later (*checked*, 17e Q7). The description shows how long it has waited and whether the page shows
   an error.
@@ -991,8 +1026,8 @@ In plain words (re-check 7, section C, and 17e):
   (`unknown`), and "the site did what the description says" is not guaranteed. Descriptions come from
   adapters and the page and are marked as such.
 - **Deleting data stored only in the browser isn't a network send,** so the checkpoint can't hold it. Claude's click
-  on a control labelled delete, remove, discard, clear, empty or trash (or the German words) asks first; a control
-  without such a label that deletes data kept only in the browser is not caught.
+  on a control labelled delete, remove, discard, clear, empty or trash (or the German words) asks first; for a
+  control without such a label he chooses between two options (section 10).
 - **If the checkpoint breaks, browsing stops.** Pages fail with Chrome's own error; nothing goes direct. His way out is
   the pass-through switch (condition 3, below). If the checkpoint restarts, Chrome restarts with its tabs (requirement
   5).
@@ -1094,8 +1129,10 @@ qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on
 12. **The strict guard:** adapter-based ending for the four usual sites; the one-click end; guards across checkpoint
     and Chrome restarts; storage and hand-offs keeping the guard (17e Q10).
 13. **Clicks that may delete local data:** labelled controls in English and German refused by `chrome_click` and
-    asking through `chrome_click_destructive` before the click; Delete and Backspace outside text fields; an
-    adapter's advance approval described exactly, and its follow-up sends released only when they validate.
+    asking through `chrome_click_destructive` before the click; Delete and Backspace outside text fields; the other
+    activation paths, confirmations and free text editing above, for whichever option the owner picks; an advance
+    operation's follow-up sends released only while they validate, within its limit and before its expiry, used up
+    once (a second deletion under the same approval asks), and without an adapter the follow-up sends asking.
 14. **Bounded resources** (17e Q11): memory, capture count, total size, a full record, the memory ceiling; exhaustion
     never forwards.
 15. **The pass-through switch** (condition 3): only through the owner's channel; leftovers shown first; Claude's
@@ -1381,13 +1418,25 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
   checkpoint. Recommended: the same data rule as in Chrome, so a fetched address Claude composed and every search
   ask first; a fetch of an address he or a page gave stays free. Until he answers, both ask on every call (section 7).
 
-- **The TLS checks the checkpoint can't replicate** (section 6, requirement 4), needed before Chrome with the
-  checkpoint becomes his everyday browser. Lost: Chrome's urgent revocation list (a certificate revoked in a hurry,
-  usually after its key was stolen, is accepted until it expires unless the site staples a revocation answer; it
-  matters only if someone has a stolen key and can get between him and the site); updates of Chrome's root, log and
-  pin lists between images (an authority Chrome drops, about once a year, stays trusted until the next image); and
-  sites that need a client certificate. Recommended: accept. The cases are rare, and the checkpoint keeps Chrome's
-  root list, CT and pin checks on the outside connection.
+- **What the checkpoint's certificate checks still can't do** (section 6, requirement 4), needed before Chrome with
+  the checkpoint becomes his everyday browser. The checkpoint checks sites' certificates the way Chrome 157 does, with
+  Chrome's own current lists (its revocation list, root list, CT log list and pin list). What still differs: sites
+  that ask the browser for a client certificate don't work; there is no "continue anyway", so a device page with a
+  certificate it made itself (a router, a printer) doesn't open; if Chrome can't update its lists for a long time,
+  new connections pause until it can; and after a Chrome update changes its rules, the checkpoint follows with its
+  own update. Recommended: accept. None of these weakens a check; they make some pages fail instead.
+- **Clicks that might delete data kept only in the browser, when the control doesn't say so** (section 6). Some apps
+  keep his data only in the browser, for example apps that work offline. A click there can delete it without anything
+  being sent, so the checkpoint can't hold it. Controls labelled delete, remove, discard, clear, empty or trash (and
+  the German words), and Delete or Backspace outside a text field, already ask first. Open is a control that doesn't
+  say what it does:
+  - **(a) Such clicks stay free.** An unlabelled control in an app that keeps its data only in the browser could
+    delete something without asking. That is rare: it needs an offline-only app and a control that doesn't say what
+    it does.
+  - **(b) Clicks ask on such sites.** On a site without an adapter that keeps its data in the browser (it works
+    offline: a service worker plus a browser database or the browser's private file system), every click other than
+    a plain link asks first. Nothing is deleted without asking, but working on those sites means many questions.
+  Recommended: (a).
 
 **Answered on 2026-11-07 and built into this draft:** data leaving in Chrome (decision 7: searches on his usual sites
 are free, anything else that could carry Claude's text asks; section 6); the central session apart from coding work
