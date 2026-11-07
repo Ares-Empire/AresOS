@@ -5,11 +5,13 @@ export default async function(c){
  const allow=(id,body='synthetic approved',more={})=>rpc('Check.allow',{url:f.base+'/receive?case='+id,method:'POST',sha256:hash(body),headers:{'X-Check':'synthetic'},...more});
  await allow('one');await send('one');await delay(600);log('Q4_ONCE',{rows:await count('one',1),history:(await state()).history});
  await send('one');await delay(400);log('Q4_SECOND',{rows:await count('one',1),history:(await state()).history});
+ await allow('competing');await ev("for(let i=0;i<2;i++)fetch('/receive?case=competing',{method:'POST',headers:{'X-Check':'synthetic'},body:'synthetic approved'}).catch(()=>{});true");await delay(500);log('Q4_COMPETING',{rows:await count('competing',1),history:(await state()).history.slice(-20)});
  await allow('wrong-body');await send('wrong-body','synthetic DIFFERENT');await count('wrong-body',0);log('Q4_BODY_MISMATCH',{history:(await state()).history.slice(-15)});
  await allow('wrong-header');await send('wrong-header','synthetic approved',{'X-Check':'changed'});await count('wrong-header',0);log('Q4_HEADER_MISMATCH',{history:(await state()).history.slice(-15)});
  // Exact URL/method and tab/site scope, with a positive recipient available.
  await allow('exact-target');await send('different-target');await count('different-target',0);await send('exact-target');await delay(500);discovery('exact-target','exact URL allowance');
  await allow('site-scope','synthetic approved',{site:'127.0.0.1'});await send('site-scope');await delay(400);log('Q4_SITE_SCOPE',{rows:discovery('site-scope','initiator-scoped allowance'),history:(await state()).history.slice(-12)});
+ await allow('site-allow-worker-v1-first','synthetic approved',{site:'127.0.0.1'});await ev("window.competing=new SharedWorker('/worker.js?shared&case=site-allow-worker');competing.port.start();true");await delay(800);log('Q4_UNREACHED_SITE_ALLOWANCE',{rows:discovery('site-allow-worker-v1-first','site allowance consumed by an unreached worker with different bytes'),history:(await state()).history.slice(-20)});await rpc('Check.rules',{removeRuleIds:[8001]});
  // Expose the natural add-to-match interval, then hold a mismatching request at the named failure instant.
  for(const revoke of [false,true])for(const pause of [0,25,100,500])for(let i=0;i<3;i++){
   const id=`race-${revoke}-${pause}-${i}`;await rpc('Check.mode',{mode:'park'});const added=await allow(id);await delay(pause);await send(id,'synthetic wrong-body');await delay(150);

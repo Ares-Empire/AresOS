@@ -31,11 +31,12 @@ async function gate(s,p){
  if(!r.url.includes('/receive'))return cmd(s,'Fetch.continueRequest',{requestId:p.requestId});
  const seen={source:s,requestId:p.requestId,url:r.url,method:r.method,headers:r.headers,...await body(r),enteredAt:Date.now()};emit('check.gate',seen);
  if(gateMode==='park')return;
+ const approval=expected;expected=undefined;
  if(delayMs)await new Promise(r=>setTimeout(r,delayMs));
- const match=expected&&expected.url===r.url&&expected.method===r.method&&r.postData!==undefined&&await hash(r.postData)===expected.sha256&&Object.entries(expected.headers||{}).every(([k,v])=>Object.entries(r.headers).some(([a,b])=>a.toLowerCase()===k.toLowerCase()&&b===v));
+ const match=approval&&approval.url===r.url&&approval.method===r.method&&r.postData!==undefined&&await hash(r.postData)===approval.sha256&&Object.entries(approval.headers||{}).every(([k,v])=>Object.entries(r.headers).some(([a,b])=>a.toLowerCase()===k.toLowerCase()&&b===v));
  // Remove on the first request-stage candidate, before checking or answering it.
  await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:[8001]});
- emit('check.allowRemoved',{requestId:p.requestId,match:!!match,expected});expected=undefined;
+ emit('check.allowRemoved',{requestId:p.requestId,match:!!match,expected:approval});
  await cmd(s,gateMode==='pass'||match?'Fetch.continueRequest':'Fetch.failRequest',gateMode==='pass'||match?{requestId:p.requestId}:{requestId:p.requestId,errorReason:'Aborted'});
  emit('check.gateAnswered',{requestId:p.requestId,allowed:gateMode==='pass'||!!match,at:Date.now()});
 }
@@ -47,7 +48,7 @@ chrome.debugger.onEvent.addListener((s,m,p)=>{
  else if(/^(Storage\.|DOMStorage\.|ServiceWorker\.|BackgroundService\.)|WebSocket|webTransport|Network.loadingFailed/.test(m))emit(m,{source:s,...p});
 });
 chrome.debugger.onDetach.addListener((s,reason)=>{attached.delete(s.tabId||s.targetId);emit('check.detached',{source:s,reason})});
-chrome.webRequest.onBeforeRequest.addListener(p=>{if(p.url.includes('/receive')||p.type==='websocket'||p.type==='webtransport')emit('check.webRequest',{url:p.url,method:p.method,type:p.type,tabId:p.tabId,initiator:p.initiator,requestId:p.requestId,at:p.timeStamp});},{urls:['<all_urls>']});
+chrome.webRequest.onBeforeRequest.addListener(p=>{if(p.url.includes('/receive')||p.type==='websocket'||p.type==='webtransport')emit('check.webRequest',{url:p.url,method:p.method,type:p.type,tabId:p.tabId,initiator:p.initiator,requestId:p.requestId,at:p.timeStamp});if(expected&&p.url===expected.url&&p.method===expected.method)chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:[8001]}).then(()=>emit('check.firstMatchRemoved',{url:p.url,tabId:p.tabId,at:Date.now()}));},{urls:['<all_urls>']});
 chrome.webRequest.onErrorOccurred.addListener(p=>{if(p.url.includes('/receive'))emit('check.webError',{url:p.url,error:p.error,tabId:p.tabId})},{urls:['<all_urls>']});
 async function account(tabId){return {cookies:await cmd({tabId},'Network.getCookies',{}),page:(await cmd({tabId},'Runtime.evaluate',{expression:'document.querySelector("#account")?.textContent',returnByValue:true})).result.value};}
 async function release(id){const p=pending.get(id);if(!p)throw Error('NOT_PENDING');pending.delete(id);if(JSON.stringify(await account(p.source.tabId))!==JSON.stringify(p.account))throw Error('ACCOUNT_CHANGED');await rpc('Check.allow',{url:p.description.url,method:p.description.method,sha256:p.description.sha256,headers:Object.fromEntries(p.description.headers),tabId:p.source.tabId});await chrome.scripting.executeScript({target:{tabId:p.source.tabId,documentIds:[p.source.documentId]},world:'MAIN',func:id=>{__floor.release(id).catch(()=>{});return true},args:[p.localId]});return {};}
