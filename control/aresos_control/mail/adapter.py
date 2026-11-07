@@ -523,12 +523,19 @@ class Mail:
             raise Refused("invalid_input", "Name a nonempty set of distinct exact messages.")
         if len({t["reference"]["account"] for t in items}) != 1:
             raise Refused("invalid_input", "A delete operation uses exactly one account.")
+        invalid = []
         for target in items:
             msg = self.message(target["reference"])["msg"]
             # str(header) may repair malformed syntax and discard its parse defects.
-            people([msg.get("From", "")])
+            try:
+                people([msg.get("From", "")])
+            except Refused as exc:
+                invalid.append((target["reference"], str(exc)))
             if any(str(msg.get(k, "")) != target[k] for k in ("from", "subject", "date")):
                 raise Refused("stale_approval", "Message sender, subject or date differs: stale, search again before deleting.")
+        if invalid:
+            refs = canonical(visible([reference for reference, _ in invalid]))
+            raise Refused("invalid_input", f"Cannot prepare deletion for message references {refs}: {invalid[0][1]} Leave these out of the selection and delete them in your mail program.")
 
     def delete_folders(self, account, payload):
         return [item['reference']['folder'] for item in payload['items']] + ([account['special']['trash']] if payload['mode'] == 'trash' else [])

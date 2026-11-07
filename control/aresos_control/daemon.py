@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 from pathlib import Path
 import selectors
@@ -8,7 +7,7 @@ import socket
 import stat
 import struct
 
-from .common import FILE_LIMIT, Refused
+from .common import FILE_LIMIT, Refused, strict_json_loads
 from .engine import Engine
 from .protocol import receive, send
 
@@ -74,7 +73,7 @@ def main():
     parser.add_argument("--config", default="/etc/aresos-control/service.json")
     args = parser.parse_args()
     with open(args.config) as stream:
-        config = json.load(stream)
+        config = strict_json_loads(stream.read())
     daemon = Daemon(config)
     for sig in (signal.SIGTERM, signal.SIGINT):
         signal.signal(sig, lambda *_: setattr(daemon, "stopping", True))

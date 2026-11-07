@@ -16,6 +16,51 @@ class Refused(Exception):
         super().__init__(message)
 
 
+class _JSONPairs(list):
+    pass
+
+
+class JSONInputError(Refused):
+    def __init__(self, raw):
+        super().__init__("invalid_input", "Malformed JSON, repeated fields or non-finite numbers are refused; send one unchanged JSON request.")
+        # Recover routing/id candidates without collapsing any repeated field.
+        # This tree is only for refusing input, never for executing it.
+        try:
+            self.pairs = json.loads(raw, object_pairs_hook=_JSONPairs, parse_constant=lambda _: None)
+        except (ValueError, UnicodeError):
+            self.pairs = None
+
+    def values(self, *path):
+        values = [self.pairs]
+        for key in path:
+            values = [v for obj in values if isinstance(obj, _JSONPairs) for k, v in obj if k == key]
+        return values
+
+    def for_actions(self, names):
+        from .definitions import BY_NAME
+        if any(isinstance(name, str) and name in BY_NAME and BY_NAME[name].effect in {"send", "delete"} for name in names):
+            self.code = "stale_approval"
+        return self
+
+
+def strict_json_loads(raw):
+    def object_pairs(pairs):
+        seen = set()
+        for key, _ in pairs:
+            if key in seen:
+                raise ValueError("Repeated JSON field")
+            seen.add(key)
+        return dict(pairs)
+
+    def nonfinite(_):
+        raise ValueError("Non-finite JSON number")
+
+    try:
+        return json.loads(raw, object_pairs_hook=object_pairs, parse_constant=nonfinite)
+    except (ValueError, UnicodeError) as exc:
+        raise JSONInputError(raw) from exc
+
+
 def canonical(value):
     return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False)
 

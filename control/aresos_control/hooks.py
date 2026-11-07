@@ -3,10 +3,9 @@
 Reads only control_pending. Stop's continuation guard avoids endless hook loops;
 expiry in the service is the safety net, even when a hook is not called.
 """
-import json
 import sys
 
-from .common import Refused, canonical, visible
+from .common import Refused, canonical, strict_json_loads, visible
 from .protocol import Client
 
 
@@ -26,7 +25,7 @@ def output(event, pending):
 
 def main(config, name):
     try:
-        event = json.loads(sys.stdin.buffer.read())
+        event = strict_json_loads(sys.stdin.buffer.read())
         if not isinstance(event, dict) or event.get("hook_event_name") != name:
             raise Refused("invalid_input", "Hook input must be an object matching the launcher event.")
         try:

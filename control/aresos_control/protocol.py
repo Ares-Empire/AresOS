@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import json
 import socket
 
-from .common import CHUNK_SIZE, WIRE_LIMIT, Refused, display_json, sha256
+from .common import CHUNK_SIZE, WIRE_LIMIT, JSONInputError, Refused, display_json, sha256, strict_json_loads
 
 
 def receive(connection):
@@ -19,9 +19,9 @@ def receive(connection):
             if rest or len(line) > WIRE_LIMIT:
                 break
             try:
-                return json.loads(line)
-            except (ValueError, UnicodeError) as exc:
-                raise Refused("invalid_input", "Malformed JSON; use a single version-1 request.") from exc
+                return strict_json_loads(line)
+            except JSONInputError as exc:
+                raise exc.for_actions(exc.values("action"))
     raise Refused("invalid_input", "Socket frame exceeds 6 MiB or contains extra messages; reduce the request.")
 
 

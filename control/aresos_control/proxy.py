@@ -1,7 +1,8 @@
 import asyncio
 import json
+import sys
 
-from .common import FILE_LIMIT, Refused, display_json, require_question, validate
+from .common import FILE_LIMIT, JSONInputError, Refused, display_json, require_question, strict_json_loads, validate
 from .definitions import APPS, BY_NAME
 from .files import FilePolicy
 from .protocol import Client
@@ -90,11 +91,35 @@ class Proxy:
                     "pending": self.client.call("control_pending", {}).get("data", {})}
 
 
+class StrictMCPInput:
+    def __init__(self, app, source):
+        self.app, self.source = app, source
+        self.errors = None
+
+    async def __aiter__(self):
+        import mcp_types as types
+        from mcp.shared.message import SessionMessage
+        async for line in self.source:
+            try:
+                strict_json_loads(line)
+            except JSONInputError as exc:
+                exc.for_actions([self.app + "_" + name for name in exc.values("params", "name") if isinstance(name, str)])
+                # Answer every candidate id when even the id field is repeated.
+                ids = list(dict.fromkeys(v for v in exc.values("id") if type(v) in {str, int})) or [None]
+                for request_id in ids:
+                    error = {"jsonrpc": "2.0", "id": request_id, "error": {
+                        "code": -32602, "message": str(exc), "data": {"code": exc.code}}}
+                    await self.errors.send(SessionMessage(types.jsonrpc_message_adapter.validate_json(json.dumps(error), by_name=False)))
+                continue
+            yield line
+
+
 async def serve(app, config):
     # The official SDK owns MCP framing and validation. AresOS owns app policy.
     import mcp_types as types
     from mcp.server.lowlevel import Server
     from mcp.server.stdio import stdio_server
+    import anyio
 
     proxy = Proxy(app, config)
     offered = {tool["name"]: tool for tool in proxy.tools()}
@@ -116,7 +141,9 @@ async def serve(app, config):
                                     structured_content=result, is_error=not result["ok"])
 
     server = Server("aresos-" + app, version="0.1.0", on_list_tools=list_tools, on_call_tool=call_tool)
-    async with stdio_server() as (read_stream, write_stream):
+    stdin = StrictMCPInput(app, anyio.wrap_file(sys.stdin))
+    async with stdio_server(stdin=stdin) as (read_stream, write_stream):
+        stdin.errors = write_stream
         await server.run(read_stream, write_stream, server.create_initialization_options())
 
 

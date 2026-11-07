@@ -391,6 +391,48 @@ print(json.dumps(results))
                 self.assertNotIn(ref, [item['reference'] for item in self.call(OWNER, 'testapp_list', {})['data']['items']])
         asyncio.run(conversation())
 
+    def test_round14_raw_duplicates_real_proxy_socket_cli_no_effects_then_once(self):
+        from raw_json_test_support import RawMCP, duplicate_arguments, socket_request, mcp_request
+        command = ['/usr/bin/setpriv', '--reuid', str(OWNER), '--regid', str(OWNER), '--clear-groups', '/usr/bin/aresos-mcp', 'testapp']
+        code = "import socket,sys; s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); s.sendall((sys.argv[2]+'\\n').encode()); print(s.makefile().readline())"
+        def raw_socket(raw):
+            return self.run_user(OWNER, code, self.proxy_config['act_socket'], raw)
+        ref = self.call(OWNER, 'testapp_list', {})['data']['items'][0]['reference']
+        with RawMCP(command) as client:
+            for verb, args in (('send', message(to=['alpha'], bcc=[])), ('delete', {'references': [ref]})):
+                approval = self.call(OWNER, 'testapp_prepare_' + verb, args)['data']['approval']
+                before = self.call(OWNER, 'testapp_list', {})['data']
+                for label, raw in duplicate_arguments(approval):
+                    with self.subTest(verb=verb, duplicate=label):
+                        response = client.exchange(mcp_request(label, verb, raw, label == 'envelope'))
+                        self.assertEqual(response['id'], label)
+                        self.assertEqual(response['error']['data']['code'], 'stale_approval', response)
+                        result = raw_socket(socket_request('testapp_' + verb, raw, label == 'envelope'))
+                        self.assertEqual(result['error']['code'], 'stale_approval', result)
+                        terminal = self.launch(OWNER, ['cli', 'testapp', verb, '--input', raw])
+                        self.assertEqual(terminal.returncode, 1, terminal.stdout + terminal.stderr)
+                        self.assertEqual(json.loads(terminal.stdout)['error']['code'], 'stale_approval')
+                        status = self.call(OWNER, 'testapp_operation_status', {'operation_id': approval['operation_id']})['data']
+                        self.assertEqual((status['operation']['state'], status['operation']['stages']), ('reserved', {}))
+                        self.assertEqual(status['evidence']['arrivals'], [])
+                        self.assertEqual(self.call(OWNER, 'testapp_list', {})['data'], before)
+                raw = json.dumps(approval)
+                response = client.exchange(mcp_request('correct', verb, raw))
+                result = response['result']['structuredContent']
+                self.assertTrue(result['ok'], result)
+                self.assertEqual(result['data']['operation']['state'], 'done')
+                self.assertEqual(raw_socket(socket_request('testapp_' + verb, raw))['data'], result['data'])
+                terminal = self.launch(OWNER, ['cli', 'testapp', verb, '--input', raw])
+                self.assertEqual(terminal.returncode, 0, terminal.stderr)
+                self.assertEqual(json.loads(terminal.stdout)['data'], result['data'])
+                self.assertEqual(client.exchange(mcp_request('replay', verb, raw))['result']['structuredContent']['data'], result['data'])
+                evidence = self.call(OWNER, 'testapp_operation_status', {'operation_id': approval['operation_id']})['data']['evidence']
+                self.assertEqual(evidence['arrivals'], ['alpha'] if verb == 'send' else [])
+            response = client.exchange(mcp_request('nonasking', 'list', '{"cursor":null,"cursor":null}'))
+            self.assertEqual(response['id'], 'nonasking')
+            self.assertEqual(response['error']['data']['code'], 'invalid_input')
+            self.assertNotIn(ref, [i['reference'] for i in self.call(OWNER, 'testapp_list', {})['data']['items']])
+
     def test_large_hook_inputs_still_remind_about_pending_work(self):
         prepared = self.call(OWNER, "testapp_prepare_send", message())
         self.assertTrue(prepared["ok"], prepared)
