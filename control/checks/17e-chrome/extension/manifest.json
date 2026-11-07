@@ -1,0 +1,1 @@
+{"manifest_version":3,"name":"17e checkpoint CHECK ONLY","version":"0.5.0","permissions":["debugger","tabs","nativeMessaging","declarativeNetRequest","webNavigation"],"host_permissions":["<all_urls>"],"background":{"service_worker":"background.js"},"options_page":"select.html"}

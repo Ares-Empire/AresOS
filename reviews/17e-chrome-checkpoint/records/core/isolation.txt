@@ -1,0 +1,3 @@
+uid=1002(areschrome) gid=1002(areschrome) groups=1002(areschrome)
+700 aresproxy aresproxy /home/runner/work/AresOS/AresOS/.work/17e-chrome/private
+600 aresproxy aresproxy /home/runner/work/AresOS/AresOS/.work/17e-chrome/private/mitmproxy-ca.pem

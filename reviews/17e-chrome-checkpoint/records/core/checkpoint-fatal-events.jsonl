@@ -1,0 +1,1 @@
+{"kind": "fatal-addon", "error": "RuntimeError", "frames": [{"file": "checkpoint.py", "function": "fatal_addon_error", "line": 50}, {"file": "addonmanager.py", "function": "trigger_event", "line": 292}, {"file": "addonmanager.py", "function": "invoke_addon", "line": 269}, {"file": "checkpoint.py", "function": "requestheaders", "line": 318}]}

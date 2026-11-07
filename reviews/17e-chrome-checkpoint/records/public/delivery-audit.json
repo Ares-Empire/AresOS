@@ -1,0 +1,494 @@
+[
+  {
+    "id": "e-signed-live",
+    "kind": "ws-open",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-signed-live-control",
+    "kind": "ws-message",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-background-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-background-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-background-0",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-0",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-0",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-0",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-1",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-1",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-1",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-1",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-2",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-2",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-2",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-2",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-3",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-3",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-3",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-3",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-4",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-4",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-4",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-4",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-5",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-5",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-5",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-5",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-6",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-6",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-6",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-6",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-7",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-7",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-7",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-7",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-8",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-8",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-8",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-8",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-9",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-9",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-9",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-9",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-10",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-10",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-10",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-10",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-11",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-11",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-11",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-background-11",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-0",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-0",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-0",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-0",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-1",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-1",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-1",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-1",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-2",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-2",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-2",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-2",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-3",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-3",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-3",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-3",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-4",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-4",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-4",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-4",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-5",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-5",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-5",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-live-background-5",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-owner-notification-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-owner-notification-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-owner-notification",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-owner-notification",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-owner-notification",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-owner-notification",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  }
+]
