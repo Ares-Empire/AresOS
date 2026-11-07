@@ -53,12 +53,16 @@ def clean_header(value, authored=True):
     return value
 
 
-def address(value, utf8=False, authored=True):
-    clean_header(value, authored)
+def address(value, utf8=False, authored=True, normalize=False):
+    if normalize:
+        value = value.strip(" \t")
+    clean_header(value.replace("\t", "") if normalize else value, authored)
     pairs = getaddresses([value])
     if len(pairs) != 1 or not pairs[0][1] or pairs[0][1].count("@") != 1:
         raise Refused("invalid_input", "Use one explicit mailbox per address, including its domain.")
     name, addr = pairs[0]
+    if normalize:
+        name = name.strip(" \t")
     clean_header(name, authored)
     clean_header(addr, authored)
     local, domain = addr.rsplit("@", 1)

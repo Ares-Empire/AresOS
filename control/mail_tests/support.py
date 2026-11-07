@@ -40,10 +40,8 @@ class MailCase(unittest.TestCase):
         self.mail.transport.store_password(account_id, 'pass')
         with self.mail.transport.imap(account) as conn:
             account['capabilities'] = sorted(conn.capabilities)
-            for f in folders(conn):
-                for flag, name in {'\\Sent':'sent', '\\Drafts':'drafts', '\\Trash':'trash', '\\Junk':'junk', '\\Archive':'archive'}.items():
-                    if flag in f['flags']:
-                        account['special'][name] = f['name']
+            from aresos_control.mail.roles import resolve
+            account.update(resolve(folders(conn)))
         with self.mail.transport.smtp(account) as smtp:
             account['smtp_capabilities'] = sorted(smtp.esmtp_features)
         self.engine.store.write({'mail:account:' + account_id: account}, 'fixture_account', 'synthetic account')

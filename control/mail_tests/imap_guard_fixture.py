@@ -21,6 +21,12 @@ class GuardedIMAPFixture:
         # real backend may canonicalize during BODY[] retrieval. Test-only.
         self.exact_sources = {}
         self.special_roles = {}
+        self.role_map = None
+        self.separators = {}
+        self.before_command = lambda command, arguments: None
+        self.after_command = lambda command, arguments: None
+        self.hide_copyuid = False
+        self.commands = []
         self.lock = threading.Lock()
         self.server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.server_context.load_cert_chain(CERT / 'tls.crt',CERT / 'tls.key')
@@ -45,6 +51,16 @@ class GuardedIMAPFixture:
                                 line = backend.readline()
                                 if not line:
                                     raise OSError('Backend disconnected')
+                                if destination and line.startswith(b'* LIST ') and fixture.role_map is not None:
+                                    match = re.fullmatch(rb'\* LIST \(([^)]*)\) ("[^"]*"|NIL) (.*?)\r\n', line)
+                                    if match:
+                                        name = match[3].strip(b'"').decode()
+                                        flags = [v for v in match[1].split() if v.lower() not in {b'\\sent', b'\\drafts', b'\\trash', b'\\archive', b'\\junk'}]
+                                        flags += [v.encode() for v in fixture.role_map.get(name, [])]
+                                        delimiter = ('"' + fixture.separators[name] + '"').encode() if name in fixture.separators else match[2]
+                                        line = b'* LIST (' + b' '.join(flags) + b') ' + delimiter + b' ' + match[3] + b'\r\n'
+                                if destination and fixture.hide_copyuid:
+                                    line = re.sub(rb'\[COPYUID [^]]*\]', b'', line)
                                 if destination and line.startswith(b'* LIST ') and fixture.special_roles:
                                     for name, flag in fixture.special_roles.items():
                                         if line.rstrip().endswith((b'"' + name.encode() + b'"', b' ' + name.encode())):
@@ -73,6 +89,12 @@ class GuardedIMAPFixture:
                                 return
                             tag,command,*rest = line.split(b' ',2)
                             with fixture.lock:
+                                arguments = rest[0].strip() if rest else b''
+                                fixture.commands.append((command.upper(), arguments))
+                                refusal = fixture.before_command(command.upper(), arguments)
+                                if refusal:
+                                    self.wfile.write(tag + b' NO ' + refusal + b'\r\n')
+                                    continue
                                 if fixture.mode == 'echo_disconnect_expunge' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'EXPUNGE '):
                                     backend.write(line)
                                     response(tag,False)
@@ -122,6 +144,7 @@ class GuardedIMAPFixture:
                                     data = exact(self.rfile,int(literal[1]) + 2)
                                     backend.write(data)
                                 response(tag,True)
+                                fixture.after_command(command.upper(), arguments)
                             if command.upper() == b'LOGOUT':
                                 return
         class Server(socketserver.ThreadingTCPServer):

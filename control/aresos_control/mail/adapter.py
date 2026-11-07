@@ -17,7 +17,7 @@ from ..adapters import NothingLeft, Uncertain
 from ..blobs import Blobs
 from ..common import Refused, canonical, digest, sha256, visible
 from . import codec
-from .roles import resolve, SETUP, REQUIRED, OPTIONAL, optional_roles, recorded_optional, optional_status, check_optional
+from .roles import resolve, SETUP, REQUIRED, OPTIONAL, optional_roles, recorded_optional, optional_status, check_optional, root
 from .transport import Transport, folders, select, fetch, fetch_headers, uids, ok, quote, context, nonempty_refusal
 
 
@@ -51,7 +51,7 @@ class Mail:
                 return self.fresh_roles(account, conn, names, needed)
         current = resolve(folders(client))
         if (any(current['special'][k] != account['special'].get(k) for k in REQUIRED)
-                or current['delimiter'] != account.get('delimiter')):
+                or any(root(current, k) != root(account, k) for k in REQUIRED)):
             raise Refused("special_folders_changed", "SPECIAL-USE roles differ from owner setup. " + SETUP)
         check_optional(account, current['optional'], names, needed)
         return current
@@ -130,7 +130,9 @@ class Mail:
             return read(conn)
 
     def under(self, account, name, kind):
-        roots = [(account["special"].get(kind), account.get("delimiter"))]
+        entry = root(account, kind)
+        roots = [(entry["folder"], entry["delimiter"])]
+        roots += [(v["folder"], v["delimiter"]) for v in recorded_optional(account).get(kind, [])]
         roots += [(v["folder"], v["delimiter"]) for v in account.get("protected_special", {}).get(kind, [])]
         return any(root and (name == root or (delimiter and name.startswith(root + delimiter))) for root, delimiter in roots)
 
@@ -295,7 +297,7 @@ class Mail:
             clean, texts = codec.rebuild(raw, authored, default_type)
             clean_headers, clean_payload = codec.entity(clean, default_type)
             data = clean if args["part"] == "source" or headers.get_content_maintype() in {"message", "multipart"} else codec._transfer(clean_headers, clean_payload)
-        item = {"sha256": self.blobs.put(data), "size": len(data), "name": name, "type": content_type,
+        item = {"sha256": self.blobs.put(data, origin="composition_part" if outgoing else "export"), "size": len(data), "name": name, "type": content_type,
                 "source": {"reference": args["reference"], "part": args["part"]}}
         if outgoing and mail_source:
             item["transformation"] = "Attached mail rebuilt with only the listed headers; Bcc and Resent-Bcc removed recursively."
@@ -331,9 +333,9 @@ class Mail:
             raise Refused("invalid_input", "New mail has no original reference; choose reply/forward/draft explicitly.")
         utf8 = "smtputf8" in account["smtp_capabilities"]
         def normal(values, derived=False):
-            return [codec.address(v, utf8, authored=not derived) for v in values]
+            return [codec.address(v, utf8, authored=not derived, normalize=True) for v in values]
         own = {codec.mailbox(v).casefold() for v in account["addresses"]}
-        sender = codec.address(args.get("from", account["addresses"][0]), utf8)
+        sender = codec.address(args.get("from", account["addresses"][0]), utf8, normalize=True)
         if codec.mailbox(sender).casefold() not in own:
             raise Refused("invalid_input", "From must be a configured owner alias.")
         to, cc, bcc = args.get("to", []), args.get("cc", []), args.get("bcc", [])
@@ -377,7 +379,7 @@ class Mail:
                 quote_text = ""
                 if "text" not in args:
                     data = codec.body(msg).encode("utf8")
-                    generated.append({"kind":"draft_body", "source":original["reference"], "sha256":self.blobs.put(data), "size":len(data), "text":data.decode("utf8")})
+                    generated.append({"kind":"draft_body", "source":original["reference"], "sha256":self.blobs.put(data, origin="draft_body"), "size":len(data), "text":data.decode("utf8")})
                     html_part = msg.get_body(preferencelist=("html",))
                     if html_part is not None:
                         html_data = codec.decoded(html_part)
@@ -385,7 +387,7 @@ class Mail:
                             html_data = html_data.decode(html_part.get_content_charset() or "utf8","replace").encode("utf8")
                         except LookupError:
                             html_data = html_data.decode("utf8","replace").encode("utf8")
-                        html_info = {"kind":"draft_html", "source":original["reference"], "sha256":self.blobs.put(html_data), "size":len(html_data)}
+                        html_info = {"kind":"draft_html", "source":original["reference"], "sha256":self.blobs.put(html_data, origin="draft_html"), "size":len(html_data)}
                         readable = codec.html_text(html_data.decode("utf8"))
                         if readable.strip() != data.decode("utf8").strip():
                             html_info["text"] = readable
@@ -395,11 +397,11 @@ class Mail:
                     attachment_refs.append(att)
             if quote_text:
                 data = quote_text.encode("utf8")
-                part = {"kind": "quoted_mail", "source": original["reference"], "sha256": self.blobs.put(data), "size": len(data)}
+                part = {"kind": "quoted_mail", "source": original["reference"], "sha256": self.blobs.put(data, origin="quoted_mail"), "size": len(data)}
                 if self.authored(original):
                     part["text"] = quote_text
                 generated.append(part)
-        subject = codec.clean_header(subject, authored="subject" in args or not original)
+        subject = codec.clean_header(subject.strip(" \t"), authored="subject" in args or not original)
         seen = set()
         def unique(values, derived=False):
             out = []
@@ -421,7 +423,7 @@ class Mail:
                     raise Refused("stale_reference", "Not an imported caller blob; attach a path through the proxy.")
                 if "last_changed" not in item:
                     raise Refused("proxy_required", "Local Mail attachments need caller-side last change metadata; import the path through the proxy again.")
-                data = self.blobs.read(item["sha256"])
+                data = self.blobs.require_origin(item["sha256"], "caller_import")
                 if len(data) != item["size"]:
                     raise Refused("stale_reference", "Attachment bytes changed; import again.")
                 if item["name"].lower().endswith((".eml", ".msg")) or codec.is_mail(data):
@@ -866,12 +868,12 @@ class Mail:
         except Refused as exc:
             raise NothingLeft("Outgoing MIME guard refused the exact wire bytes; nothing submitted.") from exc
         stage("message_id", self.message_id(operation["id"]))
-        stage("wire_sha256", self.wires.put(raw))
+        stage("wire_sha256", self.wires.put(raw, origin="wire"))
         if comp["mail"]["bcc"]:
             sent_header = EmailMessage(policy=codec.SMTP_POLICY)
             sent_header["Bcc"] = ", ".join(comp["mail"]["bcc"])
             bcc_header = sent_header.as_bytes().split(b"\r\n\r\n",1)[0] + b"\r\n"
-            stage("sent_wire_sha256", self.wires.put(bcc_header + raw))
+            stage("sent_wire_sha256", self.wires.put(bcc_header + raw, origin="wire"))
         state, reason = self.send_smtp(operation, comp, raw, stage)
         if state == "failed":
             return state, reason
@@ -916,14 +918,15 @@ class Mail:
                 self.store.write({}, "mail_" + verb, "Mail change incomplete; inspect server before repeating", outcome="unknown", untrusted_content=summary)
             raise
         if not read:
-            self.store.write({}, "mail_" + verb, "Mail change completed", outcome="done", untrusted_content=summary)
+            self.store.write({}, "mail_" + verb, "Mail change completed", outcome=result.get("state", "done"), untrusted_content=summary)
         return result
 
     def _call(self, verb, args):
         if verb == "account_folders":
             account = self.account(args["id"], ready=False)
             with self.transport.imap(account) as client:
-                current = resolve(folders(client))
+                listed = folders(client)
+                current = resolve(listed)
             roles_hash = digest(current)
             if "roles_hash" in args:
                 if args["roles_hash"] != roles_hash:
@@ -931,9 +934,14 @@ class Mail:
                 protected = account.setdefault("protected_special", {})
                 for kind in ("trash", "drafts"):
                     values = protected.setdefault(kind, [])
-                    for mapping in ({k: account.get(k) for k in ("special", "delimiter")}, current):
+                    for mapping in (account, current):
                         if mapping["special"].get(kind):
-                            value = {"folder": mapping["special"][kind], "delimiter": mapping["delimiter"]}
+                            value = root(mapping, kind)
+                            if "roots" not in mapping:
+                                matches = [f for f in listed if f["name"] == value["folder"]]
+                                if len(matches) != 1:
+                                    raise Refused("special_folders_changed", "Old protected root cannot be resolved; owner must inspect setup before recording roles.")
+                                value = {"folder": matches[0]["name"], "delimiter": matches[0]["delimiter"]}
                             if value not in values:
                                 values.append(value)
                 account.update(current)
@@ -1040,7 +1048,9 @@ class Mail:
                     if target not in [f["name"] for f in folders(client) if "\\Noselect" not in f["flags"]]:
                         raise Refused("stale_reference", "Target folder is stale, search again.")
                     if "UIDPLUS" not in client.capabilities or (verb == "move" and "MOVE" not in client.capabilities):
-                        raise Refused("unsupported_server", "Exact new references require UIDPLUS; moving also requires MOVE.")
+                        raise Refused("unsupported_server", "Safe filing and exact undo require UIDPLUS; moving also requires MOVE.")
+                    from .filing import file_messages
+                    return file_messages(self, account, client, verb, refs, target, names, needed)
                 else:
                     for value in args["add"] + args["remove"]:
                         if value not in {"\\Seen", "\\Flagged", "\\Answered"} and not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", value):
@@ -1053,12 +1063,5 @@ class Mail:
                                 ok(client.uid("STORE", str(ref["uid"]), operator, "(" + " ".join(args[key]) + ")"), "Set flags")
                         _, flags = fetch(client, ref["uid"], self.wires.limit)
                         result.append({"reference": ref, "flags": flags})
-                    else:
-                        ok(client.uid(verb.upper(), str(ref["uid"]), quote(target)), "UID " + verb.upper())
-                        rows = client.response("COPYUID")[1]
-                        match = re.search(rb"(\d+) (\d+) (\d+)", b" ".join(x for x in (rows or []) if x))
-                        if not match:
-                            raise Uncertain("Server omitted COPYUID; refresh destination before repeating change.")
-                        result.append({**ref, "folder": target, "uidvalidity": int(match[1]), "uid": int(match[3])})
             return {"items": result}
         raise Refused("invalid_input", "Unsupported Mail action.")

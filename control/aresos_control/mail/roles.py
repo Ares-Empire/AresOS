@@ -8,6 +8,11 @@ OPTIONAL = ('junk', 'archive')
 SETUP = 'Owner must run sudo aresos admin mail account_folders --input \'{"id":"ACCOUNT"}\', review the roles, then repeat with the returned roles_hash to record them.'
 
 
+def root(account, role):
+    # Old setups did not record per-root separators. Never guess their namespace.
+    return account.get('roots', {}).get(role, {'folder': account['special'].get(role), 'delimiter': None})
+
+
 def optional_roles(listed):
     return {role: sorted([{'folder': f['name'], 'delimiter': f['delimiter'],
                           'selectable': not any(v.casefold() == '\\noselect' for v in f['flags'])}
@@ -48,6 +53,7 @@ def check_optional(account, current, names=(), needed=()):
 
 def resolve(listed):
     special = {'inbox': 'INBOX'}
+    roots = {}
     optional = optional_roles(listed)
     for flag, role in ROLES.items():
         if role in OPTIONAL:
@@ -58,7 +64,12 @@ def resolve(listed):
         if len(matches) != 1 or any(v.casefold() == '\\noselect' for v in matches[0]['flags']):
             raise Refused('special_folders_changed', 'SPECIAL-USE roles are missing, ambiguous or unselectable. Configure the server roles first. ' + SETUP)
         special[role] = matches[0]['name']
+        roots[role] = {'folder': matches[0]['name'], 'delimiter': matches[0]['delimiter']}
     inbox = [f for f in listed if f['name'].casefold() == 'inbox']
     if len(inbox) != 1 or any(v.casefold() == '\\noselect' for v in inbox[0]['flags']):
         raise Refused('special_folders_changed', 'INBOX is missing or ambiguous. ' + SETUP)
-    return {'special': special, 'optional': optional, 'delimiter': inbox[0]['delimiter']}
+    roots['inbox'] = {'folder': inbox[0]['name'], 'delimiter': inbox[0]['delimiter']}
+    for role in OPTIONAL:
+        if special[role]:
+            roots[role] = {k: optional[role][0][k] for k in ('folder', 'delimiter')}
+    return {'special': special, 'roots': roots, 'optional': optional, 'delimiter': inbox[0]['delimiter']}

@@ -413,3 +413,31 @@ Mail audit summaries use service-written text. External values, recipient stage
 keys and caller save paths are structured inside escaped `untrusted_content`;
 `control_log` and `aresos log` also mark historical Mail summaries. A mail's
 instructions never become instructions from the audit service.
+
+### Mail round 9: filing rollback and blob exports
+
+Each role root records its own LIST hierarchy separator. Required-role separator
+changes need the owner's folder setup review; old Trash and Drafts roots keep their
+own separators after refresh. Legacy setups without per-root metadata must use the
+same owner setup step; separators are read from each listed root, never INBOX.
+
+Free move/copy requires UIDPLUS. A durable filing intent records source references,
+target and per-message progress before acting. After each MOVE/COPY, any role drift
+triggers an immediate exact COPYUID-based rollback of the attempted batch. Returned
+moves have new source UIDs. Failed or inexact undo returns partial with observed
+folder/UID locations and scan completeness; it never reports done. Missing COPYUID
+is partial even when role names remain stable. An interrupted intent stays visible
+in the audit log; restart neither resumes filing nor retries undo.
+
+Shared blobs carry durable origin metadata. Only an explicit owner export can be
+saved by any app; internal composition parts, draft bodies, quotes and wire copies
+are private even when their hashes appear in results. Caller imports alone do not
+grant download rights, and attachment hashes still require caller-import provenance
+and metadata. Ordinary non-draft attachment_save explicitly exports original bytes.
+Missing legacy origin metadata grants no export/import permission. The testapp
+fixture is absent from shipped managed MCP settings; its explicit imported-file
+export action exists for test configurations only.
+
+Historical operation status always returns the saved approval and stages; a failed
+live Sent lookup appears separately as evidence_error. Composition strips surrounding
+spaces/tabs from subjects and display names before approval and wire validation.
