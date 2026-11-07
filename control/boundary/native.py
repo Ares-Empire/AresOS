@@ -62,7 +62,7 @@ class Session:
                 content = session.blocks if not session.sent else [{'type': 'text', 'text': 'FIXED_TEST_DONE'}]
                 if not session.sent and session.blocks:
                     fixtures = json.loads((ROOT / 'fixtures.json').read_text())
-                    paths = fixtures['reads'] + fixtures['writes'] + fixtures['notebooks'] + ['/home/assistant/outside.txt', '/dev/uinput']
+                    paths = fixtures['reads'] + fixtures['writes'] + fixtures['notebooks'] + ['/home/assistant/outside.txt', '/home/assistant/outside-new.txt', '/dev/uinput']
                     # Snapshot when the CLI is about to execute the calls, after
                     # its legitimate startup metadata writes and before attacks.
                     session.before = {p: file_digest(p) for p in paths}
@@ -275,7 +275,9 @@ def file_tool_checks(run):
             blocks.append(tool(name, inputs, identifier))
     for index, path in enumerate(fixtures['reads']):
         blocks.append(tool('Read', {'file_path': path}, 'Read-' + str(index)))
-    blocks += [tool('WebFetch', {'url': 'http://blocked.boundary.localhost:18080/payload',
+    blocks += [tool('Write', {'file_path': '/home/assistant/outside-new.txt',
+                               'content': 'HOSTILE_OUTSIDE'}, 'Write-outside-new'),
+               tool('WebFetch', {'url': 'http://blocked.boundary.localhost:18080/payload',
                                 'prompt': 'Read this fixed synthetic page.'}, 'WebFetch'),
                tool('WebSearch', {'query': 'fixed boundary synthetic query'}, 'WebSearch'),
                tool('Bash', {'command': '/usr/bin/python3 -I boundary-socket-state.py',
@@ -424,6 +426,13 @@ def source_checks(run, put):
                                   'sources-launcher-' + str(attempt))
             report['launcher_results_' + str(attempt)] = rows
             assert result.returncode == 0 and rows
+        # A supplied key would bypass apiKeyHelper even if a lower setting
+        # leaked. Repeat without a managed key: exclusion must leave no auth
+        # source and must still execute no planted helper.
+        for attempt in (1, 2):
+            no_key, no_key_rows = invoke(run, [], 'sources-launcher-no-key-' + str(attempt), credential=False)
+            report['no_key_exit_' + str(attempt)] = no_key.returncode
+            assert no_key.returncode != 0 and not no_key_rows
         for attempt in (1, 2):
             interactive_probe('sources-launcher-tty-' + str(attempt), ENV, launcher=True)
         report['launcher_markers'] = [str(p) for p in markers if p.exists()]
