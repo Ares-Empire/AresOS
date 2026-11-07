@@ -31,7 +31,7 @@ class Receiver(QuicConnectionProtocol):
         for item in self.h3.handle_event(event):
             if isinstance(item, HeadersReceived):
                 record('connect', headers={k.decode():v.decode() for k,v in item.headers})
-                self.h3.send_headers(item.stream_id, [(b':status', b'200')])
+                self.h3.send_headers(item.stream_id, [(b':status', b'200'), (b'sec-webtransport-http3-draft', b'draft02')])
                 self.transmit()
             elif isinstance(item, DatagramReceived):
                 record('datagram', body=item.data.decode())

@@ -9,7 +9,7 @@ fs.mkdirSync(out,{recursive:true});
 const {fixture}=await import('./fixture.mjs');
 const {address,key,delay,activateChrome,screenshot,x}=await import('../17-chrome/ui.mjs');
 const {nativeBridge,evaluate,eventually}=await import('../17-chrome/protocol.mjs');
-const {pack,idFor}=await import('../17-chrome/install.mjs');
+const {pack,idFor,installExternal}=await import('../17-chrome/install.mjs');
 const summary={run:process.env.GITHUB_RUN_ID,head:process.env.GITHUB_SHA,cases:[]},audit=new Map();
 const save=(n,v)=>fs.writeFileSync(out+'/'+n+'.json',JSON.stringify(v,null,2));
 function log(name,row){summary.cases.push({name,...row});save('summary',summary);console.log(name,JSON.stringify(row));}
@@ -30,9 +30,9 @@ for(const label of ['system','user']){
   const h={name:hostName,description:'17b CI check',path:script,type:'stdio',allowed_origins:[`chrome-extension://${id}/`]};
   const temp=work+'/host-'+label+'.json';fs.writeFileSync(temp,JSON.stringify(h));
   if(label==='system')execFileSync('sudo',['install','-D','-m','644',temp,'/etc/opt/chrome/native-messaging-hosts/'+hostName+'.json']);
-  else {const d=process.env.XDG_CONFIG_HOME+'/google-chrome/NativeMessagingHosts';fs.mkdirSync(d,{recursive:true});fs.copyFileSync(temp,d+'/'+hostName+'.json');}
+  else {for(const d of [process.env.XDG_CONFIG_HOME+'/google-chrome/NativeMessagingHosts',work+'/profile/NativeMessagingHosts']){fs.mkdirSync(d,{recursive:true});fs.copyFileSync(temp,d+'/'+hostName+'.json');}}
 }
-function policy(userHosts){const p={ExtensionInstallForcelist:[id+';'+f.base+'/update.xml'],ExtensionInstallBlocklist:['fcoeoabgfenejglbffodgkkbkcdhcgfn'],NativeMessagingUserLevelHosts:userHosts};const file=work+'/policy.json';fs.writeFileSync(file,JSON.stringify(p));execFileSync('sudo',['install','-D','-m','644',file,'/etc/opt/chrome/policies/managed/aresos-17b.json']);save('policy-'+userHosts,p);}
+function policy(userHosts,forced=true){const p={ExtensionInstallForcelist:forced?[id+';'+f.base+'/update.xml']:[],ExtensionInstallBlocklist:['fcoeoabgfenejglbffodgkkbkcdhcgfn'],NativeMessagingUserLevelHosts:userHosts};const file=work+'/policy.json';fs.writeFileSync(file,JSON.stringify(p));execFileSync('sudo',['install','-D','-m','644',file,'/etc/opt/chrome/policies/managed/aresos-17b.json']);save('policy-'+userHosts,p);}
 policy(true);
 async function stop(kill=false){
  if(chrome?.exitCode===null){
@@ -58,7 +58,7 @@ async function connect(){
 function measureSettle(start,requests){let end=start+500;for(const r of requests.filter(r=>r.at>=start).sort((a,b)=>a.at-b.at)){if(r.at>end)break;end=Math.min(start+10000,r.at+500);}return end;}
 const state=()=>bridge.send('Check.state');
 const arrivals=id=>f.arrivals.filter(r=>r.kind==='receive'&&new URL(r.url,f.base).searchParams.get('case')===id);
-async function nav(){await bridge.send('Page.navigate',{url:f.base+'/'});await delay(500);await eventually(()=>evaluate(bridge,"typeof send==='function'"),'fixture ready');}
+async function nav(){await bridge.send('Page.bringToFront');await bridge.send('Page.navigate',{url:f.base+'/'});await delay(500);await eventually(()=>evaluate(bridge,"typeof send==='function'"),'fixture ready');}
 async function held(id,kind='fetch',timeout=0){await evaluate(bridge,`send(${JSON.stringify(id)},${JSON.stringify(kind)},${timeout});'started'`);return eventually(async()=>{const s=await state();if(s.errors.length)throw Error(s.errors.join(';'));return s.pending.find(p=>p.url.includes('case='+id));},'held '+id);}
 async function decide(p,release){return bridge.send('Check.decide',{id:p.id,release});}
 async function observe(id,expected){await delay(650);const a=arrivals(id);if(expected!==undefined){assert.equal(a.length,expected,id);audit.set(id,expected);}return a;}
@@ -77,6 +77,8 @@ try{
  log('Q5_HOST_POLICY_FALSE',{starts:fs.readFileSync(out+'/host-starts.txt','utf8')});
  // Policy rejects disable/remove even with a send held.
  for(const op of ['disable','uninstall']){await nav();const id='q1-policy-'+op,p=await held(id);await probe('Q1_POLICY_'+op,()=>bridge.send(op==='disable'?'Check.disable':'Check.uninstall'));assert.equal(arrivals(id).length,0);await decide(p,false);await observe(id,0);}
+ await nav();await bridge.send('Check.config',{backstop:true});const dnrRelease=await held('dnr-approved-release');assert.equal(arrivals('dnr-approved-release').length,0);await decide(dnrRelease,true);log('Q1_DNR_APPROVED',{arrivals:await observe('dnr-approved-release',1)});
+ await nav();const dnrDrop=await held('dnr-explicit-drop');await decide(dnrDrop,false);log('Q1_DNR_DROP',{arrivals:await observe('dnr-explicit-drop',0)});
  // Q1: controlled detach probes, with a fresh tab attachment between each.
  await matrix('host-dies',async()=>{const pid=Number(fs.readFileSync(out+'/host-pids.txt','utf8').trim().split('\n').at(-1));process.kill(pid,'SIGKILL');},{expected:0});
  await stop();await boot('after-host');
@@ -84,15 +86,24 @@ try{
  await stop();await boot('after-socket');
  for(const backstop of [false,true]){
    await matrix('detach',()=>bridge.send('Check.detach'),{backstop});
-   await bridge.send('Check.attach',{tabId:selected});await bridge.send('Check.enableGate');
+   await bridge.send('Check.attach',{tabId:selected});
+   if(backstop){const before=arrivals('q1-detach-dnr').length;await evaluate(bridge,"send('q1-detach-dnr');'new request'");await delay(700);assert.equal(arrivals('q1-detach-dnr').length,before);log('Q1_DNR_NEW_REQUEST',{before,after:arrivals('q1-detach-dnr').length,rules:(await state()).rules});}
+   await bridge.send('Check.enableGate');
    await matrix('reload',async()=>{await bridge.send('Check.reload');await delay(1200);},{backstop});
    await stop();await boot('after-reload-'+backstop);
    await matrix('devtools',async()=>{await bridge.send('Page.bringToFront');await key('ctrl+shift+i');await delay(1200);await screenshot(out,'devtools-'+backstop);await key('ctrl+shift+i');},{backstop});
    // Native port survives the tab debugger being replaced.
    await stop();await boot('after-devtools-'+backstop);
+
+ }
+ log('Q1_MANAGED_BAR',{shown:false,evidence:'policy-debug-bar.png; no owner Cancel UI on force-installed extension'});
+ await stop();policy(false,false);installExternal(id,updateVersion,work+'/own-extension.crx',work);await boot('nonforced-cancel');
+ log('Q1_NONFORCED_INSTALL',{info:await bridge.send('Check.info')});
+ for(const backstop of [false,true]){
    await matrix('cancel',async()=>{await bridge.send('Page.bringToFront');await screenshot(out,'before-cancel-'+backstop);x('mousemove',960,115,'click',1);await delay(500);await screenshot(out,'after-cancel-'+backstop);await eventually(async()=>(await state()).history.some(r=>r.method==='check.detached'&&r.params.reason==='canceled_by_user'),'Cancel really detached');},{backstop});
    await stop();await boot('after-cancel-'+backstop);
  }
+ await stop();policy(false);await boot('managed-again');
  await matrix('tab-close',()=>bridge.send('Check.closeTab'),{expected:0});await stop();await boot('after-tab');
  await matrix('chrome-normal',()=>stop(),{expected:0});await boot('after-normal');
  await matrix('chrome-kill',()=>stop(true),{expected:0});await boot('after-kill');
@@ -128,7 +139,7 @@ try{
  await bridge.send('Network.setBypassServiceWorker',{bypass:false});await evaluate(bridge,'worker()');
  log('Q2_WORKER_CONTROLLED',{controlled:await evaluate(bridge,'!!navigator.serviceWorker.controller')});
  const targets=await bridge.send('Check.targets');save('targets',targets);
- const worker=targets.find(t=>t.type==='service_worker'&&t.url===f.base+'/sw.js');
+ const worker=targets.find(t=>['worker','service_worker'].includes(t.type)&&t.url===f.base+'/sw.js');
  if(worker){
    await probe('Q2_WORKER_ATTACH',()=>bridge.send('Check.workerAttach',{targetId:worker.id}));
    for(const kind of ['fetch','xhr','form'])for(const release of [true,false]){
@@ -156,7 +167,7 @@ try{
  const holdRows=[];
  for(const ms of durations){const id='long-'+ms,p=await held(id);holdRows.push({id,ms,p,start:Date.now()});}
  const abort=await held('long-abort','fetch',30000),xhr=await held('long-xhr','xhr',30000);
- await evaluate(bridge,"retry('long-retry');'ok'");await delay(1250);
+ await evaluate(bridge,"retry('long-retry');'ok'");await eventually(async()=>(await state()).pending.filter(p=>p.url.includes('case=long-retry')).length===2,'second retry held',8000);
  const retries=(await state()).pending.filter(p=>p.url.includes('case=long-retry'));assert.equal(retries.length,2);assert.equal(arrivals('long-retry').length,0);
  await decide(retries[0],false);await decide(retries[1],true);await observe('long-retry',1);log('Q3_RETRY',{pending:retries,arrivals:arrivals('long-retry')});
  for(const row of holdRows){await delay(Math.max(0,row.ms-(Date.now()-row.start)));assert.equal(arrivals(row.id).length,0);await decide(row.p,true);log('Q3_LONG',{id:row.id,requestedMs:row.ms,heldMs:Date.now()-row.start,arrivals:await observe(row.id,1)});}
