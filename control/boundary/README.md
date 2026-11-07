@@ -189,16 +189,30 @@ and executed Python probes, with stdout supplied by the root supervisor. Samplin
 starts at tool dispatch, after launcher canaries, so these processes cannot be
 confused. It retains raw `/proc/<pid>/mountinfo`, namespace IDs, seccomp mode and
 filter count, and ancestry. The approved probe's self report must match the
-outside process, and its full mount view and policy-path view must equal the baseline's. Only session
-UUIDs and proxy-socket nonces are normalized; modes and backing roots are kept.
+outside process, and its full mount tree and policy-path view must equal the baseline's. Mount IDs
+are mapped to canonical tree positions; session UUIDs and proxy-socket nonces are
+normalized. Every mount, including covered mounts, keeps its parent, backing root,
+destination, device, mount options, propagation fields, filesystem, source and
+superblock options. `native-mount-trees.json` retains all three canonical trees;
+each approved probe also saves its exact differences from the baseline before
+asserting equality.
 Each draft denyRead/allowRead/denyWrite entry is classified as hidden, read-only
-or writable from the most specific mount. The standalone probe gets the same
+or writable by walking path components through reachable parent chains and
+following stacked mounts before their descendants, independent of mountinfo line
+order. A read-only descendant beneath a covered ancestor cannot qualify a path.
+The standalone probe gets the same
 outside observation and a per-path comparison. Native embedded filtering remains
 present in both external-helper modes; only standalone absent mode measures the
 filter-free hidden-path fallback.
 
 `python3 -m unittest discover -s control/boundary -p test_native.py -v` runs the
-checker regression mutations locally; the Docker build requires them too.
+12 checker regression tests locally; the Docker build requires them too.
+They include REVIEW-3's parent-only mutation and a writable mount covering a
+read-only policy mount, plus preservation of covered records and every compared
+mount field. The [settings audit](../settings/managed-settings.draft.comments.md#round-3-complete-sandbox-key-audit)
+lists every sandbox key, explicit values, and reasons for omissions. The native
+MCP, sideload, bypass and source checks continue to require the managed file to
+load; the complete approved hostile run remains required in both helper modes.
 
 See the report for exact run IDs, failures, final-head validation and remaining
 model-driven gates. A successful workflow means its explicit assertions passed,
