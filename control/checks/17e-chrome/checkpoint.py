@@ -15,6 +15,7 @@ import resource
 import signal
 import sqlite3
 import time
+import traceback
 import uuid
 from urllib.parse import urlsplit, parse_qs
 
@@ -26,6 +27,19 @@ from mitmproxy.proxy.layers import websocket as ws_layer
 ROOT = pathlib.Path(os.environ['CHECKPOINT_PRIVATE'])
 MAX_BODY = 32 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
+diagnostic_reserve = bytearray(65536)
+
+
+def fatal(kind, error=None):
+    global diagnostic_reserve
+    diagnostic_reserve = None
+    try:
+        frames = traceback.extract_tb(error.__traceback__, limit=6) if error else []
+        row = dict(kind=kind, error=type(error).__name__, frames=[dict(file=pathlib.Path(f.filename).name, function=f.name, line=f.lineno) for f in frames])
+        with (ROOT/'fatal-events.jsonl').open('a') as stream:
+            stream.write(json.dumps(row)+'\n')
+    finally:
+        os._exit(70)
 
 
 @contextlib.contextmanager
@@ -34,8 +48,8 @@ def fatal_addon_error():
     # unsuitable for a send boundary, including failures outside our own hook.
     try:
         yield
-    except BaseException:
-        os._exit(70)
+    except BaseException as error:
+        fatal('fatal-addon', error)
 
 
 addonmanager.safecall = fatal_addon_error
@@ -156,7 +170,7 @@ class Checkpoint:
         return [dict(id=r[0], **json.loads(r[1]), status=r[2]) for r in self.db.execute('select * from operations')]
 
     async def running(self):
-        asyncio.get_running_loop().set_exception_handler(lambda *_: os._exit(70))
+        asyncio.get_running_loop().set_exception_handler(lambda loop, context: fatal('fatal-loop', context.get('exception')))
         socket = ROOT / 'control.sock'
         socket.unlink(missing_ok=True)
         self.server = await asyncio.start_unix_server(self.control, path=socket)

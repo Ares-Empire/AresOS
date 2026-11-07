@@ -64,7 +64,7 @@ async function control(action,params={}){
 }
 async function startProxy(){
  const fd=fs.openSync(work+'/proxy-console.log','a');
- proxy=spawn('sudo',['-u','aresproxy','env','CHECKPOINT_PRIVATE='+work+'/private','prlimit','--as=805306368','--',work+'/venv/bin/mitmdump','-q','--listen-host','127.0.0.1','--listen-port','18080','--set','confdir='+work+'/private','--set','connection_strategy=lazy','--set','ssl_verify_upstream_trusted_ca='+work+'/upstream-roots.pem','--set','body_size_limit=32m','--set','rawtcp=false','--set','termlog_verbosity=error','-s',here+'/checkpoint.py'],{stdio:['ignore',fd,fd]});
+ proxy=spawn('sudo',['-u','aresproxy','env','CHECKPOINT_PRIVATE='+work+'/private','MALLOC_ARENA_MAX=2','prlimit','--as=805306368','--',work+'/venv/bin/mitmdump','-q','--listen-host','127.0.0.1','--listen-port','18080','--set','confdir='+work+'/private','--set','connection_strategy=lazy','--set','ssl_verify_upstream_trusted_ca='+work+'/upstream-roots.pem','--set','body_size_limit=32m','--set','rawtcp=false','--set','termlog_verbosity=error','-s',here+'/checkpoint.py'],{stdio:['ignore',fd,fd]});
  try{await eventually(()=>control('state'),'checkpoint ready',15000)}catch(e){console.error(fs.readFileSync(work+'/proxy-console.log','utf8').slice(-8000));throw e;}log('CHECKPOINT_READY',await control('state'));
 }
 async function stopProxy(){
@@ -73,10 +73,10 @@ async function stopProxy(){
 const rpc=(m,p={})=>bridge.send(m,p),ev=expression=>evaluate(bridge,expression);
 async function connect(){
  const ready=new Promise(r=>bridge.once('check.connected',r));await key('ctrl+t');await address(`chrome-extension://${extId}/select.html?url=${encodeURIComponent(f.base+'/')}&tabId=${selected||''}`);await key('Return');
- const r=await Promise.race([ready,delay(15000).then(()=>{throw Error('Extension did not connect')})]);selected=r.tabId;await rpc('Page.bringToFront');return r;
+ const r=await Promise.race([ready,delay(15000).then(()=>{throw Error('Extension did not connect')})]);selected=r.tabId;await rpc('Page.bringToFront');await rpc('Network.enable');return r;
 }
 async function boot(label,mode=true,restore=false){
- policy(mode);firewall(mode);bridge=await nativeBridge(socket);sudo('chown','areschrome:areschrome',socket);
+ policy(mode);firewall(mode);bridge=await nativeBridge(socket);bridge.on('check.network',event=>fs.appendFileSync(out+'/browser-network.jsonl',JSON.stringify(event)+'\n'));sudo('chown','areschrome:areschrome',socket);
  const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode',...(restore?['--restore-last-session']:[f.base+'/'])];
  save('args-'+label,args);const fd=fs.openSync(work+'/chrome-console.log','a');
  chrome=spawn('sudo',['-u','areschrome','env','DISPLAY='+process.env.DISPLAY,'XAUTHORITY='+work+'/browser-home/Xauthority','XDG_CONFIG_HOME='+work+'/config', '/usr/bin/google-chrome-stable',...args],{stdio:['ignore',fd,fd]});
@@ -109,7 +109,7 @@ async function send(id,body=id,extra={}){return ev(`send(${JSON.stringify(id)},$
 async function positive(id,body=id,extra={}){await guard(false);await send(id,body,extra);await delivered(id);}
 async function probe(name,fn){try{const result=await fn();log(name,{status:'run',...result});return result}catch(e){log(name,{status:'not-met',error:e.stack});return {error:e.message}}}
 async function snapshotProxy(){
- for(const name of ['events.jsonl'])try{fs.writeFileSync(out+'/checkpoint-'+name,sudo('cat',work+'/private/'+name));}catch{}
+ for(const name of ['events.jsonl','fatal-events.jsonl'])try{fs.writeFileSync(out+'/checkpoint-'+name,sudo('cat',work+'/private/'+name));}catch{}
  try{save('ledger',await control('state'))}catch{}
 }
 const c={fs,path,assert,sh,sudo,spawn,work,out,phase,here,save,log,hash,f,delay,eventually,address,key,screenshot,x,rpc,ev,nav,connect,boot,close,policy,firewall,control,startProxy,stopProxy,guard,context,send,positive,pending,approve,zero,delivered,expect,rows,arrivals,probe,get selected(){return selected},get chrome(){return chrome}};

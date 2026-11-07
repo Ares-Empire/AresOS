@@ -2,6 +2,11 @@
 let port, selected;
 const browserGeneration=crypto.randomUUID(), documents=new Map(), attached=new Set();
 const cmd=(method,params={})=>chrome.debugger.sendCommand({tabId:selected},method,params);
+const requestCases=new Map();
+chrome.debugger.onEvent.addListener((source,method,p)=>{
+ if(method==='Network.requestWillBeSent'){const u=new URL(p.request.url);const id=u.searchParams.get('case');if(id?.startsWith('e-'))requestCases.set(p.requestId,id);}
+ const id=requestCases.get(p.requestId);if(id&&['Network.responseReceived','Network.loadingFailed','Network.loadingFinished'].includes(method))try{port?.postMessage({method:'check.network',params:{at:Date.now(),case:id,event:method,status:p.response?.status,error:p.errorText,cancelled:p.canceled}})}catch{}
+});
 async function tag(tabId,documentId=crypto.randomUUID()){
  const value=browserGeneration+':'+documentId;
  await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:[tabId+1000],addRules:[{id:tabId+1000,priority:1000,action:{type:'modifyHeaders',requestHeaders:[{header:'x-ares-check',operation:'set',value}]},condition:{tabIds:[tabId],resourceTypes:['main_frame','sub_frame','stylesheet','script','image','font','object','xmlhttprequest','ping','csp_report','media','websocket','webtransport','webbundle','other']}}]});
