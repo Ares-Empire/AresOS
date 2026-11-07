@@ -96,10 +96,13 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      18, PR #6), the sandbox boundary (brief 18b, PR #5, merged as `6b2667f`) and the Chrome checks 17 to 17e (PRs #3,
      #4, #7, #8, #10). Check 17e showed that a local checkpoint outside Chrome holds every tested send; the owner chose
      it (with hard security requirements, `PLAN.md` decisions 6 to 13).
-   - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round); the
-     phone approval check (the first test showed the raw tool call, not a readable mail; the tool's own question never
-     reached the phone); design draft 10 (the checkpoint, "don't ask again", the assistant apart from coding
-     sessions).
+   - **Done, not merged:** all three phone approval tests (2026-11-07). On the phone, Claude Code's prompt reads as
+     code in every shape tried (the raw tool call, a hook's readable reason, one readable text field), and the tool's
+     own question (MCP elicitation) never reached the phone; in the terminal at the laptop the prompt is readable. The
+     owner decides on the proposed approval screen in Aresus (`docs/design/CONTROL.md`, section 7).
+   - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
+     design draft 11 (re-check 8's six blocking points: GET and HEAD while attribution is lost, local-only deletion,
+     what a recognised action is, three separate users, every trust location, the exact upstream TLS checks).
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
      rule), then brief 20 (Chrome) on draft 10.
 
