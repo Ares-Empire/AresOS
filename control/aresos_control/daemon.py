@@ -18,7 +18,7 @@ class Daemon:
         self.config = config
         if config["owner_uid"] in {0, os.geteuid()}:
             raise ValueError("Owner must be a non-root user distinct from aresos-tools")
-        self.engine = Engine(config["state_dir"], config["evidence_dir"], config.get("approval_ttl", 120), checkpoint)
+        self.engine = Engine(config["state_dir"], config["evidence_dir"], config.get("approval_ttl", 900), checkpoint)
         self.selector, self.sockets, self.stopping = selectors.DefaultSelector(), [], False
         directory = Path(config["socket_dir"])
         directory.mkdir(mode=0o711, exist_ok=True)

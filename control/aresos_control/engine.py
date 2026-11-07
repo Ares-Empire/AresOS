@@ -11,7 +11,7 @@ from .testapp import Receiver, TestApp
 
 
 class Engine:
-    def __init__(self, state_dir, evidence_dir, ttl=120, checkpoint=lambda _: None):
+    def __init__(self, state_dir, evidence_dir, ttl=900, checkpoint=lambda _: None):
         self.store = Store(state_dir, evidence_dir, checkpoint)
         self.blobs = Blobs(self.store.state_dir / "blobs")
         self.receiver = Receiver(self.store.evidence_dir, checkpoint)

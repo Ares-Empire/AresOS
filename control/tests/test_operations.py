@@ -12,6 +12,22 @@ from support import EngineCase, ROOT, message
 
 
 class Operations(EngineCase):
+    def test_default_approval_lasts_fifteen_minutes_at_boundary(self):
+        self.assertEqual(self.engine.ttl, 900)
+        self.assertEqual(json.loads((ROOT / "control/settings/service.json").read_text())["approval_ttl"], 900)
+        for elapsed, expected in ((899.999, "done"), (900.001, "failed")):
+            with self.subTest(elapsed=elapsed):
+                with patch("aresos_control.engine.time.time", return_value=1000):
+                    approval = self.reserve()
+                self.assertEqual(approval["description"]["expires_at"], 1900)
+                adapter = self.engine.adapters["testapp"]
+                with patch("aresos_control.engine.time.time", return_value=1000 + elapsed), patch.object(adapter, "drop") as drop:
+                    result = self.data("testapp_send", approval)["operation"]
+                self.assertEqual(result["state"], expected)
+                self.assertEqual(drop.call_count, int(expected == "failed"))
+                arrivals = self.engine.receiver.evidence(approval["operation_id"])["arrivals"]
+                self.assertEqual(arrivals, [] if expected == "failed" else ["alpha", "beta", "hidden"])
+
     def test_idempotency_hash_and_restart(self):
         approval = self.reserve()
         first = self.data("testapp_send", approval)
