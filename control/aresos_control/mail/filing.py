@@ -73,8 +73,8 @@ def rename_folder(mail, account, client, source, target):
         entry = next((f for f in listed if f['name'] == target), None)
         if entry is None:
             raise Uncertain('Renamed folder missing from LIST')
-        roles = [f for f in entry['flags'] if f.casefold() in {
-            '\\all', '\\archive', '\\drafts', '\\flagged', '\\junk', '\\sent', '\\trash', '\\important'}]
+        roles = sorted({f.title() for f in entry['flags'] if f.casefold() in {
+            '\\all', '\\archive', '\\drafts', '\\flagged', '\\junk', '\\sent', '\\trash', '\\important'}})
         role = ', '.join(roles) if roles else folder_role(target, listed)
         needs_notice = bool(roles) or role != 'an ordinary folder'
     except (Refused, OSError, imaplib.IMAP4.error, Uncertain):

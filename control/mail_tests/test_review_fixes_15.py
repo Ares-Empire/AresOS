@@ -83,6 +83,20 @@ class Review15(unittest.TestCase):
         self.assertTrue(ack['ok'], ack)
         self.assertNotIn('notices', ack['pending'])
 
+    def test_review15_repeated_special_role_flags_keep_notice_bounded(self):
+        def rename(source, target):
+            result = self.rename_command(source, target)
+            self.imap.roles['New'] = ['\\Flagged', '\\fLAGGED', '\\Archive'] * 10000
+            return result
+        with patch.object(self.imap, 'rename', rename, create=True):
+            result = self.call('folder_rename', {'account': 'box', 'folder': 'Source', 'name': 'New'})
+        self.assertTrue(result['ok'], result)
+        self.assertLess(len(canonical(result)), RESULT_LIMIT)
+        self.assertEqual(result['data']['state'], 'partial')
+        self.assertEqual(result['data']['reason'].count('Flagged'), 1)
+        self.assertEqual(result['data']['reason'].count('Archive'), 1)
+        self.assertLess(len(canonical(result['pending']['notices'])), 2048)
+
     def test_review15_exact_saved_overflow_then_composition_restart_keeps_valid_evidence(self):
         before = (self.root / 'evidence/operations.jsonl').read_bytes()
         caller, service = socket.socketpair()
