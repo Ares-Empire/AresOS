@@ -40,7 +40,7 @@ class Mail:
         return {k: account[k] for k in ("id", "addresses", "capabilities", "smtp_capabilities", "special", "sent_policy", "safe_folder_delete", "format", "signature", "ready")} | {"folder_delete_reason": account.get("folder_delete_reason", "Not qualified by onboarding.")}
 
     def authored(self, message):
-        return self.under(self.account(message["reference"]["account"]), message["reference"]["folder"], "drafts") or codec.AUTHORED_HEADER in message["msg"]
+        return self.under(self.account(message["reference"]["account"]), message["reference"]["folder"], "drafts") or codec.has_authored_marker(codec.split_entity(message["raw"])[0])
 
     def snapshot(self, account_id, selected=None, project=None, headers_only=False):
         account = self.account(account_id)

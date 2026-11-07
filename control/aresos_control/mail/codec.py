@@ -192,6 +192,10 @@ INSPECTION_LIMIT = 64 * 1024 * 1024
 WORK_LIMIT = 256 * 1024 * 1024
 
 
+def has_authored_marker(data):
+    return bool(re.search(rb"(?:^|[\r\n])[ \t]*x-aresos-authored[ \t]*:", data, re.I))
+
+
 def split_entity(raw):
     # A headerless digest child starts with one empty line. Whitespace-only
     # continuation lines remain in the header block, including their exact bytes.
@@ -270,7 +274,7 @@ def source_part(raw, path):
     raw = mail_content(raw)
     for depth in range(41):
         headers, payload = entity(raw, default_type)
-        authored = authored or AUTHORED_HEADER in headers or str(headers.get("Content-Description", "")) == AUTHORED_DESCRIPTION
+        authored = authored or has_authored_marker(split_entity(raw)[0]) or str(headers.get("Content-Description", "")) == AUTHORED_DESCRIPTION
         if not remaining:
             return raw, headers, payload, authored, default_type
         major = headers.get_content_maintype()
@@ -306,7 +310,7 @@ def rebuild(raw, authored=False, default_type="text/plain", message=True):
             raise Refused("file_refused", "Mail exceeds the safe rebuild depth or size limit.")
         headers, payload = entity(data, default)
         marked = inherited or AUTHORED_HEADER in headers or str(headers.get("Content-Description", "")) == AUTHORED_DESCRIPTION
-        if marked or re.search(rb"(?im)^[ \t]*x-aresos-authored[ \t]*:", split_entity(data)[0]):
+        if marked or has_authored_marker(split_entity(data)[0]):
             raise Refused("file_refused", DRAFT_ATTACHMENT_REASON)
         fresh = EmailMessage(policy=SMTP_POLICY)
         allowed = MIME_HEADERS | (MESSAGE_HEADERS if full_message else frozenset())
@@ -338,7 +342,7 @@ def rebuild(raw, authored=False, default_type="text/plain", message=True):
                 decoded_data, texts = build(decoded_data, marked, "text/plain", True, depth + 1)
             elif major != "text" and possible_entity(decoded_data):
                 decoded_data, texts = build(mail_content(decoded_data), marked, "text/plain", True, depth + 1)
-            if re.search(rb"(?im)^[ \t]*x-aresos-authored[ \t]*:", decoded_data):
+            if has_authored_marker(decoded_data):
                 raise Refused("file_refused", DRAFT_ATTACHMENT_REASON)
             # Binary bytes never pass through an email generator. Retain valid
             # wire encodings when unchanged; otherwise base64 the decoded bytes.

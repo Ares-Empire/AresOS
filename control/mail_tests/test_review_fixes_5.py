@@ -68,6 +68,17 @@ class DraftAndTextGuard(unittest.TestCase):
                     # Supposed disclosure can never authorize a container marker.
                     with self.assertRaisesRegex(Refused, 'authored marker'):
                         guard.check(wrapper(raw), ['Full authored text'], ['Hidden authored words'])
+        # Source provenance cannot disappear with an unlisted header containing
+        # a folded marker, even with the bare CR line endings accepted by MIME.
+        for newline in (b'\r', b'\n', b'\r\n'):
+            raw = (b'X-Unlisted: dropped\n X-AresOS-Authored: 1\nContent-Type: multipart/mixed; boundary=folded\n\n'
+                   b'--folded\nContent-Type: text/plain\n\nHidden authored words\n--folded--\n').replace(b'\n', newline)
+            _, _, _, authored, _ = codec.source_part(raw, '1.1')
+            self.assertTrue(authored)
+            with self.assertRaisesRegex(Refused, 'Drafts cannot be attachments'):
+                codec.rebuild(raw)
+            with self.assertRaises(Refused):
+                guard.check(wrapper(raw), ['Full authored text'], ['Hidden authored words'])
 
     def test_review5_text_payloads_never_become_nested_mail(self):
         for text in ('FYI: the documents are attached.\nPlease review them before Friday.',
@@ -198,6 +209,16 @@ class ReviewFixes5(MailCase):
         nested = self.fixture(msg=outer)
         for part in ('1.2.1.1', '1.2.1.2'):
             self.assert_draft_refused({'attachments':[{'reference':nested, 'part':part}]})
+        folded = (b'From: peer@mail.invalid\r\nSubject: Folded draft provenance\r\n'
+                  b'X-Unlisted: dropped\r\n X-AresOS-Authored: 1\r\n'
+                  b'Content-Type: text/plain\r\n\r\nEntire folded draft body\r\n')
+        ref = self.mail.append(self.account, 'INBOX', folded)
+        for part in ('source', '1'):
+            self.assert_draft_refused({'attachments':[{'reference':ref, 'part':part}]})
+        for mode in ('draft', 'forward'):
+            comp = self.data('compose', {'account':'box', 'mode':mode, 'reference':ref, 'to':['one@mail.invalid']})
+            approval = self.data('prepare_send', self.keys(comp))['approval']
+            self.assertIn('Entire folded draft body', approval['description']['generated_parts'][0]['text'])
 
     def test_review5_all_modes_smtp_and_sent_have_no_private_headers_and_sent_can_forward(self):
         ref = self.fixture(text='Received text', attachments=[('ordinary.bin', b'File bytes', 'application/octet-stream')])
