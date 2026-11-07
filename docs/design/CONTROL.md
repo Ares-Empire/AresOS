@@ -443,6 +443,24 @@ work. The owner decides it himself, on a surface outside every page:
 This is the owner deciding about his own click, not an approval of Claude's actions; those stay with Claude Code's
 prompt.
 
+**Keeping the guard small (proposed; settled with 17c's results and a re-check before the Chrome build).** As
+written above, one dropped send of Claude's on a big site could put a notification in front of every send of the
+owner's own there until he ends the guard: worse than his browser without Claude (raised by `mac-capacity`). The
+direction:
+
+- **In-page holding first.** Where 17c qualifies holding the send inside the page, that is the normal path: no
+  failed send, nothing left queued, nothing to guard. Fail-then-repeat stays the catch-all.
+- **A guard beyond the page only when something of Claude's may still be queued:** a send of Claude's that failed,
+  was dropped or expired, typed text never sent, or a send left in the site's worker. Reading and actions that
+  produced no send don't start one.
+- **Inside such a guard, only the owner's sends that could carry Claude's leftover are put to him:** those carrying
+  Claude's typed text, going to the same address as a failed, dropped or expired request of Claude's, or coming from
+  the worker queue that held one. His other sends go. The details page says what to check to end the guard (the
+  site's outbox or drafts).
+- **What this leaves, named:** a page that silently stores an effect of Claude's click without sending anything, and
+  sends it later on an unrelated click of the owner's to another address. The re-check decides whether that residual
+  is acceptable or the stricter rule above stays.
+
 **The trusted list** frees sends only through a site adapter: an entry names a site and operations its adapter
 recognises (for example "post a message in a chat", "add to the basket"). Without an adapter nothing is free, because
 methods and button labels don't say what a request does. Deleting and paying are never free. Pages that can approve
@@ -578,7 +596,8 @@ Settings checks: the prompt's "Yes, and don't ask again" choice must not switch 
 4. **Tool-user rounds:** fresh Claude agents do the everyday tasks in `PLAN.md` and the features in
    [`FEATURES.md`](../control/FEATURES.md) against the fixtures. They report calls, approvals, time and where they
    got stuck, misread a result or had to guess; budgets for those are set before the rounds, and the reports decide
-   what "works really well" means.
+   what "works really well" means. For Chrome they also count the notifications the owner would get for his own
+   sends on an ordinary day; the target is close to zero.
 5. **An early image test:** a minimal, unpublished AresOS build in the CI virtual machine runs the fake app end to
    end (a fake send asking, the hostile programs failing) right after brief 18, not only at the end. It also settles
    what CI had to loosen: GitHub's runner needed its user-namespace limit relaxed for the sandbox (brief 18b), so the
