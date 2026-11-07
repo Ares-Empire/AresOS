@@ -7,13 +7,14 @@
  for(const key of ['setItem','removeItem','clear'])wrap(globalThis.Storage?.prototype,key,'webStorage.'+key);
  for(const key of ['put','add','delete','clear'])wrap(globalThis.IDBObjectStore?.prototype,key,'indexedDB.'+key);
  for(const key of ['put','add','addAll','delete'])wrap(globalThis.Cache?.prototype,key,'cache.'+key);
+ for(const key of ['set','delete'])wrap(globalThis.CookieStore?.prototype,key,'cookieStore.'+key);
  for(const key of ['getDirectory'])wrap(globalThis.navigator?.storage,key,'opfs.'+key);
  for(const key of ['createWritable','createSyncAccessHandle'])wrap(globalThis.FileSystemFileHandle?.prototype,key,'opfs.'+key);
  for(const key of ['write','truncate']){wrap(globalThis.FileSystemWritableFileStream?.prototype,key,'opfs.'+key);wrap(globalThis.FileSystemSyncAccessHandle?.prototype,key,'opfs.sync.'+key);}
- for(const [type,key,label]of [[globalThis.ServiceWorkerContainer,'register','serviceWorker.register'],[globalThis.SyncManager,'register','sync.register'],[globalThis.PeriodicSyncManager,'register','periodicSync.register'],[globalThis.BroadcastChannel,'postMessage','broadcast.postMessage'],[globalThis.Worker,'postMessage','worker.postMessage'],[globalThis.ServiceWorker,'postMessage','serviceWorker.postMessage'],[globalThis.MessagePort,'postMessage','port.postMessage']])wrap(type?.prototype,key,label);
+ for(const [type,key,label]of [[globalThis.ServiceWorkerContainer,'register','serviceWorker.register'],[globalThis.SyncManager,'register','sync.register'],[globalThis.PeriodicSyncManager,'register','periodicSync.register'],[globalThis.BroadcastChannel,'postMessage','broadcast.postMessage'],[globalThis.Worker,'postMessage','worker.postMessage'],[globalThis.ServiceWorker,'postMessage','serviceWorker.postMessage'],[globalThis.Client,'postMessage','client.postMessage'],[globalThis.MessagePort,'postMessage','port.postMessage']])wrap(type?.prototype,key,label);
  if(typeof window!=='undefined'){
   const cookie=Object.getOwnPropertyDescriptor(Document.prototype,'cookie');
   if(cookie?.set)Object.defineProperty(Document.prototype,'cookie',{...cookie,set(v){mark('cookie.set');cookie.set.call(this,v)}});
-  wrap(window,'postMessage','window.postMessage');
- }
+  window.postMessage=function(...args){if(!args[0]?.check17)mark('window.postMessage');return rawPost.apply(this,args)};
+ }else wrap(globalThis,'postMessage','worker-global.postMessage');
 })();

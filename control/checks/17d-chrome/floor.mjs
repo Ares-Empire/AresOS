@@ -13,15 +13,16 @@ export default async function(c){
  // Park at Fetch if Chrome exposes it, then break control while producers keep running.
  for(const ending of ['detach','reload','update','worker-crash','host-loss','normal','kill','policy']){
   await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'park'});await rpc('Check.clear');const id='ending-'+ending;
-  await ev(`attempt('${id}');setTimeout(()=>attempt('${id}-after'),600);${ending==='policy'?"setTimeout(()=>attempt('policy-unloaded'),7000);":''}true`);await delay(150);save(id+'-before',await state());await end(ending);await delay(800);
-  if(ending==='policy'){await delay(7000);log('Q1_POLICY_UNLOADED',{rows:await count('policy-unloaded',1)});}
+  await ev(`attempt('${id}');setTimeout(()=>attempt('${id}-after'),600);true`);await delay(150);save(id+'-before',await state());await end(ending);await delay(800);
+  if(ending==='policy'){await c.address(f.base+'/startup?prefix=policy-unloaded');log('Q1_POLICY_UNLOADED',{same:discovery('policy-unloaded-same','first send after policy block'),cross:discovery('policy-unloaded-cross','cross-site first send after policy block')});}
   log('Q1_END',{ending,before:discovery(id,'ending-control diagnostic'),after:discovery(id+'-after','requests while/after ending control'),zero:arrivals(id).length+arrivals(id+'-after').length===0});await restart('after-'+ending);
  }
  // Persisted dynamic guard; no automatic debugger attach at extension/browser start.
  await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'pass'});
  for(const killed of [false,true]){
-  await nav(f.base+'/startup');await count('startup-same',0);await count('startup-cross',0);
-  await c.close(killed);await c.boot('restored-'+killed,true);await delay(800);await count('startup-same',0);await count('startup-cross',0);
+  await nav(f.base+'/startup');await rpc('Page.bringToFront');await count('startup-same',0);await count('startup-cross',0);
+  const before=f.rows.filter(r=>r.kind==='attempt'&&r.case==='startup-executed').length;
+  await c.close(killed);await c.boot('restored-'+killed,true);await c.eventually(()=>f.rows.filter(r=>r.kind==='attempt'&&r.case==='startup-executed').length>before,'restored first script really ran');await count('startup-same',0);await count('startup-cross',0);
   log('Q2_RESTART',{killed,dynamic:(await state()).dynamic,ready:(await state()).history.filter(e=>e.method==='check.ready'),documents:f.rows.filter(r=>r.kind==='document'&&r.url==='/startup'),arrivals:[...arrivals('startup-same'),...arrivals('startup-cross')]});
  }
 }

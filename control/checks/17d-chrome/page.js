@@ -24,7 +24,7 @@ window.write17=async kind=>{
   if(kind==='cookie')document.cookie='synthetic17d=deletion42; SameSite=Lax; path=/';
   if(kind==='opfs'){const root=await navigator.storage.getDirectory(),file=await root.getFileHandle('synthetic17d',{create:true}),w=await file.createWritable();await w.write('deletion 42');await w.close();}
   if(kind==='broadcast'){const b=new BroadcastChannel('synthetic17d');b.postMessage({delete:42});b.close();}
-  if(kind==='window')postMessage({delete:42},'*');
+  if(kind==='window'){const i=document.createElement('iframe');i.src='/';await new Promise(r=>{i.onload=r;document.body.append(i)});i.contentWindow.postMessage({delete:42},'*');window.handoffFrame=i;}
   if(kind==='dedicated'){const w=new Worker('/worker.js?case=handoff-dedicated');w.postMessage({delete:42});window.handoffWorker=w;}
   if(kind==='shared'){const w=new SharedWorker('/worker.js?shared&case=handoff-shared');w.port.start();w.port.postMessage({delete:42});window.handoffShared=w;}
   if(kind==='registration')await navigator.serviceWorker.register('/sw.js?case=storage-sw');

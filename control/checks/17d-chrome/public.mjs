@@ -19,6 +19,6 @@ export default async function(c){
   await rpc('Check.clear');await rpc('Check.floor',{domains:[new URL(url).hostname]});await nav(url);await delay(4500);
   const snapshot=()=>ev('({url:location.href,title:document.title,text:document.body?.innerText.slice(0,1500),forms:document.forms.length,controller:navigator.serviceWorker?.controller?.scriptURL||null})');const rest=await snapshot(),clicks=[];
   for(let i=0;i<3;i++){clicks.push(await ev(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)return {found:false};const text=e.innerText||e.getAttribute('aria-label');e.click();return {found:true,text}})()`));await delay(800);}
-  const after=await snapshot(),events=(await state()).history;const row={name,url,rest,clicks,after,events};c.save('public-'+name,row);await c.screenshot(c.out,'public-'+name);log('Q7_PUBLIC',{name,rest,clicks,after,blocked:events.filter(e=>e.method==='check.webError').length});
+  const after=await snapshot(),events=(await state()).history;const row={name,url,rest,clicks,after,events};c.save('public-'+name,row);await c.screenshot(c.out,'public-'+name);log('Q7_PUBLIC',{site:name,rest,clicks,after,blocked:events.filter(e=>e.method==='check.webError').length});
  }
 }

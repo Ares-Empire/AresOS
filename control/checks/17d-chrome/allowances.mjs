@@ -11,16 +11,16 @@ export default async function(c){
  await allow('exact-target');await send('different-target');await count('different-target',0);await send('exact-target');await delay(500);discovery('exact-target','exact URL allowance');
  await allow('site-scope','synthetic approved',{site:'127.0.0.1'});await send('site-scope');await delay(400);log('Q4_SITE_SCOPE',{rows:discovery('site-scope','initiator-scoped allowance'),history:(await state()).history.slice(-12)});
  // Expose the natural add-to-match interval, then hold a mismatching request at the named failure instant.
- for(const pause of [0,25,100,500])for(let i=0;i<3;i++){
-  const id=`race-${pause}-${i}`;await rpc('Check.mode',{mode:'park'});const added=await allow(id);await delay(pause);await send(id,'synthetic wrong-body');await delay(150);
+ for(const revoke of [false,true])for(const pause of [0,25,100,500])for(let i=0;i<3;i++){
+  const id=`race-${revoke}-${pause}-${i}`;await rpc('Check.mode',{mode:'park'});const added=await allow(id);await delay(pause);await send(id,'synthetic wrong-body');await delay(150);
   const before=await state(),g=before.history.filter(e=>e.method==='check.gate'&&e.params.url.includes(id)).at(-1);assert.ok(g,'allowance must reach Fetch for deterministic detach race');
-  await rpc('Check.detach');await delay(300);log('Q4_RACE',{id,pause,added,gate:g,endedAt:Date.now(),rows:discovery(id,'deterministic detach during wrong-body Fetch pause')});await rpc('Check.attach',{tabId:c.selected});await rpc('Check.rules',{removeRuleIds:[8001]});
+  if(revoke)await rpc('Check.rules',{removeRuleIds:[8001]});await rpc('Check.detach');await delay(300);log('Q4_RACE',{id,revoke,pause,added,gate:g,endedAt:Date.now(),rows:await count(id,1)});await rpc('Check.attach',{tabId:c.selected});await rpc('Check.rules',{removeRuleIds:[8001]});
  }
  // Natural delay is separate from the intentional diagnostic pause above.
  await rpc('Check.mode',{mode:'fail'});await rpc('Check.clear');await allow('natural-window');await send('natural-window');await delay(600);log('Q4_NATURAL_WINDOW',{rows:discovery('natural-window','natural allowance window'),history:(await state()).history});
  for(const cleanup of [false,true])for(const ending of ['reload','update','worker-crash','policy']){
-  await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'fail'});await rpc('Check.cleanup',{enabled:cleanup});await allow('leftover-'+cleanup+'-'+ending);const before=await state();if(ending==='policy')await ev(`setTimeout(()=>attempt('policy-unloaded-${cleanup}'),7000);true`);await end(ending);
-  if(ending==='policy'){await delay(7500);log('Q4_POLICY_UNLOADED',{cleanup,rows:await count('policy-unloaded-'+cleanup,1)});}
+  await nav();await rpc('Check.floor',{domains:['127.0.0.1']});await rpc('Check.mode',{mode:'fail'});await rpc('Check.cleanup',{enabled:cleanup});await allow('leftover-'+cleanup+'-'+ending);const before=await state();await end(ending);
+  if(ending==='policy'){await c.address(f.base+'/startup?prefix=policy-unloaded-'+cleanup);log('Q4_POLICY_UNLOADED',{cleanup,same:discovery('policy-unloaded-'+cleanup+'-same','first send after policy block'),cross:discovery('policy-unloaded-'+cleanup+'-cross','cross-site first send after policy block')});}
   if(ending==='policy')await restart('leftover-'+cleanup+'-'+ending);else await c.connect();
   const after=await state();log('Q4_LIFETIME',{cleanup,ending,sameProfile:ending!=='policy',before:before.session,after:after.session,dynamic:after.dynamic,startup:after.startup,version:after.manifest.version});
   // If a leftover remains, detach the gate and deliberately try it, proving the receiver consequence.
@@ -39,6 +39,13 @@ export default async function(c){
   await ev(`__floor.enabled=true;testBody=${expression};fetch('/receive?case=wrap-${kind}',{method:'POST',body:testBody,${kind==='stream'?"duplex:'half',":''}}).catch(e=>events.push(e.name));true`);await delay(1000);await count('wrap-'+kind,0);
   const wrapper=(await state()).history.filter(e=>e.method==='check.script'&&['held','stream-refused'].includes(e.params.event));assert.ok(wrapper.length,'wrapper body outcome '+kind);
   log('Q5_BODY',{kind,network,wrapper,page:await ev('events')});
+  if(kind!=='stream'){
+   const held=(await state()).pending.find(p=>p.description.url.includes('wrap-'+kind));assert.ok(held);
+   if(kind==='multipart')await ev("testBody.append('later','must not reach receiver');true");
+   // Receiver-only oracle: this deliberately passes the gate to qualify the wrapper's stored bytes
+   // separately from Chrome's incomplete body view. It does not qualify exact multipart replay.
+   await rpc('Check.mode',{mode:'pass'});await rpc('Check.release',{id:held.id});await delay(1000);const rows=await count('wrap-'+kind,1);assert.equal(rows[0].sha256,held.description.sha256);assert.equal(rows[0].length,held.description.length);log('Q5_FROZEN_RECEIVER',{kind,description:held.description,rows,oracle:'synthetic gate passthrough, not replay qualification'});await rpc('Check.mode',{mode:'fail'});
+  }
  }
  // Account fingerprint uses both HttpOnly cookies (debugger) and the page's displayed label.
  await nav();await rpc('Network.setCookie',{name:'synthetic-session',value:'synthetic-A',url:f.base,httpOnly:true});await ev("__floor.enabled=true;fetch('/receive?case=account-change',{method:'POST',body:'synthetic deletion'}).catch(()=>{});true");await delay(500);
