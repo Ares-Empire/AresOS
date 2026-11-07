@@ -208,6 +208,16 @@ class Integration(unittest.TestCase):
                     self.assertIn(op_id, result["hookSpecificOutput"]["additionalContext"])
                 self.assertEqual(hook.stderr, "")
 
+    def test_malformed_hook_input_gives_explicit_failure_feedback(self):
+        for wire in ('{"hook_event_name":"Stop","last_assistant_message":',
+                     '{"hook_event_name":"UserPromptSubmit","prompt":', '[]'):
+            with self.subTest(input=wire):
+                hook = self.launch(OWNER, ["hook"], input=wire)
+                self.assertEqual(hook.returncode, 2)
+                self.assertEqual(hook.stdout, "")
+                self.assertIn("AresOS hook failed; inspect pending work", hook.stderr)
+                self.assertNotIn("Traceback", hook.stderr)
+
     def test_proxy_isolated_from_planted_code_environment_and_pth(self):
         poison = self.home / "Documents/poison"
         poison.mkdir()

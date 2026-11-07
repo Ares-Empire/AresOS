@@ -119,7 +119,9 @@ double send. It supports recipient refusal, lost answer, pre-submission failure,
 Sent-copy failure and answered-flag failure. `done` means fixture acceptance;
 `partial` reports accepted/refused recipients or missing local stages; `unknown`
 requires far-side inspection. The Message-ID evidence hook derives identity from
-the operation id and checks before submission. Missing evidence proves nothing.
+the operation id and checks before submission. Positive preflight evidence is
+durably recorded as `unknown` before fetching its details; it cannot subsequently
+be cancelled or expired as nothing submitted. Missing evidence proves nothing.
 
 ## Caller file policy and launch chain
 
@@ -136,8 +138,13 @@ mode-0400 blobs and verifies their bytes again before use.
 Saves require a safe ASCII basename, a hash match and an allowed directory. They use
 Linux `O_TMPFILE`, then link the pinned anonymous inode into the pinned directory
 without overwrite. A collision with any file, symlink or hard link refuses. Directory
-identity is checked before and after publication; detected races remove only the
-proxy's own inode. An unsupported filesystem fails closed. A process running as the
+identity is checked before and after publication. On failure after publication,
+the pinned inode is truncated and fsynced, clearing renamed and hard-linked aliases
+too. Cleanup never unlinks a name: Linux has no atomic unlink-if-inode-matches.
+The refusal reports the empty inode's device/id, link count, original destination
+and current pinned folder; empty entries remain, and other alias locations cannot
+be enumerated. If truncation or sync fails, `save_incomplete` explicitly warns that
+bytes may remain or survive a storage failure. An unsupported filesystem fails closed. A process running as the
 owner can still move or modify a completed download afterward, as it can any owner
 file; the hostile-program confinement is brief 18b.
 
@@ -157,7 +164,9 @@ allows the owner to receive a report about work that cannot be resolved. The nex
 `UserPromptSubmit` reads again and returns
 `{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"…"}}`.
 No transcript, current directory or prompt path from hook input is opened. Service
-failure becomes visible hook feedback. Hooks are reminders; service expiry is the
+failure becomes visible hook feedback. Input is read in full, including long prompts
+and final assistant messages; malformed input gives stderr feedback with exit 2
+instead of a traceback. Hooks are reminders; service expiry is the
 safety net during interrupts, continuation limits and ended turns.
 
 Contract **read**: [Anthropic hooks reference](https://code.claude.com/docs/en/hooks),

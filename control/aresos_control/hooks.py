@@ -25,10 +25,17 @@ def output(event, pending):
 
 
 def main(config):
-    event = json.loads(sys.stdin.buffer.read(65537))
     try:
-        result = Client(config["act_socket"]).call("control_pending", {})
-        pending = result["data"] if result["ok"] else {"service_unavailable": True, "message": result["error"]["message"]}
-    except Refused as exc:
-        pending = {"service_unavailable": True, "message": str(exc)}
-    print(canonical(output(event, pending)))
+        event = json.loads(sys.stdin.buffer.read())
+        if not isinstance(event, dict):
+            raise Refused("invalid_input", "Hook input must be a JSON object.")
+        try:
+            result = Client(config["act_socket"]).call("control_pending", {})
+            pending = result["data"] if result["ok"] else {"service_unavailable": True, "message": result["error"]["message"]}
+        except Refused as exc:
+            pending = {"service_unavailable": True, "message": str(exc)}
+        print(canonical(output(event, pending)))
+    except (Refused, ValueError, OSError) as exc:
+        # Exit 2 gives Claude explicit feedback for both supported hook events.
+        print("AresOS hook failed; inspect pending work before continuing: " + visible(str(exc)), file=sys.stderr)
+        raise SystemExit(2)
