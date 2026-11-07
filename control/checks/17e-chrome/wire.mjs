@@ -21,4 +21,5 @@ export default async function(c){
  agent.destroy();
  // A fixed resource refusal must not become an allow on ENOSPC.
  await guard();await control('fault',{point:'ledger-full'});chunked('e-ledger-full');await delay(500);await zero('e-ledger-full');await control('fault',{point:null});log('Q11_LEDGER_EXHAUSTION',{receiver:c.rows('e-ledger-full')});
+ chunked('e-memory-full');await pending('e-memory-full');await control('exhaust-memory').catch(()=>{});await delay(300);await zero('e-memory-full');await c.startProxy();await zero('e-memory-full');log('Q11_MEMORY_EXHAUSTION',{receiver:c.rows('e-memory-full'),state:await control('state')});
 }

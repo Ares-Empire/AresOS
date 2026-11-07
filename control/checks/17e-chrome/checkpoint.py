@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import pathlib
+import resource
 import signal
 import sqlite3
 import time
@@ -123,7 +124,7 @@ class Checkpoint:
         socket.unlink(missing_ok=True)
         self.server = await asyncio.start_unix_server(self.control, path=socket)
         os.chmod(socket, 0o660)
-        self.record('ready', guard=self.guard, recovered=self.rows())
+        self.record('ready', guard=self.guard, addressSpaceLimit=resource.getrlimit(resource.RLIMIT_AS)[0], recovered=self.rows())
 
     async def control(self, reader, writer):
         try:
@@ -160,6 +161,13 @@ class Checkpoint:
                 result = dict(stall=self.stall)
             elif action == 'state':
                 result = dict(guard=self.guard, context=self.context, buffered=self.total, rows=self.rows())
+            elif action == 'exhaust-memory':
+                try:
+                    bytearray(1024*1024*1024)
+                except MemoryError:
+                    self.record('memory-refusal')
+                    os.kill(os.getpid(), signal.SIGKILL)
+                raise RuntimeError('memory ceiling did not hold')
             else:
                 raise ValueError('UNKNOWN_COMMAND')
             writer.write(json.dumps(dict(result=result)).encode()+b'\n')
@@ -180,6 +188,8 @@ class Checkpoint:
         # Supporting attribution never changes whether an operation is held.
         token = flow.metadata.get('attribution', '')
         info = dict(case=self.case(flow), kind=kind, length=len(data), sha256=hashlib.sha256(data).hexdigest(), context=self.context, attribution='current' if token in self.tokens else 'uncertain')
+        if kind in ('http', 'handshake'):
+            info['bodySha256'] = flow.metadata.get('captured_body_hash')
         if len(self.pending) >= 256 or self.total+len(data) > MAX_TOTAL or len(data) > MAX_BODY:
             self.record('refused', **info, reason='buffer-limit')
             return False

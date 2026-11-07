@@ -31,7 +31,7 @@ if(phase==='public'){
 Object.assign(manifest,{key:kp.publicKey.export({type:'spki',format:'der'}).toString('base64'),update_url:f.base+'/update.xml'});fs.writeFileSync(ext+'/manifest.json',JSON.stringify(manifest));pack(ext,work,kp);
 const socket=work+'/native.sock',profile=work+'/browser-home/profile';
 fs.writeFileSync(work+'/host',`#!/bin/sh\nprintf '%s\\n' "$$" >> '${work}/host-pids.txt'\nexport CHROME_CHECK_SOCKET='${socket}'\nexec python3 '${path.resolve('control/checks/17-chrome/native-host.py')}'\n`,{mode:0o755});
-sudo('chmod','a+w',work); // Native host writes synthetic PIDs; private/ stays 0700.
+fs.writeFileSync(work+'/host-pids.txt','');sudo('chown','areschrome:areschrome',work+'/host-pids.txt');
 fs.writeFileSync(work+'/host.json',JSON.stringify({name:'org.aresos.chrome_check',description:'17e disposable check',path:work+'/host',type:'stdio',allowed_origins:[`chrome-extension://${extId}/`]}));
 sudo('install','-D','-m','644',work+'/host.json','/etc/opt/chrome/native-messaging-hosts/org.aresos.chrome_check.json');
 let chrome,bridge,proxy,selected,proxied=true;
@@ -53,7 +53,7 @@ async function control(action,params={}){
 }
 async function startProxy(){
  const fd=fs.openSync(work+'/proxy-console.log','a');
- proxy=spawn('sudo',['-u','aresproxy','env','CHECKPOINT_PRIVATE='+work+'/private',work+'/venv/bin/mitmdump','-q','--listen-host','127.0.0.1','--listen-port','18080','--set','confdir='+work+'/private','--set','connection_strategy=lazy','--set','ssl_verify_upstream_trusted_ca='+work+'/upstream-roots.pem','--set','body_size_limit=32m','--set','rawtcp=false','--set','termlog_verbosity=error','-s',here+'/checkpoint.py'],{stdio:['ignore',fd,fd]});
+ proxy=spawn('sudo',['-u','aresproxy','env','CHECKPOINT_PRIVATE='+work+'/private','prlimit','--as=805306368','--',work+'/venv/bin/mitmdump','-q','--listen-host','127.0.0.1','--listen-port','18080','--set','confdir='+work+'/private','--set','connection_strategy=lazy','--set','ssl_verify_upstream_trusted_ca='+work+'/upstream-roots.pem','--set','body_size_limit=32m','--set','rawtcp=false','--set','termlog_verbosity=error','-s',here+'/checkpoint.py'],{stdio:['ignore',fd,fd]});
  try{await eventually(()=>control('state'),'checkpoint ready',15000)}catch(e){console.error(fs.readFileSync(work+'/proxy-console.log','utf8').slice(-8000));throw e;}log('CHECKPOINT_READY',await control('state'));
 }
 async function stopProxy(){
@@ -65,10 +65,10 @@ async function connect(){
  const r=await Promise.race([ready,delay(15000).then(()=>{throw Error('Extension did not connect')})]);selected=r.tabId;await rpc('Page.bringToFront');return r;
 }
 async function boot(label,mode=true){
- policy(mode);firewall(mode);bridge=await nativeBridge(socket);fs.chmodSync(socket,0o666);
+ policy(mode);firewall(mode);bridge=await nativeBridge(socket);sudo('chown','areschrome:areschrome',socket);fs.chmodSync(socket,0o600);
  const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode',f.base+'/'];
  save('args-'+label,args);const fd=fs.openSync(work+'/chrome-console.log','a');
- chrome=spawn('sudo',['-u','areschrome','env','DISPLAY='+process.env.DISPLAY,'XDG_CONFIG_HOME='+work+'/config', '/usr/bin/google-chrome-stable',...args],{stdio:['ignore',fd,fd]});
+ chrome=spawn('sudo',['-u','areschrome','env','DISPLAY='+process.env.DISPLAY,'XAUTHORITY='+work+'/browser-home/Xauthority','XDG_CONFIG_HOME='+work+'/config', '/usr/bin/google-chrome-stable',...args],{stdio:['ignore',fd,fd]});
  await activateChrome();await delay(3500);await connect();
  const processes=sh('ps',['-u','areschrome','-o','pid,args']);assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)|--ignore-certificate-errors/);save('processes-'+label,{processes});
  log('BROWSER_READY',{label,mode,selected});

@@ -66,9 +66,9 @@ jobs:
       - name: Install pinned checkpoint dependencies
         if: github.ref_name == 'pkg/17e-chrome-checkpoint'
         run: |
-          sudo apt-get install -y nftables=1.0.9-1ubuntu0.1 coturn=4.6.1-1build4
+          sudo apt-get install -y nftables=1.0.9-1ubuntu0.1 coturn=4.6.1-1build4 libevent-extra-2.1-7t64=2.1.12-stable-9ubuntu2.2 libevent-openssl-2.1-7t64=2.1.12-stable-9ubuntu2.2 libhiredis1.1.0=1.2.0-6ubuntu3
           python3 -m venv .work/17e-chrome/venv
-          .work/17e-chrome/venv/bin/pip install -r control/checks/17e-chrome/requirements.txt
+          .work/17e-chrome/venv/bin/pip install -r control/checks/17e-chrome/requirements.lock
           .work/17e-chrome/venv/bin/pip freeze > .work/17-chrome/artifacts/python-dependencies.txt
           dpkg-query -W nftables coturn > .work/17-chrome/artifacts/network-packages.txt
       - name: Run headed fixture checks with Chrome sandbox enabled

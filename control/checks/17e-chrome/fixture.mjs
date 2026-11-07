@@ -16,10 +16,10 @@ export async function fixture(work,out,getUpdate){
    // Header arrival is recorded before any body byte. No cookie/header values
    // or bodies are logged, including on public-site runs.
    record({kind:'headers',case:id,method:req.method,protocol:req.httpVersion,attributionPresent:'x-ares-check' in req.headers,accountHash:hash(req.headers['x-synthetic-account']||''),headerHash:hash(req.headers['x-synthetic-header']||'')});
-   let length=0;const sha=createHash('sha256');
-   req.on('data',b=>{if(!length){record({kind:'first-byte',case:id});firstByte?.(id)}length+=b.length;sha.update(b)});
+   let length=0,tail=Buffer.alloc(0),diskMarker=false;const sha=createHash('sha256');
+   req.on('data',b=>{if(!length){record({kind:'first-byte',case:id});firstByte?.(id)}length+=b.length;sha.update(b);const scan=Buffer.concat([tail,b]);diskMarker ||= scan.includes(Buffer.from('SYNTHETIC_DISK_FILE_17E'));tail=scan.subarray(-32)});
    req.on('aborted',()=>record({kind:'aborted',case:id,length}));
-   req.on('end',()=>{record({kind:'http',case:id,length,sha256:sha.digest('hex')});res.end('received')});return;
+   req.on('end',()=>{record({kind:'http',case:id,length,sha256:sha.digest('hex'),diskMarker});res.end('received')});return;
   }
   if(u.pathname==='/redirect'){res.writeHead(307,{Location:`http://localhost:18081/receive?case=${id}`});return res.end();}
   if(u.pathname==='/hsts'){res.setHeader('Strict-Transport-Security','max-age=10000');return res.end('HSTS fixture');}
