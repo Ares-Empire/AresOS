@@ -128,7 +128,7 @@ try{
   // Trace initiators without substituting the coarse guard for attribution evidence.
   const traces=[];
   for(const kind of ['sync','timer','promise','mutation','postMessage','worker']){
-   await nav();const id='cause-'+kind;await evaluate(bridge,`fetch=__hold17.original.fetch;causeTest('${kind}','${id}');true`);const offset=(await state()).history.length;await click('#cause');await delay(600);const s=await state(),p=s.pending.find(p=>p.description?.url?.endsWith('case='+id)||p.url?.endsWith('case='+id));assert.ok(p,'cause held '+kind);await count(id,0);
+   await nav();const id='cause-'+kind;if(kind==='worker')audit.set(id+'-first',0);await evaluate(bridge,`fetch=__hold17.original.fetch;causeTest('${kind}','${id}');true`);const offset=(await state()).history.length;await click('#cause');await delay(600);const s=await state(),p=s.pending.find(p=>p.description?.url?.endsWith('case='+id)||p.url?.endsWith('case='+id));assert.ok(p,'cause held '+kind);await count(id,0);
    // Release the wrapper only into a deliberately denied network gate to obtain CDP initiators.
    if(!p.network){await evaluate(bridge,`__hold17.decide(${JSON.stringify(p.localId)},true);true`);await delay(400);}
    const events=(await state()).history.slice(offset).filter(r=>r.method==='check.initiator'&&r.params.url.includes(id));const correct=events.some(e=>JSON.stringify(e.params.initiator).includes('action17c'));traces.push({kind,correct,unknown:!correct,pageOwned:false,events,wrapperStack:p.stack});await dropAll();
@@ -148,5 +148,5 @@ try{
   assert.ok(repeats.every(r=>r.candidate.block));log('Q1_PUBLIC_DEMO',{repeats});
  }
  if(bridge)save('extension-final',await state());await close();await delay(500);
- const rows=[...audit].map(([id,expected])=>({id,expected,actual:arrivals(id).length}));save('delivery-audit',rows);for(const r of rows)assert.equal(r.actual,r.expected,r.id);log('FINAL_DELIVERY_AUDIT',{status:'PASS',cases:rows.length});console.log('ALL 17C CHECKS COMPLETE');
+ const rows=[...audit].map(([id,expected])=>({id,expected,actual:arrivals(id).length}));save('delivery-audit',rows);for(const r of rows)assert.equal(r.actual,r.expected,r.id);for(const r of [...f.arrivals,...wtRows()].filter(r=>['http','ws','rtc','datagram'].includes(r.kind)))assert.ok(r.case&&audit.has(r.case),'unregistered receiver delivery '+JSON.stringify(r));log('FINAL_DELIVERY_AUDIT',{status:'PASS',cases:rows.length});console.log('ALL 17C CHECKS COMPLETE');
 }finally{if(bridge)await state().then(s=>save('extension-on-exit',s)).catch(()=>{});await screenshot(out,'final').catch(()=>{});await close();wt?.kill();f.close();save('summary',summary);}
