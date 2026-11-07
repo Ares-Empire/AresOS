@@ -336,18 +336,18 @@ connection to the real site.
   can't see into connections Chrome already opened (HTTP/2 connections it reuses, a worker's live socket; re-check 7).
   Pre-opened HTTP/2 connections and page, dedicated, shared and service-worker sockets stayed visible (*checked*, 17e
   Q2).
-- WebTransport and WebRTC are refused while a guard is on, not decrypted: WebRTC encrypts end to end, so the
-  checkpoint can't read it, and Chrome's WebTransport rejects a proxy (*checked*, 17e Q8: zero payloads at
-  independent peers). Calls: near the end of this section.
+- WebTransport doesn't work at all, because Chrome's WebTransport refuses to run through a proxy; WebRTC (calls, peer
+  data) is refused while a guard is on, not decrypted, because it is encrypted end to end (*checked*, 17e Q8: zero
+  payloads at independent peers; re-check 7). Calls: near the end of this section.
 
 **What it holds.** While a site is guarded (below), the checkpoint holds every complete operation from that site's
-contexts and from Claude's tabs that isn't plain reading: an HTTP request with its request line, headers and complete
-body; a WebSocket handshake; each WebSocket message; a close that carries data. Nothing of a held operation reaches
-the site, not even its first header (*checked*, 17e Q4: binary, gzip, chunked, multipart with a real file from disk,
-25 MiB; a fragmented socket message sent no partial bytes; close reasons held). A held operation is captured once, in
-memory, under its own id. One larger than the limit (32 MiB including its metadata in 17e) or one that never
-completes is refused and never forwarded (*checked*, 17e Q4: incomplete input sent zero headers upstream; an
-oversized upload was drained and answered with an error).
+contexts and from every Claude tab Claude acted in that isn't plain reading: an HTTP request with its request line,
+headers and complete body; a WebSocket handshake; each WebSocket message; a close that carries data. Nothing of a held
+operation reaches the site, not even its first header (*checked*, 17e Q4: binary, gzip, chunked, multipart with a real
+file from disk, 25 MiB; a fragmented socket message sent no partial bytes; close reasons held). A held operation is
+captured once, in memory, under its own id. One larger than the limit (32 MiB including its metadata in 17e) or one
+that never completes is refused and never forwarded (*checked*, 17e Q4: incomplete input sent zero headers upstream;
+an oversized upload was drained and answered with an error).
 
 **How an approved send goes out.** The approval names one captured operation by its id and the hash of its bytes.
 The checkpoint first records durably that this capture is consumed, then forwards exactly those captured bytes once.
@@ -440,10 +440,10 @@ requirement here, with how it is met and how brief 20 tests it.
 1. **Its own user.** `aresos-checkpoint` is a system user with no login, no home and no other role: not the tool
    service's user (which holds the mail password), not the browser's, not the owner's or the assistant's. Its state
    (the guard list and the record of consumed captures) is in a folder only it can read. `checkpoint.sock` is open
-   only to the tool service. Its listening port accepts connections only from the browser user (a firewall rule), and
-   it is a port below 1024 that only a privileged program can open, which the checkpoint is started with the right to
-   open; so no other program can listen there first and pose as it (17e: taking over the port was not tested). The
-   checkpoint refuses to start if the port is taken or ordinary users may open low ports.
+   only to the tool service. Its listening port accepts connections only from the browser user (a firewall rule). The
+   port is below 1024, which ordinary programs can't open, and the checkpoint is started with the right to open it,
+   so no other program can listen there first and pose as it (17e: taking over the port was not tested). The
+   checkpoint refuses to start if the port is taken or if ordinary users may open low ports.
    *Test:* the owner's, the assistant's and a coding user's programs can't connect to the port or the socket; a
    program of theirs can't open the port; the checkpoint refuses to start when the port is taken.
 2. **Nothing it sees leaves the machine.** It sends nothing anywhere except the browser's own traffic to the address
@@ -519,8 +519,9 @@ shows, through the checkpoint:
 - no certificate failures in Chrome's service connections.
 
 Chrome features that send page text or typed text to a server of Chrome's own (enhanced spell check, page
-translation, search suggestions as Claude types an address) would carry Claude's text past the guard. Brief 20 lists
-them; each is off by policy or held like Chrome's other service sends while a guard is on.
+translation, search suggestions as Claude types an address) could carry Claude's text in a form the typed-text match
+doesn't see. Brief 20 lists them; each is off by policy or held like Chrome's other service sends while a guard is
+on.
 
 ### Which tabs Claude works in
 
@@ -590,13 +591,13 @@ tool attached, so typing and Enter are ordinary actions and the message they cau
 
 **What the hold is for, and what it isn't.** The hold stops a page's own code from sending Claude's work before the
 owner approves it: a click that deletes, typed text that autosaves, a queue that a timer empties, a message on a live
-connection, also from a worker. Against that the checkpoint is complete for the transports it handles: it doesn't
-rely on the page script, so a page can't get such a send past it by keeping a browser function away from the script
-(17c's counterexample), by sending from a worker (17d's), or because control ended (*checked*, 17e Q2, Q3 and Q6:
-page, dedicated, shared and service-worker sends held, also after the extension was removed). It doesn't make a
-hostile page safe to type into: a page whose own scripts
-set out to carry off what Claude enters can hide it in plain reading traffic. Against a hostile page the protections
-are where Claude may act at all (new sites ask first, below) and the residuals named in "What changes for the owner".
+connection, also from a worker. Against that the checkpoint is complete for the transports it handles: it doesn't rely
+on the page script, so a page can't get such a send past it by keeping a browser function away from the script (17c's
+counterexample), by sending from a worker (17d's), or because control ended (*checked*, 17e Q2, Q3 and Q6: page,
+dedicated, shared and service-worker sends held, also after the extension was removed). It doesn't make a hostile page
+safe to type into: a page whose own scripts set out to carry off what Claude enters can hide it in plain reading
+traffic. Against a hostile page the protections are where Claude may act at all (new sites ask first, below) and the
+residuals named in "What changes for the owner".
 
 The rule: **nothing Claude caused or entered leaves without approval, and when the tool can't tell, the operation is
 held, never let go.** The one exception is plain reading (below), which stays free so that pages load. The checkpoint
@@ -636,8 +637,8 @@ site, and the service sorts each by cause and content, never by timing alone:
   stayed usable with a few holds at most; Amazon and Google search held about a dozen each, mostly telemetry, which
   goes to the background list or is dropped as tracking; Notion and Google Docs read through POST and need an
   adapter; YouTube, Reddit and Stack Overflow showed the test machine a bot check and stay unmeasured. 17e's reading
-  visits gave the same results through the checkpoint as direct (*checked*, 17e Q11). Signed-in use is
-  measured in the tool-user rounds, on the owner's usual sites.
+  visits gave the same results through the checkpoint as direct (*checked*, 17e Q11). Signed-in use is measured in the
+  tool-user rounds, on the owner's usual sites.
 - **Unknown cause: held, in the background.** An operation whose cause the tool can't establish is held and listed
   as *background* in `chrome_pending`. Background holds don't block the tab: Claude can keep reading and acting, drop
   them (free) or submit them (asks). Each is kept as its own operation; only polling an adapter shows to be the same
@@ -841,10 +842,10 @@ each likely needs, to be confirmed when its adapter is built:
 
 ### What the checkpoint can't hold, and what happens there
 
-- **Calls and other peer connections** (WebRTC data and media) and **WebTransport**: refused while a guard is on
-  (*checked*, 17e Q8: zero payloads at independent peers; WebTransport's handshake rejected; WebRTC pages saw
-  candidate errors or a connection that never opened, not a clean "unavailable"). The page script turns them into a
-  clear error on a guarded site where it can (*brief 20*). Calls: below.
+- **Calls and other peer connections** (WebRTC data and media): refused while a guard is on; **WebTransport**:
+  refused always (*checked*, 17e Q8: zero payloads at independent peers; WebTransport's handshake rejected; WebRTC
+  pages saw candidate errors or a connection that never opened, not a clean "unavailable"). The page script turns
+  them into a clear error where it can (*brief 20*). Calls: below.
 - **A site that changes something with a plain GET** (against the web's rules, rare on reputable sites) can't be told
   from reading without knowing the site; and **a site that hides what it sends** (encrypts typed text before sending
   it, as end-to-end encrypted chats do) defeats the typed-text match, though its other sends after Claude acted are
@@ -889,7 +890,8 @@ In plain words (re-check 7, section C, and 17e):
   5).
 - **Cancelling works only when the checkpoint sees it before forwarding.** A page that gave up silently can still have
   its send go out if it is approved later.
-- **Calls and other live peer connections in Chrome stop while a guard is on** (below).
+- **Calls and other live peer connections in Chrome stop while a guard is on** (below), and sites that need
+  WebTransport don't work in Chrome at all.
 - **Sites see a slightly different client.** The checkpoint's TLS and HTTP/2 fingerprints differ from Chrome's
   (*checked*, 17e Q11). No extra robot checks were seen on 17e's anonymous sample; signed-in sites are untested.
   Pages were about 0.1 s slower in that small sample, and the checkpoint used about 100 to 260 MB of memory.
@@ -957,9 +959,9 @@ qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on
    tool service's operation log and the checkpoint's record agree after each crash.
 7. **Cancellation:** an HTTP/2 stream reset seen and recorded as cancelled (open in 17e); abort, tab closing, expiry
    and the page script's cancel; a late approval refused.
-8. **Other transports and calls:** WebTransport and WebRTC refused while a guard is on, with a clear error where the
-   page script can give one; a call through a relay over TCP and TLS working while no guard is on (positive control
-   on a real call service), cut at the barrier; the acting refusal while a call runs.
+8. **Other transports and calls:** WebTransport refused always and WebRTC while a guard is on, with a clear error
+   where the page script can give one; a call through a relay over TCP and TLS working while no guard is on
+   (positive control on a real call service), cut at the barrier; the acting refusal while a call runs.
 9. **The owner's five requirements** (above), each with its test, including what a running Chrome does when the root
    changes and the launcher's restart.
 10. **Chrome's own services** (above): trust in Chrome's own network context with no exemptions; Safe Browsing with a
@@ -988,11 +990,11 @@ or the owner's allow list; acting in a tab outside the Claude group; opening ext
 
 ## 7. No way around the tools
 
-Claude's terminal is sandboxed, but much of Claude Code runs outside the sandbox with the full rights of its user
-(the assistant's user, decision 8, below): the file and web tools, hooks, local MCP servers, plugin monitors, LSP servers, the status line and `apiKeyHelper`
-commands, and mods (Anthropic's sandboxing page, "What runs outside the sandbox", read 2026-11-07). Each of these is a
-way for Claude to get its own code run outside the sandbox, or to reach a site without the prompt. The settings
-(exact values later, owner decision 3) must close every one:
+Claude's terminal is sandboxed, but much of Claude Code runs outside the sandbox with the full rights of its user (the
+assistant's user, decision 8, below): the file and web tools, hooks, local MCP servers, plugin monitors, LSP servers,
+the status line and `apiKeyHelper` commands, and mods (Anthropic's sandboxing page, "What runs outside the sandbox",
+read 2026-11-07). Each of these is a way for Claude to get its own code run outside the sandbox, or to reach a site
+without the prompt. The settings (exact values later, owner decision 3) must close every one:
 
 - **Asking:** send and delete actions in the `ask` list (explicit ask rules still ask in skip-permissions mode:
   checked); rules only from the managed file (`allowManagedPermissionRulesOnly`).
@@ -1070,14 +1072,14 @@ very long input must be shown in full or refused, also on the phone.
   `act.sock`.
 - Coding sessions run as another user and have no app tools. The managed files are machine-wide, so a coding session
   on the same machine gets the same `managed-mcp.json` and starts the app tool servers too. They refuse at once for
-  any user but the assistant's (brief 18b, *checked*: "AresOS MCP proxy requires the configured assistant user"),
-  and the service checks the caller's user again on every connection (briefs 18, 18b). So non-assistant users are
-  refused outright, in both places: the socket permissions are the boundary, and the refusal makes the failure clear
-  instead of leaving tools that fail later (a follow-up from the 18b review makes the guard check the effective user
-  id as well as the real one: `PLAN.md`, "Follow-ups"). The checkpoint likewise accepts only the browser's user (section 6). Coding sessions that need
-  other Claude Code settings (network to code hosts, writable work trees, their own credentials) run in their own
-  container with their own settings files, keeping brief 18b's isolation, not a toolbox or distrobox default
-  (re-check 6).
+  any user but the assistant's (brief 18b, *checked*: "AresOS MCP proxy requires the configured assistant user"), and
+  the service checks the caller's user again on every connection (briefs 18, 18b). So non-assistant users are refused
+  outright, in both places: the socket permissions are the boundary, and the refusal makes the failure clear instead
+  of leaving tools that fail later (a follow-up from the 18b review makes the guard check the effective user id as
+  well as the real one: `PLAN.md`, "Follow-ups"). The checkpoint likewise accepts only the browser's user (section 6).
+  Coding sessions that need other Claude Code settings (network to code hosts, writable work trees, their own
+  credentials) run in their own container with their own settings files, keeping brief 18b's isolation, not a toolbox
+  or distrobox default (re-check 6).
 - They coordinate only through the tool service. A message from the assistant to a coding session is a send: it
   asks, and the approval shows the full text and the receiving session. Messages from coding sessions reach the
   assistant as untrusted content, like a mail (rule 4.8), and never count as an approval. This message tool comes in

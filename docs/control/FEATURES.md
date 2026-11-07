@@ -77,7 +77,7 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | End a site's guard (it ends by itself only where a site adapter shows nothing of Claude's is left; the owner's own sends there are checked until then) | `chrome_end_guard`, or one click on the extension's notice when Claude is done there | send (asks) | first |
 | Switch the checkpoint to pass-through after a fault (Claude's Chrome tools off until it's back) | `chrome_checkpoint` (`sudo aresos admin chrome checkpoint …`) | owner | owner: only when no guard holds leftovers, or after he has seen them |
 | Calls in Chrome (voice, video, screen sharing to a peer) | | owner | owner: work only while no guard is on and Claude isn't acting; cut when a guard starts (Claude asks first if a call is running) |
-| Sites that need WebTransport or WebRTC data channels | | | refused while a guard is on; work otherwise |
+| Sites that need WebRTC data channels; sites that need WebTransport | | | WebRTC: refused while a guard is on, works otherwise; WebTransport: doesn't work through the checkpoint at all (Chrome refuses it with a proxy) |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; passwords never pass through Claude |
 | Pay, order, transfer money | `chrome_submit` | send | first, always asking, never "don't ask again" |
