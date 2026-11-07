@@ -50,9 +50,10 @@ as an operation before it acts, and every result says exactly what it refers to 
 block another: `allowUnixSockets` is ignored there, and the only switch, `allowAllUnixSockets`, opens every socket
 (Anthropic's settings reference, read 2026-11-07). So the sandbox allows none, and Claude reads apps through the MCP
 tools too. Two layers keep it so: the seccomp filter that blocks Unix sockets (`allowAllUnixSockets: false`), and
-`/run/aresos-tools` hidden from the sandbox's file view. The seccomp filter is an optional dependency and the
-sandbox starts without it, so the image ships it, the image qualification checks it, and the hostile tests run with
-and without it.
+`/run/aresos-tools` hidden from the sandbox's file view. The docs call the seccomp filter optional; native Claude
+Code 2.1.319 has it built in (sockets refused even without the separate helper: brief 18b, *checked*). The launcher
+still refuses to start Claude Code when the separate helper is missing, so a later version that drops the built-in
+filter fails closed, and the hostile tests run with and without it.
 
 A program that runs as the owner outside the sandbox can use `act.sock` without asking. That is the normal desktop
 trust model (such a program could also type into Chrome); the line this design draws is around Claude, and section 7
@@ -520,9 +521,9 @@ way for Claude to get its own code run outside the sandbox, or to reach a site w
     a fixed environment (nothing like `NODE_OPTIONS` that loads code into it), with no IDE, desktop-app, SDK or
     browser integration. SDK hooks and in-process MCP servers, which the managed switches still allow, therefore
     have no way in.
-  - Plugins and mods: none (`strictKnownMarketplaces: []`, `disableSideloadFlags`, every plugin off in
-    `enabledPlugins`); a check in brief 18 confirms that this also keeps out plugin LSP servers, monitors and mods,
-    or finds the switch that does.
+  - Plugins and mods: none installed (`strictKnownMarketplaces: []`, `disableSideloadFlags`; an empty
+    `enabledPlugins` is not a deny-all, so nothing is installed in the first place: brief 18b). Claude Code's own
+    built-in parts remain and are audited in the image test.
   - The status line and `apiKeyHelper`: none. The managed file sets neither, Claude's file tools refuse Claude
     Code's settings files and the sandbox can't write them (both checked by hostile tests), and brief 18b finds
     whether a managed key can force them off; if one is ever needed, it gets the same fixed, root-owned treatment as
@@ -534,13 +535,16 @@ way for Claude to get its own code run outside the sandbox, or to reach a site w
   files (also another user's), or `blockReadsOutsideWorkingDirectories`, chosen with the owner (section 10).
   What remains is the owner himself running code Claude wrote in a work folder: that is ordinary development and is
   named here so it isn't mistaken for a closed route.
-- **The sandbox:** forced on (`enabled`, `failIfUnavailable`, `allowUnsandboxedCommands: false`); no Unix sockets
+- **The sandbox:** forced on (`enabled`, `failIfUnavailable`, `allowUnsandboxedCommands: false`); for the assistant
+  session the whole work tree is read-only to the terminal, because Linux's sandbox can't exclude places like
+  `**/.envrc` inside a writable folder (brief 18b); writing files goes through the file tools and their deny rules;
+  no Unix sockets
   (`allowAllUnixSockets: false` plus the seccomp filter, section 2); the browser profile, `/run/aresos-tools`, the
   keyring and Claude Code's sign-in files hidden from its file view; no session D-Bus.
 - **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
   the list is locked (`allowManagedDomainsOnly`), and it contains only what the owner allows (section 10). `WebFetch`
   and `WebSearch` aren't limited by that list; each gets its own permission rule under the owner's data rule
-  (section 10): a fetched address Claude composed and a search query both carry Claude's text out. How much network
+  (section 10): a fetched address Claude composed and a search query both carry Claude's text out. Until the owner answers, both ask on every call. How much network
   and which credentials the central session's terminal has at all is an owner question (section 10).
 - **Approval surfaces:** Claude must never approve its own prompt. Pages that can (claude.ai and Remote Control) and
   pages that change Claude's or Chrome's settings can't be opened in a Claude tab (section 6), and Claude Code's
@@ -576,8 +580,9 @@ Settings checks: the prompt's "Yes, and don't ask again" choice must not switch 
    got stuck, misread a result or had to guess; budgets for those are set before the rounds, and the reports decide
    what "works really well" means.
 5. **An early image test:** a minimal, unpublished AresOS build in the CI virtual machine runs the fake app end to
-   end (a fake send asking, the hostile programs failing) right after brief 18, not only at the end. `laptop-aresos`
-   agrees the `os/ci/` change first.
+   end (a fake send asking, the hostile programs failing) right after brief 18, not only at the end. It also settles
+   what CI had to loosen: GitHub's runner needed its user-namespace limit relaxed for the sandbox (brief 18b), so the
+   image needs its own namespace policy. `laptop-aresos` agrees the `os/ci/` change first.
 6. **Qualification in the AresOS image** of Mail and Chrome, then **real use** after the first boot on the laptop.
 
 ## 9. The council's gaps, and where each is handled
