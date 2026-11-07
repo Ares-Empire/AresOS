@@ -8,6 +8,9 @@ The runner installs its ephemeral signed CRX through a local update server and L
 the native relay has both system and user manifests. Everything is disposable runner state.
 `LONG_HOLD=true` adds the one ten-minute hold; keep it for one of the two final-head verifications.
 
+The workflow splits the safety matrix, workers/long holds, and live/public probes into three independent jobs.
+Each installs a fresh synthetic profile; artifacts carry the phase name.
+
 `summary.json` and `check.log` record observations (including negative results and unsupported APIs).
 `server.jsonl` is the independent delivery record. `delivery-audit.json` checks for late/duplicate
 arrivals after Chrome exits. A passing check means the observations reproduced, not that Chrome

@@ -10,7 +10,8 @@ const {fixture}=await import('./fixture.mjs');
 const {address,key,delay,activateChrome,screenshot,x}=await import('../17-chrome/ui.mjs');
 const {nativeBridge,evaluate,eventually}=await import('../17-chrome/protocol.mjs');
 const {pack,idFor,installExternal}=await import('../17-chrome/install.mjs');
-const summary={run:process.env.GITHUB_RUN_ID,head:process.env.GITHUB_SHA,cases:[]},audit=new Map();
+const phase=process.env.CHECK_PHASE||'all';
+const summary={phase,run:process.env.GITHUB_RUN_ID,head:process.env.GITHUB_SHA,cases:[]},audit=new Map();
 const save=(n,v)=>fs.writeFileSync(out+'/'+n+'.json',JSON.stringify(v,null,2));
 function log(name,row){summary.cases.push({name,...row});save('summary',summary);console.log(name,JSON.stringify(row));}
 async function probe(name,fn){try{const row=await fn();log(name,{status:'observed',...row});return row;}catch(e){log(name,{status:'probe-error',error:e.stack});return {error:e.message};}}
@@ -75,6 +76,7 @@ try{
  log('Q5_HOST_DEFAULT',{starts:fs.readFileSync(out+'/host-starts.txt','utf8')});
  await stop();policy(false);await boot('system-host');
  log('Q5_HOST_POLICY_FALSE',{starts:fs.readFileSync(out+'/host-starts.txt','utf8')});
+ if(['all','safety'].includes(phase)){
  // Policy rejects disable/remove even with a send held.
  for(const op of ['disable','uninstall']){await nav();const id='q1-policy-'+op,p=await held(id);await probe('Q1_POLICY_'+op,()=>bridge.send(op==='disable'?'Check.disable':'Check.uninstall'));assert.equal(arrivals(id).length,0);await decide(p,false);await observe(id,0);}
  await nav();await bridge.send('Check.config',{backstop:true});const dnrRelease=await held('dnr-approved-release');assert.equal(arrivals('dnr-approved-release').length,0);await decide(dnrRelease,true);log('Q1_DNR_APPROVED',{arrivals:await observe('dnr-approved-release',1)});
@@ -135,6 +137,8 @@ try{
 
  }
  await bridge.send('Check.config',{});await nav();
+ }
+ if(['all','workers-long'].includes(phase)){
  // Q2: page through worker, worker target, bypass, and background sync.
  await bridge.send('Network.setBypassServiceWorker',{bypass:false});await evaluate(bridge,'worker()');
  log('Q2_WORKER_CONTROLLED',{controlled:await evaluate(bridge,'!!navigator.serviceWorker.controller')});
@@ -176,6 +180,8 @@ try{
  // Form stays pending for 30 seconds, then completes one navigation.
  await nav();const form=await held('long-form','form');await delay(30000);assert.equal(arrivals('long-form').length,0);await decide(form,true);await observe('long-form',1);log('Q3_FORM',{arrivals:arrivals('long-form')});
  await nav();
+ }
+ if(['all','live-public'].includes(phase)){
  // Q4 detection and handshake: event history is independent of the Fetch gate.
  const events=[];bridge.on('event',e=>{if(/WebSocket|webTransport|dataChannel|peerConnection/i.test(e.method))events.push({at:Date.now(),...e});});
  await evaluate(bridge,"connectWS();'ok'");await delay(1200);const wsState=await state(),wsPending=wsState.pending.filter(p=>p.url.endsWith('/socket'));if(wsPending.length){assert.equal(f.arrivals.filter(r=>r.kind==='ws-open').length,0);await decide(wsPending[0],false);log('Q4_WS_HANDSHAKE_DROP',{arrivals:f.arrivals.filter(r=>r.kind==='ws-open')});await evaluate(bridge,"connectWS();'ok'");const again=await eventually(async()=>(await state()).pending.find(p=>p.url.endsWith('/socket')),'second handshake');await decide(again,true);await delay(500);}
@@ -213,6 +219,7 @@ try{
    return {title,action,expected,observedFormMiss:expected?!textRequests.length:null,loadTypedFalseAlarms:requests.filter(r=>r.at<actionStart&&r.typed.length).length,elapsedMs:Date.now()-start,requests,textRequests:textRequests.length,ruleMisses:textRequests.filter(r=>!r.block).length,unlabelledRequests:requests.filter(r=>!r.typed.length).length,repeat:repeated.map(rows=>rows.map(canonical)),ignoredVolatileFields:[],actionStart,settleAt:measureSettle(actionStart,requests),outsideActionSettle:textRequests.filter(r=>r.at>measureSettle(actionStart,requests)).length};});
  }
  save('public-traffic',pub);
+ }
  // Final independent server log audit catches late arrivals after navigation/teardown.
  await stop();await delay(1000);const rows=[...audit].map(([id,expected])=>({id,expected,actual:arrivals(id).length}));save('delivery-audit',rows);for(const r of rows)assert.equal(r.actual,r.expected,r.id);
  log('FINAL_DELIVERY_AUDIT',{status:'PASS',cases:rows.length});console.log('ALL 17B CHECKS COMPLETE');

@@ -23,6 +23,10 @@ jobs:
   chrome:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: ${{ github.ref_name == 'pkg/17b-chrome-holds' && fromJSON('["safety","workers-long","live-public"]') || fromJSON('["baseline"]') }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -57,6 +61,7 @@ jobs:
         env:
           LONG_HOLD: ${{ inputs.long_hold || false }}
           CHECK_BRANCH: ${{ github.ref_name }}
+          CHECK_PHASE: ${{ matrix.phase }}
           XDG_CONFIG_HOME: ${{ github.workspace }}/.work/17-chrome/config
         run: |
           set -o pipefail
@@ -77,7 +82,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: chrome-check-${{ github.run_id }}-${{ github.run_attempt }}
+          name: chrome-check-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.phase }}
           path: |
             .work/17-chrome/artifacts/
             .work/17b-chrome/artifacts/
