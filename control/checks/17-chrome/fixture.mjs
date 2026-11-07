@@ -26,7 +26,11 @@ export async function fixtures(out) {
       res.writeHead(200, {'Content-Type':'text/html','Access-Control-Allow-Origin':'*'}).end(html('Received', '<p id="status">Received synthetic submission.</p>')); return;
     }
     res.setHeader('Content-Type','text/html; charset=utf-8');
-    if (url.pathname === '/login') return res.end(html('Fixture login', '<form action="/session" method="post"><input name="member" value="synthetic-member" type="hidden"><button autofocus>Sign in to fixture</button></form>'));
+    if (url.pathname === '/ready') {record({kind:'login-ready'});return res.end('ready');}
+    if (url.pathname === '/login') return res.end(html('Fixture login', `<form action="/session" method="post"><input name="member" value="synthetic-member" type="hidden"><button id="login-button" autofocus>Sign in to fixture</button></form><script>
+      let announced=false;const ready=()=>{const button=document.querySelector('#login-button');button.focus();if(!announced&&document.visibilityState==='visible'&&document.hasFocus()&&document.activeElement===button){announced=true;fetch('/ready')}};
+      requestAnimationFrame(()=>requestAnimationFrame(ready));addEventListener('focus',ready);document.addEventListener('visibilitychange',ready);
+    </script>`));
     if (url.pathname === '/owner') {
       record({kind:'owner-page', signedIn:req.headers.cookie?.includes('fixture_session=synthetic-member') || false});
       return res.end(html('Owner fixture', `<h1>Owner fixture</h1><p id="session">${req.headers.cookie?.includes('fixture_session=') ? 'Signed in: synthetic member' : 'NOT SIGNED IN'}</p><label>Owner note<input id="note" value="untouched"></label><button id="replace" onclick="document.querySelector('#note').outerHTML='<input id=note aria-label=Replacement value=replacement>'">Replace note</button>`));

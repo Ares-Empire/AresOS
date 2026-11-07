@@ -28,7 +28,7 @@ jobs:
           mkdir -p .work/17-chrome/artifacts .work/17-chrome/config
           curl --fail --location --retry 3 https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o .work/17-chrome/chrome.deb
           sudo apt-get update -qq
-          sudo apt-get install -y ./.work/17-chrome/chrome.deb xvfb xdotool openbox imagemagick
+          sudo apt-get install -y ./.work/17-chrome/chrome.deb xvfb xdotool x11-utils openbox imagemagick
           rm .work/17-chrome/chrome.deb
           google-chrome-stable --version | tee .work/17-chrome/artifacts/chrome-version.txt
           uname -a > .work/17-chrome/artifacts/platform.txt
@@ -45,7 +45,15 @@ jobs:
           XDG_CONFIG_HOME: ${{ github.workspace }}/.work/17-chrome/config
         run: |
           set -o pipefail
-          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' bash -c 'openbox > .work/17-chrome/artifacts/openbox.log 2>&1 & timeout --kill-after=15s 20m node control/checks/17-chrome/run.mjs' 2>&1 | tee .work/17-chrome/artifacts/check.log
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1440x1000x24' bash -c '
+            openbox > .work/17-chrome/artifacts/openbox.log 2>&1 &
+            for wm_attempt in $(seq 1 100); do
+              if xprop -root _NET_SUPPORTING_WM_CHECK | rg -q "window id"; then break; fi
+              sleep 0.1
+            done
+            xprop -root _NET_SUPPORTING_WM_CHECK | rg -q "window id" || exit 1
+            timeout --kill-after=15s 20m node control/checks/17-chrome/run.mjs
+          ' 2>&1 | tee .work/17-chrome/artifacts/check.log
       - name: Upload synthetic logs and structural page views
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

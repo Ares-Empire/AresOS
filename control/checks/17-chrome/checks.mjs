@@ -24,6 +24,7 @@ export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
   for(const page of ['form','table','frames','shadow','modal','article']){
     await navigate(cdp,fixture.base+'/'+page);
     await cdp.send('Page.bringToFront');
+    await eventually(async()=>await evaluate(cdp,'document.visibilityState')==='visible','fixture tab visible');
     if(page==='frames')await eventually(async()=>{const v=await view.read({limit:10000});return v.frames.length===3;},'three fixture frames');
     const v=await view.read({limit:10000});assert.equal(v.errors.length,0);
     const json=JSON.stringify(v);save(out,`${route}-view-${page}`,v);

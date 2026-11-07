@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import {execFileSync,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {createHash} from 'node:crypto';
-import {launch,address,key,x,delay,loadUnpacked,screenshot,stopChrome} from './ui.mjs';
+import {launch,address,key,x,delay,activateChrome,screenshot,stopChrome} from './ui.mjs';
 import {websocket,session,evaluate,eventually} from './protocol.mjs';
 import {save,readAndAct,holdChecks,disconnectProbe,publicChecks} from './checks.mjs';
 import {installExternal} from './install.mjs';
@@ -28,7 +28,7 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     const manifest=JSON.parse(fs.readFileSync(path.join(extension,'manifest.json')));assert.equal(manifest.version,'0.5.0');
     save(out,'playwright-pin',{version:manifest.version,sha256:hash,engine});
     installExternal('mmlmfjhmonkocbjadbfplnigmagldckm',manifest.version,crx,work);
-    chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-playwright.log'));await delay(3000);
+    chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-playwright.log'));await activateChrome();await delay(1500);
     await address(fixture.base+'/owner');
     // The tab is open and signed in before the upstream attach factory is invoked.
     const config={extension:true,browser:{browserName:'chromium',userDataDir:profile,launchOptions:{channel:'chrome'},contextOptions:{}},timeouts:{}};
@@ -63,7 +63,7 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     results.playwright.disconnect=await disconnectProbe(cdp,fixture,out,'playwright',async()=>browser.close());browser=undefined;await stopChrome(chrome);chrome=undefined;
 
     // Consent-based debugging is enabled from chrome://inspect, never via launch switches.
-    chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-consent.log'));await delay(2800);
+    chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-consent.log'));await activateChrome();await delay(1500);
     await key('ctrl+t');await address('chrome://inspect/#remote-debugging');
     await screenshot(out,'consent-inspect-before');
     // UI checkbox in Chrome's remote-debugging panel; screenshot documents the experiment.
@@ -92,7 +92,7 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     console.log('CONSENT_SECOND_PEER',JSON.stringify(results.consent.peer));
     results.consent.disconnect=await disconnectProbe(cdpConsent,fixture,out,'consent',async()=>raw.close());raw=undefined;
     await stopChrome(chrome);chrome=undefined;
-    chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-consent-restart.log'));await delay(3000);
+    chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-consent-restart.log'));await activateChrome();await delay(1500);
     await key('ctrl+t');await address('chrome://inspect/#remote-debugging');await screenshot(out,'consent-after-restart');
     results.consent.restart={chromeListeners:execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('"chrome"')),portFileExists:fs.existsSync(portFile)};
     console.log('CONSENT_RESTART',JSON.stringify(results.consent.restart));

@@ -6,6 +6,15 @@ export {delay};
 export function x(...args){return execFileSync('xdotool',args.map(String),{encoding:'utf8'}).trim();}
 export async function key(...keys){x('key','--clearmodifiers',...keys);await delay(150);}
 export async function address(url){await key('ctrl+l');x('type','--clearmodifiers','--delay','1',url);await key('Return');await delay(1200);}
+export async function activateChrome(){
+  let windowId;
+  for(let attempt=0;attempt<100;attempt++){
+    try{windowId=x('search','--onlyvisible','--class','google-chrome').split('\n').at(-1);if(windowId)break;}catch{}
+    await delay(100);
+  }
+  if(!windowId)throw Error('Chrome did not map a visible window');
+  x('windowactivate','--sync',windowId);x('windowfocus','--sync',windowId);await delay(200);
+}
 export async function screenshot(out,name){execFileSync('import',['-window','root',`${out}/${name}.png`]);}
 let developerEnabled=false;
 export async function loadUnpacked(dir,out,label){
