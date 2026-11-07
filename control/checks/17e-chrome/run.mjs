@@ -87,9 +87,10 @@ async function close(kill=false){
 async function nav(url=f.base+'/'){await rpc('Page.navigate',{url});await delay(700);}
 const rows=id=>f.rows.filter(r=>r.case===id);
 const arrivals=(id,kind='http')=>rows(id).filter(r=>r.kind===kind);
-const expectations=[];
-async function zero(id){await delay(250);assert.equal(rows(id).filter(r=>['headers','ws-open','ws-message'].includes(r.kind)).length,0,id+' leaked before approval');}
-async function delivered(id,kind='http',n=1){await eventually(()=>arrivals(id,kind).length===n,'receiver '+id+' '+kind,12000);expectations.push({id,kind,n});return arrivals(id,kind);}
+const expectations=new Map();
+function expect(id,kind,n){expectations.set(id+'::'+kind,{id,kind,n})}
+async function zero(id){await delay(250);assert.equal(rows(id).filter(r=>['headers','ws-open','ws-message'].includes(r.kind)).length,0,id+' leaked before approval');for(const kind of ['headers','http','ws-open','ws-message'])expect(id,kind,0);}
+async function delivered(id,kind='http',n=1){await eventually(()=>arrivals(id,kind).length===n,'receiver '+id+' '+kind,12000);expect(id,kind,n);if(kind==='http')expect(id,'headers',n);return arrivals(id,kind);}
 async function pending(id,kind){return eventually(async()=>{const s=await control('state');return s.rows.findLast(r=>r.case===id&&r.status==='held'&&(!kind||r.kind===kind))},'captured '+id,15000)}
 async function approve(id,kind){const op=await pending(id,kind);await control('approve',{id:op.id});return op;}
 async function guard(enabled=true){const result=await control('guard',{enabled});log('GUARD_BARRIER',result);return result;}
@@ -107,9 +108,9 @@ try{
  await rpc('Page.bringToFront');await key('ctrl+t');await address('chrome://sandbox');await screenshot(out,'sandbox');await key('ctrl+w');
  await context();await (await import('./'+phase+'.mjs')).default(c);
  await guard(false);await close();await delay(600);
- for(const e of expectations)assert.equal(arrivals(e.id,e.kind).length,e.n,'late/unexpected receiver delivery '+e.id);
- save('delivery-audit',expectations.map(e=>({...e,actual:arrivals(e.id,e.kind).length})));
- log('FINAL_RECEIVER_AUDIT',{status:'PASS',assertions:expectations.length,receiverRows:f.rows.length});console.log('ALL 17E CHECKS COMPLETE',phase);
+ for(const e of expectations.values())assert.equal(arrivals(e.id,e.kind).length,e.n,'late/unexpected receiver delivery '+e.id+' '+e.kind);
+ save('delivery-audit',[...expectations.values()].map(e=>({...e,actual:arrivals(e.id,e.kind).length})));
+ log('FINAL_RECEIVER_AUDIT',{status:'PASS',assertions:expectations.size,receiverRows:f.rows.length});console.log('ALL 17E CHECKS COMPLETE',phase);
 }finally{
  await snapshotProxy();save('summary',summary);await screenshot(out,'final').catch(()=>{});await close();await stopProxy();f.close();
  // Raw Chrome/mitmproxy consoles can include URLs; retain a count only.

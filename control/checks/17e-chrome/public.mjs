@@ -6,7 +6,7 @@ export default async function(c){
  const results=[];
  async function visit(name,url,mode){
   const start=Date.now();await rpc('Page.navigate',{url});await delay(5500);
-  const result=await ev(`(()=>{const text=document.body?.innerText||'',n=performance.getEntriesByType('navigation')[0];return {host:location.hostname,title:document.title,bytes:text.length,robot:/captcha|verify you are human|unusual traffic|checking your browser|robot check|not a robot/i.test(text),blocked:/access denied|request blocked|temporarily blocked|ERR_|can't be reached/i.test(text),certificateError:/Your connection is not private/.test(text),loadMs:n?.loadEventEnd||null,domMs:n?.domContentLoadedEventEnd||null,protocol:n?.nextHopProtocol||null,readingText:text.slice(0,160)}})()`);
+  const result=await ev(`(()=>{const text=document.body?.innerText||'',n=performance.getEntriesByType('navigation')[0];return {host:location.hostname,title:document.title,bytes:text.length,robot:/captcha|verify you are human|unusual traffic|checking your browser|robot check|not a robot|not a bot|security verification|just a moment/i.test(document.title+text),blocked:/access denied|request blocked|temporarily blocked|blocked by network security|ERR_|can't be reached/i.test(text),certificateError:/Your connection is not private/.test(text),loadMs:n?.loadEventEnd||null,domMs:n?.domContentLoadedEventEnd||null,protocol:n?.nextHopProtocol||null,readingText:text.slice(0,160)}})()`);
   // Save classifications/timing, never cookies, credentials, storage or bodies.
   delete result.readingText;const row={site:name,mode,elapsedMs:Date.now()-start,...result};results.push(row);log('Q11_PUBLIC',row);if(name!=='fingerprint')await c.screenshot(c.out,mode+'-'+name);
  }
@@ -24,16 +24,18 @@ export default async function(c){
   }
  }
  save('public-sites',results);
- // A synthetic signed-in app exposes actual prompt pressure under a broad
- // guard. Background autosaves, heartbeat and owner sends are all operations.
- // Remove safety dynamic rules by reinstalling a fresh diagnostic extension
- // session via a new Chrome profile is unnecessary: use GET for the fixture
- // and pre-open its live connection in a separate core run (reported there).
- await guard(false);await c.nav();await guard();
- const start=(await control('state')).rows.length;
- await ev("for(let i=0;i<12;i++)fetch('/receive?case=e-background-'+i).catch(()=>{});true");
+ // Synthetic signed-in traffic is separate from the public no-send visits.
+ await rpc('Check.safety',{clear:true});await guard(false);await c.nav();
+ const session=await ev("fetch('/whoami').then(r=>r.json())");c.assert.equal(session.account,'synthetic-A');
+ await ev("ws('e-signed-live');true");await delivered('e-signed-live','ws-open');
+ await ev("sockets['e-signed-live'].send('e-signed-live-control');true");await delivered('e-signed-live-control','ws-message');
+ await c.positive('e-background-control');await guard();
+ await ev("for(let i=0;i<12;i++)send('e-background-'+i);for(let i=0;i<6;i++)sockets['e-signed-live'].send('e-live-background-'+i);true");
  await c.eventually(async()=>(await control('state')).rows.filter(r=>r.case.startsWith('e-background-')&&r.status==='held').length===12,'synthetic background operations held');
- const held=(await control('state')).rows.filter(r=>r.case.startsWith('e-background-')&&r.status==='held');log('Q11_PROMPT_PRESSURE',{durationSeconds:6,backgroundRequests:12,approvalsRequired:held.length,account:'synthetic-A',policy:'all uncertain traffic is held'});
- for(const op of held)await control('cancel',{id:op.id});
+ for(let turn=0;turn<20;turn++){const pending=(await control('state')).rows.filter(r=>(r.case.startsWith('e-background-')||r.case==='e-signed-live')&&r.status==='held');for(const op of pending)await control('cancel',{id:op.id});await delay(60);}
+ const held=(await control('state')).rows.filter(r=>r.case.startsWith('e-background-')||r.case==='e-signed-live');
+ c.assert.equal(held.length,18,'each background request and live message has its own operation');
+ for(let i=0;i<12;i++)await c.zero('e-background-'+i);for(let i=0;i<6;i++)await c.zero('e-live-background-'+i);
+ log('Q11_PROMPT_PRESSURE',{session,backgroundRequests:12,liveMessages:6,approvalsRequired:held.length,policy:'all uncertain traffic is held; each operation would need its own decision'});
  log('Q11_PRIVACY',{bodyLogs:false,cookieLogs:false,payloadStorage:'RAM only',ledger:'hashes, lengths and states',perBodyBytes:32*1024*1024,pendingBodyBytes:64*1024*1024,maxOperations:256});
 }

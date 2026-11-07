@@ -47,6 +47,9 @@ class CheckpointFrameHook(commands.StartHook):
     flow: http.HTTPFlow
     data: bytes
 
+    def args(self):
+        return [self]
+
 
 # mitmproxy 12.2.1's public websocket_end hook runs AFTER forwarding the close.
 # This small pinned-core seam gates commands before the server socket write.
@@ -95,6 +98,7 @@ class Checkpoint:
         self.db.execute('pragma synchronous=FULL')
         self.db.execute('create table if not exists state (key text primary key, value text)')
         self.db.execute('create table if not exists operations (id text primary key, info text, status text)')
+        self.db.execute('create table if not exists quota_probe (padding blob)')
         self.db.execute("insert or ignore into state values ('guard','false')")
         # A consumed operation might have reached the peer. Never retry either
         # that operation or a pending operation whose RAM bytes died with us.
@@ -158,6 +162,11 @@ class Checkpoint:
                 result = dict(cancelled=bool(op))
             elif action == 'fault':
                 self.fault = p.get('point')
+                if self.fault == 'ledger-full':
+                    pages = self.db.execute('pragma page_count').fetchone()[0]
+                    self.db.execute(f'pragma max_page_count={pages}')
+                else:
+                    self.db.execute('pragma max_page_count=1073741823')
                 result = dict(fault=self.fault)
             elif action == 'stall':
                 self.stall = p.get('point')
@@ -200,11 +209,14 @@ class Checkpoint:
         op = dict(future=future, context=self.context, flow=flow, **{'info':info})
         try:
             if self.fault == 'ledger-full':
-                raise sqlite3.OperationalError('injected SQLITE_FULL at durable insert')
+                # Exercise SQLite's real disk-full error without filling the
+                # runner filesystem or logging/writing any captured payload.
+                self.db.execute('insert into quota_probe values (zeroblob(1048576))')
             self.db.execute('insert into operations values (?,?,?)', (oid, json.dumps(info), 'held'))
             self.db.commit()
-        except sqlite3.Error:
-            self.record('refused', **info, reason='ledger-unavailable')
+        except sqlite3.Error as error:
+            self.db.rollback()
+            self.record('refused', **info, reason='ledger-unavailable', sqliteError=getattr(error, 'sqlite_errorname', 'unknown'))
             return False
         self.pending[oid] = op
         flow.metadata.setdefault('checkpoint_operations', []).append(oid)

@@ -20,6 +20,6 @@ export default async function(c){
  }
  agent.destroy();
  // A fixed resource refusal must not become an allow on ENOSPC.
- await guard();await control('fault',{point:'ledger-full'});chunked('e-ledger-full');await delay(500);await zero('e-ledger-full');await control('fault',{point:null});log('Q11_LEDGER_EXHAUSTION',{receiver:c.rows('e-ledger-full')});
+ await guard();await control('fault',{point:'ledger-full'});chunked('e-ledger-full');await delay(500);await zero('e-ledger-full');await control('fault',{point:null});const full=c.sudo('cat',c.work+'/private/events.jsonl').trim().split('\n').map(JSON.parse).find(r=>r.case==='e-ledger-full'&&r.sqliteError==='SQLITE_FULL');assert.ok(full,'real SQLite quota failure');log('Q11_LEDGER_EXHAUSTION',{receiver:c.rows('e-ledger-full'),refusal:full});
  chunked('e-memory-full');await pending('e-memory-full');await control('exhaust-memory').catch(()=>{});await delay(300);await zero('e-memory-full');await c.startProxy();await zero('e-memory-full');log('Q11_MEMORY_EXHAUSTION',{receiver:c.rows('e-memory-full'),state:await control('state')});
 }

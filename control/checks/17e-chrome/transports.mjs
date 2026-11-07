@@ -9,7 +9,7 @@ export default async function(c){
  await c.nav('https://fixture.test:18443/hsts');await delay(300);await c.nav('http://fixture.test:18443/hsts');log('Q9_HSTS',{page:await ev('({url:location.href,title:document.title})')});await c.nav();
  // Start 17d's working HTTP/3 receiver; its own log is the oracle.
  fs.mkdirSync(work+'/artifacts',{recursive:true});
- const wt=spawn(c.path.resolve('.work/17b-chrome/venv/bin/python'),[c.path.resolve('control/checks/17b-chrome/webtransport.py'),work],{stdio:'ignore'});
+ const wt=spawn(c.path.resolve('.work/17b-chrome/venv/bin/python'),[c.here+'/webtransport.py',work],{stdio:'ignore'});
  const turn=spawn('turnserver',['-n','--listening-ip=127.0.0.1','--relay-ip=127.0.0.1','--listening-port=13478','--tls-listening-port=15349','--realm=synthetic17e','--user=synthetic:synthetic-password','--lt-cred-mech','--allow-loopback-peers','--no-multicast-peers','--no-cli','--no-udp','--no-dtls','--cert='+work+'/fixture.pem','--pkey='+work+'/fixture.key','--log-file='+work+'/turn-private.log'],{stdio:'ignore'});
  const peer=spawn(work+'/venv/bin/python',[c.here+'/rtc-peer.py',out],{stdio:'ignore'});
  try{
@@ -41,7 +41,7 @@ export default async function(c){
    await c.nav(url);await delay(1000);log('Q9_SERVICE_PAGE',{host:new URL(url).hostname,page:await ev('({url:location.origin,title:document.title,certificateError:document.body?.innerText.includes("Your connection is not private")})')});
   }
   // A page send to a service hostname is never exempted, irrespective of Origin.
-  await c.nav();await guard();await ev("fetch('https://safebrowsing.googleapis.com/receive?case=e-service-page-send',{method:'POST',body:'synthetic',mode:'no-cors'}).catch(()=>{});true");const held=await pending('e-service-page-send');await controlCancel(held);log('Q9_NO_SERVICE_EXCEPTION',{held});
+  await c.nav();await c.positive('e-service-page-control','synthetic',{headers:{'x-synthetic-service-name':'safebrowsing.googleapis.com'}});await guard();await c.send('e-service-page-send','synthetic',{headers:{'x-synthetic-service-name':'safebrowsing.googleapis.com'}});const held=await pending('e-service-page-send');await zero('e-service-page-send');await controlCancel(held);log('Q9_NO_SERVICE_EXCEPTION',{held,fixtureOnly:true,receiver:c.rows('e-service-page-send')});
   async function controlCancel(op){await c.control('cancel',{id:op.id})}
   log('Q9_SERVICE_LIMIT',{notChecked:['account-backed sync','authenticated push'],reason:'No accounts or real submissions allowed. Page loads are not browser-service qualification.'});
  }finally{wt.kill();turn.kill();peer.kill();}

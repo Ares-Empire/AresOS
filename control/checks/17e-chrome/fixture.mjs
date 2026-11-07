@@ -12,10 +12,11 @@ export async function fixture(work,out,getUpdate){
   res.setHeader('Cache-Control','no-store');res.setHeader('Access-Control-Allow-Origin','*');res.setHeader('Access-Control-Allow-Headers','*');
   if(u.pathname==='/update.xml'){res.setHeader('Content-Type','text/xml');return res.end(getUpdate());}
   if(u.pathname==='/extension.crx')return fs.createReadStream(work+'/own-extension.crx').pipe(res);
+  if(u.pathname==='/whoami'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({account:req.headers.cookie?.includes('synthetic-session17e=fixture-A')?'synthetic-A':null}));}
   if(u.pathname==='/receive'){
    // Header arrival is recorded before any body byte. No cookie/header values
    // or bodies are logged, including on public-site runs.
-   record({kind:'headers',case:id,method:req.method,protocol:req.httpVersion,attributionPresent:'x-ares-check' in req.headers,accountHash:hash(req.headers['x-synthetic-account']||''),headerHash:hash(req.headers['x-synthetic-header']||'')});
+   record({kind:'headers',case:id,method:req.method,protocol:req.httpVersion,authenticated:!!req.headers.cookie?.includes('synthetic-session17e=fixture-A'),attributionPresent:'x-ares-check' in req.headers,accountHash:hash(req.headers['x-synthetic-account']||''),headerHash:hash(req.headers['x-synthetic-header']||'')});
    let length=0,tail=Buffer.alloc(0),diskMarker=false;const sha=createHash('sha256');
    req.on('data',b=>{if(!length){record({kind:'first-byte',case:id});firstByte?.(id)}length+=b.length;sha.update(b);const scan=Buffer.concat([tail,b]);diskMarker ||= scan.includes(Buffer.from('SYNTHETIC_DISK_FILE_17E'));tail=scan.subarray(-32)});
    req.on('aborted',()=>record({kind:'aborted',case:id,length}));
@@ -28,6 +29,7 @@ export async function fixture(work,out,getUpdate){
    return res.end(`let socket;function act(p){if(p.open){socket=new WebSocket('ws://127.0.0.1:18081/socket?case='+p.id);socket.onopen=()=>postResult('open')}else if(p.close)socket.close(1000,p.id);else if(p.ws)socket.send(p.id);else fetch('/receive?case='+p.id,{method:'POST',body:p.id}).catch(()=>{})}function postResult(v){globalThis.result=v}onmessage=e=>act(e.data);onconnect=e=>{e.ports[0].onmessage=e=>act(e.data);e.ports[0].start()};self.addEventListener('install',e=>e.waitUntil(skipWaiting()));self.addEventListener('activate',e=>e.waitUntil(clients.claim()));`);
   }
   res.setHeader('Content-Type','text/html');
+  res.setHeader('Set-Cookie','synthetic-session17e=fixture-A; HttpOnly; SameSite=Lax; Path=/');
   res.end(`<!doctype html><meta charset="utf-8"><title>17e synthetic signed-in fixture</title><h1>Checkpoint fixture</h1><p>Synthetic account A</p><input type="file" id="upload"><pre id="status">ready</pre><script>
   globalThis.results={};globalThis.sockets={};
   onmessage=e=>{if(typeof e.data==='string'&&e.data.startsWith('e-'))send(e.data)};
