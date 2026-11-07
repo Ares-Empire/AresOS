@@ -14,6 +14,10 @@ const require=createRequire(import.meta.url);
 export async function otherRoutes({here,work,out,profile,fixture}){
   const results={};let chrome,browser,raw;
   try{
+    const playwrightRequire=createRequire(require.resolve('playwright/package.json'));
+    const corePackage=playwrightRequire.resolve('playwright-core/package.json');
+    const engine=JSON.parse(fs.readFileSync(corePackage)).version;assert.equal(engine,'1.65.0');
+    const {tools}=require(path.join(path.dirname(corePackage),'lib/coreBundle.js'));
     // Exact Web Store artifact 0.5.0. Integrity pinned; no automatic version substitution.
     const crx=path.join(work,'playwright.crx');
     execFileSync('curl',['-fsSL','--retry','3','https://clients2.google.com/service/update2/crx?response=redirect&prodversion=158.0.0.0&acceptformat=crx2,crx3&x=id%3Dmmlmfjhmonkocbjadbfplnigmagldckm%26uc','-o',crx]);
@@ -22,12 +26,11 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     const extension=path.join(work,'playwright-extension');
     execFileSync('python3',['-c','import zipfile,sys;zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])',crx,extension]);
     const manifest=JSON.parse(fs.readFileSync(path.join(extension,'manifest.json')));assert.equal(manifest.version,'0.5.0');
-    save(out,'playwright-pin',{version:manifest.version,sha256:hash,engine:'1.65.0'});
+    save(out,'playwright-pin',{version:manifest.version,sha256:hash,engine});
     installExternal('mmlmfjhmonkocbjadbfplnigmagldckm',manifest.version,crx,work);
     chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-playwright.log'));await delay(3000);
     await address(fixture.base+'/owner');
     // The tab is open and signed in before the upstream attach factory is invoked.
-    const {tools}=require('./node_modules/playwright-core/lib/coreBundle.js');
     const config={extension:true,browser:{browserName:'chromium',userDataDir:profile,launchOptions:{channel:'chrome'},contextOptions:{}},timeouts:{}};
     const connecting=tools.createBrowserWithInfo(config,{clientName:'AresOS check'},{browser:'chrome'},{title:'Chrome feasibility check',workspaceDir:here});
     connecting.catch(()=>{});
@@ -44,7 +47,7 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     const cdp=delegate._mainFrameSession._client;
     cdp.pwPage=page;
     await screenshot(out,'playwright-attached');
-    console.log('ATTACH_PLAYWRIGHT PASS','extension 0.5.0, engine 1.65.0; existing signed-in tab');
+    console.log('ATTACH_PLAYWRIGHT PASS',`extension ${manifest.version}, resolved engine ${engine}; existing signed-in tab`);
     const frameSessions=async()=>{
       return [...delegate._sessions.values()].filter(s=>s!==delegate._mainFrameSession).map(s=>({sessionId:s._targetId,cdp:s._client}));
     };
