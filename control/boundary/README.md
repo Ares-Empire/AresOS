@@ -8,6 +8,9 @@ The Mac is used only to edit, inspect documentation, and submit CI runs.
 `package-lock.json` pins Claude Code **2.1.319**, the published
 `@anthropic-ai/sandbox-runtime` **0.0.81**, and their transitive npm dependencies
 with integrity hashes. `pins.json` additionally pins the x64 seccomp helper.
+The same pinned runtime is exposed at the global npm lookup path so the native
+CLI's documented helper-discovery fallback can find it; this is a symlink,
+not another copy of the helper. Missing-helper tests remove its shared target.
 The Docker image is x86-64 only. No model, authentication or real account is used.
 
 ## Reproduction and its limits

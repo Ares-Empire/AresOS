@@ -6,6 +6,8 @@ WORKDIR /opt/aresos-control
 COPY control/boundary/package*.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund \
     && ln -s /opt/aresos-control/node_modules/@anthropic-ai/claude-code-linux-x64/claude /usr/local/bin/claude \
+    && mkdir -p /usr/local/lib/node_modules/@anthropic-ai \
+    && ln -s /opt/aresos-control/node_modules/@anthropic-ai/sandbox-runtime /usr/local/lib/node_modules/@anthropic-ai/sandbox-runtime \
     && test -x /usr/local/bin/claude
 COPY control/boundary/ ./
 COPY control/settings/ /etc/claude-code/
