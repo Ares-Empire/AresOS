@@ -403,3 +403,9 @@ tasks at any time.
   approval deadline is 15 minutes from the service's reservation at prepare time, and a later call is refused; the
   `question` field is checked on the original arguments, escaped and bounded with exact counts; the laptop-only
   handling of his own unattributed sends is marked as the writer's judgment call, to confirm with him.
+- **2026-11-07, 21:02:** a gap from mac-capacity's scope check, fixed in the design on branch `control/path-startup`:
+  `~/bin` was neither hidden nor a named start-up place, yet Fedora's `.bashrc` (kept in AresOS's `/etc/skel`) puts it
+  first on his PATH, so a `~/bin/git` the assistant wrote would run as him. Now every non-hidden folder on his login
+  PATH, read from his real login shell and refreshed when it changes, is a start-up place the assistant can't write
+  into; nothing the assistant writes has an execute bit; changing or moving one of his runnable files to another
+  folder asks. A hostile test tries `~/bin/git` and a runnable file through every write path.
