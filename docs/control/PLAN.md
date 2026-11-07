@@ -140,4 +140,6 @@ tasks at any time.
 
 ## Where it stands
 
-- **2026-11-07:** owner decisions above. S1 done. S2 (brief 17) next.
+- **2026-11-07:** owner decisions above. S1 done. S2 (brief 17) running (Codex `gpt-6.1-sol`, branch
+  `pkg/17-chrome-check`). Design draft for the shared base and Mail: [`docs/design/CONTROL.md`](../design/CONTROL.md);
+  its Chrome part waits for S2, then the whole design goes to the frontier review.
