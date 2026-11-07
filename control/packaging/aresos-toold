@@ -1,0 +1,3 @@
+#!/bin/sh
+# DRAFT root-owned /usr/bin/aresos-toold; run through the aresos-tools systemd unit.
+exec /usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py service

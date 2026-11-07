@@ -1,0 +1,8 @@
+{
+  "_comment": "DRAFT. Owner chooses folders and actual home at onboarding. Must be root-owned.",
+  "act_socket": "/run/aresos-tools/act.sock",
+  "admin_socket": "/run/aresos-tools/admin.sock",
+  "home": "/home/OWNER",
+  "folders": ["/home/OWNER/Documents", "/home/OWNER/Downloads", "/home/OWNER/Desktop"],
+  "file_limit": 26214400
+}
