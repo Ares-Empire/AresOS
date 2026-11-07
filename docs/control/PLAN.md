@@ -74,18 +74,20 @@ Three places, each with one job:
      failed at once and repeated exactly once after approval ("fail, then repeat"). Service workers are held by
      attaching to them. Installed by policy, the extension can't be switched off, but Chrome hides its debugging
      bar, so the extension shows its own sign and Stop button.
-   - **S2c, Chrome (brief 17c, after 17b, alongside brief 18):** holding messages on live connections in pages and
-     workers; tracing each request's cause through timers, promises and workers back to Claude's input; guard mode
-     for same-site tabs and workers outside the group; how much background and reading-through-POST everyday sites
-     produce (which of the owner's usual sites need an adapter); delayed sends and popups. Raised by `mac-capacity`
-     and the design review.
+   - **S2c, Chrome (brief 17c):** done 2026-11-07 ([report](../../reviews/17c-chrome-pages/REPORT.md), PR #7). Sends
+     can wait inside the page on honest pages (nothing leaks when control ends), so that is the normal path, with
+     fail-then-repeat as the catch-all. Not a wall against a hostile page: one that keeps a live connection's own
+     send function away from the wrap gets a message out. New shared and service workers start too fast to catch,
+     so they aren't let start while Claude works on a site. The owner's own clicks that empty Claude's queue are
+     held and his genuine notification answers work. On ten public sites: GitHub, Wikipedia and news smooth; Amazon
+     and Google search hold telemetry; Notion and Google Docs need adapters.
 1. **Design** (`docs/design/CONTROL.md`): done 2026-11-07. Draft 6 after the frontier review (8 blocking) and five
    re-checks (7, 4, 1, 1, then none: ready for brief 18). The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
    with it.
-2. **Base and boundary (brief 18):** the operation log, the generic MCP proxy and terminal command, a fake app with a
+2. **Base and boundary (briefs 18 and 18b):** the operation log, the generic MCP proxy and terminal command, a fake app with a
    send and a delete, file transfer on the caller's side, the managed settings draft, the sandbox boundary on Linux
    with the fixed hostile programs in CI, and the `Stop` hook. The owner checks a fake send prompt on his phone.
-3. **Early image test (brief 18b):** a minimal, unpublished AresOS build in the CI virtual machine runs the fake app
+3. **Early image test (brief 18c):** a minimal, unpublished AresOS build in the CI virtual machine runs the fake app
    end to end. `laptop-aresos` agrees the `os/ci/` change first.
 4. **Mail and Chrome (briefs 19 and 20)**, side by side on the base, once 18 and the Chrome checks have settled the
    contracts.
@@ -172,8 +174,11 @@ tasks at any time.
   image test before the apps). Re-check of the fixes next.
 - **2026-11-07, 07:30:** design ready (draft 6, five re-checks). Briefs 18 (base) and 18b (boundary) running, each
   with a Claude package lead. 17b running; 17c after it.
-- **2026-11-07, 10:30:** brief 18b ready for merge (PR #5: Claude Code's own sandbox blocked 127 of 127 routes
-  around the tools; final review SAFE after three fix rounds). Briefs 18 and 18b and the checks 17 and 17b wait for
-  the owner's "merge". 17c running.
 - **2026-11-07, 08:25:** 17b done (PR #4; design draft 7 takes its results). Brief 18 ready for merge (PR #6: final
   review SAFE after two fix rounds, CI green twice on `46c19ae`). 18b in its second fix round. 17c started.
+- **2026-11-07, 08:55:** brief 18b ready for merge (PR #5: Claude Code's own sandbox blocked 127 of 127 routes
+  around the tools; final review SAFE after three fix rounds). Briefs 18 and 18b and the checks 17 and 17b wait for
+  the owner's "merge". 17c running.
+- **2026-11-07, 10:05:** 17c done (PR #7, CI green twice on `8f1f196`). Design draft 8 takes its results into
+  section 6 (holding inside the page as the normal path; the site guard settled: short and rare, and strict while
+  on). Frontier re-check of section 6 next, then brief 20 (Chrome) after the owner's "merge" and brief 19 (Mail).

@@ -70,7 +70,7 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Submit a form, post, send a message, any request that sends | `chrome_submit` | send | first |
 | Typing and Enter where the message hold can't be in place | `chrome_submit_input` | send | first, on sites with an adapter; refused elsewhere (reloading the page usually brings the normal hold back) |
 | Sends on the owner's trusted sites | `chrome_submit_trusted` | send, free | first, for operations a site adapter recognises; deleting and paying are never free |
-| Apps that read through POST (Notion, Google's apps) | site adapter; GraphQL sorted by itself | | first for the owner's usual sites; elsewhere Claude's clicks there ask until an adapter exists |
+| Apps that read through POST (Notion, Google's apps) | site adapter; GraphQL sorted by itself | | first for the owner's usual sites (17c: Notion and Google Docs need one); elsewhere Claude's clicks there ask until an adapter exists |
 | Drop what a page wanted to send | `chrome_drop` | change | first |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; passwords never pass through Claude |
