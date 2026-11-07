@@ -37,10 +37,14 @@ export async function readAndAct(cdp,fixture,out,route,aria,frameSessions){
       assert.equal(v.elements.find(e=>e.name==='Display name').state.required,true);
       assert.equal(v.elements.find(e=>e.name==='Updates').state.checked,'true');
       assert.equal(v.elements.find(e=>e.name==='Disabled').state.disabled,true);
+      assert.ok(v.elements.some(e=>e.state.selected===true));
       assert.ok(v.elements.some(e=>e.state.invalid==='true'));
       assert.ok(v.elements.some(e=>e.onScreen===false));
     }
-    if(page==='shadow')assert.ok(v.elements.some(e=>e.name==='Shadow note'));
+    if(page==='shadow'){
+      await view.act(ref(v,'Shadow note'),'fill','shadow-edited');
+      assert.equal((await view.read({limit:10000})).elements.find(e=>e.name==='Shadow note').value,'shadow-edited');
+    }
     if(page==='modal')assert.ok(v.elements.some(e=>e.role==='dialog'&&e.state.modal===true));
     if(page==='frames'){
       for(const frame of v.frames.filter(f=>f.parent)){
@@ -99,7 +103,12 @@ export async function holdChecks(cdp,fixture,out,route){
     await delay(600);
     const pending=[...hold.pending.values()].filter(e=>e.preview.address.includes('case='+c));
     const heldLog=matching(fixture.arrivals,c);
-    const appearance=await evaluate(cdp,'document.body.innerText');
+    // A held document navigation can leave Runtime.evaluate queued until navigation resolves.
+    // Retain a labelled pre-action view and use report-only evidence for the waiting UI.
+    const appearance=['post','get','cross'].includes(kind)
+      ? {state:'document navigation held; cached pre-action text',text:v.frames.map(f=>f.text).join('\n')}
+      : await evaluate(cdp,'document.body.innerText');
+    if(['post','get','cross'].includes(kind))await screenshot(out,`${route}-while-${kind}-${decision}-held`);
     if(kind==='fetch'&&decision==='release'){await cdp.send('Page.bringToFront');await screenshot(out,`${route}-while-fetch-held`);}
     const record={kind,decision,case:c,serverSequenceBefore:before,heldMs:600,whileHeld:heldLog.length,pending:pending.map(e=>({id:e.id,preview:e.preview,hash:e.hash})),appearance};
     if(kind!=='worker')assert.equal(heldLog.length,0,`${c} left before approval`);
