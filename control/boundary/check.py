@@ -119,6 +119,7 @@ def main():
         rows = [json.loads(line[8:]) for line in result.stdout.splitlines() if line.startswith('HOSTILE ')]
         expected = len(FIXTURES['sockets']) + 2 + len(FIXTURES['reads']) + 3 * len(FIXTURES['writes']) + 6 + 6 + 1 + 1 + 3
         assert len(rows) == expected and f'HOSTILE_DONE {expected}' in result.stdout, 'hostile programs did not finish'
+        assert 'WORK_READ_OK' in result.stdout and 'TEMP_WRITE_OK' in result.stdout
         assert all(row['blocked'] for row in rows), 'OPEN ROUTES: ' + str([r for r in rows if not r['blocked']])
         assert result.returncode == 0
         assert all(Path(p).is_file() and digest(p) == before for p, before in snapshots.items()), 'target changed'
@@ -143,13 +144,27 @@ def launcher_checks():
     cli.unlink()
     cli.write_text('#!/usr/bin/python3 -I\nimport json,os,sys\nprint("LAUNCHED " + json.dumps({"env":dict(os.environ),"args":sys.argv[1:]}))\n')
     cli.chmod(0o755)
-    planted = dict(ENV, NODE_OPTIONS='--require=/untrusted.js', LD_PRELOAD='/untrusted.so',
-                   LD_LIBRARY_PATH='/untrusted', PYTHONPATH='/untrusted', PYTHONSTARTUP='/untrusted.py',
+    put('/home/assistant/work/env-shadow/sitecustomize.py',
+        'open("/home/assistant/work/python-env-ran", "w").write("executed")\n')
+    put('/home/assistant/work/env-shadow/preload.cjs',
+        'require("node:fs").writeFileSync("/home/assistant/work/node-env-ran", "executed");\n')
+    planted = dict(ENV, NODE_OPTIONS='--require=/home/assistant/work/env-shadow/preload.cjs',
+                   LD_PRELOAD='/opt/aresos-control/env-load.so',
+                   LD_LIBRARY_PATH='/untrusted', PYTHONPATH='/home/assistant/work/env-shadow', PYTHONSTARTUP='/untrusted.py',
                    BASH_ENV='/untrusted.sh', ENV='/untrusted.sh', CLAUDE_CONFIG_DIR='/untrusted',
                    CLAUDE_CODE_PLUGIN_DIRS='/untrusted', ANTHROPIC_API_KEY='SYNTHETIC',
                    DISPLAY=':0', WAYLAND_DISPLAY='wayland-0', DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/10001/bus')
     try:
+        for command, marker in [(['/usr/bin/true'], 'preload-ran'),
+                                (['/usr/bin/python3', '-c', 'pass'], 'python-env-ran'),
+                                (['/usr/local/bin/node', '-e', ''], 'node-env-ran')]:
+            run(command, 'env-positive-' + marker, planted)
+            assert Path('/home/assistant/work', marker).exists()
+        for marker in ['preload-ran', 'python-env-ran', 'node-env-ran']:
+            Path('/home/assistant/work', marker).unlink()
         result = run(['/usr/local/bin/aresos-assistant'], 'launcher-planted', planted, required=False)
+        assert not any(Path('/home/assistant/work', marker).exists()
+                       for marker in ['preload-ran', 'python-env-ran', 'node-env-ran']), 'planted startup code executed'
         if MODE == 'absent':
             assert result.returncode == 78 and 'REFUSE:' in result.stderr and 'LAUNCHED' not in result.stdout
             print('LAUNCHER_OK missing_filter_refused', flush=True)

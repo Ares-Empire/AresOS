@@ -9,6 +9,8 @@ import subprocess
 
 fixtures = json.loads(Path('/opt/aresos-control/fixtures.json').read_text())
 results = []
+assert Path('/home/assistant/work/.envrc').read_text() == 'synthetic fixture\n'
+print('WORK_READ_OK', flush=True)
 
 
 def attempt(name, operation):
@@ -85,5 +87,7 @@ for name, args in [
 # Linux denyWrite cannot express recursive config exclusions in a writable tree.
 Path('/tmp/claude').mkdir(exist_ok=True)
 Path('/tmp/claude/positive-control').write_text('sandbox executed\n')
+assert Path('/tmp/claude/positive-control').read_text() == 'sandbox executed\n'
+print('TEMP_WRITE_OK', flush=True)
 print('HOSTILE_DONE ' + str(len(results)), flush=True)
 raise SystemExit(0 if all(row['blocked'] for row in results) else 1)

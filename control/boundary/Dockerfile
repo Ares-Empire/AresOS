@@ -10,6 +10,7 @@ RUN npm ci --ignore-scripts --no-audit --no-fund \
 COPY control/boundary/ ./
 COPY control/settings/ /etc/claude-code/
 RUN gcc -static -O2 -Wall -Wextra -Werror launcher.c -o /usr/local/bin/aresos-assistant \
+    && gcc -shared -fPIC -O2 -Wall -Wextra -Werror env-load.c -o /opt/aresos-control/env-load.so \
     && useradd --uid 10001 --create-home assistant \
     && useradd --uid 10002 --no-create-home aresos-tools \
     && useradd --uid 10003 --create-home coder \

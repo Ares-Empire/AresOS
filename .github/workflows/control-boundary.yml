@@ -39,6 +39,7 @@ jobs:
           for mode in present absent; do
             docker run --rm --network none \
               --security-opt seccomp=unconfined --security-opt apparmor=unconfined \
+              --security-opt systempaths=unconfined \
               -e FILTER_MODE="$mode" \
               -v "$PWD/evidence/$mode:/evidence" aresos-boundary \
               2>&1 | tee "evidence/$mode-console.txt"
