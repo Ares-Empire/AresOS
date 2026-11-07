@@ -425,8 +425,8 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn('owner as first reader', status)
         self.assertIn('maintainer (Claude) checking each stage', status)
         for label,state in (('Stage A — preparation','CHECKED 2026-11-05'),
-                            ('Stage B — fitting','RELEASED — A checked 2026-11-05'),
-                            ('Stage C — installation','NOT RELEASED')):
+                            ('Stage B — fitting','CHECKED 2026-11-07'),
+                            ('Stage C — installation','RELEASED 2026-11-07')):
             row=next(line for line in status.splitlines() if line.startswith('| '+label+' |'))
             self.assertIn('**'+state+'**',row)
         c=next(line for line in status.splitlines() if line.startswith('| Stage C —'))
@@ -626,7 +626,7 @@ class OwnerPathTest(unittest.TestCase):
             self.assertNotIn('/actions/runs/', text)
             self.assertNotIn('40184846815', text)
         status = documents()['INSTALL-STATUS.md']
-        for phrase in ('NOT RELEASED', 'FnLock states', 'Damaged-battery', 'Unaided-reader',
+        for phrase in ('Physical gates close through checked step evidence', 'FnLock states', 'Damaged-battery', 'Unaided-reader',
                        'Expendable-media', 'protected-second', 'not qualified protected-first',
                        'US-then-stock rollback was not run', 'Qualification 21 PASSED'):
             self.assertIn(phrase, status)
