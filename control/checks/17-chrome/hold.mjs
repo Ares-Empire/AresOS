@@ -83,7 +83,7 @@ export class Hold extends EventEmitter {
       try{data=(await this.cdp.send('Network.getRequestPostData',{requestId:p.networkId})).postData;}catch{/* Explicit missing-data flag below. */}
     }
     const preview={site:new URL(p.request.url).origin,address:p.request.url,method:p.request.method,data,bodyEntries:p.request.postDataEntries||null,bodyUnavailable:!!p.request.hasPostData&&data===null,type:p.resourceType};
-    const entry={id:p.requestId,sessionId,preview,classifierReason:reason,hash:fingerprint(preview),state:'held',at:Date.now()};
+    const entry={id:p.requestId,sessionId,preview,classifierReason:reason,hash:fingerprint(preview),state:'held',at:Date.now(),atMonoMs:Number(process.hrtime.bigint())/1e6};
     this.pending.set(entry.id,entry);this.history.push(entry);this.emit('held',entry);
   }
   async decide(id,decision,hash){
@@ -91,7 +91,7 @@ export class Hold extends EventEmitter {
     if(!entry||entry.state!=='held')throw new Error('NOT_PENDING: decision already consumed or unknown');
     if(entry.hash!==hash)throw new Error('PREVIEW_MISMATCH');
     // Consume before the call: a transport failure means unknown, never automatic retry.
-    this.pending.delete(id);entry.state='unknown';entry.decidedAt=Date.now();
+    this.pending.delete(id);entry.state='unknown';entry.decidedAt=Date.now();entry.decidedMonoMs=Number(process.hrtime.bigint())/1e6;
     await this.command(decision==='release'?'Fetch.continueRequest':'Fetch.failRequest',decision==='release'?{requestId:id}:{requestId:id,errorReason:'Aborted'},entry.sessionId);
     entry.state=decision==='release'?'released':'dropped';
   }

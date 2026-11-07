@@ -101,12 +101,14 @@ export async function holdChecks(cdp,fixture,out,route){
     if(kind==='worker')await eventually(async()=>await evaluate(cdp,'document.querySelector("#status").textContent')==='Worker ready','service worker activation');
     const view=new PageView(cdp);await view.enable();const v=await view.read({limit:10000});
     hold.intent={form:['post','get','cross'].includes(kind),typing:kind.startsWith('autosave')};
+    const triggeredMonoMs=Number(process.hrtime.bigint())/1e6;
     if(kind.startsWith('autosave'))await view.act(ref(v,'Message'),'fill','synthetic-autosave');
     else await view.act(ref(v,kind==='ping'?'Follow fixture link with ping':'Send fixture'),'click');
     await eventually(()=>[...hold.pending.values()].some(e=>e.preview.address.includes('case='+c))||matching(fixture.arrivals,c).length,'held or leaked '+c);
     await delay(600);
     const pending=[...hold.pending.values()].filter(e=>e.preview.address.includes('case='+c));
     const heldLog=matching(fixture.arrivals,c);
+    const observedMonoMs=Number(process.hrtime.bigint())/1e6;
     // A held document navigation can leave Runtime.evaluate queued until navigation resolves.
     // Retain a labelled pre-action view and use report-only evidence for the waiting UI.
     const appearance=['post','get','cross'].includes(kind)
@@ -114,13 +116,14 @@ export async function holdChecks(cdp,fixture,out,route){
       : await evaluate(cdp,'document.body.innerText');
     if(['post','get','cross'].includes(kind))await screenshot(out,`${route}-while-${kind}-${decision}-held`);
     if(kind==='fetch'&&decision==='release'){await cdp.send('Page.bringToFront');await screenshot(out,`${route}-while-fetch-held`);}
-    const record={kind,decision,case:c,serverSequenceBefore:before,heldMs:600,whileHeld:heldLog.length,pending:pending.map(e=>({id:e.id,preview:e.preview,classifierReason:e.classifierReason,hash:e.hash})),appearance};
+    const record={kind,decision,case:c,serverSequenceBefore:before,heldMs:600,triggeredMonoMs,observedMonoMs,whileHeld:heldLog.length,pending:pending.map(e=>({id:e.id,preview:e.preview,classifierReason:e.classifierReason,hash:e.hash,pausedMonoMs:e.atMonoMs})),appearance};
     if(kind!=='worker')assert.equal(heldLog.length,0,`${c} left before approval`);
     if(pending.length){
       assert.equal(pending.length,1);const entry=pending[0];
       if(kind==='pixel')assert.equal(entry.classifierReason,null,'pixel exfiltration is a measured classifier miss');
       await assert.rejects(()=>hold.decide(entry.id,decision,'changed-preview'),/PREVIEW_MISMATCH/);
       await hold.decide(entry.id,decision,entry.hash);
+      record.decidedMonoMs=entry.decidedMonoMs;
       await assert.rejects(()=>hold.decide(entry.id,decision,entry.hash),/NOT_PENDING/);
       if(decision==='release')await eventually(()=>matching(fixture.arrivals,c).length===1,'one arrival '+c);
       await delay(400);assert.equal(matching(fixture.arrivals,c).length,decision==='release'?1:0);
@@ -129,7 +132,9 @@ export async function holdChecks(cdp,fixture,out,route){
       assert.equal(kind,'worker');assert.equal(heldLog.length,1);
       record.result='NOT HELD: service-worker request bypassed tab Fetch';
     }
-    record.after=matching(fixture.arrivals,c);results.push(record);
+    record.after=matching(fixture.arrivals,c);
+    if(pending.length)assert.ok(record.after.every(a=>a.atMonoMs>=record.decidedMonoMs),'arrival must follow the recorded decision');
+    results.push(record);
     console.log('HOLD',route,kind,decision,'whileHeld='+record.whileHeld,'after='+record.after.length,record.result);
     if(kind==='fetch'&&decision==='release')await screenshot(out,`${route}-after-held-fetch`);
     view.close();hold.intent={};
@@ -237,6 +242,8 @@ export async function publicChecks(cdp,out,route){
   }
   for(const record of results){
     // Attribute late/unload analytics to their source document, not to the next site.
+    record.visitRequests=record.requests.length;
+    record.visitLoadFalseAlarms=record.requests.filter(r=>r.reason&&r.phase==='load').length;
     const origin=new URL(record.url).origin;
     record.requests=hold.history.filter(r=>{try{return new URL(r.documentURL).origin===origin;}catch{return false;}});
     record.loadFalseAlarms=record.requests.filter(r=>r.reason&&r.phase==='load').length;
@@ -244,5 +251,7 @@ export async function publicChecks(cdp,out,route){
     record.guardOnlyDrops=record.requests.filter(r=>!r.reason&&r.decision==='drop').length;
     console.log('PUBLIC',record.name,'requests='+record.requests.length,'loadFalseAlarms='+record.loadFalseAlarms,'actionCandidates='+record.actionCandidates,'guardOnlyDrops='+record.guardOnlyDrops);
   }
-  save(out,`${route}-public-sites`,results);await hold.close();return results;
+  save(out,`${route}-public-sites`,results);
+  try{await hold.close();}finally{save(out,`${route}-public-traffic`,hold.history);}
+  return results;
 }

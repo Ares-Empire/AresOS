@@ -9,7 +9,7 @@ export async function fixtures(out) {
   const arrivals = [];
   let other;
   const record = row => {
-    const entry = {seq:arrivals.length+1, at:Date.now(), ...row};
+    const entry = {seq:arrivals.length+1, at:Date.now(), atMonoMs:Number(process.hrtime.bigint())/1e6, ...row};
     arrivals.push(entry);
     fs.appendFileSync(`${out}/server.jsonl`, JSON.stringify(entry)+'\n');
   };
