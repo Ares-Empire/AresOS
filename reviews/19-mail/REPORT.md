@@ -27,7 +27,7 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - **Sent setup:** when a short probe finds no Sent copy, setup asks you to confirm whether the client or server saves it rather than guessing from absence. Automatic negative detection would need a proven time bound for the real account.
 - **Folder deletion:** deletion only runs where the server refuses to delete a folder that holds mail, so no mail can be lost. If another mail program renames the approved empty folder and creates a new empty one with the same name in the same instant, the new empty one is deleted instead; the alternative is to remove folder deletion from the tools. Neither test server qualifies on its own, so the real account's guard still needs your check.
 - **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
-- **Approval format:** send and delete use the existing base approval format, with one reserved operation identifier and its complete description, unchanged through submission. A separate mail-specific format was rejected to keep callers and approval checks compatible.
+- **Approval prompt — owner decision, round 12:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut.
 
 - **Filing after a folder-role race (rounds 10–11):** mail stays where the move or copy put it; nothing is moved back or deleted. You get a short warning with the filing id, message count and bounded folder names until acknowledged. Following Mail results and `aresos log` repeat the newest three warnings and count the rest; `mail_filing_notices` pages every warning, and `mail_filing_locations` returns exact locations on request. Cleaning up copies still requires the ordinary delete approval. If a special role moves to the target and back between the command and the check, the result can say done: the mail is in the intended target, which has no protected role at the end, and nothing is lost. Disabling free filing entirely was the alternative; changing this later affects only filing and its views.
 - **Stopping rule from the lead:** Claude can always write a file itself and attach it, and the approval then shows only its name, size and change time; that is the open owner question about Claude-written files. Any further finding of the kind “text Claude wrote reaches an attachment by a new route” is settled by your answer on how attachments are shown, not by another fix round. Blocking findings of any other kind still count.
@@ -37,6 +37,113 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Owner decision: plain question first (round 12)
+
+**Done — read:** implements `briefs/19-review-fixes-12.md`. Every new approval
+starts with the service's plain-English `question`, then `operation_id` and the
+complete, unchanged `description`. Claude passes all three unchanged. This lives
+in brief 18's shared `common.approval_input()` and `definitions.APPROVAL`, so
+Chrome (brief 20) will use the same format. No Chrome implementation is claimed.
+
+- Base `engine.py` stores/hashes the complete approval and rejects an altered or
+  missing question with `stale_approval` before any send/delete. Adapter preparation
+  now returns `(question, description, payload)`; `adapters.py`, `testapp.py` and
+  the adapter instructions document it. Local repair operations also get a question.
+- Base `common.py`, `protocol.py`, `proxy.py` and `cli.py` preserve question-first
+  presentation in socket JSON, MCP text/structured results and CLI output, including
+  stored approvals after restart. Canonical hashing/storage serialization stays
+  unchanged. The proxy also preserves `stale_approval` for a removed question.
+- Mail `questions.py` and `adapter.py` build the question from preparation facts:
+  display names with address fallback; To/Cc/hidden Bcc; subject as written; caller
+  text line count; quote/forward indicators; attachment names; named deletions in
+  both modes; empty-folder deletion; both unsubscribe methods; setup probes and
+  repairs. Control/bidi/backslash escaping happens once through shared `visible()`.
+  Full recipient lists, text, targets and attachment facts remain below it.
+- Tool definitions, generated Mail/testapp MCP catalogues and `docs/control/TOOLS.md`
+  explain unchanged submission including `question`; generated-artifact check passes.
+
+**JUDGMENT-CALL — read, within the approved owner decision:** questions list the
+first three recipients per group, attachments and deletion targets, then `and N more`.
+Individual summary names retain up to 80 visible characters, delete subjects 120,
+then an ellipsis; escapes remain whole. The send subject is never shortened. A
+4,096-visible-character question cap and the existing whole 16 KiB cap refuse the
+entire approval before reservation. Unlimited summaries or cutting the subject/body
+were rejected. Changing these bounds later costs a constant/helper, regeneration
+and regression expectations. Line counts use `splitlines()` on caller text only;
+quotes, forwards, saved draft text and signatures remain separate disclosed facts.
+
+**Tests — run:** new Mail `PlainQuestions12` methods in `test_review_fixes_12.py`:
+
+- `test_round12_send_many_groups_names_fallback_and_attachments_keep_full_fields`
+- `test_round12_controls_bidi_and_backslashes_escape_once_without_cutting_escapes`
+- `test_round12_reply_quotes_and_both_forwards_describe_generated_content`
+- `test_round12_delete_both_modes_many_messages_and_empty_folder`
+- `test_round12_unsubscribe_mailto_and_one_click_list_or_sender`
+- `test_round12_mail_changed_and_missing_question_never_execute`
+- `test_round12_complete_question_and_description_share_limit_no_reservation_on_overflow`
+- `test_round12_onboarding_and_mail_repair_questions_first`
+
+New `ServerQuestions12.test_round12_real_servers_tampered_or_removed_question_no_send_or_delete`
+checks Dovecot message survival and zero scripted-SMTP arrivals. New shared-base
+`ApprovalQuestions` methods in `test_approval_questions.py`:
+
+- `test_question_required_first_escaped_and_counts_toward_exact_limit`
+- `test_testapp_changed_and_removed_question_never_send_or_delete`
+- `test_question_first_after_restart_socket_cli_and_mcp_text_serialization`
+- `test_repair_question_is_stored_first_without_resubmission`
+
+The baseline had no question field/schema or presentation support; these assertions
+would fail there. Existing header guards still refuse caller-written controls/bidi;
+helper tests cover their escaping and real incoming MIME tests cover derived bidi.
+
+**Existing base tests changed, and why — read:**
+`Record.test_record_size_is_independent_of_body_and_attachment` adds the question
+bytes to its exact-16-KiB template; all size/privacy assertions remain.
+`Operations.test_service_refuses_caller_paths_and_descriptions_do_not_authorize_reuse`
+adds the question to its hand-built mismatched approval, retaining both no-arrival
+assertions. `Integration.test_real_mcp_stdio_list_prepare_send_attachment_save_and_hooks`
+keeps all earlier assertions and additionally checks the new field order in actual
+MCP structured content, text content and the advertised input schema. No earlier
+test is weakened, skipped or deleted. All 145 earlier Mail methods remain.
+
+**Verified — run, last commit changing code/tests `aa706568a377ed080cc170e32a2f53f019007846`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail 42407620884, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42407620884/attempts/1) | `Ran 62 tests in 51.532s`; `Ran 154 tests in 502.872s`; `OK`; `Control base suite PASS`; `Control Mail suite PASS` |
+| [Mail 42407620884, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42407620884/attempts/2) | `Ran 62 tests in 41.726s`; `Ran 154 tests in 467.777s`; `OK`; `Control base suite PASS`; `Control Mail suite PASS` |
+| [Independent base 42407620899, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42407620899/attempts/1) | `Ran 62 tests in 37.072s`; `OK`; `Control base suite PASS` |
+| [Independent base 42407620899, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42407620899/attempts/2) | `Ran 62 tests in 40.012s`; `OK`; `Control base suite PASS` |
+
+The complete base suite (62 tests) and Mail suite (154 tests) pass; both workflows
+print `Generated artifacts match definitions`. Mail retains all prior crash/kill-9
+cases. Boundary also passed [Boundary 42407620887](https://github.com/Ares-Empire/AresOS/actions/runs/42407620887); its workflow and
+policy were not edited, and brief 18b remains outside this run's work.
+
+Local checks before each push:
+`python3 control/generate.py --check` → `Generated artifacts match definitions`;
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`
+→ `Python syntax OK: 82 files`, `Ran 38 tests`, `OK`. This reused helper parses
+all `control/**/*.py` and runs every direct plain-Python Mail TestCase class.
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions -v`
+→ `Ran 36 tests`, `OK`; record growth remains 4,078 bytes for both tiny and
+maximum-body/25-MiB sends, and 5,560 bytes for the typical three-recipient send.
+`git diff --check` passed. Local Python was 3.14.6 with the existing worktree vendor
+cache; Linux/socket/MCP and real-server qualification comes from CI, not the Mac.
+
+**Push discipline / scope — read:** the first push includes the pre-existing brief
+commit `33b5ae8d` and code/tests. Any later commit in this round changes only files
+under `reviews/`; final-head run IDs and both attempts are recorded in PR #9 after
+the report push. Second passes use `gh run rerun`, not another push. Normal push
+verification is retained; no `--no-verify`, force push, rebase or merge. No workflow,
+protected review, OS, mod or protected design/plan file was edited. No file left
+in `.work/` exceeds 500 MB; no large download or extraction was made this round.
+
+**Not verified / PLAN-GAP / open questions:** no new plan gap. Real phone/terminal
+approval rendering and the account/provider gates listed below still need the owner;
+no Claude session, real account or real delivery was used. The owner decision keeps
+Claude Code's own approval prompt, now with a plain question first and details below.
 
 ## Review fixes, round 11
 
@@ -1798,7 +1905,7 @@ three (push Mail, PR Mail, PR base), within the brief's approximate twenty-run b
   source draft. Silent replacement/removal would be a delete through a change tool.
   Exact old-draft deletion asks separately. Replacing in one free call was rejected;
   changing this later needs an explicitly approved deletion operation.
-- **read — asking shape:** reuse brief 18's `{operation_id, description}` envelope
+- **read — asking shape (updated round 12):** reuse brief 18's shared `{question, operation_id, description}` envelope
   instead of a second incompatible root schema. `operation_id` is design's service-
   issued `request_id`; description repeats the composition id/hash and all approval
   facts. Preparation is a separate change action. Altering any displayed field is
