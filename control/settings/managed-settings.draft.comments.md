@@ -2,7 +2,7 @@
 
 Documentation read 2026-11-07, for **Claude Code 2.1.319**. Anthropic's web documentation is rolling, not a versioned contract. `read in the docs` below means that snapshot, not an observed enforcement result. `checked by running` refers to the named logs from the Linux workflow (run IDs and outcomes in [the report](../../reviews/18b-control-boundary/REPORT.md)). An SRT result is never a claim about Claude Code's private settings resolver.
 
-This is a conservative, non-deployable draft for owner decision 3. `/home/assistant/work` and uid 10001 are explicit image assumptions, not discovered owner paths. The assistant terminal has no internet, no plugins, and a read-only work tree; file tools can still write ordinary work files subject to their permissions. The published runtime keeps `/tmp/claude` writable. No real account, credential or app server is present. No model is used.
+This is a conservative, non-deployable draft for owner decision 3. `/home/assistant/work` and uid 10001 are explicit image assumptions, not discovered owner paths. The assistant terminal has no internet, no installed user plugins, and a read-only work tree; file tools can still write ordinary work files subject to their permissions. The published runtime keeps `/tmp/claude` writable. No real account, credential or app server is present. No model is used.
 
 | Key | Purpose in this draft | Anthropic documentation | How checked (2.1.319 throughout) |
 | --- | --- | --- | --- |
@@ -16,7 +16,7 @@ This is a conservative, non-deployable draft for owner decision 3. `/home/assist
 | `allowAllClaudeAiMcps` | Keep account connectors out. | [reference](https://code.claude.com/docs/en/settings-reference#allowallclaudeaimcps) | read in the docs; needs a signed-in model run |
 | `allowClaudeInChromeWithManagedMcp` | Keep built-in Chrome control out. | [reference](https://code.claude.com/docs/en/settings-reference#allowclaudeinchromewithmanagedmcp) | read in the docs; needs a model run |
 | `permissions.defaultMode` | Start with ordinary approvals. | [reference](https://code.claude.com/docs/en/settings-reference#permissions-defaultmode) | read in the docs |
-| `permissions.disableBypassPermissionsMode` | Reject permission bypass. | [reference](https://code.claude.com/docs/en/settings-reference#permissions-disablebypasspermissionsmode) | checked by running: bypass-disabled |
+| `permissions.disableBypassPermissionsMode` | Prevent effective permission bypass. | [reference](https://code.claude.com/docs/en/settings-reference#permissions-disablebypasspermissionsmode) | checked by running: bypass-disabled system/init permissionMode is default (flag is clamped, not rejected) |
 | `permissions.blockWritesOutsideWorkingDirectories` | Confine file-tool writes. | [reference](https://code.claude.com/docs/en/settings-reference#permissions-blockwritesoutsideworkingdirectories) | read in the docs; needs a model run: Write/Edit/NotebookEdit |
 | `permissions.blockReadsOutsideWorkingDirectories` | Confine file-tool reads. | [reference](https://code.claude.com/docs/en/settings-reference#permissions-blockreadsoutsideworkingdirectories) | read in the docs; needs a model run: Read/Grep/Glob/LSP |
 | `permissions.additionalDirectories` | No extra working roots. | [reference](https://code.claude.com/docs/en/settings-reference#permissions-additionaldirectories) | read in the docs; launcher fixes cwd and accepts no options |
@@ -53,3 +53,9 @@ This is a conservative, non-deployable draft for owner decision 3. `/home/assist
 ## Linux write-rule decision
 
 Linux `denyWrite` supports literal paths and a trailing `/**`, **not** recursive exclusions such as `**/.envrc`. See [filesystem wildcard support](https://code.claude.com/docs/en/settings-reference#sandbox-filesystem). The draft therefore denies shell writes to the entire home working tree. The fixed tests include new subfolders so merely enumerating today's repositories cannot hide this gap. Restoring shell writes requires a separately reviewed policy/mechanism; do not replace this deny with ineffective globs. Recursive Read/Edit rules apply to file tools, whose enforcement still needs a model run. [Read/Edit rule syntax](https://code.claude.com/docs/en/permissions#read-and-edit) documents that Edit rules govern file writes too.
+
+## Observed native startup details
+
+**Checked by running**, Claude Code 2.1.319: `--dangerously-skip-permissions` is accepted far enough to contact the local fake endpoint, while its `system/init` event reports `permissionMode: default`. The managed control clamps the mode; it does not produce the startup error the reference describes. The probe uses a synthetic noncredential, gets no valid model response, and contacts no real provider. Actual tool approval behavior still needs a model run.
+
+The same init event lists vendor built-ins `cc-plugin-sec-default`, `cc-plugin-agents-md`, `cc-plugin-privacy` and `cc-plugin-plugin-authoring`. **Read in the docs:** [built-in mods](https://code.claude.com/docs/en/plugins/mods/overview#mods-built-into-claude-code) survive installed-mod switches and have separate controls; the default guard cannot be uninstalled that way. The docs table does not name the observed privacy built-in. The draft prevents installed user plugins, not all vendor code packaged into the native CLI. Audit these built-ins during image/model qualification; no arbitrary-code loading route through them was tested here.

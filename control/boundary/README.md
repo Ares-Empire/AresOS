@@ -122,3 +122,12 @@ Artifacts contain command outputs, individual hostile results, the stub log,
 launcher and settings logs, namespace-policy before value and run/head identity.
 `BOUNDARY_OK`, `LAUNCHER_OK`, `SETTINGS_OK` and `ISOLATION_OK` are asserted results.
 The workflow has a 30-minute job limit and runs on filtered pushes and PRs.
+
+The bypass-policy check starts a native session with a synthetic noncredential and
+only the local receiver as its fake model endpoint. Its `system/init` event must
+report permission mode `default` even with the bypass flag; the fixed receiver
+never produces a model response. These deliberate local connections occur after
+the hostile-program zero-arrival snapshot. They are not hostile network arrivals.
+Vendor built-ins remain listed in that native init event; this package does not
+claim to disable all built-in mods. The report records those names and the later
+qualification requirement.
