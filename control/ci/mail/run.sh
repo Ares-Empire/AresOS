@@ -21,7 +21,7 @@ docker run -d --name mail-tests -v "$PWD:/workspace" -w /workspace registry.fedo
 docker exec mail-tests bash control/ci/test.sh 2>&1 | tee "$work/base.txt"
 docker network disconnect bridge mail-tests
 docker network connect "$network" mail-tests
-docker run -d --name greenmail --network "$network" -v "$work/certs:/certs:ro" -e 'GREENMAIL_OPTS=-Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled -Dgreenmail.tls.keystore.file=/certs/tls.p12 -Dgreenmail.tls.keystore.password=synthetic-fixture' greenmail/standalone:2.1.15@sha256:309ba544ea482e5d4265d09921cdab07c8dad2cc4481d715c9b8ff5d3f0a149f
+docker run -d --name greenmail --network "$network" --network-alias badmail -v "$work/certs:/certs:ro" -e 'GREENMAIL_OPTS=-Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled -Dgreenmail.tls.keystore.file=/certs/tls.p12 -Dgreenmail.tls.keystore.password=synthetic-fixture' greenmail/standalone:2.1.15@sha256:309ba544ea482e5d4265d09921cdab07c8dad2cc4481d715c9b8ff5d3f0a149f
 docker run -d --name dovecot --network "$network" -v "$work/certs:/certs:ro" -v "$PWD/control/ci/mail/dovecot.conf:/etc/dovecot/dovecot.conf:ro" dovecot/dovecot:2.3.21.1@sha256:547d28f9a893c93a1d2f6dc164880cd7bfa74009106dfa46b36a6a2ee636d921
 docker exec -e PYTHONPATH=/workspace/control:/usr/lib/aresos-control/vendor -e PYTHONDONTWRITEBYTECODE=1 -e MAIL_CERT_DIR=/workspace/.work/mail-ci/certs mail-tests python3 control/ci/mail/ready.py
 docker exec -e PYTHONPATH=/workspace/control:/usr/lib/aresos-control/vendor -e PYTHONDONTWRITEBYTECODE=1 -e MAIL_CERT_DIR=/workspace/.work/mail-ci/certs mail-tests python3 -m unittest discover -s control/mail_tests -v 2>&1 | tee "$work/mail.txt"

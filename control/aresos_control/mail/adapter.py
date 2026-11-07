@@ -15,6 +15,7 @@ import uuid
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from ..adapters import NothingLeft, Uncertain
+from ..blobs import Blobs
 from ..common import Refused, canonical, digest, sha256, visible
 from . import codec
 from .transport import Transport, folders, select, fetch, uids, ok, quote, context
@@ -28,6 +29,7 @@ class Mail:
     def __init__(self, store, blobs):
         self.store, self.blobs = store, blobs
         self.transport = Transport(store.state_dir / "mail-passwords")
+        self.wires = Blobs(store.state_dir / "mail-wire", 64 * 1024 * 1024)
 
     def account(self, account_id, ready=True):
         value = self.store.get("mail:account:" + account_id)
@@ -310,6 +312,9 @@ class Mail:
                     raise Refused("stale_reference", "Attachment bytes changed; import again.")
                 att = {**item, "type": "application/octet-stream"}
             attachment_refs.append(att)
+        for att in attachment_refs:
+            if att["type"] == "message/rfc822":
+                att["source_type"], att["type"] = "message/rfc822", "application/octet-stream"
         mail = {"account": account["id"], "from": sender, "to": to, "cc": cc, "bcc": bcc,
                 "subject": codec.clean_header(subject), "text": args["text"], "format": args.get("format", account["format"]),
                 "signature": account["signature"], "generated_parts": generated, "attachments": attachment_refs,
@@ -357,8 +362,8 @@ class Mail:
                 major, minor = "application", "octet-stream"
             msg.add_attachment(data, maintype=major, subtype=minor, filename=codec.clean_header(item["name"]), cte="base64")
         raw = msg.as_bytes()
-        if len(raw) > self.blobs.limit:
-            raise Refused("file_refused", "Encoded whole mail exceeds configured 25 MiB limit; reduce attachments.")
+        if len(raw) > self.wires.limit:
+            raise Refused("file_refused", "Encoded whole mail exceeds 64 MiB limit; reduce attachments.")
         return raw
 
     def message_id(self, operation_id):
@@ -561,7 +566,7 @@ class Mail:
             key = operation["stages"].get("wire_sha256")
             if key is None:
                 raise Refused("refused", "Exact wire bytes absent after restore; cannot recreate a Sent copy.")
-            self.append(account, account["special"]["sent"], self.blobs.read(key), "(\\Seen)")
+            self.append(account, account["special"]["sent"], self.wires.read(key), "(\\Seen)")
             self.store.checkpoint("mail_sent_copy")
             return "done"
         reference = comp["mail"]["answered_reference"]
@@ -632,7 +637,7 @@ class Mail:
         comp = payload["composition"]
         raw = self.mime(comp, self.message_id(operation["id"]))
         stage("message_id", self.message_id(operation["id"]))
-        stage("wire_sha256", self.blobs.put(raw))
+        stage("wire_sha256", self.wires.put(raw))
         state, reason = self.send_smtp(operation, comp, raw, stage)
         if state == "failed":
             return state, reason

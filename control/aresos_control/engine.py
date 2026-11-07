@@ -1,8 +1,9 @@
 import base64
+import imaplib
 import time
 import uuid
 
-from .adapters import NothingLeft
+from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
 from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, canonical, digest, validate, visible
 from .definitions import APPS, BY_NAME, tools_for
@@ -304,7 +305,7 @@ class Engine:
             if method != "download" and len(canonical(result).encode()) > RESULT_LIMIT and method != "tools":
                 raise Refused("result_too_large", "Result exceeds 49152 bytes; request a smaller page. Check status before repeating changes.")
             return result
-        except (OSError, __import__("imaplib").IMAP4.error, __import__("aresos_control.adapters", fromlist=["Uncertain"]).Uncertain):
+        except (OSError, imaplib.IMAP4.error, Uncertain):
             return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app)}
         except (Refused, ValueError, KeyError, TypeError) as exc:
             return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": str(exc)}, "pending": self.pending(app)}
