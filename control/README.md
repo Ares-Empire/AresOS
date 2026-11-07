@@ -194,7 +194,10 @@ allows the owner to receive a report about work that cannot be resolved. The nex
 `UserPromptSubmit` reads again and returns
 `{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"…"}}`.
 Each managed launcher names its event independently of input: `launch.py hook Stop`
-or `launch.py hook UserPromptSubmit`. A different `hook_event_name` is malformed.
+or `launch.py hook UserPromptSubmit`. The managed prompt command has a fixed shell
+guard that emits Python's output only on success and always exits 0, covering
+interpreter startup failures before Python code can run. A different
+`hook_event_name` is malformed.
 No transcript, current directory or prompt path from hook input is opened. Input
 is read in full, including long prompts and final assistant messages. `Stop` keeps
 its explicit service-failure reminder and malformed-input stderr feedback with

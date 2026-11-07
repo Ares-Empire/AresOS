@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
+import shlex
 import signal
 import socket
 import subprocess
@@ -84,8 +85,14 @@ class Integration(unittest.TestCase):
     def call(self, uid, action, args, kind="act"):
         return self.request(uid, kind, {"method": "call", "action": action, "arguments": args})
 
+    def hook_command(self, name):
+        settings = json.loads((ROOT / "control/settings/managed-hooks.json").read_text())
+        return shlex.split(settings["hooks"][name][0]["hooks"][0]["command"])
+
     def launch(self, uid, mode_args, input=None, env=None, cwd=None):
-        return subprocess.run(["/usr/bin/python3", "-I", "-S", LAUNCH, *mode_args], preexec_fn=identity(uid),
+        command = (self.hook_command(mode_args[1]) if mode_args[0] == "hook" else
+                   ["/usr/bin/python3", "-I", "-S", LAUNCH, *mode_args])
+        return subprocess.run(command, preexec_fn=identity(uid),
                               input=input, env=env, cwd=cwd, capture_output=True, text=True, timeout=25)
 
     def test_all_socket_peer_credentials_even_permissive_modes(self):
@@ -378,7 +385,7 @@ print(json.dumps(results))
     def test_prompt_hook_installation_and_service_failures_are_quiet(self):
         fd = os.open(self.home, os.O_RDONLY | os.O_DIRECTORY)
         try:
-            hook = subprocess.run(["/usr/bin/python3", "-I", "-S", LAUNCH, "hook", "UserPromptSubmit"],
+            hook = subprocess.run(self.hook_command("UserPromptSubmit"),
                                   preexec_fn=identity(OWNER), stdin=fd, capture_output=True, text=True, timeout=15)
             self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
         finally:

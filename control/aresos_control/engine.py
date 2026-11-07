@@ -4,7 +4,7 @@ import uuid
 
 from .adapters import NothingLeft
 from .blobs import Blobs
-from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, canonical, digest, sha256, validate, visible
+from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, canonical, digest, validate, visible
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .testapp import Receiver, TestApp
