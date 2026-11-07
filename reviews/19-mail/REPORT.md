@@ -2,6 +2,136 @@
 
 Builds on draft PR #6. No merge, force push, real account or model run.
 
+## Review fixes, round 4
+
+**read — scope:** closes the three findings in `REVIEW-4.md` on `1aaa8ff`.
+This section supersedes earlier descriptions of copied/sanitized attachment headers
+and of the guard sharing codec helpers. Earlier review tests and `control/tests/`
+are unchanged. Generated tools/reference remain synchronized.
+
+- **Finding 1 — saved mail and the final check:** the detector stops only on a
+  genuinely empty protocol line. The independent guard imports nothing from
+  `codec.py`: it parses raw headers/boundaries itself, decodes all supported
+  transfer encodings, carries digest defaults, reparses every decoded leaf as a
+  possible MIME entity, and scans every decoded level for private header-shaped
+  lines or undisclosed authored markers, including continuation text. Exact body
+  integrity and actual full disclosure are separate checks: a quote approved by
+  reference cannot authorize literal marker text. Literal
+  `Bcc:`/`Resent-Bcc:` lines in ordinary files are refused with an explicit
+  false-positive explanation. Compose and prepare refuse unsafe bytes; both
+  send checks, including the one on the exact bytes immediately before DATA,
+  leave a durable `failed` operation with no DATA and no submission on replay.
+  Tests: `ReviewFixes4.test_review4_saved_sent_whitespace_continuation_refused_through_proxy`,
+  `RebuildAndGuard.test_review4_guard_checks_every_decoded_leaf_and_literal_private_lines`,
+  `ReviewFixes4.test_review4_guard_bypassing_builder_fails_compose_prepare_and_final_data_without_replay`,
+  `RebuildAndGuard.test_review4_guard_parses_literals_and_approved_inline_forward_text`.
+- **Finding 2 — attached mail rebuilt:** every outgoing mail source is created
+  anew with only the brief's message/MIME header allowlists, recursively.
+  Implicit digest children get their effective `message/rfc822` type preserved;
+  enclosed mail without From is handled. Unknown headers, all Resent headers and
+  the original authored marker are dropped. Provenance is decided on original
+  bytes/ancestors and Drafts first; rebuilt authored text gets the reserved
+  allowed `Content-Description: AresOS authored text; full approval required`.
+  That description preserves disclosure on another inspection without copying
+  the source marker. Approval lists the allowed headers, the transformation,
+  full authored text, and the SHA256 of the bytes actually attached. Broken or
+  ambiguous structures, unsupported encodings and depth/size excess refuse.
+  Tests: `RebuildAndGuard.test_review4_allowlist_all_nested_headers_and_original_provenance`,
+  `RebuildAndGuard.test_review4_implicit_digest_default_is_preserved_at_every_depth`,
+  `RebuildAndGuard.test_review4_rebuild_and_guard_refuse_depth_size_and_broken_structures`,
+  `ReviewFixes4.test_review4_digest_without_content_type_sent_clean_in_both_forward_styles_and_explicit_parts`.
+- **Finding 3 — byte-exact binaries:** outgoing extraction and reconstruction
+  slice original MIME bytes, decode each leaf without serializing it, and retain
+  those decoded bytes. Binary/bare-line-ending payloads use base64 when emitted.
+  Original read/source-save exports remain unchanged. The PDF/PNG test covers
+  binary and base64 sources through attached/inline forward and explicit parts,
+  asserting received decoded bytes and approved hashes exactly. Its TLS IMAP
+  frontend supplies explicit original literals over the real backend, because
+  BODY[] normalization by a backend must not silently normalize the fixture.
+  The non-relaying TLS SMTP sink records actual DATA bytes independently.
+  Test: `ReviewFixes4.test_review4_raw_binary_and_base64_pdf_png_are_byte_equal_after_all_send_paths`.
+  The original package's exact-forward fixture assertion now expects the exact
+  independently constructed allowlisted bytes (part-level MIME-Version removed)
+  and additionally checks unchanged original source export. No review assertion
+  was weakened, skipped, deleted or changed.
+
+**read — JUDGMENT-CALL, local attachment change time:** the caller captures
+`max(mtime, ctime)` from the same stable descriptor used to import bytes. Mail
+approvals show that instant as `last_changed`, with caller-local offset and zone,
+next to path/name/size/hash, and freeze it with the imported bytes. Backdating
+mtime cannot backdate ctime. This is a hint, not proof of who wrote the file;
+showing all ordinary files' text remains an owner question for the lead at merge.
+Omitting the hint or trusting mtime alone was rejected. A different policy later
+requires changing import metadata/approval and owner qualification, not transport.
+Test: `ReviewFixes4.test_review4_local_last_changed_is_max_mtime_ctime_in_caller_zone_and_frozen_in_approval`
+uses the real distinct-UID proxy, backdated/future mtimes, an explicit caller zone,
+then changes the paths and verifies the approved immutable bytes still send.
+The base schema only gains optional metadata; its default file-read contract and
+all 57 base tests are unchanged. Mail requires reimport for blobs lacking the hint.
+
+**read — JUDGMENT-CALL, strict decoded-content checks:** refuse even literal
+private-header lines; do not silently alter a text file or treat a MIME type/name
+as proof that it contains no mail. Rebuild/check bounds are 40 nested levels,
+64 MiB per entity/wire and 256 MiB cumulative inspection work; the existing
+25 MiB transferred-file and 16 KiB approval bounds still apply. Unsupported cases
+need qualified decoder/guard regressions before they can be supported.
+
+**run — local verification:** `PYTHONDONTWRITEBYTECODE=1
+PYTHONPATH=control:control/mail_tests python3 -m unittest
+test_review_fixes_4.RebuildAndGuard test_review_fixes_3.HeaderAndEncoding
+test_review_fixes_2.LocalMailDetection -v` printed `Ran 10 tests` / `OK`.
+`.work/round4-regressions.py` loaded `1aaa8ff` and reproduced the whitespace
+bypass, implicit-digest private-header leak, unlisted-header retention and raw
+binary PDF/PNG corruption, then printed current detector/rebuild PASS and exact
+binary/base64 × explicit/inline/attached-forward PDF/PNG bytes PASS.
+`.work/round3-regressions.py` printed all 24 adapter mode/encoding combinations
+PASS and injected-MIME refusal PASS. These local substitutes are not real-server
+evidence. `python3 control/generate.py --check` printed `Generated artifacts match
+definitions`; AST parsing printed `Python syntax OK`; `git diff --check` was silent.
+Docker reported `Cannot connect to the Docker daemon`; no host installation ran.
+
+**run — last code/test commit `b9a4e77368323683de356bf063b6108e86801463`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail push 42371333726](https://github.com/Ares-Empire/AresOS/actions/runs/42371333726) | `Ran 57 tests in 48.687s`; `Control base suite PASS`; `Ran 85 tests in 228.628s`; `OK`; `Control Mail suite PASS` |
+| [Mail PR 42371337726](https://github.com/Ares-Empire/AresOS/actions/runs/42371337726) | `Ran 57 tests in 56.694s`; `Control base suite PASS`; `Ran 85 tests in 246.482s`; `OK`; `Control Mail suite PASS` |
+| [Independent base 42371337719, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42371337719/attempts/1) | `Ran 57 tests in 39.124s`; `OK`; `Control base suite PASS` |
+| [Independent base 42371337719, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42371337719/attempts/2) | `Ran 57 tests in 48.059s`; `OK`; `Control base suite PASS` |
+
+Both Mail runs execute `bash control/ci/mail/run.sh`, including the unchanged base
+suite (`bash control/ci/test.sh`), generated verification, isolated pinned real
+servers, all ten new round-4 regressions (`... ok`) and all 89 existing kill cases.
+The independent workflow executes the same base script in pinned Fedora 45.
+Any later commit changes only `reviews/19-mail/REPORT.md`; the PR body records
+both workflows and both passes on that final, report-inclusive head.
+
+**run — earlier round-4 results:** initial head `a80e1db` Mail runs
+[42370336851](https://github.com/Ares-Empire/AresOS/actions/runs/42370336851) and
+[42370339915](https://github.com/Ares-Empire/AresOS/actions/runs/42370339915)
+printed `Ran 84 tests` / `FAILED (failures=5)`: the guard mistook embedded
+From/Subject prose in four inline-forward cases and one ordinary file for a
+malformed MIME entity. The implementation was corrected; the earlier review
+assertions remain unchanged. All nine initial new tests passed in both runs.
+Interim head `cae2d1b` passed Mail
+[42370827591](https://github.com/Ares-Empire/AresOS/actions/runs/42370827591) and
+[42370832173](https://github.com/Ares-Empire/AresOS/actions/runs/42370832173)
+(`Ran 85 tests` / `Control Mail suite PASS`) and both attempts of base
+[42370832198](https://github.com/Ares-Empire/AresOS/actions/runs/42370832198).
+It was superseded to tighten the distinction between an exact by-reference body
+and actually disclosed literal-marker text. Initial independent base
+[42370339914](https://github.com/Ares-Empire/AresOS/actions/runs/42370339914)
+also passed. These are not counted as final-code evidence. The extra verification
+head exceeds the approximate ten-run budget; no check or assertion was bypassed.
+
+**read / assumed — remaining owner gates:** no real account, provider, client or
+model was used. Actual recipient-client presentation and approval usability still
+need owner qualification. Local-file authorship remains unproven by timestamps.
+No additional PLAN-GAP or open question beyond those gates. **read — protocol:**
+[RFC 2046 §5.1.5](https://www.rfc-editor.org/rfc/rfc2046#section-5.1.5)
+specifies the implicit digest type used by both implementations. **run — final scope/size
+checks:** protected paths and review files untouched; no `.work` file over 500 MB.
+
 ## Review fixes, round 3
 
 **read — scope:** closes findings 1–2 in `REVIEW-3.md` on `5180db3` and adds
@@ -540,15 +670,18 @@ three (push Mail, PR Mail, PR base), within the brief's approximate twenty-run b
   local stage. A Sent copy alone does not identify all accepted/refused recipients.
   Unknown without that proof remains for owner inspection; no new SMTP path exists
   in repair. Relaxing this requires qualified per-recipient server evidence.
-- **read — exact attached mail bytes (review findings 2, rounds 1–2):** forwarded
-  and explicitly attached mail sources, including multipart containers, use
-  octet-stream attachment MIME to freeze the approved bytes. Bcc and Resent-Bcc
-  are removed recursively before hashing; reserialization may change folding
-  when sanitization is required. Sources with no private headers retain their
-  original bytes; read/source-save exports remain original even with Bcc.
-  Preserving Bcc-bearing outgoing originals was rejected because it leaks
-  private recipients. Reverting would reintroduce that disclosure; client `.eml`
-  presentation remains an owner qualification item.
+- **read — exact attached mail bytes (updated round 4):** every outgoing mail
+  attachment is rebuilt anew from the brief's message/MIME header allowlists,
+  recursively, including implicit digest messages. Original Bcc, all Resent and
+  unlisted headers and the original authored marker cannot survive. Authored
+  provenance is decided first, and reserved allowed Content-Description metadata
+  preserves its full-disclosure requirement. Original decoded binary leaves stay
+  byte-exact; headers, folding and transfer encoding may change even without Bcc.
+  Frozen octet-stream attachment MIME binds the approved rebuilt hash to the exact
+  sent attachment bytes. Read/source-save exports remain original. Passing original
+  blocks through or deleting only selected headers was rejected after repeated
+  bypasses. Changing this later needs matching builder/independent-check regressions
+  and owner qualification of recipient-client `.eml` presentation.
 - **read — bounds:** 25 MiB per transferred file, 64 MiB per encoded source/outgoing mail,
   6,000-character body pages, 20 summary items/page maximum and a 10,000-message full
   history scan bound. Search retains summaries rather than all fetched bodies;
