@@ -398,7 +398,7 @@ tasks at any time.
   Remote Control, with every asking input starting with the tool service's `question` sentence, verified. Written
   into the design on branch `control/approval-surface`; the Aresus approval screen is not planned. No owner question
   is open.
-- **2026-11-07, 19:49:** frontier re-check 17 of decision 21: recorded faithfully, two leftovers fixed. Approval
+- **2026-11-07, 19:46:** frontier re-check 17 of decision 21: recorded faithfully, two leftovers fixed. Approval
   descriptions reach his phone through Claude Code and Remote Control, with no extra encryption promised; the
   approval deadline is 15 minutes from the service's reservation at prepare time, and a later call is refused; the
   `question` field is checked on the original arguments, escaped and bounded with exact counts; the laptop-only
