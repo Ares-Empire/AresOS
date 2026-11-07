@@ -5,7 +5,7 @@ from support import MailCase
 from smtp_fixture import SMTPFixture
 from aresos_control.common import canonical, visible
 from aresos_control.mail import codec
-from aresos_control.mail.transport import fetch, ok, select, uids
+from aresos_control.mail.transport import fetch, ok, quote, select, uids
 
 
 class ReviewFixes6(MailCase):
@@ -34,7 +34,10 @@ class ReviewFixes6(MailCase):
     def test_review6_unmarked_marked_flagged_drafts_and_subfolders_refuse_move_copy_atomically(self):
         drafts, archive = (self.account['special'][k] for k in ('drafts', 'archive'))
         child = drafts + self.account['delimiter'] + 'Owner-work'
-        self.data('folder_create', {'account':'box', 'name':child})
+        # The owner's mail program can have subfolders that these tools forbid
+        # creating; seed one directly without weakening the folder-create rule.
+        with self.mail.transport.imap(self.account) as conn:
+            ok(conn.create(quote(child)), 'fixture Drafts subfolder')
         ordinary = self.fixture(text='Ordinary first item must stay too')
         for folder in (drafts, child):
             for kind in ('unmarked', 'marked', 'flagged'):
@@ -93,6 +96,11 @@ class ReviewFixes6(MailCase):
                 for size in (32, 23100):
                     text = 'From: writer@mail.invalid\nSubject: ' + 's' * size + '\n\nEntire unsent body\nFinal words'
                     ref = self.fixture(folder, sender=self.owner, to='one@mail.invalid', text=text, flags='(\\Draft keep)')
+                    # Establish a stable baseline as an owner client would:
+                    # writable SELECT consumes session-only Recent. Later reply
+                    # submission legitimately selects writable to add Answered.
+                    with self.mail.transport.imap(self.account) as conn:
+                        select(conn, folder, readonly=False)
                     original = self.mail.message(ref)
                     raw_body, before = codec.body(original['msg']), original['flags']
                     for mode in ('draft', 'reply', 'reply_all', 'forward'):
