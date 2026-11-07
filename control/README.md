@@ -6,7 +6,7 @@ image integration belong to later briefs. Packaging and managed settings are dra
 not a deployment or a claim that a Claude session is confined.
 
 The current Fedora container is **Fedora 45 x86_64**, pinned by manifest digest in
-the workflow; CI prints the exact Python patch version. The lock supports CPython
+the workflow; CI tested **Python 3.15.0** and prints its version. The lock supports CPython
 3.14 and 3.15. The only direct third-party runtime dependency is the official
 **MCP Python SDK 2.3.0**. All its transitive dependencies are pinned with wheel
 hashes. The service, CLI, filesystem policy, journal and hooks use the standard
@@ -48,7 +48,8 @@ Model-facing results are capped at 48 KiB. Lists have snapshot-bound cursors and
 at most ten entries per page; an invalidated cursor requires a new read. `pending`
 contains up to five compact references, a total and a cursor. Full operation
 descriptions remain available through operation status, with no approval truncation.
-`control_pending` and `control_log` page across all apps. Log dates use the service's
+`control_pending` and `control_log` page across all apps. The log includes time,
+action, input summary, outcome and operation id. Log dates use the service's
 local timezone. Returned app text is marked `untrusted_content`; descriptions
 instruct the caller to treat it as data.
 

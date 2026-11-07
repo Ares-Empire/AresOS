@@ -153,7 +153,7 @@ class Engine:
             return self.pending(args=args)
         if name == "control_log":
             day = time.strftime("%Y-%m-%d", time.localtime())
-            entries = [{k: event[k] for k in ("seq", "time", "action", "summary", "operation_id")} for event in self.store.events
+            entries = [{k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")} for event in self.store.events
                        if time.strftime("%Y-%m-%d", time.localtime(event["time"])) == day]
             return self.page(entries, args, "log:" + day)
         app, verb = action.app, action.verb
@@ -220,9 +220,10 @@ class Engine:
                 elif method == "download":
                     key = request["sha256"]
                     data = {"sha256": key, "bytes": base64.b64encode(self.blobs.read(key)).decode()}
-                    self.store.write({}, app + "_file_save", "export blob " + key + "; caller must report save outcome")
+                    self.store.write({}, app + "_file_save", "export blob " + key + "; caller must report save outcome", outcome="started")
                 else:
-                    self.store.write({}, app + "_file_save", "caller reports save " + visible(str(request.get("outcome")))[:512])
+                    self.store.write({}, app + "_file_save", "caller reports save " + visible(str(request.get("outcome")))[:512],
+                                     outcome="refused" if request.get("outcome") == "refused" else "done")
                     data = {"recorded": True}
             else:
                 raise Refused("invalid_input", "Unknown method or wrong socket; inspect the protocol.")

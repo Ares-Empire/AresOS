@@ -158,6 +158,24 @@ class Operations(EngineCase):
         self.assertIn("range", error["error"]["message"])
         self.assertFalse(self.call("testapp_list", {"surprise": True})["ok"])
 
+    def test_result_cap_refuses_instead_of_truncating(self):
+        data = self.engine.store.get("testapp")
+        data["items"]["1"]["text"] = "untrusted content " * 4096
+        self.engine.store.write({"testapp": data}, "fixture", "oversized result fixture")
+        result = self.call("testapp_list", {"limit": 1})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["code"], "result_too_large")
+        self.assertNotIn("data", result)
+        self.assertEqual(self.engine.store.get("testapp"), data)
+
+    def test_service_refuses_caller_paths_and_descriptions_do_not_authorize_reuse(self):
+        result = self.call("testapp_file_import", {"path": "/fixture/never-opened"})
+        self.assertEqual(result["error"]["code"], "proxy_required")
+        first, second = self.reserve(), self.reserve()
+        self.assertFalse(self.call("testapp_send", {"operation_id": second["operation_id"], "description": first["description"]})["ok"])
+        self.assertEqual(self.engine.receiver.evidence(first["operation_id"])["arrivals"], [])
+        self.assertEqual(self.engine.receiver.evidence(second["operation_id"])["arrivals"], [])
+
     def test_changes_logged_and_pending_in_every_result_and_hooks(self):
         approval = self.reserve()
         pending = self.data("control_pending")
@@ -174,6 +192,7 @@ class Operations(EngineCase):
         self.assertEqual(self.call("missing_action")["pending"]["total"], 1)
         events = self.data("control_log", {"limit": 10})["items"]
         self.assertTrue(any(e["operation_id"] == approval["operation_id"] and e["summary"].startswith("reserved") for e in events))
+        self.assertTrue(all("time" in e and "outcome" in e for e in events))
 
     def test_restore_older_log_rejects_earlier_ids_missing_ops_unknown(self):
         older = self.reserve()

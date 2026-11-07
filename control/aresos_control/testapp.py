@@ -98,7 +98,7 @@ class TestApp:
         data = self.store.get("testapp")
         item = data["items"][args["reference"]["id"]]
         item["flagged"], item["revision"] = args["flagged"], item["revision"] + 1
-        self.store.write({"testapp": data}, "testapp_flag", "flag exact item " + item["id"])
+        self.store.write({"testapp": data}, "testapp_flag", f"flag exact item {item['id']}={item['flagged']}; revision {item['revision']}")
         return {"reference": self.reference(item), "flagged": item["flagged"]}
 
     def call(self, verb, args):

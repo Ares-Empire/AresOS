@@ -94,11 +94,13 @@ class Store:
                 self.db.execute("INSERT OR REPLACE INTO kv VALUES (?,?)", (key, canonical(value)))
             self.db.execute("UPDATE head SET seq=?,hash=? WHERE id=1", (event["seq"], event["hash"]))
 
-    def write(self, changes, action, summary, operation_id=None, restoring=False):
+    def write(self, changes, action, summary, operation_id=None, restoring=False, outcome="done"):
         if self.locked and not restoring:
             raise Refused("restore_required", "Older log detected; sudo aresos admin control restore_confirm must invalidate earlier approvals first.")
+        operation = changes.get("op:" + operation_id, self.get("op:" + operation_id)) if operation_id else None
         event = {"seq": len(self.events) + 1, "previous": self.events[-1]["hash"] if self.events else "",
-                 "time": time.time(), "action": action, "summary": summary, "operation_id": operation_id, "set": changes}
+                 "time": time.time(), "action": action, "summary": summary,
+                 "outcome": operation["state"] if operation else outcome, "operation_id": operation_id, "set": changes}
         event["hash"] = digest(event)
         self._append(event)
         self.checkpoint("journal_appended")

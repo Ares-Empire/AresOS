@@ -113,6 +113,8 @@ class Integration(unittest.TestCase):
         self.assertIn('"operation_id"', detail.stdout)
         listing = self.launch(OWNER, ["cli", "testapp", "list", "--json"])
         self.assertTrue(json.loads(listing.stdout)["ok"], listing.stderr)
+        wrapped = subprocess.run(["/usr/bin/aresos", "testapp", "list"], preexec_fn=identity(OWNER), capture_output=True, text=True, timeout=10)
+        self.assertTrue(json.loads(wrapped.stdout)["ok"], wrapped.stderr)
         admin = self.launch(0, ["cli", "admin", "testapp", "fixture_configure", "--input", canonical({"failure": "none", "refuse": []})])
         self.assertTrue(json.loads(admin.stdout)["ok"], admin.stderr)
         log = self.launch(OWNER, ["cli", "log", "--json"])
@@ -128,7 +130,7 @@ class Integration(unittest.TestCase):
             source.write_bytes(b"fixture attachment bytes")
             os.chown(source, OWNER, OWNER)
             parameters = StdioServerParameters(command="/usr/bin/setpriv", args=["--reuid", str(OWNER), "--regid", str(OWNER), "--clear-groups",
-                "/usr/bin/env", "-i", "PATH=/usr/bin:/bin", "LANG=C.UTF-8", "/usr/bin/python3", "-I", "-S", LAUNCH, "proxy", "testapp"])
+                "/usr/bin/aresos-mcp", "testapp"])
             async with MCPClient(parameters) as client:
                 tools = await client.list_tools()
                 names = {tool.name for tool in tools.tools}
@@ -193,6 +195,10 @@ class Integration(unittest.TestCase):
         for name in ("sitecustomize.py", "usercustomize.py", "json.py", "aresos_control.py"):
             (poison / name).write_text(payload)
         (poison / "attack.pth").write_text("import sitecustomize\n")
+        user_site = self.home / f".local/lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
+        user_site.mkdir(parents=True)
+        (user_site / "sitecustomize.py").write_text(payload)
+        (user_site / "planted.pth").write_text("import sitecustomize\n")
         # Even a .pth in the trusted vendor tree must not be processed by site.
         planted_pth = Path(VENDOR) / "aresos-test.pth"
         planted_pth.write_text("import builtins; " + payload)
@@ -220,6 +226,18 @@ class Integration(unittest.TestCase):
         bad_mode = subprocess.run(["/usr/bin/python3", "-I", LAUNCH, "cli", "--help"], capture_output=True, text=True)
         self.assertNotEqual(bad_mode.returncode, 0)
         self.assertIn("isolated launcher", bad_mode.stderr)
+
+    def test_simultaneous_same_id_calls_submit_once(self):
+        from concurrent.futures import ThreadPoolExecutor
+        prepared = self.call(OWNER, "testapp_prepare_send", message())
+        self.assertTrue(prepared["ok"], prepared)
+        approval = prepared["data"]["approval"]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _: self.call(OWNER, "testapp_send", approval), range(2)))
+        self.assertTrue(all(r["ok"] for r in results), results)
+        self.assertEqual(results[0]["data"], results[1]["data"])
+        status = self.call(OWNER, "testapp_operation_status", {"operation_id": approval["operation_id"]})
+        self.assertEqual(status["data"]["evidence"]["arrivals"], ["alpha", "beta", "hidden"])
 
     def test_writable_executable_chain_refused(self):
         prefix_file = Path("/usr/libexec/aresos-control/aresos_control/__init__.py")
