@@ -9,9 +9,12 @@ export async function address(url){await key('ctrl+l');x('type','--clearmodifier
 export async function screenshot(out,name){execFileSync('import',['-window','root',`${out}/${name}.png`]);}
 export async function loadUnpacked(dir,out,label){
   await address('chrome://extensions');
+  await screenshot(out,`extensions-before-${label}`);
   // Fixed 1440x1000 CI display, maximized Chrome. Evidence images record this UI.
-  x('mousemove',1390,150,'click',1);await delay(500);
-  x('mousemove',145,210,'click',1);await delay(600);
+  x('mousemove',1390,132,'click',1);await delay(500);
+  await screenshot(out,`extensions-dev-${label}`);
+  x('mousemove',145,174,'click',1);await delay(600);
+  await screenshot(out,`extensions-dialog-${label}`);
   await key('ctrl+l');x('type','--delay','1',dir);await key('Return');await delay(500);await key('Return');await delay(1200);
   await screenshot(out,`install-${label}`);
 }
