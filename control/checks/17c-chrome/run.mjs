@@ -86,7 +86,7 @@ try{
    if(ending==='reload')await bridge.send('Check.reload');
    if(ending==='update'){packVersion('0.3.1');log('Q1_UPDATE_REQUEST',await bridge.send('Check.update'));await delay(2000);await connect();assert.equal((await state()).manifest.version,'0.3.1');}
    if(ending==='host-loss'){const pid=Number(fs.readFileSync(out+'/host-pids.txt','utf8').trim().split('\n').at(-1));process.kill(pid,'SIGKILL');await delay(500);}
-   if(ending==='disable'){policy(false);await address('chrome://policy');x('mousemove',85,170,'click',1);const transportError=await eventually(async()=>{try{await state();return false}catch(e){return e.message}},'policy block actually unloaded extension');await screenshot(out,'policy-disabled');log('Q1_DISABLE_EVIDENCE',{transportError});}
+   if(ending==='disable'){policy(false);await address('chrome://policy');const policyStarted=Date.now();x('mousemove',85,170,'click',1);const transportError=await eventually(async()=>{try{await state();return false}catch(e){return e.message}},'policy block actually unloaded extension',90000);await screenshot(out,'policy-disabled');log('Q1_DISABLE_EVIDENCE',{transportError,refreshMs:Date.now()-policyStarted});}
    if(ending==='chrome-normal'||ending==='chrome-kill')await close(ending==='chrome-kill');
    await delay(700);for(const caseId of ids)await count(caseId,0);log('Q1_END',{ending,ids,arrivals:ids.flatMap(arrivals)});await close();policy();await boot('after-'+ending);
   }
