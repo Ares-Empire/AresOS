@@ -190,3 +190,8 @@ tasks at any time.
 - **2026-11-07, 10:05:** 17c done (PR #7, CI green twice on `8f1f196`). Design draft 8 takes its results into
   section 6 (holding inside the page as the normal path; the site guard settled: short and rare, and strict while
   on). Frontier re-check of section 6 next, then brief 20 (Chrome) after the owner's "merge" and brief 19 (Mail).
+- **2026-11-07, 10:50:** brief 19 (Mail) running with a Claude package lead, on brief 18's branch (before the
+  owner's "merge", to use this week's Codex allowance). Re-check 6 of section 6: CHANGES-NEEDED, four blocking;
+  design draft 9 answers them (Chrome's own blocking rules as the floor under every hold, a guard that ends by itself
+  only on evidence). Brief 17d (check of that floor) running; one more frontier re-check after it, then brief 20.
+  Owner asked (#67): the strict guard.
