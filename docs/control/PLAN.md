@@ -169,3 +169,5 @@ tasks at any time.
   image test before the apps). Re-check of the fixes next.
 - **2026-11-07, 07:30:** design ready (draft 6, five re-checks). Briefs 18 (base) and 18b (boundary) running, each
   with a Claude package lead. 17b running; 17c after it.
+- **2026-11-07, 08:25:** 17b done (PR #4; design draft 7 takes its results). Brief 18 ready for merge (PR #6: final
+  review SAFE after two fix rounds, CI green twice on `46c19ae`). 18b in its second fix round. 17c started.
