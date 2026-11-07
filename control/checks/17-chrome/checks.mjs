@@ -191,6 +191,23 @@ export async function disconnectProbe(cdp,fixture,out,route,disconnect){
   save(out,`${route}-disconnect`,result);console.log('DISCONNECT',route,JSON.stringify(result));return result;
 }
 
+export function auditDeliveries(fixture,out,groups){
+  const expected=new Map();
+  for(const records of groups)for(const row of records){
+    const address=row.after?.[0]?.url||row.pending?.[0]?.url||row.pending?.[0]?.preview?.address;
+    const c=row.case||(address?new URL(address,'http://fixture').searchParams.get('case'):null);
+    if(c&&row.after)expected.set(c,row.after.length);
+    if(row.pending?.[0]?.preview&&row.decision==='release'&&row.after.length){
+      const preview=row.pending[0].preview,url=new URL(preview.address),arrival=row.after[0];
+      assert.equal(arrival.url,url.pathname+url.search);assert.equal(arrival.method,preview.method);assert.equal(arrival.site,url.host);
+      if(preview.data!==null)assert.equal(arrival.body,preview.data,'server body must match the approved preview');
+    }
+  }
+  const rows=[...expected].map(([c,count])=>({case:c,expected:count,actual:matching(fixture.arrivals,c).length}));
+  for(const row of rows)assert.equal(row.actual,row.expected,'late or duplicate delivery: '+row.case);
+  save(out,'delivery-audit',rows);console.log('FINAL_DELIVERY_AUDIT PASS',rows.length,'cases, preview bodies match server, no late duplicates');
+}
+
 export async function publicChecks(cdp,out,route){
   const hold=new Hold(cdp);hold.publicMode=true;await hold.enable();
   const results=[];

@@ -30,11 +30,18 @@ Files:
   are relative to each frame's viewport. This prototype does not compute occlusion or parent-frame
   clipping, and its pagination limits element rows, not text bytes.
 - `hold.mjs`: request-stage interception and a deliberately limited candidate classifier.
+  The native and consent transports use CDP Fetch; Playwright uses `page.route` because its
+  network manager auto-continues pauses from an additional raw Fetch consumer.
   The synthetic `/receive` endpoint is always held, regardless of the classifier's prediction.
   That makes interception capability and semantic classification separate measurements.
 - `checks.mjs`: read, act, stale-target, tab-switch, hold, public-site and WebSocket probes.
 - `peer-probe.mjs`: a separate same-user process tests channel reuse/impersonation.
 - `ui.mjs`: simulates the owner's installation/selection/consent in CI. It is not the page tool.
+  Its unpacked-install helper records an earlier failed GTK file-picker experiment; the final
+  workflow installs signed CRXs through Linux external-extension descriptors instead.
+- `install.mjs`: packages the synthetic extension as CRX3 with an ephemeral in-memory signing
+  key and installs the documented Linux descriptor on the disposable runner. This is CI setup,
+  never a command to run on the owner's machine. No private signing key is saved or uploaded.
 
 Evidence artifacts are under `.work/17-chrome/artifacts/`: exact head/version/run identifiers,
 `check.log`, `server.jsonl`, structural views, Playwright aria snapshots, measurements,
@@ -48,9 +55,10 @@ submissions. A separate guard drops background Fetch/XHR/Ping requests even if t
 classifier calls them reads. Site availability or anti-bot failures must be reported as limited
 observations, not as successful coverage.
 
-For Linux image installation, investigate a signed CRX with a stable public-key-derived ID,
-installed through managed `ExtensionInstallForcelist` plus an update manifest, or a Linux
+The Linux runner exercises a signed CRX with a public-key-derived ID and a descriptor under
+`/opt/google/chrome/extensions/`. For an image, keep that ID stable across releases,
+using managed `ExtensionInstallForcelist` plus an update manifest, or a Linux
 external-extension JSON file pointing to a packaged CRX. Pair it with a system native-host
 manifest allowing only that extension ID and a service-owned relay. CI loading an unpacked
-directory is development setup, not a deployment plan. Those production installation paths
-are documentation research until qualified in an actual image; this check changes nothing in `os/`.
+directory is development setup. The managed policy/update path and the actual AresOS image
+remain unqualified; this check changes nothing in `os/`.

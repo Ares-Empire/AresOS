@@ -31,11 +31,15 @@ jobs:
           sudo apt-get install -y ./.work/17-chrome/chrome.deb xvfb xdotool openbox imagemagick
           rm .work/17-chrome/chrome.deb
           google-chrome-stable --version | tee .work/17-chrome/artifacts/chrome-version.txt
+          uname -a > .work/17-chrome/artifacts/platform.txt
+          cat /etc/os-release >> .work/17-chrome/artifacts/platform.txt
           git rev-parse HEAD | tee .work/17-chrome/artifacts/head.txt
           printf '%s attempt %s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" | tee .work/17-chrome/artifacts/run.txt
       - name: Install pinned check dependencies (no browser download)
         working-directory: control/checks/17-chrome
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ls --json > ../../../.work/17-chrome/artifacts/dependencies.json
       - name: Run headed fixture checks with Chrome sandbox enabled
         env:
           XDG_CONFIG_HOME: ${{ github.workspace }}/.work/17-chrome/config

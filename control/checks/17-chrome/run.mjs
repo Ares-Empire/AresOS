@@ -12,7 +12,7 @@ const out=path.join(work,'artifacts'); fs.mkdirSync(out,{recursive:true});
 const {fixtures}=await import('./fixture.mjs');
 const {launch,address,key,delay,loadUnpacked,screenshot,stopChrome}=await import('./ui.mjs');
 const {nativeBridge,evaluate,eventually}=await import('./protocol.mjs');
-const {save,readAndAct,holdChecks,publicChecks,disconnectProbe}=await import('./checks.mjs');
+const {save,readAndAct,holdChecks,publicChecks,disconnectProbe,auditDeliveries}=await import('./checks.mjs');
 const {pack,installExternal}=await import('./install.mjs');
 const fixture=await fixtures(out);
 const profile=path.join(work,'profile');
@@ -56,7 +56,8 @@ try {
   const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});
   const listeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('"chrome"'));
   assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);assert.equal(listeners.length,0);
-  save(out,'native-transport',{processes,listeners});console.log('NATIVE_NO_DEBUG_TCP PASS');
+  const socketMode=fs.statSync(socketPath).mode&0o777;assert.equal(socketMode,0o600);
+  save(out,'native-transport',{processes,listeners,socketMode});console.log('NATIVE_NO_DEBUG_TCP PASS');
   summary.metrics=await readAndAct(bridge,fixture,out,'native');
   summary.holds=await holdChecks(bridge,fixture,out,'native');
   try{summary.public=await publicChecks(bridge,out,'native');}
@@ -66,6 +67,7 @@ try {
   await stopChrome(chrome);chrome=undefined;
   const {otherRoutes}=await import('./routes.mjs');
   summary.routes=await otherRoutes({here,work,out,profile,fixture});
+  auditDeliveries(fixture,out,[summary.holds,summary.routes.playwright.holds,summary.routes.consent.holds]);
   if(summary.publicFailure)throw Error(summary.publicFailure);
   assert.equal(fixture.arrivals.filter(r=>r.url?.includes('other-tab-mutated')).length,0);
   console.log('ALL CHECKS COMPLETE');

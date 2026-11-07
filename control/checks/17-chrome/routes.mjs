@@ -54,6 +54,7 @@ export async function otherRoutes({here,work,out,profile,fixture}){
       results.playwright.peer={result:'another same-UID process reused the bound endpoint without new Chrome consent',output:peer.stdout.trim()};
     }catch(e){results.playwright.peer={result:'peer could not reuse endpoint',output:e.stdout?.trim(),error:e.message};}
     console.log('PLAYWRIGHT_SAME_UID_PEER',JSON.stringify(results.playwright.peer));
+    save(out,'playwright-tab-scope',{selected:page.url(),visibleToClient:context.pages().map(p=>p.url())});
     results.playwright.disconnect=await disconnectProbe(cdp,fixture,out,'playwright',async()=>browser.close());browser=undefined;await stopChrome(chrome);chrome=undefined;
 
     // Consent-based debugging is enabled from chrome://inspect, never via launch switches.
@@ -61,7 +62,7 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     await key('ctrl+t');await address('chrome://inspect/#remote-debugging');
     await screenshot(out,'consent-inspect-before');
     // UI checkbox in Chrome's remote-debugging panel; screenshot documents the experiment.
-    x('mousemove',253,170,'click',1);await delay(800);await screenshot(out,'consent-inspect-enabled');
+    x('mousemove',210,156,'click',1);await delay(800);await screenshot(out,'consent-inspect-enabled');
     const portFile=path.join(profile,'DevToolsActivePort');
     await eventually(()=>fs.existsSync(portFile),'consent DevToolsActivePort',4000);
     const [port,wsPath]=fs.readFileSync(portFile,'utf8').trim().split('\n');
@@ -77,7 +78,19 @@ export async function otherRoutes({here,work,out,profile,fixture}){
     await screenshot(out,'consent-attached');
     console.log('ATTACH_CONSENT PASS','running Linux stable; owner enabled inspect and approved connection; TCP port='+port);
     results.consent={metrics:await readAndAct(cdpConsent,fixture,out,'consent'),holds:await holdChecks(cdpConsent,fixture,out,'consent')};
+    let peer,peerRead=false,peerError;
+    const peerAttempt=websocket(endpoint).then(async c=>{peer=c;await c.send('Target.getTargets');peerRead=true;}).catch(e=>{peerError=e.message;});
+    await delay(800);await screenshot(out,'consent-second-peer-request');
+    results.consent.peer={readWithoutApproval:peerRead};
+    await key('Escape');await Promise.race([peerAttempt,delay(1000)]);
+    peer?.close();results.consent.peer.deniedError=peerError||null;
+    console.log('CONSENT_SECOND_PEER',JSON.stringify(results.consent.peer));
     results.consent.disconnect=await disconnectProbe(cdpConsent,fixture,out,'consent',async()=>raw.close());raw=undefined;
+    await stopChrome(chrome);chrome=undefined;
+    chrome=launch(profile,fixture.base+'/owner',path.join(out,'chrome-consent-restart.log'));await delay(3000);
+    await key('ctrl+t');await address('chrome://inspect/#remote-debugging');await screenshot(out,'consent-after-restart');
+    results.consent.restart={chromeListeners:execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(line=>line.includes('"chrome"')),portFileExists:fs.existsSync(portFile)};
+    console.log('CONSENT_RESTART',JSON.stringify(results.consent.restart));
     await stopChrome(chrome);chrome=undefined;
   } finally {
     save(out,'other-routes',results);
