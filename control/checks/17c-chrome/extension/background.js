@@ -71,6 +71,7 @@ async function rpc(m,p){
   if(m==='Check.ownerCommand')return cmd({tabId:ownerTab},p.method,p.params);
   if(m==='Check.decide')return decide(p.id,p.release);
   if(m==='Check.stop')return stop('runner');
+  if(m==='Check.detach'){await chrome.debugger.detach({tabId:selected});attached.delete(selected);return {};}
   if(m==='Check.public'){publicMode=true;await chrome.declarativeNetRequest.updateSessionRules({addRules:[{id:900,priority:1,action:{type:'block'},condition:{resourceTypes:['websocket']}}]});return {};}
   if(m==='Check.tabs')return chrome.tabs.query({});
   if(m==='Check.open'){if(!safe(p.url))throw Error('FORBIDDEN_PAGE');return chrome.tabs.create({url:p.url});}

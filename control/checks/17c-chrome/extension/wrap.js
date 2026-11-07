@@ -16,7 +16,7 @@
   const xhr=globalThis.XMLHttpRequest?.prototype;
   if(xhr){const meta=new WeakMap();replace(xhr,'open',raw=>function(method,url,...rest){meta.set(this,{method,url:String(url)});return raw.call(this,method,url,...rest)});replace(xhr,'send',raw=>function(body){const data=copy(body);hold('xhr',{...meta.get(this),body:typeof data==='string'?data:null},()=>raw.call(this,data));});}
   replace(globalThis.navigator,'sendBeacon',raw=>function(url,data){const body=copy(data);hold('beacon',{url:String(url),body:typeof body==='string'?body:null},()=>raw.call(this,url,body));return true;});
-  for(const [name,kind]of [['WebSocket','ws'],['RTCDataChannel','rtc']])replace(globalThis[name]?.prototype,'send',raw=>function(data){const body=copy(data);hold(kind,{url:this.url||this.label,body:typeof body==='string'?body:null},()=>raw.call(this,body));});
+  for(const [name,kind]of [['WebSocket','ws'],['RTCDataChannel','rtc']]){if(globalThis[name])original[kind+'Send']=globalThis[name].prototype.send;replace(globalThis[name]?.prototype,'send',raw=>function(data){const body=copy(data);hold(kind,{url:this.url||this.label,body:typeof body==='string'?body:null},()=>raw.call(this,body));});}
   // Covers datagram and stream writers; WebTransport construction itself remains observable separately.
   replace(globalThis.WritableStreamDefaultWriter?.prototype,'write',raw=>function(data){const body=copy(data);return hold('writer',{body:typeof body==='string'?body:ArrayBuffer.isView(body)?new TextDecoder().decode(body):null},()=>raw.call(this,body));});
   if(typeof document!=='undefined'){

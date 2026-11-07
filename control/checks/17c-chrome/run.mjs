@@ -35,7 +35,7 @@ const arrivals=id=>f.arrivals.filter(r=>r.case===id);
 async function count(id,expected){await delay(250);assert.equal(arrivals(id).length,expected,id);audit.set(id,expected);return arrivals(id).length;}
 async function hold(id,kind='fetch'){await evaluate(bridge,`send(${JSON.stringify(id)},${JSON.stringify(kind)});true`);return eventually(async()=>(await state()).pending.find(p=>JSON.stringify(p.description||p).includes(id)),'held '+id);}
 async function dropAll(){for(const p of (await state()).pending)await bridge.send('Check.decide',{id:p.id,release:false});}
-async function click(selector){const box=await evaluate(bridge,`(()=>{const b=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2}})()`);await bridge.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...box});await bridge.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...box});}
+async function click(selector){await bridge.send('Page.bringToFront');const box=await evaluate(bridge,`(()=>{const b=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2}})()`);await bridge.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...box});await bridge.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...box});}
 async function probe(name,fn){try{const r=await fn();log(name,{status:'observed',...r});return r}catch(e){log(name,{status:'unavailable',error:e.stack});return {error:e.message}}}
 try{
  await boot('initial');
@@ -54,7 +54,7 @@ try{
     const id='hold-'+kind+'-'+release,p=await hold(id,kind);await count(id,0);const before=await evaluate(bridge,'({states,url:location.href,failures:__hold17.failures})');await screenshot(out,id+'-waiting');await bridge.send('Check.decide',{id:p.id,release});
     if(kind==='writer'){await delay(300);const rows=fs.existsSync(out+'/webtransport-server.jsonl')?fs.readFileSync(out+'/webtransport-server.jsonl','utf8').trim().split('\n').map(JSON.parse):[];assert.equal(rows.filter(r=>r.body?.includes(id)).length,release?1:0);log('Q1_WRITER',{id,release,rows});}
     else await count(id,release?1:0);
-    await assert.rejects(()=>bridge.send('Check.decide',{id:p.id,release}),/NOT_PENDING/);log('Q1_HOLD',{id,kind,release,before,after:await evaluate(bridge,'({states,url:location.href})'),arrivals:arrivals(id)});
+    await assert.rejects(()=>bridge.send('Check.decide',{id:p.id,release}),/NOT_PENDING/);log('Q1_HOLD',{id,kind,release,before,after:await evaluate(bridge,'({states:globalThis.states,url:location.href})'),arrivals:arrivals(id)});
    }
   }
   for(const [label,setup,code]of [
@@ -69,12 +69,12 @@ try{
    const expression=attack==='fresh-frame'?`(()=>{const f=document.createElement('iframe');document.body.append(f);f.contentWindow.fetch('/receive?case=${id}',{method:'POST',body:'synthetic hostile'}).catch(()=>{});return true})()`:attack==='blob-worker'?`new Worker(URL.createObjectURL(new Blob([${JSON.stringify(`fetch('${f.base}/receive?case=${id}',{method:'POST',body:'synthetic blob'}).catch(()=>{})`)}],{type:'text/javascript'})));true`:`(()=>{${attack==='prototype'?"window.fetch=__hold17.original.fetch;":""}const raw=__hold17.original.fetch;window.detected=fetch.toString().includes('[native code]');raw('/receive?case=${id}',{method:'POST',body:'synthetic hostile'}).catch(()=>{});return true})()`;
    await evaluate(bridge,expression);await delay(700);const s=await state(),p=s.pending.find(p=>JSON.stringify(p).includes(id));await count(id,0);if(p)await bridge.send('Check.decide',{id:p.id,release:false});log('Q1_HOSTILE_HTTP',{id,caught:!!p,networkFallback:!!p?.network,children:s.history.filter(e=>e.method==='check.child')});
   }
-  await nav();await evaluate(bridge,'connectWS().then(()=>true)');await evaluate(bridge,`__hold17.original.send.call(ws,JSON.stringify({case:'hostile-live',text:'synthetic bypass'}));true`);await count('hostile-live',1);log('Q1_HOSTILE_LIVE_COUNTEREXAMPLE',{arrivals:arrivals('hostile-live')});
+  await nav();await evaluate(bridge,'connectWS().then(()=>true)');await evaluate(bridge,`__hold17.original.wsSend.call(ws,JSON.stringify({case:'hostile-live',text:'synthetic bypass'}));true`);await count('hostile-live',1);log('Q1_HOSTILE_LIVE_COUNTEREXAMPLE',{arrivals:arrivals('hostile-live')});
   // Browser lifecycle events with actual held calls. No replay is armed.
   for(const ending of ['detach','stop','reload','update','host-loss','chrome-normal','chrome-kill','disable']){
    await nav();const id='end-'+ending;await hold(id);await count(id,0);
-   if(ending==='detach')await bridge.send('Check.stop');
-   if(ending==='stop'){await key('ctrl+t');await address(`chrome-extension://${extId}/popup.html`);await screenshot(out,'stop-before');await key('Return');await delay(500);}
+   if(ending==='detach')await bridge.send('Check.detach');
+   if(ending==='stop'){await key('ctrl+t');await address(`chrome-extension://${extId}/popup.html`);await screenshot(out,'stop-before');await key('Return');await delay(500);const s=await state();assert.equal(s.active,false);assert.equal(s.badge,'STOP');assert.ok(s.history.some(r=>r.method==='check.stopped'&&r.params.reason==='popup Stop'));log('Q6_STOP',{active:s.active,badge:s.badge,history:s.history.slice(-4)});}
    if(ending==='reload')await bridge.send('Check.reload');
    if(ending==='update'){packVersion('0.3.1');log('Q1_UPDATE_REQUEST',await bridge.send('Check.update'));}
    if(ending==='host-loss'){const pid=Number(fs.readFileSync(out+'/host-pids.txt','utf8').trim().split('\n').at(-1));process.kill(pid,'SIGKILL');await delay(500);}
@@ -108,14 +108,14 @@ try{
   // Trace initiators without substituting the coarse guard for attribution evidence.
   const traces=[];
   for(const kind of ['sync','timer','promise','mutation','postMessage','worker']){
-   await nav();const id='cause-'+kind;await evaluate(bridge,`causeTest('${kind}','${id}');true`);const offset=(await state()).history.length;await click('#cause');await delay(600);const s=await state(),p=s.pending.find(p=>JSON.stringify(p).includes(id)&&!JSON.stringify(p).includes(id+'-first'));assert.ok(p,'cause held '+kind);await count(id,0);
+   await nav();const id='cause-'+kind;await evaluate(bridge,`fetch=__hold17.original.fetch;causeTest('${kind}','${id}');true`);const offset=(await state()).history.length;await click('#cause');await delay(600);const s=await state(),p=s.pending.find(p=>JSON.stringify(p).includes(id)&&!JSON.stringify(p).includes(id+'-first'));assert.ok(p,'cause held '+kind);await count(id,0);
    // Release the wrapper only into a deliberately denied network gate to obtain CDP initiators.
    if(!p.network){await evaluate(bridge,`__hold17.decide(${JSON.stringify(p.localId)},true);true`);await delay(400);}
    const events=(await state()).history.slice(offset).filter(r=>r.method==='check.initiator'&&r.params.url.includes(id));const correct=events.some(e=>JSON.stringify(e.params.initiator).includes('action17c'));traces.push({kind,correct,unknown:!correct,pageOwned:false,events,wrapperStack:p.stack});await dropAll();
   }
   log('Q4_CAUSES',{correct:traces.filter(t=>t.correct).length,total:traces.length,falsePage:0,traces});
   // Existing live object before attachment: remove cooperative wrap, then reattach inventory.
-  await nav();await evaluate(bridge,"connectWS().then(()=>{WebSocket.prototype.send=__hold17.original.send;return true})");await bridge.send('Check.stop');await bridge.send('Check.attach',{tabId:selected});const proto=(await bridge.send('Runtime.evaluate',{expression:'WebSocket.prototype'})).result.objectId;const objects=(await bridge.send('Runtime.queryObjects',{prototypeObjectId:proto})).objects.objectId;const inventory=await bridge.send('Runtime.callFunctionOn',{objectId:objects,functionDeclaration:'function(){return this.map(s=>({url:s.url,state:s.readyState}))}',returnByValue:true});await evaluate(bridge,"ws.send(JSON.stringify({case:'preattach-live',text:'synthetic old'}));true");await count('preattach-live',1);await nav();await evaluate(bridge,'connectWS().then(()=>true)');const reloaded=await hold('postreload-live','ws');await count('postreload-live',0);await bridge.send('Check.decide',{id:reloaded.id,release:false});log('Q2_PREATTACH',{inventory,oldArrivals:arrivals('preattach-live'),reloadHeld:true});
+  await nav();await evaluate(bridge,"connectWS().then(()=>{WebSocket.prototype.send=__hold17.original.wsSend;return true})");await bridge.send('Check.stop');await bridge.send('Check.attach',{tabId:selected});const proto=(await bridge.send('Runtime.evaluate',{expression:'WebSocket.prototype'})).result.objectId;const objects=(await bridge.send('Runtime.queryObjects',{prototypeObjectId:proto})).objects.objectId;const inventory=await bridge.send('Runtime.callFunctionOn',{objectId:objects,functionDeclaration:'function(){return this.map(s=>({url:s.url,state:s.readyState}))}',returnByValue:true});await evaluate(bridge,"ws.send(JSON.stringify({case:'preattach-live',text:'synthetic old'}));true");await count('preattach-live',1);await nav();await evaluate(bridge,'connectWS().then(()=>true)');const reloaded=await hold('postreload-live','ws');await count('postreload-live',0);await bridge.send('Check.decide',{id:reloaded.id,release:false});log('Q2_PREATTACH',{inventory,oldArrivals:arrivals('preattach-live'),reloadHeld:true});
   await nav(f.base+'/startup');await delay(500);await dropAll();await close();await boot('restart',true);await delay(1000);const rs=await state();assert.ok(rs.guards.includes(f.base));const rp=rs.pending.filter(p=>JSON.stringify(p).includes('restored-startup'));await count('restored-startup',0);log('Q3_RESTART',{guards:rs.guards,pending:rp,history:rs.history,targets:await bridge.send('Check.targets')});await dropAll();await bridge.send('Check.retire',{evidence:'adapter-resolved-all'});assert.equal((await state()).guards.length,0);log('Q3_RETIRE',{guardCount:0});
  }
  if(phase==='public'){
