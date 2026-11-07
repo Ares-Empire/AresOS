@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "AresOS Chrome check (not product)",
+  "version": "0.1.0",
+  "permissions": [
+    "debugger",
+    "tabs",
+    "nativeMessaging"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "select.html"
+  },
+  "options_page": "select.html"
+}

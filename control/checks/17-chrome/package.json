@@ -1,0 +1,11 @@
+{
+  "name": "aresos-chrome-feasibility-check",
+  "private": true,
+  "type": "module",
+  "scripts": {"check": "node run.mjs"},
+  "dependencies": {
+    "playwright": "1.65.0",
+    "@playwright/mcp": "0.0.84",
+    "ws": "8.18.3"
+  }
+}
