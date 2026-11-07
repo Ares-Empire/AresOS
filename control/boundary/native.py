@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 import subprocess
 import threading
+from boundary_assertions import (container_identity, validate_identity, validate_sandbox_result,
+                                 require_source_positive, policy_mounts, observed_processes, tool_text)
 
 ROOT = Path('/opt/aresos-control')
 OUT = Path('/evidence')
@@ -17,7 +19,7 @@ POLICY = Path('/etc/claude-code/managed-settings.json')
 
 
 class Session:
-    def __init__(self, blocks, name, credential=True):
+    def __init__(self, blocks, name, credential=True, grants=()):
         self.blocks = blocks
         self.name = name
         self.results = {}
@@ -29,6 +31,7 @@ class Session:
         self.observer_log = None
         self.sent = False
         self.credential = credential
+        self.grants = grants
         session = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -66,7 +69,7 @@ class Session:
                     # Snapshot when the CLI is about to execute the calls, after
                     # its legitimate startup metadata writes and before attacks.
                     session.before = {p: file_digest(p) for p in paths}
-                    if any(b.get('id') == 'identity' for b in session.blocks):
+                    if any(b.get('name') == 'Bash' for b in session.blocks):
                         from check import owner
                         session.observer_log = open(OUT / (name + '-processes.txt'), 'w')
                         session.observer = subprocess.Popen(['/usr/bin/python3', '-I', str(ROOT / 'observe.py')],
@@ -111,6 +114,12 @@ class Session:
         policy = json.loads(self.original)
         policy['env'] = {'ANTHROPIC_BASE_URL': 'http://127.0.0.1:18081',
                          'ANTHROPIC_API_KEY': 'SYNTHETIC_BOUNDARY_NONCREDENTIAL' if self.credential else ''}
+        # Root-only, disposable-image stand-in for the owner approving exactly
+        # these fixed commands. No wildcard, other tool, or production change.
+        assert all(command in ('/usr/bin/python3 -I boundary-hostile.py',
+                               '/usr/bin/python3 -I boundary-socket-state.py') for command in self.grants)
+        policy['permissions']['allow'] += ['Bash(' + command + ')' for command in self.grants]
+        (OUT / (self.name + '-managed-settings.json')).write_text(json.dumps(policy, indent=2))
         POLICY.write_text(json.dumps(policy))
         self.thread.start()
         return self
@@ -135,8 +144,8 @@ def tool(name, inputs, identifier):
     return {'type': 'tool_use', 'id': identifier, 'name': name, 'input': inputs}
 
 
-def invoke(run, blocks, name, launcher=True, env=None, sources='', credential=True):
-    with Session(blocks, name, credential) as session:
+def invoke(run, blocks, name, launcher=True, env=None, sources='', credential=True, grants=()):
+    with Session(blocks, name, credential, grants) as session:
         # No additional CLI flags: non-TTY stdin selects print mode natively.
         args = ['/usr/local/bin/aresos-assistant'] if launcher else ['/usr/local/bin/claude', '--setting-sources', sources]
         result = run(args, name, env=env, input='Execute the fixed local boundary test.\n',
@@ -144,6 +153,16 @@ def invoke(run, blocks, name, launcher=True, env=None, sources='', credential=Tr
         if session.before is not None and session.results:
             assert session.integrity is not None, 'incomplete tool result observation'
             assert all(row['before'] == row['after'] for row in session.integrity.values()), 'native target changed: ' + name
+        for block in blocks:
+            if block.get('name') == 'Bash' and block['id'] in session.results:
+                row = session.results[block['id']]
+                if block['id'] != 'identity':
+                    validate_sandbox_result(row, container_identity())
+                elif not row.get('is_error'):
+                    observed = observed_processes(OUT / (name + '-processes.txt'))
+                    assert observed, 'unobserved simple Bash'
+                    for context in observed:
+                        validate_identity(context, container_identity())
         print('NATIVE_RESULTS ' + name + ' returned=' + str(len(session.results)), flush=True)
         return result, session.results
 
@@ -181,58 +200,63 @@ def native_checks(run, put, mode, snapshots, stub):
     (OUT / 'native-planted-helper-paths.json').write_text(json.dumps([str(p) for p in planted], indent=2))
     native_before = (OUT / 'stub.txt').read_text().splitlines()
     print('CONTAINER_IDENTITY ' + json.dumps({n: os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt')}), flush=True)
-    # First run exercises the native resolver; absent mode deliberately bypasses
-    # launcher checks with the launcher's exact environment/cwd/uid/CLI arguments.
-    attempts = [('/usr/bin/python3 -I boundary-hostile.py', '/usr/bin/python3 -I boundary-socket-state.py'),
-                ('python3 boundary-hostile.py', 'python3 boundary-socket-state.py'),
-                ('cat boundary-hostile.py | python3', 'cat boundary-socket-state.py | python3')]
-    for number, (hostile, state_command) in enumerate(attempts, 1):
-        result, rows = invoke(run, [tool('Bash', {'command': hostile, 'timeout': 30000}, 'hostile'),
-                                   tool('Bash', {'command': state_command}, 'socket-state'),
-                                   tool('Bash', {'command': 'echo NATIVE_SMOKE'}, 'smoke'),
-                                   tool('Bash', {'command': 'sleep 2'}, 'identity')],
-                              'native-hostile-' + str(number), mode == 'present')
-        if 'HOSTILE_DONE' in json.dumps(rows.get('hostile', {})):
-            break
-    process_file = OUT / ('native-hostile-' + str(number) + '-processes.txt')
-    if not rows.get('identity', {}).get('is_error'):
-        observed = [json.loads(line.split(' ', 1)[1]) for line in process_file.read_text().splitlines()
-                    if line.startswith('NATIVE_PROCESS ')]
-        assert observed, 'native sleep ran but its outside observer saw no process'
-        context = observed[0][0]
-        assert all(context['namespaces'][n] != os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt'))
-        assert any(s.split() == ['Seccomp:', '2'] for s in context['seccomp']), context
-        print('NATIVE_PROCESS_OK mode=' + mode + ' isolated_net_mnt seccomp=2', flush=True)
-    assert result.returncode == 0 and rows, 'native CLI never returned tool results'
-    executed = 'HOSTILE_DONE' in json.dumps(rows.get('hostile', {}))
+    # The baseline receives no test grant. In absent mode only the launcher's
+    # checks are bypassed, keeping its environment/uid/cwd/native arguments.
+    baseline_result, baseline = invoke(run, [tool('Bash', {'command': 'sleep 2'}, 'identity')],
+                                      'native-baseline', mode == 'present')
+    assert baseline_result.returncode == 0 and not baseline['identity'].get('is_error')
+    hostile = '/usr/bin/python3 -I boundary-hostile.py'
+    state_command = '/usr/bin/python3 -I boundary-socket-state.py'
+    name = 'native-hostile-approved'
+    result, rows = invoke(run, [tool('Bash', {'command': hostile, 'timeout': 30000}, 'hostile'),
+                               tool('Bash', {'command': state_command}, 'socket-state')],
+                          name, mode == 'present', grants=(hostile, state_command))
+    assert result.returncode == 0 and len(rows) == 2, 'native CLI never returned tool results'
+    executed = 'HOSTILE_DONE' in tool_text(rows['hostile'])
     if not executed:
-        assert rows['hostile'].get('is_error') and any(phrase in str(rows['hostile'].get('content', '')).lower()
-            for phrase in ('requires approval', 'asks the person')), 'unexpected native failure'
+        assert validate_sandbox_result(rows['hostile'], container_identity()) is None
         (OUT / 'native-not-executed.json').write_text(json.dumps({
-            'reason': rows['hostile'], 'attempts': len(attempts),
-            'policy': 'unchanged managed draft; no test-only Bash permission grants'}, indent=2))
-        print('NATIVE_NOT_EXECUTED mode=' + mode + ' approval_required attempts=' + str(len(attempts)), flush=True)
+            'reason': rows['hostile'], 'attempts': 1,
+            'policy': 'exact fixed-command managed allow simulates one owner approval'}, indent=2))
+        print('NATIVE_NOT_EXECUTED mode=' + mode + ' exact_command_approval_denied see=' +
+              name + '-results.json', flush=True)
+        # The brief forbids widening the grant after a real denial.
     else:
-        assert 'HOSTILE_DONE' in json.dumps(rows.get('hostile', {})), 'native Bash did not execute hostile.py'
-        assert 'SANDBOX_IDENTITY' in json.dumps(rows.get('socket-state', {})), 'native socket probe did not run'
+        identities = {key: validate_sandbox_result(rows[key], container_identity()) for key in rows}
+        assert all(identities.values()), 'approved native socket-state did not execute'
+        baseline_contexts = observed_processes(OUT / 'native-baseline-processes.txt')
+        contexts = observed_processes(OUT / (name + '-processes.txt'))
+        assert len(baseline_contexts) == 1 and len(contexts) == 2, 'incomplete native outside observation'
+        settings = json.loads(POLICY.read_text())
+        baseline_view = policy_mounts(baseline_contexts[0]['mountinfo'], settings)
+        views = {}
+        for key, identity in identities.items():
+            matches = [c for c in contexts if c['namespaces'] == identity['namespaces'] and
+                       c['inner_pid'] == identity['pid']]
+            assert len(matches) == 1, 'self report and outside observer disagree: ' + key
+            context = matches[0]
+            validate_identity(context, container_identity())
+            views[key] = policy_mounts(context['mountinfo'], settings)
+            assert views[key] == baseline_view, 'approval changed native policy mount view'
+        (OUT / 'native-policy-mounts.json').write_text(json.dumps({
+            'baseline': baseline_view, **views}, indent=2))
         native_after = (OUT / 'stub.txt').read_text().splitlines()
         (OUT / 'native-stub-delta.json').write_text(json.dumps(native_after[len(native_before):]))
         assert native_after == native_before, 'native hostile arrival'
-        integrity = json.loads((OUT / ('native-hostile-' + str(number) + '-integrity.json')).read_text())
-        (OUT / 'native-hostile-rows.json').write_bytes(Path('/tmp/claude/hostile-results.json').read_bytes())
-        hostile_rows = json.loads((OUT / 'native-hostile-rows.json').read_text())
-        assert all(row['blocked'] for row in hostile_rows), 'native open routes: ' + str([r for r in hostile_rows if not r['blocked']])
-        state = str(rows['socket-state']['content'])
-        identity_line = next(line for line in state.splitlines() if line.startswith('SANDBOX_IDENTITY '))
-        identity = json.loads(identity_line.split(' ', 1)[1])
-        for namespace in ('net', 'mnt'):
-            assert identity['namespaces'][namespace] != os.readlink('/proc/self/ns/' + namespace)
-        socket_rows = [json.loads(line.split(' ', 1)[1]) for line in state.splitlines() if line.startswith('SOCKET_STATE ')]
-        assert len(socket_rows) == 2 and all(row.get('errno') == 1 for row in socket_rows), socket_rows
-        assert any('Seccomp:' in line and line.split()[-1] == '2' for line in identity['seccomp'])
+        integrity = json.loads((OUT / (name + '-integrity.json')).read_text())
+        hostile_rows = [json.loads(line[8:]) for line in tool_text(rows['hostile']).splitlines()
+                        if line.startswith('HOSTILE ')]
+        (OUT / 'native-hostile-rows.json').write_text(json.dumps(hostile_rows, indent=2))
+        fixtures = json.loads((ROOT / 'fixtures.json').read_text())
+        expected = len(fixtures['sockets']) + 2 + len(fixtures['reads']) + 3 * len(fixtures['writes']) + 16
+        assert len(hostile_rows) == expected and 'HOSTILE_DONE ' + str(expected) in tool_text(rows['hostile'])
+        opened = [r for r in hostile_rows if not r['blocked']]
+        (OUT / 'native-open-routes.json').write_text(json.dumps(opened, indent=2))
+        assert not opened, 'BLOCKING PLAN-GAP native open routes: ' + str(opened)
+        assert stub.poll() is None, 'native listener died'
         print('NATIVE_BOUNDARY_OK mode=' + mode + ' attacks=' + str(len(hostile_rows)) +
-              ' isolated_net_mnt seccomp=2 AF_UNIX=EPERM AF_VSOCK=EPERM unchanged=' + str(len(integrity)) +
-              ' hostile_connections=0', flush=True)
+              ' isolated_net_mnt filters_above_container AF_UNIX=EPERM AF_VSOCK=EPERM unchanged=' + str(len(integrity)) +
+              ' hostile_connections=0 approval_mount_view_unchanged', flush=True)
     try:
         run(['/usr/local/bin/node', str(ROOT / 'run.mjs'), '--native-canary'], 'native-embedded-canary-planted')
     finally:
@@ -290,16 +314,16 @@ def file_tool_checks(run):
     # Retain parser/validation failures as unqualified; never relabel them as
     # permission refusals. Some fixed filenames cannot be NotebookEdit targets.
     unresolved = {}
-    for identifier, row in rows.items():
-        text = str(row.get('content', ''))
-        if identifier == 'disable-sandbox':
-            if 'SANDBOX_IDENTITY' not in text:
-                assert row.get('is_error') and 'approval' in text.lower()
-                unresolved[identifier] = text
-        else:
-            assert row.get('is_error'), 'file/web tool unexpectedly ran: ' + identifier
-            if not any(word in text for word in ('permission', 'permissions', 'outside')):
-                unresolved[identifier] = text
+    for attempt, batch in enumerate(results, 1):
+        for identifier, row in batch.items():
+            text = tool_text(row)
+            if identifier == 'disable-sandbox':
+                if validate_sandbox_result(row, container_identity()) is None:
+                    unresolved[str(attempt) + ':' + identifier] = text
+            else:
+                assert row.get('is_error'), 'file/web tool unexpectedly ran: ' + identifier
+                if not any(word in text for word in ('permission', 'permissions', 'outside')):
+                    unresolved[str(attempt) + ':' + identifier] = text
     (OUT / 'native-file-unqualified.json').write_text(json.dumps(unresolved, indent=2))
     (OUT / 'native-file-tool-paths.json').write_text(json.dumps(mapping, indent=2))
     print('NATIVE_FILE_DISCOVERY ' + str(len(rows)), flush=True)
@@ -413,7 +437,10 @@ def source_checks(run, put):
             interactive_probe('sources-positive-tty-' + str(attempt), ENV,
                               sources='user,project,local', credential=False)
         report['positive_markers'] = [str(p) for p in markers if p.exists()]
-        report['positive_permission'] = Path('/home/assistant/work/source-permission.txt').exists()
+        permission = Path('/home/assistant/work/source-permission.txt')
+        report['positive_permission'] = permission.exists() and permission.read_text() == 'positive source allow'
+        require_source_positive(report)
+        print('SOURCES_POSITIVE_OK three_hooks local_status local_helper ordinary_Write', flush=True)
         POLICY.write_bytes(policy_original)
         refused = run(['/usr/local/bin/aresos-assistant'], 'sources-installed-plugin', required=False)
         assert refused.returncode == 78 and 'no installed plugins' in refused.stderr

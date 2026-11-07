@@ -1,4 +1,4 @@
-"""Outside observer for native Bash's fixed sleep command, as the same uid.
+"""Outside /proc observer for the fixed native and standalone probes, same uid.
 
 The root supervisor supplies stdout; the child cannot open the evidence directory.
 Sampling starts only after the API is about to dispatch tools, after launcher
@@ -27,7 +27,10 @@ while running:
             continue
         try:
             executable = os.readlink(directory / 'exe')
-            if executable != '/usr/bin/sleep':
+            command = directory.joinpath('cmdline').read_bytes().replace(b'\0', b' ').decode(errors='replace')
+            if executable != '/usr/bin/sleep' and not (executable.startswith('/usr/bin/python3') and
+                    any(name in command for name in ('boundary-hostile.py', 'boundary-socket-state.py',
+                                                      '/opt/aresos-control/hostile.py'))):
                 continue
             seen.add(directory.name)
             pid = int(directory.name)
@@ -41,8 +44,11 @@ while running:
                 except OSError:
                     exe = 'unreadable'
                 ancestry.append({'pid': pid, 'command': command, 'exe': exe,
+                                 'inner_pid': int(next(s.split()[-1] for s in status if s.startswith('NSpid:'))),
                                  'namespaces': {n: os.readlink(proc / 'ns' / n) for n in ('net', 'mnt')},
                                  'seccomp': [s for s in status if s.startswith(('Seccomp:', 'Seccomp_filters:'))]})
+                if len(ancestry) == 1:
+                    ancestry[-1]['mountinfo'] = proc.joinpath('mountinfo').read_text()
                 pid = int(next(s.split()[1] for s in status if s.startswith('PPid:')))
                 if not pid or pid == os.getpid():
                     break

@@ -177,8 +177,29 @@ def main():
         assert sum(line.startswith('CONNECTION ') for line in baseline) >= len(FIXTURES['sockets']) + 3
         snapshots = {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + FIXTURES['notebooks'] + ['/dev/uinput']}
         # Run hostile code even with the helper missing, to measure the fallback.
-        result = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'),
-                      '/usr/bin/python3 -I /opt/aresos-control/hostile.py'], 'hostile', required=False)
+        with (OUT / 'standalone-processes.txt').open('w') as observer_log:
+            observer = subprocess.Popen(['/usr/bin/python3', '-I', str(ROOT / 'observe.py')],
+                                        preexec_fn=owner, stdout=observer_log, stderr=observer_log)
+            try:
+                result = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'),
+                              '/usr/bin/python3 -I /opt/aresos-control/hostile.py'], 'hostile', required=False)
+            finally:
+                observer.terminate()
+                observer.wait(timeout=10)
+        from boundary_assertions import policy_mounts, observed_processes
+        observed = observed_processes(OUT / 'standalone-processes.txt')
+        assert len(observed) == 1, 'standalone outside mount observation missing'
+        standalone_view = policy_mounts(observed[0]['mountinfo'], json.loads(
+            Path('/etc/claude-code/managed-settings.json').read_text()))
+        (OUT / 'standalone-policy-mounts.json').write_text(json.dumps(standalone_view, indent=2))
+        if (OUT / 'native-policy-mounts.json').exists():
+            native_view = json.loads((OUT / 'native-policy-mounts.json').read_text())['hostile']
+            comparison = {path: {'standalone': view, 'native': native_view[path],
+                                'same_access': view['view'] == native_view[path]['view']}
+                          for path, view in standalone_view.items()}
+            (OUT / 'policy-mount-comparison.json').write_text(json.dumps(comparison, indent=2))
+            assert all(row['same_access'] for row in comparison.values()), 'native and standalone mount policy differ'
+            print('MOUNT_COMPARISON_OK paths=' + str(len(comparison)), flush=True)
         integrity = {p: {'before': before, 'after': digest(p) if Path(p).is_file() else None}
                      for p, before in snapshots.items()}
         (OUT / 'file-integrity.json').write_text(json.dumps(integrity, indent=2) + '\n')

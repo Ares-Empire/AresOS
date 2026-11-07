@@ -7,16 +7,13 @@ import os
 from pathlib import Path
 import socket
 import subprocess
+import runpy
 
 fixtures = json.loads(Path('/opt/aresos-control/fixtures.json').read_text())
 results = []
 assert Path('/home/assistant/work/.envrc').read_text() == 'synthetic fixture\n'
 print('WORK_READ_OK', flush=True)
-print('SANDBOX_IDENTITY ' + json.dumps({
-    'namespaces': {n: os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt')},
-    'seccomp': [s for s in Path('/proc/self/status').read_text().splitlines()
-                if s.startswith(('Seccomp:', 'Seccomp_filters:'))],
-}), flush=True)
+runpy.run_path('/opt/aresos-control/socket-state.py')
 
 
 def attempt(name, operation):
