@@ -159,7 +159,11 @@ messages survive`, `Mail send kill-9 cases: 45; no repeated SMTP DATA`, and
 No earlier assertion was weakened, skipped or deleted.
 
 Any later commit changes only files under `reviews/`; final-head workflow runs are
-recorded in draft PR #9 after that report-only push.
+recorded in draft PR #9 after that report-only push. One exception, made by the
+package lead at the lead's request after this round: `.github/workflows/control-mail.yml`
+no longer runs on `push` (only on the pull request and by manual dispatch) and cancels
+superseded runs, so each change runs once; a second pass is a rerun of the same run.
+It changes no code or test.
 
 **run — local checks:** `python3 control/generate.py --check` printed
 `Generated artifacts match definitions`; AST parsing every control Python source
