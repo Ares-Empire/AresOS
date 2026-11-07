@@ -1,5 +1,5 @@
 // Feasibility check: deliberately raw RPC, not a product security boundary.
-let port, selected, group, mode='hold', backstop=false, nextRule=1, texts=[], publicMode=false;
+let port, selected, group, mode='hold', backstop=false, nextRule=1, texts=[], publicMode=false, publicDenyAll=false;
 const attached=new Map(), pending=new Map(), history=[], errors=[];
 let permit;
 const key=s=>JSON.stringify(s);
@@ -26,7 +26,7 @@ async function pause(source,p){
   const headerHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(headers))))).map(b=>b.toString(16).padStart(2,'0')).join('');
   const preview={networkId:p.networkId,headerHash,...(!publicMode?{headers}:{}),url:r.url,method:r.method,body:r.postData??null,type:p.resourceType,typed,source};
   if(publicMode){
-    const block=typed.length||!['GET','HEAD','OPTIONS'].includes(r.method)||['Fetch','XHR','Ping'].includes(p.resourceType);
+    const block=publicDenyAll||typed.length||!['GET','HEAD','OPTIONS'].includes(r.method)||['Fetch','XHR','Ping'].includes(p.resourceType);
     emit('check.public',{...preview,block:!!block});
     return command(source,block?'Fetch.failRequest':'Fetch.continueRequest',block?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});
   }
@@ -57,14 +57,16 @@ async function attach(tabId){
 }
 async function rpc(m,p){
   if(m==='Check.config'){({mode='hold',backstop=false,texts=[],publicMode=false}=p);permit=null;return {mode,backstop};}
-  if(m==='Check.state')return {selected,group,pending:[...pending.values()],history,errors,version:chrome.runtime.getManifest().version,rules:await chrome.declarativeNetRequest.getSessionRules()};
+  if(m==='Check.publicGuard'){publicDenyAll=p.denyAll;return {};}
+  if(m==='Check.publicSocketBlock'){await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:[999999],addRules:[{id:999999,priority:1,action:{type:'block'},condition:{tabIds:[selected],resourceTypes:['websocket']}}]});return {};}
+  if(m==='Check.state')return {selected,group,groupInfo:group?await chrome.tabGroups.get(group).catch(()=>null):null,pending:[...pending.values()],history,errors,version:chrome.runtime.getManifest().version,rules:await chrome.declarativeNetRequest.getSessionRules()};
   if(m==='Check.decide')return decide(p.id,p.release);
   if(m==='Check.arm'){permit=p;return {};}
   if(m==='Check.targets')return chrome.debugger.getTargets();
   if(m==='Check.workerAttach'){const s={targetId:p.targetId};await chrome.debugger.attach(s,'1.3');attached.set(p.targetId,s);return command(s,'Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});}
   if(m==='Check.workerCommand')return command({targetId:p.targetId},p.method,p.params);
   if(m==='Check.attach')return attach(p.tabId);
-  if(m==='Check.open'){const t=await chrome.tabs.create({url:p.url});await chrome.tabs.group({groupId:group,tabIds:[t.id]});return t;}
+  if(m==='Check.open'){const t=await chrome.tabs.create({url:p.url});await chrome.tabs.group({groupId:group,tabIds:[t.id]});return chrome.tabs.get(t.id);}
   if(m==='Check.tabs')return chrome.tabs.query({});
   if(m==='Check.ungroup'){await chrome.tabs.ungroup(p.tabId||selected);return {};}
   if(m==='Check.closeGroup'){await chrome.tabs.remove((await chrome.tabs.query({groupId:group})).map(t=>t.id));return {};}

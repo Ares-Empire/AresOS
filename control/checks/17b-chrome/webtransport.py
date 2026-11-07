@@ -3,6 +3,7 @@ import asyncio
 import datetime
 import hashlib
 import json
+import ipaddress
 import pathlib
 import sys
 import time
@@ -43,13 +44,13 @@ async def main():
     cert = (x509.CertificateBuilder().subject_name(subject).issuer_name(subject)
             .public_key(key.public_key()).serial_number(x509.random_serial_number())
             .not_valid_before(now-datetime.timedelta(minutes=1)).not_valid_after(now+datetime.timedelta(days=2))
-            .add_extension(x509.SubjectAlternativeName([x509.DNSName('localhost')]), False).sign(key, hashes.SHA256()))
+            .add_extension(x509.SubjectAlternativeName([x509.DNSName('localhost'),x509.IPAddress(ipaddress.ip_address('127.0.0.1'))]), False).sign(key, hashes.SHA256()))
     (root/'wt-cert.pem').write_bytes(cert.public_bytes(serialization.Encoding.PEM))
     (root/'wt-key.pem').write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
     config = QuicConfiguration(is_client=False, alpn_protocols=H3_ALPN, max_datagram_frame_size=65536)
     config.load_cert_chain(str(root/'wt-cert.pem'), str(root/'wt-key.pem'))
     await serve('127.0.0.1', 4433, configuration=config, create_protocol=Receiver)
-    (root/'webtransport.json').write_text(json.dumps(dict(url='https://localhost:4433/check', hash=list(hashlib.sha256(cert.public_bytes(serialization.Encoding.DER)).digest()))))
+    (root/'webtransport.json').write_text(json.dumps(dict(url='https://127.0.0.1:4433/check', hash=list(hashlib.sha256(cert.public_bytes(serialization.Encoding.DER)).digest()))))
     await asyncio.Future()
 
 asyncio.run(main())
