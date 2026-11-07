@@ -465,7 +465,8 @@ requirement here, with how it is met and how brief 20 tests it.
    read. `checkpoint.sock` is open only to the tool service. Its listening port accepts connections only from the
    browser user (a firewall rule). The port is below 1024, which ordinary programs can't open, and the checkpoint is
    started with the right to open low ports and no other privilege, so no other program can listen there first and
-   pose as it (17e: taking over the port was not tested). The checkpoint refuses to start if the port is taken or if ordinary users may open low ports.
+   pose as it (17e: taking over the port was not tested). The checkpoint refuses to start if the port is taken or if
+   ordinary users may open low ports.
    *Test:* the owner's, the assistant's and a coding user's programs can't connect to the port or the socket; a
    program of theirs can't open the port; the checkpoint refuses to start when the port is taken.
 2. **Nothing it sees leaves the machine.** This means the checkpoint adds no way out of its own. It sends nothing
