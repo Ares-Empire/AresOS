@@ -299,9 +299,13 @@ print(json.dumps(results))
                 self.assertNotIn("fixture_configure", names)
                 imported = (await client.call_tool("file_import", {"path": str(source)})).structured_content
                 self.assertTrue(imported["ok"], imported)
-                prepared = (await client.call_tool("prepare_send", message(attachments=[imported["data"]["file"]]))).structured_content
+                prepared_tool = await client.call_tool("prepare_send", message(attachments=[imported["data"]["file"]]))
+                prepared = prepared_tool.structured_content
                 self.assertTrue(prepared["ok"], prepared)
                 approval = prepared["data"]["approval"]
+                self.assertEqual(list(approval), ["question", "operation_id", "description"])
+                self.assertEqual(list(json.loads(prepared_tool.content[0].text)["data"]["approval"]), list(approval))
+                self.assertEqual(list(next(tool for tool in tools.tools if tool.name == "send").input_schema["properties"]), list(approval))
                 # A hook sees a held operation via act.sock, with documented I/O.
                 hook_input = {"hook_event_name": "Stop", "session_id": "fixture-session", "transcript_path": "/unused", "cwd": str(self.home), "permission_mode": "default", "stop_hook_active": False}
                 hook = self.launch(OWNER, ["hook", "Stop"], input=canonical(hook_input))

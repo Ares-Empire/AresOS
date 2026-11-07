@@ -17,12 +17,14 @@ from ..adapters import NothingLeft, Uncertain
 from ..blobs import Blobs
 from ..common import Refused, canonical, digest, sha256, visible
 from . import codec
+from .questions import question
 from .roles import resolve, SETUP, REQUIRED, OPTIONAL, optional_roles, recorded_optional, optional_status, check_optional, root
 from .transport import Transport, folders, select, fetch, fetch_headers, uids, ok, quote, context, nonempty_refusal
 
 
 class Mail:
     app = "mail"
+    question = staticmethod(question)
     PAGE_CHARS = 6000
     SCAN_LIMIT = 10000
 
@@ -556,12 +558,15 @@ class Mail:
             return {"account": account["id"], "folder": folder, "uidvalidity": validity, "uids": ids}
 
     def prepare(self, verb, args):
+        def prepared(description, payload, source=None):
+            return self.question(verb, description, source), description, payload
+
         if verb == "onboarding_folder_probe":
             if not args["folder"].startswith("AresOS-probe-"):
                 raise Refused("refused", "Not a disposable onboarding folder.")
             if args.get("empty"):
                 args = {**args, "empty_state": self.safe_folder(self.account(args["account"]), args["folder"], empty=True)}
-            return {"action": "mail_onboarding_folder_probe", **args}, args
+            return prepared({"action": "mail_onboarding_folder_probe", **args}, args)
         if verb == "send":
             comp = self.composition(args)
             account = self.account(comp['mail']['account'])
@@ -571,7 +576,7 @@ class Mail:
             # Validate size and complete MIME before reserving; operation id is a fixed-size replacement.
             self.check_mime(comp, self.mime(comp, self.message_id("0" * 32 + ":" + "0" * 32)))
             description = {"action": "mail_send", "composition_id": comp["id"], "composition_hash": comp["hash"], **comp["mail"]}
-            return description, {"composition": comp}
+            return prepared(description, {"composition": comp})
         if verb == "delete":
             self.check_items(args["items"])
             account = self.account(args["items"][0]["reference"]["account"])
@@ -581,13 +586,13 @@ class Mail:
                 raise Refused("unsupported_server", "Delete needs " + capability + " and an identified Trash for trash mode; ask owner to use his mail program.")
             if args["mode"] == "trash" and any(self.under(account, t["reference"]["folder"], "trash") for t in args["items"]):
                 raise Refused("refused", "Already in Trash; permanent deletion requires a separate permanent approval.")
-            return {"action": "mail_delete", "account": account["id"], **args}, args
+            return prepared({"action": "mail_delete", "account": account["id"], **args}, args)
         if verb == "folder_delete":
             account = self.account(args["account"])
             if not account["safe_folder_delete"]:
                 raise Refused("unsupported_server", "Onboarding did not prove server-enforced refusal of nonempty DELETE; owner must delete folders in his mail program.")
             state = self.safe_folder(account, args["folder"], empty=True)
-            return {"action": "mail_folder_delete", **state}, state
+            return prepared({"action": "mail_folder_delete", **state}, state)
         if verb == "unsubscribe":
             self.fresh_roles(self.account(args['reference']['account']), names=[args['reference']['folder']])
             m = self.message(args["reference"])
@@ -600,7 +605,7 @@ class Mail:
                 if not url.hostname or url.username or url.password or url.fragment:
                     raise Refused("invalid_input", "Unsubscribe HTTPS URL contains unsupported credentials/fragment.")
                 payload = {**args, "source_hash": sha256(m["raw"]), "method": "POST", "body": "List-Unsubscribe=One-Click"}
-                return {"action": "mail_unsubscribe", "account": args["reference"]["account"], **payload}, payload
+                return prepared({"action": "mail_unsubscribe", "account": args["reference"]["account"], **payload}, payload, m['msg'])
             if url.scheme == "mailto":
                 query = parse_qs(url.query, keep_blank_values=True)
                 if not query.keys() <= {"subject", "body"} or any(len(v) != 1 for v in query.values()):
@@ -610,8 +615,8 @@ class Mail:
                 result = self.compose(comp_args)
                 comp = self.composition(result)
                 payload = {**args, "source_hash": sha256(m["raw"]), "composition": comp}
-                return {"action": "mail_unsubscribe", "target": args["target"], "reference": args["reference"], **comp["mail"],
-                        "composition_id": comp["id"], "composition_hash": comp["hash"]}, payload
+                return prepared({"action": "mail_unsubscribe", "target": args["target"], "reference": args["reference"], **comp["mail"],
+                        "composition_id": comp["id"], "composition_hash": comp["hash"]}, payload, m['msg'])
             raise Refused("refused", "Only header-named mailto or RFC 8058 HTTPS POST is supported.")
         raise Refused("invalid_input", "Unsupported Mail operation.")
 

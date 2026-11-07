@@ -128,12 +128,16 @@ class TestApp:
                 self.blobs.require_origin(blob["sha256"], "caller_import")
                 if self.store.get("blob:" + digest(blob)) != blob:
                     raise Refused("stale_reference", "Attachment metadata is not the service's imported reference; import again.")
-            return {"action": "testapp_send", **args}, args
+            return self.question(verb, args), {"action": "testapp_send", **args}, args
         references = args["references"]
         if not references or len({canonical(r) for r in references}) != len(references):
             raise Refused("invalid_input", "Delete a nonempty exact set without duplicate references.")
         items = [{"reference": ref, **{k: self.item(ref)[k] for k in ("sender", "subject", "date")}} for ref in references]
-        return {"action": "testapp_delete", "account": "fixture", "items": items}, {"items": items}
+        return self.question(verb, args), {"action": "testapp_delete", "account": "fixture", "items": items}, {"items": items}
+
+    def question(self, verb, description):
+        return {"send": "Send this fixture message?", "delete": "Delete these fixture items?",
+                "operation_repair": "Repair this fixture local stage without sending again?"}[verb]
 
     def revalidate(self, operation):
         payload = operation["payload"]

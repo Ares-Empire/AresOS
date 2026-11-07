@@ -23,7 +23,7 @@ class Record(EngineCase):
                 args = {"text": "tiny-body-marker", "to": ["alpha"], "bcc": []}
                 if large:
                     args["attachments"] = [ref]
-                    template = {"operation_id": "0" * 32 + ":" + "0" * 32,
+                    template = {"question": "Send this fixture message?", "operation_id": "0" * 32 + ":" + "0" * 32,
                                 "description": {"action": "testapp_send", "account": "fixture", "to": ["alpha"],
                                                 "cc": [], "bcc": [], "subject": "Fixture message", "text": "",
                                                 "attachments": [ref], "expires_at": 1900}}

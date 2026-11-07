@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import json
 import socket
 
-from .common import CHUNK_SIZE, WIRE_LIMIT, Refused, canonical, sha256
+from .common import CHUNK_SIZE, WIRE_LIMIT, Refused, display_json, sha256
 
 
 def receive(connection):
@@ -26,7 +26,7 @@ def receive(connection):
 
 
 def send(connection, message):
-    wire = (canonical(message) + "\n").encode()
+    wire = (display_json(message) + "\n").encode()
     if len(wire) > WIRE_LIMIT:
         raise Refused("invalid_input", "Socket frame too large; reduce the request.")
     connection.sendall(wire)

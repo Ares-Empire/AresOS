@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .common import Refused, canonical
+from .common import Refused, display_json
 from .definitions import BY_NAME
 from .proxy import Proxy
 
@@ -58,5 +58,5 @@ def main(config, argv=None):
             result = Proxy(command[0], config, admin).call(command[1], json.loads(args.input))
     except (Refused, ValueError) as exc:
         result = {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": str(exc)}, "pending": {}}
-    print(canonical(result))
+    print(display_json(result))
     return 0 if result["ok"] else 1

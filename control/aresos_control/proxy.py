@@ -1,7 +1,7 @@
 import asyncio
 import json
 
-from .common import FILE_LIMIT, Refused, canonical, validate
+from .common import FILE_LIMIT, Refused, display_json, require_question, validate
 from .definitions import APPS, BY_NAME
 from .files import FilePolicy
 from .protocol import Client
@@ -28,6 +28,8 @@ class Proxy:
         try:
             if not action or (action.owner_only and not self.admin):
                 raise Refused("permission_denied", "This action is not available through the MCP proxy; owner-only actions require sudo aresos admin.")
+            if action.effect in {"send", "delete"}:
+                require_question(arguments)
             validate(arguments, action.input)
             if verb == "file_import":
                 if self.files is None:
@@ -110,7 +112,7 @@ async def serve(app, config):
         else:
             # One serial service handles operations; avoid blocking the SDK's event loop.
             result = await asyncio.to_thread(proxy.call, parameters.name, parameters.arguments or {})
-        return types.CallToolResult(content=[types.TextContent(type="text", text=canonical(result))],
+        return types.CallToolResult(content=[types.TextContent(type="text", text=display_json(result))],
                                     structured_content=result, is_error=not result["ok"])
 
     server = Server("aresos-" + app, version="0.1.0", on_list_tools=list_tools, on_call_tool=call_tool)

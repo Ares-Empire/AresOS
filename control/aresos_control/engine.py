@@ -5,7 +5,7 @@ import uuid
 
 from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
-from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, canonical, digest, validate, visible
+from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, approval_order, canonical, digest, require_question, validate, visible
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .testapp import Receiver, TestApp
@@ -75,10 +75,10 @@ class Engine:
 
     def reserve(self, app, verb, arguments):
         adapter = self.adapters[app]
-        description, payload = adapter.prepare(verb, arguments)
+        question, description, payload = adapter.prepare(verb, arguments)
         op_id = self.store.generation + ":" + uuid.uuid4().hex
         expires = time.time() + self.ttl
-        approval = approval_input(op_id, {**description, "expires_at": expires})
+        approval = approval_input(op_id, {**description, "expires_at": expires}, question)
         op = {"id": op_id, "generation": self.store.generation, "app": app, "action": app + "_" + verb,
               "input_hash": digest(approval), "approval": approval, "payload": payload, "state": "reserved",
               "expires": expires, "stages": {}, "reason": "Awaiting exact approval; nothing submitted."}
@@ -148,14 +148,15 @@ class Engine:
         return {"operation": self.public_operation(op)}
 
     def public_operation(self, op):
-        return {k: v for k, v in op.items() if k not in {"payload", "input_hash"}}
+        return approval_order({k: v for k, v in op.items() if k not in {"payload", "input_hash"}})
 
     def repair(self, app, args):
         old = self.operation(args["operation_id"], app)
         if old["state"] not in {"partial", "unknown", "done"}:
             raise Refused("refused", "Repair requires accepted-send evidence and a completed submission attempt; inspect status.")
         op_id = self.store.generation + ":" + uuid.uuid4().hex
-        approval = approval_input(op_id, {"repair_of": old["id"], "stage": args["stage"]})
+        description = {"repair_of": old["id"], "stage": args["stage"]}
+        approval = approval_input(op_id, description, self.adapters[app].question("operation_repair", description))
         repair = {"id": op_id, "generation": self.store.generation, "app": app, "action": app + "_operation_repair",
                   "approval": approval, "input_hash": digest(args), "payload": args,
                   "state": "reserved", "stages": {}, "reason": "Reserved local repair only.", "expires": time.time() + self.ttl,
@@ -186,6 +187,8 @@ class Engine:
             raise Refused("permission_denied", "Owner-only action requires sudo aresos admin over admin.sock.")
         if admin and not action.owner_only:
             raise Refused("permission_denied", "Use the owner's act.sock for ordinary app actions.")
+        if action.effect in {"send", "delete"}:
+            require_question(args)
         validate(args, action.input)
         if self.store.locked and name != "control_restore_confirm":
             raise Refused("restore_required", "Older log refused; owner must confirm restore before any app access.")

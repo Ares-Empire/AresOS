@@ -83,8 +83,15 @@ Increasing a configured limit does not increase chunk or wire-frame size.
 ## Operations and backups
 
 Preparation is a change action. It reserves an operation without submitting it and
-returns `approval`, the exact input for send/delete. It includes the operation id,
-account, complete recipients (including Bcc), all caller-written text, immutable
+returns `approval`, the exact input for send/delete. Its first field is a service-written
+plain-English `question`, followed by `operation_id` and the complete `description`.
+Pass all three unchanged, including the question. Mail questions summarize at most
+three recipients per group, attachments and delete targets, then say "and N more";
+individual summary names keep up to 80 visible characters (delete subjects 120),
+followed by an ellipsis when longer. The send subject remains as written. Questions count
+toward the 16 KiB limit and are also bounded to 4,096 visible characters; an overflow
+refuses the whole approval before reservation. Full fields follow the question.
+The description includes the account, complete recipients (including Bcc), all caller-written text, immutable
 attachment metadata and paths, or each exact deletion target's metadata and revision,
 plus the approval deadline. Controls, bidi and other format characters are escaped
 inside the strings; literal backslashes are doubled to keep escaping unambiguous.
@@ -231,8 +238,11 @@ is run by this package. MCP contract **read**:
    Its `call` method dispatches its read/change verbs, while every send/delete effect
    goes through the shared submission engine. `TestApp` demonstrates the contract
    and fake far-side fixture.
-3. `prepare` must build the service's authoritative description and immutable
-   payload. Keep all Claude-written content in the approval, and generated material
+3. `prepare` must return `(question, description, payload)`: the service's plain-English
+   question, authoritative description and immutable payload, from the same facts.
+   `question(verb, description)` also provides the introduction for local repairs.
+   The base shares this approval format with every adapter, including Chrome.
+   Keep all Claude-written content in the approval, and generated material
    by immutable size/hash reference. Reference checks must fail stale. `revalidate`
    must check every approval-relevant fact immediately before submission, with an
    adapter-qualified exclusion strategy for concurrent changes, or refuse.

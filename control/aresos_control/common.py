@@ -6,6 +6,7 @@ WIRE_LIMIT = 6 * 1024 * 1024
 FILE_LIMIT = 25 * 1024 * 1024
 CHUNK_SIZE = 1024 * 1024
 ASK_LIMIT = 16 * 1024
+QUESTION_LIMIT = 4096
 RESULT_LIMIT = 48 * 1024
 
 
@@ -39,11 +40,32 @@ def visible(value):
     return value
 
 
-def approval_input(operation_id, description):
-    result = {"operation_id": operation_id, "description": visible(description)}
+def approval_input(operation_id, description, question):
+    result = {"question": visible(question), "operation_id": operation_id, "description": visible(description)}
+    if len(result["question"]) > QUESTION_LIMIT:
+        raise Refused("asking_input_too_large", "The question exceeds 4096 displayed characters; prepare a smaller operation. Nothing was reserved.")
     if len(canonical(result).encode()) > ASK_LIMIT:
         raise Refused("asking_input_too_large", "The whole approval exceeds 16384 bytes; prepare a smaller operation. Nothing was reserved.")
     return result
+
+
+def approval_order(value):
+    """Storage/hash JSON sorts keys; presentation must still put the question first."""
+    if isinstance(value, dict):
+        first = ["question", "operation_id", "description"] if {"question", "operation_id", "description"} <= value.keys() else []
+        return {k: approval_order(value[k]) for k in first + [k for k in value if k not in first]}
+    if isinstance(value, list):
+        return [approval_order(v) for v in value]
+    return value
+
+
+def display_json(value):
+    return json.dumps(approval_order(value), ensure_ascii=True, separators=(",", ":"), allow_nan=False)
+
+
+def require_question(arguments):
+    if isinstance(arguments, dict) and "operation_id" in arguments and "question" not in arguments:
+        raise Refused("stale_approval", "Question missing; pass the whole service-provided approval unchanged, or prepare anew.")
 
 
 def validate(value, schema, path="input"):
