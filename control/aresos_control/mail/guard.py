@@ -180,7 +180,7 @@ def check(raw, root_texts, disclosed_texts, draft=False):
         candidate = content(payload)
         nested_head, _ = split(candidate)
         nested = BytesHeaderParser(policy=policy.default).parsebytes(nested_head + b"\r\n\r\n")
-        if nested.keys() or re.search(rb"(?im)^[ \t]*[\x21-\x39\x3b-\x7e]+[ \t]*:", nested_head):
+        if nested.keys() or re.search(rb"(?im)^[ \t]*(?:content-(?:type|transfer-encoding)|x-aresos-authored)[ \t]*:", nested_head):
             walk(candidate, marked if not root_body else False, False, depth + 1)
         else:
             if marked and major == "text" and not root_body and normalized(readable(headers, payload)) not in disclosed_texts:

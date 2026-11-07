@@ -146,6 +146,21 @@ class RebuildAndGuard(unittest.TestCase):
         imports = [node for node in ast.walk(ast.parse(Path(guard.__file__).read_text())) if isinstance(node, (ast.Import, ast.ImportFrom))]
         self.assertFalse(any('codec' in ast.dump(node) for node in imports))
 
+    def test_review4_guard_parses_literals_and_approved_inline_forward_text(self):
+        ordinary = b'Ordinary text\nSubject: a body line, not a mail header block.'
+        guard.check(wrapper(ordinary), ['Full authored text'], [])
+        forwarded = ('\n\n---------- Forwarded mail ----------\nFrom: peer@mail.invalid\n'
+                     'Date: Sat, 07 Nov 2026 10:00:00 +0000\nSubject: Prior subject\n'
+                     'To: one@mail.invalid\nCc: \n\nEntire inline body')
+        msg = EmailMessage(policy=codec.SMTP_POLICY)
+        msg[codec.AUTHORED_HEADER] = '1'
+        msg.set_content(forwarded, cte='quoted-printable')
+        guard.check(msg.as_bytes(), [forwarded], [])
+        # A damaged prefix cannot hide a declared encoded MIME entity.
+        damaged = b'Ordinary prefix\nContent-Transfer-Encoding: base64\n\n' + base64.b64encode(b'Bcc: private@mail.invalid')
+        with self.assertRaises(Refused):
+            guard.check(wrapper(damaged), ['Full authored text'], [])
+
     def test_review4_rebuild_and_guard_refuse_depth_size_and_broken_structures(self):
         raw = b'From: peer@mail.invalid\r\nSubject: Deep\r\n\r\nBody\r\n'
         for _ in range(42):
