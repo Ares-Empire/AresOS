@@ -62,23 +62,28 @@ const arrivals=id=>f.arrivals.filter(r=>r.kind==='receive'&&new URL(r.url,f.base
 async function nav(){await bridge.send('Page.bringToFront');await bridge.send('Page.navigate',{url:f.base+'/'});await delay(500);await eventually(()=>evaluate(bridge,"typeof send==='function'"),'fixture ready');}
 async function held(id,kind='fetch',timeout=0){await evaluate(bridge,`send(${JSON.stringify(id)},${JSON.stringify(kind)},${timeout});'started'`);return eventually(async()=>{const s=await state();if(s.errors.length)throw Error(s.errors.join(';'));return s.pending.find(p=>p.url.includes('case='+id));},'held '+id);}
 async function decide(p,release){return bridge.send('Check.decide',{id:p.id,release});}
+async function dropCanceled(p){
+ try{return await decide(p,false)}catch(e){const failed=(await state()).history.find(r=>r.method==='check.networkFailed'&&r.params.event.requestId===p.networkId&&r.params.event.canceled);if(!e.message.includes('Invalid InterceptionId')||!failed)throw e;log('ALREADY_CANCELED',{preview:p,failed});}
+}
 async function observe(id,expected){await delay(650);const a=arrivals(id);if(expected!==undefined){assert.equal(a.length,expected,id);audit.set(id,expected);}return a;}
-async function matrix(label,action,{backstop=false,expected}={}){await nav();await bridge.send('Check.config',{backstop});const id='q1-'+label+(backstop?'-dnr':'');const p=await held(id);assert.equal(arrivals(id).length,0);save(id+'-held',await state());await action(p);await delay(1200);const after=bridge?await state():null;save(id+'-after',after);const a=await observe(id,expected);audit.set(id,a.length);log('Q1_'+label+(backstop?'_DNR':''),{id,preview:p,arrivals:a,detachEvents:after?.history.filter(r=>['check.detached','check.controlEnded'].includes(r.method))});return a;}
+async function matrix(label,action,{backstop=false,expected}={}){await nav();await bridge.send('Check.config',{backstop});const id='q1-'+label+(backstop?'-dnr':'');const p=await held(id);assert.equal(arrivals(id).length,0);save(id+'-held',await state());await action(p);await delay(1200);let after;try{after=bridge?await state():null}catch(e){after={transportError:e.message}}save(id+'-after',after);const a=await observe(id,expected);audit.set(id,a.length);log('Q1_'+label+(backstop?'_DNR':''),{id,preview:p,arrivals:a,detachEvents:after?.history?.filter(r=>['check.detached','check.controlEnded'].includes(r.method))});return a;}
 try{
  await boot('initial');
  await screenshot(out,'policy-debug-bar');
- const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);save('processes',{processes});
+ const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);const listeners=execFileSync('ss',['-lntp'],{encoding:'utf8'}).split('\n').filter(l=>l.includes('\"chrome\"'));assert.equal(listeners.length,0);save('processes',{processes,listeners});
+ await key('ctrl+t');await address('chrome://sandbox');await screenshot(out,'sandbox-status');await key('ctrl+w');
  log('Q5_POLICY_INSTALL',{info:await bridge.send('Check.info'),policy:JSON.parse(fs.readFileSync(work+'/policy.json'))});
- await probe('Q5_DISABLE',()=>bridge.send('Check.disable'));
- await probe('Q5_REMOVE',()=>bridge.send('Check.uninstall'));
  await address('chrome://extensions/?id='+id);await screenshot(out,'policy-extension-controls');
  await key('ctrl+t');await address('https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn');await delay(2500);await screenshot(out,'claude-blocklisted');await key('ctrl+w');
  log('Q5_HOST_DEFAULT',{starts:fs.readFileSync(out+'/host-starts.txt','utf8')});
  await stop();policy(false);await boot('system-host');
  log('Q5_HOST_POLICY_FALSE',{starts:fs.readFileSync(out+'/host-starts.txt','utf8')});
  if(['all','safety'].includes(phase)){
- // Policy rejects disable/remove even with a send held.
- for(const op of ['disable','uninstall']){await nav();const id='q1-policy-'+op,p=await held(id);await probe('Q1_POLICY_'+op,()=>bridge.send(op==='disable'?'Check.disable':'Check.uninstall'));assert.equal(arrivals(id).length,0);await decide(p,false);await observe(id,0);}
+ // A self-disable API can differ from the policy-disabled owner UI. Measure it.
+ for(const op of ['disable','uninstall']){
+   await matrix('policy-'+op,async()=>{await bridge.send(op==='disable'?'Check.disable':'Check.uninstall').catch(e=>log('Q1_POLICY_END',{op,error:e.message}));await screenshot(out,'policy-'+op);});
+   await stop();await boot('after-policy-'+op);
+ }
  await nav();await bridge.send('Check.config',{backstop:true});const dnrRelease=await held('dnr-approved-release');assert.equal(arrivals('dnr-approved-release').length,0);await decide(dnrRelease,true);log('Q1_DNR_APPROVED',{arrivals:await observe('dnr-approved-release',1)});
  await nav();const dnrDrop=await held('dnr-explicit-drop');await decide(dnrDrop,false);log('Q1_DNR_DROP',{arrivals:await observe('dnr-explicit-drop',0)});
  // Q1: controlled detach probes, with a fresh tab attachment between each.
@@ -105,7 +110,12 @@ try{
    await matrix('cancel',async()=>{await bridge.send('Page.bringToFront');await screenshot(out,'before-cancel-'+backstop);x('mousemove',960,115,'click',1);await delay(500);await screenshot(out,'after-cancel-'+backstop);await eventually(async()=>(await state()).history.some(r=>r.method==='check.detached'&&r.params.reason==='canceled_by_user'),'Cancel really detached');},{backstop});
    await stop();await boot('after-cancel-'+backstop);
  }
- await stop();policy(false);await boot('managed-again');
+ for(const op of ['disable','uninstall']){
+   await matrix('nonforced-'+op,async()=>{await bridge.send(op==='disable'?'Check.disable':'Check.uninstall').catch(e=>log('Q1_NONFORCED_END',{op,error:e.message}));await screenshot(out,'nonforced-'+op);});
+   await stop();policy(false);await boot('restore-managed-'+op);
+   if(op==='disable'){await stop();policy(false,false);await boot('nonforced-remove');}
+ }
+
  await matrix('tab-close',()=>bridge.send('Check.closeTab'),{expected:0});await stop();await boot('after-tab');
  await matrix('chrome-normal',()=>stop(),{expected:0});await boot('after-normal');
  await matrix('chrome-kill',()=>stop(true),{expected:0});await boot('after-kill');
@@ -128,11 +138,11 @@ try{
  for(const kind of ['fetch','xhr','form','volatile']){
    await nav();const id='repeat-'+kind;for(let i=0;i<3;i++){await nav();await evaluate(bridge,`send('${id}','${kind}');'ok'`);await delay(400);}
    const rows=repeated.filter(r=>r.url.includes('case='+id));assert.equal(rows.length,3);assert.equal(arrivals(id).length,0);
-   const first=rows[0],same=r=>r.url===first.url&&r.method===first.method&&r.body===first.body;
+   const first=rows[0],same=r=>r.url===first.url&&r.method===first.method&&r.body===first.body&&r.headerHash===first.headerHash;
    const normalized=r=>{if(kind!=='volatile')return r.body;const o=JSON.parse(r.body);delete o.nonce;return JSON.stringify(o)};
-   const byteMatches=rows.filter(same).length,normalizedMatches=rows.filter(r=>r.url===first.url&&r.method===first.method&&normalized(r)===normalized(first)).length;
+   const byteMatches=rows.filter(same).length,normalizedMatches=rows.filter(r=>r.url===first.url&&r.method===first.method&&r.headerHash===first.headerHash&&normalized(r)===normalized(first)).length;
    assert.equal(normalizedMatches,3);if(kind!=='volatile')assert.equal(byteMatches,3);
-   await nav();await bridge.send('Check.arm',{url:first.url,method:first.method,body:first.body});await evaluate(bridge,`send('${id}','${kind}');'ok'`);await observe(id,kind==='volatile'?0:1);
+   await nav();await bridge.send('Check.arm',{url:first.url,method:first.method,body:first.body,headerHash:first.headerHash});await evaluate(bridge,`send('${id}','${kind}');'ok'`);await observe(id,kind==='volatile'?0:1);
    log('Q1_REPEAT',{kind,attempts:rows,comparisons:rows.length-1,byteMatches:byteMatches-1,normalizedMatches:normalizedMatches-1,ignoredFields:kind==='volatile'?['nonce']:[],arrivals:arrivals(id)});
 
  }
@@ -172,8 +182,9 @@ try{
  for(const ms of durations){const id='long-'+ms,p=await held(id);holdRows.push({id,ms,p,start:Date.now()});}
  const abort=await held('long-abort','fetch',30000),xhr=await held('long-xhr','xhr',30000);
  await evaluate(bridge,"retry('long-retry');'ok'");await eventually(async()=>(await state()).pending.filter(p=>p.url.includes('case=long-retry')).length===2,'second retry held',8000);
+ save('long-before-retry-decision',{state:await state(),page:await evaluate(bridge,'states')});
  const retries=(await state()).pending.filter(p=>p.url.includes('case=long-retry'));assert.equal(retries.length,2);assert.equal(arrivals('long-retry').length,0);
- await decide(retries[0],false);await decide(retries[1],true);await observe('long-retry',1);log('Q3_RETRY',{pending:retries,arrivals:arrivals('long-retry')});
+ await dropCanceled(retries[0]);assert.equal(arrivals('long-retry').length,0);await decide(retries[1],true);await observe('long-retry',1);log('Q3_RETRY',{pending:retries,arrivals:arrivals('long-retry')});
  for(const row of holdRows){await delay(Math.max(0,row.ms-(Date.now()-row.start)));assert.equal(arrivals(row.id).length,0);await decide(row.p,true);log('Q3_LONG',{id:row.id,requestedMs:row.ms,heldMs:Date.now()-row.start,arrivals:await observe(row.id,1)});}
  for(const [id,p]of [['long-abort',abort],['long-xhr',xhr]]){const result=await probe('Q3_CANCELED_RELEASE_'+id,()=>decide(p,true));log('Q3_CANCELED',{id,result,arrivals:await observe(id,0)});}
  log('Q3_PAGE_STATES',{states:await evaluate(bridge,'states')});
@@ -213,9 +224,9 @@ try{
  for(const [name,url]of [['wikipedia','https://en.wikipedia.org/wiki/Main_Page'],['news','https://www.bbc.com/news'],['demo','https://www.selenium.dev/selenium/web/web-form.html']]){
   await probe('Q4_PUBLIC_'+name,async()=>{const start=Date.now(),offset=pub.length;await bridge.send('Page.navigate',{url});await delay(4000);const title=await evaluate(bridge,'document.title');
    const actionStart=Date.now();const action=await evaluate(bridge,`(()=>{const input=document.querySelector(${JSON.stringify(name==='wikipedia'?'input[name=search]':name==='demo'?'input[name="my-text"]':'input[type=search],input[type=text]')});if(!input)return {found:false};input.value='SyntheticFixture17b';input.dispatchEvent(new Event('input',{bubbles:true}));return {found:true,form:!!input.form}})()`);
-   let repeated=[];const expected=action.found&&action.form?await evaluate(bridge,`(()=>{const f=document.querySelector('input[value=never]')?.form||Array.from(document.forms).find(f=>Array.from(f.elements).some(e=>e.value==='SyntheticFixture17b'));return f?{method:f.method.toUpperCase(),action:f.action,fields:Array.from(new FormData(f).entries())}:null})()`):null;
-   if(action.found&&action.form){for(let i=0;i<(name==='demo'?3:1);i++){const before=pub.length;await evaluate(bridge,`(()=>{const input=document.querySelector(${JSON.stringify(name==='demo'?'input[name="my-text"]':'input[name=search]')});input.form.requestSubmit();return true})()`);await delay(700);repeated.push(pub.slice(before).filter(r=>r.typed.length));}}
-   await delay(11000);const requests=pub.slice(offset);const textRequests=requests.filter(r=>r.typed.length);assert.ok(textRequests.every(r=>r.block));const canonical=r=>JSON.stringify({url:r.url,method:r.method,body:r.body});
+   let repeated=[];const expected=action.found&&action.form?await evaluate(bridge,`(()=>{const f=Array.from(document.forms).find(f=>Array.from(f.elements).some(e=>e.value==='SyntheticFixture17b'));return f?{method:f.method.toUpperCase(),action:f.action,fields:Array.from(new FormData(f).entries())}:null})()`):null;
+   if(action.found&&action.form){for(let i=0;i<(name==='demo'?3:1);i++){if(i){await bridge.send('Page.navigate',{url});await delay(1800);await evaluate(bridge,"document.querySelector('input[name=\"my-text\"]').value='SyntheticFixture17b';true");}const before=pub.length;await evaluate(bridge,`(()=>{const input=document.querySelector(${JSON.stringify(name==='demo'?'input[name="my-text"]':'input[name=search]')});input.form.requestSubmit();return true})()`);await delay(700);repeated.push(pub.slice(before).filter(r=>r.typed.length));}}
+   await delay(11000);const requests=pub.slice(offset);const textRequests=requests.filter(r=>r.typed.length);assert.ok(textRequests.every(r=>r.block));const canonical=r=>JSON.stringify({url:r.url,method:r.method,body:r.body,headerHash:r.headerHash});
    return {title,action,expected,observedFormMiss:expected?!textRequests.length:null,loadTypedFalseAlarms:requests.filter(r=>r.at<actionStart&&r.typed.length).length,elapsedMs:Date.now()-start,requests,textRequests:textRequests.length,ruleMisses:textRequests.filter(r=>!r.block).length,unlabelledRequests:requests.filter(r=>!r.typed.length).length,repeat:repeated.map(rows=>rows.map(canonical)),ignoredVolatileFields:[],actionStart,settleAt:measureSettle(actionStart,requests),outsideActionSettle:textRequests.filter(r=>r.at>measureSettle(actionStart,requests)).length};});
  }
  save('public-traffic',pub);

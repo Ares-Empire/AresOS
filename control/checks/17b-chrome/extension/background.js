@@ -22,14 +22,16 @@ async function pause(source,p){
   const r=p.request, typed=matchText(r), fixture=['/receive','/socket'].includes(new URL(r.url).pathname);
   if(new URL(r.url).pathname==='/socket')emit('check.socketPause',{source,request:p});
   if(!fixture&&!publicMode)return command(source,'Fetch.continueRequest',{requestId:p.requestId});
-  const preview={url:r.url,method:r.method,body:r.postData??null,type:p.resourceType,typed,source};
+  const headers=Object.fromEntries(Object.entries(r.headers||{}).sort(([a],[b])=>a.localeCompare(b)));
+  const headerHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(headers))))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const preview={networkId:p.networkId,headerHash,...(!publicMode?{headers}:{}),url:r.url,method:r.method,body:r.postData??null,type:p.resourceType,typed,source};
   if(publicMode){
     const block=typed.length||!['GET','HEAD','OPTIONS'].includes(r.method)||['Fetch','XHR','Ping'].includes(p.resourceType);
     emit('check.public',{...preview,block:!!block});
     return command(source,block?'Fetch.failRequest':'Fetch.continueRequest',block?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});
   }
   if(mode==='repeat'){
-    const matches=permit&&permit.url===r.url&&permit.method===r.method&&permit.body===(r.postData??null);
+    const matches=permit&&permit.url===r.url&&permit.method===r.method&&permit.body===(r.postData??null)&&permit.headerHash===headerHash;
     if(matches)permit=null;
     await command(source,matches?'Fetch.continueRequest':'Fetch.failRequest',matches?{requestId:p.requestId}:{requestId:p.requestId,errorReason:'Aborted'});
     emit('check.repeated',{...preview,allowed:!!matches});return;
@@ -44,7 +46,7 @@ async function pause(source,p){
 }
 chrome.debugger.onEvent.addListener((s,m,p)=>{
   if(m==='Fetch.requestPaused')pause(s,p).catch(e=>{errors.push(String(e));emit('check.error',{error:String(e),request:p});});
-  else {try{port?.postMessage({method:m,params:p,sessionId:s.sessionId});}catch{}}
+  else {if(m==='Network.loadingFailed')emit('check.networkFailed',{source:s,event:p});try{port?.postMessage({method:m,params:p,sessionId:s.sessionId});}catch{}}
 });
 chrome.debugger.onDetach.addListener((s,reason)=>{attached.delete(s.tabId||s.targetId);emit('check.detached',{source:s,reason});});
 chrome.tabs.onUpdated.addListener(async(id,change,tab)=>{if(attached.has(id)&&tab.groupId!==group)await dropTab(id,'left Claude group');});
