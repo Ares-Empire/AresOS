@@ -1,6 +1,11 @@
 import net from 'node:net';
 export default async function(c){
  const {ev,rpc,guard,delivered,zero,pending,approve,log,delay,assert,work,out,fs,spawn,probe}=c;
+ async function browserServices(mode){
+  await c.key('ctrl+t');await c.address('chrome://components');await c.screenshot(out,mode+'-components-before');await c.key('Tab');await c.screenshot(out,mode+'-component-focused');await c.key('Return');await delay(3500);await c.screenshot(out,mode+'-components-after');
+  await c.address('chrome://safe-browsing');await delay(1000);await c.screenshot(out,mode+'-safe-browsing-state');
+  await c.address('https://testsafebrowsing.appspot.com/s/malware.html');await delay(2000);await c.screenshot(out,mode+'-safe-browsing-test');await c.key('ctrl+w');await rpc('Page.bringToFront');log('Q9_BROWSER_SERVICES_UI',{mode,action:'First focusable component control via Tab/Return; Safe Browsing internal state and Google test URL, no warning bypass.'});
+ }
  // TLS validation is performed by mitmproxy, with no ssl_insecure or browser
  // certificate exception. Only this disposable fixture CA joins system roots.
  for(const [label,url,expected]of [['valid','https://fixture.test:18443/receive?case=e-tls-valid',true],['invalid','https://127.0.0.1:18444/receive?case=e-tls-invalid',false]]){
@@ -15,6 +20,7 @@ export default async function(c){
  try{
   await c.eventually(()=>fs.existsSync(work+'/webtransport.json'),'WebTransport peer');const info=JSON.parse(fs.readFileSync(work+'/webtransport.json'));
   await guard(false);await c.close();await c.boot('transport-direct',false);
+  await browserServices('direct');
   const directWT=await ev(`transports(${JSON.stringify(info)})`);await delay(400);assert.ok(fs.readFileSync(out+'/webtransport-server.jsonl','utf8').includes('datagram'),'direct WebTransport positive control must deliver');log('Q8_WEBTRANSPORT_DIRECT',{result:directWT});
   async function rtc(label,tls){
    const config={iceTransportPolicy:'relay',iceServers:[{urls:`${tls?'turns':'turn'}:localhost:${tls?15349:13478}?transport=tcp`,username:'synthetic',credential:'synthetic-password'}]};
@@ -37,6 +43,7 @@ export default async function(c){
   // Pre-existing WebSocket binary fragmentation from an independent raw client
   // is tested separately from browser TLS policy and attribution.
   await guard(false);await c.nav();
+  await browserServices('checkpoint');
   for(const url of ['https://www.google.com/','https://safebrowsing.googleapis.com/','https://clients2.google.com/service/update2/crx','https://update.googleapis.com/service/update2']){
    await c.nav(url);await delay(1000);log('Q9_SERVICE_PAGE',{host:new URL(url).hostname,page:await ev('({url:location.origin,title:document.title,certificateError:document.body?.innerText.includes("Your connection is not private")})')});
   }

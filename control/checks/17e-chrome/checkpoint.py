@@ -370,12 +370,16 @@ class Checkpoint:
                 self.record('observed-cancellation', id=oid)
 
     def tls_failed_client(self, data):
-        self.record('client-tls-failure', host=data.context.client.sni)
+        error = (getattr(data.conn, 'error', '') or '').lower()
+        category = 'certificate' if any(s in error for s in ['unknown ca', 'bad certificate', 'certificate unknown', 'certificate verify']) else 'disconnect' if any(s in error for s in ['closed', 'disconnect', 'eof']) else 'other'
+        self.record('client-tls-failure', host=data.context.client.sni, category=category)
 
     def tls_failed_server(self, data):
         self.record('upstream-tls-failure', host=data.context.server.sni)
 
     def response(self, flow):
+        if flow.request.host.endswith(('.googleapis.com', '.google.com')):
+            self.record('service-response', host=flow.request.host, status=flow.response.status_code)
         # A response is evidence of a response, not business success.
         for row in self.rows():
             if row['status'] == 'consumed' and row['id'] in flow.metadata.get('checkpoint_operations', []):
