@@ -1,6 +1,17 @@
 // Q1-Q5: every operation has a receiver-side positive control.
 export default async function(c){
  const {ev,rpc,guard,positive,send,delivered,zero,pending,approve,control,log,assert,delay,f,rows,context}=c;
+ // Explicitly ignore all browser proxy configuration in a process with the
+ // browser's uid. This distinguishes kernel containment from policy obedience.
+ for(const enforced of [false,true]){
+  c.firewall(enforced);
+  for(const [family,host]of [[4,'127.0.0.1'],[6,'::1'],[4,'localhost'],[4,'169.254.17.1']]){
+   const id=`e-kernel-${host.replaceAll(':','v').replaceAll('.','-')}-${enforced?'blocked':'control'}`;
+   const source="import socket,sys;s=socket.socket(socket.AF_INET6 if sys.argv[1]=='6' else socket.AF_INET);s.settimeout(1);s.connect((sys.argv[2],18081));s.sendall(('GET /receive?case='+sys.argv[3]+' HTTP/1.1\\r\\nHost: fixture\\r\\nConnection: close\\r\\n\\r\\n').encode());s.recv(100)";
+   const result=await new Promise(resolve=>{const p=c.spawn('sudo',['-u','areschrome','python3','-c',source,String(family),host,id],{stdio:'ignore'});p.on('exit',code=>resolve({code}))});
+   if(enforced)await zero(id);else await delivered(id);log('Q1_KERNEL_BYPASS',{enforced,host,result,receiver:rows(id)});
+  }
+ }
  await positive('e-basic-control');await guard();await send('e-basic-held');await pending('e-basic-held');await zero('e-basic-held');const op=await approve('e-basic-held');await delivered('e-basic-held');await assert.rejects(()=>control('approve',{id:op.id}),/NOT_PENDING/);log('Q4_EXACT_HTTP',{op,receiver:rows('e-basic-held')});
  for(const [name,base] of [['ipv4',f.base],['ipv6','http://[::1]:18081'],['localhost','http://localhost:18081'],['linklocal','http://169.254.17.1:18081']]){
   const request=id=>ev(`fetch(${JSON.stringify(base+'/receive?case=') }+${JSON.stringify(id)},{method:'POST',body:${JSON.stringify(id)}}).catch(e=>results[${JSON.stringify(id)}]=e.name);true`);
@@ -26,6 +37,11 @@ export default async function(c){
  await rpc('Check.tag',{documentId:'synthetic-generation-A'});await context();await send('e-forged','forged', {headers:{'x-ares-check':'forged'}});const forged=await pending('e-forged');assert.equal(forged.attribution,'current');await zero('e-forged');await approve('e-forged');await delivered('e-forged');assert.equal(rows('e-forged').find(r=>r.kind==='headers').attributionPresent,false);
  await rpc('Check.untag');await control('context',{tokens:[]});
  for(const [name,headers]of [['missing',{}],['stale',{'x-ares-check':'stale-generation'}]]){await send('e-'+name,name,{headers});const held=await pending('e-'+name);assert.equal(held.attribution,'uncertain');await zero('e-'+name);await control('cancel',{id:held.id});log('Q3_ATTRIBUTION',{name,held});}
+ await guard(false);
+ await ev(`(()=>{globalThis.foreign17=document.createElement('iframe');foreign17.src='http://localhost:18081/';document.body.append(foreign17);globalThis.opaque17=document.createElement('iframe');opaque17.sandbox='allow-scripts';opaque17.srcdoc='<script>onmessage=e=>fetch("http://127.0.0.1:18081/receive?case="+e.data,{method:"POST",body:e.data}).catch(()=>{})<'+ '/script>';document.body.append(opaque17);return true})()`);await delay(800);
+ for(const kind of ['foreign','opaque'])for(const held of [false,true]){
+  const id=`e-frame-${kind}-${held?'held':'control'}`;await guard(held);await ev(`${kind==='foreign'?'foreign17':'opaque17'}.contentWindow.postMessage('${id}','*');true`);if(held){await pending(id);await zero(id);await approve(id);}await delivered(id);log('Q3_FRAME_HANDOFF',{kind,held,receiver:rows(id)});
+ }
  // A new document/account context cannot reuse an older approval.
  await send('e-context-old','old');const old=await pending('e-context-old');await control('context',{tokens:[]});await assert.rejects(()=>control('approve',{id:old.id}),/CONTEXT_CHANGED/);await control('cancel',{id:old.id});await zero('e-context-old');log('Q5_CONTEXT_REVALIDATION',{old,rejected:true});
  for(const variant of ['same','body','headers','account']){

@@ -2,6 +2,13 @@
 set -euo pipefail
 [[ $(uname -s) == Linux && ${GITHUB_ACTIONS:-} == true ]] || { echo 'GitHub Linux only'; exit 1; }
 work="$PWD/.work/17e-chrome"
+# Hosted runners make their home non-traversable to additional uids. Permit
+# traversal of the synthetic checkout's ancestors, without listing their files.
+ancestor="$PWD"
+while [[ "$ancestor" != / ]]; do
+  sudo chmod o+x "$ancestor"
+  ancestor=$(dirname "$ancestor")
+done
 mkdir -p "$work/artifacts" "$work/config"
 sudo useradd --create-home --home-dir "$work/browser-home" --shell /bin/bash areschrome
 sudo useradd --no-create-home --home-dir "$work/private" --shell /usr/sbin/nologin aresproxy

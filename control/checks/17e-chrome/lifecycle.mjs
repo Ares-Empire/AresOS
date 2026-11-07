@@ -31,6 +31,14 @@ export default async function(c){
    await guard(false);await c.close(true);await c.boot('recovery-'+actor+'-'+point);await c.context();
   }
  }
+ // Kill during actual forwarding, triggered by the independent receiver's
+ // first body byte rather than a guessed sleep after approval.
+ await positive('e-during-forward-control');await guard();
+ await ev("send('e-during-forward',new Uint8Array(25*1024*1024));true");const forwarding=await pending('e-during-forward');let killed;
+ c.f.onFirstByte(id=>{if(id==='e-during-forward'&&!killed)killed=c.stopProxy()});
+ await control('approve',{id:forwarding.id});await c.eventually(()=>!!killed,'receiver-triggered forwarding crash');await killed;c.f.onFirstByte(undefined);await c.startProxy();await delay(500);
+ const recoveredForward=(await control('state')).rows.find(r=>r.id===forwarding.id);assert.equal(recoveredForward.status,'unknown');log('Q6_DURING_FORWARD',{recovered:recoveredForward,receiver:c.rows('e-during-forward')});
+ await guard(false);await c.nav();
  // Real cancellation observations. Do not equate a JS timeout with an abort.
  for(const variant of ['abort','h2-reset','tab-close','timeout']){
   const id='e-cancel-'+variant;await positive(id+'-control');await guard();
