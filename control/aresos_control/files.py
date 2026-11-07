@@ -147,17 +147,33 @@ class FilePolicy:
             os.fsync(parent_fd)
             completed = True
             return {"path": str(Path(folder) / name), "sha256": expected_hash, "size": len(data)}
-        except OSError as exc:
-            raise Refused("file_refused", "Destination already exists, is linked, moved or inaccessible; choose a new safe file name.") from exc
-        finally:
-            if published and not completed and parent_fd is not None and fd is not None:
-                # Remove only our inode. A racing caller's replacement is never overwritten/unlinked.
+        except BaseException as exc:
+            if published and not completed:
+                # Linux has no unlink-if-inode-matches. Clear the pinned inode,
+                # including renamed/hard-linked aliases, without touching a name.
+                own = os.fstat(fd)
                 try:
-                    current, own = os.stat(name, dir_fd=parent_fd, follow_symlinks=False), os.fstat(fd)
-                    if (current.st_dev, current.st_ino) == (own.st_dev, own.st_ino):
-                        os.unlink(name, dir_fd=parent_fd)
-                except FileNotFoundError:
-                    pass
+                    current_folder = os.readlink(f"/proc/self/fd/{parent_fd}")
+                except OSError:
+                    current_folder = "unavailable (folder moved or removed)"
+                location = (f"device {own.st_dev}, inode {own.st_ino}, originally published at {str(Path(folder) / name)!r}; "
+                            f"pinned folder now {current_folder!r}")
+                try:
+                    os.ftruncate(fd, 0)
+                    os.fsync(fd)
+                except OSError as rollback:
+                    raise Refused("save_incomplete", "Save incomplete: clearing exported bytes could not be confirmed; "
+                                  f"bytes may remain readable or survive a storage failure ({location}). "
+                                  "No directory entries removed; renamed/hard-link locations cannot be enumerated. "
+                                  "Inspect this inode before retrying. " + str(rollback)) from exc
+                raise Refused("file_refused", "Save refused after publication: exported inode emptied and synced "
+                              f"(0 bytes, {os.fstat(fd).st_nlink} remaining links; {location}). "
+                              "No directory entries removed: empty output or renamed/hard-link remnants may remain; "
+                              "other link locations cannot be enumerated. Inspect empty remnants and choose a new name.") from exc
+            if isinstance(exc, OSError):
+                raise Refused("file_refused", "Destination already exists, is linked, moved or inaccessible; choose a new safe file name.") from exc
+            raise
+        finally:
             if fd is not None:
                 os.close(fd)
             if parent_fd is not None:

@@ -150,18 +150,24 @@ class Files(EngineCase):
             if point == "published":
                 os.link(self.allowed / "linked.txt", self.allowed / "alias.txt")
 
-        with self.assertRaises(Refused):
+        with self.assertRaises(Refused) as linked_error:
             self.policy.save(str(self.allowed), "linked.txt", data, key, link_published)
-        self.assertFalse((self.allowed / "linked.txt").exists())
+        self.assertEqual((self.allowed / "linked.txt").read_bytes(), b"")
+        self.assertEqual((self.allowed / "alias.txt").read_bytes(), b"")
+        self.assertIn("0 bytes, 2 remaining links", str(linked_error.exception))
+        self.assertIn(str(self.allowed / "linked.txt"), str(linked_error.exception))
 
         def swap_after_publish(point):
             if point == "published":
                 self.allowed.rename(self.home / "MovedAgain")
                 self.allowed.mkdir()
 
-        with self.assertRaises(Refused):
+        with self.assertRaises(Refused) as moved_error:
             self.policy.save(str(self.allowed), "moved.txt", data, key, swap_after_publish)
-        self.assertFalse((self.home / "MovedAgain/moved.txt").exists())
+        moved = self.home / "MovedAgain/moved.txt"
+        self.assertEqual(moved.read_bytes(), b"")
+        self.assertIn(str(moved.parent), str(moved_error.exception))
+        self.assertIn("No directory entries removed", str(moved_error.exception))
 
     def test_download_hash_and_private_transfer_metadata_checks(self):
         blob = self.engine.blobs.put(b"bytes")
@@ -219,3 +225,33 @@ class Files(EngineCase):
         with self.assertRaises(Refused):
             self.policy.save(str(self.allowed), saved.name, b"exported", sha256(b"exported"), link)
         self.assertEqual(alias.read_bytes(), b"", "refused save left readable exported bytes in an alias")
+
+    def test_failed_save_reports_rollback_storage_failures_honestly(self):
+        for fault in ("truncate", "sync"):
+            with self.subTest(fault=fault):
+                saved, alias = self.allowed / (fault + ".txt"), self.home / (fault + "-alias.txt")
+                published = False
+                original_sync = os.fsync
+
+                def fail(point):
+                    nonlocal published
+                    if point == "published":
+                        published = True
+                        os.link(saved, alias)
+                        raise Refused("file_refused", "fixture: fail after publication")
+
+                def sync(fd):
+                    if published and fault == "sync":
+                        raise OSError("fixture: sync failed")
+                    return original_sync(fd)
+
+                truncate = (patch("aresos_control.files.os.ftruncate", side_effect=OSError("fixture: truncate failed"))
+                            if fault == "truncate" else patch("aresos_control.files.os.ftruncate", wraps=os.ftruncate))
+                with patch("aresos_control.files.os.fsync", side_effect=sync), truncate:
+                    with self.assertRaises(Refused) as error:
+                        self.policy.save(str(self.allowed), saved.name, b"exported", sha256(b"exported"), fail)
+                self.assertEqual(error.exception.code, "save_incomplete")
+                self.assertIn(str(saved), str(error.exception))
+                self.assertIn("inode " + str(alias.stat().st_ino), str(error.exception))
+                self.assertIn("bytes may remain readable", str(error.exception))
+                self.assertEqual(alias.read_bytes(), b"exported" if fault == "truncate" else b"")
