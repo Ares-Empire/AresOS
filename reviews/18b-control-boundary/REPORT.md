@@ -1,5 +1,19 @@
 # 18b: Linux control boundary — review fixes
 
+## Merge with brief 18
+
+**Done:** Brief 18 populated the managed MCP file, invalidating two empty-list assertions. `boundary_assertions.py` now reads server names from the installed `/etc/claude-code/managed-mcp.json` and checks the complete CLI list, rejecting extra, missing and duplicate entries. `check.py` retains the unmanaged rogue-user/project positive control and `mcp-started` exclusion. `isolation.py` additionally requires every managed server to report failure to connect; its socket/home/policy checks remain. The managed MCP file is unchanged. Three new regression tests exercise changed fixture names, list mutations and each coding server connecting or needing authentication.
+
+**Done:** The optional three-line `launch.py proxy` guard uses the existing root-owned service `owner_uid` and immediately refuses other identities with `AresOS MCP proxy requires the configured assistant user.` The base integration test checks both apps as the coding/other user, service user and root. Existing real-MCP and poisoned-environment tests still exercise the permitted user.
+
+**Verified / initial failure:** Implementation `d658cb7b7b425b30d0da94777e0e0f992220fc5d`: boundary [push 42388611397](https://github.com/Ares-Empire/AresOS/actions/runs/42388611397) and [PR 42388615365](https://github.com/Ares-Empire/AresOS/actions/runs/42388615365) passed both hostile modes, including assistant MCP exclusivity, but failed isolation with `ModuleNotFoundError: No module named 'boundary_assertions'`. Python `-I` excludes the script directory. The fix adds the same fixed root-owned `/opt/aresos-control` import path already used by `check.py`; isolation remains enabled. Base [PR 42388615389](https://github.com/Ares-Empire/AresOS/actions/runs/42388615389) passed: `bash control/ci/test.sh` printed `Ran 58 tests`, `OK`, `Control base suite PASS`. Final report-head run IDs, attempts and outcomes are recorded in [PR #5's merge-fix validation record](https://github.com/Ares-Empire/AresOS/pull/5), avoiding a self-referential report commit. Handoff requires two successful boundary executions and two successful base executions on that final head.
+
+**Verified locally:** `python3 -m unittest discover -s control/boundary -p test_native.py -v` printed `Ran 15 tests` / `OK`. `python3 -m py_compile control/launch.py control/boundary/boundary_assertions.py control/boundary/check.py control/boundary/isolation.py control/boundary/test_native.py control/tests/test_integration.py` and `git diff --check` exited 0 without output. Replaying both saved `mcp-list.txt` outputs from failing run 42388041788 through the new validator returned exactly `['control', 'testapp']`, with both explicitly failed. Local Docker reported `Cannot connect to the Docker daemon`; Linux verification uses the existing workflows, without host installation.
+
+**Not verified / PLAN-GAP:** The boundary image does not install the base service/proxy. Its CLI failures and independent missing-socket/connect-refusal checks establish the tested isolation conditions; they do not establish a live integrated proxy's failure cause. The base workflow separately exercises the installed proxy and real service. Actual-image integration and the existing human/model qualification gaps below remain open. No screenshots apply to this CLI-only change.
+
+**JUDGMENT-CALL / Open questions:** No new owner decision. Proxy identity follows the service's existing configured assistant UID. No tests were removed or weakened, no real account/model was used, and no merge was performed. `find .work -type f -size +500M -print` printed nothing; no large downloads or extracted images remain.
+
 ## Answer in five lines
 
 1. **run:** native Claude Code 2.1.319 executes the approved fixed hostile program through its own Bash sandbox: all 127 routes are blocked in both external-helper modes, with zero listener/receiver arrivals and 44 unchanged protected paths.
