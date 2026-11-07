@@ -1,0 +1,5 @@
+Local source parsing only; no browser or profile execution.
+Command: for f in control/checks/17d-chrome/*.mjs control/checks/17d-chrome/*.js control/checks/17d-chrome/extension/*.js; do node --check "$f" || exit; done
+Result: exit 0, no stdout/stderr.
+Command: git diff --check
+Result: exit 0, no stdout/stderr.

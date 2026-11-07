@@ -1,0 +1,32 @@
+[
+  {
+    "id": "owner-notification",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "background-own",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "reached-ws",
+    "expected": 1,
+    "actual": 1
+  },
+  {
+    "id": "held-ws-message",
+    "expected": 0,
+    "actual": 0
+  },
+  {
+    "id": "public-shared-v1-first",
+    "expected": 2,
+    "actual": 2
+  },
+  {
+    "id": "public-service-v1-first",
+    "expected": 2,
+    "actual": 2
+  }
+]

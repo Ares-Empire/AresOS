@@ -1,0 +1,61 @@
+[
+  {
+    "id": "handoff-dedicated-v1-first",
+    "observed": 0,
+    "reason": "worker socket experiments, including the later worker sync registration",
+    "actual": 0
+  },
+  {
+    "id": "handoff-dedicated-v1-message",
+    "observed": 0,
+    "reason": "worker socket experiments, including the later worker sync registration",
+    "actual": 0
+  },
+  {
+    "id": "handoff-dedicated-v1-sync",
+    "observed": 0,
+    "reason": "worker socket experiments, including the later worker sync registration",
+    "actual": 0
+  },
+  {
+    "id": "handoff-shared-v1-first",
+    "observed": 2,
+    "reason": "worker socket experiments, including the later worker sync registration",
+    "actual": 2
+  },
+  {
+    "id": "handoff-shared-v1-message",
+    "observed": 0,
+    "reason": "worker socket experiments, including the later worker sync registration",
+    "actual": 0
+  },
+  {
+    "id": "handoff-shared-v1-sync",
+    "observed": 0,
+    "reason": "worker socket experiments, including the later worker sync registration",
+    "actual": 0
+  },
+  {
+    "id": "storage-sw-v1-first",
+    "observed": 2,
+    "reason": "worker socket experiments, including the later worker sync registration",
+    "actual": 2
+  },
+  {
+    "id": "storage-sw-v1-message",
+    "observed": 0,
+    "reason": "worker socket experiments, including the later worker sync registration",
+    "actual": 0
+  },
+  {
+    "id": "storage-sw-v1-sync",
+    "observed": 4,
+    "reason": "worker socket experiments, including the later worker sync registration",
+    "actual": 4
+  },
+  {
+    "id": "offline-later",
+    "expected": 0,
+    "actual": 0
+  }
+]

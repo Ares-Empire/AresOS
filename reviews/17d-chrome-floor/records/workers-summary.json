@@ -1,0 +1,3338 @@
+{
+  "phase": "workers",
+  "head": "4f34936b90e9891f5abe2f1f30a6f019b4f85712",
+  "run": "42362681610",
+  "cases": [
+    {
+      "name": "CONNECTED",
+      "tabId": 1101343599,
+      "group": 1241994003,
+      "version": "0.4.0"
+    },
+    {
+      "name": "Q3_NEW_SERVICE",
+      "scripts": [
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046165277
+        }
+      ],
+      "attempts": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046165284
+        }
+      ],
+      "arrivals": [
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046165287
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046165288
+        }
+      ],
+      "events": [
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046162403
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "serviceWorker.register",
+            "at": 1794046165274,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "136306362F4F49016B04C5E492D89F29"
+            }
+          },
+          "at": 1794046165275
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "53",
+            "at": 1794046165283.763
+          },
+          "at": 1794046165284
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046165285
+        }
+      ],
+      "targets": [
+        {
+          "attached": false,
+          "id": "E0607566F216FB36C2D9FE4776939C91",
+          "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-service",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/sw.js?case=worker-service"
+        },
+        {
+          "attached": false,
+          "id": "4A077E79C1F2C39D739D362C744DB16E",
+          "title": "Service Worker chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js",
+          "type": "worker",
+          "url": "chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/thunk.js"
+        },
+        {
+          "attached": false,
+          "id": "4E999E20A942CBAE419CB6D91AAE79F7",
+          "title": "Service Worker chrome-extension://admccjkmockfdflocgggjfgdacdodkdf/background.js",
+          "type": "worker",
+          "url": "chrome-extension://admccjkmockfdflocgggjfgdacdodkdf/background.js"
+        },
+        {
+          "attached": false,
+          "id": "ED9D9F79B798C230182F5F084FA005E5",
+          "title": "Service Worker chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js",
+          "type": "worker",
+          "url": "chrome-extension://fignfifoniblkonapihmkfakmlgkbkcf/service_worker.js"
+        },
+        {
+          "attached": false,
+          "id": "0E16A8E918F62AE4AE4DCD8DD4F956A2",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "7CFDCC62B7EE239B8758919316D01440",
+          "title": "Service Worker chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js",
+          "type": "worker",
+          "url": "chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js"
+        },
+        {
+          "attached": false,
+          "id": "DC6B20313983248CBF34393496C0B2DB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": true,
+          "id": "D283EE2F3B6B8851DDC45BBC164A76E1",
+          "tabId": 1101343599,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": false,
+          "extensionId": "nmmhkkegccagdldgiimedpiccmgmieda",
+          "id": "75901B439A3F54C0AFB9F47D67B4026F",
+          "title": "Chrome Web Store Payments",
+          "type": "background_page",
+          "url": "chrome-extension://nmmhkkegccagdldgiimedpiccmgmieda/_generated_background_page.html"
+        },
+        {
+          "attached": false,
+          "id": "E2C77F569958556D4E79CF4E3CC60034",
+          "tabId": 1101343600,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/select.html?url=http%3A%2F%2F127.0.0.1%3A41917%2F&tabId="
+        }
+      ]
+    },
+    {
+      "name": "Q3_SERVICE_WORKER_DOMAIN",
+      "status": "unavailable",
+      "error": "Error: Check.command: \"Error: {\\\"code\\\":-32601,\\\"message\\\":\\\"'ServiceWorker.enable' wasn't found\\\"}\"\n    at Protocol.accept (file:///home/runner/work/AresOS/AresOS/control/checks/17-chrome/protocol.mjs:13:33)\n    at Socket.<anonymous> (file:///home/runner/work/AresOS/AresOS/control/checks/17d-chrome/bridge.mjs:10:137)\n    at Socket.emit (node:events:519:28)\n    at addChunk (node:internal/streams/readable:561:12)\n    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)\n    at Readable.push (node:internal/streams/readable:392:5)\n    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)"
+    },
+    {
+      "name": "Q3_IDLE_TARGETS",
+      "targets": [
+        {
+          "attached": false,
+          "id": "0E16A8E918F62AE4AE4DCD8DD4F956A2",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "DC6B20313983248CBF34393496C0B2DB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "D283EE2F3B6B8851DDC45BBC164A76E1",
+          "tabId": 1101343599,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": false,
+          "id": "E2C77F569958556D4E79CF4E3CC60034",
+          "tabId": 1101343600,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/select.html?url=http%3A%2F%2F127.0.0.1%3A41917%2F&tabId="
+        }
+      ]
+    },
+    {
+      "name": "Q3_NAVIGATION_START_NO_DEBUGGER",
+      "scripts": [
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046165277
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046204013
+        }
+      ],
+      "attempts": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046165284
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046201982
+        }
+      ],
+      "arrivals": [
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046165287
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046165288
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046201986
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046201988
+        }
+      ],
+      "events": [
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046162403
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "serviceWorker.register",
+            "at": 1794046165274,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "136306362F4F49016B04C5E492D89F29"
+            }
+          },
+          "at": 1794046165275
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "53",
+            "at": 1794046165283.763
+          },
+          "at": 1794046165284
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046165285
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "55",
+            "at": 1794046201983.379
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046201984
+        }
+      ],
+      "targets": [
+        {
+          "attached": false,
+          "id": "1A78546E51A2AB6B3690221A64A808CC",
+          "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-service",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/sw.js?case=worker-service"
+        },
+        {
+          "attached": false,
+          "id": "0E16A8E918F62AE4AE4DCD8DD4F956A2",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "DC6B20313983248CBF34393496C0B2DB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "E2C77F569958556D4E79CF4E3CC60034",
+          "tabId": 1101343600,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": false,
+          "id": "D283EE2F3B6B8851DDC45BBC164A76E1",
+          "tabId": 1101343599,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        }
+      ]
+    },
+    {
+      "name": "Q3_EXPLICIT_UPDATE",
+      "scripts": [
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046165277
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046204013
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 2,
+          "at": 1794046205239
+        }
+      ],
+      "attempts": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046165284
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046201982
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v2-first",
+          "at": 1794046205247
+        }
+      ],
+      "arrivals": [
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046165287
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046165288
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046201986
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046201988
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v2-first",
+          "at": 1794046205249
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v2-first",
+          "body": "{\"case\":\"worker-service-v2-first\"}",
+          "at": 1794046205250
+        }
+      ],
+      "events": [
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046162403
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "serviceWorker.register",
+            "at": 1794046165274,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "136306362F4F49016B04C5E492D89F29"
+            }
+          },
+          "at": 1794046165275
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "53",
+            "at": 1794046165283.763
+          },
+          "at": 1794046165284
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046165285
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "55",
+            "at": 1794046201983.379
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046204725
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "65",
+            "at": 1794046205247.12
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046205247
+        }
+      ],
+      "targets": [
+        {
+          "attached": false,
+          "id": "0E16A8E918F62AE4AE4DCD8DD4F956A2",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "2B843A7AB9A462036150548607CCD0A6",
+          "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-service",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/sw.js?case=worker-service"
+        },
+        {
+          "attached": false,
+          "id": "DC6B20313983248CBF34393496C0B2DB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "E2C77F569958556D4E79CF4E3CC60034",
+          "tabId": 1101343600,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": true,
+          "id": "D283EE2F3B6B8851DDC45BBC164A76E1",
+          "tabId": 1101343599,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        }
+      ]
+    },
+    {
+      "name": "Q3_NAVIGATION_UPDATE",
+      "scripts": [
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046165277
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046204013
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 2,
+          "at": 1794046205239
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046208903
+        }
+      ],
+      "attempts": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046165284
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046201982
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v2-first",
+          "at": 1794046205247
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046208911
+        }
+      ],
+      "arrivals": [
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046165287
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046165288
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046201986
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046201988
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v2-first",
+          "at": 1794046205249
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v2-first",
+          "body": "{\"case\":\"worker-service-v2-first\"}",
+          "at": 1794046205250
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046208912
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046208913
+        }
+      ],
+      "events": [
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046162403
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "serviceWorker.register",
+            "at": 1794046165274,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "136306362F4F49016B04C5E492D89F29"
+            }
+          },
+          "at": 1794046165275
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "53",
+            "at": 1794046165283.763
+          },
+          "at": 1794046165284
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046165285
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "55",
+            "at": 1794046201983.379
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046204725
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "65",
+            "at": 1794046205247.12
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "71",
+            "at": 1794046208910.524
+          },
+          "at": 1794046208910
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046208910
+        }
+      ],
+      "targets": [
+        {
+          "attached": false,
+          "id": "0E16A8E918F62AE4AE4DCD8DD4F956A2",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "375BED5DD8F082B19990A35067A89F3D",
+          "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-service",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/sw.js?case=worker-service"
+        },
+        {
+          "attached": false,
+          "id": "DC6B20313983248CBF34393496C0B2DB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "D283EE2F3B6B8851DDC45BBC164A76E1",
+          "tabId": 1101343599,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": false,
+          "id": "E2C77F569958556D4E79CF4E3CC60034",
+          "tabId": 1101343600,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        }
+      ]
+    },
+    {
+      "name": "Q3_SYNC_IDLE_TARGETS",
+      "targets": [
+        {
+          "attached": false,
+          "id": "0E16A8E918F62AE4AE4DCD8DD4F956A2",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "DC6B20313983248CBF34393496C0B2DB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "E2C77F569958556D4E79CF4E3CC60034",
+          "tabId": 1101343600,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": false,
+          "id": "D283EE2F3B6B8851DDC45BBC164A76E1",
+          "tabId": 1101343599,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        }
+      ],
+      "at": 1794046247674
+    },
+    {
+      "name": "Q3_SYNC_NO_PAGE_DEBUGGER",
+      "scripts": [
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046165277
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046204013
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 2,
+          "at": 1794046205239
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046208903
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046214172
+        }
+      ],
+      "attempts": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046165284
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046201982
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v2-first",
+          "at": 1794046205247
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046208911
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046250614
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250616
+        }
+      ],
+      "arrivals": [
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046165287
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046165288
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046201986
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046201988
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v2-first",
+          "at": 1794046205249
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v2-first",
+          "body": "{\"case\":\"worker-service-v2-first\"}",
+          "at": 1794046205250
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046208912
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046208913
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046250615
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046250616
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250626
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-sync",
+          "body": "{\"case\":\"worker-service-v3-sync\"}",
+          "at": 1794046250626
+        }
+      ],
+      "events": [
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046162403
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "serviceWorker.register",
+            "at": 1794046165274,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "136306362F4F49016B04C5E492D89F29"
+            }
+          },
+          "at": 1794046165275
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "53",
+            "at": 1794046165283.763
+          },
+          "at": 1794046165284
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046165285
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "55",
+            "at": 1794046201983.379
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046204725
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "65",
+            "at": 1794046205247.12
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "71",
+            "at": 1794046208910.524
+          },
+          "at": 1794046208910
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046208910
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046212156
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "sync.register",
+            "at": 1794046250606,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "C3802FE089E8A5AAB9DDE7B49C4D3610"
+            }
+          },
+          "at": 1794046250607
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "77",
+            "at": 1794046250612.9
+          },
+          "at": 1794046250613
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046250613
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-sync",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "79",
+            "at": 1794046250614.275
+          },
+          "at": 1794046250614
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-sync",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046250614
+        }
+      ],
+      "targets": [
+        {
+          "attached": false,
+          "id": "0E16A8E918F62AE4AE4DCD8DD4F956A2",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "8B99D79E64395E4C4AD9C9AA437BB0BC",
+          "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-service",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/sw.js?case=worker-service"
+        },
+        {
+          "attached": false,
+          "id": "DC6B20313983248CBF34393496C0B2DB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "E2C77F569958556D4E79CF4E3CC60034",
+          "tabId": 1101343600,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": false,
+          "id": "D283EE2F3B6B8851DDC45BBC164A76E1",
+          "tabId": 1101343599,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        }
+      ]
+    },
+    {
+      "name": "Q3_BACKGROUND_SYNC",
+      "status": "observed",
+      "rows": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250616
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250626
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-sync",
+          "body": "{\"case\":\"worker-service-v3-sync\"}",
+          "at": 1794046250626
+        }
+      ],
+      "registration": "real SyncManager.register after worker idle, no dispatchSyncEvent"
+    },
+    {
+      "name": "Q3_NEW_SHARED",
+      "scripts": [
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046165277
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046204013
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 2,
+          "at": 1794046205239
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046208903
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046214172
+        },
+        {
+          "kind": "worker-script",
+          "url": "/worker.js?shared&case=worker-shared",
+          "version": 3,
+          "at": 1794046254601
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046255702
+        }
+      ],
+      "attempts": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046165284
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046201982
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v2-first",
+          "at": 1794046205247
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046208911
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046250614
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250616
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-shared-v3-first",
+          "at": 1794046254609
+        }
+      ],
+      "arrivals": [
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046165287
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046165288
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046201986
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046201988
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v2-first",
+          "at": 1794046205249
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v2-first",
+          "body": "{\"case\":\"worker-service-v2-first\"}",
+          "at": 1794046205250
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046208912
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046208913
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046250615
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046250616
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250626
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-sync",
+          "body": "{\"case\":\"worker-service-v3-sync\"}",
+          "at": 1794046250626
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-shared-v3-first",
+          "at": 1794046254608
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-shared-v3-first",
+          "body": "{\"case\":\"worker-shared-v3-first\"}",
+          "at": 1794046254610
+        }
+      ],
+      "events": [
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046162403
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "serviceWorker.register",
+            "at": 1794046165274,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "136306362F4F49016B04C5E492D89F29"
+            }
+          },
+          "at": 1794046165275
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "53",
+            "at": 1794046165283.763
+          },
+          "at": 1794046165284
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046165285
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "55",
+            "at": 1794046201983.379
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046204725
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "65",
+            "at": 1794046205247.12
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "71",
+            "at": 1794046208910.524
+          },
+          "at": 1794046208910
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046208910
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046212156
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "sync.register",
+            "at": 1794046250606,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "C3802FE089E8A5AAB9DDE7B49C4D3610"
+            }
+          },
+          "at": 1794046250607
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "77",
+            "at": 1794046250612.9
+          },
+          "at": 1794046250613
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046250613
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-sync",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "79",
+            "at": 1794046250614.275
+          },
+          "at": 1794046250614
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-sync",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046250614
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046254086
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "85",
+            "at": 1794046254608.701
+          },
+          "at": 1794046254608
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046254609
+        }
+      ],
+      "targets": [
+        {
+          "attached": false,
+          "id": "8B61E66B9752D7B0A9957E2A8F883FF3",
+          "title": "",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/worker.js?shared&case=worker-shared"
+        },
+        {
+          "attached": false,
+          "id": "0E16A8E918F62AE4AE4DCD8DD4F956A2",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "8B99D79E64395E4C4AD9C9AA437BB0BC",
+          "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-service",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/sw.js?case=worker-service"
+        },
+        {
+          "attached": false,
+          "id": "DC6B20313983248CBF34393496C0B2DB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": true,
+          "id": "D283EE2F3B6B8851DDC45BBC164A76E1",
+          "tabId": 1101343599,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": false,
+          "id": "E2C77F569958556D4E79CF4E3CC60034",
+          "tabId": 1101343600,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        }
+      ]
+    },
+    {
+      "name": "Q3_TAB_ALLOWANCE",
+      "scripts": [
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046165277
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046204013
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 2,
+          "at": 1794046205239
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046208903
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046214172
+        },
+        {
+          "kind": "worker-script",
+          "url": "/worker.js?shared&case=worker-shared",
+          "version": 3,
+          "at": 1794046254601
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046255702
+        }
+      ],
+      "attempts": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046165284
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046201982
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v2-first",
+          "at": 1794046205247
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046208911
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046250614
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250616
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-shared-v3-first",
+          "at": 1794046254609
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-shared-v3-message",
+          "at": 1794046256009
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-message",
+          "at": 1794046256011
+        }
+      ],
+      "arrivals": [
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046165287
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046165288
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046201986
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046201988
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v2-first",
+          "at": 1794046205249
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v2-first",
+          "body": "{\"case\":\"worker-service-v2-first\"}",
+          "at": 1794046205250
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046208912
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046208913
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046250615
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046250616
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250626
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-sync",
+          "body": "{\"case\":\"worker-service-v3-sync\"}",
+          "at": 1794046250626
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-shared-v3-first",
+          "at": 1794046254608
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-shared-v3-first",
+          "body": "{\"case\":\"worker-shared-v3-first\"}",
+          "at": 1794046254610
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-shared-v3-message",
+          "at": 1794046256008
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-shared-v3-message",
+          "body": "{\"case\":\"worker-shared-v3-message\"}",
+          "at": 1794046256012
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-message",
+          "at": 1794046256020
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-message",
+          "body": "{\"case\":\"worker-service-v3-message\"}",
+          "at": 1794046256020
+        }
+      ],
+      "events": [
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046162403
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "serviceWorker.register",
+            "at": 1794046165274,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "136306362F4F49016B04C5E492D89F29"
+            }
+          },
+          "at": 1794046165275
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "53",
+            "at": 1794046165283.763
+          },
+          "at": 1794046165284
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046165285
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "55",
+            "at": 1794046201983.379
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046204725
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "65",
+            "at": 1794046205247.12
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "71",
+            "at": 1794046208910.524
+          },
+          "at": 1794046208910
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046208910
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046212156
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "sync.register",
+            "at": 1794046250606,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "C3802FE089E8A5AAB9DDE7B49C4D3610"
+            }
+          },
+          "at": 1794046250607
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "77",
+            "at": 1794046250612.9
+          },
+          "at": 1794046250613
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046250613
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-sync",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "79",
+            "at": 1794046250614.275
+          },
+          "at": 1794046250614
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-sync",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046250614
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343599,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046254086
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "85",
+            "at": 1794046254608.701
+          },
+          "at": 1794046254608
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046254609
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "port.postMessage",
+            "at": 1794046256006,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "6254A5A01A7AB1CFD62B6636AECBB380"
+            }
+          },
+          "at": 1794046256008
+        },
+        {
+          "method": "check.script",
+          "params": {
+            "event": "write-or-handoff",
+            "api": "serviceWorker.postMessage",
+            "at": 1794046256007,
+            "source": {
+              "tabId": 1101343599,
+              "frameId": 0,
+              "documentId": "6254A5A01A7AB1CFD62B6636AECBB380"
+            }
+          },
+          "at": 1794046256008
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-message",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "88",
+            "at": 1794046256008.864
+          },
+          "at": 1794046256009
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-message",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046256009
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-message",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "90",
+            "at": 1794046256010.718
+          },
+          "at": 1794046256010
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-message",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046256010
+        }
+      ],
+      "targets": [
+        {
+          "attached": false,
+          "id": "8B61E66B9752D7B0A9957E2A8F883FF3",
+          "title": "",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/worker.js?shared&case=worker-shared"
+        },
+        {
+          "attached": false,
+          "id": "0E16A8E918F62AE4AE4DCD8DD4F956A2",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "8B99D79E64395E4C4AD9C9AA437BB0BC",
+          "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-service",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/sw.js?case=worker-service"
+        },
+        {
+          "attached": false,
+          "id": "DC6B20313983248CBF34393496C0B2DB",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": true,
+          "id": "D283EE2F3B6B8851DDC45BBC164A76E1",
+          "tabId": 1101343599,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": false,
+          "id": "E2C77F569958556D4E79CF4E3CC60034",
+          "tabId": 1101343600,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        }
+      ]
+    },
+    {
+      "name": "Q3_GLOBAL_SOCKET_BLOCK",
+      "rows": [
+        {
+          "kind": "ws-open",
+          "case": "worker-global-v3-first",
+          "at": 1794046257424
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-global-v3-first",
+          "body": "{\"case\":\"worker-global-v3-first\"}",
+          "at": 1794046257425
+        }
+      ]
+    },
+    {
+      "name": "Q3_WORKER_TAB_IDS",
+      "requests": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "53",
+            "at": 1794046165283.763
+          },
+          "at": 1794046165284
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "55",
+            "at": 1794046201983.379
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "65",
+            "at": 1794046205247.12
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "71",
+            "at": 1794046208910.524
+          },
+          "at": 1794046208910
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "77",
+            "at": 1794046250612.9
+          },
+          "at": 1794046250613
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-sync",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "79",
+            "at": 1794046250614.275
+          },
+          "at": 1794046250614
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "85",
+            "at": 1794046254608.701
+          },
+          "at": 1794046254608
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-message",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "88",
+            "at": 1794046256008.864
+          },
+          "at": 1794046256009
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-message",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "90",
+            "at": 1794046256010.718
+          },
+          "at": 1794046256010
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-global-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "93",
+            "at": 1794046257424.45
+          },
+          "at": 1794046257424
+        }
+      ],
+      "note": "DNR-blocked handshakes may omit webRequest observations; a positive control below exposes the tab ID."
+    },
+    {
+      "name": "Q3_WORKER_POSITIVE",
+      "rows": [
+        {
+          "kind": "http",
+          "case": "worker-control-v3-first",
+          "method": "POST",
+          "url": "/receive?case=worker-control-v3-first",
+          "length": 16,
+          "sha256": "615ee23c674a6a10388e2c1f1c388646f990598e218f2e54838fa392a523e480",
+          "body": "synthetic worker",
+          "headers": {
+            "host": "127.0.0.1:41917",
+            "connection": "keep-alive",
+            "content-length": "16",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "content-type": "text/plain;charset=UTF-8",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:41917",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:41917/worker.js?shared&case=worker-control",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046258134
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-control-v3-first",
+          "at": 1794046258135
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-control-v3-first",
+          "body": "{\"case\":\"worker-control-v3-first\"}",
+          "at": 1794046258135
+        }
+      ],
+      "events": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "53",
+            "at": 1794046165283.763
+          },
+          "at": 1794046165284
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v1-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "55",
+            "at": 1794046201983.379
+          },
+          "at": 1794046201984
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v2-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "65",
+            "at": 1794046205247.12
+          },
+          "at": 1794046205247
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "71",
+            "at": 1794046208910.524
+          },
+          "at": 1794046208910
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "77",
+            "at": 1794046250612.9
+          },
+          "at": 1794046250613
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-sync",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "79",
+            "at": 1794046250614.275
+          },
+          "at": 1794046250614
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "85",
+            "at": 1794046254608.701
+          },
+          "at": 1794046254608
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-shared-v3-message",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "88",
+            "at": 1794046256008.864
+          },
+          "at": 1794046256009
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-message",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "90",
+            "at": 1794046256010.718
+          },
+          "at": 1794046256010
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-global-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "93",
+            "at": 1794046257424.45
+          },
+          "at": 1794046257424
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-control-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "96",
+            "at": 1794046258132.33
+          },
+          "at": 1794046258132
+        }
+      ]
+    },
+    {
+      "name": "Q2_RESTORE_UI",
+      "label": "worker-restored",
+      "at": 1794046271253,
+      "action": "Chrome native Restore button, before debugger attach"
+    },
+    {
+      "name": "Q2_BEFORE_ATTACH",
+      "label": "worker-restored",
+      "at": 1794046271356,
+      "rows": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-message",
+          "at": 1794046256011
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-shared-v3-message",
+          "body": "{\"case\":\"worker-shared-v3-message\"}",
+          "at": 1794046256012
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-message",
+          "at": 1794046256020
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-message",
+          "body": "{\"case\":\"worker-service-v3-message\"}",
+          "at": 1794046256020
+        },
+        {
+          "kind": "worker-script",
+          "url": "/worker.js?shared&case=worker-global",
+          "version": 3,
+          "at": 1794046257417
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-global-v3-first",
+          "at": 1794046257424
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-global-v3-first",
+          "at": 1794046257425
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-global-v3-first",
+          "body": "{\"case\":\"worker-global-v3-first\"}",
+          "at": 1794046257425
+        },
+        {
+          "kind": "worker-script",
+          "url": "/worker.js?shared&case=worker-control",
+          "version": 3,
+          "at": 1794046258125
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-control-v3-first",
+          "at": 1794046258133
+        },
+        {
+          "kind": "http",
+          "case": "worker-control-v3-first",
+          "method": "POST",
+          "url": "/receive?case=worker-control-v3-first",
+          "length": 16,
+          "sha256": "615ee23c674a6a10388e2c1f1c388646f990598e218f2e54838fa392a523e480",
+          "body": "synthetic worker",
+          "headers": {
+            "host": "127.0.0.1:41917",
+            "connection": "keep-alive",
+            "content-length": "16",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "content-type": "text/plain;charset=UTF-8",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:41917",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:41917/worker.js?shared&case=worker-control",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046258134
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-control-v3-first",
+          "at": 1794046258135
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-control-v3-first",
+          "body": "{\"case\":\"worker-control-v3-first\"}",
+          "at": 1794046258135
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046271256
+        },
+        {
+          "kind": "document",
+          "url": "/",
+          "host": "127.0.0.1:41917",
+          "at": 1794046271256
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046271257
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046271258
+        },
+        {
+          "kind": "document",
+          "url": "/",
+          "host": "127.0.0.1:41917",
+          "at": 1794046271259
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:41917",
+          "at": 1794046271303
+        },
+        {
+          "kind": "document",
+          "url": "/favicon.ico",
+          "host": "127.0.0.1:41917",
+          "at": 1794046271308
+        }
+      ]
+    },
+    {
+      "name": "CONNECTED",
+      "tabId": 1101343675,
+      "group": 1050757154,
+      "version": "0.4.0"
+    },
+    {
+      "name": "Q2_RESTORED_WORKER",
+      "scripts": [
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046165277
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 1,
+          "at": 1794046204013
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 2,
+          "at": 1794046205239
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046208903
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046214172
+        },
+        {
+          "kind": "worker-script",
+          "url": "/worker.js?shared&case=worker-shared",
+          "version": 3,
+          "at": 1794046254601
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046255702
+        },
+        {
+          "kind": "worker-script",
+          "url": "/worker.js?shared&case=worker-global",
+          "version": 3,
+          "at": 1794046257417
+        },
+        {
+          "kind": "worker-script",
+          "url": "/worker.js?shared&case=worker-control",
+          "version": 3,
+          "at": 1794046258125
+        },
+        {
+          "kind": "worker-script",
+          "url": "/sw.js?case=worker-service",
+          "version": 3,
+          "at": 1794046274294
+        }
+      ],
+      "attempts": [
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046165284
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v1-first",
+          "at": 1794046201982
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v2-first",
+          "at": 1794046205247
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046208911
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046250614
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250616
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-shared-v3-first",
+          "at": 1794046254609
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-shared-v3-message",
+          "at": 1794046256009
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-message",
+          "at": 1794046256011
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-global-v3-first",
+          "at": 1794046257425
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-control-v3-first",
+          "at": 1794046258133
+        },
+        {
+          "kind": "attempt",
+          "case": "worker-service-v3-first",
+          "at": 1794046271256
+        }
+      ],
+      "arrivals": [
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046165287
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046165288
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v1-first",
+          "at": 1794046201986
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v1-first",
+          "body": "{\"case\":\"worker-service-v1-first\"}",
+          "at": 1794046201988
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v2-first",
+          "at": 1794046205249
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v2-first",
+          "body": "{\"case\":\"worker-service-v2-first\"}",
+          "at": 1794046205250
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046208912
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046208913
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046250615
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046250616
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-sync",
+          "at": 1794046250626
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-sync",
+          "body": "{\"case\":\"worker-service-v3-sync\"}",
+          "at": 1794046250626
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-shared-v3-first",
+          "at": 1794046254608
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-shared-v3-first",
+          "body": "{\"case\":\"worker-shared-v3-first\"}",
+          "at": 1794046254610
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-shared-v3-message",
+          "at": 1794046256008
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-shared-v3-message",
+          "body": "{\"case\":\"worker-shared-v3-message\"}",
+          "at": 1794046256012
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-message",
+          "at": 1794046256020
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-message",
+          "body": "{\"case\":\"worker-service-v3-message\"}",
+          "at": 1794046256020
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-global-v3-first",
+          "at": 1794046257424
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-global-v3-first",
+          "body": "{\"case\":\"worker-global-v3-first\"}",
+          "at": 1794046257425
+        },
+        {
+          "kind": "http",
+          "case": "worker-control-v3-first",
+          "method": "POST",
+          "url": "/receive?case=worker-control-v3-first",
+          "length": 16,
+          "sha256": "615ee23c674a6a10388e2c1f1c388646f990598e218f2e54838fa392a523e480",
+          "body": "synthetic worker",
+          "headers": {
+            "host": "127.0.0.1:41917",
+            "connection": "keep-alive",
+            "content-length": "16",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+            "content-type": "text/plain;charset=UTF-8",
+            "accept": "*/*",
+            "origin": "http://127.0.0.1:41917",
+            "sec-fetch-site": "same-origin",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://127.0.0.1:41917/worker.js?shared&case=worker-control",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9"
+          },
+          "at": 1794046258134
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-control-v3-first",
+          "at": 1794046258135
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-control-v3-first",
+          "body": "{\"case\":\"worker-control-v3-first\"}",
+          "at": 1794046258135
+        },
+        {
+          "kind": "ws-open",
+          "case": "worker-service-v3-first",
+          "at": 1794046271257
+        },
+        {
+          "kind": "ws-message",
+          "case": "worker-service-v3-first",
+          "body": "{\"case\":\"worker-service-v3-first\"}",
+          "at": 1794046271258
+        }
+      ],
+      "events": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "type": "xmlhttprequest",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "20",
+            "at": 1794046271224.657
+          },
+          "at": 1794046271283
+        },
+        {
+          "method": "check.webError",
+          "params": {
+            "url": "http://127.0.0.1:41917/receive?case=worker-service-v3-first",
+            "method": "POST",
+            "error": "net::ERR_BLOCKED_BY_CLIENT",
+            "tabId": -1
+          },
+          "at": 1794046271283
+        },
+        {
+          "method": "check.ready",
+          "params": {
+            "tabId": 1101343675,
+            "url": "http://127.0.0.1:41917/"
+          },
+          "at": 1794046273297
+        }
+      ],
+      "targets": [
+        {
+          "attached": false,
+          "id": "6DB9ED4CEDFFECF54EA55E496CF533F8",
+          "title": "Service Worker chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js",
+          "type": "worker",
+          "url": "chrome-extension://ghbmnnjooekpmoecnnnilnnbdlolhkhi/service_worker_bin_prod.js"
+        },
+        {
+          "attached": false,
+          "id": "8A12C4A194878ACAD42B02BFD5463083",
+          "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-service",
+          "type": "worker",
+          "url": "http://127.0.0.1:41917/sw.js?case=worker-service"
+        },
+        {
+          "attached": false,
+          "id": "A73BEBC9867D5E7A8491E6C7E34CE1FF",
+          "title": "Service Worker chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js",
+          "type": "worker",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/background.js"
+        },
+        {
+          "attached": false,
+          "id": "F574D9015A8633BC1C7504B882815FFF",
+          "title": "Omnibox Popup",
+          "type": "other",
+          "url": "chrome://omnibox-popup.top-chrome/"
+        },
+        {
+          "attached": false,
+          "id": "C5EA56536ED352073B4A22C634165804",
+          "tabId": 1101343674,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": true,
+          "id": "24BDEE3C129D2EA2EB3AC1F52E9DED6F",
+          "tabId": 1101343675,
+          "title": "17d synthetic fixture",
+          "type": "page",
+          "url": "http://127.0.0.1:41917/"
+        },
+        {
+          "attached": false,
+          "id": "801207878E44AEB3E6FFE91A7118808F",
+          "tabId": 1101343677,
+          "title": "Choose fixture tab",
+          "type": "page",
+          "url": "chrome-extension://imlpmkgklbigbddjnfikmdagdkpighio/select.html?url=http%3A%2F%2F127.0.0.1%3A41917%2F&tabId=1101343599"
+        }
+      ]
+    },
+    {
+      "name": "Q3_PUSH",
+      "status": "not-checked",
+      "reason": "No real push subscription/FCM credentials; debugger-delivered push would violate the requested independent trigger."
+    },
+    {
+      "name": "Q1_WEBTRANSPORT",
+      "status": "observed",
+      "control": 1,
+      "blocked": 0,
+      "workerHandshakeArrivals": 0,
+      "workerReports": [
+        {
+          "target": {
+            "attached": false,
+            "id": "3A5F4E6ED6439526B3872B37990703E8",
+            "title": "",
+            "type": "worker",
+            "url": "http://127.0.0.1:41917/worker.js?shared&case=worker-wt-shared"
+          },
+          "result": {
+            "result": {
+              "type": "object",
+              "value": {
+                "available": "function",
+                "results": [
+                  {
+                    "at": 1794046279205,
+                    "attempt": "first"
+                  },
+                  "TypeError",
+                  "ws-open",
+                  "wt-WebTransportError"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "target": {
+            "attached": false,
+            "id": "484DCE25663DEF9658AADF3ECD402554",
+            "title": "Service Worker http://127.0.0.1:41917/sw.js?case=worker-wt-service",
+            "type": "worker",
+            "url": "http://127.0.0.1:41917/sw.js?case=worker-wt-service"
+          },
+          "result": {
+            "result": {
+              "type": "object",
+              "value": {
+                "available": "function",
+                "results": [
+                  {
+                    "at": 1794046279203,
+                    "attempt": "first"
+                  },
+                  "TypeError",
+                  "wt-WebTransportError",
+                  "ws-open"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "rows": [
+        {
+          "kind": "connect",
+          "at": 1794046275586.546,
+          "headers": {
+            ":scheme": "https",
+            ":method": "CONNECT",
+            ":authority": "127.0.0.1:4433",
+            ":path": "/check?case=wt-control",
+            ":protocol": "webtransport",
+            "sec-webtransport-http3-draft02": "1",
+            "origin": "http://127.0.0.1:41917"
+          }
+        }
+      ],
+      "events": [
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "https://127.0.0.1:4433/check?case=wt-control",
+            "method": "CONNECT",
+            "type": "webtransport",
+            "tabId": 1101343675,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "143",
+            "at": 1794046275581.27
+          },
+          "at": 1794046275581
+        },
+        {
+          "method": "Network.webTransportCreated",
+          "params": {
+            "source": {
+              "tabId": 1101343675
+            },
+            "initiator": {
+              "stack": {
+                "callFrames": [
+                  {
+                    "columnNumber": 14,
+                    "functionName": "",
+                    "lineNumber": 0,
+                    "scriptId": "9",
+                    "url": ""
+                  },
+                  {
+                    "columnNumber": 364,
+                    "functionName": "",
+                    "lineNumber": 0,
+                    "scriptId": "9",
+                    "url": ""
+                  }
+                ]
+              },
+              "type": "script"
+            },
+            "timestamp": 172.974987,
+            "transportId": "5021.9",
+            "url": "https://127.0.0.1:4433/check?case=wt-control"
+          },
+          "at": 1794046275581
+        },
+        {
+          "method": "Network.webTransportConnectionEstablished",
+          "params": {
+            "source": {
+              "tabId": 1101343675
+            },
+            "timestamp": 172.98104,
+            "transportId": "5021.9"
+          },
+          "at": 1794046275587
+        },
+        {
+          "method": "Network.webTransportClosed",
+          "params": {
+            "source": {
+              "tabId": 1101343675
+            },
+            "timestamp": 172.981244,
+            "transportId": "5021.9"
+          },
+          "at": 1794046275587
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "https://127.0.0.1:4433/check?case=wt-blocked",
+            "method": "CONNECT",
+            "type": "webtransport",
+            "tabId": 1101343675,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "145",
+            "at": 1794046277387.379
+          },
+          "at": 1794046277387
+        },
+        {
+          "method": "Network.webTransportCreated",
+          "params": {
+            "source": {
+              "tabId": 1101343675
+            },
+            "initiator": {
+              "stack": {
+                "callFrames": [
+                  {
+                    "columnNumber": 14,
+                    "functionName": "",
+                    "lineNumber": 0,
+                    "scriptId": "10",
+                    "url": ""
+                  },
+                  {
+                    "columnNumber": 364,
+                    "functionName": "",
+                    "lineNumber": 0,
+                    "scriptId": "10",
+                    "url": ""
+                  }
+                ]
+              },
+              "type": "script"
+            },
+            "timestamp": 174.781111,
+            "transportId": "5021.10",
+            "url": "https://127.0.0.1:4433/check?case=wt-blocked"
+          },
+          "at": 1794046277387
+        },
+        {
+          "method": "Network.webTransportClosed",
+          "params": {
+            "source": {
+              "tabId": 1101343675
+            },
+            "timestamp": 174.781844,
+            "transportId": "5021.10"
+          },
+          "at": 1794046277388
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "https://127.0.0.1:4433/check?case=worker-wt-service",
+            "method": "CONNECT",
+            "type": "webtransport",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "150",
+            "at": 1794046279204.905
+          },
+          "at": 1794046279205
+        },
+        {
+          "method": "check.webRequest",
+          "params": {
+            "url": "https://127.0.0.1:4433/check?case=worker-wt-shared",
+            "method": "CONNECT",
+            "type": "webtransport",
+            "tabId": -1,
+            "initiator": "http://127.0.0.1:41917",
+            "requestId": "153",
+            "at": 1794046279221.101
+          },
+          "at": 1794046279221
+        }
+      ]
+    },
+    {
+      "name": "FINAL_DELIVERY_AUDIT",
+      "status": "PASS",
+      "cases": 15
+    }
+  ]
+}
