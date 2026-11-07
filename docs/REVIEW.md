@@ -4,7 +4,7 @@ There are two kinds of review. Both use a **fresh Codex context**: never the age
 
 A review covers exactly the commit it looked at. Anything pushed later isn't covered.
 
-Model names (`$REVIEW_MODEL`, `COUNCIL_MODEL`) are the current picks in `CLAUDE.md`.
+`$REVIEW_MODEL` and `COUNCIL_MODEL` are the models picked for this review (`CLAUDE.md`, "Codex models").
 
 ## Package review (every package)
 
