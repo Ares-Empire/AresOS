@@ -1,0 +1,74 @@
+[
+  {
+    "id": "e-tls-valid",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-tls-valid",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-tls-invalid",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-tls-invalid",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-tls-invalid",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-tls-invalid",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-service-page-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-page-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-service-page-send",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-service-page-send",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-service-page-send",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-service-page-send",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  }
+]

@@ -1,0 +1,878 @@
+[
+  {
+    "id": "e-outbox-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-outbox-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-restore-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-restore-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-outbox-later",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-outbox-later",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-outbox-later",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-outbox-later",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-after-proxy-restart",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-after-proxy-restart",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-after-proxy-restart",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-after-proxy-restart",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-restored-first",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-restored-first",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-restored-first",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-restored-first",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-outbox-resolution",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-outbox-resolution",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-outbox-resolution",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-outbox-resolution",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-held-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-native-host-held-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-native-host-held",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-held",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-held-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-extension-held-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-extension-held",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-held",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-held-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-browser-held-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-browser-held",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-held",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-held-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-checkpoint-held-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-checkpoint-held",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-held",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-held",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-held",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-before-consume-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-native-host-before-consume-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-native-host-before-consume",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-before-consume",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-before-consume",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-before-consume",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-before-consume-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-extension-before-consume-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-extension-before-consume",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-before-consume",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-before-consume",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-before-consume",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-before-consume-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-browser-before-consume-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-browser-before-consume",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-before-consume",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-before-consume",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-before-consume",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-before-consume-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-checkpoint-before-consume-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-checkpoint-before-consume",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-before-consume",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-before-consume",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-before-consume",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-after-consume-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-native-host-after-consume-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-native-host-after-consume",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-after-consume",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-after-consume",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-native-host-after-consume",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-after-consume-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-extension-after-consume-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-extension-after-consume",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-after-consume",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-after-consume",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-extension-after-consume",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-after-consume-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-browser-after-consume-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-browser-after-consume",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-after-consume",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-after-consume",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-browser-after-consume",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-after-consume-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-checkpoint-after-consume-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-crash-checkpoint-after-consume",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-after-consume",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-after-consume",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-crash-checkpoint-after-consume",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-during-forward-native-host-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-native-host-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-native-host",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-native-host",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-native-host",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-during-forward-native-host",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-during-forward-extension-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-extension-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-extension",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-extension",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-extension",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-during-forward-extension",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-during-forward-browser-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-browser-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-browser",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-browser",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-browser",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-during-forward-browser",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-during-forward-checkpoint-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-checkpoint-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-checkpoint",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-during-forward-checkpoint",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-during-forward-checkpoint",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-during-forward-checkpoint",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-abort-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-cancel-abort-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-cancel-abort",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-abort",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-abort",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-abort",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-h2-reset-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-cancel-h2-reset-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-cancel-h2-reset",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-h2-reset",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-h2-reset",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-h2-reset",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-tab-close-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-cancel-tab-close-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-cancel-tab-close",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-tab-close",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-tab-close",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-tab-close",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-cancel-timeout-control",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-cancel-timeout-control",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-cancel-timeout",
+    "kind": "http",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-cancel-timeout",
+    "kind": "headers",
+    "n": 1,
+    "actual": 1
+  },
+  {
+    "id": "e-explicit-cancel",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-explicit-cancel",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-explicit-cancel",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-explicit-cancel",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-extension-removed",
+    "kind": "headers",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-extension-removed",
+    "kind": "http",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-extension-removed",
+    "kind": "ws-open",
+    "n": 0,
+    "actual": 0
+  },
+  {
+    "id": "e-extension-removed",
+    "kind": "ws-message",
+    "n": 0,
+    "actual": 0
+  }
+]

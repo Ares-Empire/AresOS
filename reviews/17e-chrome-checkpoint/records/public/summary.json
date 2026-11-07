@@ -1,0 +1,489 @@
+{
+  "phase": "public",
+  "head": "e535ecbfa690965311972db54db5c4cc0cb972c8",
+  "run": "42371496987",
+  "cases": [
+    {
+      "name": "CHECKPOINT_READY",
+      "guard": false,
+      "context": 0,
+      "buffered": 0,
+      "rows": []
+    },
+    {
+      "name": "BROWSER_READY",
+      "label": "initial",
+      "mode": true,
+      "selected": 1010462283
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": false,
+      "at": 1794053928839.9717
+    },
+    {
+      "name": "BROWSER_READY",
+      "label": "public-direct",
+      "mode": false,
+      "selected": 1010462350
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "github",
+      "mode": "direct",
+      "elapsedMs": 6037,
+      "blocked": false,
+      "bytes": 10846,
+      "certificateError": false,
+      "domMs": 1068.5,
+      "host": "github.com",
+      "loadMs": 1073.5,
+      "protocol": "h2",
+      "robot": false,
+      "title": "GitHub - microsoft/playwright: Playwright is a framework for Web Testing and Automation. It allows testing Chromium, Firefox and WebKit with a single API. · GitHub"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "wikipedia",
+      "mode": "direct",
+      "elapsedMs": 5613,
+      "blocked": false,
+      "bytes": 20365,
+      "certificateError": false,
+      "domMs": 222.89999999999418,
+      "host": "en.wikipedia.org",
+      "loadMs": 356.8999999999942,
+      "protocol": "h2",
+      "robot": false,
+      "title": "Web browser - Wikipedia"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "youtube",
+      "mode": "direct",
+      "elapsedMs": 5640,
+      "blocked": false,
+      "bytes": 1940,
+      "certificateError": false,
+      "domMs": 808.8999999999942,
+      "host": "www.youtube.com",
+      "loadMs": 1431.7000000000116,
+      "protocol": "h2",
+      "robot": true,
+      "title": "Me at the zoo - YouTube"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "news",
+      "mode": "direct",
+      "elapsedMs": 5837,
+      "blocked": false,
+      "bytes": 7482,
+      "certificateError": false,
+      "domMs": 683.0999999999767,
+      "host": "www.bbc.com",
+      "loadMs": 1405.2999999999884,
+      "protocol": "h2",
+      "robot": false,
+      "title": "BBC News - Breaking news, video and the latest top stories from the U.S. and around the world"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "amazon",
+      "mode": "direct",
+      "elapsedMs": 5773,
+      "blocked": false,
+      "bytes": 8416,
+      "certificateError": false,
+      "domMs": 1771,
+      "host": "www.amazon.com",
+      "loadMs": 1877,
+      "protocol": "h2",
+      "robot": false,
+      "title": "Amazon.com: Apple iPhone 14 Pro 128GB 5G Physical DUAL SIM A2892 Unlocked (GSM Only | No CDMA) Global - Deep Purple : Cell Phones & Accessories"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "reddit",
+      "mode": "direct",
+      "elapsedMs": 5631,
+      "blocked": true,
+      "bytes": 222,
+      "certificateError": false,
+      "domMs": 140.10000000000582,
+      "host": "www.reddit.com",
+      "loadMs": 140.60000000000582,
+      "protocol": "h2",
+      "robot": false,
+      "title": ""
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "stackoverflow",
+      "mode": "direct",
+      "elapsedMs": 5626,
+      "blocked": false,
+      "bytes": 265,
+      "certificateError": false,
+      "domMs": 30.235000000015134,
+      "host": "stackoverflow.com",
+      "loadMs": 184.5800000000163,
+      "protocol": "h2",
+      "robot": true,
+      "title": "Just a moment..."
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "notion",
+      "mode": "direct",
+      "elapsedMs": 5617,
+      "blocked": false,
+      "bytes": 15,
+      "certificateError": false,
+      "domMs": 325.5,
+      "host": "help-support.notion.site",
+      "loadMs": 485.79999999998836,
+      "protocol": "h2",
+      "robot": false,
+      "title": "Notion"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "docs",
+      "mode": "direct",
+      "elapsedMs": 5836,
+      "blocked": false,
+      "bytes": 482,
+      "certificateError": false,
+      "domMs": 1274.1999999999825,
+      "host": "docs.google.com",
+      "loadMs": 2421.0999999999767,
+      "protocol": "h2",
+      "robot": false,
+      "title": "Project Bedrock - Public - Google Docs"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "search",
+      "mode": "direct",
+      "elapsedMs": 5555,
+      "blocked": false,
+      "bytes": 6223,
+      "certificateError": false,
+      "domMs": 486.3999999999942,
+      "host": "www.google.com",
+      "loadMs": 1141.7999999999884,
+      "protocol": "h3",
+      "robot": false,
+      "title": "web browser - Google Search"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "fingerprint",
+      "mode": "direct",
+      "elapsedMs": 5705,
+      "blocked": false,
+      "bytes": 11298,
+      "certificateError": false,
+      "domMs": 235,
+      "host": "tls.peet.ws",
+      "loadMs": 235.19999999998254,
+      "protocol": "h2",
+      "robot": false,
+      "title": ""
+    },
+    {
+      "name": "Q11_FINGERPRINT",
+      "mode": "direct",
+      "http2": {
+        "akamai_fingerprint": "1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p",
+        "akamai_fingerprint_hash": "52d84b11737d980aef856699f885ca86"
+      },
+      "http_version": "h2",
+      "tls": {
+        "ja3": "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,27-5-0-35-17613-23-65037-13-16-11-65281-43-10-45-51-18-51764,4588-29-23-24,0",
+        "ja3_hash": "ca799d85483b81587aaa14135ff404d9",
+        "ja4": "t13d1517h2_8daaf6152771_cb7bf5808d99"
+      }
+    },
+    {
+      "name": "BROWSER_READY",
+      "label": "public-checkpoint",
+      "mode": true,
+      "selected": 1010462425
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "github",
+      "mode": "checkpoint",
+      "elapsedMs": 6072,
+      "blocked": false,
+      "bytes": 10846,
+      "certificateError": false,
+      "domMs": 964.6999999999825,
+      "host": "github.com",
+      "loadMs": 971.0999999999767,
+      "protocol": "h2",
+      "robot": false,
+      "title": "GitHub - microsoft/playwright: Playwright is a framework for Web Testing and Automation. It allows testing Chromium, Firefox and WebKit with a single API. · GitHub"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "wikipedia",
+      "mode": "checkpoint",
+      "elapsedMs": 5765,
+      "blocked": false,
+      "bytes": 20365,
+      "certificateError": false,
+      "domMs": 377.5999999999767,
+      "host": "en.wikipedia.org",
+      "loadMs": 379.5999999999767,
+      "protocol": "h2",
+      "robot": false,
+      "title": "Web browser - Wikipedia"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "youtube",
+      "mode": "checkpoint",
+      "elapsedMs": 6510,
+      "blocked": false,
+      "bytes": 2069,
+      "certificateError": false,
+      "domMs": 1346,
+      "host": "www.youtube.com",
+      "loadMs": 1931.6999999999825,
+      "protocol": "h2",
+      "robot": true,
+      "title": "Me at the zoo - YouTube"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "news",
+      "mode": "checkpoint",
+      "elapsedMs": 5953,
+      "blocked": false,
+      "bytes": 7526,
+      "certificateError": false,
+      "domMs": 602.3999999999942,
+      "host": "www.bbc.com",
+      "loadMs": 1249,
+      "protocol": "h2",
+      "robot": false,
+      "title": "BBC News - Breaking news, video and the latest top stories from the U.S. and around the world"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "amazon",
+      "mode": "checkpoint",
+      "elapsedMs": 7250,
+      "blocked": false,
+      "bytes": 8416,
+      "certificateError": false,
+      "domMs": 2083.2000000000116,
+      "host": "www.amazon.com",
+      "loadMs": 2303.3000000000466,
+      "protocol": "h2",
+      "robot": false,
+      "title": "Amazon.com: Apple iPhone 14 Pro 128GB 5G Physical DUAL SIM A2892 Unlocked (GSM Only | No CDMA) Global - Deep Purple : Cell Phones & Accessories"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "reddit",
+      "mode": "checkpoint",
+      "elapsedMs": 5630,
+      "blocked": true,
+      "bytes": 222,
+      "certificateError": false,
+      "domMs": 141.89999999996508,
+      "host": "www.reddit.com",
+      "loadMs": 142.5,
+      "protocol": "h2",
+      "robot": false,
+      "title": ""
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "stackoverflow",
+      "mode": "checkpoint",
+      "elapsedMs": 5614,
+      "blocked": false,
+      "bytes": 265,
+      "certificateError": false,
+      "domMs": 111.3300000000163,
+      "host": "stackoverflow.com",
+      "loadMs": 295.9800000000396,
+      "protocol": "h2",
+      "robot": true,
+      "title": "Just a moment..."
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "notion",
+      "mode": "checkpoint",
+      "elapsedMs": 6627,
+      "blocked": false,
+      "bytes": 15,
+      "certificateError": false,
+      "domMs": 1187.0999999999767,
+      "host": "help-support.notion.site",
+      "loadMs": 1409.0999999999767,
+      "protocol": "h2",
+      "robot": false,
+      "title": "Notion"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "docs",
+      "mode": "checkpoint",
+      "elapsedMs": 6104,
+      "blocked": false,
+      "bytes": 498,
+      "certificateError": false,
+      "domMs": 1537.0999999999767,
+      "host": "docs.google.com",
+      "loadMs": 2645,
+      "protocol": "h2",
+      "robot": false,
+      "title": "Project Bedrock - Public - Google Docs"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "search",
+      "mode": "checkpoint",
+      "elapsedMs": 6049,
+      "blocked": false,
+      "bytes": 6895,
+      "certificateError": false,
+      "domMs": 655,
+      "host": "www.google.com",
+      "loadMs": 1257.7999999999884,
+      "protocol": "h2",
+      "robot": false,
+      "title": "web browser - Google Search"
+    },
+    {
+      "name": "Q11_PUBLIC",
+      "site": "fingerprint",
+      "mode": "checkpoint",
+      "elapsedMs": 5746,
+      "blocked": false,
+      "bytes": 10776,
+      "certificateError": false,
+      "domMs": 241.20000000001164,
+      "host": "tls.peet.ws",
+      "loadMs": 241.30000000004657,
+      "protocol": "h2",
+      "robot": false,
+      "title": ""
+    },
+    {
+      "name": "Q11_FINGERPRINT",
+      "mode": "checkpoint",
+      "http2": {
+        "akamai_fingerprint": "1:4096;2:0;4:2147483647;5:131072;8:0;3:100;6:65536|2147418112|0|m,s,p,a",
+        "akamai_fingerprint_hash": "15c357cc570d8e12ded8626178703653"
+      },
+      "http_version": "h2",
+      "tls": {
+        "ja3": "771,4866-4867-4865-49195-49199-49196-49200-52393-52392-158-159-52394-49187-49191-49161-49171-49188-49192-49162-49172-103-107-156-157-60-61-47-53,65281-0-11-10-35-16-22-23-13-43-45-51,4588-29-23-30-24-25-256-257,0-1-2",
+        "ja3_hash": "5659c10619c455ea477287b12cf3f7e7",
+        "ja4": "t13d2812h2_a01be8c064b6_8e6e362c5eac"
+      }
+    },
+    {
+      "name": "Q11_RESOURCES",
+      "usage": "    PID %CPU   RSS    VSZ     TIME\n   4312  1.2 95740 265724 00:00:01\n"
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": false,
+      "at": 1794054077530.6448
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": false,
+      "at": 1794054078480.9749
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": true,
+      "at": 1794054078605.0247
+    },
+    {
+      "name": "Q11_PROMPT_PRESSURE",
+      "session": {
+        "account": "synthetic-A"
+      },
+      "backgroundRequests": 12,
+      "liveMessages": 6,
+      "approvalsRequired": 18,
+      "policy": "all uncertain traffic is held; each operation would need its own decision"
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": false,
+      "at": 1794054085192.2327
+    },
+    {
+      "name": "GUARD_BARRIER",
+      "guard": true,
+      "at": 1794054085322.7986
+    },
+    {
+      "name": "Q11_OWNER_NOTIFICATION",
+      "operationId": "952514e52b53440c86fcaf844bff4bb6",
+      "action": "send",
+      "receiver": [
+        {
+          "at": 1794054086946,
+          "kind": "headers",
+          "case": "e-owner-notification",
+          "method": "POST",
+          "protocol": "1.1",
+          "authenticated": true,
+          "attributionPresent": false,
+          "accountHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "headerHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "at": 1794054086946,
+          "kind": "first-byte",
+          "case": "e-owner-notification"
+        },
+        {
+          "at": 1794054086946,
+          "kind": "http",
+          "case": "e-owner-notification",
+          "length": 20,
+          "sha256": "1ed9fd6bd3347b24ca07174b11ef7c3415ddd1cb9a9b2ba7ce6cc3de0501d9ca",
+          "diskMarker": false
+        }
+      ]
+    },
+    {
+      "name": "Q11_PRIVACY",
+      "bodyLogs": false,
+      "cookieLogs": false,
+      "payloadStorage": "RAM only",
+      "ledger": "hashes, lengths and states",
+      "perBodyBytes": 33554432,
+      "pendingBodyBytes": 67108864,
+      "maxOperations": 256
+    },
+    {
+      "name": "FINAL_RECEIVER_AUDIT",
+      "status": "PASS",
+      "assertions": 82,
+      "receiverRows": 11
+    },
+    {
+      "name": "chrome-console.log",
+      "bytes": 31791
+    },
+    {
+      "name": "proxy-console.log",
+      "bytes": 0
+    }
+  ]
+}

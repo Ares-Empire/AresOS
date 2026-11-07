@@ -1,0 +1,3 @@
+{
+  "rules": "table inet e17 {\n\tchain output {\n\t\ttype filter hook output priority filter; policy accept;\n\t\tmeta skuid 1002 ip daddr 127.0.0.1 tcp dport 18080 counter packets 0 bytes 0 accept\n\t\tmeta skuid 1002 counter packets 0 bytes 0 reject with icmpx admin-prohibited\n\t}\n}\n"
+}
