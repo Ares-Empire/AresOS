@@ -136,6 +136,12 @@ class RebuildAndGuard(unittest.TestCase):
                      b'X_Custom: value\r\n \t\r\nSubject: No From\r\nBcc \t: private@mail.invalid\r\n\r\nHidden'):
             with self.assertRaises(Refused):
                 guard.check(wrapper(data), ['Full authored text'], [])
+        # Header-shaped continuation text is scanned even when a MIME parser
+        # treats the marker as part of a different field's value.
+        folded = b'Subject: Folded\r\n X-AresOS-Authored \t: 1\r\n\r\nFull folded authored words\r\n'
+        with self.assertRaises(Refused):
+            guard.check(wrapper(folded), ['Full authored text'], [])
+        guard.check(wrapper(folded), ['Full authored text'], ['Full folded authored words'])
         # The checker has no import, dynamic import or builder-helper dependency.
         imports = [node for node in ast.walk(ast.parse(Path(guard.__file__).read_text())) if isinstance(node, (ast.Import, ast.ImportFrom))]
         self.assertFalse(any('codec' in ast.dump(node) for node in imports))

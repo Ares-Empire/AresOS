@@ -116,7 +116,7 @@ def check(raw, root_texts, disclosed_texts, draft=False):
         attached = headers.get_content_disposition() == "attachment" or headers.get_filename() is not None
         if root_body and attached:
             inherited, root_body = False, False
-        own_marker = "X-AresOS-Authored" in headers
+        own_marker = bool(re.search(rb"(?im)^[ \t]*x-aresos-authored[ \t]*:", head))
         described = str(headers.get("Content-Description", "")) == "AresOS authored text; full approval required"
         marked = inherited or own_marker or described
         encoding = str(headers.get("Content-Transfer-Encoding", "7bit")).lower().strip()
