@@ -15,21 +15,26 @@ export function classify(p,{form=false,typing=false}={}){
 export class Hold extends EventEmitter {
   pending=new Map(); history=[]; errors=[]; trusted=new Set(); publicMode=false;
   pwRoutes=new Map(); pwSequence=0;
+  inFlight=new Set(); documents=new Set(); currentDocument=null;
   constructor(cdp){
     super();this.cdp=cdp;this.network=new Map();this.cancelled=new Set();this.publicRows=new Map();
     this.onRequest=p=>{const meta={documentURL:p.documentURL,initiator:p.initiator?.type};this.network.set(p.requestId,meta);if(this.publicRows.has(p.requestId))Object.assign(this.publicRows.get(p.requestId),meta);};
     this.onFailed=p=>{if(p.canceled||p.errorText==='net::ERR_ABORTED')this.cancelled.add(p.requestId);};
+    this.onFrame=p=>{if(!p.frame.parentId){this.currentDocument=p.frame.url;this.documents.add(p.frame.url);}};
     cdp.on('Network.requestWillBeSent',this.onRequest);
     cdp.on('Network.loadingFailed',this.onFailed);
-    this.listener=(p,sessionId)=>{this.pause(p,sessionId).catch(async e=>{
+    cdp.on('Page.frameNavigated',this.onFrame);
+    this.listener=(p,sessionId)=>{const task=this.pause(p,sessionId).catch(async e=>{
       // Navigation can cancel a request between its pause event and our decision.
       // Accept only an independently observed network cancellation, never an unknown error.
       if(this.publicMode&&e.message.includes('Invalid InterceptionId')){
         await new Promise(r=>setTimeout(r,100));
-        if(this.cancelled.has(p.networkId)){this.history.push({event:'cancelled',networkId:p.networkId,url:p.request.url});return;}
+        const doc=this.network.get(p.networkId)?.documentURL;
+        const oldDocument=doc&&this.documents.has(doc)&&doc!==this.currentDocument;
+        if(this.cancelled.has(p.networkId)||oldDocument){this.history.push({event:'cancelled',networkId:p.networkId,url:p.request.url,documentURL:doc,currentDocument:this.currentDocument});return;}
       }
       this.errors.push(JSON.stringify({error:e.message,url:p.request.url,networkId:p.networkId,sessionId}));this.emit('problem',e);
-    });};
+    });this.inFlight.add(task);task.finally(()=>this.inFlight.delete(task));};
     cdp.on('Fetch.requestPaused',this.listener);
   }
   async command(method,params,sessionId){
@@ -94,6 +99,8 @@ export class Hold extends EventEmitter {
     this.cdp.off('Fetch.requestPaused',this.listener);
     this.cdp.off('Network.requestWillBeSent',this.onRequest);
     this.cdp.off('Network.loadingFailed',this.onFailed);
+    this.cdp.off('Page.frameNavigated',this.onFrame);
+    while(this.inFlight.size)await Promise.all([...this.inFlight]);
     if(this.errors.length)throw new Error('Hold event errors: '+this.errors.join(';'));
   }
 }

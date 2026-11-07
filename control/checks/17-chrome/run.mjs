@@ -59,12 +59,14 @@ try {
   save(out,'native-transport',{processes,listeners});console.log('NATIVE_NO_DEBUG_TCP PASS');
   summary.metrics=await readAndAct(bridge,fixture,out,'native');
   summary.holds=await holdChecks(bridge,fixture,out,'native');
-  summary.public=await publicChecks(bridge,out,'native');
+  try{summary.public=await publicChecks(bridge,out,'native');}
+  catch(error){summary.publicFailure=error.message;console.log('PUBLIC_CHECK_FAILED (will fail the run)',error.message);}
   await key('ctrl+t');await address('chrome://sandbox');await screenshot(out,'sandbox-status');
   summary.disconnect=await disconnectProbe(bridge,fixture,out,'native',async()=>bridge.close());bridge=undefined;
   await stopChrome(chrome);chrome=undefined;
   const {otherRoutes}=await import('./routes.mjs');
   summary.routes=await otherRoutes({here,work,out,profile,fixture});
+  if(summary.publicFailure)throw Error(summary.publicFailure);
   assert.equal(fixture.arrivals.filter(r=>r.url?.includes('other-tab-mutated')).length,0);
   console.log('ALL CHECKS COMPLETE');
 } catch(error){
