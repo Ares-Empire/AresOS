@@ -1451,7 +1451,8 @@ very long input must be shown in full or refused, also on the phone.
   be read by a coding session and sent with its network access, with no prompt (re-check 8). Anything that should
   cross goes through the approved-send channel (next point). The owner himself can copy a file across; Claude can't.
   *Test:* the assistant writes a content marker through every path it has (its file tools into his folders, a saved
-  attachment, a Chrome download, its terminal's temporary files, its session records, the versions folder); a coding
+  attachment, a Chrome download, its terminal's temporary files, its session records, and an edit whose previous
+  version lands in the tool service's own version store, which only the service writes); a coding
   session and plain programs of the coding user search everything they can read and find none, and can't list his
   home; the coding user runs real services on its own addresses (IPv4, IPv6 and a container's address), and the
   assistant's programs (outside and inside the sandbox, and its web fetch) try real connections to each, before and
