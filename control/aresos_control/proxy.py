@@ -32,7 +32,7 @@ class Proxy:
             if verb == "file_import":
                 if self.files is None:
                     raise Refused("file_refused", "No caller file folders configured; ask the owner to configure them.")
-                data, file_ref = self.files.read(arguments["path"])
+                data, file_ref = self.files.read(arguments["path"], mail_metadata=True) if self.app == "mail" else self.files.read(arguments["path"])
                 return self.client.upload(self.app, file_ref, data)
             if verb == "file_save":
                 if self.files is None:
@@ -48,6 +48,40 @@ class Proxy:
                 result = self.client.request({"method": "saved", "app": self.app, "outcome": saved})
                 result["data"] = saved
                 return result
+            if self.app == "mail" and verb == "compose":
+                arguments = dict(arguments)
+                imported = []
+                for item in arguments.get("attachments", []):
+                    if "path" in item:
+                        if self.files is None:
+                            raise Refused("file_refused", "No allowed caller folders configured.")
+                        data, ref = self.files.read(item["path"], mail_metadata=True)
+                        result = self.client.upload("mail", ref, data)
+                        if not result["ok"]:
+                            return result
+                        imported.append(result["data"]["file"])
+                    else:
+                        imported.append(item)
+                arguments["attachments"] = imported
+            if self.app == "mail" and verb == "attachment_save":
+                if self.files is None:
+                    raise Refused("file_refused", "No allowed caller folders configured.")
+                result = self.client.call(action.name, arguments)
+                if not result["ok"]:
+                    return result
+                item = result["data"]["file"]
+                downloaded, data = self.client.download("mail", item["sha256"], self.files.limit)
+                if not downloaded["ok"]:
+                    return downloaded
+                from pathlib import Path
+                folder = arguments.get("folder", str(Path(self.files.home) / "Downloads"))
+                try:
+                    saved = self.files.save(folder, arguments.get("name", item["name"]), data, item["sha256"])
+                except Exception:
+                    self.client.request({"method": "saved", "app": "mail", "outcome": "refused"})
+                    raise
+                self.client.request({"method": "saved", "app": "mail", "outcome": saved})
+                return {"ok": True, "data": saved, "pending": result["pending"]}
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
             return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc)},

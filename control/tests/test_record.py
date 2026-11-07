@@ -11,7 +11,7 @@ class Record(EngineCase):
         journal = self.root / "independent/operations.jsonl"
         attachment = (b"private-attachment-marker-" * (FILE_LIMIT // 26 + 1))[:FILE_LIMIT]
         self.assertEqual(len(attachment), FILE_LIMIT)
-        key = self.engine.blobs.put(attachment)
+        key = self.engine.blobs.put(attachment, origin="caller_import")
         ref = {"sha256": key, "size": len(attachment), "name": "private-attachment.txt", "real_path": "/fixture/private-path"}
         self.engine.store.write({"blob:" + digest(ref): ref}, "testapp_file_import", "fixture import")
         while len(self.engine.store.events) < 10:

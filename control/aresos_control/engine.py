@@ -1,13 +1,15 @@
 import base64
+import imaplib
 import time
 import uuid
 
-from .adapters import NothingLeft
+from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
 from .common import CHUNK_SIZE, FILE_LIMIT, RESULT_LIMIT, Refused, approval_input, canonical, digest, validate, visible
 from .definitions import APPS, BY_NAME, tools_for
 from .storage import Store
 from .testapp import Receiver, TestApp
+from .mail.adapter import Mail
 
 
 class Engine:
@@ -15,7 +17,7 @@ class Engine:
         self.store = Store(state_dir, evidence_dir, checkpoint)
         self.blobs = Blobs(self.store.state_dir / "blobs", file_limit)
         self.receiver = Receiver(self.store.evidence_dir, checkpoint)
-        self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver)}
+        self.adapters = {"testapp": TestApp(self.store, self.blobs, self.receiver), "mail": Mail(self.store, self.blobs)}
         self.ttl = ttl
 
     def close(self):
@@ -28,6 +30,17 @@ class Engine:
             raise Refused("stale_reference", "Operation not found for this app; list pending or ask the owner to check the independent record.")
         return op
 
+    def notices(self, app=None):
+        from .mail.filing import notice_page
+        page = notice_page(self.store, app=app)
+        if not page['items']:
+            return {}
+        result = {'notices': page['items']}
+        if page['cursor']:
+            result['notices_more'] = {'count': page['total'] - len(page['items']),
+                                      'action': 'mail_filing_notices'}
+        return result
+
     def pending(self, app=None, args=None):
         values = [{"operation_id": op["id"], "app": op["app"], "state": op["state"],
                    "description": op["approval"]["description"], "reason": op["reason"]}
@@ -35,7 +48,8 @@ class Engine:
                   (op["state"] in {"reserved", "submitting", "partial", "unknown"} or (op.get("notice") and not op.get("ack")))]
         # Notifications stay compact; operation_status has the full description, never a truncated approval.
         summaries = [{k: v for k, v in op.items() if k != "description"} for op in values]
-        return self.page(summaries, args or {}, "pending") | {"restore_required": self.store.locked}
+        notices = self.notices(app)
+        return self.page(summaries, args or {}, "pending") | {"restore_required": self.store.locked} | notices
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0
@@ -74,8 +88,14 @@ class Engine:
 
     def stage(self, op_id, name, outcome):
         op = self.operation(op_id)
+        if op["app"] == "mail":
+            outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
         op["stages"][name] = outcome
-        self.store.write({"op:" + op_id: op}, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
+        if op["app"] == "mail":
+            self.store.write({"op:" + op_id: op}, op["action"], "Mail operation stage recorded", op_id,
+                             untrusted_content={"stage": name, "outcome": outcome})
+        else:
+            self.store.write({"op:" + op_id: op}, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
         self.store.checkpoint("stage:" + name)
 
     def submit(self, action, args):
@@ -114,10 +134,12 @@ class Engine:
         try:
             state, reason = adapter.execute(op, lambda name, outcome: self.stage(op["id"], name, outcome))
         except NothingLeft as exc:
-            state, reason = "failed", str(exc)
+            state, reason = "failed", "Submission stopped before delivery; no mail submitted." if action.app == "mail" else str(exc)
         except Exception as exc:
             # Unqualified adapter errors cannot prove that the far side did nothing.
-            state, reason = "unknown", "Submission outcome uncertain; inspect evidence, never retry. " + str(exc)
+            state, reason = "unknown", "Submission outcome uncertain; inspect evidence, never retry."
+        if action.app == "mail":
+            reason = self.adapters["mail"].transport.scrub(reason)
         op = self.operation(op["id"])
         op["state"], op["reason"] = state, reason
         self.store.checkpoint("before_outcome")
@@ -148,7 +170,7 @@ class Engine:
             repair["state"], repair["reason"] = "done", "Local repair completed; never submitted."
             changes = {"op:" + op_id: repair, "op:" + old["id"]: old}
         except Refused as exc:
-            repair["state"], repair["reason"] = "failed", "Local repair refused before acting: " + str(exc)
+            repair["state"], repair["reason"] = "failed", "Local repair refused before acting; inspect operation status." if app == "mail" else "Local repair refused before acting: " + str(exc)
             changes = {"op:" + op_id: repair}
         except Exception:
             repair["state"], repair["reason"] = "unknown", "Local repair uncertain; inspect far-side stage evidence. Never submit."
@@ -173,9 +195,24 @@ class Engine:
             return self.pending(args=args)
         if name == "control_log":
             day = time.strftime("%Y-%m-%d", time.localtime())
-            entries = [{k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")} for event in self.store.audit()
-                       if time.strftime("%Y-%m-%d", time.localtime(event["time"])) == day]
-            return self.page(entries, args, "log:" + day)
+            entries = []
+            for event in self.store.audit():
+                if time.strftime("%Y-%m-%d", time.localtime(event["time"])) != day:
+                    continue
+                entry = {k: event[k] for k in ("seq", "time", "action", "summary", "outcome", "operation_id")}
+                if event["action"].startswith("mail_"):
+                    # Historical Mail summaries may predate structured marking.
+                    entry["summary"] = "Mail audit event"
+                    content = event.get("untrusted_content", {})
+                    if event["action"] in {"mail_move", "mail_copy"}:
+                        from .mail.filing import audit_content
+                        content = audit_content(content)
+                    entry["untrusted_content"] = {"summary": visible(event["summary"]), **content}
+                elif "untrusted_content" in event:
+                    entry["untrusted_content"] = event["untrusted_content"]
+                entries.append(entry)
+            notices = self.notices()
+            return self.page(entries, args, "log:" + day) | notices
         app, verb = action.app, action.verb
         adapter = self.adapters[app]
         if verb.startswith("prepare_"):
@@ -184,7 +221,13 @@ class Engine:
             return self.submit(action, args)
         if verb == "operation_status":
             op = self.operation(args["operation_id"], app)
-            return {"operation": self.public_operation(op), "evidence": adapter.evidence(op["id"])}
+            result = {"operation": self.public_operation(op)}
+            try:
+                result["evidence"] = adapter.evidence(op["id"])
+            except (Refused, OSError, imaplib.IMAP4.error, Uncertain) as exc:
+                result["evidence_error"] = {"code": getattr(exc, "code", "transport_error"),
+                                            "message": "Live evidence unavailable; recorded operation is unchanged."}
+            return result
         if verb == "operation_repair":
             return self.repair(app, args)
         if verb == "operation_cancel":
@@ -196,6 +239,12 @@ class Engine:
             adapter.drop(op)
             return {"operation": self.public_operation(op)}
         if verb == "notice_ack":
+            notice = self.store.get("notice:" + args["operation_id"])
+            if notice and notice["app"] == app:
+                notice["ack"] = True
+                self.store.write({"notice:" + notice["id"]: notice}, name, "filing notice acknowledged")
+                from .mail.filing import public_notice
+                return {"notice": {**public_notice(self.store, notice), "id": notice["id"], "ack": True}}
             op = self.operation(args["operation_id"], app)
             if not op.get("notice"):
                 raise Refused("refused", "Only cancelled/expired notices may be acknowledged; unresolved work stays visible.")
@@ -233,11 +282,11 @@ class Engine:
                     yield data
                     send(connection, {"ok": True, "data": {"offset": offset}})
 
-            self.blobs.put_stream(chunks(), blob["size"], blob["sha256"])
+            self.blobs.put_stream(chunks(), blob["size"], blob["sha256"], origin="caller_import")
             self.store.write({"blob:" + digest(blob): blob}, request["app"] + "_file_import", "import immutable blob " + blob["sha256"])
             send(connection, {"ok": True, "data": {"file": blob}, "pending": self.pending(request["app"])})
         else:
-            data = self.blobs.read(request["sha256"])
+            data = self.blobs.require_origin(request["sha256"], "export")
             while True:
                 frame = receive(connection)
                 if frame == {"end": True, "offset": offset} and offset == len(data):
@@ -260,6 +309,17 @@ class Engine:
                 if app not in APPS:
                     raise Refused("invalid_input", "Unknown app; inspect configured MCP servers.")
                 data = {"tools": tools_for(app)}
+            elif method == "mail_account_add" and admin:
+                from .mail.onboarding import onboard
+                from .mail.definitions import ACCOUNT_CONFIG
+                validate(request["arguments"], ACCOUNT_CONFIG)
+                if self.store.locked:
+                    raise Refused("restore_required", "Confirm restore before account setup.")
+                app = "mail"
+                try:
+                    data = onboard(self, request["arguments"], request["password"])
+                finally:
+                    self.adapters["mail"].onboarding_id = None
             elif method == "call":
                 name, arguments = request.get("action"), request.get("arguments")
                 app = BY_NAME[name].app if name in BY_NAME else None
@@ -281,12 +341,13 @@ class Engine:
                     data = {"ready": True}
                 elif method == "download":
                     key = request["sha256"]
-                    data_bytes = self.blobs.read(key)
+                    data_bytes = self.blobs.require_origin(key, "export")
                     data = {"sha256": key, "size": len(data_bytes)}
                     self.store.write({}, app + "_file_save", "export blob " + key + "; caller must report save outcome", outcome="started")
                 else:
-                    self.store.write({}, app + "_file_save", "caller reports save " + visible(str(request.get("outcome")))[:512],
-                                     outcome="refused" if request.get("outcome") == "refused" else "done")
+                    self.store.write({}, app + "_file_save", "caller reported file save outcome",
+                                     outcome="refused" if request.get("outcome") == "refused" else "done",
+                                     untrusted_content={"save": request.get("outcome")})
                     data = {"recorded": True}
             else:
                 raise Refused("invalid_input", "Unknown method or wrong socket; inspect the protocol.")
@@ -295,5 +356,10 @@ class Engine:
             if method != "download" and len(canonical(result).encode()) > RESULT_LIMIT and method != "tools":
                 raise Refused("result_too_large", "Result exceeds 49152 bytes; request a smaller page. Check status before repeating changes.")
             return result
+        except (OSError, imaplib.IMAP4.error, Uncertain):
+            return {"ok": False, "error": {"code": "transport_error", "message": "Mail transport failed; inspect operation status before repeating changes. No automatic retry."}, "pending": self.pending(app)}
         except (Refused, ValueError, KeyError, TypeError) as exc:
-            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": str(exc)}, "pending": self.pending(app)}
+            message = str(exc) if isinstance(exc, Refused) else "Invalid input or unsupported server data; inspect the tool schema and operation status."
+            if app == "mail":
+                message = self.adapters["mail"].transport.scrub(message)
+            return {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": message}, "pending": self.pending(app)}

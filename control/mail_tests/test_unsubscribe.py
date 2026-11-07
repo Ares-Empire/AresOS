@@ -1,0 +1,84 @@
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import ssl
+import threading
+from unittest.mock import patch
+
+from support import MailCase, CERT
+from smtp_fixture import SMTPFixture
+from aresos_control.mail import codec
+from dkim_fixture import signed
+
+
+class Unsubscribe(MailCase):
+    def test_header_mailto_exact_address_body_and_approval(self):
+        target = 'mailto:leave@mail.invalid?subject=Stop%20news&body=Unsubscribe%20this%20address'
+        ref = self.fixture(headers={'List-Unsubscribe':'<' + target + '>'})
+        read = self.data('read',{'reference':ref})
+        self.assertEqual(read['untrusted_content']['unsubscribe'],[target])
+        self.assertFalse(self.call('prepare_unsubscribe',{'reference':ref,'target':'mailto:other@mail.invalid'})['ok'])
+        with SMTPFixture(self.root) as smtp:
+            account = {**self.account,'smtp_host':'localhost','smtp_port':smtp.port}
+            self.engine.store.write({'mail:account:box':account},'fixture','SMTP')
+            approval = self.data('prepare_unsubscribe',{'reference':ref,'target':target})['approval']
+            self.assertEqual(approval['description']['to'],['leave@mail.invalid'])
+            self.assertEqual(approval['description']['text'],'Unsubscribe this address')
+            result = self.data('unsubscribe',approval)['operation']
+            self.assertEqual(result['state'],'done',result)
+            msg = codec.parse(smtp.arrivals()[0][1])
+            self.assertEqual(str(msg['Subject']),'Stop news')
+            self.assertEqual(codec.body(msg).strip(),'Unsubscribe this address')
+            self.data('unsubscribe',approval)
+            self.assertEqual(len(smtp.arrivals()),1)
+
+    def test_https_one_click_post_exact_no_cookies_no_redirect_no_get(self):
+        requests = []
+        status = [204]
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self,*args):
+                pass
+            def do_GET(self):
+                raise AssertionError('No GET unsubscribe')
+            def do_POST(self):
+                requests.append((self.path,dict(self.headers),self.rfile.read(int(self.headers['Content-Length']))))
+                self.send_response(status[0])
+                self.send_header('Location','https://must-not-follow.invalid')
+                self.end_headers()
+        server = ThreadingHTTPServer(('0.0.0.0',0),Handler)
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(CERT / 'tls.crt',CERT / 'tls.key')
+        server.socket = ctx.wrap_socket(server.socket,server_side=True)
+        thread = threading.Thread(target=server.serve_forever,daemon=True)
+        thread.start()
+        try:
+            target = f'https://localhost:{server.server_port}/leave?token=synthetic'
+            ref = self.fixture(headers={'List-Unsubscribe':'<' + target + '>', 'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'})
+            raw,key = signed(self.mail.message(ref)['raw'])
+            ref = self.mail.append(self.account,'INBOX',raw)
+            approval = self.data('prepare_unsubscribe',{'reference':ref,'target':target})['approval']
+            self.assertEqual(requests,[])
+            with patch('aresos_control.mail.dkim.dns_txt',return_value=[key]):
+                result = self.data('unsubscribe',approval)['operation']
+            self.assertEqual(result['state'],'done',result)
+            self.assertEqual(requests[0][0],'/leave?token=synthetic')
+            self.assertEqual(requests[0][2],b'List-Unsubscribe=One-Click')
+            self.assertNotIn('Cookie',requests[0][1])
+            self.data('unsubscribe',approval)
+            self.assertEqual(len(requests),1)
+            status[0] = 302
+            ref = self.fixture(headers={'List-Unsubscribe':'<' + target + '>', 'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'})
+            raw,key = signed(self.mail.message(ref)['raw'])
+            ref = self.mail.append(self.account,'INBOX',raw)
+            approval = self.data('prepare_unsubscribe',{'reference':ref,'target':target})['approval']
+            with patch('aresos_control.mail.dkim.dns_txt',return_value=[key]):
+                self.assertEqual(self.data('unsubscribe',approval)['operation']['state'],'partial')
+            self.assertEqual(len(requests),2)
+            unsigned = self.fixture(headers={'List-Unsubscribe':'<' + target + '>', 'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'})
+            unsigned_approval = self.data('prepare_unsubscribe',{'reference':unsigned,'target':target})['approval']
+            self.assertEqual(self.data('unsubscribe',unsigned_approval)['operation']['state'],'failed')
+            self.assertEqual(len(requests),2)
+            unsupported = self.fixture(headers={'List-Unsubscribe':'<https://site.invalid/leave>'})
+            self.assertFalse(self.call('prepare_unsubscribe',{'reference':unsupported,'target':'https://site.invalid/leave'})['ok'])
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()

@@ -1,8 +1,8 @@
-# Control base
+# Control service and Mail
 
-This is the shared Python service, caller-side MCP/CLI and fake adapter for brief 18.
-It sends only to a local fixture receiver. Mail, Chrome, Claude Code's sandbox and
-image integration belong to later briefs. Packaging and managed settings are drafts,
+This is brief 18's shared Python service, caller-side MCP/CLI and fake adapter,
+plus brief 19's IMAP/SMTP Mail adapter. Mail tests use isolated synthetic servers.
+Chrome, Claude Code's sandbox and image integration belong to separate briefs. Packaging and managed settings are drafts,
 not a deployment or a claim that a Claude session is confined.
 
 The current Fedora container is **Fedora 45 x86_64**, pinned by manifest digest in
@@ -10,7 +10,8 @@ the workflow; CI tested **Python 3.15.0** and prints its version. The lock suppo
 3.14 and 3.15. The only direct third-party runtime dependency is the official
 **MCP Python SDK 2.3.0**. All its transitive dependencies are pinned with wheel
 hashes. The service, CLI, filesystem policy, journal and hooks use the standard
-library. The SDK and its dependencies are used by the MCP proxy and its test client.
+library. Mail additionally uses the already pinned `cryptography` 50.0.2 for
+RFC 8058's DKIM check; no new package or lock change is needed. The SDK and its dependencies are used by the MCP proxy and its test client.
 
 Generate artifacts with `python3 control/generate.py`. CI runs
 `control/ci/test.sh` **inside a disposable Linux container**; that script installs
@@ -257,3 +258,204 @@ is run by this package. MCP contract **read**:
    Do not treat this package's socket/import tests as the later sandbox or real-image
    qualification. Phone display, real accounts and final managed policy remain owner
    gates for later packages.
+
+
+## Mail
+
+The generated [tool reference](../docs/control/TOOLS.md) and
+[Mail MCP catalogue](generated/mail-tools.json) are authoritative. The draft managed
+MCP file starts `aresos-mcp mail` through the same protected launch chain as the base.
+No account, endpoint or credential is shipped. Public account results expose aliases,
+capabilities and SPECIAL-USE folders, never host/login details or passwords.
+
+Owner setup: `sudo aresos admin mail account add --input JSON`. Its input schema is
+`mail_account_add` in the generated reference. A real terminal is required; the
+password is read with `getpass`, outside argv/history, and travels only over the
+root-only admin socket. The service stores it in a service-owned 0700 directory and
+0600 regular file. It rejects missing/unreadable/wrong-mode credentials and has no
+fallback source. TLS uses a verifying default context, hostname checking and at least
+TLS 1.2; SMTP supports implicit TLS or mandatory STARTTLS, IMAP implicit TLS.
+Credentials are accessed only after TLS verification.
+
+Onboarding discovers capabilities and SPECIAL-USE roles, probes nonempty DELETE on a
+unique throwaway folder with synthetic data, then sends one logged self-probe. Every
+probe send/delete has an operation id before it acts. An interrupted setup remains
+unready; it is never repeated or resumed automatically. Existing ids are refused for
+re-enrollment, so the owner must inspect the retained probes before choosing a new id.
+A server Sent copy observed in the bounded probe window establishes server saving.
+If none appears, client saving is only a bounded observation: the account remains
+unready until the owner confirms with
+`sudo aresos admin mail account_settings --input '{"id":"chosen-id","sent_policy":"client"}'`.
+The same owner-only action sets `format` and `signature`; defaults are plain and no
+signature. It cannot enable an interrupted setup or override the folder-delete guard.
+An empty leftover probe folder on an unsafe server is reported for the owner to remove.
+
+`mail_compose` stores a complete immutable composition and returns id/hash plus the
+mail description. Nothing is sent. Local `{path:...}` attachments are imported by
+the caller proxy using the base's allowed-root policy and 25 MiB per-file limit;
+the service opens no caller paths. Existing mail parts are copied by decoded sha256.
+`mail_prepare_send` returns a reserved operation's entire approval; `mail_send`
+accepts that exact object. Its `operation_id` is the service-issued request id.
+All authored text, aliases, To/Cc/Bcc, signature, format, threading, attachment names,
+paths, sizes and hashes appear in the approval. Immutable generated quotes/forwards
+appear by source reference, size and hash. Controls and bidi characters are visibly
+escaped; inputs beyond 16 KiB are refused in full. Approval still expires in 900 seconds.
+
+Replies derive recipients from Reply-To/From, remove owner aliases, and reply to own
+sent mail's original To/Cc. Threads use Message-ID/In-Reply-To/References across
+non-Trash/Junk folders, keeping duplicate ids and using internal-only ids when missing.
+Formatted authored text supports bold, italic, lists, links and quotes; raw HTML stays
+literal. Forwarded `.eml` attachments use `application/octet-stream` with their exact
+rebuilt bytes from recursive message/MIME header allowlists, removing Bcc and Resent
+headers; decoded binary leaves stay byte-exact. Approval binds the transmitted hash.
+Drafts are any message with the authored marker, a freshly fetched IMAP `\Draft` flag
+in any folder, or a source in SPECIAL-USE Drafts or its subfolders. Their source and
+all extracted parts refuse attachment, as do nested marked drafts; use `mode=draft`
+or forward inline instead. Their entire inline/reply/draft text appears in approval,
+including differing readable HTML, or the approval refuses as too large. Only
+`mail_draft_save` writes the marker; outgoing mail and Sent copies are unmarked.
+Existing drafts keep their plain/HTML body when `text` is omitted. Draft edits save
+new revisions and retain the old revision; deleting it requires a separate named
+delete approval. Sending a draft
+also retains it. Configured signatures apply to newly authored text; an unchanged draft
+already contains its signature and gets no additional one.
+
+Submission records each RCPT answer, final DATA answer, Sent copy and answered flag.
+The Message-ID comes from the operation id and is checked in Sent before SMTP.
+Absence proves nothing. Lost final answers are unknown, refused recipients partial,
+and no outcome is retried automatically. Client-managed Sent copies retain Bcc for
+the owner; transmitted headers omit Bcc. Server-managed Sent copying is left to the
+server. Exact wire bytes are stored privately for local-stage repair (64 MiB aggregate
+encoded-mail cap, independent of the per-file transfer cap). Repair never opens SMTP
+or repeats a POST/delete, and requires a durable successful final DATA answer. It
+checks Sent for the operation's Message-ID before appending another copy. An unknown
+submission without that answer stays for owner inspection even if a Sent copy appears.
+
+Every message reference includes account, folder, UIDVALIDITY, UID and Message-ID.
+UIDVALIDITY changes fail as stale, search again. Reads always use BODY.PEEK and do
+not fetch remote content or send receipts. Source pages use a reversible Latin-1 byte
+mapping; `attachment_save part=source` saves the exact `.eml`. Bodies page at up to 6,000
+characters, reduced as needed for the serialized byte cap; list pages default to five (maximum twenty). Cursors bind to query and
+folder/message state. CONDSTORE/QRESYNC are enabled when advertised; full metadata/byte
+re-reads remain authoritative, including on servers with neither extension. History
+scans currently refuse beyond 10,000 messages, and encoded source mails beyond 64 MiB: choose smaller explicit folders or use the owner's mail program.
+Search reduces each fetched body to its summary before retaining it; contacts and
+thread indexing fetch headers only. This conservative full-scan implementation needs
+large-account performance qualification.
+Mail-derived headers, addresses, attachment names and text are untrusted data, including
+when repeated in a composition; they never authorize an action.
+
+Move/copy destinations must be exact selectable LIST names. Trash and descendants are
+refused. Any source in Drafts or its subfolders refuses move/copy before the first
+server change, including unmarked owner drafts: send with `mail_compose mode=draft`,
+or delete with `mail_delete`, which asks the owner. Ordinary messages may be moved
+or copied into Drafts. `mail_flag` cannot add or remove `\Draft`; permitted moves
+between ordinary folders preserve it. Delete preparation rechecks every named
+sender/subject/date/reference; execution checks the complete set before the first
+mutation and each UID at use. Trash uses MOVE;
+permanent deletion uses only UID EXPUNGE and requires UIDPLUS. No code calls CLOSE or
+broad EXPUNGE, so unnamed messages marked Deleted survive. Folder deletion requires
+an empty non-special leaf and an onboarded server guard against nonempty DELETE.
+Both pinned upstream fixtures allow nonempty DELETE, so they remain unqualified. A
+clearly test-only serialized guard frontend covers the positive concurrent-delivery
+path over real GreenMail storage; it is not a production shim or provider qualification.
+
+Unsubscribe accepts only exact List-Unsubscribe choices read from the source mail.
+Mailto choices build their exact named mail and follow the normal send operation path.
+HTTPS one-click requires the header pair and a full SHA-256 DKIM signature covering
+both, checked after approval with system DNS and the already pinned crypto library.
+It sends exactly `List-Unsubscribe=One-Click`, with no cookies, GET, redirect or retry.
+Unsupported/invalid signatures or DNS failures refuse POST; use a header mailto choice
+or the owner's mail program. DKIM uses a conservative subset (RSA or Ed25519,
+simple/relaxed, no partial-body signatures), rather than trusting inbound
+Authentication-Results text.
+
+Run `bash control/ci/mail/run.sh` only on a disposable GitHub Linux runner. It first
+runs the unchanged base installer/suite in pinned Fedora, disconnects that container's
+external network, and attaches it with pinned GreenMail and Dovecot to a private
+`--internal` network. No ports are published. TLS keys and synthetic mailboxes are
+discarded; only test output/server logs are uploaded. The Mail workflow runs on this
+branch and its PR; the base workflow still runs independently on the PR.
+
+### Mail round 7: reviewed roles, draft exports and decoded headers
+
+Before moves/copies, deletion, draft save, folder changes, draft decisions and send
+preflight, current LIST SPECIAL-USE roles must be complete (Sent, Drafts, Trash,
+Junk, Archive), unique and match owner setup. A server role change refuses these
+operations. The owner fixes missing/duplicate roles on the server, then runs:
+
+```
+sudo aresos admin mail account_folders --input '{"id":"ACCOUNT"}'
+sudo aresos admin mail account_folders --input '{"id":"ACCOUNT","roles_hash":"HASH_FROM_REVIEW"}'
+```
+
+The first command shows escaped, untrusted folder names and a hash, without
+recording changes. The second re-reads and records only the reviewed mapping;
+no probe mail or account re-add is needed. Earlier Trash and Drafts folders and
+their descendants stay protected after refresh. This does not enable incomplete
+onboarding or change the server's folder deletion qualification.
+
+Claude cannot save any draft part or its source through `mail_attachment_save`,
+including HTML and binary attachments. The owner saves draft attachments in his
+mail program; Claude can compose the draft itself with `mode=draft`. Ordinary
+received and sent parts still export their original bytes, after inspection that
+refuses nested draft provenance and unsupported structures.
+
+Write outgoing header values as decoded Unicode. Claude-written encoded words,
+C0/C1 controls, bidi and invisible formatting characters refuse. Original-mail
+subjects and recipients are decoded before storage; derived formatting characters
+are escaped in approvals. Display names appear beside their addresses. Independent
+validation decodes exact outgoing Subject/From/To/Cc bytes and compares names,
+addresses and the complete To/Cc/Bcc SMTP envelope with approval, at compose and
+again before DATA. A mismatch fails without submission or replay.
+
+Mail audit summaries use service-written text. External values, recipient stage
+keys and caller save paths are structured inside escaped `untrusted_content`;
+`control_log` and `aresos log` also mark historical Mail summaries. A mail's
+instructions never become instructions from the audit service.
+
+### Mail rounds 9–11: filing warnings and blob exports
+
+Each role root records its own LIST hierarchy separator. Required-role separator
+changes need the owner's folder setup review; old Trash and Drafts roots keep their
+own separators after refresh. Legacy setups without per-root metadata must use the
+same owner setup step; separators are read from each listed root, never INBOX.
+
+Free move/copy requires UIDPLUS. A durable filing intent records source references,
+target and per-message progress before acting. After each MOVE/COPY, any role drift
+stops the batch with a partial result, a compact warning, filing id and counts,
+and the first bounded page of exact COPYUID destinations, observed locations and
+scan completeness. Nothing is moved back or deleted; copies
+are never expunged. Missing COPYUID is partial even when role names remain stable.
+Connection loss during reporting preserves observations so far and records partial.
+The newest three compact unacknowledged warnings stay in following Mail results'
+pending notices and in `aresos log`, including on later days; a count points to
+`mail_filing_notices` to page all remaining warnings. Each warning includes the
+filing id, affected-message count and at most three folder names of 64 characters
+(with an ellipsis for longer names and "and N more" for additional folders).
+Exact references remain stored internally and come from `mail_filing_locations`
+with that filing id, following its cursor until null. Pages stay below 12 KiB of
+location content. A single oversized per-message record uses ordered JSON
+fragments instead: concatenate by message_index/offset, then decode JSON once.
+All returned display values escape controls and bidi like audit entries; stored
+references keep their exact values. Location pages remain readable after restart
+and acknowledgment. `mail_notice_ack` receives
+its filing_id as operation_id. This acknowledges the warning only; cleanup requires
+ordinary named `mail_delete` approval. It creates no approval operation. An interrupted
+intent stays visible in the audit log; restart never resumes filing or tries recovery.
+A role that moves to the target and back between the command and the post-check can
+escape detection: filing ends done in the intended target, with no protected role at
+the end and no message lost.
+
+Shared blobs carry durable origin metadata. Only an explicit owner export can be
+saved by any app; internal composition parts, draft bodies, quotes and wire copies
+are private even when their hashes appear in results. Caller imports alone do not
+grant download rights, and attachment hashes still require caller-import provenance
+and metadata. Ordinary non-draft attachment_save explicitly exports original bytes.
+Missing legacy origin metadata grants no export/import permission. The testapp
+fixture is absent from shipped managed MCP settings; its explicit imported-file
+export action exists for test configurations only.
+
+Historical operation status always returns the saved approval and stages; a failed
+live Sent lookup appears separately as evidence_error. Composition strips surrounding
+spaces/tabs from subjects and display names before approval and wire validation.

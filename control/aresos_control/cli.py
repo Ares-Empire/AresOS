@@ -36,10 +36,26 @@ def main(config, argv=None):
         command = command[1:]
     if command == ["log"]:
         command = ["control", "log"]
+    if command == ["mail", "account", "add"]:
+        command = ["mail", "account_add"]
     if len(command) != 2:
         root.error("expected [admin] <app> <action>, or log")
     try:
-        result = Proxy(command[0], config, admin).call(command[1], json.loads(args.input))
+        if admin and command == ["mail", "account_add"]:
+            import getpass
+            import sys
+            if not sys.stdin.isatty():
+                raise Refused("terminal_required", "Account password must be entered at the owner terminal.")
+            from .common import validate
+            from .mail.definitions import ACCOUNT_CONFIG
+            arguments = json.loads(args.input)
+            validate(arguments, ACCOUNT_CONFIG)
+            proxy = Proxy("mail", config, admin=True)
+            password = getpass.getpass("Mail password (service only): ")
+            result = proxy.client.request({"method": "mail_account_add", "arguments": arguments, "password": password})
+            del password
+        else:
+            result = Proxy(command[0], config, admin).call(command[1], json.loads(args.input))
     except (Refused, ValueError) as exc:
         result = {"ok": False, "error": {"code": getattr(exc, "code", "invalid_input"), "message": str(exc)}, "pending": {}}
     print(canonical(result))
