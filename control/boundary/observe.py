@@ -1,6 +1,7 @@
-"""Outside /proc observer for the fixed native and standalone probes, same uid.
+"""Outside /proc observer for fixed probes; root with test-only SYS_PTRACE.
 
-The root supervisor supplies stdout; the child cannot open the evidence directory.
+Only the observer can inspect non-dumpable standalone filtered processes. Attacks
+still run as uid 10001 with all capabilities dropped by their sandbox.
 Sampling starts only after the API is about to dispatch tools, after launcher
 canaries have exited, so their namespaces cannot be mistaken for native Bash's.
 """
@@ -45,6 +46,7 @@ while running:
                     exe = 'unreadable'
                 ancestry.append({'pid': pid, 'command': command, 'exe': exe,
                                  'inner_pid': int(next(s.split()[-1] for s in status if s.startswith('NSpid:'))),
+                                 'cap_eff': next(s.split()[1] for s in status if s.startswith('CapEff:')),
                                  'namespaces': {n: os.readlink(proc / 'ns' / n) for n in ('net', 'mnt')},
                                  'seccomp': [s for s in status if s.startswith(('Seccomp:', 'Seccomp_filters:'))]})
                 if len(ancestry) == 1:

@@ -7,6 +7,8 @@ import time
 
 print('SANDBOX_IDENTITY ' + json.dumps({
     'pid': os.getpid(),
+    'cap_eff': next(s.split()[1] for s in Path('/proc/self/status').read_text().splitlines()
+                    if s.startswith('CapEff:')),
     'namespaces': {n: os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt')},
     'seccomp': [s for s in Path('/proc/self/status').read_text().splitlines()
                 if s.startswith(('Seccomp:', 'Seccomp_filters:'))],

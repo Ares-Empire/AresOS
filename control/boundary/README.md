@@ -20,11 +20,14 @@ The Docker image is x86-64 only. No model, authentication or real account is use
 identifies its open-source runtime and Linux bubblewrap/seccomp implementation.
 The native CLI does not publish its embedded runtime's exact revision.
 `native.py` drives its real tools with fixed streaming Messages responses from a
-local test double. Root adds only its loopback base URL and synthetic key through
-a test-only managed `env` entry; the launcher accepts no test arguments. Native
-Python calls remain approval-gated under the draft, after three real attempts.
-The brief explicitly permits retaining the independently published runtime as
-the hostile-program answer in this case; no equivalence is assumed.
+local test double. Root adds its loopback base URL and synthetic key through
+a test-only managed `env` entry; the launcher accepts no test arguments.
+For the approved hostile run, root also adds only these exact managed rules:
+`Bash(/usr/bin/python3 -I boundary-hostile.py)` and
+`Bash(/usr/bin/python3 -I boundary-socket-state.py)`. They stand for the owner
+approving those two fixed commands. There is no wildcard or other tool grant,
+and the production settings draft does not change. A remaining approval denial
+is recorded as unqualified; the grant must never be widened to get past it.
 
 `configure.py` translates the draft's explicit network and filesystem lists,
 expands `~/` for the fixed assistant home, and disables weaker/nested user
@@ -33,10 +36,10 @@ automatic Read/Edit permission projection, worktree discovery, implicit temp
 directories or dynamic policy updates. Read/Edit restrictions are already covered
 by the stronger explicit home/work masks in this draft. We prepare `/tmp/claude`
 as the assistant's private scratch directory, which Claude normally provides.
-An approved end-to-end hostile run in the image remains necessary. The native
-probe records its returned permission denials rather than pretending the Python
-program ran. Simple native Bash calls and the native compiled filter are tested
-separately; their evidence does not qualify an unexecuted script.
+The native test records actual tool results. An executed probe must have mount
+and network namespaces distinct from the container, more seccomp filters than
+its container, and EPERM for both AF_UNIX and AF_VSOCK. An approval denial is
+unqualified. Actual-image qualification remains necessary.
 
 Linux write-deny rules cannot exclude recursive patterns like `**/.envrc`.
 Consequently, this conservative draft makes the terminal's entire home work tree
@@ -52,7 +55,7 @@ broken mount setup. Do not remove the work-tree denial to work around that error
 docker build -f control/boundary/Dockerfile -t aresos-boundary .
 mkdir -p evidence/present evidence/absent
 for mode in present absent; do
-  docker run --rm --network none \
+  docker run --rm --network none --cap-add SYS_PTRACE \
     --security-opt seccomp=unconfined --security-opt apparmor=unconfined \
     --security-opt systempaths=unconfined \
     -e FILTER_MODE="$mode" -v "$PWD/evidence/$mode:/evidence" aresos-boundary
@@ -69,6 +72,10 @@ runtime can create full user, network, PID, mount and proc namespaces. The inner
 sandbox and its optional filter are never weakened; we add no host namespace,
 host home, host device, Docker socket or privileged-container access. These are
 CI prerequisites, not proposed changes to the AresOS image or the Mac.
+The test envelope additionally grants root `SYS_PTRACE` so the outside observer
+can read mountinfo of the standalone helper's non-dumpable descendants. Only that
+root observer uses the capability; attacks remain uid 10001 inside bubblewrap
+with all capabilities dropped. No host process namespace is shared.
 
 ## Evidence
 
@@ -170,16 +177,28 @@ WebFetch/WebSearch must return approval denials and produce zero receiver arriva
 
 Positive source controls explicitly enable user/project/local settings and remove
 the two managed source gates. Hooks, a status line, an apiKeyHelper and a normal
-Write grant then leave observable effects. Through the launcher the same planted
+Write grant must then leave observable effects: all three hooks, the winning
+local status/helper markers and the successful ordinary Write are required before
+launcher suppression is judged. Through the launcher the same planted
 settings grant no Write and leave no markers. A cached enabled-plugin fixture is
 also planted; its nonempty registry refuses launcher startup. Unexercised plugin
 loading and individually shadowed command settings remain model-test work.
 
-The native probe also samples a fixed `sleep` process from outside the sandbox,
-with stdout supplied by the root supervisor. Sampling starts at tool dispatch,
-after launcher canaries, so these processes cannot be confused. Namespace IDs,
-Seccomp/Seccomp_filters and process ancestry are retained. The full hostile Python
-program remains approval-gated; its namespace report is never invented.
+The outside observer samples the fixed `sleep` baseline (no test allow rules)
+and executed Python probes, with stdout supplied by the root supervisor. Sampling
+starts at tool dispatch, after launcher canaries, so these processes cannot be
+confused. It retains raw `/proc/<pid>/mountinfo`, namespace IDs, seccomp mode and
+filter count, and ancestry. The approved probe's self report must match the
+outside process, and its full mount view and policy-path view must equal the baseline's. Only session
+UUIDs and proxy-socket nonces are normalized; modes and backing roots are kept.
+Each draft denyRead/allowRead/denyWrite entry is classified as hidden, read-only
+or writable from the most specific mount. The standalone probe gets the same
+outside observation and a per-path comparison. Native embedded filtering remains
+present in both external-helper modes; only standalone absent mode measures the
+filter-free hidden-path fallback.
+
+`python3 -m unittest discover -s control/boundary -p test_native.py -v` runs the
+checker regression mutations locally; the Docker build requires them too.
 
 See the report for exact run IDs, failures, final-head validation and remaining
 model-driven gates. A successful workflow means its explicit assertions passed,

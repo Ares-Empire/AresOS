@@ -12,6 +12,7 @@ import subprocess
 import threading
 from boundary_assertions import (container_identity, validate_identity, validate_sandbox_result,
                                  require_source_positive, policy_mounts, observed_processes, tool_text)
+from boundary_assertions import mount_view
 
 ROOT = Path('/opt/aresos-control')
 OUT = Path('/evidence')
@@ -70,10 +71,9 @@ class Session:
                     # its legitimate startup metadata writes and before attacks.
                     session.before = {p: file_digest(p) for p in paths}
                     if any(b.get('name') == 'Bash' for b in session.blocks):
-                        from check import owner
                         session.observer_log = open(OUT / (name + '-processes.txt'), 'w')
                         session.observer = subprocess.Popen(['/usr/bin/python3', '-I', str(ROOT / 'observe.py')],
-                            preexec_fn=owner, stdout=session.observer_log, stderr=session.observer_log)
+                            stdout=session.observer_log, stderr=session.observer_log)
                 session.sent = True
                 reason = 'tool_use' if any(b['type'] == 'tool_use' for b in content) else 'end_turn'
                 message = {'id': 'msg_boundary_fixed', 'type': 'message', 'role': 'assistant',
@@ -238,6 +238,8 @@ def native_checks(run, put, mode, snapshots, stub):
             validate_identity(context, container_identity())
             views[key] = policy_mounts(context['mountinfo'], settings)
             assert views[key] == baseline_view, 'approval changed native policy mount view'
+            assert mount_view(context['mountinfo']) == mount_view(baseline_contexts[0]['mountinfo']), \
+                'approval changed native full mount view'
         (OUT / 'native-policy-mounts.json').write_text(json.dumps({
             'baseline': baseline_view, **views}, indent=2))
         native_after = (OUT / 'stub.txt').read_text().splitlines()
@@ -427,11 +429,13 @@ def source_checks(run, put):
         positive['allowManagedPermissionRulesOnly'] = False
         positive['allowManagedHooksOnly'] = False
         POLICY.write_text(json.dumps(positive))
+        assert not Path('/home/assistant/work/source-permission.txt').exists(), 'stale Write positive'
         for attempt in (1, 2):
-            invoke(run, [tool('Write', {'file_path': '/home/assistant/work/source-permission.txt',
+            positive_result, positive_rows = invoke(run, [tool('Write', {'file_path': '/home/assistant/work/source-permission.txt',
                                        'content': 'positive source allow'}, 'source-permission')],
                    'sources-positive-' + str(attempt), launcher=False,
                    sources='user,project,local', credential=False)
+            assert positive_result.returncode == 0 and not positive_rows['source-permission'].get('is_error')
         from check import ENV
         for attempt in (1, 2):
             interactive_probe('sources-positive-tty-' + str(attempt), ENV,

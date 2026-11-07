@@ -179,7 +179,7 @@ def main():
         # Run hostile code even with the helper missing, to measure the fallback.
         with (OUT / 'standalone-processes.txt').open('w') as observer_log:
             observer = subprocess.Popen(['/usr/bin/python3', '-I', str(ROOT / 'observe.py')],
-                                        preexec_fn=owner, stdout=observer_log, stderr=observer_log)
+                                        stdout=observer_log, stderr=observer_log)
             try:
                 result = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'),
                               '/usr/bin/python3 -I /opt/aresos-control/hostile.py'], 'hostile', required=False)
@@ -189,6 +189,7 @@ def main():
         from boundary_assertions import policy_mounts, observed_processes
         observed = observed_processes(OUT / 'standalone-processes.txt')
         assert len(observed) == 1, 'standalone outside mount observation missing'
+        assert int(observed[0]['cap_eff'], 16) == 0, 'observer capability leaked to standalone attack'
         standalone_view = policy_mounts(observed[0]['mountinfo'], json.loads(
             Path('/etc/claude-code/managed-settings.json').read_text()))
         (OUT / 'standalone-policy-mounts.json').write_text(json.dumps(standalone_view, indent=2))

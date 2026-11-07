@@ -8,12 +8,12 @@ import unittest
 from unittest.mock import patch
 
 import native
-from boundary_assertions import validate_sandbox_result, require_source_positive
+from boundary_assertions import validate_sandbox_result, require_source_positive, policy_mounts, mount_view
 
 
-CONTAINER = {'namespaces': {'net': 'net:[1]', 'mnt': 'mnt:[1]'},
+CONTAINER = {'namespaces': {'net': 'net:[1]', 'mnt': 'mnt:[1]'}, 'cap_eff': '0',
              'seccomp': ['Seccomp: 0', 'Seccomp_filters: 0']}
-ISOLATED = {'namespaces': {'net': 'net:[2]', 'mnt': 'mnt:[2]'},
+ISOLATED = {'namespaces': {'net': 'net:[2]', 'mnt': 'mnt:[2]'}, 'cap_eff': '0',
             'seccomp': ['Seccomp: 2', 'Seccomp_filters: 2']}
 
 
@@ -50,6 +50,8 @@ class EvidenceChecks(unittest.TestCase):
     def test_filter_count_must_exceed_container(self):
         with self.assertRaises(AssertionError):
             validate_sandbox_result(result(), dict(CONTAINER, seccomp=['Seccomp: 2', 'Seccomp_filters: 2']))
+        with self.assertRaises(AssertionError):
+            validate_sandbox_result(result(dict(ISOLATED, cap_eff='80000')), CONTAINER)
 
     def test_first_attempt_cannot_be_hidden_by_second(self):
         # Reproduce the review's first-batch gap through the batch checker itself.
@@ -80,6 +82,15 @@ class EvidenceChecks(unittest.TestCase):
             require_source_positive(dict(positive, positive_permission=False))
         with self.assertRaises(AssertionError):
             require_source_positive({'positive_markers': [], 'positive_permission': False})
+
+    def test_effective_overmount_wins_and_view_keeps_access_mode(self):
+        mounts = ('1 0 0:1 / / ro - overlay overlay rw\n'
+                  '2 1 0:1 /work /work rw - overlay overlay rw\n'
+                  '3 2 0:1 /work /work ro - overlay overlay rw\n')
+        settings = {'sandbox': {'filesystem': {'denyRead': [], 'allowRead': ['/work'], 'denyWrite': ['/work']}}}
+        self.assertEqual(policy_mounts(mounts, settings)['denyWrite:/work']['view'], 'read-only')
+        self.assertNotEqual(mount_view(mounts), mount_view(mounts.replace('3 2 0:1 /work /work ro',
+                                                                                  '3 2 0:1 /work /work rw')))
 
 
 if __name__ == '__main__':
