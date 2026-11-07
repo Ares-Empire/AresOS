@@ -496,8 +496,10 @@ requirement here, with how it is met and how brief 20 tests it.
      owner only, never described to Claude.
    - **Safe fields only.** A description shows only fields the tool or a site adapter knows are safe to show: the
      text Claude entered, the values Claude chose in the form, and what an adapter decodes as content (a recipient,
-     a message, a playlist name). Everything else is withheld and named, never shown: "[field `token`: 412 bytes,
-     not shown]", and for content in no known format "[1,830 bytes in an unknown format, not shown]". Cookies and
+     a message, a playlist name). Everything else is withheld behind a placeholder, its name included, because a
+     field's name can itself carry data: "[field 3: 412 bytes, not shown]", and for content in no known format
+     "[1,830 bytes in an unknown format, not shown]". The same applies to an address: its site and path are shown,
+     and query fields the tool can't show safely are replaced by placeholders the same way. Cookies and
      authorisation headers are never shown. This holds in every description, to Claude and to the owner, and in the
      tool service's approval log; the hash still covers the real bytes, so the approval binds exactly what goes. A
      token that hides in a field the tool counts as safe is the residual (brief 20 lists the safe fields).
@@ -517,17 +519,45 @@ requirement here, with how it is met and how brief 20 tests it.
    the checkpoint checks that site's connection itself, the way Chrome 157 would. Any failure ends it with an error
    page in Chrome; there is no fallback and no "accept anyway".
    - **Chrome's current security data.** The checkpoint reads the data Chrome's component updater keeps current, from
-     Chrome's component folders in the browser user's profile, which the checkpoint's user may read and not change:
-     the CRLSet (Chrome's revocation list), the Chrome Root Store (its roots and their limits), and the CT log list with
-     the pin list. It checks each file's signature where its format carries one, and picks up a new version for new
-     connections. The image ships a copy of each as the floor for a fresh installation. All of this is *brief 20*:
-     which folders and formats, which carry signatures, and how a change is picked up.
-   - **Staleness.** Each kind of data has an age limit, set in brief 20 from Chrome's own update intervals and its own
-     limit for the CT log list. When a limit is passed, the checkpoint refuses new connections to sites and tells the
-     owner ("Chrome's security lists are out of date; new connections are paused until Chrome updates them"), on his
-     desktop and, if he takes the approval proposal, on his phone. So that Chrome can update them, the only requests it
-     still lets through are Chrome's component updater fetching those same components, recognised by the update
-     protocol and never by host name; Chrome checks those downloads' signatures itself.
+     Chrome's user-data directory (not a single profile's folder): the CRLSet in
+     `CertificateRevocation/<version>/crl-set` (Chrome's revocation list), and in `PKIMetadata/<version>/` the Chrome
+     Root Store (`crs.pb`, its roots and their limits), the CT configuration with the log list (`ct_config.pb`) and
+     the pin list (`kp_pinslist.pb`) (re-check 10, Chromium 157 source).
+   - **What this trust rests on.** These files carry no signatures of their own. Chrome checks each downloaded
+     package's signature before unpacking it (re-check 10, Chromium 157 source), so the trust rests on Chrome's
+     verified installation plus the protection of the folder: Chrome's user-data directory belongs to the browser user,
+     the checkpoint's user may read it and not change it, and the assistant's and the coding user can't write it.
+     Anything that can write that folder as the browser user can weaken these checks, just as it could weaken Chrome's
+     own.
+   - **Loading.** The checkpoint picks the version Chrome itself would use (the highest complete one, and never one
+     older than the floor Chrome has built in), loads it only when every file is present and parses against the
+     schema the checkpoint was qualified with, switches over in one step for new connections, and otherwise keeps the
+     last good data. The image ships a copy of each as the floor for a fresh installation. All *brief 20*.
+   - **A version gate.** Chrome ships pinned in the AresOS image together with a checkpoint qualified for exactly that
+     Chrome version, so the two change together. If the running Chrome's version differs from the one the checkpoint
+     was qualified for, the owner gets a visible notice: "Chrome is newer than its checkpoint; checks a newer Chrome
+     makes may be missing until AresOS is updated" (*brief 20* tests the notice).
+   - **Freshness, from the data's own fields.** File times aren't used. The CT log list carries its own timestamp, and
+     Chrome's own limit applies (70 days, after which Chrome itself stops checking CT; the checkpoint pauses instead).
+     The pin list has its own timestamp and Chrome's own age rule. The CRLSet's expiry field applies when it is set;
+     it is optional. Where a format has no expiry or timestamp (a CRLSet without expiry, the root store, which has
+     only a version), freshness is the time it was last confirmed: when a new version was loaded, or when the
+     checkpoint, which sees Chrome's component update checks pass through it, saw the update server answer "no update"
+     for exactly the version it holds, over a connection that passed every check. That time is kept in its record
+     across restarts. Each kind has an age limit, set in brief 20 from Chrome's own update intervals.
+   - **When data is out of date.** The checkpoint refuses new connections to sites and tells the owner ("Chrome's
+     security lists are out of date; new connections are paused until Chrome updates them"), on his desktop and, if
+     he takes the approval proposal, on his phone. Recovery has an exact contract:
+     - Only Chrome's own component updates get through: requests that carry no extension tag (so they aren't page
+       traffic), go to Google's update hosts (a fixed list in the image), and have the update protocol's shape: an
+       update check naming only Chrome's own component ids and versions, or the download of exactly the package that
+       a previous update answer named. Everything else, page and worker imitations of these included, waits.
+     - Every TLS check stays on for these connections, with the last good data; only the age limit is waived, and
+       only for them.
+     - A signed package authenticates what Chrome installs, not the request that fetched it; the request is judged by
+       its shape and by the absence of a tag, as above.
+     - The checkpoint loads the new data only when it is complete and valid (above); a package that fails Chrome's
+       signature check isn't installed, and the checkpoint keeps waiting.
    - **Chain:** to a root in that root store, used with its limits (for example roots trusted only for certificates
      issued before a date). The checkpoint's own root is in no list but Chrome's (requirement 5).
    - **Name and dates:** the host name against the certificate's names (no fallback to the common name); every
@@ -556,13 +586,19 @@ requirement here, with how it is met and how brief 20 tests it.
      printer's own page, whose certificate the device made itself. Through the checkpoint such a page doesn't open.
    - **Out-of-date lists pause browsing.** If Chrome can't update its lists for a long time, new connections pause
      until it can; Chrome on its own would go on (and with an old CT list it stops checking CT).
-   - **Version differences.** The checkpoint copies Chrome 157's rules; when a later Chrome changes them, the
-     checkpoint follows with its own update, and until then a site can behave differently in the two.
+   - **Version differences.** The checkpoint copies Chrome 157's rules. Chrome and the checkpoint change together
+     with the image, but if Chrome is ever newer than its checkpoint, checks the newer Chrome makes may be missing
+     until AresOS is updated, and he is told so (the version gate above).
    *Test:* each with zero requests at the receiver: expired, wrong-name, self-signed, unknown-root, a root used past
    its limits, a certificate on the CRLSet, missing or invalid timestamps and each CT policy rule, a wrong pinned key,
    an old protocol; valid, missing, stale and invalid stapled answers, with and without "must staple", giving the same
    result as Chrome 157 directly; HSTS; out-of-date lists pausing new connections while Chrome's component update still
-   gets through, and a page imitating that update held; the checkpoint's root in no trust list but Chrome's.
+   gets through, and a page or worker imitating that update held; recovery from genuinely stale data, from a package
+   that fails its signature check and from an interrupted update; loading only complete and valid versions in one
+   step, the schema, Chrome's built-in floors and its choice of version, malformed and missing files; freshness
+   across restarts, including an unchanged-update answer; the full CT policy (the 70-day limit, log operators and
+   their history, retired logs, each delivery method, duplicate timestamps, the kinds of log); the version-gate
+   notice; the checkpoint's root in no trust list but Chrome's.
 5. **A key that rotates and can issue nothing while the checkpoint is stopped.**
    - **Every place the root goes, and nowhere else:** (a) Chrome's policy `CACertificates`, which the profile's
      network contexts read and re-read while Chrome runs (Chrome 157's policy definition: `dynamic_refresh: true`,
@@ -672,7 +708,7 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 | `chrome_pending` | read | what is held that is attributed to Claude's work: pending sends and background holds (nothing of the owner's own tabs: requirement 2) |
 | `chrome_submit` | **send** | let one pending send go: the captured operations the service described, by id and hash (below) |
 | `chrome_submit_trusted` | send, free | as `chrome_submit`, only for an operation a site adapter recognises as a kind the owner set to "don't ask again" (below) |
-| `chrome_open_site` | **send** | open an address that isn't free to open (below), with the full address in the input |
+| `chrome_open_site` | **send** | open an address that isn't free to open (below), with the full address in the input (an address Claude composed or was given, so nothing in it is hidden from Claude) |
 | `chrome_drop` | change | drop held operations; nothing leaves |
 | `chrome_end_guard` | **send** (asks) | end a site's guard where it didn't end by itself; the input shows what of Claude's may be left there and what the page stored; afterwards the owner's own sends there go unchecked |
 | `chrome_end_call` | **send** (asks) | end every peer connection in Chrome (all calls) so that Claude can act; the approval says so and names the site Claude wants to act on and the calls the tool can see; the set is checked again right before cutting (calls, below) |
@@ -749,13 +785,13 @@ site, and the service sorts each by cause and content, never by timing alone:
 
 A pending send stops the action; its result reads `held` with the **service's description** (rule 4.1): what Claude
 did (the click on "Delete" in the row "Invoice 42"), the page's address and title, the signed-in name the page shows
-(all marked "as the page shows it"), and every held operation: site, full address, method, the data decoded where
-possible, the capture id and the hash of its bytes. Claude passes exactly that to `chrome_submit`, and the owner's
-prompt shows it. The checkpoint forwards each captured operation at most once. *Checked*: held sends reached the fixture
-server zero times while held, exactly once after release and never after drop, for posted forms, search forms,
-`fetch` and XHR posts, beacons, autosave, a form posting to another site, link pings and a data-bearing image (17,
-17b, 17c, holding in the page); and at the checkpoint, the exact captured bytes once after approval with competitors
-still held (17e Q4, Q5).
+(all marked "as the page shows it"), and every held operation: site, address (with placeholders for what can't be
+shown safely: requirement 2), method, the data decoded where possible, the capture id and the hash of its bytes.
+Claude passes exactly that to `chrome_submit`, and the owner's prompt shows it. The checkpoint forwards each captured
+operation at most once. *Checked*: held sends reached the fixture server zero times while held, exactly once after
+release and never after drop, for posted forms, search forms, `fetch` and XHR posts, beacons, autosave, a form posting
+to another site, link pings and a data-bearing image (17, 17b, 17c, holding in the page); and at the checkpoint, the
+exact captured bytes once after approval with competitors still held (17e Q4, Q5).
 
 **The page script: descriptions and hints, never authorisation.** The extension's page script still goes into every
 document and frame before the site's own scripts (also `about:blank` and `srcdoc` frames a script creates), and the
@@ -789,27 +825,36 @@ list kept only in the browser) without any network send, so the checkpoint can't
 - **Labelled destructive controls ask first,** on every site, before the click happens. Destructive means the
   control's accessible name or role says delete, remove, discard, clear, empty or trash, in English and German at
   least (löschen, entfernen, verwerfen, leeren, Papierkorb), matched as whole words; a site adapter may add more words
-  and controls. Pressing Delete or Backspace outside a text field (an editable area counts as a text field) counts the
-  same. `chrome_click` and `chrome_press` refuse such a control ("this control may delete; use
+  and controls. Pressing Delete or Backspace counts the same, except in supported text editing: on text inside a
+  text field or an editable area (`contenteditable`). When the selection or focus inside an editable area is an
+  object (a card, an attachment, an image, an embedded item), Delete and Backspace are destructive too.
+  `chrome_click` and `chrome_press` refuse such a control ("this control may delete; use
   `chrome_click_destructive`"), and `chrome_click_destructive` (effect delete, asks) clicks it only after approval.
   The approval names the control as the page labels it, the page and the site, and says plainly that the click may
   delete data kept only in this browser. It covers the click only: if the page then sends something, that send waits
   at the checkpoint and asks with its own approval, showing what is really sent.
 - **A destructive action approved in advance,** only with a qualified site adapter. The approval comes before the
-  click and names one bounded *advance operation*: the adapter contract's version, the account, the exact targets
-  (by the site's own stable ids), the permitted effects ("delete these two drafts, kept in this browser and on the
-  server"), a limit on how many requests or messages may follow and in what order, and an expiry. It is consumed
-  once, durably, like a captured send. The sends that follow go without a second question only while each validates
-  against that description, within its limit and before its expiry; anything else, and anything after it is used
-  up, asks. A contract's recognition is never a reusable permission: each destructive operation is one approval.
+  click and names one bounded *advance operation*: the adapter contract's version, the account, the exact targets (by
+  the site's own stable ids), the permitted effects ("delete these two drafts, kept in this browser and on the
+  server"), a limit on how many requests or messages may follow and in what order, and an expiry. It is consumed once,
+  durably, like a captured send, and recorded as consumed before the click reaches Chrome; the count of sends that
+  follow is kept durably too. The sends that follow go without a second question only while each validates against
+  that description, within its limit and before its expiry; anything else, and anything after it is used up, asks. A
+  contract's recognition is never a reusable permission: each destructive operation is one approval.
 - **An unlabelled control that deletes data kept only in the browser** (an icon without a name, a "Reset" that
-  doesn't say what it resets): **owner decides (open, section 10)** between (a) clicks there stay free, and (b) on a
-  site without an adapter that keeps its data in the browser, every click other than a plain link asks first.
-- *Tests (brief 20), for whichever he picks:* other ways to activate a control (Enter or Space on a focused control,
-  a context-menu item, a double click, dragging an item onto a bin); a page's own confirmation after a destructive
-  click (part of the same approved action) and a confirmation reached by another route (asks); and ordinary text
-  editing staying free, including typing, Backspace and Delete inside text fields and editable areas
-  (`contenteditable`).
+  doesn't say what it resets; on an ordinary online site too, for example an unsent draft kept in the browser's
+  storage): **owner decides (open, section 10)** between (a) such clicks stay free, and (b) on any site without an
+  adapter, every click on something that isn't a link and every action other than plain text editing asks first; an
+  adapter frees only interactions inside its qualified coverage.
+- *Tests (brief 20).* For both options: labelled controls and Delete or Backspace asking before the click; other
+  ways to activate a control (Enter or Space on a focused control, a context-menu item, a double click, dragging an
+  item onto a bin); a page's own confirmation after a destructive click (part of the same approved action) and a
+  confirmation reached by another route (asks); plain text editing staying free, typing, Backspace and Delete on text
+  in text fields and editable areas included; Delete and Backspace on a selected card, attachment or object inside
+  an editable area asking. For (a): an unlabelled control on a fixture that keeps a draft in the browser's storage
+  stays free, as he chose. For (b): on a site without an adapter, every click other than a link and plain text
+  editing asks, on online and offline fixtures alike; on a site with an adapter, interactions inside its coverage go
+  free and those outside it ask.
 
 **What Claude may open freely, and data leaving.** A *site* is a registrable domain by the Public Suffix List
 (including its private part, so every `*.github.io` page is its own site), and areas of big platforms where anyone
@@ -1044,8 +1089,9 @@ In plain words (re-check 7, section C, and 17e):
 - **Sites see a slightly different client.** The checkpoint's TLS and HTTP/2 fingerprints differ from Chrome's
   (*checked*, 17e Q11). No extra robot checks were seen on 17e's anonymous sample; signed-in sites are untested.
   Pages were about 0.1 s slower in that small sample, and the checkpoint used about 100 to 260 MB of memory.
-- **Some of Chrome's own certificate checks are lost** (requirement 4): its urgent revocation list, and updates of its
-  lists between images. The checkpoint does Chrome's root, CT and pin checks on the outside connection instead. He
+- **Certificate checks are Chrome's, with a few differences** (requirement 4): the checkpoint checks sites the way
+  Chrome 157 does, with Chrome's own current lists; client certificates and "continue anyway" don't work, out-of-date
+  lists pause browsing, and a Chrome newer than its checkpoint may make checks the checkpoint lacks (he is told). He
   decides whether to accept this before everyday use (section 10).
 - **Uploads above the limit fail** rather than going around the checkpoint.
 
@@ -1150,7 +1196,9 @@ qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on
     asking through `chrome_click_destructive` before the click; Delete and Backspace outside text fields; the other
     activation paths, confirmations and free text editing above, for whichever option the owner picks; an advance
     operation's follow-up sends released only while they validate, within its limit and before its expiry, used up
-    once (a second deletion under the same approval asks), and without an adapter the follow-up sends asking.
+    once (a second deletion under the same approval asks), consumed durably before the destructive input reaches
+    Chrome, its count of follow-up sends kept durably under competing sends and crashes; and without an adapter the
+    follow-up sends asking.
 14. **Bounded resources** (17e Q11): memory, capture count, total size, a full record, the memory ceiling; exhaustion
     never forwards.
 15. **The pass-through switch** (condition 3): only through the owner's channel; leftovers shown first; Claude's
@@ -1373,12 +1421,13 @@ What this adds to the trust boundary:
   links that open by themselves, no executable markup; a formatted mail is shown as its text, with control and
   direction-changing characters escaped (rule 4.1). *Test:* the complete readable mail on the phone itself (a long
   text, Bcc, attachments, odd characters), and on the laptop's window.
-- **Adversarial tests,** each ending with nothing sent and no entry written: a relay that swaps the phone's or the
-  service's key during enrolment; answers that are altered, replayed, signed by a revoked phone, or sent for an
-  expired question or one of an earlier log generation; the phone and the laptop answering at the same moment, with
-  the tool service killed in between (exactly one answer counts, also after the restart); Face ID changed after
-  enrolment (the key no longer works); and an attempt to answer with the phone's passcode instead of Face ID
-  (refused).
+- **Adversarial tests.** Each invalid answer has no effect at all (nothing sent, no entry written, the question
+  still open until it expires): a relay that swaps the phone's or the service's key during enrolment (enrolment
+  fails); answers that are altered, replayed, signed by a revoked phone, or sent for an expired question or one of an
+  earlier log generation; Face ID changed after enrolment (the key no longer works); an attempt to answer with the
+  phone's passcode instead of Face ID. Valid answers that compete (the phone and the laptop answering at the same
+  moment, with the tool service killed in between) produce exactly one durable decision, also after the restart, and
+  the operation runs at most once.
 - **A lost phone.** The key works only with his face. He revokes the phone from the laptop; questions still show in
   the laptop's window. Questions waiting for that phone expire as below.
 - **The server or the phone down.** At the laptop the window still asks. Away from it, a question nobody answers
@@ -1455,18 +1504,22 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
   certificate it made itself (a router, a printer) doesn't open; if Chrome can't update its lists for a long time,
   new connections pause until it can; and after a Chrome update changes its rules, the checkpoint follows with its
   own update. Recommended: accept. None of these weakens a check; they make some pages fail instead.
-- **Clicks that might delete data kept only in the browser, when the control doesn't say so** (section 6). Some apps
-  keep his data only in the browser, for example apps that work offline. A click there can delete it without anything
-  being sent, so the checkpoint can't hold it. Controls labelled delete, remove, discard, clear, empty or trash (and
-  the German words), and Delete or Backspace outside a text field, already ask first. Open is a control that doesn't
-  say what it does:
-  - **(a) Such clicks stay free.** An unlabelled control in an app that keeps its data only in the browser could
-    delete something without asking. That is rare: it needs an offline-only app and a control that doesn't say what
-    it does.
-  - **(b) Clicks ask on such sites.** On a site without an adapter that keeps its data in the browser (it works
-    offline: a service worker plus a browser database or the browser's private file system), every click other than
-    a plain link asks first. Nothing is deleted without asking, but working on those sites means many questions.
-  Recommended: (a).
+- **Clicks that might delete data kept only in the browser, when the control doesn't say so** (section 6). Many
+  sites keep some of his data only in the browser: offline apps, but also ordinary online sites, for example an
+  unsent draft kept in the browser's storage. A click there can delete it without anything being sent, so the
+  checkpoint can't hold it. Controls labelled delete, remove, discard, clear, empty or trash (and the German words),
+  and Delete or Backspace outside plain text editing, already ask first. Open is a control that doesn't say what it
+  does:
+  - **(a) Such clicks stay free.** An unlabelled control (an icon without a name, a "Reset") can delete something
+    kept only in this browser without asking, on any site where something is kept that way. Deleting something that
+    also lives on a site's server is a send and asks; what this leaves open is data that exists only in the browser,
+    such as a draft not yet sent.
+  - **(b) Clicks ask on sites without an adapter.** On any site without an adapter, every click on something that
+    isn't a link, and every action other than plain text editing, asks first; an adapter frees only what its
+    qualified coverage includes. Nothing kept in the browser is deleted without asking, but most of Claude's work on
+    sites without an adapter becomes a series of questions.
+  Recommended: (a), because (b) makes Chrome hard to use on every site without an adapter, and what (a) leaves open
+  is limited to data that was never sent anywhere.
 
 **Answered on 2026-11-07 and built into this draft:** data leaving in Chrome (decision 7: searches on his usual sites
 are free, anything else that could carry Claude's text asks; section 6); the central session apart from coding work
