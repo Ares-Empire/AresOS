@@ -32,13 +32,13 @@ export default async function(c){
  // Full immutable bodies in the wrapper, compared with Chrome's network observations of raw blocked sends.
  for(const [kind,expression]of [
   ['json',"JSON.stringify({delete:42,text:'synthetic'})"],['urlencoded',"new URLSearchParams({delete:'42',text:'synthetic'})"],
-  ['multipart',"(()=>{const f=new FormData();f.append('delete','42');f.append('file',new File(['synthetic FILE BYTES 17d'],'synthetic.txt'));return f})()"],
+  ['multipart',"(()=>{const f=new FormData();f.append('delete','42');f.append('file',document.querySelector('#upload').files[0]);return f})()"],
   ['1mb',"'x'.repeat(1024*1024)"],['25mb',"'y'.repeat(25*1024*1024)"],
   ['stream',"new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('synthetic stream'));c.close()}})"]
  ]){
-  await nav();await rpc('Check.clear');const id='body-'+kind;
-  await ev(`window.testBody=${expression};fetch('/receive?case=${id}',{method:'POST',body:testBody,${kind==='stream'?"duplex:'half',":''}}).catch(e=>events.push(e.name));true`);await delay(800);await count(id,0);const network=(await state()).history;
-  await ev(`__floor.enabled=true;testBody=${expression};fetch('/receive?case=wrap-${kind}',{method:'POST',body:testBody,${kind==='stream'?"duplex:'half',":''}}).catch(e=>events.push(e.name));true`);await delay(1000);await count('wrap-'+kind,0);
+  await nav();await rpc('Check.clear');const id='body-'+kind;if(kind==='multipart'){const file=c.work+'/synthetic-upload.txt';c.fs.writeFileSync(file,'SYNTHETIC_DISK_FILE_17D'.repeat(4096));const root=await rpc('DOM.getDocument'),node=await rpc('DOM.querySelector',{nodeId:root.root.nodeId,selector:'#upload'});await rpc('DOM.setFileInputFiles',{nodeId:node.nodeId,files:[file]});}
+  await ev(`window.testBody=${expression};fetch('/receive?case=${id}',{method:'POST',body:testBody,${kind==='json'?"headers:{'Content-Type':'application/json'},":''}${kind==='stream'?"duplex:'half',":''}}).catch(e=>events.push(e.name));true`);await delay(800);await count(id,0);const network=(await state()).history;
+  await ev(`__floor.enabled=true;testBody=${expression};fetch('/receive?case=wrap-${kind}',{method:'POST',body:testBody,${kind==='json'?"headers:{'Content-Type':'application/json'},":''}${kind==='stream'?"duplex:'half',":''}}).catch(e=>events.push(e.name));true`);await delay(1000);await count('wrap-'+kind,0);
   const wrapper=(await state()).history.filter(e=>e.method==='check.script'&&['held','stream-refused'].includes(e.params.event));assert.ok(wrapper.length,'wrapper body outcome '+kind);
   log('Q5_BODY',{kind,network,wrapper,page:await ev('events')});
   if(['1mb','25mb'].includes(kind)){

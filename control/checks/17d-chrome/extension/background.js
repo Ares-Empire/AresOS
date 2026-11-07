@@ -4,7 +4,7 @@ const history=[],attached=new Map(),pending=new Map();
 const emit=(method,params)=>{const row={method,params,at:Date.now()};history.push(row);try{port?.postMessage({method,params,at:row.at})}catch{}};
 const cmd=(s,m,p={})=>chrome.debugger.sendCommand(s,m,p);
 const hash=async s=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',typeof s==='string'?new TextEncoder().encode(s):s))).map(v=>v.toString(16).padStart(2,'0')).join('');
-async function body(r){return {hasPostData:r.hasPostData,postData:r.postData===undefined?{missing:true}:{missing:false,length:new TextEncoder().encode(r.postData).length,sha256:await hash(r.postData),preview:r.postData.slice(0,120)},entries:r.postDataEntries?.map(e=>({bytesPresent:e.bytes!==undefined,base64Length:e.bytes?.length}))};}
+async function body(r){return {hasPostData:r.hasPostData,postData:r.postData===undefined?{missing:true}:{missing:false,length:new TextEncoder().encode(r.postData).length,sha256:await hash(r.postData),preview:r.postData.slice(0,120),syntheticDiskFilePresent:r.postData.includes('SYNTHETIC_DISK_FILE_17D')},entries:r.postDataEntries?.map(e=>({bytesPresent:e.bytes!==undefined,base64Length:e.bytes?.length}))};}
 const ready=(async()=>{
  const s=await chrome.storage.local.get('autoClean');autoClean=s.autoClean!==false;
  const rules=await chrome.declarativeNetRequest.getSessionRules();
@@ -43,7 +43,7 @@ async function gate(s,p){
 chrome.debugger.onEvent.addListener((s,m,p)=>{
  if(m==='Fetch.requestPaused'){gate(s,p).catch(e=>emit('check.gateError',{error:String(e),source:s}));return;}
  if(m==='Network.requestWillBeSent'){
-  if(p.request.url.includes('/receive'))(async()=>{emit(m,{source:s,requestId:p.requestId,url:p.request.url,method:p.request.method,...await body(p.request)});try{const data=await cmd(s,'Network.getRequestPostData',{requestId:p.requestId});emit('check.getPostData',{requestId:p.requestId,length:new TextEncoder().encode(data.postData).length,sha256:await hash(data.postData),preview:data.postData.slice(0,120)});}catch(e){emit('check.getPostData',{requestId:p.requestId,missing:true,error:String(e)})}})();
+  if(p.request.url.includes('/receive'))(async()=>{emit(m,{source:s,requestId:p.requestId,url:p.request.url,method:p.request.method,...await body(p.request)});try{const data=await cmd(s,'Network.getRequestPostData',{requestId:p.requestId});emit('check.getPostData',{requestId:p.requestId,length:new TextEncoder().encode(data.postData).length,sha256:await hash(data.postData),preview:data.postData.slice(0,120),syntheticDiskFilePresent:data.postData.includes('SYNTHETIC_DISK_FILE_17D')});}catch(e){emit('check.getPostData',{requestId:p.requestId,missing:true,error:String(e)})}})();
  }else if(m==='Runtime.bindingCalled'&&p.name==='__report17'){emit('check.script',{source:s,...JSON.parse(p.payload)});}
  else if(/^(Storage\.|DOMStorage\.|ServiceWorker\.|BackgroundService\.)|WebSocket|webTransport|Network.loadingFailed/.test(m))emit(m,{source:s,...p});
 });
