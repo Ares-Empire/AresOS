@@ -1,6 +1,6 @@
 # AresOS: state
 
-Updated 2026-11-02. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
+Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
 
 ## Done (on main)
 
@@ -86,13 +86,11 @@ Updated 2026-11-02. The live truth is `git log`, `gh pr list` and `git worktree 
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
 5. **Later:** a help button in AresOS that opens a terminal with Claude Code (owner idea 2026-10-22, after the first boot works), piglin shops, owner-designed hub, shaders, controlled updates, boot splash, sleep, Brawl Stars theme.
-6. **AI-native control layer (owner idea 2026-11-05, after the first boot works):** commands and an MCP so the always-on Claude session drives the owner's apps without screenshots or mouse moves, like git's CLI.
-   - **Order of methods, cleanest first:**
-     1. the service's own API (mail through the mail server: read, send, delete, attachments)
-     2. the app's own remote control (Chrome DevTools protocol: page structure, fields, fill in the current tab; KDE D-Bus; our own mod)
-     3. the accessibility tree (AT-SPI: one command lists an app's layout and fields, one fills them)
-     4. screenshots only as a last resort
-   - **Rules:** reading is free; sending or deleting asks the owner first. Discord forbids automating personal accounts, so Discord is the owner's call.
-   - **Start:** a design council, then mail and Chrome as the first two apps, tested in the VM. Related prior art: HKUDS/CLI-Anything generates CLIs from open-source apps' source code (not closed apps).
+6. **AI-native control layer (owner idea 2026-11-05; started 2026-11-07, before the first boot):** every app, with
+   all of its features, as clean tools (CLI and MCP) for a central Claude Code session; Mail and Chrome first. The
+   plan, the owner's decisions and where it stands: `docs/control/PLAN.md`. The owner's picture:
+   `reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md` (wins over that council's VERDICT). Led by the Claude
+   session `mac-aresos-control`; it changes nothing under `os/`, `mod/` or the install docs without telling
+   `laptop-aresos` first.
 
 Codex Pro runs until 2026-11-21.

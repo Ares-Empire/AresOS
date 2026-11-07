@@ -1,0 +1,4 @@
+# DRAFT. The independent record MUST be excluded from log/data backup and restore.
+d /run/aresos-tools 0711 aresos-tools aresos-tools -
+d /var/lib/aresos-tools 0700 aresos-tools aresos-tools -
+d /var/lib/aresos-operation-evidence 0700 aresos-tools aresos-tools -

@@ -1,0 +1,30 @@
+name: Control base
+on:
+  push:
+    branches: [pkg/18-control-base]
+    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/18-control-base/**', '.github/workflows/control-base.yml']
+  pull_request:
+    branches: [main]
+    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/18-control-base/**', '.github/workflows/control-base.yml']
+permissions:
+  contents: read
+concurrency:
+  group: control-base-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  containers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Test inside Fedora 45 container (no model or real account)
+        run: |
+          set -euo pipefail
+          mkdir -p .work/control-ci
+          docker run --rm -v "$PWD:/workspace" -w /workspace registry.fedoraproject.org/fedora:45-x86_64@sha256:79dd6556b8fe1a559051fad5159d4987ead218f1914e7a5bd20350d9ea0f9e52 bash control/ci/test.sh 2>&1 | tee .work/control-ci/results.txt
+      - name: Upload exact test output
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: control-base-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .work/control-ci/results.txt
