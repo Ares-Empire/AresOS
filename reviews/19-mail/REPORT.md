@@ -7,8 +7,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [REVIEW-5.md](REVIEW-5.md), [REVIEW-6.md](REVIEW-6.md),
 [REVIEW-7.md](REVIEW-7.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md),
 [SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md),
-[SECURITY-REVIEW-3.md](SECURITY-REVIEW-3.md), and
-[SECURITY-REVIEW-4.md](SECURITY-REVIEW-4.md).
+[SECURITY-REVIEW-3.md](SECURITY-REVIEW-3.md),
+[SECURITY-REVIEW-4.md](SECURITY-REVIEW-4.md), and
+[SECURITY-REVIEW-5.md](SECURITY-REVIEW-5.md).
 
 ## For the owner: decisions before merge
 
@@ -27,7 +28,7 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - **Sent setup:** when a short probe finds no Sent copy, setup asks you to confirm whether the client or server saves it rather than guessing from absence. Automatic negative detection would need a proven time bound for the real account.
 - **Folder deletion:** deletion only runs where the server refuses to delete a folder that holds mail, so no mail can be lost. If another mail program renames the approved empty folder and creates a new empty one with the same name in the same instant, the new empty one is deleted instead; the alternative is to remove folder deletion from the tools. Neither test server qualifies on its own, so the real account's guard still needs your check.
 - **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
-- **Approval prompt — owner decision, round 12:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut. Every recipient and sender in the sentence appears with its real address (“Mom <stranger@example.org>”), so a familiar-looking name can't stand in it alone.
+- **Approval prompt — owner decision, round 12:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut. Every recipient and sender in the sentence appears with its complete real address (“Mom <stranger@example.org>”); only display names can be shortened. Multiple mailboxes are counted separately. Malformed or missing addresses refuse approval, and complete addresses or folder names that exceed the question cap refuse instead of being cut. Reordered or extra/missing approval fields now refuse with `stale_approval` in both the proxy and service, before any submission or adapter call (round 13).
 
 - **Filing after a folder-role race (rounds 10–11):** mail stays where the move or copy put it; nothing is moved back or deleted. You get a short warning with the filing id, message count and bounded folder names until acknowledged. Following Mail results and `aresos log` repeat the newest three warnings and count the rest; `mail_filing_notices` pages every warning, and `mail_filing_locations` returns exact locations on request. Cleaning up copies still requires the ordinary delete approval. If a special role moves to the target and back between the command and the check, the result can say done: the mail is in the intended target, which has no protected role at the end, and nothing is lost. Disabling free filing entirely was the alternative; changing this later affects only filing and its views.
 - **Stopping rule from the lead:** Claude can always write a file itself and attach it, and the approval then shows only its name, size and change time; that is the open owner question about Claude-written files. Any further finding of the kind “text Claude wrote reaches an attachment by a new route” is settled by your answer on how attachments are shown, not by another fix round. Blocking findings of any other kind still count.
@@ -37,6 +38,135 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 13
+
+**Done — read:** closes both blocking findings in
+[SECURITY-REVIEW-5.md](SECURITY-REVIEW-5.md), following
+`briefs/19-review-fixes-13.md` on top of `578bfc8c`.
+
+- `mail/questions.py`: one `people()` helper parses every recipient/sender header
+  into individual mailboxes for send, delete and unsubscribe. Only display names
+  keep the 80-visible-character shortening; complete addresses have no shortening
+  limit. Summaries count mailboxes, show the first three and the exact remainder.
+  Missing/empty addresses and parse defects refuse with a clear `invalid_input`
+  reason. The original incoming From header is also checked in
+  `mail/adapter.py::check_items`, because converting a header to a string can
+  repair its syntax and discard defects. Folder names stay whole. The existing
+  4,096-character question and whole 16-KiB caps refuse before reservation.
+- Shared base `common.py::require_question()` now requires exactly `question`,
+  `operation_id`, `description`, in that order. The existing proxy and dispatcher
+  calls check the received dictionaries before validation, hashes, submission,
+  evidence or adapter execution. `proxy.py` and `cli.py` need no changes.
+- Shared base `protocol.py::send()` preserves request order by default; only
+  explicit `result=True` uses question-first presentation. Base `daemon.py` and
+  `engine.py` mark their response frames accordingly. `receive()` passes the
+  socket JSON order straight to the dispatcher. Canonical storage/hashes and
+  all result presentation remain unchanged. No definitions or generated output
+  changed; generated artifacts still match.
+
+**Tests — run:** new `control/mail_tests/test_review_fixes_13.py` methods:
+
+- `PlainApprovals13.test_round13_unsubscribe_long_name_and_117_character_address_real_preparation`
+- `PlainApprovals13.test_round13_delete_multiple_long_named_senders_and_exact_mailbox_count`
+- `PlainApprovals13.test_round13_unparsable_and_original_defective_from_refuse_with_reason`
+- `PlainApprovals13.test_round13_addresses_and_folder_names_over_question_cap_refuse_without_cutting`
+- `PlainApprovals13.test_round13_mail_all_wrong_orders_stop_before_submit_stage_evidence_or_adapter`
+- `ServerApprovals13.test_round13_real_mcp_socket_cli_wrong_orders_no_arrival_or_imap_then_once`
+
+The five portable methods use production preparation/Engine with in-memory IMAP;
+all five fail when the relevant implementations from `9061d892` are substituted
+in memory. The server method uses real MCP stdio, raw sockets and CLI against the
+production daemon, Dovecot through the existing serialized test-only deletion
+policy, and scripted TLS SMTP. It covers all five wrong key orders for Mail
+send, permanent delete and folder delete: no SMTP arrivals or IMAP commands;
+correct order executes once and replay through every route has no further effect.
+This fixture does not qualify the real account's folder-deletion policy.
+
+New base tests in `test_approval_questions.py`:
+`ApprovalQuestions.test_round13_wrong_orders_and_extra_or_missing_keys_stop_before_submission`
+and `ApprovalQuestions.test_round13_client_serializes_caller_order_without_result_presentation`.
+They check send/delete, extra and missing keys, no proxy forwarding of invalid
+approvals, and zero submit/stage/revalidate/evidence/execute calls. New
+`Integration.test_round13_all_wrong_orders_refused_by_real_mcp_socket_and_cli_then_execute_once`
+checks all five wrong orders on every route, no arrival/deletion/stage, and one
+correct execution with replay protection.
+
+**Existing tests changed — read:** base `Integration.request()` now uses
+order-preserving `json.dumps` instead of canonical hash serialization; all earlier
+assertions remain. This is forced by rejecting canonical JSON's alphabetic field
+order at the boundary. No other earlier base test changed.
+Round 12's `test_round12_controls_bidi_and_backslashes_escape_once_without_cutting_escapes`
+now asserts refusal of its original non-printable defective mailbox, then checks
+escaping with a syntactically valid bidi/backslash name; the escaped-control
+assertion uses the existing subject's NUL. Escape-boundary, full-description,
+folder-control and bidi checks remain. The round-12 lookalike test is unchanged.
+No test was skipped or deleted.
+
+**Verified — run, last code/test head
+`0c37452177a45968e82539b62933fabc380ed5b5`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail 42415050224, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42415050224/attempts/1) | `Ran 65 tests in 56.088s`; `Control base suite PASS`; `Ran 161 tests in 507.454s`; `Control Mail suite PASS` |
+| [Mail 42415050224, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42415050224/attempts/2) | `Ran 65 tests in 66.656s`; `Control base suite PASS`; `Ran 161 tests in 589.811s`; `Control Mail suite PASS` |
+| [Independent base 42415050201, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42415050201/attempts/1) | `Ran 65 tests in 44.266s`; `Control base suite PASS` |
+| [Independent base 42415050201, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42415050201/attempts/2) | `Ran 65 tests in 56.084s`; `Control base suite PASS` |
+
+Both Mail passes run all 161 Mail methods and the complete 65-test brief-18 base
+suite; both independent base passes run all 65 methods too. Generated artifacts
+match in every pass. The corrected-head [boundary run 42415050276](https://github.com/Ares-Empire/AresOS/actions/runs/42415050276)
+also passed; no boundary assertion or workflow changed.
+
+**Initial failure and fixture correction — run:** first code head `dc1aa6ed`
+had two successful independent base passes
+([42414074339](https://github.com/Ares-Empire/AresOS/actions/runs/42414074339),
+`Ran 65 tests in 56.762s` / `57.071s`, `Control base suite PASS`) and a successful
+[boundary run 42414074323](https://github.com/Ares-Empire/AresOS/actions/runs/42414074323).
+Its [Mail run 42414074382](https://github.com/Ares-Empire/AresOS/actions/runs/42414074382)
+printed `Ran 161 tests in 478.347s`, `FAILED (failures=1)`:
+`test_round13_delete_multiple_long_named_senders_and_exact_mailbox_count` saw
+only the final mailbox. All other Mail methods, including the real MCP/socket/CLI
+non-effect regression, passed. These runs are not substituted for the corrected
+head's verification above.
+
+A local reproduction with the official [CPython 3.15 header parser](https://github.com/python/cpython/blob/3.15/Lib/email/_header_value_parser.py)
+and [header registry](https://github.com/python/cpython/blob/3.15/Lib/email/headerregistry.py)
+source showed the fixture generator turning two mailboxes into one: the first
+address became encoded display-name text for the last address. Fixture-only
+commit `0c374521` writes the exact incoming From header with CRLF continuations
+and adds an assertion that all expected source mailboxes survive before checking
+the approval. Every original assertion remains. The five portable round-13
+methods then passed with those 3.15 modules substituted locally; this is source
+substitution under the Mac's Python 3.14.6, not a Linux/Python-3.15 runtime claim.
+No system software was installed. The initial failure requires one extra push
+and three workflow IDs beyond the planned code/report pair.
+
+Local pre-push commands (also repeated before the report push):
+`python3 control/generate.py --check` → `Generated artifacts match definitions`;
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`
+→ `Python syntax OK: 83 files`, `Ran 44 tests`, `OK`;
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions`
+→ `Ran 38 tests`, `OK`, unchanged record-growth evidence. The untracked
+`.work/round10/round13-baseline-check.py` prints
+`Baseline 9061d892: all 5 new portable Mail regressions fail as expected`.
+The corresponding `.work/round10/round13-base-baseline-check.py` prints
+`Baseline 9061d892: both new portable base regressions fail as expected`.
+Containers cannot run on this Mac; durable Linux/provider evidence comes from CI.
+
+**Not verified:** real-account setup and terminal/phone presentation still need
+the owner's checks above. No new screenshot or Minecraft/Gradle claim applies.
+**JUDGMENT-CALL / PLAN-GAP:** no new owner decision; refusal and ordering follow
+the brief. No fresh security hunt or boundary-policy work was undertaken.
+**Open questions:** none added; earlier owner decisions remain open.
+
+Three pushes: code with the pre-existing local review/brief commit, the fixture
+correction, then the report. Any later commit after the code/test head above
+changes only files under `reviews/`; final-head
+workflow results are recorded in draft PR #9. Second passes use reruns of the
+same run IDs. Normal pre-push checks remain enabled; no merge, rebase, force push
+or protected-path edit. The closing scan prints
+`Remaining .work files over 500 MB: []`.
 
 ## Owner decision: plain question first (round 12)
 
