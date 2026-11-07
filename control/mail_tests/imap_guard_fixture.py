@@ -17,6 +17,9 @@ class GuardedIMAPFixture:
     def __init__(self, host='greenmail', port=3993, mode='guard', error_text=b'Synthetic failure', backend_password=None):
         fixture = self
         self.mode, self.error_text = mode, error_text
+        # Optional raw received-message literals: preserve binary octets that a
+        # real backend may canonicalize during BODY[] retrieval. Test-only.
+        self.exact_sources = {}
         self.lock = threading.Lock()
         self.server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.server_context.load_cert_chain(CERT / 'tls.crt',CERT / 'tls.key')
@@ -42,13 +45,18 @@ class GuardedIMAPFixture:
                                 if not line:
                                     raise OSError('Backend disconnected')
                                 collected.append(line)
-                                if destination:
-                                    self.wfile.write(line)
                                 literal = re.search(rb'\{(\d+)\}\r\n$',line)
                                 if literal:
                                     data = exact(backend,int(literal[1]))
                                     if destination:
+                                        mid = re.search(rb'(?im)^Message-ID: ([^\r\n]+)', data)
+                                        if b'BODY[]' in line and mid and mid[1] in fixture.exact_sources:
+                                            data = fixture.exact_sources[mid[1]]
+                                            line = line[:literal.start()] + b'{' + str(len(data)).encode() + b'}\r\n'
+                                        self.wfile.write(line)
                                         self.wfile.write(data)
+                                elif destination:
+                                    self.wfile.write(line)
                                 if line.startswith(tag + b' '):
                                     return b''.join(collected)
                         while True:

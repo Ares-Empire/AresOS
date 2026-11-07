@@ -114,7 +114,14 @@ class Composing(MailCase):
             comp = self.mail.composition(result)
             msg = codec.parse(self.mail.mime(comp, '<forward-' + style + '@mail.invalid>'))
             attached = list(msg.iter_attachments())
-            self.assertEqual(codec.decoded(attached[0]), raw if style == 'attachment' else b'PDF invoice bytes')
+            # Round 4 rebuilds from the allowlist: MIME-Version is a message
+            # header, so the original part-level copy must disappear. Compare
+            # exact expected bytes independently of the rebuilding code.
+            head, separator, payload = raw.partition(b'\r\n\r\n')
+            rebuilt = head + separator + payload.replace(b'\r\nMIME-Version: 1.0\r\n', b'\r\n')
+            self.assertEqual(codec.decoded(attached[0]), rebuilt if style == 'attachment' else b'PDF invoice bytes')
+            exported = self.data('attachment_save', {'reference':ref, 'part':'source'})['file']
+            self.assertEqual(self.engine.blobs.read(exported['sha256']), raw)
             if style == 'inline':
                 self.assertIn('Forwarded mail', codec.body(msg))
                 self.assertIn('Please review', codec.body(msg))

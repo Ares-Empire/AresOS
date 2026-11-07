@@ -1,7 +1,6 @@
 from collections import Counter
 from datetime import date
 from email.message import EmailMessage
-from email import policy
 from email.utils import formatdate
 import http.client
 import imaplib
@@ -235,35 +234,28 @@ class Mail:
             if part is None:
                 raise Refused("stale_reference", "MIME part is stale, read again.")
             data, name, content_type = codec.decoded(part), part.get_filename() or "attachment", part.get_content_type()
-        node = m["msg"] if args["part"] == "source" else part
-        authored = self.authored(m)
-        if args["part"] != "source":
-            for path, ancestor in codec.parts(m["msg"]).items():
-                if args["part"] == path or args["part"].startswith(path + "."):
-                    authored = authored or codec.AUTHORED_HEADER in ancestor
-                    if (outgoing and args["part"] != path and ancestor.get_content_maintype() == "message"
-                            and str(ancestor.get("Content-Transfer-Encoding", "7bit")).lower().strip() not in {"7bit", "8bit", "binary"}):
-                        raise Refused("file_refused", 'Encoded message descendants have no stable decoded MIME path; attach the enclosing part or part: "source".')
-        mail_source = (args["part"] == "source" or node.is_multipart() or content_type.startswith("message/")
-                       or name.lower().endswith(".eml") or codec.is_mail(data))
+        texts, mail_source = [], args["part"] == "source"
         if outgoing:
-            if args["part"] == "source":
-                data = codec.without_bcc(data)
-                node = codec.parse(codec.mail_content(data))
-            else:
-                # Inspect the wrapper before decoding: email's tree can hide an encoded message.
-                clean = codec.without_bcc(node.as_bytes(policy=policy.default.clone(linesep="\r\n", cte_type="8bit")))
-                node = codec.parse(clean)
-                data = clean if node.is_multipart() or content_type.startswith("message/") else codec.decoded(node)
+            selected = "1" if mail_source else args["part"]
+            raw, headers, payload, ancestor_authored, default_type = codec.source_part(m["raw"], selected)
+            authored = self.authored(m) or ancestor_authored
+            content_type = "message/rfc822" if mail_source else headers.get_content_type()
+            mail_source = (mail_source or headers.get_content_maintype() in {"message", "multipart"}
+                           or name.lower().endswith((".eml", ".msg"))
+                           or codec.possible_entity(codec._transfer(headers, payload)))
+            clean, texts = codec.rebuild(raw, authored, default_type)
+            clean_headers, clean_payload = codec.entity(clean, default_type)
+            data = clean if args["part"] == "source" or headers.get_content_maintype() in {"message", "multipart"} else codec._transfer(clean_headers, clean_payload)
         item = {"sha256": self.blobs.put(data), "size": len(data), "name": name, "type": content_type,
                 "source": {"reference": args["reference"], "part": args["part"]}}
         if outgoing and mail_source:
-            item["transformation"] = "Original mail with Bcc and Resent-Bcc removed, including nested messages."
-        texts = codec.approval_texts(node, authored)
+            item["transformation"] = "Attached mail rebuilt with only the listed headers; Bcc and Resent-Bcc removed recursively."
+            item["allowed_message_headers"] = sorted(codec.MESSAGE_HEADERS)
+            item["allowed_mime_headers"] = sorted(codec.MIME_HEADERS)
         if texts:
             item["authored_text"] = texts
-        if outgoing and authored and texts:
-            item["authored"] = True
+            if authored:
+                item["authored"] = True
         return data, item
 
     def composition(self, args):
@@ -428,7 +420,7 @@ class Mail:
             msg.set_content(text + generated, cte="quoted-printable")
         for item in mail["attachments"]:
             data = self.blobs.read(item["sha256"])
-            # Freeze the approved bytes, including any Bcc removal performed during compose.
+            # Freeze the rebuilt mail or byte-exact leaf payload approved during compose.
             major, minor = item["type"].split("/", 1)
             if item["type"] == "message/rfc822":
                 major, minor = "application", "octet-stream"
