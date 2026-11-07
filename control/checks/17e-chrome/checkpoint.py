@@ -108,9 +108,12 @@ class Checkpoint:
         self.fault = None
         self.stall = None
 
-    def record(self, kind, **fields):
+    def record(self, event, **fields):
+        operation_kind = fields.pop('kind', None)
+        if operation_kind:
+            fields['operationKind'] = operation_kind
         with (ROOT / 'events.jsonl').open('a') as f:
-            f.write(json.dumps(dict(kind=kind, at=time.time()*1000, **fields))+'\n')
+            f.write(json.dumps(dict(kind=event, at=time.time()*1000, **fields))+'\n')
 
     def case(self, flow):
         value = parse_qs(urlsplit(flow.request.pretty_url).query).get('case', [''])[0]
