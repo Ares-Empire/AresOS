@@ -40,7 +40,8 @@ review files and all other protected paths remain untouched.
   `ReviewFixes3.test_review3_2_large_encoded_marked_draft_is_not_approved_by_hash`
   checks all four 21,000-character encoded sources exceed the approval limit;
   `ReviewFixes3.test_review3_guard_extracted_marked_body_keeps_ancestor_provenance`
-  covers extracted plain/HTML bodies and refuses missing disclosure.
+  covers extracted plain/HTML bodies, refuses missing disclosure and keeps an
+  ordinary PDF from the same marked source attachable without a text marker.
 - **Independent final guard:** `guard.py` walks the actual wire bytes with a
   header-only parser, its own transfer decoding and raw multipart-boundary
   traversal. It does not call the sanitizer, its tree traversal, `decoded`,
@@ -126,6 +127,11 @@ remains. The new attachment-only codec fixture explicitly names its attachment
 disposition. No assertion was removed or relaxed. The final head additionally
 tests ancestor provenance for extracted parts and refuses ambiguous boundary
 suffixes; these are within the same nested-message/disclosure class.
+The interim `5e8118d` Mail runs were superseded and canceled after a local check
+found that inherited markers also marked non-text PDFs. The marker is now
+emitted only when text disclosure exists; the extracted-body regression also
+checks that PDF's unchanged decoded bytes. Its base run completed successfully;
+neither it nor the canceled Mail runs count as final-head evidence.
 
 **read — protocol references, 2026-11-07:**
 [RFC 5322 §3.6.8](https://www.rfc-editor.org/rfc/rfc5322#section-3.6.8)

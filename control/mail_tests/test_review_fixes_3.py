@@ -236,19 +236,23 @@ class ReviewFixes3(MailCase):
         inner[codec.AUTHORED_HEADER] = '1'
         inner.set_content('Entire extracted authored body')
         inner.add_alternative('<p>Distinct extracted HTML body</p>', subtype='html')
+        inner.add_attachment(b'%PDF-1.7\nOrdinary synthetic PDF', maintype='application', subtype='pdf', filename='ordinary.pdf')
         outer = EmailMessage()
         outer['From'], outer['Subject'] = self.peer, 'Unmarked outer'
         outer.set_content('Untrusted outer text')
         outer.add_attachment(inner)
         ref = self.fixture(msg=outer)
-        comp = self.compose(attachments=[{'reference':ref, 'part':'1.2.1.1'}, {'reference':ref, 'part':'1.2.1.2'}])
+        comp = self.compose(attachments=[{'reference':ref, 'part':part} for part in ('1.2.1.1.1', '1.2.1.1.2', '1.2.1.2')])
         approval = self.data('prepare_send', {k:comp[k] for k in ('composition_id','composition_hash')})['approval']
         for text in ('Entire extracted authored body', 'Distinct extracted HTML body'):
             self.assertIn(text, canonical(approval))
         stored = self.mail.composition(comp)
         raw = self.mail.mime(stored, '<extracted@mail.invalid>')
-        for part in codec.parse(raw).iter_attachments():
+        attached = list(codec.parse(raw).iter_attachments())
+        for part in attached[:2]:
             self.assertIn(codec.AUTHORED_HEADER, part)
+        self.assertNotIn(codec.AUTHORED_HEADER, attached[2])
+        self.assertEqual(codec.decoded(attached[2]), b'%PDF-1.7\nOrdinary synthetic PDF')
         incomplete = {**stored, 'mail':{**stored['mail'], 'attachments':[{**att, 'authored_text':[]} for att in stored['mail']['attachments']]}}
         with self.assertRaises(Refused):
             self.mail.check_mime(incomplete, raw)

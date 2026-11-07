@@ -262,7 +262,7 @@ class Mail:
         texts = codec.approval_texts(node, authored)
         if texts:
             item["authored_text"] = texts
-        if outgoing and authored:
+        if outgoing and authored and texts:
             item["authored"] = True
         return data, item
 
