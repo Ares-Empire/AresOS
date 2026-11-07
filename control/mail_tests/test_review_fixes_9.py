@@ -235,7 +235,16 @@ class ReviewFixes9(MailCase):
             fixture.separators = {name: '.' for name in ('Trash', 'Drafts', 'NewTrash', 'NewDrafts')}
             self.reassign(fixture, 'trash', 'Trash')
             self.reassign(fixture, 'drafts', 'Drafts')
+            # Round-eight remembered roots carried INBOX's separator. The owner
+            # refresh must recover those legacy entries from their own LIST rows.
+            self.account.pop('roots')
+            self.account['protected_special'] = {role: [{'folder': role.title(), 'delimiter': '/'}]
+                                                  for role in ('trash', 'drafts')}
+            self.engine.store.write({'mail:account:box': self.account}, 'fixture', 'legacy remembered roots')
             self.record_roles()
+            for role in ('trash', 'drafts'):
+                self.assertIn({'folder': role.title(), 'delimiter': '.'}, self.account['protected_special'][role])
+                self.assertNotIn({'folder': role.title(), 'delimiter': '/'}, self.account['protected_special'][role])
             self.assertEqual(self.account['roots']['inbox']['delimiter'], '/')
             self.assertEqual(self.account['roots']['drafts']['delimiter'], '.')
             draft = self.fixture('Drafts.Child', text='Unmarked owner draft', attachments=[('part.bin', b'private', 'application/octet-stream')])

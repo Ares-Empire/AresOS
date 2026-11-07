@@ -932,6 +932,19 @@ class Mail:
                 if args["roles_hash"] != roles_hash:
                     raise Refused("stale_approval", "Folder roles changed since owner review; inspect account_folders again.")
                 protected = account.setdefault("protected_special", {})
+                if "roots" not in account:
+                    # Older setups stamped INBOX's delimiter onto remembered
+                    # roots too. Recover each from its own LIST row or refuse.
+                    for kind, values in protected.items():
+                        recovered = []
+                        for value in values:
+                            matches = [f for f in listed if f['name'] == value['folder']]
+                            if len(matches) != 1:
+                                raise Refused("special_folders_changed", "Remembered protected root cannot be resolved; owner must inspect setup before recording roles.")
+                            entry = {"folder": matches[0]['name'], "delimiter": matches[0]['delimiter']}
+                            if entry not in recovered:
+                                recovered.append(entry)
+                        protected[kind] = recovered
                 for kind in ("trash", "drafts"):
                     values = protected.setdefault(kind, [])
                     for mapping in (account, current):
