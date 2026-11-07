@@ -70,7 +70,7 @@ def onboard(engine, args, password):
             account.update(resolve(listed))
         except Refused as exc:
             engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "special-folder configuration incomplete", outcome="refused")
-            raise Refused("unsupported_server", "Server lacks complete, unique SPECIAL-USE roles; owner must configure folders before onboarding.") from exc
+            raise Refused("unsupported_server", "Server requires unique selectable Sent, Drafts and Trash roles. " + str(exc)) from exc
     with mail.transport.smtp(account) as smtp:
         account["smtp_capabilities"] = sorted(smtp.esmtp_features)
     # Missing special use is never guessed from English mailbox names.
