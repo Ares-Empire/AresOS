@@ -2,6 +2,7 @@
 let port,selected,group,publicMode=false,ownerTab,active=true,wrapSource;
 const attached=new Map(),pending=new Map(),history=[],errors=[],allowances=[],guards=new Set();
 const cmd=(s,m,p={})=>chrome.debugger.sendCommand(s,m,p);
+async function initiator(source,p){const info=structuredClone(p.initiator);let stack=info.stack;for(let depth=0;stack&&depth<8;depth++){if(!stack.parent&&stack.parentId){try{stack.parent=(await cmd(source,'Debugger.getStackTrace',{stackTraceId:stack.parentId})).stackTrace;}catch(e){info.unresolved=String(e);break;}}stack=stack.parent;}emit('check.initiator',{source,url:p.request.url,method:p.request.method,initiator:info});}
 const ready=chrome.storage.local.get('guards').then(s=>{for(const site of s.guards||[])guards.add(site)});
 const emit=(method,params)=>{history.push({method,params,at:Date.now()});try{port?.postMessage({method,params})}catch{}};
 const safe=url=>/^https?:/.test(url);
@@ -21,7 +22,7 @@ async function decide(id,release){
   const p=pending.get(id);if(!p)throw Error('NOT_PENDING');pending.delete(id);
   if(p.network){if(release){allowances.push(p);emit('check.repeatArmed',p);}return;}
   if(release&&['fetch','xhr','beacon','form'].includes(p.kind)){
-    const d=p.description,tab=await chrome.tabs.get(p.source.tabId).catch(()=>({url:'http://127.0.0.1/'}));
+    const d=p.description,tab=p.source.tabId?await chrome.tabs.get(p.source.tabId).catch(()=>({url:'http://127.0.0.1/'})):{url:'http://127.0.0.1/'};
     let url=new URL(d.url,tab.url).href,body=d.body??null,method=(d.method||'POST').toUpperCase();
     if(p.kind==='form'){body=new URLSearchParams(JSON.parse(d.fields)).toString();if(method==='GET'){url+=(url.includes('?')?'&':'?')+body;body=null;}}
     allowances.push({url,method,body,source:p.source,inPage:true});
@@ -53,8 +54,8 @@ chrome.debugger.onEvent.addListener((s,m,p)=>{
   else if(m==='Runtime.bindingCalled'&&p.name==='__report17')report(JSON.parse(p.payload),s).catch(e=>errors.push(String(e)));
   else if(m==='Target.attachedToTarget'){
     const child={...s,sessionId:p.sessionId};emit('check.child',{source:child,info:p.targetInfo,waiting:p.waitingForDebugger});
-    prepare(child,true).catch(e=>emit('check.childError',{source:child,error:String(e)})).finally(()=>cmd(child,'Runtime.runIfWaitingForDebugger').catch(()=>{}));
-  }else if(m==='Network.requestWillBeSent'&&!publicMode)emit('check.initiator',{source:s,url:p.request.url,method:p.request.method,initiator:p.initiator});
+    prepare(child,p.targetInfo.type!=='iframe').catch(e=>emit('check.childError',{source:child,error:String(e)})).finally(()=>cmd(child,'Runtime.runIfWaitingForDebugger').catch(()=>{}));
+  }else if(m==='Network.requestWillBeSent'&&!publicMode)initiator(s,p).catch(e=>emit('check.traceError',{error:String(e)}));
   else if(/WebSocket|webTransport/i.test(m))emit(m,{source:s,...p});
 });
 chrome.debugger.onDetach.addListener((s,reason)=>emit('check.detached',{source:s,reason}));

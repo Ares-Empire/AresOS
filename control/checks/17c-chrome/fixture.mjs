@@ -27,6 +27,7 @@ export async function fixture(out,work,getUpdate){
   setInterval(()=>{if(window.timerFlush&&localStorage.getItem('queue')){timerFlush=false;document.querySelector('#flush').click()}},100);
   window.causeTest=(kind,id)=>{caseId=id;document.querySelector('#cause').onclick=function action17c(){const run=()=>fetch(url(id),{method:'POST',body:'synthetic cause'}).catch(()=>{});if(kind==='timer')setTimeout(run,80);else if(kind==='promise')Promise.resolve().then(run);else if(kind==='mutation'){const o=new MutationObserver(()=>{o.disconnect();run()});o.observe(document.querySelector('#status'),{childList:true});mark('mutated')}else if(kind==='postMessage'){addEventListener('message',function h(e){if(e.data==='cause17c'){removeEventListener('message',h);run()}});postMessage('cause17c','*')}else if(kind==='worker'){const w=new Worker('/worker.js?case='+id+'-first');w.postMessage({url:url(id),body:'synthetic worker cause'})}else run()};};
   window.startup=${u.pathname==='/startup'};if(startup)fetch('/receive?case=restored-startup',{method:'POST',body:'synthetic startup'}).catch(()=>{});
+  if(${JSON.stringify(u.searchParams.get('auto'))})send(${JSON.stringify(u.searchParams.get('auto'))});
   </script>`);
  });
  const ws=new WebSocketServer({server,path:'/socket'});ws.on('connection',s=>s.on('message',data=>{let value;try{value=JSON.parse(data)}catch{value={case:'unparsed',text:data.toString()}}record({kind:'ws',case:value.case,body:data.toString()})}));
