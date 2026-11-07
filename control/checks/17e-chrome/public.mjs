@@ -25,7 +25,7 @@ export default async function(c){
  }
  save('public-sites',results);
  // Synthetic signed-in traffic is separate from the public no-send visits.
- await rpc('Check.safety',{clear:true});await guard(false);await c.nav();
+ await guard(false);await c.nav();await rpc('Check.safety',{clear:true});
  const session=await ev("fetch('/whoami').then(r=>r.json())");c.assert.equal(session.account,'synthetic-A');
  await ev("ws('e-signed-live');true");await delivered('e-signed-live','ws-open');
  await ev("sockets['e-signed-live'].send('e-signed-live-control');true");await delivered('e-signed-live-control','ws-message');
@@ -37,5 +37,6 @@ export default async function(c){
  c.assert.equal(held.length,18,'each background request and live message has its own operation');
  for(let i=0;i<12;i++)await c.zero('e-background-'+i);for(let i=0;i<6;i++)await c.zero('e-live-background-'+i);
  log('Q11_PROMPT_PRESSURE',{session,backgroundRequests:12,liveMessages:6,approvalsRequired:held.length,policy:'all uncertain traffic is held; each operation would need its own decision'});
+ await c.positive('e-owner-notification-control');await guard();await c.send('e-owner-notification');const ownerOperation=await pending('e-owner-notification');await c.zero('e-owner-notification');const action=await (await import('./notification.mjs')).default(c,ownerOperation);await delivered('e-owner-notification');log('Q11_OWNER_NOTIFICATION',{operationId:ownerOperation.id,action,receiver:c.rows('e-owner-notification')});
  log('Q11_PRIVACY',{bodyLogs:false,cookieLogs:false,payloadStorage:'RAM only',ledger:'hashes, lengths and states',perBodyBytes:32*1024*1024,pendingBodyBytes:64*1024*1024,maxOperations:256});
 }

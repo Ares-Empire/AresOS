@@ -57,8 +57,8 @@ export default async function(c){
   if(variant==='abort'||variant==='h2-reset')await ev('abort17.abort();true');
   if(variant==='tab-close'){await rpc('Check.close');await delay(300);}else if(variant==='timeout')await ev("results.internalTimeout='page gave up without aborting';true");
   await delay(400);const before=(await control('state')).rows.find(r=>r.id===op.id);let approval;try{approval=await control('approve',{id:op.id})}catch(e){approval={error:e.message}}await delay(500);
-  log('Q7_LATE_APPROVAL',{variant,before,approval,receiver:c.rows(id),supported:before.status==='cancelled'});
-  if(c.arrivals(id).length)await delivered(id); // Measurement, never claim cancellation.
+  const after=(await control('state')).rows.find(r=>r.id===op.id);log('Q7_LATE_APPROVAL',{variant,before,after,approval,receiver:c.rows(id),supported:after.status==='cancelled'});
+  if(c.arrivals(id).length)await delivered(id);else await zero(id); // Keep late arrivals in the final audit.
   if(variant==='tab-close'){await guard(false);const tab=await rpc('Check.open',{url:c.f.base+'/'});await delay(600);await rpc('Check.attach',{tabId:tab.id});}
  }
  await guard(false);await c.nav();await guard();await send('e-explicit-cancel');const cancelled=await pending('e-explicit-cancel');await control('cancel',{id:cancelled.id});await delay(200);await assert.rejects(()=>control('approve',{id:cancelled.id}),/NOT_PENDING/);await zero('e-explicit-cancel');log('Q7_ACKNOWLEDGED_CANCEL',{cancelled});
@@ -68,5 +68,5 @@ export default async function(c){
  await c.eventually(async()=>{try{await rpc('Check.state');return false}catch{return true}},'policy actually removed the extension',90000);const removedAt=Date.now();await c.screenshot(c.out,'extension-removed-by-policy');await delay(10000);const removed=await pending('e-extension-removed');assert.ok(removed.capturedAt>removedAt,'request created after confirmed extension removal');await zero('e-extension-removed');log('Q3_EXTENSION_REMOVAL',{removedAt,held:removed});
  // Retiring requires independent receiver receipt AND explicit fixture cleanup;
  // this is an adapter example, not a negative inference from silence.
- log('Q10_RETIREMENT',{automatic:false,reason:'Named storage, OPFS and handoff still unresolved. Empty proxy queue is insufficient.'});
+ log('Q10_RETIREMENT',{automatic:false,guard:(await control('state')).guard,reason:'Only the trusted fixture adapter proved resolution. The later held send remains unresolved; an empty queue is not generic retirement evidence.'});
 }

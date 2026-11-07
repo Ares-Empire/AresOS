@@ -40,7 +40,8 @@ The four workflow phases are:
 - `lifecycle`: durable barriers, crashes, cancellation and retained outboxes.
 - `transports`: independent HTTP/3 and WebRTC/TURN peers, TLS and service probes.
 - `public`: the same ten anonymous public visits, direct and intercepted in one
-  job, fingerprint echo, resources and synthetic background hold counts.
+  job, fingerprint echo, resources, synthetic background hold counts and a real
+  service notification answered through 17d's dunst action-menu helper.
 
 Python dependencies are locked in `requirements.lock`; `requirements.txt` lists
 the direct choices. The unchanged 17d WebTransport receiver uses its own pinned
