@@ -140,6 +140,17 @@ two actions.
      what is sent. The service writes the sentence when it prepares the operation (for example in `mail_compose`'s
      result), and when the action runs it writes it again from the operation and refuses the call unless `question`
      is the first field and matches exactly. The full content fields follow it.
+   - **Checked on the original arguments.** The MCP proxy forwards the arguments as it received them from Claude
+     Code, in their original order and bytes; the service checks the first field and the sentence on that original
+     text, before any parsing or normalising that could hide a reordering.
+   - **The sentence has a bound, and nothing is hidden by it.** The rules below (escaping, whole-input refusal) cover
+     `question` too. Control and direction-changing characters are escaped first, and the sentence's length is
+     measured after escaping. Recipients beyond what fits are counted exactly ("and 7 more", never "and others"), a
+     file name too long for the sentence is named by its place and length ("attachment 2, a 240-character name"), and
+     the full lists and names stay in the fields below.
+   - *Tests:* in the terminal and on the phone (Remote Control), `question` shows first and an unchanged call
+     succeeds; an altered or reordered `question` is refused; many recipients and many Bcc, long file names, quotes,
+     backslashes, control and direction-changing characters in names and subjects, each at the bound.
    - **The operation, as the service describes it**, not as Claude does: the action, the account, every recipient or
      target, and what is affected (for a deletion each item's sender, subject and date; for a site the page's own
      title, signed-in name and the item's label as the page shows them, marked as such).
@@ -165,7 +176,13 @@ two actions.
      missing Sent copy, set the missing flag) are their own actions and never submit again.
    - **States and cancelling:** `reserved` → `submitting` → `done`, `partial`, `failed` or `unknown`. An operation
      can be cancelled or expire only while `reserved` (then it is `failed`: nothing left); once `submitting` has been
-     recorded it runs to an outcome. An approval waiting longer than its limit expires.
+     recorded it runs to an outcome.
+   - **The approval deadline: 15 minutes.** It starts when the service reserves the operation at prepare time, before
+     Claude asks (for a mail when `mail_compose` prepares it, for Chrome when a held send is described, for a
+     deletion when its items are listed). The service records the deadline with the reservation and rejects any call
+     that arrives after it, approved or not, so an old approval can't run late; the operation becomes `failed` and
+     nothing leaves. Chrome's holds wait at least that long (section 6). *Tests:* a call just before the deadline runs
+     once; one just after it is refused with nothing sent.
    - **Restarts and restores:** nothing resumes by itself after a restart; an operation found `submitting` becomes
      `unknown`. Operation ids are issued by the service and carry the log's generation. Beside the log, outside the
      files a backup copies, the service keeps a small append-only record of every operation id with its description
@@ -531,7 +548,9 @@ requirement here, with how it is met and how brief 20 tests it.
    of its process, its memory kept out of swap, no temporary files. On disk it keeps only its record: the guards, the
    consumed captures, and Claude's entered text encrypted at rest. Two flows are explicit and limited, and not what
    "nothing leaves" covers: descriptions in Claude's tool results, which reach Claude's model (it runs at Anthropic),
-   and, if he takes that proposal, descriptions sent to his phone for approval, encrypted end to end (section 7).
+   and the same descriptions in Claude Code's approval prompts, which travel through Claude Code and Remote Control
+   (Anthropic's service) to his phone like everything else in the session (section 7). No extra encryption is
+   promised for them; the safe-field rules below limit what they contain.
    - **Affirmative attribution before anything reaches Claude.** A held operation is described to Claude only when it
      is attributed to a context Claude is authorised for: a Claude tab Claude acted in (by its current tag), or an
      operation a site adapter ties to Claude's action. Being on a guarded site is not enough. The owner's own tabs
@@ -992,10 +1011,11 @@ owner decides it himself, on a surface outside every page:
   caused it (*checked*, 17c). On a guarded site it is held. It can't be attributed to Claude's work, so it isn't
   described to Claude (requirement 2); Claude sees only that something unresolved is held on that site. It waits on
   the extension's details page at the laptop; when he was using one of the site's tabs just before (input the tool
-  didn't send), the extension's desktop notification shows it too: a guess about his notification, never an
-  exemption. It can't go to Claude Code's prompt, which shows Claude's own tool calls, so when he is away it waits
-  and expires unanswered, and nothing is sent. Each such send is one operation; the first answer decides it at once,
-  and the same send reported through several attached sessions counts once (*brief 20*).
+  didn't send), the extension's desktop notification shows it too: a guess about his notification, never an exemption.
+  It can't go to Claude Code's prompt, which shows Claude's own tool calls, so when he is away it waits and expires
+  unanswered, and nothing is sent. This is the writer's judgment call, reversing re-check 9's routing to his phone; it
+  is to be confirmed with him (section 10, "later"). Each such send is one operation; the first answer decides it at
+  once, and the same send reported through several attached sessions counts once (*brief 20*).
 
 This is the owner deciding about his own click, not an approval of Claude's actions; those stay with the approval
 surface (section 7).
@@ -1167,7 +1187,7 @@ time runs out, is dropped, never sent. If the checkpoint runs out of memory or o
 captures or stops; it never forwards because of it (*checked*, 17e Q11: two 25 MiB operations fit and a third was
 refused; a full record and an allocation past the memory ceiling stopped it; nothing pending was released). The
 limits in 17e (32 MiB per operation, 64 MiB together, 256 operations, a 90-second expiry) are check settings; brief
-20 sets the product's own, with an expiry no shorter than the 15 minutes an approval may wait (section 7).
+20 sets the product's own, with an expiry no shorter than the 15-minute approval deadline (rule 4.3).
 
 ### What changes for the owner
 
@@ -1491,8 +1511,8 @@ it starts with a `question` field, one plain sentence the tool service writes, f
 4. **At the laptop and on the phone:** the same prompt, in the terminal and through Remote Control.
 5. **"Don't ask again"** goes through his own channels (section 6), never through the prompt's own option, which
    stays inert under managed-only rules.
-6. **Decided once:** one answer per tool call; the service's operation record (rule 4.3) refuses a second run, and an
-   approval waiting longer than its limit expires.
+6. **Decided once:** one answer per tool call; the service's operation record (rule 4.3) refuses a second run, and a
+   call after the 15-minute deadline (rule 4.3) is refused.
 
 An approval screen of its own (for example in his Aresus iPhone app) is not planned; it is a possible later
 improvement if he asks for it.
@@ -1574,6 +1594,11 @@ improvement if he asks for it.
 - Outgoing mail formatted (like Apple Mail) or plain by default, and the signature (a habit for CLAUDE.md, not a tool
   rule).
 - The feature list in [`FEATURES.md`](../control/FEATURES.md): anything missing, and what can wait.
+- **His own unattributed sends while he is away** (section 6). A send from his own tabs on a guarded site whose cause
+  can't be seen isn't described to Claude, so it can't reach Claude Code's prompt; it waits on the extension's
+  details page at the laptop and expires unsent while he is away. This is the writer's judgment call, reversing
+  re-check 9's routing to his phone; his acceptance of Claude Code's prompt (decision 21) doesn't cover it by itself.
+  To confirm with him in the tool-user rounds, with how often it happens.
 - **What the checkpoint costs, with brief 20's numbers.** He agreed "if that's not a security risk". Before it becomes
   his everyday browser, the costs named in section 6 ("What changes for the owner") go back to him with brief 20's
   measurements, in particular calls stopping while a guard is on, how often a strict guard waits for his click, and
