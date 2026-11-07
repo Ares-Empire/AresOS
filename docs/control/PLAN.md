@@ -65,10 +65,13 @@ Three places, each with one job:
 
 0. **Checks before building (now).**
    - **S1, Claude Code's prompt:** done 2026-11-07 ([check](../../reviews/control-checks/2026-11-07-permission-prompt.md)).
-   - **S2, Chrome (brief 17):** can a tool attach to an already-open tab in normal Chrome with a normal profile
-     (no debugging port), read the page as structure with positions, fill and click, and hold a submit before it
-     leaves the browser? What can't be held (for example chat messages sent over a WebSocket)? Runs on GitHub's Linux
-     machines. Chrome is the harder app, so its open questions are settled before the design is fixed.
+   - **S2, Chrome (brief 17):** done 2026-11-07 ([report](../../reviews/17-chrome-check/REPORT.md), PR #3). Our own
+     extension attaches to an already-open, signed-in tab with no debugging port; pages read as structure with
+     positions; filling and clicking work; form posts, fetches, beacons and autosave are held until approved. Not
+     held: a service worker's own requests and WebSocket messages; and a disconnect let a held request go.
+   - **S2b, Chrome (brief 17b):** service workers, holding that fails closed when control breaks, long holds while
+     the owner answers on the phone, the extension installed by policy, the Claude tab group, and the typed-text rule
+     against public sites. Runs while the design is reviewed.
 1. **Design** (`docs/design/CONTROL.md`): the tool contract, the service and its system user, CLI and MCP from one
    definition, the full Mail and Chrome tool lists with inputs and results, and the tests. Written by Claude, because
    it is what Claude will read; reviewed by fresh Codex (frontier model) before anything is built.
@@ -126,7 +129,8 @@ tasks at any time.
 11. Search a site and open the third result.
 12. A page that saves while you type: typing there counts as sending and is held, unless the site is on the free
     list.
-13. A chat page that sends messages over a WebSocket: handled as S2 finds possible.
+13. A chat page that sends messages over a WebSocket: typing the message and pressing Enter become one asking
+    step that shows the text.
 14. Two similar tabs, and the owner switches tabs while Claude works: Claude stays on its own tab and doesn't touch
     the other.
 
@@ -137,9 +141,14 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
+- **Known sites (asked 2026-11-07, board #48):** may Claude open any site freely, or does the first page on a new
+  site ask once? Recommended: asks once, so a misled Claude can't carry private text off in an address or by typing
+  it into an unknown site. See `CONTROL.md` section 10.
 
 ## Where it stands
 
 - **2026-11-07:** owner decisions above. S1 done. S2 (brief 17) running (Codex `gpt-6.1-sol`, branch
   `pkg/17-chrome-check`). Design draft for the shared base and Mail: [`docs/design/CONTROL.md`](../design/CONTROL.md);
   its Chrome part waits for S2, then the whole design goes to the frontier review.
+- **2026-11-07, later:** S2 done; Chrome part of the design written from it. S2b (brief 17b) and the frontier review
+  of the whole design run next, side by side.
