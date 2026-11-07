@@ -55,9 +55,11 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Feature | Tool | Effect | State |
 |---|---|---|---|
 | Read and change everything in his home folders, except hidden settings and start-up places | Claude's file tools and the tool service's file actions, with rule 4.4's limits | read, change | first (decision 17) |
-| Save new files, create folders, rename and move within his folders (never onto an existing name), edit a file in place (the previous version kept) | the same | change | first, without asking |
-| Overwrite a file (replace it, or move or rename onto an existing name); delete (to the Trash or for good) | the same | delete | first, asking |
-| Its terminal: run commands without prompts | Claude Code's sandbox (`autoAllowBashIfSandboxed: true`) | | first: reads his folders, writes only its own work and temporary folders; his files change through the file tools |
+| Save new files, create folders, rename and move within his folders (never onto an existing name) | the same | change | first, without asking |
+| Change an existing file (an edit, a whole replacement, clearing it) | the same; its previous version kept first for 30 days in the tool service's version store, or the change is refused | change | first, without asking |
+| See and restore previous versions | `sudo aresos admin files versions`, `… restore <id>` (restores beside the current file) | owner | owner |
+| Delete a file or folder (to the Trash or for good) | the tool service's file action | delete | first, asking |
+| Its terminal: run commands without prompts | Claude Code's sandbox (`autoAllowBashIfSandboxed: true`) | | first: reads his folders, writes only its own scratch folders (disposable); his files change through the file tools |
 | Coding sessions reading what the assistant wrote | | | never: code lives in the coding user's own home, which has no access to his |
 
 ## Chrome

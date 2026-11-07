@@ -72,7 +72,9 @@ acting):
     (dotfiles, autostart, shell start-up files, symlinks). Code lives in the coding user's own home, so coding
     sessions keep reading their repositories and never read his folders. Inside its sandbox the assistant works
     without permission prompts, as in his bypass sessions now; only sends and deletes ask (overwriting asks as a
-    delete). This settles `sandbox.autoAllowBashIfSandboxed`: true.
+    delete). This settles `sandbox.autoAllowBashIfSandboxed`: true. (Refined by the lead after re-check 15: a change
+    to an existing file, a whole replacement included, is free because its previous version is first kept for 30 days
+    in a store Claude can't write, which he restores from; deleting asks.)
 18. **`WebFetch` and `WebSearch`: "a)".** Searches are free, as on his usual sites in Chrome; fetching an address
     Claude composed asks; an address from him or from a page is free.
 19. **The checkpoint's certificate limits: "okay",** accepted as stated (client certificates, no "continue anyway",
@@ -376,3 +378,10 @@ tasks at any time.
   everything", the assistant working without prompts inside its sandbox and only sends and deletes asking;
   `WebFetch` and `WebSearch` "a)"; the certificate limits "okay"; and a new rule that safe merges need no
   permission. Built into the design on branch `control/owner-answers-1107`. Open: the approval surface (#78).
+- **2026-11-07, 19:33:** frontier re-check 15 of the owner's answers: recorded faithfully, four enforcement gaps. Fixed
+  on the same branch: a fetch is free only for an address recorded with its origin (his message, or a link in a page
+  or mail a reading tool returned), never one from terminal output, a file Claude wrote or an echoed argument; every
+  change to an existing file in his folders is free because its previous version is first kept for 30 days in the
+  tool service's version store (refused if that fails), and only deleting asks; every gating hook blocks when it
+  fails; coding programs holding his files open are ended before the assistant's writes are switched on; the
+  terminal's own folders are disposable scratch.

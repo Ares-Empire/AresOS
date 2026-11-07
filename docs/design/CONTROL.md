@@ -178,14 +178,26 @@ two actions.
      `~/.ssh`, `~/.gnupg`, `~/.config`, `~/.local`, `~/.claude`, and a `.envrc` or `.git` inside any folder), never
      a start-up place (autostart and service folders, shell start-up files, desktop entries), and never through a
      symlink. Where something asks, the question shows the real path.
-   - **Free:** reading; saving a new file (never onto an existing name); creating a folder; renaming and moving
-     within his folders, never onto an existing name; editing an existing file in place, because a managed hook
-     first keeps its previous version in the assistant's own versions folder, so the edit can be undone.
-   - **Asks, as a delete:** deleting (to the Trash or for good), and overwriting: replacing an existing file as a
-     whole, or moving or renaming onto an existing name. A managed hook makes a write onto an existing file ask;
-     moving, renaming and deleting go through the tool service's file actions.
-   - **Its own folders:** session records, the versions folder and temporary files stay in the assistant's own
-     folders, which the owner can read and the coding user can't (section 7).
+   - **Free:** reading; saving a new file; creating a folder; renaming and moving within his folders, never onto an
+     existing name (refused); and every change to an existing file, a whole replacement or clearing it to empty
+     included, through Edit, MultiEdit, Write, NotebookEdit or the tool service. A change is free *because* the
+     previous version is kept first (next point), so it can be undone.
+   - **Previous versions, kept first.** Before any change to an existing file in his folders, a managed hook (for
+     Claude's file tools) or the tool service itself (for its own actions) reads the file as it is and hands it to
+     the tool service, which stores it durably in its version store for 30 days, with the path, the time and the
+     hash, and confirms; only then may the change happen. If the version can't be stored (a full disk, any error),
+     the change is refused. The version store belongs to the tool service's user: neither Claude's terminal nor its
+     file tools can write or delete in it. Restoring is the owner's: `sudo aresos admin files versions` lists recent
+     versions (of a file, or of the last days), and `… restore <id>` puts one back as a new file beside the current
+     one, never over it.
+   - **Asks, as a delete:** deleting a file or folder (to the Trash or for good), through the tool service's file
+     action.
+   - **Its own folders:** session records and temporary files stay in the assistant's own folders, which the owner
+     can read and the coding user can't (section 7). What its terminal writes there is disposable scratch (below);
+     anything meant to last goes through the file tools into his folders, where its versions are kept.
+   - *Tests:* a whole-content replacement through Edit, clearing a file, a NotebookEdit and a Write onto an existing
+     file each leave the previous version restorable; with a full disk, the change is refused and the file
+     unchanged; the terminal and the file tools can't write the version store.
 5. **Reading changes nothing.** Mail is fetched with `BODY.PEEK`; flags are compared before and after in the tests.
 6. **Readable, bounded results.** Compact structured results with the important fields first. Long content is paged
    (`cursor`), and every result has a size cap, so a huge mail or page never floods Claude's context.
@@ -1327,7 +1339,11 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
     Claude in Chrome not among them. Each server is a root-owned program with a fixed interpreter, isolated mode and
     a fixed environment (section 2), so a writable file can't be loaded into it.
   - Hooks: only managed ones (`allowManagedHooksOnly`), each a root-owned program with the same fixed interpreter,
-    isolated mode and environment as the MCP proxy.
+    isolated mode and environment as the MCP proxy. Every hook that gates something (keeping a file's previous
+    version, deciding whether a fetch is free) blocks the action when it fails: a crash, a missing program, a
+    timeout or a full disk ends in "refused", never in the action going ahead (`onFailure: "block"`, Anthropic's
+    hook documentation). *Tests:* each of those failures, also in skip-permissions mode, leaves the file unchanged
+    and the fetch not made.
   - Claude Code itself: the central session is the command-line Claude Code, started by a root-owned launcher with
     a fixed environment (nothing like `NODE_OPTIONS` that loads code into it), with no IDE, desktop-app, SDK or
     browser integration. SDK hooks and in-process MCP servers, which the managed switches still allow, therefore
@@ -1347,18 +1363,20 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
 - **Claude's file tools:** `blockWritesOutsideWorkingDirectories` (holds in every mode, also skip-permissions), with
   his home folders and the assistant's own folders as the working folders (decision 17). Inside them, deny rules for
   every path with a component that starts with a dot (hidden settings, and every place whose contents another program
-  later runs as the owner: `.git/hooks`, `.git/config`, `.envrc`, `.claude/`, `.mcp.json`, editor task files) and
-  for start-up places; a managed hook makes a write onto an existing file ask and keeps the previous version before
-  an edit (rule 4.4). Reads: deny rules for the browser profile, Chrome's policies, Claude Code's own sign-in files,
-  and the tool service's files (also another user's).
+  later runs as the owner: `.git/hooks`, `.git/config`, `.envrc`, `.claude/`, `.mcp.json`, editor task files) and for
+  start-up places; a managed hook keeps an existing file's previous version in the tool service's version store before
+  any change, and blocks the change if it can't (rule 4.4). Reads: deny rules for the browser profile, Chrome's
+  policies, Claude Code's own sign-in files, and the tool service's files (also another user's).
   What remains is the owner himself running code Claude wrote in a work folder: that is ordinary development and is
   named here so it isn't mistaken for a closed route.
 - **The sandbox:** forced on (`enabled`, `failIfUnavailable`, `allowUnsandboxedCommands: false`). Inside it the
   assistant's terminal runs without permission prompts (`autoAllowBashIfSandboxed: true`, decision 17), as in his
   bypass sessions now; only sends and deletes ask. It reads his home folders (hidden settings and start-up places
   hidden from it) and writes only the assistant's own work and temporary folders, because Linux's sandbox can't keep
-  nested start-up places (a `.envrc` inside a folder) out of a writable folder (brief 18b); his files are changed
-  through the file tools and the tool service, which enforce rule 4.4. No Unix sockets
+  nested start-up places (a `.envrc` inside a folder) out of a writable folder (brief 18b). Those folders are
+  disposable scratch: the terminal can delete anything in them without a question, so nothing that must last is kept
+  there. His files are changed through the file tools and the tool service, which enforce rule 4.4 and keep previous
+  versions. No Unix sockets
   (`allowAllUnixSockets: false` plus the seccomp filter, section 2); the browser profile, `/run/aresos-tools`, the
   keyring and Claude Code's sign-in files hidden from its file view; no session D-Bus.
 - **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
@@ -1366,8 +1384,15 @@ without the prompt. The settings (exact values later, owner decision 3) must clo
   the assistant's terminal, which also holds no credentials, can't carry text out (below). `WebFetch` and `WebSearch`
   aren't limited by that list, so each gets its own rule (decision 18, his answer "a)"): searches are free, as on his
   usual sites in Chrome; fetching an address Claude composed asks; fetching an address that came from him or from a
-  page or mail the tools returned is free. A managed hook decides which: a fetch goes without asking only when its
-  exact address appeared in the owner's own message or in a tool result; otherwise it asks.
+  page or mail is free. Where an address came from is recorded, not guessed: the owner's own messages (a managed hook
+  on each of his prompts records the addresses in it), and links in content the tool service's reading tools return
+  (a page's links through `chrome_read`, a mail's links through `mail_read`), recorded by the tool service with that
+  origin. Links in a mail or draft Claude wrote, in page text that carries Claude's entered text, or in a result that
+  only echoes Claude's own input (a search term, a find text) are not recorded. Terminal output, files Claude wrote,
+  and Claude's own text never qualify. A managed hook frees a fetch only when its exact address was recorded with
+  such an origin; otherwise it asks. *Tests:* an address printed through the terminal and then fetched (asks);
+  written into a file, read back and fetched (asks); passed as an argument that a result echoes (asks); a genuine
+  link from a page and from a mail (free).
 - **Approval surfaces:** Claude must never approve its own prompt. Pages that can (claude.ai and Remote Control) and
   pages that change Claude's or Chrome's settings can't be opened in a Claude tab (section 6), and Claude Code's
   sign-in files are hidden from Claude's tools. Which surface the owner approves on is open (below).
@@ -1415,8 +1440,12 @@ very long input must be shown in full or refused, also on the phone.
   overlap. The assistant writes his home folders (decision 17) and its own folders (session records, the versions
   folder, temporary files: the launcher gives it its own temporary folders); the owner can read all of them. The
   coding user can read neither: its code lives in its own home, and it has no access to his home at all. Moving his
-  repositories into the coding user's home is a one-time step of the setup; a folder with another way in for the
-  coding user (a hard link, a mount, a link from a coding folder) is refused until that way is closed. The assistant's
+  repositories into the coding user's home is a one-time step of the setup. Before the assistant's writes to his
+  folders are switched on, coding programs that hold anything in his folders open are ended (he is told first which
+  ones, and that unsaved work in them can be lost), and a folder with another way in for the coding user (a hard
+  link, a mount, a link from a coding folder) is refused until that way is closed. *Test:* a coding program holding a
+  file open in his folders and a hard link to a file there, both before the switch; after it, the coding user reads
+  nothing there, and the assistant's first write happens only after that. The assistant's
   user can't connect to the coding user's local services either (a firewall rule by user on the machine's own
   addresses), so a fetch to a local address can't carry text across. Otherwise a mail's text written into a file could
   be read by a coding session and sent with its network access, with no prompt (re-check 8). Anything that should
@@ -1473,9 +1502,9 @@ screen at the laptop.
 - **Where the gate sits.** The tool service holds each send or delete operation (reserved, rule 4.3) until it has a
   valid answer, and only then acts. Claude Code's own prompt for those tools would ask a second time and would block
   while he is away, where it reads as code; so under this proposal the send and delete tools no longer ask in Claude
-  Code, and the service is the one gate. Claude Code's prompt stays for everything else it asks about (`WebFetch`,
-  `WebSearch`). The settings test changes with it: every send and delete action must be gated in the service, instead
-  of being on Claude Code's ask list.
+  Code, and the service is the one gate. Claude Code's prompt stays for everything else it asks about (for example a
+  `WebFetch` of an address Claude composed). The settings test changes with it: every send and delete action must be
+  gated in the service, instead of being on Claude Code's ask list.
 
 What this adds to the trust boundary:
 
@@ -1604,8 +1633,9 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
 - **His folders:** "pretty much everything no? like running claude with dangerously skip permissions just like I do
   now" (decision 17). The assistant may change everything in his home folders except hidden settings and start-up
   places; code lives in the coding user's own home, so coding sessions never read his folders; inside its sandbox the
-  assistant works without permission prompts, and only sends and deletes ask, overwriting as a delete (sections 2,
-  4.4 and 7).
+  assistant works without permission prompts, and only sends and deletes ask. A change to an existing file, a whole
+  replacement included, is free because its previous version is first kept for 30 days in a store Claude can't write;
+  he restores versions himself (sections 2, 4.4 and 7; refined after re-check 15).
 - **`WebFetch` and `WebSearch`:** "a)" (decision 18). Searches are free; fetching an address Claude composed asks; an
   address from him or from a page is free (section 7).
 - **What the checkpoint's certificate checks still can't do:** "okay" (decision 19), accepted as stated (section 6,
