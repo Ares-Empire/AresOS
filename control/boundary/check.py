@@ -170,6 +170,13 @@ def launcher_checks():
                 helper.write_bytes(original)
             bad = run(['/usr/local/bin/aresos-assistant', '--plugin-dir', '/untrusted'], 'launcher-options', required=False)
             assert bad.returncode == 78
+            registry = Path('/home/assistant/.claude/plugins/installed_plugins.json')
+            put(registry, '{"version":2,"plugins":{"unknown@old-marketplace":[{"installPath":"/untrusted"}]}}')
+            try:
+                bad = run(['/usr/local/bin/aresos-assistant'], 'launcher-preinstalled-plugin', required=False)
+                assert bad.returncode == 78 and 'no installed plugins' in bad.stderr and 'LAUNCHED' not in bad.stdout
+            finally:
+                registry.unlink()
     finally:
         cli.unlink()
         cli.symlink_to(target)
@@ -204,6 +211,9 @@ def settings_checks():
                         ('--agents', '{}'), ('--mcp-config', '{"mcpServers":{"evil":{"command":"false"}}}')]:
         result = run(['/usr/local/bin/claude', flag, value, '-p', 'do not call a model'], 'flag-' + flag[2:], required=False)
         assert result.returncode != 0 and 'disableSideloadFlags' in result.stdout + result.stderr, flag
+    result = run(['/usr/local/bin/claude', '--dangerously-skip-permissions', '-p', 'do not call a model'],
+                 'bypass-disabled', required=False)
+    assert result.returncode != 0 and 'disableBypassPermissionsMode' in result.stdout + result.stderr
     print('SETTINGS_OK mcp_exclusive marketplace_lock sideload_flags', flush=True)
 
 
