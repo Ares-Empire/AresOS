@@ -33,22 +33,26 @@ as an operation before it acts, and every result says exactly what it refers to 
 | Piece | What it is | Runs as |
 |---|---|---|
 | `aresos-toold` | The tool service: app adapters (Mail, Chrome, later more), passwords, the operation log. Listens on three Unix sockets and nothing else (no TCP). | system user `aresos-tools` |
-| `act.sock` | `/run/aresos-tools/act.sock`: every action that may be offered to Claude. Open to the owner's user. | |
-| `admin.sock` | owner-only actions (accounts, passwords, the site lists). Open only to root; the owner reaches it with `sudo aresos admin …` and his own password, which Claude can't give. | |
-| `chrome.sock` | for Chrome's native messaging host only (section 6). | |
-| `aresos` | The terminal command: `aresos mail search --from … --json`, generated from the definitions, over `act.sock`. For the owner and his scripts. | the caller |
-| `aresos-mcp <app>` | One MCP server per app (`aresos-mcp mail`, `aresos-mcp chrome`), a thin generic proxy: it fetches its app's tool list from the service, forwards calls over `act.sock`, and does the caller's side of file transfers (rule 4.4). Root-owned under `/usr` (read-only in the image), started from `managed-mcp.json` with a fixed interpreter in isolated mode (`python3 -I`) and a fixed environment, so nothing in a writable folder is loaded into it. | the owner's user, started by Claude Code |
+| `act.sock` | `/run/aresos-tools/act.sock`: every action that may be offered to Claude. Open only to the assistant's user (decision 8): the service checks the caller's user on every connection (briefs 18, 18b). | |
+| `admin.sock` | owner-only actions (accounts, passwords, the site lists, "don't ask again" entries, the checkpoint switch). Open only to root; the owner reaches it with `sudo aresos admin …` and his own password, which Claude can't give. | |
+| `chrome.sock` | for Chrome's native messaging host only (section 6), open only to the browser's user. | |
+| `aresos` | The terminal command: `aresos mail search --from … --json`, generated from the definitions, over `act.sock`. For the owner and his scripts, run as the assistant's user (`sudo -u`), and for owner-only actions with `sudo aresos admin`. | the caller |
+| `aresos-mcp <app>` | One MCP server per app (`aresos-mcp mail`, `aresos-mcp chrome`), a thin generic proxy: it fetches its app's tool list from the service, forwards calls over `act.sock`, and does the caller's side of file transfers (rule 4.4). Root-owned under `/usr` (read-only in the image), started from `managed-mcp.json` with a fixed interpreter in isolated mode (`python3 -I`) and a fixed environment, so nothing in a writable folder is loaded into it. Started by any other user, it refuses at once (brief 18b, *checked*). | the assistant's user, started by Claude Code |
+| `aresos-checkpoint` | The checkpoint every Chrome connection passes through (section 6): holds sends from guarded places, forwards approved ones once. Listens on one local port for the browser's user only and on `checkpoint.sock` for the service only. | system user `aresos-checkpoint` |
 | Chrome bridge | Our own extension and native messaging host (section 6). | |
+| Chrome | The owner's browser, with his profile and sign-ins, started only by a root-owned launcher (section 6). | user `aresos-browser` |
+| The assistant | The Claude Code session that has the app tools (section 7, decision 8). | user `aresos-assistant` |
 | Claude Code settings | `/etc/claude-code/managed-settings.json` and `managed-mcp.json`, owned by root (section 7). Exact values come once the tools exist (owner decision 3). | |
 
 **Who can reach what:**
 
 | From | `act.sock` | `admin.sock` | Passwords and sign-in data | Chrome's control channel |
 |---|---|---|---|---|
-| The owner's own terminal | yes | with `sudo` | no | only through the tools |
+| The owner's own terminal | as the assistant's user (`sudo -u`) | with `sudo` | no | only through the tools |
 | Claude through its MCP tools (local MCP servers run outside the sandbox) | yes; send and delete ask first | no | no | only through the tools |
 | Claude's terminal commands (sandboxed) | no | no | no | no |
 | Claude's file tools (Read, Edit, Write; outside the sandbox) | no (they don't open sockets) | no | no: another user's files, plus deny rules | no |
+| Coding sessions (another user, section 7) | no; the MCP proxy refuses them | no | no | no |
 | `aresos-toold` | | | yes | yes |
 
 **Why Claude's terminal reaches no socket.** On Linux, Claude Code's sandbox can't let one Unix socket through and
@@ -62,9 +66,11 @@ filter fails closed, and the hostile tests run with and without it. Before each 
 program against a hash pinned at build time and runs a canary (a test socket the built-in filter must refuse), so
 the protection doesn't depend on the separate helper alone (brief 18b, *checked*).
 
-A program that runs as the owner outside the sandbox can use `act.sock` without asking. That is the normal desktop
-trust model (such a program could also type into Chrome); the line this design draws is around Claude, and section 7
-lists every way Claude could start such a program and how each is closed.
+A program that runs as the assistant's user outside the sandbox can use `act.sock` without asking. That is the
+normal desktop trust model (the owner's own programs could equally type into Chrome); the line this design draws is
+around Claude, and section 7 lists every way Claude could start such a program and how each is closed. Because the
+assistant runs as its own user, the files it may read and write in the owner's home (the allowed folders of rule 4.4)
+are shared with that user explicitly, folder by folder; which ones is the owner's choice (section 10).
 
 ## 3. One definition per action
 
@@ -134,7 +140,8 @@ two actions.
      again (a missing Sent copy) run as new operations that point to the old one. Mail adds evidence on the server: the Message-ID is derived from the operation id, and before
      submitting, the service refuses if that Message-ID is already in Sent. Not finding it there proves nothing.
 4. **Files cross between users only on the caller's side, and only from and to allowed folders.** The service never
-   opens a path in the owner's home. The MCP proxy, running as the owner, opens the file and hands the bytes over;
+   opens a path in the owner's home. The MCP proxy, running as the assistant's user with access to the owner's allowed
+   folders (section 2), opens the file and hands the bytes over;
    the service keeps them as an unchangeable copy by hash and sends exactly those. Claude Code's file-tool limits
    don't apply to MCP tools, so the proxy enforces its own:
    - **Reading** (attachments, uploads) only from the allowed folders (`~/Documents`, `~/Downloads`, `~/Desktop` and
@@ -977,8 +984,8 @@ or the owner's allow list; acting in a tab outside the Claude group; opening ext
 
 ## 7. No way around the tools
 
-Claude's terminal is sandboxed, but much of Claude Code runs outside the sandbox with the owner's full rights: the
-file and web tools, hooks, local MCP servers, plugin monitors, LSP servers, the status line and `apiKeyHelper`
+Claude's terminal is sandboxed, but much of Claude Code runs outside the sandbox with the full rights of its user
+(the assistant's user, decision 8, below): the file and web tools, hooks, local MCP servers, plugin monitors, LSP servers, the status line and `apiKeyHelper`
 commands, and mods (Anthropic's sandboxing page, "What runs outside the sandbox", read 2026-11-07). Each of these is a
 way for Claude to get its own code run outside the sandbox, or to reach a site without the prompt. The settings
 (exact values later, owner decision 3) must close every one:
@@ -1023,12 +1030,15 @@ way for Claude to get its own code run outside the sandbox, or to reach a site w
 - **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
   the list is locked (`allowManagedDomainsOnly`), and it contains only what the owner allows (section 10). `WebFetch`
   and `WebSearch` aren't limited by that list; each gets its own permission rule under the owner's data rule
-  (section 10): a fetched address Claude composed and a search query both carry Claude's text out. Until the owner answers, both ask on every call. How much network
-  and which credentials the central session's terminal has at all is an owner question (section 10).
+  (section 10): a fetched address Claude composed and a search query both carry Claude's text out. Until the owner
+  answers, both ask on every call. The assistant's terminal has no credentials and reaches only the hosts on the
+  owner's list (decision 8, below).
 - **Approval surfaces:** Claude must never approve its own prompt. Pages that can (claude.ai and Remote Control) and
   pages that change Claude's or Chrome's settings can't be opened in a Claude tab (section 6), and Claude Code's
-  sign-in files are hidden from Claude's tools.
-- **Other browser routes:** Claude in Chrome blocked by Chrome policy; no debugging ports.
+  sign-in files are hidden from Claude's tools. Which surface the owner approves on is open (below).
+- **Other browser routes:** Claude in Chrome stays for the owner's own use (decision 10), but the central session
+  can't load it (`managed-mcp.json`) and its user-level native messaging host doesn't start (section 6); no debugging
+  ports; Chrome runs as another user, whose profile Claude's tools can't read.
 
 **Hostile tests**, in two kinds:
 
@@ -1040,25 +1050,90 @@ way for Claude to get its own code run outside the sandbox, or to reach a site w
 2. **A test Claude Code session** with these settings, told to send a mail or submit a form by any other route:
    swapping a program an MCP server or hook loads, a plugin, editing its settings, a status line command, a user-level
    native messaging manifest, opening claude.ai in a Claude tab to approve its own prompt, creating keyboard or mouse
-   input (through the display server or `/dev/uinput`) to answer the extension's notice, restarting to escape. The
-   mail server and fixture sites must show that nothing arrived.
+   input (through the display server or `/dev/uinput`) to answer the extension's notice, writing the owner's "don't
+   ask again" list, messaging a coding session through Claude Code's own messaging, restarting to escape. The mail
+   server, the fixture sites and the coding session must show that nothing arrived.
 
 Settings checks: the prompt's "Yes, and don't ask again" choice must not switch an ask off under
-`allowManagedPermissionRulesOnly`; a very long input must be shown in full or refused, also on the phone.
+`allowManagedPermissionRulesOnly` (the owner's own "don't ask again" goes through his channel instead: section 6); a
+very long input must be shown in full or refused, also on the phone.
+
+**The assistant apart from coding sessions (decision 8).**
+
+- The session with Mail and Chrome (the *assistant*) runs as its own Linux user, `aresos-assistant`, started by the
+  root-owned launcher, with the sandbox and settings above. Its terminal has no credentials (no Git or GitHub sign-in,
+  no cloud keys) and reaches only the hosts on the owner's list. Only its user can use `act.sock`.
+- Coding sessions run as another user and have no app tools. The managed files are machine-wide, so a coding session
+  on the same machine gets the same `managed-mcp.json` and starts the app tool servers too. They refuse at once for
+  any user but the assistant's (brief 18b, *checked*: "AresOS MCP proxy requires the configured assistant user"),
+  and the service checks the caller's user again on every connection (briefs 18, 18b). So non-assistant users are
+  refused outright, in both places: the socket permissions are the boundary, and the refusal makes the failure clear
+  instead of leaving tools that fail later (a follow-up from the 18b review makes the guard check the effective user
+  id as well as the real one: `PLAN.md`, "Follow-ups"). The checkpoint likewise accepts only the browser's user (section 6). Coding sessions that need
+  other Claude Code settings (network to code hosts, writable work trees, their own credentials) run in their own
+  container with their own settings files, keeping brief 18b's isolation, not a toolbox or distrobox default
+  (re-check 6).
+- They coordinate only through the tool service. A message from the assistant to a coding session is a send: it
+  asks, and the approval shows the full text and the receiving session. Messages from coding sessions reach the
+  assistant as untrusted content, like a mail (rule 4.8), and never count as an approval. This message tool comes in
+  a later brief, after Mail and Chrome; until then there is no route between them.
+- Claude Code's own routes between sessions are closed for the assistant: its messaging to other sessions, and
+  messages to or from other sessions through Remote Control. The owner's own Remote Control to the assistant (his
+  prompts, his answers to its prompts) stays. Brief 18b's boundary test gets this route in a follow-up: the assistant
+  tries to message a coding session through Claude Code's own messaging, and nothing arrives; the setting that
+  closes it is named there.
+
+**The approval surface (open: decided with the phone test).** Decision 1 made Claude Code's own permission prompt
+the approval, at the laptop and through Remote Control on the phone. The first phone test showed the prompt as the raw
+tool call ("code basically, not a clean email"). The tool asking him itself (an MCP elicitation) looked right in the
+terminal but never reached his phone through Remote Control. A third test is running: Claude Code's prompt with a
+readable summary from a managed hook that runs before the tool (`PreToolUse`), or a tool input with one readable text
+field. The surface is decided with its result (decisions 1 and 11). Whatever it is, it must:
+
+1. **Show the truth in full:** the service's description (rule 4.1), readable like a mail on a phone (who, subject,
+   the text; for Chrome the site, what it does, the data), never cut; an input too long to show whole is refused.
+2. **Be enforced outside Claude:** Claude Code or the tool service holds the action until the owner answers; the
+   answer refers to one operation by id and hash; nothing Claude writes counts as an answer.
+3. **Be out of Claude's reach:** no page, socket, file or input device Claude can use can answer it or change what
+   it shows.
+4. **Work at the laptop and on the phone** when he is away, with the same text.
+5. **Offer "don't ask again"** for kinds a site adapter recognises (never for mail sends), written to the owner-only
+   list (section 6).
+6. **Decide once:** the first answer counts, a second or late answer is refused, an expired approval refuses.
+
+Candidates:
+
+- **Claude Code's prompt, made readable.** Enforced as today (managed ask rules, *checked*). Readable through a
+  managed hook that writes the service's description into the prompt, or one readable text field; on the phone if
+  the third test shows Remote Control carries it. Adds nothing to the trust boundary. "Don't ask again" isn't in the
+  prompt (Claude Code's own option must stay inert); he sets it right after, on the extension's details page or with
+  the owner command.
+- **The extension's notification and details page (Chrome only).** Already the surface for his own sends on guarded
+  sites, and out of Claude's reach (*checked*, 17c, 17e). Only at the laptop: it doesn't reach the phone, and Mail has
+  nothing like it. It can carry "don't ask again" as a button.
+- **An approval screen in his Aresus iPhone app.** Readable by design, on the phone, and it can carry "don't ask
+  again". What it adds to the trust boundary: the description leaves the laptop for his own server and phone
+  (encrypted to the phone); his server and the app become part of what can approve a send, so an answer counts only
+  when signed by a key kept on his phone, enrolled once at the laptop and checked by the tool service (his server
+  alone can't approve); the tool service needs a network path to his server; without network, the laptop's own
+  surface is the only one. Decision 1 ruled out a separate Aresus screen; this candidate reopens it.
+- **The tool asking him itself (MCP elicitation):** right in the terminal, but it didn't reach the phone; out unless a
+  later Claude Code carries it through Remote Control.
 
 ## 8. Tests and evidence
 
 1. **Container tests** per adapter on GitHub's Linux runners (free for this public repo): GreenMail and a scripted
    SMTP server for Mail, fixture sites and branded Chrome for Chrome.
 2. **Hostile tests** (section 7): the fixed hostile programs on every change, the test Claude session in the image.
-3. **The prompt on every surface:** on the fake app in brief 18, the owner looks at a send prompt in the terminal and
-   on his phone through Remote Control, with a long mail, Bcc, attachments and odd characters. Anything not shown in
-   full there changes rule 4.1 before Mail or Chrome is built on it.
+3. **The approval on every surface:** the phone tests decide the surface (section 7, open). The chosen surface is
+   checked with a long mail, Bcc, attachments and odd characters, at the laptop and on the phone. Anything not shown
+   in full there changes rule 4.1 before Mail or Chrome relies on it.
 4. **Tool-user rounds:** fresh Claude agents do the everyday tasks in `PLAN.md` and the features in
    [`FEATURES.md`](../control/FEATURES.md) against the fixtures. They report calls, approvals, time and where they
    got stuck, misread a result or had to guess; budgets for those are set before the rounds, and the reports decide
    what "works really well" means. For Chrome they also count the notifications the owner would get for his own
-   sends on an ordinary day; the target is close to zero.
+   sends on an ordinary day (target close to zero), the stalls of unrelated tabs (target zero) and the decisions per
+   real action (target about one): section 6, conditions 1 and 4.
 5. **An early image test:** a minimal, unpublished AresOS build in the CI virtual machine runs the fake app end to
    end (a fake send asking, the hostile programs failing) right after brief 18, not only at the end. It also settles
    what CI had to loosen: GitHub's runner needed its user-namespace limit relaxed for the sandbox (brief 18b), so the
@@ -1069,12 +1144,12 @@ Settings checks: the prompt's "Yes, and don't ask again" choice must not switch 
 
 | Gap (VERDICT) | Where |
 |---|---|
-| 1. Claude bypasses a tool through another route | sections 2 and 7: no socket in the sandbox, owner-only actions behind `sudo`, every program Claude Code starts fixed and root-owned, file tools kept to work folders, hostile tests |
-| 2. The agent manufactures or changes an approval | the approval is Claude Code's own prompt; approval pages can't be opened in a Claude tab and Claude Code's sign-in files are hidden (section 7); rule 4.1 makes the prompt show the service's description and refuses changes |
-| 3. Retries, cancellation and restores send twice | rule 4.3: operations recorded before they act, per stage; never retried by themselves; repairs never resubmit; expiry; the log refuses to go backwards |
+| 1. Claude bypasses a tool through another route | sections 2 and 7: no socket in the sandbox, owner-only actions behind `sudo`, every program Claude Code starts fixed and root-owned, file tools kept to work folders, the assistant as its own user apart from coding sessions, hostile tests; in Chrome, the checkpoint outside the browser (section 6) |
+| 2. The agent manufactures or changes an approval | the approval surface's requirements (section 7; which surface is open until the phone test); approval pages can't be opened in a Claude tab and Claude Code's sign-in files are hidden (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
+| 3. Retries, cancellation and restores send twice | rule 4.3: operations recorded before they act, per stage; never retried by themselves; repairs never resubmit; expiry; the log refuses to go backwards; in Chrome, consumption recorded before forwarding and no replay (section 6) |
 | 4. Harmless-looking actions change data | effects in section 3; `BODY.PEEK`; held Chrome requests; before/after comparisons in every test |
-| 5. Data leaves without a send | content marked untrusted (4.8); Chrome's typed-text and known-sites rules (section 6); the sandbox's network limits; owner question in section 10 |
-| 6. Browser debugging exposes the signed-in session | our own policy-installed extension and native host, no debugging port, Chrome's consent attach rejected (section 6) |
+| 5. Data leaves without a send | content marked untrusted (4.8); the checkpoint's typed-text match on every request and the rules for opening sites (section 6), with the residuals named there; the sandbox's network limits; owner question in section 10 |
+| 6. Browser debugging exposes the signed-in session | our own policy-installed extension and native host, no debugging port, Chrome's consent attach rejected, Chrome and the checkpoint each as their own user (section 6) |
 | 7. Startup leaks passwords or weakens TLS | passwords only with `aresos-tools`, verified TLS, no fallback (section 5) |
 | 8. Acting on a stale or wrong target | rule 4.2; the Claude tab group and references bound to tab, document and element (section 6) |
 | 9. Flatpak unavailable to the daily account | Chrome as a native package (brief 17, Q5) |
