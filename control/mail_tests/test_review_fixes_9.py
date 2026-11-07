@@ -112,21 +112,28 @@ class ReviewFixes9(MailCase):
                             fixture.after_command = change if moment == 'after' else lambda *_: None
                             result = self.data(verb, {'references': [source], 'target': target})
                             self.assertTrue(fired)
-                            self.assertEqual(result['state'], 'refused', result)
-                            self.assertIn('special folders changed during the move;', result['reason'])
-                            self.assertIn('messages were returned' if verb == 'move' else 'copies were removed', result['reason'])
+                            self.assertEqual(result['state'], 'partial', result)
+                            self.assertIn('The special folders changed while Claude was ' + ('moving' if verb == 'move' else 'copying'), result['reason'])
+                            self.assertIn('Nothing was deleted.', result['reason'])
                             state = self.raw_state(['INBOX', target])
-                            self.assertEqual(sum(raw == original for _, raw, _ in state['INBOX']), 1)
-                            self.assertEqual([uid for uid, _, _ in state[target]], [unrelated['uid']])
+                            self.assertEqual(sum(raw == original for _, raw, _ in state['INBOX']), 0 if verb == 'move' else 1)
+                            self.assertIn(unrelated['uid'], [uid for uid, _, _ in state[target]])
+                            self.assertEqual(sum(raw == original for _, raw, _ in state[target]), 1)
+                            self.assertEqual(len(state[target]), 2)
                             observed = result['untrusted_content']['locations'][0]['observed_locations']
-                            self.assertEqual(len(observed), 1)
-                            self.assertEqual(observed[0]['folder'], source['folder'])
-                            self.assertEqual(self.mail.message(observed[0])['raw'], original)
+                            self.assertEqual(len(observed), 1 if verb == 'move' else 2)
+                            self.assertEqual(sorted(v['folder'] for v in observed), sorted([target] if verb == 'move' else [source['folder'], target]))
+                            for reference in observed:
+                                self.assertEqual(self.mail.message(reference)['raw'], original)
+                            self.assertIn('which is now ' + role.title(), result['reason'])
                             intent = self.engine.store.get('mail:filing:' + result['untrusted_content']['filing_id'])
-                            self.assertEqual(intent['state'], 'refused')
+                            self.assertEqual(intent['state'], 'partial')
                             self.assertEqual(intent['sources'], [source])
                             self.assertEqual(intent['target'], target)
                             self.assertEqual(list(self.engine.store.items('op:')), [])
+                            following = self.call('accounts')
+                            notice = next(n for n in following['pending']['notices'] if n['operation_id'] == intent['id'])
+                            self.assertEqual(notice['untrusted_content']['reason'], result['reason'])
                             fixture.before_command = fixture.after_command = lambda *_: None
 
     def test_review9_failed_undo_and_missing_copyuid_are_partial_with_exact_observed_locations(self):

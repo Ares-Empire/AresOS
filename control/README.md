@@ -414,7 +414,7 @@ keys and caller save paths are structured inside escaped `untrusted_content`;
 `control_log` and `aresos log` also mark historical Mail summaries. A mail's
 instructions never become instructions from the audit service.
 
-### Mail round 9: filing rollback and blob exports
+### Mail rounds 9–10: filing warnings and blob exports
 
 Each role root records its own LIST hierarchy separator. Required-role separator
 changes need the owner's folder setup review; old Trash and Drafts roots keep their
@@ -423,11 +423,18 @@ same owner setup step; separators are read from each listed root, never INBOX.
 
 Free move/copy requires UIDPLUS. A durable filing intent records source references,
 target and per-message progress before acting. After each MOVE/COPY, any role drift
-triggers an immediate exact COPYUID-based rollback of the attempted batch. Returned
-moves have new source UIDs. Failed or inexact undo returns partial with observed
-folder/UID locations and scan completeness; it never reports done. Missing COPYUID
-is partial even when role names remain stable. An interrupted intent stays visible
-in the audit log; restart neither resumes filing nor retries undo.
+stops the batch with a partial result and exact COPYUID destinations plus observed
+folder/UID locations and scan completeness. Nothing is moved back or deleted; copies
+are never expunged. Missing COPYUID is partial even when role names remain stable.
+Connection loss during reporting preserves observations so far and records partial.
+The same plain-language warning stays in every following Mail result's pending
+notices and in `aresos log`, including on later days, until `mail_notice_ack` receives
+its filing_id as operation_id. This acknowledges the warning only; cleanup requires
+ordinary named `mail_delete` approval. It creates no approval operation. An interrupted
+intent stays visible in the audit log; restart never resumes filing or tries recovery.
+A role that moves to the target and back between the command and the post-check can
+escape detection: filing ends done in the intended target, with no protected role at
+the end and no message lost.
 
 Shared blobs carry durable origin metadata. Only an explicit owner export can be
 saved by any app; internal composition parts, draft bodies, quotes and wire copies

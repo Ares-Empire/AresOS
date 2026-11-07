@@ -30,6 +30,11 @@ class Engine:
             raise Refused("stale_reference", "Operation not found for this app; list pending or ask the owner to check the independent record.")
         return op
 
+    def notices(self, app=None):
+        return [{"operation_id": n["id"], "app": n["app"], "state": n["state"],
+                 "untrusted_content": n["untrusted_content"]}
+                for _, n in self.store.items("notice:") if not n.get("ack") and (app is None or n["app"] == app)]
+
     def pending(self, app=None, args=None):
         values = [{"operation_id": op["id"], "app": op["app"], "state": op["state"],
                    "description": op["approval"]["description"], "reason": op["reason"]}
@@ -37,7 +42,9 @@ class Engine:
                   (op["state"] in {"reserved", "submitting", "partial", "unknown"} or (op.get("notice") and not op.get("ack")))]
         # Notifications stay compact; operation_status has the full description, never a truncated approval.
         summaries = [{k: v for k, v in op.items() if k != "description"} for op in values]
-        return self.page(summaries, args or {}, "pending") | {"restore_required": self.store.locked}
+        notices = self.notices(app)
+        return self.page(summaries, args or {}, "pending") | {"restore_required": self.store.locked} | (
+            {"notices": notices} if notices else {})
 
     def page(self, values, args, scope):
         token, offset = digest([scope, values]), 0
@@ -195,7 +202,8 @@ class Engine:
                 elif "untrusted_content" in event:
                     entry["untrusted_content"] = event["untrusted_content"]
                 entries.append(entry)
-            return self.page(entries, args, "log:" + day)
+            notices = self.notices()
+            return self.page(entries, args, "log:" + day) | ({"notices": notices} if notices else {})
         app, verb = action.app, action.verb
         adapter = self.adapters[app]
         if verb.startswith("prepare_"):
@@ -222,6 +230,11 @@ class Engine:
             adapter.drop(op)
             return {"operation": self.public_operation(op)}
         if verb == "notice_ack":
+            notice = self.store.get("notice:" + args["operation_id"])
+            if notice and notice["app"] == app:
+                notice["ack"] = True
+                self.store.write({"notice:" + notice["id"]: notice}, name, "filing notice acknowledged")
+                return {"notice": notice}
             op = self.operation(args["operation_id"], app)
             if not op.get("notice"):
                 raise Refused("refused", "Only cancelled/expired notices may be acknowledged; unresolved work stays visible.")

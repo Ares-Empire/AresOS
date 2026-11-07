@@ -1061,7 +1061,7 @@ class Mail:
                     if target not in [f["name"] for f in folders(client) if "\\Noselect" not in f["flags"]]:
                         raise Refused("stale_reference", "Target folder is stale, search again.")
                     if "UIDPLUS" not in client.capabilities or (verb == "move" and "MOVE" not in client.capabilities):
-                        raise Refused("unsupported_server", "Safe filing and exact undo require UIDPLUS; moving also requires MOVE.")
+                        raise Refused("unsupported_server", "Exact filing references require UIDPLUS; moving also requires MOVE.")
                     from .filing import file_messages
                     return file_messages(self, account, client, verb, refs, target, names, needed)
                 else:

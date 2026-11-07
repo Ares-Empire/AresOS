@@ -25,6 +25,7 @@ class GuardedIMAPFixture:
         self.separators = {}
         self.before_command = lambda command, arguments: None
         self.after_command = lambda command, arguments: None
+        self.disconnect_before_command = lambda command, arguments: False
         self.hide_copyuid = False
         self.commands = []
         self.lock = threading.Lock()
@@ -91,6 +92,9 @@ class GuardedIMAPFixture:
                             with fixture.lock:
                                 arguments = rest[0].strip() if rest else b''
                                 fixture.commands.append((command.upper(), arguments))
+                                if fixture.disconnect_before_command(command.upper(), arguments):
+                                    self.wfile.write(b'* BYE Scripted connection loss during reporting\r\n')
+                                    return
                                 refusal = fixture.before_command(command.upper(), arguments)
                                 if refusal:
                                     self.wfile.write(tag + b' NO ' + refusal + b'\r\n')
