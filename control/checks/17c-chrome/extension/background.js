@@ -11,23 +11,25 @@ async function badge(on){await chrome.action.setBadgeText({text:on?'ON':'STOP'})
 async function guard(url){await ready;guards.add(site(url));await chrome.storage.local.set({guards:[...guards]});emit('check.guard',{sites:[...guards]});}
 async function report(p,source){
   if(p.event!=='held'){emit('check.pageEvent',{...p,source});return;}
+  if(publicMode){p={...p,stack:undefined,description:{...p.description,...(p.description.body?{body:p.description.body.slice(0,2000),bodyLength:p.description.body.length}:{}),...(p.description.fields?{fields:p.description.fields.slice(0,2000)}:{})}};}
   const id=JSON.stringify(source)+':'+p.id,entry={...p,id,localId:p.id,source,at:Date.now(),owner:source.tabId===ownerTab};pending.set(id,entry);emit('check.pageHeld',entry);
   if(entry.owner){await chrome.notifications.create(id,{type:'basic',iconUrl:'icon.png',title:'Guarded site send',message:p.kind+' '+(p.description.url||''),buttons:[{title:'Send'},{title:"Don't send"}],requireInteraction:true});emit('check.notification',{id,buttons:['Send',"Don't send"]});}
 }
 async function pageCall(p,release,end=false){
   if(p.source.sessionId||p.source.targetId)return cmd(p.source,'Runtime.evaluate',{expression:end?'globalThis.__hold17?.end()':`globalThis.__hold17?.decide(${JSON.stringify(p.localId)},${release})`});
-  return chrome.scripting.executeScript({target:{tabId:p.source.tabId,frameIds:[p.source.frameId||0]},world:'MAIN',func:(id,go,end)=>end?globalThis.__hold17?.end():globalThis.__hold17?.decide(id,go),args:[p.localId,release,end]});
+  return chrome.scripting.executeScript({target:{tabId:p.source.tabId,...(p.source.documentId?{documentIds:[p.source.documentId]}:{frameIds:[p.source.frameId||0]})},world:'MAIN',func:(id,go,end)=>end?globalThis.__hold17?.end():globalThis.__hold17?.decide(id,go),args:[p.localId,release,end]});
 }
 async function decide(id,release){
   const p=pending.get(id);if(!p)throw Error('NOT_PENDING');pending.delete(id);
   if(p.network){if(release){allowances.push(p);emit('check.repeatArmed',p);}return;}
+  let allowance;
   if(release&&['fetch','xhr','beacon','form'].includes(p.kind)){
     const d=p.description,tab=p.source.tabId?await chrome.tabs.get(p.source.tabId).catch(()=>({url:'http://127.0.0.1/'})):{url:'http://127.0.0.1/'};
     let url=new URL(d.url,tab.url).href,body=d.body??null,method=(d.method||'POST').toUpperCase();
     if(p.kind==='form'){body=new URLSearchParams(JSON.parse(d.fields)).toString();if(method==='GET'){url+=(url.includes('?')?'&':'?')+body;body=null;}}
-    allowances.push({url,method,body,source:p.source,inPage:true});
+    allowance={url,method,body,source:p.source,inPage:true};allowances.push(allowance);
   }
-  await pageCall(p,release);emit('check.decision',{id,release});
+  try{const result=await pageCall(p,release);if(release&&!(Array.isArray(result)?result[0]?.result:result.result?.value))throw Error('CALL_GONE_OR_CHANGED');}catch(e){const i=allowances.indexOf(allowance);if(i>=0)allowances.splice(i,1);throw e;}emit('check.decision',{id,release});
 }
 async function stop(reason){active=false;for(const p of [...pending.values()]){try{await decide(p.id,false);await pageCall(p,false,true)}catch(e){emit('check.dropGone',{id:p.id,error:String(e)})}}await badge(false);for(const s of attached.values())await cmd(s,'Runtime.evaluate',{expression:'globalThis.__hold17?.end()'}).catch(()=>{});for(const s of attached.values())await chrome.debugger.detach(s).catch(()=>{});attached.clear();allowances.length=0;emit('check.stopped',{reason});}
 async function gate(source,p){
@@ -36,7 +38,7 @@ async function gate(source,p){
   const headers=Object.fromEntries(Object.entries(r.headers||{}).sort(([a],[b])=>a.localeCompare(b)));
   const headerHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(headers))))).map(b=>b.toString(16).padStart(2,'0')).join('');
   const entry={id:'network:'+p.requestId,network:true,url:r.url,method:r.method,body:r.postData??null,headerHash,source,type:p.resourceType};
-  if(publicMode){const block=r.url.includes('Synthetic17c')||!['GET','HEAD'].includes(r.method)||['Fetch','XHR','Ping'].includes(p.resourceType);emit('check.public',{...entry,block});return cmd(source,block?'Fetch.failRequest':'Fetch.continueRequest',block?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});}
+  if(publicMode){const block=r.url.includes('Synthetic17c')||!['GET','HEAD'].includes(r.method)||['Fetch','XHR','Ping'].includes(p.resourceType);emit('check.public',{...entry,body:entry.body?.slice(0,2000)??null,bodyLength:entry.body?.length||0,block});return cmd(source,block?'Fetch.failRequest':'Fetch.continueRequest',block?{requestId:p.requestId,errorReason:'Aborted'}:{requestId:p.requestId});}
   const i=allowances.findIndex(a=>a.url===entry.url&&a.method===entry.method&&a.body===entry.body&&(a.inPage||a.headerHash===headerHash)&&a.source.tabId===source.tabId);
   if(i>=0){allowances.splice(i,1);await cmd(source,'Fetch.continueRequest',{requestId:p.requestId});emit('check.allowed',entry);return;}
   // Fail immediately. No live Fetch pause may survive an extension lifecycle event.
@@ -67,6 +69,7 @@ async function attach(tabId,controlled=true){
 async function rpc(m,p){
   await ready;if(!wrapSource)wrapSource=await (await fetch(chrome.runtime.getURL('wrap.js'))).text();
   if(m==='Check.state')return {selected,group,active,pending:[...pending.values()],history,errors,guards:[...guards],badge:await chrome.action.getBadgeText({}),manifest:chrome.runtime.getManifest()};
+  if(m==='Check.clearHistory'){history.length=0;return {};}
   if(m==='Check.attach')return attach(p.tabId);
   if(m==='Check.guard'){const tab=await chrome.tabs.get(selected);await guard(tab.url);for(const t of await chrome.tabs.query({}))if(safe(t.url)&&site(t.url)===site(tab.url))await attach(t.id,false);return {};}
   if(m==='Check.ownerTab'){ownerTab=p.tabId;return attach(p.tabId,false);}

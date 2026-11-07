@@ -27,6 +27,6 @@
     document.addEventListener('submit',e=>{if(!bypass){e.preventDefault();formHold(e.target)}},true);
     addEventListener('pagehide',()=>globalThis.__hold17.end(),{once:true});
   }
-  globalThis.__hold17={pending,original,failures,decide(id,release){const p=pending.get(id);if(!p)return false;pending.delete(id);if(release&&!ended){try{p.resolve(p.call())}catch(e){p.reject(e)}}else p.reject(new DOMException('Dropped','AbortError'));return true;},end(){ended=true;for(const id of [...pending.keys()])this.decide(id,false);},get ended(){return ended}};
+  globalThis.__hold17={pending,original,failures,decide(id,release){const p=pending.get(id);if(!p)return false;pending.delete(id);if(release&&!ended){try{p.resolve(p.call())}catch(e){p.reject(e);return false;}}else p.reject(new DOMException('Dropped','AbortError'));return true;},end(){ended=true;for(const id of [...pending.keys()])this.decide(id,false);},get ended(){return ended}};
   report({event:'installed',failures});
 })();
