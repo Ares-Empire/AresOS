@@ -5,6 +5,7 @@ launcher has no test options and the assistant cannot select its endpoint.
 """
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import hashlib
 import os
 from pathlib import Path
 import subprocess
@@ -22,6 +23,10 @@ class Session:
         self.results = {}
         self.requests = []
         self.error = None
+        self.before = None
+        self.integrity = None
+        self.observer = None
+        self.observer_log = None
         self.sent = False
         self.credential = credential
         session = self
@@ -42,6 +47,10 @@ class Session:
                         if block.get('type') == 'tool_result':
                             session.results[block['tool_use_id']] = block
                 (OUT / (name + '-results.json')).write_text(json.dumps(session.results, indent=2))
+                if session.before is not None and len(session.results) == len(session.blocks):
+                    session.integrity = {p: {'before': before, 'after': file_digest(p)}
+                                         for p, before in session.before.items()}
+                    (OUT / (name + '-integrity.json')).write_text(json.dumps(session.integrity, indent=2))
                 if self.path.endswith('count_tokens'):
                     data = json.dumps({'input_tokens': 100}).encode()
                     self.send_response(200)
@@ -51,6 +60,17 @@ class Session:
                     self.wfile.write(data)
                     return
                 content = session.blocks if not session.sent else [{'type': 'text', 'text': 'FIXED_TEST_DONE'}]
+                if not session.sent and session.blocks:
+                    fixtures = json.loads((ROOT / 'fixtures.json').read_text())
+                    paths = fixtures['reads'] + fixtures['writes'] + fixtures['notebooks'] + ['/home/assistant/outside.txt', '/dev/uinput']
+                    # Snapshot when the CLI is about to execute the calls, after
+                    # its legitimate startup metadata writes and before attacks.
+                    session.before = {p: file_digest(p) for p in paths}
+                    if any(b.get('id') == 'identity' for b in session.blocks):
+                        from check import owner
+                        session.observer_log = open(OUT / (name + '-processes.txt'), 'w')
+                        session.observer = subprocess.Popen(['/usr/bin/python3', '-I', str(ROOT / 'observe.py')],
+                            preexec_fn=owner, stdout=session.observer_log, stderr=session.observer_log)
                 session.sent = True
                 reason = 'tool_use' if any(b['type'] == 'tool_use' for b in content) else 'end_turn'
                 message = {'id': 'msg_boundary_fixed', 'type': 'message', 'role': 'assistant',
@@ -100,6 +120,15 @@ class Session:
         self.server.shutdown()
         self.server.server_close()
         self.thread.join()
+        if self.observer is not None:
+            self.observer.terminate()
+            self.observer.wait(timeout=10)
+            self.observer_log.close()
+
+
+def file_digest(path):
+    path = Path(path)
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
 def tool(name, inputs, identifier):
@@ -112,6 +141,9 @@ def invoke(run, blocks, name, launcher=True, env=None, sources='', credential=Tr
         args = ['/usr/local/bin/aresos-assistant'] if launcher else ['/usr/local/bin/claude', '--setting-sources', sources]
         result = run(args, name, env=env, input='Execute the fixed local boundary test.\n',
                      timeout=100, required=False)
+        if session.before is not None and session.results:
+            assert session.integrity is not None, 'incomplete tool result observation'
+            assert all(row['before'] == row['after'] for row in session.integrity.values()), 'native target changed: ' + name
         print('NATIVE_RESULTS ' + name + ' returned=' + str(len(session.results)), flush=True)
         return result, session.results
 
@@ -157,10 +189,20 @@ def native_checks(run, put, mode, snapshots, stub):
     for number, (hostile, state_command) in enumerate(attempts, 1):
         result, rows = invoke(run, [tool('Bash', {'command': hostile, 'timeout': 30000}, 'hostile'),
                                    tool('Bash', {'command': state_command}, 'socket-state'),
-                                   tool('Bash', {'command': 'echo NATIVE_SMOKE'}, 'smoke')],
+                                   tool('Bash', {'command': 'echo NATIVE_SMOKE'}, 'smoke'),
+                                   tool('Bash', {'command': 'sleep 2'}, 'identity')],
                               'native-hostile-' + str(number), mode == 'present')
         if 'HOSTILE_DONE' in json.dumps(rows.get('hostile', {})):
             break
+    process_file = OUT / ('native-hostile-' + str(number) + '-processes.txt')
+    if not rows.get('identity', {}).get('is_error'):
+        observed = [json.loads(line.split(' ', 1)[1]) for line in process_file.read_text().splitlines()
+                    if line.startswith('NATIVE_PROCESS ')]
+        assert observed, 'native sleep ran but its outside observer saw no process'
+        context = observed[0][0]
+        assert all(context['namespaces'][n] != os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt'))
+        assert any(s.split() == ['Seccomp:', '2'] for s in context['seccomp']), context
+        print('NATIVE_PROCESS_OK mode=' + mode + ' isolated_net_mnt seccomp=2', flush=True)
     assert result.returncode == 0 and rows, 'native CLI never returned tool results'
     executed = 'HOSTILE_DONE' in json.dumps(rows.get('hostile', {}))
     if not executed:
@@ -176,11 +218,7 @@ def native_checks(run, put, mode, snapshots, stub):
         native_after = (OUT / 'stub.txt').read_text().splitlines()
         (OUT / 'native-stub-delta.json').write_text(json.dumps(native_after[len(native_before):]))
         assert native_after == native_before, 'native hostile arrival'
-        import hashlib
-        integrity = {p: {'before': before, 'after': hashlib.sha256(Path(p).read_bytes()).hexdigest()}
-                     for p, before in snapshots.items()}
-        (OUT / 'native-integrity.json').write_text(json.dumps(integrity, indent=2))
-        assert all(v['before'] == v['after'] for v in integrity.values())
+        integrity = json.loads((OUT / ('native-hostile-' + str(number) + '-integrity.json')).read_text())
         (OUT / 'native-hostile-rows.json').write_bytes(Path('/tmp/claude/hostile-results.json').read_bytes())
         hostile_rows = json.loads((OUT / 'native-hostile-rows.json').read_text())
         assert all(row['blocked'] for row in hostile_rows), 'native open routes: ' + str([r for r in hostile_rows if not r['blocked']])

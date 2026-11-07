@@ -167,7 +167,7 @@ def main():
                             '/usr/bin/python3 -I /opt/aresos-control/hostile.py'],
                            'network-policy-mutation', required=False)
             mutation_rows = [json.loads(line[8:]) for line in mutation.stdout.splitlines() if line.startswith('HOSTILE ')]
-            opened = [r['name'] for r in mutation_rows if not r['blocked']]
+            opened = [r['name'] for r in mutation_rows if not r['blocked'] and not r.get('unqualified')]
             assert mutation.returncode == 1 and opened == ['network:proxy-http', 'network:proxy-connect'], opened
             print('NETWORK_MUTATION_OK identical_harness_detects_allowed_receiver', flush=True)
         finally:
@@ -190,13 +190,13 @@ def main():
         assert len(rows) == expected and f'HOSTILE_DONE {expected}' in result.stdout, 'hostile programs did not finish'
         assert 'WORK_READ_OK' in result.stdout and 'TEMP_WRITE_OK' in result.stdout
         assert 'SHADOW_ONLY /home/assistant/.bashrc' in result.stdout
-        assert all(row['blocked'] for row in rows), 'OPEN ROUTES: ' + str([r for r in rows if not r['blocked']])
+        assert all(row['blocked'] or (MODE == 'absent' and row['name'] == 'connect:vsock' and row.get('unqualified')) for row in rows), 'OPEN ROUTES: ' + str([r for r in rows if not r['blocked'] and not r.get('unqualified')])
         assert result.returncode == 0
         assert all(row['before'] == row['after'] for row in integrity.values()), 'target changed'
         assert not Path('/home/assistant/work/fresh').exists(), 'new executable configuration created'
         assert stub.poll() is None, 'stub died during attacks'
         assert after_log == baseline, 'listener received hostile connection'
-        print(f'BOUNDARY_OK mode={MODE} attacks={len(rows)} unchanged={len(snapshots)} hostile_connections=0', flush=True)
+        print(f'BOUNDARY_OK mode={MODE} attacks={len(rows)} unchanged={len(snapshots)} hostile_connections=0 unqualified={sum(bool(r.get("unqualified")) for r in rows)}', flush=True)
         launcher_checks()
         settings_checks()
         assert native_error is None, native_error

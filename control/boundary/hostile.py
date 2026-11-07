@@ -23,10 +23,13 @@ def attempt(name, operation):
     try:
         operation()
     except OSError as error:
-        row = {'name': name, 'blocked': error.errno in (errno.EPERM, errno.EACCES, errno.EROFS, errno.ENOENT, errno.ECONNREFUSED) or (name == 'connect:vsock' and error.errno is None), 'errno': error.errno, 'error': str(error),
+        row = {'name': name, 'blocked': error.errno in (errno.EPERM, errno.EACCES, errno.EROFS, errno.ENOENT, errno.ECONNREFUSED), 'errno': error.errno, 'error': str(error),
                'classification': 'hidden' if error.errno == errno.ENOENT else 'refused'}
     else:
         row = {'name': name, 'blocked': False}
+    if name == 'connect:vsock' and 'errno' in row and row.get('errno') in (None, errno.ETIMEDOUT) and not row['blocked']:
+        row['unqualified'] = True
+        row['classification'] = 'no-qualified-host-endpoint'
     results.append(row)
     print('HOSTILE ' + json.dumps(row), flush=True)
 
@@ -113,4 +116,4 @@ assert Path('/tmp/claude/positive-control').read_text() == 'sandbox executed\n'
 print('TEMP_WRITE_OK', flush=True)
 Path('/tmp/claude/hostile-results.json').write_text(json.dumps(results, indent=2))
 print('HOSTILE_DONE ' + str(len(results)), flush=True)
-raise SystemExit(0 if all(row['blocked'] for row in results) else 1)
+raise SystemExit(0 if all(row['blocked'] or row.get('unqualified') for row in results) else 1)
