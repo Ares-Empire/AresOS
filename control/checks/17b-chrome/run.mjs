@@ -181,7 +181,7 @@ try{
    for(const release of [true,false]){
      await nav();await evaluate(bridge,'worker()');const id='sw-own-'+release;
      await evaluate(bridge,`navigator.serviceWorker.controller.postMessage({url:'${f.base}/receive?case=${id}'});'ok'`);await delay(500);
-     const p=(await state()).pending.find(p=>p.url.includes(id));const before=arrivals(id).length;if(p)await decide(p,release);if(p&&!release)syncDroppedAt=Date.now();const a=await observe(id);if(p){assert.equal(before,0);assert.equal(a.length,release?1:0);audit.set(id,release?1:0);}
+     const p=(await state()).pending.find(p=>p.url.includes(id));const before=arrivals(id).length;if(p)await decide(p,release);const a=await observe(id);if(p){assert.equal(before,0);assert.equal(a.length,release?1:0);audit.set(id,release?1:0);}
      log('Q2_OWN_SW',{id,release,preview:p,held:!!p,before,arrivals:a});
    }
  }
