@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 8, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+**Status:** draft 9, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -8,8 +8,11 @@
 brief 17b's Chrome results (section 6: fail, then repeat; the policy install; the owner's own stop control; service
 workers). Draft 8 adds brief 17c's (section 6: holding inside the page as the normal path, what the hold protects
 against and what it doesn't, workers, live messages, the restart, the owner's own sends, the site guard settled); the
-reviewer re-checks section 6 before the Chrome build (brief 20). Points marked *brief 20* are not yet shown and must
-be shown by the Chrome build's own tests before anything relies on them.
+reviewer's sixth re-check ([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points
+there, and draft 9 answers them: Chrome's own blocking rules as a floor under every hold, a site guard that ends by
+itself only on evidence, workers covered by that floor whoever starts them, and no repeat without the complete bytes.
+Points marked *17d* are checked by brief 17d before the Chrome build; points marked *brief 20* must be shown by the
+Chrome build's own tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps
@@ -55,7 +58,9 @@ tools too. Two layers keep it so: the seccomp filter that blocks Unix sockets (`
 `/run/aresos-tools` hidden from the sandbox's file view. The docs call the seccomp filter optional; native Claude
 Code 2.1.319 has it built in (sockets refused even without the separate helper: brief 18b, *checked*). The launcher
 still refuses to start Claude Code when the separate helper is missing, so a later version that drops the built-in
-filter fails closed, and the hostile tests run with and without it.
+filter fails closed, and the hostile tests run with and without it. Before each start it also checks the native
+program against a hash pinned at build time and runs a canary (a test socket the built-in filter must refuse), so
+the protection doesn't depend on the separate helper alone (brief 18b, *checked*).
 
 A program that runs as the owner outside the sandbox can use `act.sock` without asking. That is the normal desktop
 trust model (such a program could also type into Chrome); the line this design draws is around Claude, and section 7
@@ -240,7 +245,7 @@ Built on briefs 17, 17b and 17c: branded Chrome stable 157 on GitHub's Linux mac
 sites, ten public sites visited without signing in and with every send blocked
 ([17 report](../../reviews/17-chrome-check/REPORT.md), PR #3; [17b report](../../reviews/17b-chrome-holds/REPORT.md),
 PR #4; [17c report](../../reviews/17c-chrome-pages/REPORT.md), PR #7). What the checks showed is marked *checked*; what
-the Chrome build still has to show is marked *brief 20*.
+brief 17d checks before the build is marked *17d*; what the Chrome build still has to show is marked *brief 20*.
 
 ### How the tool reaches Chrome
 
@@ -324,6 +329,7 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 | `chrome_submit_trusted` | send, free | as `chrome_submit`, only for an operation a site adapter recognises and the owner's trusted list allows |
 | `chrome_open_site` | **send** | open an address that isn't free to open (below), with the full address in the input |
 | `chrome_drop` | change | drop held requests; nothing leaves |
+| `chrome_end_guard` | **send** (asks) | end a site's guard where it didn't end by itself; the input shows what of Claude's may be left there and what the page stored; afterwards the owner's own sends there go unchecked |
 | `chrome_operation_status` | read | an operation's stages (rule 4.3) |
 | `chrome_sites` | owner-only | the owner's lists of known and trusted sites |
 
@@ -340,17 +346,19 @@ to type into: a page whose own scripts set out to carry off what Claude enters t
 traffic, or keep a live connection's original send function away from the wrap (*checked*, 17c: a fixture page that
 kept the browser's own `WebSocket.send` delivered a message the tool never saw; Chrome's network stage doesn't see
 live messages, so no catch-all exists for them). Against a hostile page the protections are where Claude may act at
-all (new sites ask first, below and section 10), and noticing: the tool compares Chrome's own record of WebSocket
-messages with what the wrap held, and a message it didn't hold stops all input on that site and is reported to the
-owner (*brief 20*). A hostile page that sends over ordinary HTTP past the wrap is caught at the network stage
-(*checked*: zero arrivals before approval).
+all (new sites ask first, below and section 10), and noticing afterwards: the tool compares Chrome's own record of
+each WebSocket's sent messages (connection, content, order) with what it let go (released holds and messages free as
+reading), and any message it didn't let go stops all input on that site and is reported to the owner (*brief 20*).
+That is a diagnosis after the fact, not prevention, and WebRTC data channels and WebTransport have no such record in
+Chrome. A hostile page that sends over ordinary HTTP past the wrap meets Chrome's own blocking rules (the floor,
+below; *checked* at the request stage: zero arrivals before approval).
 
 The rule: **nothing Claude caused or entered leaves a Claude tab without approval, and when the tool can't tell, the
 request is held, never let go.** The one exception is plain reading (below), which stays free so that pages load; a
 hostile script on a site the owner uses could abuse it, and that is the owner's decision in section 10. The service
 judges every send the tab and everything it started (frames, popups, workers) makes, before it leaves the browser:
-inside the page where the wrap is in place, at Chrome's request stage for everything else (next part). It sorts each
-by cause and content, never by timing alone:
+inside the page where the wrap is in place, at Chrome's request stage for everything else, with Chrome's own blocking
+rules underneath (next part). It sorts each by cause and content, never by timing alone:
 
 - **Caused by Claude: held as a pending send.** The tool follows each request's initiator, including the chain of
   timers, promises and callbacks behind it, back to its origin. A request that leads back to a click, key or other
@@ -379,7 +387,8 @@ by cause and content, never by timing alone:
   (*checked* on fixtures: a stored query, a batch, a mutation and Claude's text inline or in variables were all held).
   Other apps need a site adapter to tell reading from sending. Without one, their requests after Claude acted are
   held, so working in those apps asks until their adapter exists. *Checked* on ten public sites without signing in
-  (17c; counts are what the after-acting rule would hold, not prompts): GitHub, Wikipedia and a news site stayed
+  (17c, provisional: workers and live connections were switched off for safety, visits were short, and counts cover
+  the main document; they are what the after-acting rule would hold, not prompts): GitHub, Wikipedia and a news site stayed
   usable with a few holds at most; Amazon and Google search held about a dozen each, mostly telemetry, which goes to
   the background list or is dropped as tracking; Notion and Google Docs read through POST and need an adapter;
   YouTube, Reddit and Stack Overflow showed the test machine a bot check and stay unmeasured. Signed-in use is
@@ -403,7 +412,7 @@ request once. *Checked:* held sends reached the fixture server zero times while 
 never after drop, for posted forms, search forms, `fetch` and XHR posts, beacons, autosave, a form posting to another
 site, link pings and a data-bearing image.
 
-**How a send is held, in practice (17b, 17c).** Two layers:
+**How a send is held, in practice (17b, 17c, 17d).** Three layers:
 
 - **Inside the page: the normal path.** The extension's page script, which Chrome puts into every document and frame
   before the site's own scripts (also `about:blank` and `srcdoc` frames a script creates), and the tool's script in
@@ -411,35 +420,58 @@ site, link pings and a data-bearing image.
   `navigator.sendBeacon`, form submission (the submit event, `submit()`, `requestSubmit()`), `WebSocket.send`,
   `RTCDataChannel.send` and WebTransport writers. A send that must be held creates no request: the page simply waits
   (a form stays on screen, a `fetch` stays pending, a message stays queued). After approval the wrapper performs
-  exactly that call once; after a drop the page gets an ordinary failure (`AbortError`, the XHR's error event).
-  *Checked* for all seven kinds, in the main page, same-site and other-site frames, `about:blank` and `srcdoc`: zero
-  arrivals while held, exactly one after release, none after drop; none when control ended while calls were held
+  exactly that call once; after a drop the page gets an ordinary failure (`AbortError` for `fetch`; the XHR's error
+  event is *brief 20*, the check's prototype fired none). *Checked* for all seven kinds in the page itself, and for
+  `fetch` in same-site and other-site frames, `about:blank` and `srcdoc` (the other kinds in frames: *brief 20*):
+  zero arrivals while held, exactly one after release, none after drop; none when control ended while calls were held
   (page reload, debugger detach, the Stop button, extension reload, update and blocking by policy, the native host
   killed, Chrome closed and killed). Duplicate decisions, an expired `AbortSignal`, a form changed after the hold
-  and a held call of an earlier document were refused. Nothing is paused inside Chrome, so control breaking has
-  nothing to let go.
-- **At Chrome's request stage: fail, then repeat, for what the wrap misses.** A page can get around the wrap (a
-  saved original function, one taken from a fresh frame, a worker started from a blob). Whatever it sends over HTTP
-  that way reaches Chrome's request stage and is judged there by the same rules. A held request there is failed at
-  once, never paused: a request paused inside Chrome is let go when the extension is reloaded, updated, disabled or
-  detached, and a blocking rule added beforehand doesn't stop it (*checked*, 17b). Its exact content is captured and
-  shown; after approval the service grants one allowance for exactly that request (method, full address, body and a
-  hash of its headers) and Claude repeats the action; the first matching request goes out once. A repeat that
-  differs in anything, including a changing token, is refused, and no field is ever ignored automatically
-  (*checked*: hostile fixture pages had zero arrivals before approval, and a public demo form, aborted). The page
-  shows a failed send first, and some sites lose a draft or token on it; sites whose requests change on every
-  attempt need a site adapter or `chrome_submit_input`.
-- **A release passes the request stage too.** An approved HTTP call held inside the page goes out through a one-time
-  allowance at the request stage, bound to the method, address, body and the headers the page set, as the owner saw
-  them, so the page can't change the request between approval and release. The wrapper keeps a copy of the body as
-  it was when held; a body it can't freeze (a stream, a large multipart upload) takes the fail-then-repeat path
-  instead (*brief 20*). A live message has no request stage: the wrapper sends its own copy of the message as held.
+  and a held call of an earlier document were refused. A call waiting in the page isn't paused inside Chrome, so
+  control breaking has nothing to let go.
+- **Chrome's own blocking rules: the floor.** A request paused at Chrome's request stage is let go when the
+  extension is reloaded, updated, disabled or detached, and a blocking rule added after it was paused doesn't stop it
+  (*checked*, 17b); even failing it at once leaves the instant between Chrome pausing it and the tool's answer
+  (re-check 6). So the hard barrier is Chrome's own blocking rules (`declarativeNetRequest`), which Chrome applies
+  before a request starts, with no pause and without the extension's code running: for every guarded site (rules
+  Chrome keeps across restarts and extension updates, matched by the site that makes the request) and every Claude
+  tab Claude has acted in (also frames of other sites in it), every request that isn't plain reading
+  (any method but GET and HEAD) and every new live connection (WebSocket, WebTransport) is blocked. New live
+  connections are let through only from a tab whose documents and dedicated workers the tool has reached; a worker
+  without a tab (shared, service) gets none. *17d:* the rules act before the request stage, apply to a restored tab's
+  first request at browser start and to every worker's requests (also a worker Chrome updates or starts by itself,
+  with no page attached), and what the tool can see of a request they blocked.
+- **Fail, then repeat, for what the wrap misses.** A page can get around the wrap (a saved original function, one
+  taken from a fresh frame, a worker started from a blob). What it sends that way meets the floor and fails; the
+  tool records what Chrome reports of it, and that is what the owner's prompt shows. After approval the service
+  grants one allowance for exactly that request (method, full address, body and the headers the page set) and
+  Claude repeats the action; the first matching request goes out once. A repeat that differs in anything, including
+  a changing token, is refused, and no field is ever ignored automatically (*checked* at the request stage: hostile
+  fixture pages had zero arrivals before approval, and a public demo form, aborted). The page shows a failed send
+  first, and some sites lose a draft or token on it; sites whose requests change on every attempt need a site
+  adapter or `chrome_submit_input`.
+- **How an approved send passes the floor.** Through a one-time allowance: a rule for exactly that address and
+  method from that tab or site, added right before the release and removed at its first match, when control ends and
+  whenever the extension starts. The gate at the request stage then compares the matching request's body and the
+  headers the page set with the approval and fails any difference. What remains is the instant around an approved
+  release: ending control between Chrome pausing the matching request and the gate's answer can let a request to the
+  approved address and method go unchecked (*17d* measures that window and shows the allowance gone after a reload,
+  update, disable or crash of the extension). The approval also binds the signed-in account the description shows:
+  if the page's account or session for that site changed while it waited, the release is refused (*brief 20*, with
+  changed headers and competing identical requests).
+- **Complete bytes, or no repeat.** The wrapper keeps the complete body as it was when held, files included (a file
+  Claude put into a field is known by its sha256 from `chrome_upload`). A body whose complete bytes the tool can't
+  hold or see (a stream; a request the floor blocked whose body Chrome doesn't report in full, as with the file parts
+  of a form or a large body: *17d*) is refused, unless a site adapter describes the operation. Missing bytes never
+  count as a match. A live message has no request stage: the wrapper sends its own copy of the message as held.
   Messages on one live connection keep their order: releasing one takes the earlier held messages on that connection
   with it, and its description lists them (*brief 20*).
 - **Qualified contexts only.** The in-page path is used where the wrap is shown to be in place from the start: the
-  kinds of document, frame and worker above. Where it isn't (a page loaded before the tool attached), only the
-  request stage holds and live messages can't be held at all, so input there is refused until a reload (below); a
-  worker the tool couldn't reach before its first line isn't let run (below).
+  kinds of document, frame and worker above. Where it isn't (a page loaded before the tool attached), only the floor
+  holds and live messages already open can't be held at all, so input there is refused until a reload (below).
+- **Plain GETs stay free, so one gap stays:** a GET that carries Claude's typed text and that the wrap misses is
+  failed at the request stage, which leaves the same instant between pause and answer; and a worker the tool hasn't
+  reached isn't checked for Claude's text at all. GETs can't be blocked wholesale, or no page would load. Both are
+  named here; the wrap catches the honest cases (a search form, a page's own `fetch`).
 
 Outcomes follow rule 4.3: the site's answer is recorded but doesn't prove the business step worked (`done` means the
 site accepted the request); the page gave up waiting (its own timeout or `AbortSignal`) or the tab closed before
@@ -465,26 +497,31 @@ and what they send that isn't plain reading is held like in a Claude tab: listed
 by itself, and put to the owner (next paragraph) when his own input caused it (*checked*, 17c: an owner's click in
 another tab that emptied Claude's queue was held, through local storage and through a worker shared by both tabs).
 
-- **When:** from Claude's first action on the site (more than reading, scrolling and plain links) for as long as a
-  Claude tab it acted in is open there; after that, only while something of Claude's may still be queued there: a
-  send of Claude's that failed, was dropped or expired, text Claude typed that was never sent, a send held in the
-  site's worker. Closing a tab Claude acted in fires the page's own leaving events, where many apps send what they
-  still hold; those sends are held and, dropped with the page, keep the guard on. When every send Claude caused there
-  was released or there was none, the guard ends with Claude's last tab there.
-- **How long:** until a site adapter shows that what Claude left there is resolved, or the owner ends it. A dropped or
-  expired request is not such evidence, since the page may keep it queued (*checked*, 17b: a site's background sync
-  sent a rejected request again five minutes later).
-- **Across restarts:** the extension keeps the guard list in its storage (*checked*). Restored pages start before the
-  tool has attached (*checked*: a restored page's first request came before the tool was ready), so the page script
-  holds their sends from the first document (*checked*), a restored service worker is attached before its first send
-  (*checked*), and a blocking rule the extension keeps in Chrome, which works without the extension's code running,
-  fails a guarded site's requests that aren't plain reading until the tool has attached (*brief 20*: shown to apply
-  to a restored tab's first request).
+- **When it starts:** with Claude's first action on the site (more than reading, scrolling and plain links).
+- **When it ends by itself:** only on evidence that nothing of Claude's can be left there. All of these: every
+  document Claude acted in there is gone (its tab closed; a released tab, or a page kept in Chrome's back-forward
+  cache, still counts); every send Claude caused there was released (none failed, dropped, expired or still held);
+  and from Claude's first action on, nothing in Claude's tab wrote to the browser's storage (web storage, IndexedDB,
+  Cache Storage, cookies set by a script, the origin's private file system), passed data to another context (a
+  broadcast channel, a shared or service worker, another window), or registered a worker or a background sync. An
+  honest page that keeps Claude's work for later has to put it in one of those places (re-check 6: an offline app
+  that records a deletion in IndexedDB and sends it later from another tab). The tool watches these through
+  Chrome's own storage events where Chrome has them and the page script otherwise (*17d*: which of them Chrome
+  reports; *brief 20*). Closing a tab fires the page's own leaving events, where many apps send what they still
+  hold; those sends are held and, dropped with the page, keep the guard on.
+- **Otherwise:** until a site adapter shows that what Claude left there is resolved, or the owner ends it: on the
+  details page, or when Claude asks with `chrome_end_guard` (Claude Code's prompt shows what the page stored and
+  where). A dropped or expired request is not such evidence, since the page may keep it queued (*checked*, 17b: a
+  site's background sync sent a rejected request again five minutes later).
+- **Across restarts:** the guard list and its floor rules are kept by Chrome (*checked* for the list). Restored pages
+  start before the tool has attached (*checked*: a restored page's first request came before the tool was ready), so
+  the page script holds their sends from the first document (*checked*) and the floor blocks what isn't plain
+  reading (*17d*: for a restored tab's first request, other sites a restored page sends to, and workers without a
+  tab). The floor rules of a guarded site are never lifted while the guard lasts, not even while the tool is
+  attached, so a crash while attached leaves them in place. A restored service worker was held once the tool
+  attached (*checked*); that is not proof for a worker Chrome starts by itself, which is why the floor covers
+  workers.
 - **Where a context can't be guarded,** the tool refuses to act on that site while it exists.
-
-What this leaves, named: a page that stores an effect of Claude's click without trying to send it while Claude's tab
-is open and without a leaving event, and sends it later from another tab after the guard ended. Closing that needs
-the site's adapter.
 
 **The owner's own sends on a guarded site.** A request caused by the owner's own input (input the tool didn't
 dispatch) on a guarded site, in the Claude group or outside it, is held too, because it may carry Claude's queued
@@ -510,8 +547,10 @@ work. The owner decides it himself, on a surface outside every page:
   script, and creating input from the sandbox. Every attempt must leave the request held and the guard on.
 - **Sends whose cause can't be seen:** a send from a worker that serves several tabs carries no trace of whose click
   caused it (*checked*). On a guarded site it is held as background for Claude and, when the owner was using one of
-  the site's tabs just before (input the tool didn't send), also put to him; the first answer decides, and both
-  places show it (*brief 20*).
+  the site's tabs just before (input the tool didn't send), also put to him: a guess about his notification, never
+  an exemption. Outside that window it stays visible as unresolved on the details page and in the site's guard. Both
+  places show one operation; the first answer decides it at once, and the same worker send reported through several
+  attached sessions counts once (*brief 20*).
 
 This is the owner deciding about his own click, not an approval of Claude's actions; those stay with Claude Code's
 prompt.
@@ -521,11 +560,10 @@ plain reading, not only those that look like Claude's leftover (same address, Cl
 after `mac-capacity` raised the cost). 17c showed why that narrower match isn't safe: a page's timer that empties
 Claude's queue leaves no traceable chain, and a shared worker's send has no trace of whose click caused it, so a page
 can send Claude's queued deletion to another address than the one that was held. What keeps the notifications few is
-that guards are short and rare instead: during Claude's own work on the site, and afterwards only where Claude left
-something unresolved (above); draft 7 kept every site Claude acted on guarded. In-page holding leaves nothing behind
-in the ordinary case (approved and sent, or nothing asked). Known tracking requests are dropped, not asked. The details page
-says what of Claude's is unresolved and what to check (the site's outbox or drafts), and ends the guard with one
-click. The tool-user rounds count these notifications on an ordinary day (section 8); the target is close to zero.
+that guards end by themselves where the evidence above shows nothing of Claude's can be left (draft 7 kept every
+site Claude acted on guarded). Where a page stored something, the guard stays until the owner ends it: one click on
+the details page, which says what of Claude's is unresolved and what to check (the site's outbox or drafts), or one
+prompt when Claude asks. Known tracking requests are dropped, not asked. The tool-user rounds count these notifications on an ordinary day (section 8); the target is close to zero.
 
 **The trusted list** frees sends only through a site adapter: an entry names a site and operations its adapter
 recognises (for example "post a message in a chat", "add to the basket"). Without an adapter nothing is free, because
@@ -571,12 +609,14 @@ tool-user rounds show where they are needed.
   of a dropped request are refused at once, and that list is kept across restarts with the site guard.
 - **Workers that start while Claude works or a site is guarded.** A dedicated worker is reached before its first line
   (*checked*, 17c). A new shared worker and a newly installed or replaced service worker were not: the tool couldn't
-  reach them in time, and their first send arrived (*checked*). Workers already running were held correctly once
-  attached (*checked*), but that is too late for a worker's first send. So on a site Claude is acting on or that is
-  guarded, the page script refuses to start a new shared worker or install a service worker (*checked* on the
-  public sites, where it ran on every page), and a worker the tool can't reach before its first line is kept paused
-  or ended, never let run (*brief 20*). Pages there do without what such a worker would add (offline use, push
-  notifications) while it lasts.
+  reach them in time, and their first send arrived (*checked*). Chrome also updates and starts a site's service
+  worker by itself: on navigation, on push and sync events, or when the page asks for an update (Chrome's service
+  worker lifecycle documentation). So nothing relies on reaching a worker early: the floor blocks every request that
+  isn't plain reading and every new live connection from a worker without a tab, whoever started it and whether or
+  not a page is attached (*17d*). Workers the tool does reach (dedicated ones, and running ones once attached:
+  *checked*) hold as in a page. The page script also refuses to start new shared workers and service worker
+  registrations while Claude works on the site (*checked* on the public sites), so honest pages keep to paths the
+  tool can hold; pages do without offline use and push notifications there while it lasts.
 - **A site that changes something with a plain GET** (against the web's rules, rare on reputable sites) can't be told
   from reading without knowing the site; and **a site that hides what it sends** (encrypts typed text before sending
   it) defeats the typed-text match, though its other requests after Claude typed are still held. Both are why new
@@ -584,9 +624,11 @@ tool-user rounds show where they are needed.
 
 ### Fail closed
 
-A held send must never go out because control broke. Nothing is paused inside Chrome (held calls wait in the page,
-held requests are failed), so there is nothing for a reload, update, disable or detach to release (*checked* for
-calls held in the page through nine ways control can end, 17c, listed above). Checked separately: when the host or the
+A held send must never go out because control broke. Held calls wait in the page and requests that aren't plain
+reading are blocked by Chrome's own rules before they start; neither is paused inside Chrome, so a reload, update,
+disable or detach has nothing to release (*checked* for calls held in the page through nine ways control can end,
+17c; *17d* for the floor). The one thing paused is a request the floor lets through for checking (an approved send's
+matching request, a GET checked for Claude's text): the instant named above. Checked separately: when the host or the
 service's socket went away, or the extension's worker crashed, held requests were failed, not sent; Chrome closing
 sent nothing; DevTools opened beside the tool didn't end control. A held request whose page or tab goes away, or
 whose time runs out, is dropped, never sent. Live-connection detection after a re-attach uses Chrome's own event
@@ -598,7 +640,8 @@ the page counts as one where the message hold isn't in place.
 The fixture sites and runner from brief 17, extended with the cases of briefs 17b and 17c (every hold case proven by
 the fixture server's own log, the counterexample of a page that keeps a live send away from the wrap included) and
 the everyday tasks in `PLAN.md` (Chrome tasks 8 to 14), on GitHub's Linux machines with branded Chrome. Every point
-marked *brief 20* above is a test there before anything relies on it. Hostile tests (section 7) add: reaching
+marked *17d* is settled by brief 17d before the build starts, and every point marked *brief 20* is a test there
+before anything relies on it. Hostile tests (section 7) add: reaching
 `chrome.sock` or the host from the sandbox, a user-level native messaging manifest, editing the profile or Chrome's
 policies, and acting in a tab outside the Claude group.
 
@@ -623,8 +666,13 @@ way for Claude to get its own code run outside the sandbox, or to reach a site w
     browser integration. SDK hooks and in-process MCP servers, which the managed switches still allow, therefore
     have no way in.
   - Plugins and mods: none installed (`strictKnownMarketplaces: []`, `disableSideloadFlags`; an empty
-    `enabledPlugins` is not a deny-all, so nothing is installed in the first place: brief 18b). Claude Code's own
-    built-in parts remain and are audited in the image test.
+    `enabledPlugins` is not a deny-all, so nothing is installed in the first place, and the launcher refuses to start
+    when any plugin is installed: brief 18b). Claude Code's own built-in parts remain and are audited in the image
+    test; cached plugins, LSP servers and monitors run by Claude Code itself are not yet qualified (brief 18b) and are
+    part of the model-driven hostile test.
+  - Settings below the managed file: the launcher starts Claude Code with no other settings sources
+    (`--setting-sources ''`), so user and project settings can't add hooks, a status line, a helper or a permission
+    grant (brief 18b, *checked*: with them allowed, planted markers ran; with the launcher's start, none did).
   - The status line and `apiKeyHelper`: none. The managed file sets neither, Claude's file tools refuse Claude
     Code's settings files and the sandbox can't write them (both checked by hostile tests), and brief 18b finds
     whether a managed key can force them off; if one is ever needed, it gets the same fixed, root-owned treatment as
@@ -737,7 +785,8 @@ Settings checks: the prompt's "Yes, and don't ask again" choice must not switch 
 - **Claude in Chrome on AresOS** (asked 2026-11-07, board #58). The central session can't load it either way
   (`managed-mcp.json` lists only the control layer's servers; a hostile test checks that). Blocking it by Chrome
   policy (section 6) adds a little safety but takes the side panel from the owner's own use. Recommended: keep it for
-  him.
+  him. Until he answers, the image blocks it as section 6 says; if he keeps it, only that policy entry goes, and the
+  `managed-mcp.json` exclusion and its hostile test stay.
 - **Machine-wide rules** (board #59): the managed settings apply to every Claude Code session on the machine and
   change only with the admin password. That is what makes them hold; coding sessions get their own rules only if
   they run apart (above).

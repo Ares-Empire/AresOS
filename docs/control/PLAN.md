@@ -81,6 +81,12 @@ Three places, each with one job:
      so they aren't let start while Claude works on a site. The owner's own clicks that empty Claude's queue are
      held and his genuine notification answers work. On ten public sites: GitHub, Wikipedia and news smooth; Amazon
      and Google search hold telemetry; Notion and Google Docs need adapters.
+   - **S2d, Chrome (brief 17d, before brief 20):** the frontier re-check of draft 8 found four blocking points (a
+     paused request can slip out in the instant before the tool fails it; Chrome updates service workers by itself;
+     a guard could end while an offline app still holds Claude's work; uploads can't be compared byte for byte).
+     Draft 9 puts Chrome's own blocking rules under every hold; 17d checks the Chrome facts that rests on: the rules
+     act before the request stage, at browser start, for every worker, and an allowance can't outlive control;
+     which storage writes Chrome reports; what the tool sees of a blocked request's body.
 1. **Design** (`docs/design/CONTROL.md`): done 2026-11-07. Draft 6 after the frontier review (8 blocking) and five
    re-checks (7, 4, 1, 1, then none: ready for brief 18). The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
    with it.
@@ -150,9 +156,11 @@ tasks at any time.
 ## Open
 
 - The exact system-wide settings: once the tools exist (decision 3). Draft in `control/settings/` (briefs 18, 18b).
-  One value to settle there: brief 18b's draft sets `sandbox.autoAllowBashIfSandboxed: false`, so ordinary
-  sandboxed terminal commands would ask too. Recommended: keep Claude Code's default (true). The sandbox holds without
-  the prompt (18b), and extra prompts wear down attention for the send and delete prompts that matter.
+  One value to settle there: brief 18b's draft sets `sandbox.autoAllowBashIfSandboxed: false`, which hands sandboxed
+  terminal commands to the ordinary permission rules instead of allowing them outright; what those do depends on the
+  permission mode (in 18b's run an unapproved `sleep 2` still ran). Recommended: keep Claude Code's default (true). The
+  sandbox holds without a prompt (18b), and extra prompts wear down attention for the send and delete prompts that
+  matter.
 - Language and libraries: decided in the design, after S2.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.

@@ -72,6 +72,7 @@ Effects: read, change, send (asks), delete (asks). Tools are in
 | Sends on the owner's trusted sites | `chrome_submit_trusted` | send, free | first, for operations a site adapter recognises; deleting and paying are never free |
 | Apps that read through POST (Notion, Google's apps) | site adapter; GraphQL sorted by itself | | first for the owner's usual sites (17c: Notion and Google Docs need one); elsewhere Claude's clicks there ask until an adapter exists |
 | Drop what a page wanted to send | `chrome_drop` | change | first |
+| End a site's guard where it didn't end by itself (the owner's own sends there are checked until then) | `chrome_end_guard`, or the extension's details page | send (asks) | first |
 | Popups and new tabs a page opens | joins the Claude group | | first |
 | Sign in to a site | | owner | owner: Claude stops and asks him to sign in; passwords never pass through Claude |
 | Pay, order, transfer money | `chrome_submit` | send | first, always asking, never on the trusted list |
