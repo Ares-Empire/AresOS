@@ -282,3 +282,12 @@ tasks at any time.
   no mail can be lost: an owner choice). Round 7 fixed the first three (114 Mail tests green twice); round 8 makes
   Junk and Archive optional so onboarding works on servers that don't mark them. Frontier re-review after round 8.
   Phone check of the prompt timed out unanswered; restarted for 48 hours (#71 replaces #51).
+- **2026-11-07, 17:17:** brief 18b merged (PR #5, `6b2667f`); two follow-ups from its merge-fix review under Open.
+  Design draft 10 written (branch `control/design-draft-10`): section 6 rebuilt on the local checkpoint of 17e (no
+  Chrome blocking rules, no URL allowances); the owner's five hard requirements for it (decision 6) as design
+  requirements with their tests, including a fresh root per start (Chrome re-reads its trust policy while running, so
+  the launcher restarts Chrome with the checkpoint); Chrome's own services trusted without exemptions; the strict
+  guard; "don't ask again" for recognised kinds only; his four usual sites as the first adapters; the residuals in
+  plain words; the five conditions before everyday use, and calls only while no guard is on. Section 7 adds the
+  assistant apart from coding sessions and the approval surface, left open until the phone test. Frontier re-check 8
+  of the diff next, then brief 20.
