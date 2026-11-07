@@ -48,6 +48,7 @@ I only build things myself when writing the brief would cost more than doing it 
 - Anything touching the laptop's disks, partitions or BIOS/boot settings, or installing AresOS onto a drive.
 - Installing system software on Windows (JDK, drivers, tools). Ask once per tool.
 - Spending money: hardware, subscriptions, credits.
+- Publishing an AresOS image (a new release in the package registry) or changing what the laptop installs (the pinned image in `docs/INSTALL.md`). Test images that a CI job builds and throws away (never pushed to a registry, never pinned) need no OK (owner, 2026-11-07).
 - Making the repo or anything else public.
 - Design calls that are hard to undo or change how AresOS feels. A Codex `JUDGMENT-CALL` goes to the owner before merge.
 
@@ -68,19 +69,15 @@ Plain language, outcome first. Explain technical things through what they'll see
 
 ## Codex models
 
-Pick models by job, not by name. Names change, so check the list before the first launch of a session:
+Pick the model for each job by what does that job best, never by habit or a fixed default. This is the owner's rule for all projects ("Codex models: pick per task" in the global `~/.claude/CLAUDE.md`, 2026-11-07). Names change, so check the list before the first launch of a session:
 
 ```powershell
 (Get-Content "$env:USERPROFILE\.codex\models_cache.json" -Raw | ConvertFrom-Json).models | Where-Object visibility -eq 'list' | Sort-Object priority | Format-Table slug, description
 ```
 
-| Job | Which model | Effort | Pick on 2026-10-21 |
-|---|---|---|---|
-| Build a package (`BUILD_MODEL`) | the newest "workhorse" coding model | `xhigh` | `gpt-6.1-sol` |
-| Councils, hard design (`COUNCIL_MODEL`) | the "frontier" model | `xhigh` (`max` before irreversible steps) | `gpt-6-astra` |
-| Package review (`REVIEW_MODEL`) | same as the build model | `high` | `gpt-6.1-sol` |
+`docs/WORKFLOW.md` and `docs/REVIEW.md` call the chosen models `$BUILD_MODEL` (build a package), `$REVIEW_MODEL` (package review) and `COUNCIL_MODEL` (councils, hard design). Set them for each job. The frontier model uses the weekly allowance about three times faster than the workhorse, so weigh quality against speed and allowance. Say in the brief or status which model you picked and why, and name it in the commit trailer. A model named in an older brief, report or handoff records the choice made then, not a default.
 
-When the list shows a newer model for a job, use it and update the last column.
+Starting efforts: builds and councils `xhigh` (`max` before irreversible steps), reviews `high`.
 
 - Always pass `-m` and `-c model_reasoning_effort=...` explicitly. The Codex config default is an older model.
 - Keep Codex current with `npm install -g @openai/codex@latest` (0.163.0 on 2026-10-21).
