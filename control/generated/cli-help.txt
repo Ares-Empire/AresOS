@@ -9,6 +9,7 @@ Actions (input is the definition's JSON object; --help on any action shows its s
   aresos testapp flag [change]
   aresos testapp file_import [change]
   aresos testapp file_save [change]
+  aresos testapp export_file [change]
   aresos testapp prepare_send [change]
   aresos testapp send [send]
   aresos testapp prepare_delete [change]

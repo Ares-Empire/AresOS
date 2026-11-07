@@ -155,6 +155,8 @@ with patch.object(proxy.files, "read", side_effect=snapshot), patch.object(proto
     assert prepared["ok"], prepared
     sent = proxy.call("send", prepared["data"]["approval"])
     assert sent["ok"] and sent["data"]["operation"]["state"] == "done", sent
+    exported = proxy.call("export_file", ref)
+    assert exported["ok"], exported
     saved = proxy.call("file_save", {"sha256": ref["sha256"], "folder": str(path.parent.parent / "Downloads"), "name": "large-saved.bin"})
     assert saved["ok"], saved
 assert max(sizes) <= WIRE_LIMIT
@@ -310,6 +312,8 @@ print(json.dumps(results))
                 self.assertEqual(sent["data"]["operation"]["state"], "done")
                 repeat = (await client.call_tool("send", approval)).structured_content
                 self.assertEqual(repeat["data"], sent["data"])
+                exported = (await client.call_tool("export_file", imported["data"]["file"])).structured_content
+                self.assertTrue(exported["ok"], exported)
                 saved = (await client.call_tool("file_save", {"sha256": imported["data"]["file"]["sha256"], "folder": str(self.home / "Downloads"), "name": "saved.txt"})).structured_content
                 self.assertTrue(saved["ok"], saved)
                 self.assertEqual((self.home / "Downloads/saved.txt").read_bytes(), b"fixture attachment bytes")

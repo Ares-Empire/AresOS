@@ -1,4 +1,5 @@
 import hashlib
+import json
 import os
 from pathlib import Path
 import re
@@ -18,10 +19,12 @@ class Blobs:
         for temporary in self.directory.glob(".upload-*"):
             temporary.unlink()
 
-    def put(self, data):
-        return self.put_stream([data], len(data), sha256(data))
+    def put(self, data, origin="internal"):
+        return self.put_stream([data], len(data), sha256(data), origin)
 
-    def put_stream(self, chunks, size, key):
+    def put_stream(self, chunks, size, key, origin="internal"):
+        if origin not in {"internal", "composition_part", "draft_body", "draft_html", "quoted_mail", "wire", "caller_import", "export"}:
+            raise ValueError("Unknown service blob origin")
         if type(size) is not int or not 0 <= size <= self.limit:
             raise Refused("file_refused", "File exceeds the configured per-file limit; choose a smaller file.")
         if not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key):
@@ -46,9 +49,35 @@ class Blobs:
             except FileExistsError:
                 self.read(key)
             sync_directory(self.directory)
+            # Publish authorization only after the bytes are durable. Missing old or
+            # interrupted metadata grants neither download nor caller-import rights.
+            origins = self.origins(key) | {origin}
+            meta_fd, meta_name = tempfile.mkstemp(prefix=".upload-", dir=self.directory)
+            try:
+                with os.fdopen(meta_fd, "w") as meta:
+                    json.dump(sorted(origins), meta)
+                    meta.flush()
+                    os.fsync(meta.fileno())
+                os.replace(meta_name, self.directory / (".origins-" + key))
+                sync_directory(self.directory)
+            finally:
+                if os.path.exists(meta_name):
+                    os.unlink(meta_name)
         finally:
             os.unlink(temporary)
         return key
+
+    def origins(self, key):
+        try:
+            return set(json.loads((self.directory / (".origins-" + key)).read_text()))
+        except (FileNotFoundError, ValueError, TypeError):
+            return set()
+
+    def require_origin(self, key, origin):
+        data = self.read(key)
+        if origin not in self.origins(key):
+            raise Refused("file_refused", "Blob is not an owner export." if origin == "export" else "Not a caller-imported blob; import the local file through the proxy.")
+        return data
 
     def read(self, key):
         if not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key):

@@ -204,7 +204,13 @@ class Engine:
             return self.submit(action, args)
         if verb == "operation_status":
             op = self.operation(args["operation_id"], app)
-            return {"operation": self.public_operation(op), "evidence": adapter.evidence(op["id"])}
+            result = {"operation": self.public_operation(op)}
+            try:
+                result["evidence"] = adapter.evidence(op["id"])
+            except (Refused, OSError, imaplib.IMAP4.error, Uncertain) as exc:
+                result["evidence_error"] = {"code": getattr(exc, "code", "transport_error"),
+                                            "message": "Live evidence unavailable; recorded operation is unchanged."}
+            return result
         if verb == "operation_repair":
             return self.repair(app, args)
         if verb == "operation_cancel":
@@ -253,11 +259,11 @@ class Engine:
                     yield data
                     send(connection, {"ok": True, "data": {"offset": offset}})
 
-            self.blobs.put_stream(chunks(), blob["size"], blob["sha256"])
+            self.blobs.put_stream(chunks(), blob["size"], blob["sha256"], origin="caller_import")
             self.store.write({"blob:" + digest(blob): blob}, request["app"] + "_file_import", "import immutable blob " + blob["sha256"])
             send(connection, {"ok": True, "data": {"file": blob}, "pending": self.pending(request["app"])})
         else:
-            data = self.blobs.read(request["sha256"])
+            data = self.blobs.require_origin(request["sha256"], "export")
             while True:
                 frame = receive(connection)
                 if frame == {"end": True, "offset": offset} and offset == len(data):
@@ -312,7 +318,7 @@ class Engine:
                     data = {"ready": True}
                 elif method == "download":
                     key = request["sha256"]
-                    data_bytes = self.blobs.read(key)
+                    data_bytes = self.blobs.require_origin(key, "export")
                     data = {"sha256": key, "size": len(data_bytes)}
                     self.store.write({}, app + "_file_save", "export blob " + key + "; caller must report save outcome", outcome="started")
                 else:

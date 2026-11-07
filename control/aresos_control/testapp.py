@@ -102,6 +102,12 @@ class TestApp:
         return {"reference": self.reference(item), "flagged": item["flagged"]}
 
     def call(self, verb, args):
+        if verb == "export_file":
+            if self.store.get("blob:" + digest(args)) != args:
+                raise Refused("file_refused", "Only an imported caller file can be explicitly exported by this fixture.")
+            data = self.blobs.require_origin(args["sha256"], "caller_import")
+            self.blobs.put(data, origin="export")
+            return {"file": args}
         if verb == "list":
             return self.listing(args)
         if verb == "flag":
@@ -119,7 +125,7 @@ class TestApp:
             if not recipients or len(set(recipients)) != len(recipients):
                 raise Refused("invalid_input", "Use at least one recipient and no duplicates across to, cc and bcc.")
             for blob in args["attachments"]:
-                self.blobs.read(blob["sha256"])
+                self.blobs.require_origin(blob["sha256"], "caller_import")
                 if self.store.get("blob:" + digest(blob)) != blob:
                     raise Refused("stale_reference", "Attachment metadata is not the service's imported reference; import again.")
             return {"action": "testapp_send", **args}, args
@@ -133,7 +139,7 @@ class TestApp:
         payload = operation["payload"]
         if operation["action"] == "testapp_send":
             for blob in payload["attachments"]:
-                data = self.blobs.read(blob["sha256"])
+                data = self.blobs.require_origin(blob["sha256"], "caller_import")
                 if len(data) != blob["size"] or self.store.get("blob:" + digest(blob)) != blob:
                     raise Refused("stale_approval", "Attachment changed; import and prepare again.")
         elif operation["action"] == "testapp_delete":

@@ -1,21 +1,6 @@
 {
   "_comment": "DRAFT: fixed root-owned proxy. Final names/settings require owner decision 3 and brief 18b qualification.",
   "mcpServers": {
-    "testapp": {
-      "type": "stdio",
-      "command": "/usr/bin/env",
-      "args": [
-        "-i",
-        "PATH=/usr/bin:/bin",
-        "LANG=C.UTF-8",
-        "/usr/bin/python3",
-        "-I",
-        "-S",
-        "/usr/libexec/aresos-control/launch.py",
-        "proxy",
-        "testapp"
-      ]
-    },
     "control": {
       "type": "stdio",
       "command": "/usr/bin/env",

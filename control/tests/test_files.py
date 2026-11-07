@@ -187,7 +187,7 @@ class Files(EngineCase):
         self.assertIn("No directory entries removed", str(moved_error.exception))
 
     def test_download_hash_and_private_transfer_metadata_checks(self):
-        blob = self.engine.blobs.put(b"bytes")
+        blob = self.engine.blobs.put(b"bytes", origin="export")
         result = self.engine.request({"v": 1, "method": "download", "app": "testapp", "sha256": blob})
         self.assertTrue(result["ok"], result)
         self.assertEqual(result["data"], {"sha256": blob, "size": 5})
