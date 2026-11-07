@@ -283,3 +283,84 @@ and `git diff --check` printed nothing. Docker's local daemon was unavailable;
 container evidence comes from GitHub. The `.work/` size scan printed
 `Remaining .work files over 500 MB: []`. Pushes used the normal pre-push hook, with
 no bypass or force push. No additional PLAN-GAP or open question.
+
+## Follow-ups
+
+- **Approval lifetime:** `engine.py`, `daemon.py` and `settings/service.json`
+  default to configurable **900 seconds**. `Operations.test_default_approval_lasts_fifteen_minutes_at_boundary`
+  uses a controlled clock at 899.999/900.001 seconds, requiring acceptance before
+  expiry and `failed`, no arrival and one adapter `drop` afterward. The existing
+  adapter-check regression now advances to the actual approval deadline plus one,
+  replacing its old hard-coded time 221, which assumed the 120-second default.
+- **Files:** `common.py`, `files.py`, `blobs.py`, `engine.py`, `daemon.py`,
+  `protocol.py`, `proxy.py` and both settings default to configurable **26,214,400
+  bytes**. Upload/download streams acknowledge raw-byte offsets, use at most
+  1 MiB per chunk, and verify complete size/hash before publishing or saving.
+  The integration tests transfer a 25 MiB-minus-one file through the real proxy
+  and service, replace its source immediately after reading, compare receiver and
+  saved bytes, reject 25 MiB-plus-one on both sides, and check configured limits.
+  Seven malformed streams (cut-off, incomplete, reordered, wrong hash, extra
+  bytes, oversized chunk, invalid base64) leave neither a blob nor staging file.
+  `Files` also verifies matching defaults and raising the configured limit.
+  Existing file tests now use chunk framing and download metadata; their exact
+  byte/hash, immutable-mode, replacement and corruption assertions remain.
+- **Small restore record:** `storage.py` stages full events durably in SQLite
+  before the compact record, then commits SQLite's applied head and the record's
+  commit marker. `operations.jsonl` holds only restore metadata, short descriptions
+  and timestamped states, with chain/sequence framing. `control_log` reads SQLite.
+  `test_record.py` checks absent bodies/attachment data, constant record size,
+  SQLite audit history, and missing send/delete descriptions after restore.
+  `test_crashes.py` adds `sqlite_prepared` kill points to reservation, submission
+  and restore tests, checks that every logged operation remains in the record,
+  and fences an uncommitted record whose full staged event was lost to restore.
+  All existing kill-9, generation, earlier-id refusal and no-double-send tests pass.
+- **Quiet prompt hook:** `hooks.py`, `launch.py` and `managed-hooks.json` name
+  each event in its launcher argument and reject mismatched input. Prompt failures
+  return 0 without output; a fixed shell guard also discards failed interpreter
+  output before Python can run. Integration tests execute the actual managed
+  commands with malformed/mismatched/large input, directory stdin, broken config
+  and unavailable service. Valid pending-work reminders and Stop's existing
+  behavior pass. The old prompt-malformation exit-2 assertion intentionally becomes
+  exit 0 with empty stdout/stderr; Stop still requires exit 2 and feedback.
+
+**run — record growth:** at controlled time 1000 and two-digit sequences, the tiny
+one-recipient send and a send filling the **16,384-byte approval limit** with a
+**25 MiB attachment** each append exactly **4,078 bytes**: six state/stage records
+including commit markers, averaging **679.7 bytes** each. The typical three-recipient
+send appends **5,560 bytes** across eight records, averaging **695 bytes** each.
+Longer descriptions, timestamps and sequence numbers add their actual encoded
+lengths; bodies and attachments add nothing. No compaction was added.
+
+**run — verified product `c7ee50b2236e2eab59c99b1b453fb78fed9f3ad0`:**
+[42349183171](https://github.com/Ares-Empire/AresOS/actions/runs/42349183171)
+printed `Ran 51 tests in 24.179s`;
+[42349186335](https://github.com/Ares-Empire/AresOS/actions/runs/42349186335)
+printed `Ran 51 tests in 20.145s`. Both printed `Generated artifacts match definitions`,
+`OK` and `Control base suite PASS` using the unchanged Docker command/test script
+above, Fedora 45 and Python 3.15.0. Transfer instrumentation printed `114 frames,
+largest=1398154 bytes (wire limit=6291456)`. All 40 previous methods remain,
+with 11 additional methods; no tests were skipped or deleted. README and generated
+schemas/reference were updated. This appended report is the only later change;
+PR #6 records the final report-inclusive head and its two completed workflow IDs
+without changing the tested commit. Ten workflow executions total for this run,
+including that final pair.
+
+**run — failed iterations:** 42348857680 / 42348860853 printed `Ran 50 tests`,
+`FAILED (failures=4)` because the existing clock fixture still assumed 120 seconds;
+42348996859 / 42349000841 printed `Ran 51 tests`, `FAILED (failures=1)` because
+Python rejected directory stdin before executing the launcher; 42349152826 /
+42349156713 printed `Ran 51 tests`, `FAILED (failures=4)` because the first shell
+guard emitted a newline for empty output. The implementation/fixture causes were
+fixed while preserving the assertions, apart from the intentional behavior changes
+listed above. Local syntax checking printed `Python syntax OK`, generation checking
+printed `Generated artifacts match definitions`, and `git diff --check` was empty.
+Docker was unavailable locally; full test evidence is from GitHub's containers.
+The final size scan printed `Remaining .work files over 500 MB: []`. Pushes used
+normal pre-push verification, without bypass or force.
+
+**JUDGMENT-CALL — record format:** this pre-deployment compact format is version 2.
+An earlier full-event record fails closed rather than being reset or automatically
+migrated; retaining a legacy installation would require a qualified migration or
+owner recovery. No existing record was discarded. **Not verified:** legacy migration,
+physical storage failures, real accounts, phone rendering and image deployment.
+The existing owner qualification gates remain. No additional PLAN-GAP or open question.
