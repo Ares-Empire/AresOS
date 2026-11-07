@@ -77,8 +77,8 @@ class Transport:
             client = imaplib.IMAP4_SSL(account["imap_host"], account["imap_port"], ssl_context=context(account), timeout=20)
             # TLS construction/hostname validation finished before the password is read.
             ok(client.login(account["username"], self.password(account)), "IMAP login")
-            client.capabilities = tuple(x.upper() for x in b" ".join(ok(client.capability(), "CAPABILITY")).split())
-            if b"CONDSTORE" in client.capabilities and b"ENABLE" in client.capabilities:
+            client.capabilities = tuple(x.decode("ascii").upper() for x in b" ".join(ok(client.capability(), "CAPABILITY")).split())
+            if "CONDSTORE" in client.capabilities and "ENABLE" in client.capabilities:
                 # Read HIGHESTMODSEQ where available; full re-reads remain authoritative.
                 client.enable("CONDSTORE")
             yield client
@@ -86,7 +86,7 @@ class Transport:
             if client is not None:
                 # LOGOUT never expunges; CLOSE does. UNSELECT where supported.
                 try:
-                    if client.state == "SELECTED" and b"UNSELECT" in client.capabilities:
+                    if client.state == "SELECTED" and "UNSELECT" in client.capabilities:
                         client.unselect()
                     client.logout()
                 except (OSError, imaplib.IMAP4.error):

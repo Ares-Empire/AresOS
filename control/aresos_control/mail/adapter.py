@@ -54,7 +54,7 @@ class Mail:
                 names = selected
             for folder in sorted(names):
                 validity = select(client, folder)
-                modseq = client.response("HIGHESTMODSEQ")[1] if b"CONDSTORE" in client.capabilities else None
+                modseq = client.response("HIGHESTMODSEQ")[1] if "CONDSTORE" in client.capabilities else None
                 ids = uids(client)
                 if len(ids) + len(messages) > self.SCAN_LIMIT:
                     raise Refused("scan_too_large", "History exceeds scan limit; search selected smaller folders or use owner's mail program.")
@@ -118,7 +118,7 @@ class Mail:
             msg = m["msg"]
             for field in ("from", "to", "subject", "text"):
                 if field in args:
-                    haystack = codec.body(msg) + "\n" + str(msg) if field == "text" else str(msg.get(field, ""))
+                    haystack = codec.body(msg) + "\n" + str(msg) if field == "text" else " ".join(str(msg.get(h, "")) for h in ("To", "Cc", "Bcc")) if field == "to" else str(msg.get(field, ""))
                     if args[field].casefold() not in haystack.casefold():
                         return False
             for arg, flag, invert in (("unread", "\\Seen", True), ("flagged", "\\Flagged", False), ("answered", "\\Answered", False)):
@@ -570,7 +570,7 @@ class Mail:
             key = operation["stages"].get("wire_sha256")
             if key is None:
                 raise Refused("refused", "Exact wire bytes absent after restore; cannot recreate a Sent copy.")
-            self.append(account, account["special"]["sent"], self.wires.read(key), "(\\Seen)")
+            self.append(account, account["special"]["sent"], self.wires.read(operation["stages"].get("sent_wire_sha256", key)), "(\\Seen)")
             self.store.checkpoint("mail_sent_copy")
             return "done"
         reference = comp["mail"]["answered_reference"]
@@ -601,12 +601,12 @@ class Mail:
                     if any(str(m["msg"].get(k, "")) != target[k] for k in ("from", "subject", "date")):
                         raise Uncertain("Target changed during deletion; inspect per-target stages.")
                     if payload["mode"] == "trash":
-                        if b"MOVE" not in client.capabilities:
+                        if "MOVE" not in client.capabilities:
                             raise Uncertain("MOVE no longer available; inspect deletion status.")
                         ok(client.uid("MOVE", str(ref["uid"]), quote(account["special"]["trash"])), "UID MOVE to Trash")
                         self.store.checkpoint("mail_moved:" + str(ref["uid"]))
                     else:
-                        if b"UIDPLUS" not in client.capabilities:
+                        if "UIDPLUS" not in client.capabilities:
                             raise Uncertain("UIDPLUS no longer available; no broad expunge allowed.")
                         ok(client.uid("STORE", str(ref["uid"]), "+FLAGS.SILENT", "(\\Deleted)"), "Mark exact UID deleted")
                         self.store.checkpoint("mail_marked:" + str(ref["uid"]))
@@ -649,6 +649,11 @@ class Mail:
         raw = self.mime(comp, self.message_id(operation["id"]))
         stage("message_id", self.message_id(operation["id"]))
         stage("wire_sha256", self.wires.put(raw))
+        if comp["mail"]["bcc"]:
+            sent_header = EmailMessage(policy=codec.SMTP_POLICY)
+            sent_header["Bcc"] = ", ".join(comp["mail"]["bcc"])
+            bcc_header = sent_header.as_bytes().split(b"\r\n\r\n",1)[0] + b"\r\n"
+            stage("sent_wire_sha256", self.wires.put(bcc_header + raw))
         state, reason = self.send_smtp(operation, comp, raw, stage)
         if state == "failed":
             return state, reason
@@ -776,7 +781,7 @@ class Mail:
                 if verb != "flag":
                     if args["target"] not in [f["name"] for f in folders(client) if "\\Noselect" not in f["flags"]]:
                         raise Refused("stale_reference", "Target folder is stale, search again.")
-                    if b"UIDPLUS" not in client.capabilities or (verb == "move" and b"MOVE" not in client.capabilities):
+                    if "UIDPLUS" not in client.capabilities or (verb == "move" and "MOVE" not in client.capabilities):
                         raise Refused("unsupported_server", "Exact new references require UIDPLUS; moving also requires MOVE.")
                 else:
                     for value in args["add"] + args["remove"]:

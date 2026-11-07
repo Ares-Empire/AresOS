@@ -24,7 +24,7 @@ def onboard(engine, args, password):
     mail.transport.store_password(account_id, password)
     engine.store.write({"mail:account:" + account_id: account}, "mail_account_add", "owner started onboarding; incomplete until probes finish", outcome="started")
     with mail.transport.imap(account) as client:
-        account["capabilities"] = sorted(x.decode() for x in client.capabilities)
+        account["capabilities"] = sorted(client.capabilities)
         listed = folders(client)
         mapping = {"\\Sent": "sent", "\\Drafts": "drafts", "\\Trash": "trash", "\\Junk": "junk", "\\Archive": "archive"}
         for flag, kind in mapping.items():

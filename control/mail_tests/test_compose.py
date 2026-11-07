@@ -34,7 +34,9 @@ class Composing(MailCase):
             self.assertNotIn(b'\n', raw.replace(b'\r\n', b''))
         self.assertEqual(self.send(approval)['state'], 'done')
         self.assertEqual(len(self.arrivals('one@mail.invalid', mid)), 1)
-        self.assertEqual(len(self.data('operation_status', {'operation_id':result['id']})['evidence']['sent']), 1)
+        sent_refs = self.data('operation_status', {'operation_id':result['id']})['evidence']['sent']
+        self.assertEqual(len(sent_refs),1)
+        self.assertEqual(str(self.mail.message(sent_refs[0])['msg']['Bcc']),'hidden@mail.invalid')
 
     def test_reply_to_list_aliases_threading_own_sent_and_answered(self):
         ref = self.fixture(sender='List <list@mail.invalid>', to=self.owner,

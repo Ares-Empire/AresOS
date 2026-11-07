@@ -39,7 +39,7 @@ class MailCase(unittest.TestCase):
                    'capabilities': [], 'smtp_capabilities': [], 'sent_policy': 'client', 'safe_folder_delete': False, 'delimiter': '/'}
         self.mail.transport.store_password(account_id, 'pass')
         with self.mail.transport.imap(account) as conn:
-            account['capabilities'] = sorted(v.decode() for v in conn.capabilities)
+            account['capabilities'] = sorted(conn.capabilities)
             for f in folders(conn):
                 for flag, name in {'\\Sent':'sent', '\\Drafts':'drafts', '\\Trash':'trash', '\\Junk':'junk', '\\Archive':'archive'}.items():
                     if flag in f['flags']:

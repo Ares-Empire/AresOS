@@ -17,7 +17,7 @@ OWNER, SERVICE = 26101, 26102
 class CallerTransfers(MailCase):
     def test_real_proxy_caller_import_save_permissions_immutable_bytes_and_full_cli_flow(self):
         reference = self.fixture(attachments=[('program.exe',b'not a program\x00\xff','application/octet-stream')])
-        before = self.all_flags()
+        before = self.mail.message(reference)["flags"]
         self.engine.close()
         self.root.chmod(0o755)
         for path in [self.root / 'state',self.root / 'independent',*list((self.root / 'state').rglob('*')),*list((self.root / 'independent').rglob('*'))]:
@@ -93,6 +93,22 @@ class CallerTransfers(MailCase):
                                   json.dumps(proxy_config),'mail','search','--input','{"account":"box"}','--json'],capture_output=True,text=True,timeout=20)
             self.assertEqual(cli.returncode,0,cli.stderr)
             self.assertTrue(json.loads(cli.stdout)['ok'])
+            import asyncio
+            async def mcp_conversation():
+                from mcp import Client as MCPClient, StdioServerParameters
+                code = 'import json,sys; from aresos_control.proxy import main; main("mail",json.loads(sys.argv[1]))'
+                parameters = StdioServerParameters(command='/usr/bin/setpriv',args=['--reuid',str(OWNER),'--regid',str(OWNER),'--clear-groups',sys.executable,'-c',code,json.dumps(proxy_config)],
+                                                   env={'PYTHONPATH':os.environ['PYTHONPATH'],'PATH':'/usr/bin:/bin'})
+                async with MCPClient(parameters) as client:
+                    tools = await client.list_tools()
+                    names = {tool.name for tool in tools.tools}
+                    self.assertIn('send',names)
+                    self.assertIn('prepare_delete',names)
+                    self.assertNotIn('account_add',names)
+                    result = (await client.call_tool('read',{'reference':reference})).structured_content
+                    self.assertTrue(result['ok'],result)
+                    self.assertEqual(result['data']['reference'],reference)
+            asyncio.run(mcp_conversation())
         finally:
             daemon.send_signal(signal.SIGTERM)
             stdout,stderr = daemon.communicate(timeout=10)
@@ -102,4 +118,4 @@ class CallerTransfers(MailCase):
             self.engine = Engine(self.root / 'state',self.root / 'independent')
             self.mail = self.engine.adapters['mail']
             home_temp.cleanup()
-        self.assertEqual(self.mail.message(reference)['flags'],[f for f in self.mail.message(reference)['flags']])
+        self.assertEqual(self.mail.message(reference)['flags'],before)
