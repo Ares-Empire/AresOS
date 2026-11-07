@@ -18,7 +18,7 @@ from smtp_fixture import SMTPFixture
 from aresos_control.common import canonical, visible
 from aresos_control.engine import Engine
 from aresos_control.mail import codec
-from aresos_control.mail.transport import context
+from aresos_control.mail.transport import context, ok, quote
 
 
 class ReviewFixes(MailCase):
@@ -157,7 +157,7 @@ class ReviewFixes(MailCase):
             self.assertFalse(response['ok'], response)
             self.assert_clean_diagnostics([response, output.getvalue()], encodings)
             frontend.mode = 'guard'
-            for mode in ('echo_login','echo_store','echo_expunge'):
+            for mode in ('echo_login','echo_store','echo_expunge','echo_disconnect_expunge'):
                 with self.subTest(mode=mode):
                     ref = self.fixture()
                     approval = self.delete_approval([ref], 'permanent')
@@ -170,7 +170,12 @@ class ReviewFixes(MailCase):
                         response = self.call('delete', approval)
                     self.assertTrue(response['ok'], response)
                     self.assertNotEqual(response['data']['operation']['state'], 'done')
+                    if mode == 'echo_disconnect_expunge':
+                        self.assertEqual(response['data']['operation']['state'], 'unknown')
                     frontend.mode = 'guard'
+                    if mode == 'echo_disconnect_expunge':
+                        self.assertFalse(self.call('read', {'reference':ref})['ok'])
+                        self.assertEqual(self.data('delete', approval)['operation']['state'], 'unknown')
                     status = self.data('operation_status', {'operation_id':approval['operation_id']})
                     self.assert_clean_diagnostics([response, status, output.getvalue()], encodings)
 
@@ -292,6 +297,17 @@ class ReviewFixes(MailCase):
             self.assertTrue(response['ok'], response)
             account = next(a for a in self.data('accounts')['accounts'] if a['id'] == account_id)
             self.assertEqual(response['data']['account'], account)
+            if mode == 'inuse':
+                # The transient refusal disappears; the underlying server really is unsafe.
+                frontend.mode = 'unsafe'
+                recorded = self.mail.account(account_id, ready=False)
+                recorded['ca_file'] = str(CERT / 'tls.crt')
+                with self.mail.transport.imap(recorded) as conn:
+                    ok(conn.create(quote('Unsafe-proof')), 'Create synthetic proof folder')
+                    msg = EmailMessage()
+                    msg.set_content('Synthetic proof that nonempty DELETE is unsafe')
+                    ok(conn.append(quote('Unsafe-proof'), None, None, msg.as_bytes(policy=codec.SMTP_POLICY)), 'Append synthetic proof')
+                    self.assertEqual(conn.delete(quote('Unsafe-proof'))[0], 'OK')
             return account
 
     def test_review_4_transient_permission_and_generic_refusals_never_qualify(self):

@@ -4,6 +4,7 @@ import time
 import uuid
 
 from ..common import Refused, digest
+from ..adapters import Uncertain
 from .transport import folders, select, ok, quote
 
 
@@ -41,7 +42,7 @@ def qualify_folder_delete(engine, account, probe_folder, ref):
             return
         account["safe_folder_delete"] = True
         account["folder_delete_reason"] = "Qualified: nonempty-specific NO, exact probe survived, exact UID EXPUNGE and empty-folder DELETE succeeded."
-    except (Refused, OSError):
+    except (Refused, OSError, Uncertain):
         account["folder_delete_reason"] = "Probe survival or cleanup could not be verified; owner must inspect probe folder and operation status. Folder deletion stays disabled."
 
 

@@ -52,11 +52,19 @@ class GuardedIMAPFixture:
                                 if line.startswith(tag + b' '):
                                     return b''.join(collected)
                         while True:
-                            line = self.rfile.readline()
+                            try:
+                                line = self.rfile.readline()
+                            except (BrokenPipeError, ConnectionResetError):
+                                return
                             if not line:
                                 return
                             tag,command,*rest = line.split(b' ',2)
                             with fixture.lock:
+                                if fixture.mode == 'echo_disconnect_expunge' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'EXPUNGE '):
+                                    backend.write(line)
+                                    response(tag,False)
+                                    self.wfile.write(b'* BYE ' + fixture.error_text + b'\r\n')
+                                    return
                                 if ((fixture.mode == 'echo_login' and command.upper() == b'LOGIN')
                                     or (fixture.mode == 'echo_store' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'STORE '))
                                     or (fixture.mode == 'echo_expunge' and command.upper() == b'UID' and rest and rest[0].upper().startswith(b'EXPUNGE '))):
@@ -68,7 +76,7 @@ class GuardedIMAPFixture:
                                 if command.upper() == b'LOGIN' and backend_password is not None:
                                     # Accept the test's distinct secret while the real backend uses its fixed fixture password.
                                     line = tag + b' LOGIN ' + rest[0].split(b' ',1)[0] + b' "' + backend_password.encode() + b'"\r\n'
-                                if command.upper() == b'DELETE' and rest:
+                                if command.upper() == b'DELETE' and rest and fixture.mode != 'unsafe':
                                     name = rest[0].strip()
                                     backend.write(b'GUARD STATUS ' + name + b' (MESSAGES)\r\n')
                                     state = response(b'GUARD',False)

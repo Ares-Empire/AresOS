@@ -8,6 +8,7 @@ import ssl
 import stat
 
 from ..common import Refused
+from ..adapters import Uncertain
 from .codec import utf7, unutf7
 
 
@@ -114,6 +115,8 @@ class Transport:
                 # Read HIGHESTMODSEQ where available; full re-reads remain authoritative.
                 client.enable("QRESYNC" if "QRESYNC" in client.capabilities else "CONDSTORE")
             yield client
+        except imaplib.IMAP4.abort:
+            raise Uncertain("IMAP connection lost; outcome uncertain. Inspect operation status; never retry automatically.") from None
         except imaplib.IMAP4.error:
             raise Refused("imap_error", "IMAP command failed; inspect operation status before repeating changes. No automatic retry.") from None
         finally:
@@ -147,7 +150,8 @@ class Transport:
             yield client
         except smtplib.SMTPResponseException as exc:
             # Retain DATA's numeric refusal evidence, never its untrusted response text.
-            raise type(exc)(exc.smtp_code, b"SMTP command refused; inspect operation status.") from None
+            error = smtplib.SMTPDataError if isinstance(exc, smtplib.SMTPDataError) else smtplib.SMTPResponseException
+            raise error(exc.smtp_code, b"SMTP command refused; inspect operation status.") from None
         except smtplib.SMTPException as exc:
             if isinstance(exc, smtplib.SMTPNotSupportedError):
                 raise smtplib.SMTPNotSupportedError("Required SMTP capability unavailable; no plaintext fallback.") from None
