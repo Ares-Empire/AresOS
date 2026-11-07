@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 import native
-from boundary_assertions import validate_sandbox_result, require_source_positive, policy_mounts, mount_view
+from boundary_assertions import validate_managed_mcp, validate_sandbox_result, require_source_positive, policy_mounts, mount_view
 
 
 CONTAINER = {'namespaces': {'net': 'net:[1]', 'mnt': 'mnt:[1]'}, 'cap_eff': '0',
@@ -21,6 +21,50 @@ def result(identity=ISOLATED, sockets=None):
     sockets = sockets if sockets is not None else [{'family': f, 'errno': 1} for f in ('AF_UNIX', 'AF_VSOCK')]
     return {'content': 'SANDBOX_IDENTITY ' + json.dumps(identity) + '\n' +
             '\n'.join('SOCKET_STATE ' + json.dumps(s) for s in sockets)}
+
+
+class ManagedMCPChecks(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.managed = Path(self.temp.name) / 'managed-mcp.json'
+        # Names deliberately differ from the shipped file: the installed file is authoritative.
+        self.names = ['fixture-notes', 'fixture-mail']
+        self.managed.write_text(json.dumps({'mcpServers': {name: {} for name in self.names}}))
+        self.rows = [name + ': /usr/bin/proxy ' + name +
+                     ' - ✘ Failed to connect — CONNECTION_CLOSED: Connection closed' for name in self.names]
+
+    def check(self, rows, require_failed=False, code=0, stderr=''):
+        result = SimpleNamespace(returncode=code, stdout='Checking MCP server health…\n\n' +
+                                 '\n'.join(rows) + '\n', stderr=stderr)
+        return validate_managed_mcp(result, self.managed, require_failed=require_failed)
+
+    def test_exact_installed_names_in_any_order(self):
+        self.assertEqual(self.check(self.rows[::-1]), sorted(self.names))
+        self.assertEqual(self.check(self.rows, require_failed=True), sorted(self.names))
+
+    def test_extra_missing_duplicate_and_malformed_rows_are_rejected(self):
+        for rows in (self.rows + ['rogue-user: python fixture.py - ✓ Connected'],
+                     self.rows + ['rogue-project: python fixture.py - ✓ Connected'],
+                     self.rows[:1], self.rows + self.rows[:1], [],
+                     [self.rows[0].replace(self.names[0] + ':', self.names[0] + '-extra:')] + self.rows[1:],
+                     self.rows + ['unrecognized output'], ['No MCP servers configured.']):
+            with self.subTest(rows=rows), self.assertRaises(AssertionError):
+                self.check(rows)
+        with self.assertRaises(AssertionError):
+            self.check(self.rows, code=1)
+        with self.assertRaises(AssertionError):
+            self.check(self.rows, stderr='rogue-user: python fixture.py - ✓ Connected\n')
+
+    def test_each_coding_server_must_explicitly_fail_to_connect(self):
+        for index in range(len(self.rows)):
+            for status in ('✓ Connected', '△ Needs authentication',
+                           '✓ Connected — description says Failed to connect'):
+                rows = self.rows.copy()
+                rows[index] = self.names[index] + ': /usr/bin/proxy - ' + status
+                self.check(rows)  # Assistant discovery does not require service availability.
+                with self.subTest(index=index, status=status), self.assertRaises(AssertionError):
+                    self.check(rows, require_failed=True)
 
 
 class EvidenceChecks(unittest.TestCase):

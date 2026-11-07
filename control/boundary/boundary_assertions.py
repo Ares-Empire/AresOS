@@ -5,6 +5,26 @@ import re
 from pathlib import Path
 
 
+def validate_managed_mcp(result, managed=Path('/etc/claude-code/managed-mcp.json'), require_failed=False):
+    expected = sorted(json.loads(managed.read_text())['mcpServers'])
+    output = result.stdout + result.stderr
+    assert result.returncode == 0, output
+    rows = []
+    for line in output.splitlines():
+        if not line.strip() or line == 'Checking MCP server health…':
+            continue
+        if not expected and line.startswith('No MCP servers'):
+            continue
+        row = re.fullmatch(r'([^:\s]+): .+ - (.+)', line)
+        assert row is not None, 'unexpected MCP list output: ' + line
+        rows.append((row[1], row[2]))
+    assert sorted(name for name, _ in rows) == expected, {'expected': expected, 'listed': rows}
+    if require_failed:
+        assert all(status == '✘ Failed to connect' or status.startswith('✘ Failed to connect — ')
+                   for _, status in rows), 'coding user reached an MCP server: ' + output
+    return expected
+
+
 def container_identity():
     return {'namespaces': {n: os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt')},
             'seccomp': [s for s in Path('/proc/self/status').read_text().splitlines()

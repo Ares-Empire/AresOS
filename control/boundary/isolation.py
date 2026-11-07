@@ -6,6 +6,8 @@ import subprocess
 import sys
 import time
 
+from boundary_assertions import validate_managed_mcp
+
 policy = json.loads(Path('/etc/claude-code/managed-settings.json').read_text())
 if sys.argv[1] == 'assistant':
     assert policy['permissions']['defaultMode'] == 'default'
@@ -41,7 +43,8 @@ else:
     (home / '.credentials.json').write_text('{}\n')
     result = subprocess.run(['/usr/local/bin/claude', 'mcp', 'list'], capture_output=True, text=True, timeout=45)
     print(result.stdout + result.stderr)
-    assert result.returncode == 0 and 'No MCP servers' in result.stdout + result.stderr
+    names = validate_managed_mcp(result, require_failed=True)
+    print('MANAGED_MCP_OK user=coder all_failed names=' + json.dumps(names), flush=True)
     # This flag is rejected before auth by the assistant's managed policy.
     # In the coding container it reaches the signed-out auth preflight instead,
     # demonstrating that the native CLI actually reads the distinct policy.
@@ -52,4 +55,4 @@ else:
     print('CODING_POLICY_PROBE exit=' + str(policy_probe.returncode) + '\n' + output)
     assert policy_probe.returncode != 0 and 'Not logged in' in output
     assert 'disableSideloadFlags' not in output
-    print('ISOLATION_OK uid=10003 policy=plan no_assistant_home no_transcripts no_credentials no_tool_sockets no_app_mcp')
+    print('ISOLATION_OK uid=10003 policy=plan no_assistant_home no_transcripts no_credentials no_tool_sockets no_connected_app_mcp')

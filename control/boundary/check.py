@@ -322,8 +322,11 @@ def settings_checks():
     finally:
         managed.write_bytes(original)
     Path('/home/assistant/work/mcp-started').unlink()
+    from boundary_assertions import validate_managed_mcp
+    listed = run(['/usr/local/bin/claude', 'mcp', 'list'], 'mcp-list')
+    names = validate_managed_mcp(listed, managed)
+    print('MANAGED_MCP_OK user=assistant names=' + json.dumps(names), flush=True)
     checks = [
-        ('mcp-list', ['mcp', 'list'], 0, 'No MCP servers'),
         ('mcp-add', ['mcp', 'add', '--transport', 'http', 'hostile', 'https://example.com/mcp'], 1, 'exclusive control'),
         ('marketplace-add', ['plugin', 'marketplace', 'add', 'https://example.com/marketplace.json'], 1, 'No external marketplaces are allowed'),
     ]
