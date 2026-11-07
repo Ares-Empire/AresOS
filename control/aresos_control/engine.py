@@ -77,7 +77,7 @@ class Engine:
     def stage(self, op_id, name, outcome):
         op = self.operation(op_id)
         if op["app"] == "mail":
-            name, outcome = (self.adapters["mail"].transport.scrub(v) for v in (name, outcome))
+            outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
         op["stages"][name] = outcome
         self.store.write({"op:" + op_id: op}, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
         self.store.checkpoint("stage:" + name)

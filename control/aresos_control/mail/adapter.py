@@ -226,7 +226,7 @@ class Mail:
                     result[addr.casefold()] = {"untrusted_content": {"address": addr, "display": value}}
         return self.page([result[k] for k in sorted(result)], args, version, ["contacts", args["account"], args.get("text", "")])
 
-    def attachment(self, args):
+    def attachment(self, args, outgoing=False):
         m = self.message(args["reference"])
         if args["part"] == "source":
             data, name, content_type = m["raw"], "message.eml", "message/rfc822"
@@ -235,9 +235,17 @@ class Mail:
             if part is None:
                 raise Refused("stale_reference", "MIME part is stale, read again.")
             data, name, content_type = codec.decoded(part), part.get_filename() or "attachment", part.get_content_type()
+            if outgoing and part.is_multipart() and content_type != "message/rfc822":
+                data = part.as_bytes(policy=codec.SMTP_POLICY)
+        node = m["msg"] if args["part"] == "source" else part
+        mail_source = (args["part"] == "source" or node.is_multipart() or content_type == "message/rfc822"
+                       or name.lower().endswith(".eml") or codec.is_mail(data))
+        if outgoing and mail_source:
+            data = codec.without_bcc(data)
         item = {"sha256": self.blobs.put(data), "size": len(data), "name": name, "type": content_type,
                 "source": {"reference": args["reference"], "part": args["part"]}}
-        node = m["msg"] if args["part"] == "source" else part
+        if outgoing and mail_source:
+            item["transformation"] = "Original mail with Bcc and Resent-Bcc removed, including nested messages."
         texts = codec.approval_texts(node, self.authored(m))
         if texts:
             item["authored_text"] = texts
@@ -293,20 +301,14 @@ class Mail:
                 if not subject.casefold().startswith("fwd:"):
                     subject = "Fwd: " + subject
                 if args.get("forward_as", "inline") == "attachment":
-                    data = codec.without_bcc(original["raw"])
-                    att = {"name": "forward.eml", "size": len(data), "sha256": self.blobs.put(data), "type": "message/rfc822", "source": {"reference": original["reference"], "part": "source"}, "transformation": "Original mail with Bcc and Resent-Bcc removed, including nested messages."}
-                    texts = codec.approval_texts(codec.parse(data), self.authored(original))
-                    if texts:
-                        att["authored_text"] = texts
+                    _, att = self.attachment({"reference": original["reference"], "part": "source"}, outgoing=True)
+                    att["name"] = "forward.eml"
                     attachment_refs.append(att)
                     quote_text = ""
                 else:
                     quote_text = "\n\n---------- Forwarded mail ----------\n" + "\n".join(h + ": " + str(msg.get(h, "")) for h in ("From", "Date", "Subject", "To", "Cc")) + "\n\n" + codec.body(msg)
                     for item in codec.attachments(msg):
-                        data, att = self.attachment({"reference": original["reference"], "part": item["part"]})
-                        if att["type"] == "message/rfc822" or att["name"].lower().endswith(".eml"):
-                            data = codec.without_bcc(data)
-                            att.update(size=len(data), sha256=self.blobs.put(data), transformation="Original mail with Bcc and Resent-Bcc removed, including nested messages.")
+                        _, att = self.attachment({"reference": original["reference"], "part": item["part"]}, outgoing=True)
                         attachment_refs.append(att)
             else:
                 if not self.under(account, original["reference"]["folder"], "drafts"):
@@ -331,7 +333,7 @@ class Mail:
                             html_info["text"] = readable
                         generated.append(html_info)
                 for item in codec.attachments(msg):
-                    _, att = self.attachment({"reference": original["reference"], "part": item["part"]})
+                    _, att = self.attachment({"reference": original["reference"], "part": item["part"]}, outgoing=True)
                     attachment_refs.append(att)
             if quote_text:
                 data = quote_text.encode("utf8")
@@ -351,7 +353,7 @@ class Mail:
         to, cc, bcc = unique(to), unique(cc), unique(bcc)
         for item in args.get("attachments", []):
             if "reference" in item:
-                _, att = self.attachment(item)
+                _, att = self.attachment(item, outgoing=True)
             else:
                 if "path" in item:
                     raise Refused("proxy_required", "Local attachments must be imported by the caller-side proxy.")
@@ -360,11 +362,13 @@ class Mail:
                 data = self.blobs.read(item["sha256"])
                 if len(data) != item["size"]:
                     raise Refused("stale_reference", "Attachment bytes changed; import again.")
+                if item["name"].lower().endswith((".eml", ".msg")) or codec.is_mail(data):
+                    raise Refused("file_refused", 'Saved mail cannot be attached from a local file; use mode=forward or attach the mail itself by {reference, part: "source"} so authored text and Bcc rules apply.')
                 att = {**item, "type": "application/octet-stream"}
             attachment_refs.append(att)
         for att in attachment_refs:
-            if att["type"] == "message/rfc822":
-                att["source_type"], att["type"] = "message/rfc822", "application/octet-stream"
+            if att["type"] == "message/rfc822" or att["type"].startswith("multipart/"):
+                att["source_type"], att["type"] = att["type"], "application/octet-stream"
         mail = {"account": account["id"], "from": sender, "to": to, "cc": cc, "bcc": bcc,
                 "subject": codec.clean_header(subject), "text": args.get("text", ""), "format": args.get("format", "formatted" if any(p["kind"] == "draft_html" for p in generated) else account["format"]),
                 "signature": "" if mode == "draft" and "text" not in args else account["signature"], "generated_parts": generated, "attachments": attachment_refs,
@@ -554,6 +558,31 @@ class Mail:
 
     def has_submission_evidence(self, operation_id):
         return bool(self.evidence(operation_id).get("sent"))
+
+    def stage_outcome(self, operation, name, outcome):
+        # Free text has its own field; credential collisions must not alter evidence.
+        if name == "diagnostic":
+            return self.transport.scrub(outcome)
+        patterns = {
+            "wire_sha256": r"[a-f0-9]{64}", "sent_wire_sha256": r"[a-f0-9]{64}",
+            "message_id": re.escape(self.message_id(operation["id"])),
+            "smtp_data": r"attempting|accepted:250|refused:[1-5][0-9]{2}",
+            "sent_copy": r"done|failed", "answered_flag": r"done|not_needed|failed",
+            "folder_probe": r"nonempty_refusal|unqualified", "folder": r"deleted|refused",
+            "dkim": r"refused|verified:[A-Za-z0-9_.-]+", "https_post": r"attempting|[1-5][0-9]{2}",
+        }
+        mail = operation["payload"].get("composition", {}).get("mail", {})
+        for value in mail.get("to", []) + mail.get("cc", []) + mail.get("bcc", []):
+            recipient = codec.mailbox(value)
+            patterns["rcpt:" + recipient] = r"accepted:25[012]|refused:[1-5][0-9]{2}"
+            patterns["recipient:" + recipient] = r"accepted|refused"
+        for item in operation["payload"].get("items", []):
+            key = digest(item["reference"])
+            patterns["marked:" + key] = r"deleted flag set"
+            patterns["target:" + key] = r"trashed|expunged|marked_deleted_not_expunged|refused|not_attempted"
+        if name not in patterns or not isinstance(outcome, str) or not re.fullmatch(patterns[name], outcome):
+            raise Refused("invalid_evidence", "Mail stage requires a service-defined key and typed outcome; no server diagnostic text is accepted.")
+        return outcome
 
     def send_smtp(self, operation, comp, raw, stage):
         mail = comp["mail"]

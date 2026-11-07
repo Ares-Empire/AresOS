@@ -18,6 +18,27 @@ def parse(raw):
     return BytesParser(policy=policy.default).parsebytes(raw)
 
 
+def mail_content(raw):
+    raw = raw.lstrip()
+    if raw.startswith(b"\xef\xbb\xbf"):
+        raw = raw[3:].lstrip()
+    return raw
+
+
+def is_mail(raw):
+    # Local names and MIME types are caller-controlled; inspect the header block.
+    headers = set()
+    for line in mail_content(raw).splitlines():
+        if not line.strip():
+            break
+        match = re.match(rb"[ \t]*([A-Za-z0-9-]+):", line)
+        if match:
+            headers.add(match[1].lower())
+        elif not headers or line[:1] not in (b" ", b"\t"):
+            return False
+    return b"from" in headers and bool(headers & {b"date", b"subject", b"message-id", b"received", b"mime-version"})
+
+
 def clean_header(value):
     if any(ord(c) < 32 or ord(c) == 127 for c in value):
         raise Refused("invalid_input", "Header contains a control character; use a single line.")
@@ -141,15 +162,16 @@ def approval_texts(msg, authored=False):
     authored = authored or AUTHORED_HEADER in msg
     if msg.is_multipart():
         return [text for child in msg.get_payload() for text in approval_texts(child, authored)]
-    if (msg.get_filename() or "").lower().endswith(".eml"):
-        return approval_texts(parse(decoded(msg)), authored)
     if authored and msg.get_content_type() in {"text/plain", "text/html"}:
         return [text_part(msg)]
+    data = decoded(msg)
+    if (msg.get_filename() or "").lower().endswith(".eml") or is_mail(data):
+        return approval_texts(parse(mail_content(data)), authored)
     return []
 
 
 def without_bcc(raw):
-    msg = parse(raw)
+    msg = parse(mail_content(raw))
     changed = False
     for part in msg.walk():
         for header in ("Bcc", "Resent-Bcc"):
@@ -157,8 +179,10 @@ def without_bcc(raw):
                 del part[header]
                 changed = True
         # Our attached .eml files use octet-stream to freeze their wire bytes.
-        if not part.is_multipart() and (part.get_filename() or "").lower().endswith(".eml"):
+        if not part.is_multipart():
             data = decoded(part)
+            if not (part.get_filename() or "").lower().endswith(".eml") and not is_mail(data):
+                continue
             clean = without_bcc(data)
             if clean != data:
                 del part["Content-Transfer-Encoding"]
