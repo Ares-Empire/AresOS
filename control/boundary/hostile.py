@@ -98,7 +98,7 @@ for name, args in [
     ('proxy-http', ['http://blocked.boundary.localhost:18080/payload']),
     ('proxy-connect', ['--proxytunnel', 'http://blocked.boundary.localhost:18080/payload']),
 ]:
-    command = ['curl', '--silent', '--show-error', '--fail', '--max-time', '5', *args]
+    command = ['curl', '--noproxy', '', '--silent', '--show-error', '--fail', '--max-time', '5', *args]
     probe = subprocess.run(command, capture_output=True, text=True)
     row = {'name': 'network:' + name, 'blocked': probe.returncode == 22 and '403' in probe.stderr,
            'exit': probe.returncode, 'stderr': probe.stderr.strip()}
@@ -111,5 +111,6 @@ Path('/tmp/claude').mkdir(exist_ok=True)
 Path('/tmp/claude/positive-control').write_text('sandbox executed\n')
 assert Path('/tmp/claude/positive-control').read_text() == 'sandbox executed\n'
 print('TEMP_WRITE_OK', flush=True)
+Path('/tmp/claude/hostile-results.json').write_text(json.dumps(results, indent=2))
 print('HOSTILE_DONE ' + str(len(results)), flush=True)
 raise SystemExit(0 if all(row['blocked'] for row in results) else 1)

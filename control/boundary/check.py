@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 MODE = os.environ.get('FILTER_MODE', 'present')
 FIXTURES = json.loads((ROOT / 'fixtures.json').read_text())
 ENV = {'PATH': '/usr/local/bin:/usr/bin:/bin', 'HOME': '/home/assistant',
-       'USER': 'assistant', 'LANG': 'C.UTF-8', 'DISABLE_AUTOUPDATER': '1',
+       'USER': 'assistant', 'LOGNAME': 'assistant', 'TERM': 'xterm-256color', 'LANG': 'C.UTF-8', 'DISABLE_AUTOUPDATER': '1',
        'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC': '1',
        'CLAUDE_CODE_AUTO_CONNECT_IDE': 'false'}
 
@@ -128,6 +128,8 @@ def main():
                 print('POSITIVE_REPLACE_ROOT ' + path, flush=True)
             put(path, original.decode(), uid=10001 if path.startswith('/home/') else 0)
         from native import native_checks
+        native_checks(run, put, MODE,
+                      {p: digest(p) for p in FIXTURES['reads'] + FIXTURES['writes'] + ['/dev/uinput']}, stub)
         # Run network positive controls before the zero-arrival observation window.
         config = ROOT / 'sandbox.json'
         original = config.read_bytes()
@@ -136,7 +138,7 @@ def main():
         config.write_text(json.dumps(allowed))
         try:
             for suffix, tunnel in [('http', ''), ('connect', '--proxytunnel ')]:
-                command = 'curl --silent --show-error --fail --max-time 5 ' + tunnel + 'http://blocked.boundary.localhost:18080/payload'
+                command = "curl --noproxy '' --silent --show-error --fail --max-time 5 " + tunnel + 'http://blocked.boundary.localhost:18080/payload'
                 positive = run(['/usr/local/bin/node', str(ROOT / 'run.mjs'), command], 'positive-proxy-' + suffix)
                 assert positive.stdout.strip() == 'OK'
         finally:
@@ -169,7 +171,6 @@ def main():
         assert stub.poll() is None, 'stub died during attacks'
         assert after_log == baseline, 'listener received hostile connection'
         print(f'BOUNDARY_OK mode={MODE} attacks={len(rows)} unchanged={len(snapshots)} hostile_connections=0', flush=True)
-        native_checks(run, put, MODE, snapshots, stub)
         launcher_checks()
         settings_checks()
     finally:
