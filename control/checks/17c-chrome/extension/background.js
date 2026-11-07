@@ -42,9 +42,10 @@ async function gate(source,p){
   await cmd(source,'Fetch.failRequest',{requestId:p.requestId,errorReason:'Aborted'});pending.set(entry.id,entry);emit('check.networkHeld',entry);
 }
 async function prepare(s,worker=false){
-  await cmd(s,'Runtime.enable');await cmd(s,'Network.enable');await cmd(s,'Debugger.enable');await cmd(s,'Debugger.setAsyncCallStackDepth',{maxDepth:32});
-  await cmd(s,'Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});
-  if(worker){await cmd(s,'Runtime.addBinding',{name:'__report17'});await cmd(s,'Runtime.evaluate',{expression:wrapSource});}
+  const setup=async(m,p={})=>{if(!worker)return cmd(s,m,p);emit('check.workerStage',{source:s,method:m});let timer;try{return await Promise.race([cmd(s,m,p),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('WORKER_SETUP_TIMEOUT '+m)),3000)})])}finally{clearTimeout(timer)}};
+  await setup('Runtime.enable');await setup('Network.enable');await setup('Debugger.enable');await setup('Debugger.setAsyncCallStackDepth',{maxDepth:32});
+  if(worker){await setup('Runtime.addBinding',{name:'__report17'});await setup('Runtime.evaluate',{expression:wrapSource});}
+  try{await setup('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});}catch(e){emit('check.workerGateUnsupported',{source:s,error:String(e)});if(!worker)throw e;}
   try{await cmd(s,'Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:true,flatten:true});}catch(e){emit('check.autoAttachUnsupported',{source:s,error:String(e)})}
 }
 chrome.debugger.onEvent.addListener((s,m,p)=>{
@@ -53,14 +54,14 @@ chrome.debugger.onEvent.addListener((s,m,p)=>{
   else if(m==='Target.attachedToTarget'){
     const child={...s,sessionId:p.sessionId};emit('check.child',{source:child,info:p.targetInfo,waiting:p.waitingForDebugger});
     prepare(child,true).catch(e=>emit('check.childError',{source:child,error:String(e)})).finally(()=>cmd(child,'Runtime.runIfWaitingForDebugger').catch(()=>{}));
-  }else if(m==='Network.requestWillBeSent')emit('check.initiator',{source:s,url:p.request.url,method:p.request.method,initiator:p.initiator});
+  }else if(m==='Network.requestWillBeSent'&&!publicMode)emit('check.initiator',{source:s,url:p.request.url,method:p.request.method,initiator:p.initiator});
   else if(/WebSocket|webTransport/i.test(m))emit(m,{source:s,...p});
 });
 chrome.debugger.onDetach.addListener((s,reason)=>emit('check.detached',{source:s,reason}));
 async function attach(tabId,controlled=true){
   const tab=await chrome.tabs.get(tabId);if(!safe(tab.url))throw Error('FORBIDDEN_PAGE');
   if(controlled){if(!group){group=await chrome.tabs.group({tabIds:[tabId]});await chrome.tabGroups.update(group,{title:'Claude',color:'blue'});}else await chrome.tabs.group({groupId:group,tabIds:[tabId]});selected=tabId;}
-  const s={tabId};if(!attached.has(tabId)){await chrome.debugger.attach(s,'1.3');attached.set(tabId,s);await prepare(s);}active=true;await badge(true);return {tabId,group};
+  const s={tabId};if(!attached.has(tabId)){await chrome.debugger.attach(s,'1.3');attached.set(tabId,s);await prepare(s);emit('check.gateReady',{source:s,url:tab.url});}active=true;await badge(true);return {tabId,group};
 }
 async function rpc(m,p){
   await ready;if(!wrapSource)wrapSource=await (await fetch(chrome.runtime.getURL('wrap.js'))).text();
@@ -90,7 +91,7 @@ chrome.runtime.onMessage.addListener((m,s,reply)=>{
   (async()=>{
     const exact=name=>s.id===chrome.runtime.id&&s.url?.split('?')[0]===chrome.runtime.getURL(name)&&s.frameId===0;
     if(m.attach&&exact('select.html')){await rpc('Check.attach',{tabId:m.attach});connect();return {attached:selected};}
-    if(m.report&&s.tab&&safe(s.url)){await report(m.report,{tabId:s.tab.id,frameId:s.frameId,documentId:s.documentId});return {};}
+    if(m.report&&s.tab&&(safe(s.url)||safe(s.origin))){await report(m.report,{tabId:s.tab.id,frameId:s.frameId,documentId:s.documentId});return {};}
     if(m.stop&&exact('popup.html')){await stop('popup Stop');return {stopped:true};}
     const ownDetails=s.id===chrome.runtime.id&&s.url?.startsWith(chrome.runtime.getURL('details.html')+'?id=')&&s.frameId===0;
     if(m.preview&&ownDetails)return {pending:pending.get(m.preview),unresolved:[...guards]};
