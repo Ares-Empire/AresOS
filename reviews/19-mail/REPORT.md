@@ -8,8 +8,9 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 [REVIEW-7.md](REVIEW-7.md), [SECURITY-REVIEW.md](SECURITY-REVIEW.md),
 [SECURITY-REVIEW-2.md](SECURITY-REVIEW-2.md),
 [SECURITY-REVIEW-3.md](SECURITY-REVIEW-3.md),
-[SECURITY-REVIEW-4.md](SECURITY-REVIEW-4.md), and
-[SECURITY-REVIEW-5.md](SECURITY-REVIEW-5.md).
+[SECURITY-REVIEW-4.md](SECURITY-REVIEW-4.md),
+[SECURITY-REVIEW-5.md](SECURITY-REVIEW-5.md), and
+[SECURITY-REVIEW-6.md](SECURITY-REVIEW-6.md).
 
 ## For the owner: decisions before merge
 
@@ -28,7 +29,7 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - **Sent setup:** when a short probe finds no Sent copy, setup asks you to confirm whether the client or server saves it rather than guessing from absence. Automatic negative detection would need a proven time bound for the real account.
 - **Folder deletion:** deletion only runs where the server refuses to delete a folder that holds mail, so no mail can be lost. If another mail program renames the approved empty folder and creates a new empty one with the same name in the same instant, the new empty one is deleted instead; the alternative is to remove folder deletion from the tools. Neither test server qualifies on its own, so the real account's guard still needs your check.
 - **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
-- **Approval prompt — owner decision, round 12:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut. Every recipient and sender in the sentence appears with its complete real address (“Mom <stranger@example.org>”); only display names can be shortened. Multiple mailboxes are counted separately. Malformed or missing addresses refuse approval, and complete addresses or folder names that exceed the question cap refuse instead of being cut. Reordered or extra/missing approval fields now refuse with `stale_approval` in both the proxy and service, before any submission or adapter call (round 13).
+- **Approval prompt — owner decision, round 12:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut. Every recipient and sender in the sentence appears with its complete real address (“Mom <stranger@example.org>”); only display names can be shortened. Multiple mailboxes are counted separately. Malformed or missing addresses refuse approval, and complete addresses or folder names that exceed the question cap refuse instead of being cut. Reordered or extra/missing approval fields now refuse with `stale_approval` in both the proxy and service, before any submission or adapter call (round 13); an asking input with a repeated field is refused (round 14).
 
 - **Filing after a folder-role race (rounds 10–11):** mail stays where the move or copy put it; nothing is moved back or deleted. You get a short warning with the filing id, message count and bounded folder names until acknowledged. Following Mail results and `aresos log` repeat the newest three warnings and count the rest; `mail_filing_notices` pages every warning, and `mail_filing_locations` returns exact locations on request. Cleaning up copies still requires the ordinary delete approval. If a special role moves to the target and back between the command and the check, the result can say done: the mail is in the intended target, which has no protected role at the end, and nothing is lost. Disabling free filing entirely was the alternative; changing this later affects only filing and its views.
 - **Stopping rule from the lead:** Claude can always write a file itself and attach it, and the approval then shows only its name, size and change time; that is the open owner question about Claude-written files. Any further finding of the kind “text Claude wrote reaches an attachment by a new route” is settled by your answer on how attachments are shown, not by another fix round. Blocking findings of any other kind still count.
@@ -38,6 +39,117 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - Complete onboarding with your aliases, authentication, TLS trust, special folders, delayed Sent behavior and folder-deletion guard; the tests use synthetic accounts only.
 - Check complete approvals on both terminal and phone, then try the seven everyday Claude mail tasks; automated protocol tests do not establish how usable those flows feel.
 - Send a forwarded `.eml` to recipients using Apple Mail, Outlook, Thunderbird, Gmail on the web and iOS Mail, and check how each opens or saves the exact attachment; the round-5 documentation does not establish its presentation.
+
+## Review fixes, round 14
+
+**Done — read:** addresses the blocking duplicate-key bypass and the cleanup
+feedback finding in [SECURITY-REVIEW-6.md](SECURITY-REVIEW-6.md), following
+`briefs/19-review-fixes-14.md` on top of `99b15db3` (reviewed code `3058c256`).
+
+- Shared base `common.py`: `strict_json_loads()` checks decoded keys with an
+  `object_pairs_hook` before constructing each dictionary, at every depth, and
+  rejects `NaN`/`Infinity`/`-Infinity`. On refusal, a separate lossless pairs-only
+  tree recovers action/id candidates solely to classify and answer the refusal;
+  it never becomes an executable request. Asking inputs return `stale_approval`;
+  other inputs return `invalid_input`.
+- Shared base `protocol.py`, both CLI input paths in `cli.py`, hook stdin in
+  `hooks.py`, and configuration reads in `daemon.py` now use that decoder before
+  validation, hashes, reservation, submission or adapter work. `control/launch.py`
+  also uses it: the installed launcher reads both proxy/service configuration
+  before dispatching to those modules, so leaving it permissive would miss an
+  actual configuration entrance. Internal storage reads in `storage.py`,
+  `blobs.py` and `testapp.py` deliberately remain unchanged.
+- Shared base `proxy.py`: the SDK's explicit stdin stream checks each raw line
+  before SDK JSON-RPC parsing. Refused lines never reach `call_tool` or the
+  service. A JSON-RPC error goes through the SDK's output stream, with the
+  caller's id and refusal code in `error.data.code`; repeated ids receive an
+  error for every distinct string/integer id candidate. Valid lines reach the
+  SDK unchanged; result ordering, approval equality and replay protection stay.
+- `mail/adapter.py::check_items()` keeps the original mailbox check, collects
+  offending references, escapes them in the refusal and says: “Leave these out
+  of the selection and delete them in your mail program.” Healthy messages can
+  still be prepared together without the offending message.
+
+**Tests — run:** shared raw-text builders and a real stdio client are in
+`control/raw_json_test_support.py`. New base tests in `control/tests/test_strict_json.py`:
+
+- `StrictJSON.test_decoder_refuses_duplicate_decoded_keys_at_every_depth_and_nonfinite`
+- `StrictJSON.test_config_and_hook_refuse_before_daemon_or_pending_call`
+- `StrictJSON.test_cli_nonasking_and_admin_config_refuse_before_proxy`
+- `RawApprovalJSON.test_raw_testapp_socket_and_cli_refuse_before_any_operation_work`
+- `RawApprovalJSON.test_raw_mcp_process_refuses_duplicates_before_service_then_executes_once`
+
+The only change to an existing brief-18 test file is the addition of
+`Integration.test_round14_raw_duplicates_real_proxy_socket_cli_no_effects_then_once`
+in `test_integration.py`. No earlier test or assertion changed. New Mail tests in
+`control/mail_tests/test_review_fixes_14.py`:
+
+- `PlainJSON14.test_round14_raw_mail_socket_and_cli_refuse_before_validation_and_execution`
+- `PlainJSON14.test_round14_delete_refusal_names_only_bad_references_and_healthy_batch_prepares`
+- `ServerJSON14.test_round14_real_proxy_socket_cli_duplicates_no_arrival_or_deletion_then_once`
+
+Raw cases cover duplicate `question` (plain and `\u0071uestion`),
+`operation_id`, `description`, a field inside `description`, and the transport
+request envelope (socket `action`, MCP `params`; CLI's approval is its envelope).
+Testapp send/delete and Mail send/delete/folder-delete each use socket, CLI and
+a real MCP proxy process. Refusals keep operations `reserved`, stages empty and
+fixtures unchanged. Portable guards prove no request/validation/hash/reservation/
+submission/stage/evidence/execution work, and the portable real MCP process
+asserts no outbound service call at all. The Mail server check uses Dovecot
+through the existing test-only serialized folder-deletion policy and scripted
+TLS SMTP: no IMAP command/SMTP arrival on refusal, one send/expunge/folder-delete
+on correct raw approval, and no effects from replays through all three routes.
+The cleanup test checks Trash and permanent deletion, exactly the bad reference
+including its escaped control, no reservation on refusal, and a healthy batch
+preparing successfully. It does not qualify a real provider's folder policy.
+
+**Verified — run, last code/test head `2fd2fcadfd326692b46dceb174c2da748c1161fd`:**
+
+| Workflow / pass | Exact relevant output |
+| --- | --- |
+| [Mail 42419938878, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42419938878/attempts/1) | `Ran 71 tests in 57.381s`; `Control base suite PASS`; `Ran 164 tests in 491.096s`; `Control Mail suite PASS` |
+| [Mail 42419938878, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42419938878/attempts/2) | `Ran 71 tests in 60.282s`; `Control base suite PASS`; `Ran 164 tests in 530.157s`; `Control Mail suite PASS` |
+| [Independent base 42419938827, attempt 1](https://github.com/Ares-Empire/AresOS/actions/runs/42419938827/attempts/1) | `Ran 71 tests in 55.340s`; `Control base suite PASS` |
+| [Independent base 42419938827, attempt 2](https://github.com/Ares-Empire/AresOS/actions/runs/42419938827/attempts/2) | `Ran 71 tests in 62.888s`; `Control base suite PASS` |
+
+Both Mail passes run all 164 Mail tests and the complete 71-test base suite;
+both independent base passes run all 71 tests. Every pass prints generated-artifact
+agreement and its suite PASS lines. The automatic [boundary run 42419938819](https://github.com/Ares-Empire/AresOS/actions/runs/42419938819)
+also passed; no boundary test or workflow changed.
+
+
+Local commands, repeated before each push:
+`python3 control/generate.py --check` → `Generated artifacts match definitions`;
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/mail_tests:.work/round10/vendor python3 .work/round10/check-local.py`
+→ `Python syntax OK: 86 files`, `Ran 46 tests`, `OK`;
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round10/vendor python3 -m unittest test_operations test_record test_crashes test_approval_questions`
+→ `Ran 38 tests`, `OK`, unchanged record-growth evidence;
+`PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/tests:.work/round14/vendor python3 -m unittest test_strict_json -v`
+→ `Ran 5 tests`, `OK`. The last uses worktree-local official MCP SDK 2.3.0 on
+Python 3.14.6; CI uses the unchanged Linux dependency lock and Python 3.15.
+The untracked `.work/round14/check-baseline.py` and `check-mail-baseline.py`
+substitute the relevant reviewed `3058c256` implementations; they print that
+all five new portable base and both portable Mail regressions fail as expected.
+The MCP baseline check launches the actual reviewed proxy sources in a process.
+The additional untracked `.work/round14/check-envelope-only.py` prints
+`Envelope-only duplicate PASS`: isolated socket `action` and MCP `params`
+duplicates, with otherwise correct approvals, refuse for testapp send/delete and
+Mail send/delete/folder-delete; every operation stays reserved with no stages,
+and neither real MCP proxy forwards a refused request.
+No container or system software was installed on this Mac.
+
+**Not verified:** real-account onboarding, provider policy and terminal/phone
+presentation still need the owner's checks above. No new screenshots apply.
+**JUDGMENT-CALL / PLAN-GAP / Open questions:** none added; existing owner decisions
+remain. No fresh security hunt, workflow change or boundary-policy work.
+
+Two pushes: code/tests together with the already-local review/brief commit, then
+this report. Any later commit after the code/test head above changes only files
+under `reviews/`; final-head results are recorded in draft PR #9. Second passes
+rerun the same run ids. Four required Mail/base workflow ids across the two
+heads, with automatic boundary runs additional; no push solely for a rerun.
+Normal pre-push verification retained; no merge, rebase or force push. Closing
+size scan: `Remaining .work files over 500 MB: []`.
 
 ## Review fixes, round 13
 
