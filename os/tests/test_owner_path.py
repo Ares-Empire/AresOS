@@ -434,6 +434,13 @@ class OwnerPathTest(unittest.TestCase):
                      'maintainer has updated this table','each step'):
             self.assertIn(term,c)
         self.assertNotIn('Until it permits physical installation, read only',guide)
+        # The guide's step 4 header must agree with the Stage C row.
+        step4=section(guide,'4-install-and-prepare-corrected-stock')
+        if '**RELEASED' in c:
+            self.assertNotIn('NOT RELEASED',step4)
+            self.assertIn('Stage C — released',step4)
+        else:
+            self.assertIn('Stage C — NOT RELEASED',step4)
         for anchor in ('1-backups-recovery-and-windows-preparation','3-fit-and-identify-both-drives',
                        '4-install-and-prepare-corrected-stock'):
             self.assertIn('stop here and send your records to the maintainer',section(guide,anchor))

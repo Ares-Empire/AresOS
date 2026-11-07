@@ -54,7 +54,7 @@ First command normally prints nothing; second must show **Ruhezustand / Schnells
 
 ## 4. Install and prepare corrected stock
 
-**Stage C — NOT RELEASED:** start only after the maintainer has checked A and B, the native mounted-child check has passed, and the maintainer has updated the [status table](INSTALL-STATUS.md#current-gates) to release C. From here, at the end of **each step, stop here and send your records to the maintainer** before continuing.
+**Stage C — released 2026-11-07** in the [status table](INSTALL-STATUS.md#current-gates), after the maintainer checked A and B and the native mounted-child check passed. From here, at the end of **each step, stop here and send your records to the maintainer** before continuing.
 
 - [ ] AC connected, lid open. **Offline from this live boot until prepare passes:** no Wi-Fi profile or Ethernet. The installer copies network profiles. Disconnect backup/recovery devices. **F12** (or **Fn+F12**) → UEFI installer USB.
 - [ ] Before Konsole: **System Settings → Keyboard → Layouts → Enable** (accessible name **Configure Layouts**) → **Add → German → OK**, German first/active, Global switching if offered → **Apply**. In a text editor physically type `y z / - " $ ä ö ü`; correct every character. Repeat after every live boot. Then open Konsole → [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux). Match Micron to A and Crucial to its label by full identity, never disk number/size alone. Require Micron unchanged/unmounted and Crucial empty (no partitions, signatures, mounts or prior data). **Return to step 4** here with a same-session mapping.
