@@ -5,13 +5,15 @@ import json
 import os
 import subprocess
 import sys
+import time
+import uuid
 from pathlib import Path
 import unittest
 from unittest.mock import patch
 
 from support import MailCase
 from smtp_fixture import SMTPFixture
-from test_review_fixes_2 import ReviewFixes2
+import test_review_fixes_2 as previous
 from aresos_control.common import Refused, canonical, visible
 from aresos_control.mail import codec, guard
 from aresos_control.mail.roles import resolve
@@ -72,7 +74,7 @@ class HeaderRules7(unittest.TestCase):
 
 
 class ReviewFixes7(MailCase):
-    caller = ReviewFixes2.caller
+    caller = previous.ReviewFixes2.caller
 
     def keys(self, comp):
         return {k:comp[k] for k in ('composition_id','composition_hash')}
@@ -85,12 +87,52 @@ class ReviewFixes7(MailCase):
                 result[name] = (validity, [(uid, *fetch(conn, uid, self.mail.wires.limit)) for uid in uids(conn)])
         return result
 
+    def tearDown(self):
+        try:
+            if getattr(self, '_roles_changed', False):
+                self.configure_roles('default')
+        finally:
+            super().tearDown()
+
+    def configure_roles(self, kind):
+        work = Path(__file__).resolve().parents[2] / '.work/mail-ci'
+        request_id = uuid.uuid4().hex
+        temporary = work / 'role-request-next.json'
+        temporary.write_text(json.dumps({'id':request_id,'mode':kind}))
+        temporary.replace(work / 'role-request.json')
+        for _ in range(400):
+            response = work / 'role-response.json'
+            if response.exists():
+                value = json.loads(response.read_text())
+                if value['id'] == request_id:
+                    self.assertTrue(value['ok'], value)
+                    break
+            time.sleep(0.05)
+        else:
+            self.fail('Disposable Dovecot role configuration timed out')
+        # Reload completion is proven by fresh real LIST responses, not a sleep.
+        expected = {'Sent':['Posta'], 'Drafts':['Bozze'], 'Trash':['Cestino'],
+                    'Junk':['Indesiderata'], 'Archive':['Archivio']}
+        if kind in {'trash','drafts','sent'}:
+            role = kind.title()
+            expected[role] = ['New' + role]
+        elif kind == 'missing':
+            expected['Trash'] = []
+        elif kind == 'ambiguous':
+            expected['Trash'] = ['Cestino','DuplicateTrash']
+        for _ in range(200):
+            with self.mail.transport.imap(self.account) as conn:
+                listed = folders(conn)
+            actual = {role:sorted(f['name'] for f in listed if '\\' + role in f['flags']) for role in expected}
+            if actual == expected:
+                return listed
+            time.sleep(0.05)
+        self.fail('Dovecot LIST never exposed requested role configuration: ' + repr(actual))
+
     def switch_roles(self, kind):
-        self.account['imap_host'] = 'roles-' + kind + '.invalid'
-        self.engine.store.write({'mail:account:box':self.account}, 'fixture', 'server role configuration switched')
-        with self.mail.transport.imap(self.account) as conn:
-            listed = folders(conn)
-        return listed
+        if not getattr(self, '_roles_changed', False):
+            self._roles_changed = True
+        return self.configure_roles(kind)
 
     def record_roles(self):
         proposal = self.data('account_folders', {'id':'box'}, admin=True)
@@ -257,6 +299,16 @@ class ReviewFixes7(MailCase):
         self.assertEqual(approval['description']['subject'], 'Re: Original café')
         self.assertIn('\\u202e', approval['description']['to'][0])
         self.assertNotIn('=?', canonical(approval['description']))
+        msg.replace_header('Subject', 'Original \u202e subject')
+        ref = self.fixture(msg=msg)
+        derived = self.data('compose', {'account':'box','mode':'reply','reference':ref,'text':'Reply text'})
+        shown = self.data('prepare_send', self.keys(derived))['approval']['description']
+        self.assertEqual(shown['subject'], visible('Re: Original \u202e subject'))
+        file_name = 'invoice\u202e.pdf'
+        received = self.fixture(attachments=[(file_name, b'%PDF-received', 'application/pdf')])
+        attachment_comp = self.compose(attachments=[{'reference':received,'part':'1.2'}])
+        shown = self.data('prepare_send', self.keys(attachment_comp))['approval']['description']
+        self.assertEqual(shown['attachments'][0]['name'], visible(file_name))
         comp = self.compose(to=['Аlice <alice@mail.invalid>'], cc=['Café <copy@mail.invalid>'], bcc=['Hidden <hidden@mail.invalid>'], subject='Unicode café')
         approval = self.data('prepare_send', self.keys(comp))['approval']
         self.assertEqual(approval['description']['to'], ['Аlice <alice@mail.invalid>'])

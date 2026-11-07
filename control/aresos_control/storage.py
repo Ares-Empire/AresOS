@@ -22,7 +22,7 @@ def sync_directory(path):
 def short_description(operation):
     description = operation["approval"]["description"]
     if operation.get("app") == "mail" and "untrusted_content" in description:
-        return copy.deepcopy(description)
+        return {"action": description["action"], "untrusted_content": copy.deepcopy(description["untrusted_content"])}
     result = {k: copy.deepcopy(description[k]) for k in
               ("action", "account", "to", "cc", "bcc", "subject", "title") if k in description}
     result.setdefault("action", operation["action"])
@@ -209,9 +209,14 @@ class Store:
             version = self.db.execute("SELECT seq FROM operation_versions WHERE id=?", (op_id,)).fetchone()
             if old is None or version != (seq,) or old["state"] == "submitting":
                 if old is None:
+                    description = copy.deepcopy(known["description"])
+                    if known["description"]["action"].startswith("mail_"):
+                        # Keep the historical operation-status shape while its
+                        # compact audit record retains the untrusted marking.
+                        description.update(description.get("untrusted_content", {}))
                     old = {"id": op_id, "generation": known["generation"], "input_hash": known["input_hash"],
                            "app": known["description"]["action"].split("_", 1)[0], "action": known["description"]["action"],
-                           "approval": {"operation_id": op_id, "description": known["description"]},
+                           "approval": {"operation_id": op_id, "description": description},
                            "payload": {}, "expires": 0, "stages": {}}
                 old.update(state="unknown", reason="Restored log: independent record has newer or missing evidence. Owner must check.")
                 changes[key] = old

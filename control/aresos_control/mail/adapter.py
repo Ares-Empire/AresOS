@@ -457,7 +457,7 @@ class Mail:
             major, minor = item["type"].split("/", 1)
             if item["type"] == "message/rfc822":
                 major, minor = "application", "octet-stream"
-            msg.add_attachment(data, maintype=major, subtype=minor, filename=codec.clean_header(item["name"]), cte="base64")
+            msg.add_attachment(data, maintype=major, subtype=minor, filename=codec.clean_header(item["name"], authored="source" not in item), cte="base64")
         raw = msg.as_bytes()
         if len(raw) > self.wires.limit:
             raise Refused("file_refused", "Encoded whole mail exceeds 64 MiB limit; reduce attachments.")
