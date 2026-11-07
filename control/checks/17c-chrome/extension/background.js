@@ -75,6 +75,7 @@ async function rpc(m,p){
   if(m==='Check.ownerTab'){ownerTab=p.tabId;return attach(p.tabId,false);}
   if(m==='Check.ownerCommand')return cmd({tabId:ownerTab},p.method,p.params);
   if(m==='Check.decide')return decide(p.id,p.release);
+  if(m==='Check.traceRelease'){const held=pending.get(p.id);if(!held)throw Error('NOT_PENDING');return pageCall(held,true);}
   if(m==='Check.stop')return stop('runner');
   if(m==='Check.popup')return chrome.action.openPopup();
   if(m==='Check.detach'){await chrome.debugger.detach({tabId:selected});attached.delete(selected);return {};}

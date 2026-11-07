@@ -130,8 +130,9 @@ try{
   for(const kind of ['sync','timer','promise','mutation','postMessage','worker']){
    await nav();const id='cause-'+kind;if(kind==='worker')audit.set(id+'-first',0);await evaluate(bridge,`fetch=__hold17.original.fetch;causeTest('${kind}','${id}');true`);const offset=(await state()).history.length;await click('#cause');await delay(600);const s=await state(),p=s.pending.find(p=>p.description?.url?.endsWith('case='+id)||p.url?.endsWith('case='+id));assert.ok(p,'cause held '+kind);await count(id,0);
    // Release the wrapper only into a deliberately denied network gate to obtain CDP initiators.
-   if(!p.network){await evaluate(bridge,`__hold17.decide(${JSON.stringify(p.localId)},true);true`);await delay(400);}
-   const events=(await state()).history.slice(offset).filter(r=>r.method==='check.initiator'&&r.params.url.includes(id));const correct=events.some(e=>JSON.stringify(e.params.initiator).includes('action17c'));traces.push({kind,correct,unknown:!correct,pageOwned:false,events,wrapperStack:p.stack});await dropAll();
+   if(!p.network)await bridge.send('Check.traceRelease',{id:p.id});
+   const relevant=r=>r.method==='check.initiator'&&new URL(r.params.url).pathname==='/receive'&&new URL(r.params.url).searchParams.get('case')===id;
+   await eventually(async()=>(await state()).history.slice(offset).some(relevant),'actual send initiator '+kind);const events=(await state()).history.slice(offset).filter(relevant);const correct=events.some(e=>JSON.stringify(e.params.initiator).includes('action17c'));traces.push({kind,correct,unknown:!correct,pageOwned:false,events,wrapperStack:p.stack});await dropAll();
   }
   log('Q4_CAUSES',{correct:traces.filter(t=>t.correct).length,total:traces.length,falsePage:0,traces});
   // Existing live object before attachment: remove cooperative wrap, then reattach inventory.
