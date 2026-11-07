@@ -649,6 +649,13 @@ Settings checks: the prompt's "Yes, and don't ask again" choice must not switch 
   allowed host.
 - **The prompt on his phone:** the owner looks at a test send prompt through Remote Control (an action, not a
   decision; section 8).
+- **Claude in Chrome on AresOS** (asked 2026-11-07, board #58). The central session can't load it either way
+  (`managed-mcp.json` lists only the control layer's servers; a hostile test checks that). Blocking it by Chrome
+  policy (section 6) adds a little safety but takes the side panel from the owner's own use. Recommended: keep it for
+  him.
+- **Machine-wide rules** (board #59): the managed settings apply to every Claude Code session on the machine and
+  change only with the admin password. That is what makes them hold; coding sessions get their own rules only if
+  they run apart (above).
 
 **For the owner, later:**
 
