@@ -54,38 +54,93 @@ def parse_mountinfo(mountinfo):
     for line in mountinfo.splitlines():
         before, after = line.split(' - ', 1)
         fields, fs = before.split(), after.split()
-        mounts.append({'root': fields[3], 'mount': fields[4], 'options': fields[5],
-                       'filesystem': fs[0], 'source': fs[1]})
+        assert len(fields) >= 6 and len(fs) == 3, line
+        def unescape(value):
+            return re.sub(r'\\([0-7]{3})', lambda match: chr(int(match[1], 8)), value)
+        mounts.append({'id': fields[0], 'parent': fields[1], 'device': fields[2],
+                       'root': unescape(fields[3]), 'mount': unescape(fields[4]), 'options': fields[5],
+                       'propagation': fields[6:], 'filesystem': fs[0],
+                       'source': unescape(fs[1]), 'super_options': fs[2]})
     return mounts
 
 
+def normalize_mount_path(value):
+    value = re.sub(r'(/tmp/claude-10001/-home-assistant-work/)[0-9a-f]{8}'
+                   r'(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?=/|$)', r'\1<session>', value)
+    return re.sub(r'/tmp/claude-http-[0-9a-f]+\.sock', '/tmp/claude-http-<nonce>.sock', value)
+
+
+def contains_path(parent, path):
+    return path == parent or path.startswith(parent.rstrip('/') + '/')
+
+
+def mount_tree(mountinfo):
+    mounts = parse_mountinfo(mountinfo)
+    by_id = {m['id']: m for m in mounts}
+    assert len(by_id) == len(mounts), 'duplicate mount ID'
+    roots = [m for m in mounts if m['parent'] not in by_id or m['parent'] == m['id']]
+    assert len(roots) == 1 and roots[0]['mount'] == '/', 'missing/ambiguous mount root'
+    root = roots[0]
+    children = {m['id']: [] for m in mounts}
+    for mount in mounts:
+        if mount is not root:
+            assert contains_path(by_id[mount['parent']]['mount'], mount['mount']), mount
+            children[mount['parent']].append(mount)
+
+    # Canonical traversal maps IDs to tree positions, keeping covered mounts and
+    # their descendants. Line order and numeric IDs do not determine visibility.
+    seen = set()
+    def subtree(mount):
+        assert mount['id'] not in seen, 'cycle in mount tree'
+        seen.add(mount['id'])
+        data = {k: normalize_mount_path(v) if isinstance(v, str) else v
+                for k, v in mount.items() if k not in ('id', 'parent')}
+        branches = [subtree(child) for child in children[mount['id']]]
+        branches.sort(key=lambda branch: branch[3])
+        signature = (json.dumps(data, sort_keys=True), tuple(branch[3] for branch in branches))
+        return data, branches, mount['id'], signature
+    tree = subtree(root)
+    assert len(seen) == len(mounts), 'disconnected mount tree'
+    canonical = {}
+    def number(branch, parent):
+        data, branches, raw_id, _ = branch
+        identity = len(canonical)
+        canonical[raw_id] = dict(data, id=identity, parent=parent)
+        for child in branches:
+            number(child, identity)
+    number(tree, None)
+    return root, children, canonical
+
+
 def mount_view(mountinfo):
-    # Session UUIDs and proxy-socket nonces are the only variable path fields.
-    # Keep mount destinations, backing roots, modes and filesystem sources.
-    def normalize(value):
-        value = re.sub(r'(/tmp/claude-10001/-home-assistant-work/)[0-9a-f-]{36}(?=/|$)',
-                       r'\1<session>', value)
-        return re.sub(r'/tmp/claude-http-[0-9a-f]+\.sock', '/tmp/claude-http-<nonce>.sock', value)
-    view = {}
-    for mount in parse_mountinfo(mountinfo):
-        entry = {k: normalize(v) for k, v in mount.items()}
-        view[entry['mount']] = entry
-    return view
+    return list(mount_tree(mountinfo)[2].values())
+
+
+def effective_mount(path, root, children):
+    mount = root
+    while True:
+        candidates = [child for child in children[mount['id']] if contains_path(child['mount'], path)]
+        if not candidates:
+            return mount
+        # Walk path components before following descendants. An overmount at
+        # this component covers every deeper child attached to the old parent.
+        length = min(len(child['mount']) for child in candidates)
+        next_mounts = [child for child in candidates if len(child['mount']) == length]
+        assert len(next_mounts) == 1, 'ambiguous sibling mounts at ' + path
+        mount = next_mounts[0]
 
 
 def policy_mounts(mountinfo, settings):
-    # mountinfo retains covered mounts too. At the same destination the later
-    # overmount is effective; choosing the first incorrectly reports it writable.
-    mounts = {m['mount']: m for m in parse_mountinfo(mountinfo)}
+    root, children, canonical = mount_tree(mountinfo)
     result = {}
     for kind in ('denyRead', 'allowRead', 'denyWrite'):
         for value in settings['sandbox']['filesystem'][kind]:
             path = value.replace('~/', '/home/assistant/')
-            mount = max((m for m in mounts.values() if path == m['mount'] or
-                         path.startswith(m['mount'].rstrip('/') + '/')), key=lambda m: len(m['mount']))
+            mount = canonical[effective_mount(path, root, children)['id']]
             hidden = mount['filesystem'] == 'tmpfs' or mount['root'] == '/null'
             result[kind + ':' + value] = {**mount, 'view': 'hidden' if hidden else
-                                        'read-only' if 'ro' in mount['options'].split(',') else 'writable'}
+                                        'read-only' if 'ro' in (mount['options'] + ',' +
+                                                               mount['super_options']).split(',') else 'writable'}
     return result
 
 

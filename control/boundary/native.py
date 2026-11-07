@@ -229,6 +229,8 @@ def native_checks(run, put, mode, snapshots, stub):
         assert len(baseline_contexts) == 1 and len(contexts) == 2, 'incomplete native outside observation'
         settings = json.loads(POLICY.read_text())
         baseline_view = policy_mounts(baseline_contexts[0]['mountinfo'], settings)
+        baseline_tree = mount_view(baseline_contexts[0]['mountinfo'])
+        trees = {'baseline': baseline_tree}
         views = {}
         for key, identity in identities.items():
             matches = [c for c in contexts if c['namespaces'] == identity['namespaces'] and
@@ -237,9 +239,18 @@ def native_checks(run, put, mode, snapshots, stub):
             context = matches[0]
             validate_identity(context, container_identity())
             views[key] = policy_mounts(context['mountinfo'], settings)
+            trees[key] = mount_view(context['mountinfo'])
+            differences = [{'index': index, 'baseline': baseline_tree[index] if index < len(baseline_tree) else None,
+                            'approved': trees[key][index] if index < len(trees[key]) else None}
+                           for index in range(max(len(baseline_tree), len(trees[key])))
+                           if index >= min(len(baseline_tree), len(trees[key])) or
+                           baseline_tree[index] != trees[key][index]]
+            (OUT / 'native-mount-trees.json').write_text(json.dumps(trees, indent=2))
+            (OUT / (key + '-mount-tree-differences.json')).write_text(json.dumps(differences, indent=2))
+            (OUT / 'native-policy-mounts.json').write_text(json.dumps({
+                'baseline': baseline_view, **views}, indent=2))
+            assert not differences, 'approval changed native full mount tree: ' + json.dumps(differences)
             assert views[key] == baseline_view, 'approval changed native policy mount view'
-            assert mount_view(context['mountinfo']) == mount_view(baseline_contexts[0]['mountinfo']), \
-                'approval changed native full mount view'
         (OUT / 'native-policy-mounts.json').write_text(json.dumps({
             'baseline': baseline_view, **views}, indent=2))
         native_after = (OUT / 'stub.txt').read_text().splitlines()
@@ -258,7 +269,7 @@ def native_checks(run, put, mode, snapshots, stub):
         assert stub.poll() is None, 'native listener died'
         print('NATIVE_BOUNDARY_OK mode=' + mode + ' attacks=' + str(len(hostile_rows)) +
               ' isolated_net_mnt filters_above_container AF_UNIX=EPERM AF_VSOCK=EPERM unchanged=' + str(len(integrity)) +
-              ' hostile_connections=0 approval_mount_view_unchanged', flush=True)
+              ' hostile_connections=0 approval_mount_tree_unchanged mounts=' + str(len(baseline_tree)), flush=True)
     try:
         run(['/usr/local/bin/node', str(ROOT / 'run.mjs'), '--native-canary'], 'native-embedded-canary-planted')
     finally:

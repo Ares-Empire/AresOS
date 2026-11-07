@@ -1,4 +1,4 @@
-"""Regression mutations for the two REVIEW-2 false-pass findings."""
+"""Regression mutations for the REVIEW-2 and REVIEW-3 false-pass findings."""
 import copy
 import json
 from pathlib import Path
@@ -91,6 +91,70 @@ class EvidenceChecks(unittest.TestCase):
         self.assertEqual(policy_mounts(mounts, settings)['denyWrite:/work']['view'], 'read-only')
         self.assertNotEqual(mount_view(mounts), mount_view(mounts.replace('3 2 0:1 /work /work ro',
                                                                                   '3 2 0:1 /work /work rw')))
+
+    def test_reparented_read_only_mount_under_covered_parent_is_detected(self):
+        # REVIEW-3: every field except the read-only work mount's parent stays
+        # identical. The old destination-only comparison accepted this escape.
+        mounts = ('1 0 0:1 / / ro - overlay overlay rw\n'
+                  '2 1 0:1 /work /home/work rw - overlay overlay rw\n'
+                  '3 2 0:1 /work /home/work rw - overlay overlay rw\n'
+                  '4 1 0:2 / /home rw - tmpfs tmpfs rw\n'
+                  '5 4 0:1 /work /home/work rw - overlay overlay rw\n'
+                  '6 5 0:1 /work /home/work rw - overlay overlay rw\n'
+                  '7 6 0:1 /work /home/work ro - overlay overlay rw\n')
+        changed = mounts.replace('7 6 ', '7 3 ')
+        settings = {'sandbox': {'filesystem': {'denyRead': [], 'allowRead': ['/home/work'],
+                                              'denyWrite': ['/home/work/new/file']}}}
+        self.assertNotEqual(mount_view(mounts), mount_view(changed))
+        self.assertEqual(policy_mounts(mounts, settings)['allowRead:/home/work']['view'], 'read-only')
+        self.assertEqual(policy_mounts(changed, settings)['allowRead:/home/work']['view'], 'writable')
+        self.assertEqual(policy_mounts(changed, settings)['denyWrite:/home/work/new/file']['view'], 'writable')
+
+    def test_writable_overmount_covers_read_only_policy_path_in_any_line_order(self):
+        lines = ['1 0 0:1 / / ro - overlay overlay rw',
+                 '2 1 0:1 /work /work ro - overlay overlay rw',
+                 '3 2 0:1 /work /work rw - overlay overlay rw']
+        settings = {'sandbox': {'filesystem': {'denyRead': [], 'allowRead': [], 'denyWrite': ['/work']}}}
+        for order in (lines, lines[::-1], [lines[2], lines[0], lines[1]]):
+            with self.subTest(order=order):
+                self.assertEqual(policy_mounts('\n'.join(order), settings)['denyWrite:/work']['view'], 'writable')
+                self.assertEqual(mount_view('\n'.join(order)), mount_view('\n'.join(lines)))
+
+    def test_full_tree_preserves_covered_mounts_propagation_and_super_options(self):
+        mounts = ('1 0 0:1 / / ro shared:9 - overlay overlay rw\n'
+                  '2 1 0:2 / /work ro master:9 - tmpfs tmpfs rw,size=4k\n'
+                  '3 2 0:1 /work /work rw - overlay overlay rw\n')
+        for changed in (mounts.replace('2 1 0:2 / /work ro', '2 1 0:2 / /work rw'),
+                        mounts.replace('master:9', 'master:8'), mounts.replace('shared:9', 'shared:8'),
+                        mounts.replace('size=4k', 'size=8k'), mounts.replace('0:2', '0:3'),
+                        mounts.replace('/work /work rw', '/other /work rw'),
+                        mounts.replace('- tmpfs tmpfs', '- tmpfs other'),
+                        mounts.replace('- tmpfs tmpfs', '- ramfs tmpfs'),
+                        mounts.replace('2 1 0:2 / /work ro master:9 - tmpfs tmpfs rw,size=4k\n', '').replace('3 2 ', '3 1 ')):
+            with self.subTest(changed=changed):
+                self.assertNotEqual(mount_view(mounts), mount_view(changed))
+
+    def test_only_session_fields_and_id_numbering_are_normalized(self):
+        mounts = ('1 0 0:1 / / ro - overlay overlay rw\n'
+                  '2 1 0:1 /tmp/claude-10001/-home-assistant-work/12345678-1234-1234-1234-123456789abc '
+                  '/session ro - overlay overlay rw\n'
+                  '3 1 0:1 /tmp/claude-http-abcd.sock /proxy ro - overlay overlay rw\n')
+        renumbered = mounts.replace('1 0 ', '90 89 ').replace('2 1 ', '12 90 ').replace('3 1 ', '11 90 ')
+        changed = renumbered.replace('12345678-1234-1234-1234-123456789abc',
+                                     'abcdef12-abcd-abcd-abcd-abcdef123456').replace('http-abcd.sock', 'http-1234.sock')
+        self.assertEqual(mount_view(mounts), mount_view(changed))
+        self.assertNotEqual(mount_view(mounts), mount_view(mounts.replace('/session', '/other')))
+
+    def test_mount_path_escapes_superblock_read_only_and_invalid_trees(self):
+        mounts = ('1 0 0:1 / / rw - overlay overlay rw\n'
+                  '2 1 0:2 /work /work\\040space rw - ext4 /dev/root ro\n')
+        settings = {'sandbox': {'filesystem': {'denyRead': [], 'allowRead': [],
+                                              'denyWrite': ['/work space/file']}}}
+        self.assertEqual(policy_mounts(mounts, settings)['denyWrite:/work space/file']['view'], 'read-only')
+        for changed in (mounts + mounts.splitlines()[0], mounts.replace('2 1 ', '2 2 '),
+                        mounts.replace('2 1 ', '2 3 ')):
+            with self.subTest(changed=changed), self.assertRaises(AssertionError):
+                mount_view(changed)
 
 
 if __name__ == '__main__':
