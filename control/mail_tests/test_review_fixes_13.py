@@ -33,12 +33,14 @@ class PlainApprovals13(unittest.TestCase):
 
     def source(self, sender, target=None):
         msg = EmailMessage()
-        msg['From'] = sender
         msg['Message-ID'] = self.imap.mid
         if target:
             msg['List-Unsubscribe'] = '<' + target + '>'
         msg.set_content('Synthetic source')
-        self.imap.boxes['Source'][1] = msg.as_bytes(policy=codec.SMTP_POLICY)
+        # Python 3.15's generator can encode earlier mailboxes into the last
+        # display name when folding long names. Supply the exact incoming header.
+        raw_from = ('From: ' + sender.replace(', ', ',\r\n ') + '\r\n').encode('ascii')
+        self.imap.boxes['Source'][1] = raw_from + msg.as_bytes(policy=codec.SMTP_POLICY)
 
     def test_round13_unsubscribe_long_name_and_117_character_address_real_preparation(self):
         long_name = 'Mom ' + 'x' * 200
@@ -56,6 +58,8 @@ class PlainApprovals13(unittest.TestCase):
         senders = ['Name ' + 'x' * 200 + f' <sender{i}@example.org>' for i in range(5)]
         for count in (2, 5):
             self.source(', '.join(senders[:count]))
+            self.assertEqual([a.addr_spec for a in codec.parse(self.imap.boxes['Source'][1])['From'].addresses],
+                             [f'sender{i}@example.org' for i in range(count)])
             item = self.mail.named_item(self.reference())
             approval = self.approval('delete', {'items': [item], 'mode': 'permanent'})
             for i in range(min(count, 3)):
