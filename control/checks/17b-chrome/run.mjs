@@ -2,12 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
-import {execFileSync,spawnSync} from 'node:child_process';
+import {execFileSync,spawn} from 'node:child_process';
 if(process.platform!=='linux'||process.env.GITHUB_ACTIONS!=='true')throw Error('Browser runs only on GitHub Linux runners');
 const here=path.resolve('control/checks/17b-chrome'),work=path.resolve('.work/17b-chrome'),out=work+'/artifacts';
 fs.mkdirSync(out,{recursive:true});
 const {fixture}=await import('./fixture.mjs');
-const {launch,address,key,delay,activateChrome,screenshot,x}=await import('../17-chrome/ui.mjs');
+const {address,key,delay,activateChrome,screenshot,x}=await import('../17-chrome/ui.mjs');
 const {nativeBridge,evaluate,eventually}=await import('../17-chrome/protocol.mjs');
 const {pack,idFor}=await import('../17-chrome/install.mjs');
 const summary={run:process.env.GITHUB_RUN_ID,head:process.env.GITHUB_SHA,cases:[]},audit=new Map();
@@ -32,7 +32,12 @@ for(const label of ['system','user']){
 function policy(userHosts){const p={ExtensionInstallForcelist:[id+';'+f.base+'/update.xml'],ExtensionInstallBlocklist:['fcoeoabgfenejglbffodgkkbkcdhcgfn'],NativeMessagingUserLevelHosts:userHosts};const file=work+'/policy.json';fs.writeFileSync(file,JSON.stringify(p));execFileSync('sudo',['install','-D','-m','644',file,'/etc/opt/chrome/policies/managed/aresos-17b.json']);save('policy-'+userHosts,p);}
 policy(true);
 async function stop(kill=false){bridge?.close();bridge=undefined;if(chrome?.exitCode===null){if(kill){chrome.kill('SIGKILL');execFileSync('pkill',['-KILL','-f',work+'/profile'],{stdio:'ignore'});}else{await activateChrome();await key('ctrl+shift+q');await delay(2000);if(chrome.exitCode===null)chrome.kill('SIGTERM');}await delay(600);}chrome=undefined;}
-async function boot(label){bridge=await nativeBridge(socket);chrome=launch(work+'/profile',f.base+'/',out+'/chrome-'+label+'.log');await activateChrome();await delay(2200);await connect();}
+async function boot(label){
+ bridge=await nativeBridge(socket);
+ const args=[`--user-data-dir=${work}/profile`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode',f.base+'/'];
+ save('chrome-'+label+'-args',args);const fd=fs.openSync(out+'/chrome-'+label+'.log','a');chrome=spawn('/usr/bin/google-chrome-stable',args,{stdio:['ignore',fd,fd]});
+ await activateChrome();await delay(5000);await screenshot(out,'boot-'+label);await connect();
+}
 async function connect(){
   const conn=new Promise(r=>bridge.once('check.connected',r));
   await key('ctrl+t');await address(`chrome-extension://${id}/select.html?url=${encodeURIComponent(f.base+'/')}`);await key('Return');
@@ -85,10 +90,10 @@ try{
  await nav();await bridge.send('Check.config',{mode:'repeat'});
  const repeated=[];bridge.on('check.repeated',r=>repeated.push(r));
  for(const kind of ['fetch','xhr','form']){
-   await nav();const id='repeat-'+kind;for(let i=0;i<3;i++){await evaluate(bridge,`send('${id}','${kind}');'ok'`);await delay(400);}
+   await nav();const id='repeat-'+kind;for(let i=0;i<3;i++){await nav();await evaluate(bridge,`send('${id}','${kind}');'ok'`);await delay(400);}
    const rows=repeated.filter(r=>r.url.includes('case='+id));assert.equal(rows.length,3);assert.equal(arrivals(id).length,0);
    const first=rows[0];assert.ok(rows.every(r=>r.url===first.url&&r.method===first.method&&r.body===first.body));
-   await bridge.send('Check.arm',{url:first.url,method:first.method,body:first.body});await evaluate(bridge,`send('${id}','${kind}');'ok'`);await observe(id,1);
+   await nav();await bridge.send('Check.arm',{url:first.url,method:first.method,body:first.body});await evaluate(bridge,`send('${id}','${kind}');'ok'`);await observe(id,1);
    log('Q1_REPEAT',{kind,attempts:rows,byteMatches:rows.length,normalizedMatches:rows.length,ignoredFields:[]});
  }
  await bridge.send('Check.config',{});await nav();
@@ -124,7 +129,7 @@ try{
  const holdRows=[];
  for(const ms of durations){const id='long-'+ms,p=await held(id);holdRows.push({id,ms,p,start:Date.now()});}
  const abort=await held('long-abort','fetch',30000),xhr=await held('long-xhr','xhr',30000);
- await evaluate(bridge,"retry('long-retry');'ok'");await delay(2200);
+ await evaluate(bridge,"retry('long-retry');'ok'");await delay(1250);
  const retries=(await state()).pending.filter(p=>p.url.includes('case=long-retry'));assert.equal(retries.length,2);assert.equal(arrivals('long-retry').length,0);
  await decide(retries[0],false);await decide(retries[1],true);await observe('long-retry',1);log('Q3_RETRY',{pending:retries,arrivals:arrivals('long-retry')});
  for(const row of holdRows){await delay(Math.max(0,row.ms-(Date.now()-row.start)));assert.equal(arrivals(row.id).length,0);await decide(row.p,true);log('Q3_LONG',{id:row.id,requestedMs:row.ms,heldMs:Date.now()-row.start,arrivals:await observe(row.id,1)});}
@@ -173,4 +178,4 @@ try{
  // Final independent server log audit catches late arrivals after navigation/teardown.
  await stop();await delay(1000);const rows=[...audit].map(([id,expected])=>({id,expected,actual:arrivals(id).length}));save('delivery-audit',rows);for(const r of rows)assert.equal(r.actual,r.expected,r.id);
  log('FINAL_DELIVERY_AUDIT',{status:'PASS',cases:rows.length});console.log('ALL 17B CHECKS COMPLETE');
-}finally{save('summary',summary);if(chrome)await stop();bridge?.close();f.close();}
+}finally{await screenshot(out,'final-screen').catch(()=>{});save('summary',summary);if(chrome)await stop();bridge?.close();f.close();}
