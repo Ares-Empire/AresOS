@@ -7,13 +7,14 @@ export function x(...args){return execFileSync('xdotool',args.map(String),{encod
 export async function key(...keys){x('key','--clearmodifiers',...keys);await delay(150);}
 export async function address(url){await key('ctrl+l');x('type','--clearmodifiers','--delay','1',url);await key('Return');await delay(1200);}
 export async function screenshot(out,name){execFileSync('import',['-window','root',`${out}/${name}.png`]);}
+let developerEnabled=false;
 export async function loadUnpacked(dir,out,label){
   await address('chrome://extensions');
   await screenshot(out,`extensions-before-${label}`);
   // Fixed 1440x1000 CI display, maximized Chrome. Evidence images record this UI.
-  x('mousemove',1390,132,'click',1);await delay(500);
+  if(!developerEnabled){x('mousemove',1415,134,'click',1);await delay(500);developerEnabled=true;}
   await screenshot(out,`extensions-dev-${label}`);
-  x('mousemove',145,174,'click',1);await delay(600);
+  x('mousemove',80,177,'click',1);await delay(600);
   await screenshot(out,`extensions-dialog-${label}`);
   await key('ctrl+l');x('type','--delay','1',dir);await key('Return');await delay(500);await key('Return');await delay(1200);
   await screenshot(out,`install-${label}`);
