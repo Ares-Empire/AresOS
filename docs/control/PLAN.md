@@ -77,8 +77,8 @@ Three places, each with one job:
      for same-site tabs and workers outside the group; how much background and reading-through-POST everyday sites
      produce (which of the owner's usual sites need an adapter); delayed sends and popups. Raised by `mac-capacity`
      and the design review.
-1. **Design** (`docs/design/CONTROL.md`): draft 5 after the frontier review (8 blocking) and three re-checks (7, 4,
-   then 1 Chrome point still open, fixed in draft 5). The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
+1. **Design** (`docs/design/CONTROL.md`): done 2026-11-07. Draft 6 after the frontier review (8 blocking) and five
+   re-checks (7, 4, 1, 1, then none: ready for brief 18). The feature list ([`FEATURES.md`](FEATURES.md)) goes to the owner
    with it.
 2. **Base and boundary (brief 18):** the operation log, the generic MCP proxy and terminal command, a fake app with a
    send and a delete, file transfer on the caller's side, the managed settings draft, the sandbox boundary on Linux
@@ -165,3 +165,5 @@ tasks at any time.
   default, not a guess; deleting through a free move; files through the service; truthful descriptions; partial
   outcomes). Design draft 2 answers all of them; feature list written; order of work changed (boundary and an early
   image test before the apps). Re-check of the fixes next.
+- **2026-11-07, 07:30:** design ready (draft 6, five re-checks). Briefs 18 (base) and 18b (boundary) running, each
+  with a Claude package lead. 17b running; 17c after it.

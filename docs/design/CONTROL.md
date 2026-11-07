@@ -1,6 +1,7 @@
 # The control layer: design
 
-**Status:** draft 6, 2026-11-07. Covers the shared base, Mail and Chrome. Revised after the frontier review
+**Status:** draft 6, 2026-11-07; the frontier reviewer's last check says ready for brief 18
+([`RECHECK-5`](../../reviews/control-design/2026-11-07-RECHECK-5.md)). Covers the shared base, Mail and Chrome. Revised after the frontier review
 ([`2026-11-07-REVIEW.md`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking findings) and its re-check
 and re-checks ([`RECHECK`](../../reviews/control-design/2026-11-07-RECHECK.md),
 [`RECHECK-2`](../../reviews/control-design/2026-11-07-RECHECK-2.md),
@@ -402,9 +403,11 @@ work. The owner decides it himself, on a surface outside every page:
   unresolved on the site, plus a way to end the guard). Never inside the page: no overlay, no frame embedded in the
   page, no page dialog, because a content script shares the page's document and Claude can read and click anything
   there.
-- **Who can answer:** the extension accepts a decision only from the notification's own buttons or from its own
-  details page (checked by the sender being the extension itself, not a tab or a content script). Messages from a
-  page or a content script never release a request or end a guard.
+- **Who can answer:** the extension accepts a decision only from the notification's own buttons
+  (`onButtonClicked`) or from its own details page, checked by what Chrome reports about the sender: the extension's
+  own id, the exact details-page address in the extension's origin, and the top-level document (not a frame).
+  Messages from a page or a content script (even the extension's own) never release a request or end a guard. The
+  tests show both sides: the owner's genuine answer works, every forged one is refused.
 - **Why Claude can't:** Claude acts only through the debugger in page tabs of the Claude group; `chrome_take_tab` and
   `chrome_open` refuse extension pages and Chrome's own pages; desktop notifications and extension windows aren't
   pages it can reach; and its sandboxed terminal can't create input. The hostile tests try each: taking the details
