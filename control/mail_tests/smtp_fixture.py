@@ -11,12 +11,13 @@ from support import CERT
 
 
 class SMTPFixture:
-    def __init__(self, root, mode='normal', on_data=None):
+    def __init__(self, root, mode='normal', on_data=None, starttls=False, advertise_starttls=True):
         self.database = root / 'smtp.sqlite'
         with closing(sqlite3.connect(self.database)) as db:
             db.execute('CREATE TABLE IF NOT EXISTS arrivals(id INTEGER PRIMARY KEY, recipients TEXT, raw BLOB)')
             db.commit()
         self.mode, self.on_data, self.auth_count = mode, on_data, 0
+        self.starttls, self.advertise_starttls = starttls, advertise_starttls
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.context.load_cert_chain(CERT / 'tls.crt', CERT / 'tls.key')
         fixture = self
@@ -28,6 +29,7 @@ class SMTPFixture:
                     self.wfile.flush()
                 send(b'220 synthetic SMTP')
                 recipients = []
+                encrypted = not fixture.starttls
                 while True:
                     line = self.rfile.readline(100000)
                     if not line:
@@ -35,8 +37,18 @@ class SMTPFixture:
                     verb = line.split(b' ',1)[0].upper().strip()
                     if verb in {b'EHLO', b'HELO'}:
                         send(b'250-localhost')
+                        if fixture.starttls and not encrypted and fixture.advertise_starttls:
+                            send(b'250-STARTTLS')
                         send(b'250 AUTH PLAIN LOGIN')
+                    elif verb == b'STARTTLS':
+                        send(b'220 start TLS')
+                        self.connection = fixture.context.wrap_socket(self.connection,server_side=True)
+                        self.rfile = self.connection.makefile('rb')
+                        self.wfile = self.connection.makefile('wb')
+                        encrypted = True
                     elif verb == b'AUTH':
+                        if not encrypted:
+                            raise AssertionError('Password before TLS')
                         fixture.auth_count += 1
                         send(b'235 authenticated')
                     elif verb == b'MAIL':
@@ -80,7 +92,7 @@ class SMTPFixture:
             def get_request(self):
                 connection, address = super().get_request()
                 try:
-                    return fixture.context.wrap_socket(connection, server_side=True), address
+                    return (connection if fixture.starttls else fixture.context.wrap_socket(connection, server_side=True)), address
                 except Exception:
                     connection.close()
                     raise

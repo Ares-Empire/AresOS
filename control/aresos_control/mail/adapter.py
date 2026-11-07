@@ -606,26 +606,36 @@ class Mail:
             # Complete set validated before the first mutation; each exact UID is pinned again at use.
             self.check_items(payload["items"])
             account = self.account(payload["items"][0]["reference"]["account"])
-            for target in payload["items"]:
+            completed = 0
+            for index, target in enumerate(payload["items"]):
                 ref = target["reference"]
-                with self.transport.imap(account) as client:
-                    m = self.message(ref, writable=True, client=client)
-                    if any(str(m["msg"].get(k, "")) != target[k] for k in ("from", "subject", "date")):
-                        raise Uncertain("Target changed during deletion; inspect per-target stages.")
-                    if payload["mode"] == "trash":
-                        if "MOVE" not in client.capabilities:
-                            raise Uncertain("MOVE no longer available; inspect deletion status.")
-                        ok(client.uid("MOVE", str(ref["uid"]), quote(account["special"]["trash"])), "UID MOVE to Trash")
-                        self.store.checkpoint("mail_moved:" + str(ref["uid"]))
-                    else:
-                        if "UIDPLUS" not in client.capabilities:
-                            raise Uncertain("UIDPLUS no longer available; no broad expunge allowed.")
-                        ok(client.uid("STORE", str(ref["uid"]), "+FLAGS.SILENT", "(\\Deleted)"), "Mark exact UID deleted")
-                        self.store.checkpoint("mail_marked:" + str(ref["uid"]))
-                        stage("marked:" + str(ref["uid"]), "deleted flag set")
-                        ok(client.uid("EXPUNGE", str(ref["uid"])), "UID EXPUNGE exact message")
-                        self.store.checkpoint("mail_expunged:" + str(ref["uid"]))
-                stage("target:" + digest(ref), "trashed" if payload["mode"] == "trash" else "expunged")
+                marked = False
+                try:
+                    with self.transport.imap(account) as client:
+                        m = self.message(ref, writable=True, client=client)
+                        if any(str(m["msg"].get(k, "")) != target[k] for k in ("from", "subject", "date")):
+                            raise Uncertain("Target changed during deletion; inspect per-target stages.")
+                        if payload["mode"] == "trash":
+                            if "MOVE" not in client.capabilities:
+                                raise Uncertain("MOVE no longer available; inspect deletion status.")
+                            ok(client.uid("MOVE", str(ref["uid"]), quote(account["special"]["trash"])), "UID MOVE to Trash")
+                            self.store.checkpoint("mail_moved:" + str(ref["uid"]))
+                        else:
+                            if "UIDPLUS" not in client.capabilities:
+                                raise Uncertain("UIDPLUS no longer available; no broad expunge allowed.")
+                            ok(client.uid("STORE", str(ref["uid"]), "+FLAGS.SILENT", "(\\Deleted)"), "Mark exact UID deleted")
+                            self.store.checkpoint("mail_marked:" + str(ref["uid"]))
+                            stage("marked:" + digest(ref), "deleted flag set")
+                            marked = True
+                            ok(client.uid("EXPUNGE", str(ref["uid"])), "UID EXPUNGE exact message")
+                            self.store.checkpoint("mail_expunged:" + str(ref["uid"]))
+                    stage("target:" + digest(ref), "trashed" if payload["mode"] == "trash" else "expunged")
+                    completed += 1
+                except Refused:
+                    stage("target:" + digest(ref), "marked_deleted_not_expunged" if marked else "refused")
+                    for remaining in payload["items"][index + 1:]:
+                        stage("target:" + digest(remaining["reference"]), "not_attempted")
+                    return ("partial" if completed or marked else "refused"), "Server refused an exact target; inspect per-item stages and prepare a new named set only after owner review."
             return "done", "Exactly named messages deleted; no unnamed UID expunged."
         if action == "mail_folder_delete":
             account = self.account(payload["account"])

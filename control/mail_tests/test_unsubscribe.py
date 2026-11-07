@@ -72,6 +72,10 @@ class Unsubscribe(MailCase):
             with patch('aresos_control.mail.dkim.dns_txt',return_value=[key]):
                 self.assertEqual(self.data('unsubscribe',approval)['operation']['state'],'partial')
             self.assertEqual(len(requests),2)
+            unsigned = self.fixture(headers={'List-Unsubscribe':'<' + target + '>', 'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'})
+            unsigned_approval = self.data('prepare_unsubscribe',{'reference':unsigned,'target':target})['approval']
+            self.assertEqual(self.data('unsubscribe',unsigned_approval)['operation']['state'],'failed')
+            self.assertEqual(len(requests),2)
             unsupported = self.fixture(headers={'List-Unsubscribe':'<https://site.invalid/leave>'})
             self.assertFalse(self.call('prepare_unsubscribe',{'reference':unsupported,'target':'https://site.invalid/leave'})['ok'])
         finally:

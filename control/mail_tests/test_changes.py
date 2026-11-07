@@ -94,6 +94,9 @@ class Changes(MailCase):
                 self.assertEqual(conn.delete(quote('SafeLeaf'))[0],'NO')
             green['safe_folder_delete'] = True
             self.engine.store.write({'mail:account:green':green},'fixture','actual nonempty guard observed')
+            self.data('folder_create',{'account':'green','name':'Parent'})
+            self.data('folder_create',{'account':'green','name':'Parent.Child'})
+            self.assertFalse(self.call('prepare_folder_delete',{'account':'green','folder':'Parent'})['ok'])
             self.data('delete',self.delete_approval([ref],'permanent'))
             approval = self.data('prepare_folder_delete',{'account':'green','folder':'SafeLeaf'})['approval']
             newcomer = self.fixture('SafeLeaf',subject='Arrived while owner considered approval')
@@ -148,3 +151,28 @@ class Changes(MailCase):
                     self.assertEqual(self.call('prepare_folder_delete',{'account':account['id'],'folder':'Anything'})['error']['code'],'unsupported_server')
                 finally:
                     self.account = previous
+
+    def test_explicit_per_item_refusal_reports_partial_and_does_not_touch_later_targets(self):
+        import imaplib
+        refs = [self.fixture(subject='Named '+str(i)) for i in range(3)]
+        approval = self.delete_approval(refs)
+        original = imaplib.IMAP4.uid
+        count = 0
+        def refuse_second(connection,command,*args):
+            nonlocal count
+            if command.upper() == 'MOVE':
+                count += 1
+                if count == 2:
+                    return 'NO',[b'Synthetic target refusal']
+            return original(connection,command,*args)
+        with patch.object(imaplib.IMAP4,'uid',refuse_second):
+            result = self.data('delete',approval)['operation']
+        from aresos_control.common import digest
+        self.assertEqual(result['state'],'partial',result)
+        self.assertEqual(result['stages']['target:'+digest(refs[0])],'trashed')
+        self.assertEqual(result['stages']['target:'+digest(refs[1])],'refused')
+        self.assertEqual(result['stages']['target:'+digest(refs[2])],'not_attempted')
+        self.assertEqual(self.mail.message(refs[1])['reference'],refs[1])
+        self.assertEqual(self.mail.message(refs[2])['reference'],refs[2])
+        self.data('delete',approval)
+        self.assertEqual(count,2)

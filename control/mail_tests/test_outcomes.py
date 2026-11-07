@@ -118,3 +118,23 @@ class Outcomes(MailCase):
             with self.assertRaises(ssl.SSLCertVerificationError):
                 with self.mail.transport.imap({**self.account, 'imap_host':'badmail', 'imap_port':3993}):
                     pass
+
+    def test_required_starttls_success_and_no_plaintext_auth_fallback(self):
+        import smtplib
+        with SMTPFixture(self.root,starttls=True) as smtp:
+            account = {**self.account,'smtp_host':'localhost','smtp_port':smtp.port,'smtp_tls':'starttls'}
+            with self.mail.transport.smtp(account) as connection:
+                self.assertIsNotNone(connection.sock.cipher())
+            self.assertEqual(smtp.auth_count,1)
+            with patch.object(self.mail.transport,'password',side_effect=AssertionError('No password before hostname check')):
+                with self.assertRaises(ssl.SSLCertVerificationError):
+                    with self.mail.transport.smtp({**account,'smtp_host':'127.0.0.1'}):
+                        pass
+            self.assertEqual(smtp.auth_count,1)
+        with SMTPFixture(self.root,starttls=True,advertise_starttls=False) as smtp:
+            account = {**self.account,'smtp_host':'localhost','smtp_port':smtp.port,'smtp_tls':'starttls'}
+            with patch.object(self.mail.transport,'password',side_effect=AssertionError('No plaintext password fallback')):
+                with self.assertRaises(smtplib.SMTPNotSupportedError):
+                    with self.mail.transport.smtp(account):
+                        pass
+            self.assertEqual(smtp.auth_count,0)
