@@ -46,6 +46,12 @@ acting):
    first adapter targets.
 10. **Claude in Chrome stays for his own use (#58); AresOS's Claude Code rules apply machine-wide and change only
     with his admin password (#59).**
+12. **The site guard is strict (#67):** it ends by itself only once the tool can see the site stored nothing of
+    Claude's; otherwise it stays on until he ends it with one click. His words: "strict".
+13. **Throwaway test images need no OK** (rule change, his words "change rule as you said", 2026-11-07): CI test images
+    that are never published and leave the install pin untouched (such as brief 18c's) run without asking him;
+    publishing a release and changing what his laptop installs still need him. laptop-aresos writes it into the
+    image rules.
 11. **Approval on the phone must read like a mail (#71):** the first phone test showed the raw tool call ("code
     basically, not a clean email"). Phone test 2 compares the tool asking him itself (MCP elicitation) with a
     readable summary in Claude Code's prompt; decision 1 changes with its result.
@@ -212,7 +218,7 @@ tasks at any time.
 - How the CI virtual machine gets the AresOS image for step 5 (the private image needs read access the owner
   restores, or a fresh unpublished build in the job): decided in the design.
 - The mail provider and account details stay out of this public repo.
-- **Owner questions still open:** #67 (when a site's guard ends; mac-capacity is explaining it), #73 (phone test 2).
+- **Owner questions still open:** #73 (phone test 2).
 
 ## Where it stands
 
