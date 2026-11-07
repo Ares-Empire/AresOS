@@ -28,7 +28,7 @@ jobs:
           mkdir -p .work/17-chrome/artifacts .work/17-chrome/config
           curl --fail --location --retry 3 https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o .work/17-chrome/chrome.deb
           sudo apt-get update -qq
-          sudo apt-get install -y ./.work/17-chrome/chrome.deb xvfb xdotool x11-utils openbox imagemagick
+          sudo apt-get install -y ./.work/17-chrome/chrome.deb xvfb xdotool x11-utils ripgrep openbox imagemagick
           rm .work/17-chrome/chrome.deb
           google-chrome-stable --version | tee .work/17-chrome/artifacts/chrome-version.txt
           uname -a > .work/17-chrome/artifacts/platform.txt
