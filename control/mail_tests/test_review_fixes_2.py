@@ -28,8 +28,8 @@ class LocalMailDetection(unittest.TestCase):
                 with self.subTest(header=header, prefix=prefix):
                     self.assertTrue(codec.is_mail(prefix + b'fRoM: synthetic@mail.invalid\r\n' + header + b': value\r\n\r\nBody'))
         for data in (b'From: synthetic@mail.invalid\n\nSubject: body only', b'Subject: no sender\n\nBody',
-                     b'From: sender only\n\nBody', b'Ordinary text\nFrom: example\nSubject: example',
-                     b'%PDF-1.7\nFrom: example\nSubject: example', b'Ordinary text file'):
+                     b'From: sender only\n\nBody', b'Ordinary text\n\nFrom: example\nSubject: example',
+                     b'%PDF-1.7\n\nFrom: example\nSubject: example', b'Ordinary text file'):
             with self.subTest(data=data):
                 self.assertFalse(codec.is_mail(data))
 
