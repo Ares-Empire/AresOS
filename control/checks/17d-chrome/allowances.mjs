@@ -11,7 +11,7 @@ export default async function(c){
  // Exact URL/method and tab/site scope, with a positive recipient available.
  await allow('exact-target');await send('different-target');await count('different-target',0);await send('exact-target');await delay(500);discovery('exact-target','exact URL allowance');
  await allow('site-scope','synthetic approved',{site:'127.0.0.1'});await send('site-scope');await delay(400);log('Q4_SITE_SCOPE',{rows:discovery('site-scope','initiator-scoped allowance'),history:(await state()).history.slice(-12)});
- await allow('site-allow-worker-v1-first','synthetic approved',{site:'127.0.0.1'});await ev("window.competing=new SharedWorker('/worker.js?shared&case=site-allow-worker');competing.port.start();true");await delay(800);log('Q4_UNREACHED_SITE_ALLOWANCE',{rows:discovery('site-allow-worker-v1-first','site allowance consumed by an unreached worker with different bytes'),history:(await state()).history.slice(-20)});await rpc('Check.rules',{removeRuleIds:[8001]});
+ await allow('site-allow-worker-v1-first','synthetic approved',{site:'127.0.0.1'});await ev("window.competing=new SharedWorker('/worker.js?shared&case=site-allow-worker');competing.port.start();true");await delay(800);log('Q4_UNREACHED_SITE_ALLOWANCE',{rows:await count('site-allow-worker-v1-first',3),history:(await state()).history.slice(-20)});await rpc('Check.rules',{removeRuleIds:[8001]});
  // Expose the natural add-to-match interval, then hold a mismatching request at the named failure instant.
  for(const revoke of [false,true])for(const pause of [0,25,100,500])for(let i=0;i<3;i++){
   const id=`race-${revoke}-${pause}-${i}`;await rpc('Check.mode',{mode:'park'});const added=await allow(id);await delay(pause);await send(id,'synthetic wrong-body');await delay(150);
