@@ -143,7 +143,7 @@ class Integration(unittest.TestCase):
                 approval = prepared["data"]["approval"]
                 # A hook sees a held operation via act.sock, with documented I/O.
                 hook_input = {"hook_event_name": "Stop", "session_id": "fixture-session", "transcript_path": "/unused", "cwd": str(self.home), "permission_mode": "default", "stop_hook_active": False}
-                hook = self.launch(OWNER, ["hook"], input=canonical(hook_input))
+                hook = self.launch(OWNER, ["hook", "Stop"], input=canonical(hook_input))
                 self.assertEqual(json.loads(hook.stdout)["decision"], "block", hook.stderr)
                 source.write_bytes(b"changed after import")
                 sent = (await client.call_tool("send", approval)).structured_content
@@ -183,7 +183,7 @@ class Integration(unittest.TestCase):
         status = self.call(OWNER, "testapp_operation_status", {"operation_id": prepared["operation_id"]})
         self.assertEqual(status["data"]["operation"]["state"], "failed")
         prompt_input = {"hook_event_name": "UserPromptSubmit", "session_id": "fixture-session", "prompt": "owner message", "cwd": str(self.home)}
-        prompt = self.launch(OWNER, ["hook"], input=canonical(prompt_input))
+        prompt = self.launch(OWNER, ["hook", "UserPromptSubmit"], input=canonical(prompt_input))
         self.assertIn(prepared["operation_id"], json.loads(prompt.stdout)["hookSpecificOutput"]["additionalContext"])
 
     def test_large_hook_inputs_still_remind_about_pending_work(self):
@@ -197,7 +197,7 @@ class Integration(unittest.TestCase):
                          field: "long pasted content " * 10000}
                 wire = canonical(event)
                 self.assertGreater(len(wire.encode()), 65536)
-                hook = self.launch(OWNER, ["hook"], input=wire)
+                hook = self.launch(OWNER, ["hook", name], input=wire)
                 self.assertEqual(hook.returncode, 0, hook.stderr)
                 result = json.loads(hook.stdout)
                 if name == "Stop":
@@ -209,14 +209,33 @@ class Integration(unittest.TestCase):
                 self.assertEqual(hook.stderr, "")
 
     def test_malformed_hook_input_gives_explicit_failure_feedback(self):
-        for wire in ('{"hook_event_name":"Stop","last_assistant_message":',
-                     '{"hook_event_name":"UserPromptSubmit","prompt":', '[]'):
-            with self.subTest(input=wire):
-                hook = self.launch(OWNER, ["hook"], input=wire)
-                self.assertEqual(hook.returncode, 2)
-                self.assertEqual(hook.stdout, "")
-                self.assertIn("AresOS hook failed; inspect pending work", hook.stderr)
-                self.assertNotIn("Traceback", hook.stderr)
+        for name in ("Stop", "UserPromptSubmit"):
+            for wire in ('{"hook_event_name":"' + name + '","prompt":', '[]',
+                         canonical({"hook_event_name": "Stop" if name == "UserPromptSubmit" else "UserPromptSubmit"})):
+                with self.subTest(event=name, input=wire):
+                    hook = self.launch(OWNER, ["hook", name], input=wire)
+                    self.assertEqual(hook.stdout, "")
+                    if name == "Stop":
+                        self.assertEqual(hook.returncode, 2)
+                        self.assertIn("AresOS hook failed; inspect pending work", hook.stderr)
+                    else:
+                        self.assertEqual(hook.returncode, 0)
+                        self.assertEqual(hook.stderr, "")
+                    self.assertNotIn("Traceback", hook.stderr)
+
+    def test_prompt_hook_installation_and_service_failures_are_quiet(self):
+        config = Path("/etc/aresos-control/proxy.json")
+        original = config.read_bytes()
+        try:
+            config.write_bytes(b"malformed configuration")
+            hook = self.launch(OWNER, ["hook", "UserPromptSubmit"], input='{}')
+            self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
+        finally:
+            config.write_bytes(original)
+        self.daemon.terminate()
+        self.daemon.wait(timeout=8)
+        hook = self.launch(OWNER, ["hook", "UserPromptSubmit"], input=canonical({"hook_event_name": "UserPromptSubmit"}))
+        self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
 
     def test_proxy_isolated_from_planted_code_environment_and_pth(self):
         poison = self.home / "Documents/poison"

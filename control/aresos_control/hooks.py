@@ -24,18 +24,24 @@ def output(event, pending):
     return {"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": context}}
 
 
-def main(config):
+def main(config, name):
     try:
         event = json.loads(sys.stdin.buffer.read())
-        if not isinstance(event, dict):
-            raise Refused("invalid_input", "Hook input must be a JSON object.")
+        if not isinstance(event, dict) or event.get("hook_event_name") != name:
+            raise Refused("invalid_input", "Hook input must be an object matching the launcher event.")
         try:
             result = Client(config["act_socket"]).call("control_pending", {})
+            if name == "UserPromptSubmit" and not result["ok"]:
+                return
             pending = result["data"] if result["ok"] else {"service_unavailable": True, "message": result["error"]["message"]}
         except Refused as exc:
+            if name == "UserPromptSubmit":
+                return
             pending = {"service_unavailable": True, "message": str(exc)}
         print(canonical(output(event, pending)))
-    except (Refused, ValueError, OSError) as exc:
-        # Exit 2 gives Claude explicit feedback for both supported hook events.
+    except Exception as exc:
+        if name == "UserPromptSubmit":
+            return
+        # Stop retains its explicit failure feedback.
         print("AresOS hook failed; inspect pending work before continuing: " + visible(str(exc)), file=sys.stderr)
         raise SystemExit(2)

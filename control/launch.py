@@ -44,9 +44,9 @@ def main():
     elif mode == "cli":
         from aresos_control.cli import main as cli_main
         raise SystemExit(cli_main(config, sys.argv[2:]))
-    elif mode == "hook" and len(sys.argv) == 2:
+    elif mode == "hook" and len(sys.argv) == 3 and sys.argv[2] in {"Stop", "UserPromptSubmit"}:
         from aresos_control.hooks import main as hook_main
-        hook_main(config)
+        hook_main(config, sys.argv[2])
     elif mode == "service" and len(sys.argv) == 2:
         from aresos_control.daemon import main as daemon_main
         sys.argv = [sys.argv[0], "--config", str(CONFIG / "service.json")]
@@ -56,4 +56,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (Exception, SystemExit):
+        # The prompt event is known before parsing input or loading configuration.
+        # Even a broken installation must never discard the owner's prompt.
+        if sys.argv[1:] != ["hook", "UserPromptSubmit"]:
+            raise
