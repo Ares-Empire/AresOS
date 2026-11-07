@@ -2,6 +2,84 @@
 
 Builds on draft PR #6. No merge, force push, real account or model run.
 
+## Review fixes
+
+**read — scope:** fixes findings 1–5 of `REVIEW.md` on `bc38016`, following
+`briefs/19-review-fixes.md`. All new tests are in
+`control/mail_tests/test_review_fixes.py` (`ReviewFixes`); the base tests are untouched.
+
+- **Finding 1:** saved draft bodies appear in full in approval, with differing
+  readable HTML and links. Every service-built MIME message carries
+  `X-AresOS-Authored`; native IMAP moves/copies preserve it and no free tool edits
+  headers. Marked sources and SPECIAL-USE Drafts sources disclose their quoted or
+  attached text in full. Oversized approvals are refused without reservation.
+  Tests: `test_review_1_draft_reload_full_text_and_21000_characters_refused`,
+  `test_review_1_owner_draft_plain_and_differing_readable_html_with_links`, and
+  `test_review_1_moved_and_copied_draft_reply_and_both_forwards_keep_provenance`.
+- **Finding 2:** automatic forwards remove Bcc and Resent-Bcc recursively from
+  nested RFC822 messages and frozen `.eml` attachments before hashing. Approval
+  identifies that transformation and binds the bytes actually sent. Reply and
+  inline-forward header blocks never derive Bcc recipients.
+  Tests: `test_review_2_forward_service_sent_bcc_copy_and_reply_headers` and
+  `test_review_2_nested_rfc822_and_frozen_eml_bcc_removed`.
+- **Finding 3:** transport errors carry controlled messages and numeric SMTP
+  refusal evidence. Engine submission/repair no longer persist exception text;
+  stages and refusal diagnostics additionally scrub passwords and AUTH encodings.
+  Connection loss still produces an uncertain outcome, including loss after an
+  actual UID EXPUNGE. The small base-engine change is necessary because it catches
+  adapter failures before the outer request sanitizer sees them.
+  Tests: `test_review_3_echoed_imap_password_after_preflight_and_mid_delete_is_never_persisted`,
+  `test_review_3_smtp_credential_echo_during_auth_envelope_and_final_data`,
+  `test_review_3_second_guard_scrubs_password_and_auth_base64_before_stage_storage`,
+  and `test_review_3_act_socket_mcp_cli_and_daemon_log_hide_execution_failure`.
+  These inspect results, operation status, SQLite events and bytes, the independent
+  record and output; the last test uses the real daemon, act socket, MCP and CLI.
+- **Finding 4:** only a nonempty-specific NO with no unrelated response code can
+  become a candidate. The exact probe reference must survive, exact UID EXPUNGE
+  must finish, and empty-folder DELETE and absence must be verified before
+  qualification is recorded. Every failure leaves deletion disabled, with a
+  controlled reason in `mail_accounts`; unresolved cleanup names the owner check.
+  Tests: `test_review_4_transient_permission_and_generic_refusals_never_qualify`,
+  `test_review_4_missing_exact_probe_or_failed_cleanup_never_qualifies`, and
+  `test_review_4_positive_guard_qualifies_only_after_verified_cleanup`.
+- **Finding 5:** repair's generated description requires recorded final
+  `smtp_data=accepted:250` and owner inspection otherwise, even when Sent evidence
+  exists. Check: `python3 control/generate.py --check`.
+
+**read — JUDGMENT-CALL, provenance:** use the persistent marker plus the conservative
+SPECIAL-USE Drafts fallback. The owner's unmarked drafts in Drafts also show their
+whole body, including differing readable HTML. All text in a marked service-built
+source is treated conservatively as authored, including pre-existing quotes; a
+long saved thread can therefore exceed the approval limit. Loosening this later
+would require durable finer-grained provenance, rather than dropping the marker.
+
+**run — local checks:** `python3 control/generate.py` printed
+`Generated tools, help, reference and ask rules`; `--check` printed
+`Generated artifacts match definitions`; AST parsing printed `Python syntax OK`;
+`git diff --check` printed nothing. `docker version --format '{{.Server.Version}}'`
+reported that the Docker daemon is unavailable; no local container tests were run.
+Container results and exact final-head run IDs are recorded in
+[draft PR #9's validation section](https://github.com/Ares-Empire/AresOS/pull/9)
+after the report-inclusive head is pushed. This avoids changing that tested head
+merely to insert its subsequently allocated workflow IDs. Earlier runs below are
+historical evidence only, not review-fix acceptance.
+
+**run — initial review-fix head `b2a2cee3a6a71921b205416f8742fd01f99c16c8`:**
+Mail runs [42363705470](https://github.com/Ares-Empire/AresOS/actions/runs/42363705470)
+and [42363709223](https://github.com/Ares-Empire/AresOS/actions/runs/42363709223)
+both printed `Generated artifacts match definitions`, `Ran 57 tests`, `OK`,
+`Control base suite PASS`, `Ran 60 tests`, `OK`, and `Control Mail suite PASS`.
+Independent base run
+[42363709447](https://github.com/Ares-Empire/AresOS/actions/runs/42363709447)
+printed `Ran 57 tests in 36.604s`, `OK`, and `Control base suite PASS`.
+The final changes additionally preserve uncertainty after a lost IMAP answer,
+exercise actual expunge-before-disconnect and an unsafe server after INUSE clears,
+and treat peer disconnects as normal fixture EOF. Final acceptance uses the PR's
+report-inclusive head and its two successful executions of each workflow.
+
+**assumed / owner gate:** the real account, server-specific qualification and
+approval/mail-client presentation still require the owner's checks listed below.
+
 ## Done
 
 - **read — implementation:** `control/aresos_control/mail/` contains the catalogue,
@@ -104,7 +182,7 @@ They have protocol tests; their usability has not been measured with a model.
 | Encoded words/names, CRLF, decoded hashes, SMTPUTF8/IDNA | `Composing.test_new_send_exactly_once_bcc_bytes_encoding_sent_and_no_receipts`; `test_smtputf8_refused_and_idna_domains_converted` |
 | Generated catalogue/settings in sync; base intact | `python3 control/generate.py --check`; all 57 original base tests unchanged |
 
-## Verified
+## Verified — original package runs
 
 **run — product head `9f4dbbd5dc7664e2f5696432fff3e3cc770c1933`:** both
 [42361618095](https://github.com/Ares-Empire/AresOS/actions/runs/42361618095)
@@ -203,10 +281,13 @@ three (push Mail, PR Mail, PR base), within the brief's approximate twenty-run b
   local stage. A Sent copy alone does not identify all accepted/refused recipients.
   Unknown without that proof remains for owner inspection; no new SMTP path exists
   in repair. Relaxing this requires qualified per-recipient server evidence.
-- **read — exact forward bytes:** forwarded `.eml` files use explicit octet-stream
-  attachment MIME while preserving the original bytes/hash. Re-parsing as nested
-  `message/rfc822` could alter folding/bytes. Most clients open `.eml` by its filename;
-  specialized presentation remains an owner qualification item.
+- **read — exact forward bytes (review finding 2):** forwarded `.eml` files use
+  octet-stream attachment MIME to freeze the approved bytes. Bcc and Resent-Bcc
+  are removed recursively before hashing; reserialization may change folding
+  when sanitization is required. Sources with no private headers retain their
+  original bytes. Preserving Bcc-bearing originals was rejected because it leaks
+  private recipients. Reverting would reintroduce that disclosure; client `.eml`
+  presentation remains an owner qualification item.
 - **read — bounds:** 25 MiB per transferred file, 64 MiB per encoded source/outgoing mail,
   6,000-character body pages, 20 summary items/page maximum and a 10,000-message full
   history scan bound. Search retains summaries rather than all fetched bodies;
