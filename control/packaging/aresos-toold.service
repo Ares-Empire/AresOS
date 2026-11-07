@@ -1,0 +1,25 @@
+# DRAFT: install only after owner configuration and brief 18b image qualification.
+[Unit]
+Description=AresOS tool service
+After=local-fs.target
+
+[Service]
+Type=simple
+User=aresos-tools
+Group=aresos-tools
+ExecStart=/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py service
+UMask=0077
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+CapabilityBoundingSet=
+ReadWritePaths=/run/aresos-tools /var/lib/aresos-tools /var/lib/aresos-operation-evidence
+
+[Install]
+WantedBy=multi-user.target
