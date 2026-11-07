@@ -30,7 +30,8 @@ export async function fixture(work,out,getUpdate){
   }
   res.setHeader('Content-Type','text/html');
   res.setHeader('Set-Cookie','synthetic-session17e=fixture-A; HttpOnly; SameSite=Lax; Path=/');
-  res.end(`<!doctype html><meta charset="utf-8"><title>17e synthetic signed-in fixture</title><h1>Checkpoint fixture</h1><p>Synthetic account A</p><input type="file" id="upload"><pre id="status">ready</pre><script>
+  const startup=u.pathname==='/startup'?`<script>fetch('/receive?case='+new URLSearchParams(location.search).get('case'),{method:'POST',body:'synthetic restored first script'}).catch(()=>{})</script>`:'';
+  res.end(`<!doctype html>${startup}<meta charset="utf-8"><title>17e synthetic signed-in fixture</title><h1>Checkpoint fixture</h1><p>Synthetic account A</p><input type="file" id="upload"><pre id="status">ready</pre><script>
   globalThis.results={};globalThis.sockets={};
   onmessage=e=>{if(typeof e.data==='string'&&e.data.startsWith('e-'))send(e.data)};
   function send(id,body=id,extra={}){fetch('/receive?case='+id,{method:'POST',body,...extra}).then(r=>results[id]='HTTP '+r.status,e=>results[id]=e.name);return true}

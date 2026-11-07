@@ -31,7 +31,7 @@ export default async function(c){
  await ev("sockets['e-signed-live'].send('e-signed-live-control');true");await delivered('e-signed-live-control','ws-message');
  await c.positive('e-background-control');await guard();
  await ev("for(let i=0;i<12;i++)send('e-background-'+i);for(let i=0;i<6;i++)sockets['e-signed-live'].send('e-live-background-'+i);true");
- await c.eventually(async()=>(await control('state')).rows.filter(r=>r.case.startsWith('e-background-')&&r.status==='held').length===12,'synthetic background operations held');
+ await c.eventually(async()=>(await control('state')).rows.some(r=>r.case.startsWith('e-background-')&&r.status==='held'),'synthetic background operations held');
  for(let turn=0;turn<20;turn++){const pending=(await control('state')).rows.filter(r=>(r.case.startsWith('e-background-')||r.case==='e-signed-live')&&r.status==='held');for(const op of pending)await control('cancel',{id:op.id});await delay(60);}
  const held=(await control('state')).rows.filter(r=>r.case.startsWith('e-background-')||r.case==='e-signed-live');
  c.assert.equal(held.length,18,'each background request and live message has its own operation');

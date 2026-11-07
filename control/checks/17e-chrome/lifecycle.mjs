@@ -4,12 +4,12 @@ export default async function(c){
  await positive('e-outbox-control');await guard();
  const stored=await ev(`(async()=>{localStorage.syntheticNamed17e='delete42';const root=await navigator.storage.getDirectory(),f=await root.getFileHandle('outbox17e',{create:true}),w=await f.createWritable();await w.write('delete42');await w.close();globalThis.channel=new BroadcastChannel('17e');channel.postMessage('delete42');return {named:localStorage.syntheticNamed17e,opfs:await (await f.getFile()).text()}})()`);
  await send('e-outbox-later','delete42');await pending('e-outbox-later');await zero('e-outbox-later');log('Q10_UNRESOLVED_STORAGE',{stored,guard:(await control('state')).guard});
+ await guard(false);await c.nav(c.f.base+'/startup?case=e-restore-control');await delivered('e-restore-control');await ev("history.replaceState(null,'','/startup?case=e-restored-first');true");await guard();
  // Restart checkpoint with guard persisted; it must load state before listening.
  await c.stopProxy();await c.startProxy();assert.equal((await control('state')).guard,true);await send('e-after-proxy-restart');await pending('e-after-proxy-restart');await zero('e-after-proxy-restart');log('Q1_RESTART_BARRIER',{state:await control('state')});
- await c.close(true);await c.boot('restored-with-guard');await delay(500);log('Q10_BROWSER_RESTART',{guard:(await control('state')).guard,receiverRows:c.f.rows.length});
- // The navigation itself is held; explicitly resolve only that captured GET to
- // restore the fixture, keeping the guard for its first-script operations.
- const unlabelled=(await control('state')).rows.filter(r=>r.case==='unlabelled'&&r.status==='held');for(const r of unlabelled)await control('approve',{id:r.id});await delay(700);await guard(false);await c.nav();await c.context();
+ await c.close(true);await c.boot('restored-with-guard',true,true);const document=await pending('e-restored-first');assert.equal(document.method,'GET');await zero('e-restored-first');await control('approve',{id:document.id});
+ const first=await pending('e-restored-first');assert.notEqual(first.id,document.id);assert.equal(first.method,'POST');await zero('e-restored-first');await control('cancel',{id:first.id});log('Q1_RESTORED_FIRST_SCRIPT',{document,first,receiver:c.rows('e-restored-first'),guard:(await control('state')).guard});
+ await guard(false);await c.nav();const persisted=await ev("(async()=>({named:localStorage.syntheticNamed17e,opfs:await (await (await (await navigator.storage.getDirectory()).getFileHandle('outbox17e')).getFile()).text()}))()");assert.deepEqual(persisted,stored);log('Q10_BROWSER_RESTART',{persisted,guardRetainedUntilExplicitTestReset:true});await c.context();
  for(const point of ['held','before-consume','after-consume']){
   for(const actor of ['native-host','extension','browser','checkpoint']){
    const id=`e-crash-${actor}-${point}`;await positive(id+'-control');await guard();await send(id);const op=await pending(id);await zero(id);

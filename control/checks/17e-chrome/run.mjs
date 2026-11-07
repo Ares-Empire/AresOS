@@ -71,12 +71,18 @@ async function connect(){
  const ready=new Promise(r=>bridge.once('check.connected',r));await key('ctrl+t');await address(`chrome-extension://${extId}/select.html?url=${encodeURIComponent(f.base+'/')}&tabId=${selected||''}`);await key('Return');
  const r=await Promise.race([ready,delay(15000).then(()=>{throw Error('Extension did not connect')})]);selected=r.tabId;await rpc('Page.bringToFront');return r;
 }
-async function boot(label,mode=true){
+async function boot(label,mode=true,restore=false){
  policy(mode);firewall(mode);bridge=await nativeBridge(socket);sudo('chown','areschrome:areschrome',socket);
- const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode',f.base+'/'];
+ const args=[`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode',...(restore?['--restore-last-session']:[f.base+'/'])];
  save('args-'+label,args);const fd=fs.openSync(work+'/chrome-console.log','a');
  chrome=spawn('sudo',['-u','areschrome','env','DISPLAY='+process.env.DISPLAY,'XAUTHORITY='+work+'/browser-home/Xauthority','XDG_CONFIG_HOME='+work+'/config', '/usr/bin/google-chrome-stable',...args],{stdio:['ignore',fd,fd]});
- await activateChrome();await delay(3500);await connect();
+ await activateChrome();await delay(3500);
+ if(restore){
+  const restored=async()=>(await control('state')).rows.some(r=>r.case==='e-restored-first'&&r.method==='GET'&&r.status==='held');
+  if(!await restored()){await screenshot(out,'restore-before-button');x('mousemove',1376,285,'click',1);}
+  await eventually(restored,'actual restored startup document captured',15000);log('RESTORED_BEFORE_ATTACH',{captured:true});
+ }
+ await connect();
  const processes=sh('ps',['-u','areschrome','-o','pid,args']);assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)|--ignore-certificate-errors/);save('processes-'+label,{processes});
  log('BROWSER_READY',{label,mode,selected});
 }

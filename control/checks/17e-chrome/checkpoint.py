@@ -202,6 +202,7 @@ class Checkpoint:
         info = dict(case=self.case(flow), kind=kind, length=len(data), sha256=hashlib.sha256(data).hexdigest(), context=self.context, attribution='current' if token in self.tokens else 'uncertain')
         if kind in ('http', 'handshake'):
             info['bodySha256'] = flow.metadata.get('captured_body_hash')
+            info['method'] = flow.request.method
         if len(self.pending) >= 256 or self.total+len(data) > MAX_TOTAL or len(data) > MAX_BODY:
             self.record('refused', **info, reason='buffer-limit')
             return False
