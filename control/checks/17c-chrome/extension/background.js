@@ -68,7 +68,7 @@ async function attach(tabId,controlled=true){
 }
 async function rpc(m,p){
   await ready;if(!wrapSource)wrapSource=await (await fetch(chrome.runtime.getURL('wrap.js'))).text();
-  if(m==='Check.state')return {selected,group,active,pending:[...pending.values()],history,errors,guards:[...guards],badge:await chrome.action.getBadgeText({}),manifest:chrome.runtime.getManifest()};
+  if(m==='Check.state')return {selected,group,groupInfo:group?await chrome.tabGroups.get(group).catch(()=>null):null,active,pending:[...pending.values()],history,errors,guards:[...guards],badge:await chrome.action.getBadgeText({}),manifest:chrome.runtime.getManifest()};
   if(m==='Check.clearHistory'){history.length=0;return {};}
   if(m==='Check.attach')return attach(p.tabId);
   if(m==='Check.guard'){const tab=await chrome.tabs.get(selected);await guard(tab.url);for(const t of await chrome.tabs.query({}))if(safe(t.url)&&site(t.url)===site(tab.url))await attach(t.id,false);return {};}
@@ -76,12 +76,14 @@ async function rpc(m,p){
   if(m==='Check.ownerCommand')return cmd({tabId:ownerTab},p.method,p.params);
   if(m==='Check.decide')return decide(p.id,p.release);
   if(m==='Check.stop')return stop('runner');
+  if(m==='Check.popup')return chrome.action.openPopup();
   if(m==='Check.detach'){await chrome.debugger.detach({tabId:selected});attached.delete(selected);return {};}
   if(m==='Check.public'){publicMode=true;await chrome.declarativeNetRequest.updateSessionRules({addRules:[{id:900,priority:1,action:{type:'block'},condition:{resourceTypes:['websocket']}}]});return {};}
   if(m==='Check.tabs')return chrome.tabs.query({});
   if(m==='Check.open'){if(!safe(p.url))throw Error('FORBIDDEN_PAGE');return chrome.tabs.create({url:p.url});}
   if(m==='Check.targets')return chrome.debugger.getTargets();
   if(m==='Check.workerAttach'){const s={targetId:p.targetId};await chrome.debugger.attach(s,'1.3');attached.set(p.targetId,s);await prepare(s,true);return {};}
+  if(m==='Check.auto'){for(const s of attached.values())if(s.tabId)await cmd(s,'Target.setAutoAttach',{autoAttach:p.enabled,waitForDebuggerOnStart:p.enabled,flatten:true});return {};}
   if(m==='Check.workerCommand')return cmd({targetId:p.targetId},p.method,p.params);
   if(m==='Check.reload'){setTimeout(()=>chrome.runtime.reload(),100);return {};}
   if(m==='Check.update')return new Promise(resolve=>chrome.runtime.requestUpdateCheck((status,details)=>resolve({status,details})));
