@@ -220,6 +220,13 @@ tasks at any time.
 - The mail provider and account details stay out of this public repo.
 - **Owner questions still open:** #73 (phone test 2).
 
+**Follow-ups** (from the 18b merge-fix review, `gpt-6.1-sol` high, SAFE; for the next base or boundary brief):
+
+- `control/launch.py`: the MCP proxy's identity guard checks only the real user id; it should check both the real and
+  the effective user id, with a regression test for a mismatch.
+- `control/boundary/isolation.py`: the coding-user check should also plant rogue user and project MCP servers and
+  check that they never appear or start.
+
 ## Where it stands
 
 - **2026-11-07:** owner decisions above. S1 done. S2 (brief 17) running (Codex `gpt-6.1-sol`, branch
