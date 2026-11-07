@@ -24,6 +24,8 @@ messages and payload-bearing control frames wait at the checkpoint. The WS
 control-frame seam wraps a pinned upstream layer immediately before SendData;
 the public websocket_end hook is too late. This seam needs requalification on
 every mitmproxy update. Unsupported opaque TCP tunnels are disabled.
+Unexpected addon or event-loop errors stop the entire checkpoint: upstream's
+default log-and-continue behavior cannot be used for this boundary.
 
 Approval identifies a RAM-held flow by an independent operation ID. SQLite
 WAL/FULL consumption precedes forwarding. Restart marks consumed operations

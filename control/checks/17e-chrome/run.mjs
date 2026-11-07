@@ -117,7 +117,7 @@ try{
  await startProxy();await boot('initial');
  await rpc('Page.bringToFront');await key('ctrl+t');await address('chrome://sandbox');await screenshot(out,'sandbox');await key('ctrl+w');
  await context();await (await import('./'+phase+'.mjs')).default(c);
- await guard(false);await close();await delay(600);
+ await close();await delay(600);
  for(const e of expectations.values())assert.equal(arrivals(e.id,e.kind).length,e.n,'late/unexpected receiver delivery '+e.id+' '+e.kind);
  save('delivery-audit',[...expectations.values()].map(e=>({...e,actual:arrivals(e.id,e.kind).length})));
  log('FINAL_RECEIVER_AUDIT',{status:'PASS',assertions:expectations.size,receiverRows:f.rows.length});console.log('ALL 17E CHECKS COMPLETE',phase);

@@ -27,7 +27,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   chrome:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.ref_name == 'pkg/17e-chrome-checkpoint' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false

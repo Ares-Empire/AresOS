@@ -4,6 +4,7 @@ The SQLite ledger stores only synthetic case labels, hashes and state. Captured
 bytes live only in bounded RAM. Approval releases the paused flow, never a URL.
 """
 import asyncio
+import contextlib
 import dataclasses
 import functools
 import hashlib
@@ -17,13 +18,26 @@ import time
 import uuid
 from urllib.parse import urlsplit, parse_qs
 
-from mitmproxy import ctx, http
+from mitmproxy import addonmanager, ctx, http
 from mitmproxy.proxy import commands, events
 from mitmproxy.proxy.layers import websocket as ws_layer
 
 ROOT = pathlib.Path(os.environ['CHECKPOINT_PRIVATE'])
 MAX_BODY = 32 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
+
+
+@contextlib.contextmanager
+def fatal_addon_error():
+    # Upstream normally logs addon exceptions and continues. That behavior is
+    # unsuitable for a send boundary, including failures outside our own hook.
+    try:
+        yield
+    except BaseException:
+        os._exit(70)
+
+
+addonmanager.safecall = fatal_addon_error
 
 
 def fail_closed(handler):
@@ -127,6 +141,7 @@ class Checkpoint:
         return [dict(id=r[0], **json.loads(r[1]), status=r[2]) for r in self.db.execute('select * from operations')]
 
     async def running(self):
+        asyncio.get_running_loop().set_exception_handler(lambda *_: os._exit(70))
         socket = ROOT / 'control.sock'
         socket.unlink(missing_ok=True)
         self.server = await asyncio.start_unix_server(self.control, path=socket)
@@ -258,6 +273,9 @@ class Checkpoint:
             # Waiting flows retain only the operation currently being captured.
 
     def requestheaders(self, flow):
+        if self.fault == 'addon-dispatch':
+            self.record('fatal-addon-test', case=self.case(flow))
+            raise RuntimeError('deliberate unwrapped addon exception')
         flow.request.stream = False
         flow.metadata['attribution'] = flow.request.headers.pop('x-ares-check', '')
         declared = flow.request.headers.get('content-length')
