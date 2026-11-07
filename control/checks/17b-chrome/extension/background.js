@@ -36,7 +36,7 @@ async function pause(source,p){
   if(!port){await command(source,'Fetch.failRequest',{requestId:p.requestId,errorReason:'Aborted'});emit('check.orphanDropped',preview);return;}
   const entry={...preview,source,id:p.requestId,at:Date.now()};
   if(backstop&&source.tabId){
-    entry.rule=nextRule++;
+    entry.rule=1+(await chrome.declarativeNetRequest.getSessionRules()).reduce((n,r)=>Math.max(n,r.id),0);
     await chrome.declarativeNetRequest.updateSessionRules({addRules:[{id:entry.rule,priority:1,action:{type:'block'},condition:{tabIds:[source.tabId],requestMethods:[r.method.toLowerCase()],regexFilter:'^'+r.url.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$'}}]});
   }
   pending.set(p.requestId,entry);emit('check.held',entry);

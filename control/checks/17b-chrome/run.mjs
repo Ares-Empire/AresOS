@@ -15,6 +15,9 @@ const save=(n,v)=>fs.writeFileSync(out+'/'+n+'.json',JSON.stringify(v,null,2));
 function log(name,row){summary.cases.push({name,...row});save('summary',summary);console.log(name,JSON.stringify(row));}
 async function probe(name,fn){try{const row=await fn();log(name,{status:'observed',...row});return row;}catch(e){log(name,{status:'probe-error',error:e.stack});return {error:e.message};}}
 let updateVersion='0.2.0',id,chrome,bridge,selected,group;
+const wt=spawn(work+'/venv/bin/python',[here+'/webtransport.py',work],{stdio:['ignore',fs.openSync(out+'/webtransport.log','a'),fs.openSync(out+'/webtransport.log','a')]});
+await eventually(()=>fs.existsSync(work+'/webtransport.json'),'WebTransport receiver');
+const wtInfo=JSON.parse(fs.readFileSync(work+'/webtransport.json'));save('webtransport-certificate',wtInfo);
 const f=await fixture(out,work,()=>`<?xml version="1.0"?><gupdate xmlns="http://www.google.com/update2/response" protocol="2.0"><app appid="${id}"><updatecheck codebase="${f.base}/extension.crx" version="${updateVersion}"/></app></gupdate>`);
 const ext=work+'/extension';fs.cpSync(here+'/extension',ext,{recursive:true});
 const kp=generateKeyPairSync('rsa',{modulusLength:2048});id=idFor(kp.publicKey.export({type:'spki',format:'der'}));
@@ -31,7 +34,14 @@ for(const label of ['system','user']){
 }
 function policy(userHosts){const p={ExtensionInstallForcelist:[id+';'+f.base+'/update.xml'],ExtensionInstallBlocklist:['fcoeoabgfenejglbffodgkkbkcdhcgfn'],NativeMessagingUserLevelHosts:userHosts};const file=work+'/policy.json';fs.writeFileSync(file,JSON.stringify(p));execFileSync('sudo',['install','-D','-m','644',file,'/etc/opt/chrome/policies/managed/aresos-17b.json']);save('policy-'+userHosts,p);}
 policy(true);
-async function stop(kill=false){bridge?.close();bridge=undefined;if(chrome?.exitCode===null){if(kill){chrome.kill('SIGKILL');execFileSync('pkill',['-KILL','-f',work+'/profile'],{stdio:'ignore'});}else{await activateChrome();await key('ctrl+shift+q');await delay(2000);if(chrome.exitCode===null)chrome.kill('SIGTERM');}await delay(600);}chrome=undefined;}
+async function stop(kill=false){
+ if(chrome?.exitCode===null){
+   if(kill){chrome.kill('SIGKILL');try{execFileSync('pkill',['-KILL','-f',work+'/profile'],{stdio:'ignore'});}catch{}}
+   else{await activateChrome();await key('alt+F4');await delay(2000);if(chrome.exitCode===null){log('NORMAL_CLOSE_FALLBACK',{signal:'SIGTERM'});chrome.kill('SIGTERM');}}
+   await delay(600);
+ }
+ bridge?.close();bridge=undefined;chrome=undefined;
+}
 async function boot(label){
  bridge=await nativeBridge(socket);
  const args=[`--user-data-dir=${work}/profile`,'--no-first-run','--no-default-browser-check','--password-store=basic','--start-maximized','--gtk-version=3','--disable-background-mode',f.base+'/'];
@@ -75,13 +85,21 @@ try{
    await matrix('devtools',async()=>{await bridge.send('Page.bringToFront');await key('ctrl+shift+i');await delay(1200);await screenshot(out,'devtools-'+backstop);await key('ctrl+shift+i');},{backstop});
    // Native port survives the tab debugger being replaced.
    await stop();await boot('after-devtools-'+backstop);
-   await matrix('cancel',async()=>{await bridge.send('Page.bringToFront');await screenshot(out,'before-cancel-'+backstop);x('mousemove',1378,134,'click',1);await delay(500);await screenshot(out,'after-cancel-'+backstop);},{backstop});
+   await matrix('cancel',async()=>{await bridge.send('Page.bringToFront');await screenshot(out,'before-cancel-'+backstop);x('mousemove',960,115,'click',1);await delay(500);await screenshot(out,'after-cancel-'+backstop);await eventually(async()=>(await state()).history.some(r=>r.method==='check.detached'&&r.params.reason==='canceled_by_user'),'Cancel really detached');},{backstop});
    await stop();await boot('after-cancel-'+backstop);
  }
  await matrix('tab-close',()=>bridge.send('Check.closeTab'),{expected:0});await stop();await boot('after-tab');
  await matrix('chrome-normal',()=>stop(),{expected:0});await boot('after-normal');
  await matrix('chrome-kill',()=>stop(true),{expected:0});await boot('after-kill');
- await probe('Q1_STOP_WORKER',async()=>{const p=await held('q1-worker-stop');const result=await bridge.send('ServiceWorker.enable');const stopped=await bridge.send('ServiceWorker.stopAllWorkers');await delay(1000);return {result,stopped,arrivals:await observe('q1-worker-stop')};});
+ await probe('Q1_STOP_WORKER',async()=>{
+   const p=await held('q1-worker-stop');const before=await bridge.send('Check.targets');
+   const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'}).split('\n').filter(l=>l.includes('--extension-process'));
+   assert.ok(processes.length,'extension worker renderer exists');save('worker-stop-before',{p,before,processes});
+   for(const line of processes)process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');
+   await delay(1200);const received=await observe('q1-worker-stop');
+   await screenshot(out,'worker-stopped');
+   await connect();const after=await bridge.send('Check.targets');return {before,after,arrivals:received};
+ });
  await stop();await boot('after-worker-stop');
  await matrix('policy-update',async()=>{packVersion('0.2.1');log('Q5_UPDATE_CHECK',await bridge.send('Check.update'));await delay(4000);});
  await stop();await boot('after-update');
@@ -147,7 +165,7 @@ try{
  const oldSocket=await evaluate(bridge,'ws.readyState');await evaluate(bridge,"ws.send('synthetic preattach');'ok'");await delay(400);
  log('Q4_WS_PREATTACH',{readyState:oldSocket,events:events.slice(),server:f.arrivals.filter(r=>r.kind.startsWith('ws'))});
  await probe('Q4_WEBRTC',async()=>{await bridge.send('Media.enable');await evaluate(bridge,'rtc()');await eventually(()=>evaluate(bridge,"channel.readyState==='open'"),'RTC open');await evaluate(bridge,"channel.send('synthetic rtc');'ok'");return {events:events.slice(),states:await evaluate(bridge,'states')};});
- await probe('Q4_WEBTRANSPORT',async()=>{await evaluate(bridge,`window.transport=new WebTransport('https://127.0.0.1:9/');transport.ready.catch(e=>mark(e.name));'attempted'`);await delay(1000);return {events:events.slice(),states:await evaluate(bridge,'states')};});
+ await probe('Q4_WEBTRANSPORT',async()=>{const offset=events.length;await evaluate(bridge,`window.transport=new WebTransport(${JSON.stringify(wtInfo.url)},{serverCertificateHashes:[{algorithm:'sha-256',value:new Uint8Array(${JSON.stringify(wtInfo.hash)})}]});transport.ready.then(()=>mark('wt open')).catch(e=>mark(e.name));'attempted'`);await eventually(()=>evaluate(bridge,"states.some(s=>s.s==='wt open')"),'WebTransport open');await evaluate(bridge,"window.writer=transport.datagrams.writable.getWriter();writer.write(new TextEncoder().encode('synthetic transport'));'ok'");await delay(500);const before=events.slice(offset);await bridge.send('Check.detach');await bridge.send('Check.attach',{tabId:selected});await bridge.send('Check.enableGate');const oldOffset=events.length;await evaluate(bridge,"writer.write(new TextEncoder().encode('synthetic preattach transport'));'ok'");await delay(500);return {events:before,afterReattachEvents:events.slice(oldOffset),states:await evaluate(bridge,'states'),server:fs.readFileSync(out+'/webtransport-server.jsonl','utf8')};});
  await nav();
  // Permanently watch typed text, including sends outside a 500ms settle window.
  const text='Synthetic 17b "a+b" / ✓',encoded=[text,encodeURIComponent(text),new URLSearchParams({text}).toString().slice(5),JSON.stringify(text).slice(1,-1),Buffer.from(text).toString('base64')];
@@ -178,4 +196,4 @@ try{
  // Final independent server log audit catches late arrivals after navigation/teardown.
  await stop();await delay(1000);const rows=[...audit].map(([id,expected])=>({id,expected,actual:arrivals(id).length}));save('delivery-audit',rows);for(const r of rows)assert.equal(r.actual,r.expected,r.id);
  log('FINAL_DELIVERY_AUDIT',{status:'PASS',cases:rows.length});console.log('ALL 17B CHECKS COMPLETE');
-}finally{await screenshot(out,'final-screen').catch(()=>{});save('summary',summary);if(chrome)await stop();bridge?.close();f.close();}
+}finally{await screenshot(out,'final-screen').catch(()=>{});save('summary',summary);if(chrome)await stop();bridge?.close();f.close();wt.kill();}
