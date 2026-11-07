@@ -101,9 +101,8 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
      own question (MCP elicitation) never reached the phone; in the terminal at the laptop the prompt is readable. The
      owner decides on the proposed approval screen in Aresus (`docs/design/CONTROL.md`, section 7).
    - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     design draft 12 (re-check 9's open points: every input recorded before it reaches Chrome, unlabelled local-only
-     deletion as an owner question, Chrome's own current certificate data for the upstream checks, a bounded advance
-     approval for destructive actions).
+     design draft 13 (re-check 10's open points: both options for unlabelled local-only deletion stated truthfully,
+     and Chrome's own certificate data as a precise contract with a version gate).
    - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
      rule), then brief 20 (Chrome) on the final design draft, once a re-check finds no blocking point.
 

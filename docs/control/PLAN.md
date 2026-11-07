@@ -316,3 +316,11 @@ tasks at any time.
   age limits, and match Chrome 157 on stapling; a destructive action approved in advance is one bounded advance
   operation, used once; plus the should-fixes (safe-field descriptions, unattributed sends to his approval surface,
   `chrome_end_call` for all calls as one set, real firewall tests, the Aresus adversarial tests). Re-check 10 next.
+- **2026-11-07, 17:57:** frontier re-check 10 of draft 12
+  ([RECHECK-10](../../reviews/control-design/2026-11-07-RECHECK-10.md)): the input barrier and the advance approval
+  closed; unlabelled local-only deletion and Chrome's security data still open. Design draft 13: both deletion options
+  stated truthfully for the owner (option (a) also leaves drafts kept in storage on ordinary online sites; (b) asks on
+  every site without an adapter), with objects inside editable areas counting as destructive; Chrome's security data
+  read from its user-data directory, trusted on Chrome's verified installation and the folder's protection, Chrome and
+  checkpoint pinned together with a visible notice if they ever differ, freshness from the data's own fields, and an
+  exact recovery contract when it is out of date. Re-check 11 next.

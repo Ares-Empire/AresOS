@@ -1,6 +1,6 @@
 # The control layer: design
 
-**Status:** draft 12, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
+**Status:** draft 13, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
 ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
@@ -22,8 +22,12 @@ a recognised action is, three separate users with no shared files, every place t
 upstream TLS checks with what is lost. The ninth re-check ([9](../../reviews/control-design/2026-11-07-RECHECK-9.md))
 closed three of them and found one new point; draft 12 records every input before it reaches Chrome, makes unlabelled
 local-only deletion an owner question, checks upstream certificates with Chrome's own current data, and bounds a
-destructive action approved in advance. Points marked *checked* name the check that showed them; points marked
-*brief 20* must be shown by the Chrome build's own tests before anything relies on them.
+destructive action approved in advance. The tenth re-check
+([10](../../reviews/control-design/2026-11-07-RECHECK-10.md)) closed the input barrier and the advance approval; draft
+13 states both options for unlabelled local-only deletion truthfully and makes Chrome's own security data a precise
+contract (paths, what the trust rests on, a version gate, freshness from the data's own fields, recovery when it is
+out of date). Points marked *checked* name the check that showed them; points marked *brief 20* must be shown by the
+Chrome build's own tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps
@@ -1502,8 +1506,9 @@ Decision 1 ruled out a separate Aresus screen; this proposal reopens it, and the
   Chrome's own current lists (its revocation list, root list, CT log list and pin list). What still differs: sites
   that ask the browser for a client certificate don't work; there is no "continue anyway", so a device page with a
   certificate it made itself (a router, a printer) doesn't open; if Chrome can't update its lists for a long time,
-  new connections pause until it can; and after a Chrome update changes its rules, the checkpoint follows with its
-  own update. Recommended: accept. None of these weakens a check; they make some pages fail instead.
+  new connections pause until it can. And Chrome and its checkpoint are updated together in the image, but if Chrome
+  is ever newer than the checkpoint, checks the newer Chrome makes may be missing until AresOS is updated; he gets a
+  visible notice when that happens. Recommended: accept.
 - **Clicks that might delete data kept only in the browser, when the control doesn't say so** (section 6). Many
   sites keep some of his data only in the browser: offline apps, but also ordinary online sites, for example an
   unsent draft kept in the browser's storage. A click there can delete it without anything being sent, so the
