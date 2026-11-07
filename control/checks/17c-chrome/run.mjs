@@ -43,6 +43,7 @@ try{
  const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);save('processes',{processes});assert.equal((await state()).manifest.permissions.includes('management'),false);
  await key('ctrl+t');await address('chrome://sandbox');await screenshot(out,'sandbox');await key('ctrl+w');
  if(phase==='pages'){
+  await nav();await evaluate(bridge,"new Promise(resolve=>{const r=new XMLHttpRequest();r.open('GET','/read-fixture');r.onload=()=>resolve(true);r.send()})");await evaluate(bridge,"new WritableStream({write(d){mark('local writer '+d)}}).getWriter().write('synthetic local').then(()=>true)");assert.equal(await evaluate(bridge,'__hold17.pending.size'),0);log('Q1_PLAIN_READ_AND_LOCAL_STREAM',{held:0});
   // Independent receiver counts are checked again after Chrome exits.
   for(const kind of ['fetch','xhr','beacon','form-submit','form-request','form-event','ws','rtc','writer']){
    if(kind==='writer'){
