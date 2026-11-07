@@ -27,7 +27,7 @@ Review records: [REVIEW.md](REVIEW.md), [REVIEW-2.md](REVIEW-2.md),
 - **Sent setup:** when a short probe finds no Sent copy, setup asks you to confirm whether the client or server saves it rather than guessing from absence. Automatic negative detection would need a proven time bound for the real account.
 - **Folder deletion:** deletion only runs where the server refuses to delete a folder that holds mail, so no mail can be lost. If another mail program renames the approved empty folder and creates a new empty one with the same name in the same instant, the new empty one is deleted instead; the alternative is to remove folder deletion from the tools. Neither test server qualifies on its own, so the real account's guard still needs your check.
 - **Repair after uncertainty:** without a recorded final server acceptance, you must inspect an uncertain send yourself even if a Sent copy appears. Automatic repair from that copy alone was rejected because it cannot prove which recipients were accepted; repair never sends again.
-- **Approval prompt — owner decision, round 12:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut.
+- **Approval prompt — owner decision, round 12:** Claude Code keeps its own approval prompt. It now starts with one plain sentence written by the service; the full details follow below it. The shared base format is `{question, operation_id, description}` in that order, passed unchanged through submission; Chrome will use it too. Altering or removing the question refuses the approval. Long summaries say “and N more”; the full fields remain visible, and oversize approvals refuse rather than being cut. Every recipient and sender in the sentence appears with its real address (“Mom <stranger@example.org>”), so a familiar-looking name can't stand in it alone.
 
 - **Filing after a folder-role race (rounds 10–11):** mail stays where the move or copy put it; nothing is moved back or deleted. You get a short warning with the filing id, message count and bounded folder names until acknowledged. Following Mail results and `aresos log` repeat the newest three warnings and count the rest; `mail_filing_notices` pages every warning, and `mail_filing_locations` returns exact locations on request. Cleaning up copies still requires the ordinary delete approval. If a special role moves to the target and back between the command and the check, the result can say done: the mail is in the intended target, which has no protected role at the end, and nothing is lost. Disabling free filing entirely was the alternative; changing this later affects only filing and its views.
 - **Stopping rule from the lead:** Claude can always write a file itself and attach it, and the approval then shows only its name, size and change time; that is the open owner question about Claude-written files. Any further finding of the kind “text Claude wrote reaches an attachment by a new route” is settled by your answer on how attachments are shown, not by another fix round. Blocking findings of any other kind still count.
@@ -55,7 +55,8 @@ Chrome (brief 20) will use the same format. No Chrome implementation is claimed.
   stored approvals after restart. Canonical hashing/storage serialization stays
   unchanged. The proxy also preserves `stale_approval` for a removed question.
 - Mail `questions.py` and `adapter.py` build the question from preparation facts:
-  display names with address fallback; To/Cc/hidden Bcc; subject as written; caller
+  each recipient as name plus real address (address alone when there is no name);
+  To/Cc/hidden Bcc; subject as written; caller
   text line count; quote/forward indicators; attachment names; named deletions in
   both modes; empty-folder deletion; both unsubscribe methods; setup probes and
   repairs. Control/bidi/backslash escaping happens once through shared `visible()`.
@@ -66,7 +67,10 @@ Chrome (brief 20) will use the same format. No Chrome implementation is claimed.
 **JUDGMENT-CALL — read, within the approved owner decision:** questions list the
 first three recipients per group, attachments and deletion targets, then `and N more`.
 Individual summary names retain up to 80 visible characters, delete subjects 120,
-then an ellipsis; escapes remain whole. The send subject is never shortened. A
+then an ellipsis; escapes remain whole. For people, only the display name is
+shortened: the real address always follows it whole, so a long lookalike name
+can't push the address out of the sentence (added by the package lead at the
+lead's request after round 12). The send subject is never shortened. A
 4,096-visible-character question cap and the existing whole 16 KiB cap refuse the
 entire approval before reservation. Unlimited summaries or cutting the subject/body
 were rejected. Changing these bounds later costs a constant/helper, regeneration
@@ -76,6 +80,7 @@ quotes, forwards, saved draft text and signatures remain separate disclosed fact
 **Tests — run:** new Mail `PlainQuestions12` methods in `test_review_fixes_12.py`:
 
 - `test_round12_send_many_groups_names_fallback_and_attachments_keep_full_fields`
+- `test_round12_lookalike_names_always_show_their_real_address` (added after round 12: "Mom" with a stranger's address, a 200-character lookalike name, a bidi name; send, delete and unsubscribe sentences show the real address)
 - `test_round12_controls_bidi_and_backslashes_escape_once_without_cutting_escapes`
 - `test_round12_reply_quotes_and_both_forwards_describe_generated_content`
 - `test_round12_delete_both_modes_many_messages_and_empty_folder`
@@ -135,7 +140,12 @@ cache; Linux/socket/MCP and real-server qualification comes from CI, not the Mac
 **Push discipline / scope — read:** the first push includes the pre-existing brief
 commit `33b5ae8d` and code/tests. Any later commit in this round changes only files
 under `reviews/`; final-head run IDs and both attempts are recorded in PR #9 after
-the report push. Second passes use `gh run rerun`, not another push. Normal push
+the report push. Second passes use `gh run rerun`, not another push. After this
+round the package lead changed `questions.py` and its tests at the lead's request
+(names always with their real address); that commit's runs, both workflows and both
+passes, are recorded in PR #9, and its local checks (39 plain-Python Mail tests,
+`test_operations test_record test_crashes test_approval_questions`, generated-artifact
+and syntax checks) passed before the push. Normal push
 verification is retained; no `--no-verify`, force push, rebase or merge. No workflow,
 protected review, OS, mod or protected design/plan file was edited. No file left
 in `.work/` exceeds 500 MB; no large download or extraction was made this round.

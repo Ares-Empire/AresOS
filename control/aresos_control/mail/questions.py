@@ -19,15 +19,21 @@ def short(value, limit=80):
     return value
 
 
-def display(value):
+def person(value):
+    """A display name never stands alone: a lookalike name ("Mom") must show its real address.
+
+    Only the name is shortened; the address is always shown whole (bounded like a real address).
+    """
     pairs = getaddresses([value])
     if len(pairs) == 1 and pairs[0][1]:
-        return pairs[0][0] or pairs[0][1]
-    return value
+        name, address = pairs[0]
+        address = short(address, 254)
+        return f'{short(name)} <{address}>' if name else address
+    return short(value)
 
 
-def few(values):
-    shown = [short(value) for value in values[:3]]
+def few(values, cut=True):
+    shown = [short(value) if cut else value for value in values[:3]]
     if len(values) > 3:
         shown.append(f'{len(values) - 3} more')
     if len(shown) < 2:
@@ -49,7 +55,7 @@ def question(verb, details, source=None):
         text = 'Send this mail'
         for key, label in (('to', ' to '), ('cc', ', Cc '), ('bcc', ', hidden copy (Bcc) to ')):
             if details[key]:
-                text += label + few([display(v) for v in details[key]])
+                text += label + few([person(v) for v in details[key]], cut=False)
         # The caller's text excludes generated quotes, forwards and the signature.
         lines = len(details['text'].splitlines())
         attachments = details['attachments']
@@ -71,18 +77,18 @@ def question(verb, details, source=None):
         items = details['items']
         count = f"{len(items)} " + ('message' if len(items) == 1 else 'messages')
         text = f'Delete {count} for good' if details['mode'] == 'permanent' else f'Move {count} to Trash'
-        summaries = [f"from {short(display(i['from']))}, '{short(i['subject'], 120)}' ({day(i['date'])})" for i in items[:3]]
+        summaries = [f"from {person(i['from'])}, '{short(i['subject'], 120)}' ({day(i['date'])})" for i in items[:3]]
         if len(items) > 3:
             summaries.append(f'and {len(items) - 3} more')
         return text + ': ' + '; '.join(summaries) + '?'
     if verb == 'folder_delete':
         return f"Delete the empty folder '{details['folder']}'?"
     if verb == 'unsubscribe':
-        label = str(source.get('List-ID') or source.get('From') or 'this mailing list')
+        label = short(str(source.get('List-ID')), 120) if source.get('List-ID') else person(str(source.get('From'))) if source.get('From') else 'this mailing list'
         url = urlsplit(details['target'])
         method = ('sending a mail to ' + few(details['to']) if url.scheme == 'mailto'
                   else 'a one-click web request to ' + url.hostname)
-        return f'Unsubscribe from {short(label, 120)} by {method}?'
+        return f'Unsubscribe from {label} by {method}?'
     if verb == 'onboarding_folder_probe':
         state = 'empty' if details.get('empty') else 'nonempty'
         return f"Test deleting the {state} disposable setup folder '{details['folder']}'?"

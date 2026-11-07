@@ -73,9 +73,9 @@ class PlainQuestions12(unittest.TestCase):
             attachments.append(ref)
         approval = self.approval('send', self.compose(**groups, subject='Angebot für die Wohnung', attachments=attachments))
         text, details = approval['question'], approval['description']
-        self.assertIn('to Zoë Example, 李 Example, bare@example.com and 4 more', text)
-        self.assertIn(', Cc Cc Example 0, Cc Example 1, Cc Example 2 and 4 more', text)
-        self.assertIn('hidden copy (Bcc) to Bcc Example 0, Bcc Example 1, Bcc Example 2 and 4 more', text)
+        self.assertIn('to Zoë Example <zoe@example.com>, 李 Example <li@example.com>, bare@example.com and 4 more', text)
+        self.assertIn(', Cc Cc Example 0 <cc0@example.com>, Cc Example 1 <cc1@example.com>, Cc Example 2 <cc2@example.com> and 4 more', text)
+        self.assertIn('hidden copy (Bcc) to Bcc Example 0 <bcc0@example.com>, Bcc Example 1 <bcc1@example.com>, Bcc Example 2 <bcc2@example.com> and 4 more', text)
         self.assertIn('Subject: Angebot für die Wohnung; 2 lines, 7 attachments: offer-0.pdf, offer-1.pdf, offer-2.pdf and 4 more', text)
         for key in groups:
             self.assertEqual(details[key], groups[key])
@@ -84,6 +84,26 @@ class PlainQuestions12(unittest.TestCase):
         comp = self.mail.composition({'composition_id': details['composition_id'], 'composition_hash': details['composition_hash']})
         for key, value in visible(comp['mail']).items():
             self.assertEqual(details[key], value)
+
+    def test_round12_lookalike_names_always_show_their_real_address(self):
+        # A familiar name with a stranger's address: the sentence the owner reads must show the address.
+        long_name = 'Mom ' + 'x' * 200
+        comp = self.mail.composition(self.compose())['mail']
+        comp = {**comp, 'to': ['Mom <stranger@example.org>'], 'cc': [long_name + ' <other.stranger@example.org>'],
+                'bcc': ['"Mom\u202e" <third@example.org>']}
+        text = approval_input('fixed', comp, question('send', comp))['question']
+        self.assertIn('to Mom <stranger@example.org>', text)
+        # Only the name is cut; the address stays whole after it.
+        self.assertIn('Cc ' + short(long_name) + ' <other.stranger@example.org>', text)
+        self.assertIn('hidden copy (Bcc) to Mom\\u202e <third@example.org>', text)
+        items = [{'reference': {}, 'from': 'Mom <stranger@example.org>', 'subject': 'Hi', 'date': 'Thu, 05 Nov 2026 10:00:00 +0000'},
+                 {'reference': {}, 'from': long_name + ' <other.stranger@example.org>', 'subject': 'Hi', 'date': 'Thu, 05 Nov 2026 10:00:00 +0000'}]
+        text = question('delete', {'items': items, 'mode': 'trash'})
+        self.assertIn("from Mom <stranger@example.org>, 'Hi' (5 Nov)", text)
+        self.assertIn('from ' + short(long_name) + " <other.stranger@example.org>, 'Hi'", text)
+        source = {'From': 'Mom <stranger@example.org>'}
+        text = question('unsubscribe', {'target': 'mailto:leave@example.com', 'to': ['leave@example.com']}, source)
+        self.assertTrue(text.startswith('Unsubscribe from Mom <stranger@example.org> by'), text)
 
     def test_round12_controls_bidi_and_backslashes_escape_once_without_cutting_escapes(self):
         comp = self.mail.composition(self.compose())['mail']
@@ -135,7 +155,7 @@ class PlainQuestions12(unittest.TestCase):
             approval = self.approval('delete', {'items': items, 'mode': mode})
             text = approval['question']
             self.assertTrue(text.startswith('Delete 7 messages for good' if mode == 'permanent' else 'Move 7 messages to Trash'))
-            self.assertIn("from Anna Example, 'Offer 1' (5 Nov)", text)
+            self.assertIn("from Anna Example <anna@example.com>, 'Offer 1' (5 Nov)", text)
             self.assertIn('and 4 more', text)
             self.assertNotIn('Offer 4', text)
             self.assertEqual(approval['description']['items'], items)
