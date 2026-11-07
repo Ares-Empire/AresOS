@@ -36,7 +36,11 @@ export default async function(c){
   ['1mb',"'x'.repeat(1024*1024)"],['25mb',"'y'.repeat(25*1024*1024)"],
   ['stream',"new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('synthetic stream'));c.close()}})"]
  ]){
-  await nav();await rpc('Check.clear');const id='body-'+kind;if(kind==='multipart'){const file=c.work+'/synthetic-upload.txt';c.fs.writeFileSync(file,'SYNTHETIC_DISK_FILE_17D'.repeat(4096));const root=await rpc('DOM.getDocument'),node=await rpc('DOM.querySelector',{nodeId:root.root.nodeId,selector:'#upload'});await rpc('DOM.setFileInputFiles',{nodeId:node.nodeId,files:[file]});}
+  await nav();await rpc('Check.clear');const id='body-'+kind;if(kind==='multipart'){
+   const file=c.work+'/synthetic-upload.txt';c.fs.writeFileSync(file,'SYNTHETIC_DISK_FILE_17D'.repeat(4096));
+   // chrome.debugger cannot grant filesystem access. Select only this runner-created file in the real picker.
+   await rpc('Page.bringToFront');const b=await ev("(()=>{const b=document.querySelector('#upload').getBoundingClientRect();return {x:screenX+b.x+35,y:screenY+outerHeight-innerHeight+b.y+b.height/2}})()");c.x('mousemove',Math.round(b.x),Math.round(b.y),'click',1);await delay(700);await c.screenshot(c.out,'synthetic-file-picker');await c.key('ctrl+l');c.x('type','--clearmodifiers','--delay','1',file);await c.key('Return');await delay(500);if(!await ev("document.querySelector('#upload').files.length===1"))await c.key('alt+o');await c.eventually(()=>ev("document.querySelector('#upload').files[0]?.name==='synthetic-upload.txt'"),'synthetic disk file selected');
+  }
   await ev(`window.testBody=${expression};fetch('/receive?case=${id}',{method:'POST',body:testBody,${kind==='json'?"headers:{'Content-Type':'application/json'},":''}${kind==='stream'?"duplex:'half',":''}}).catch(e=>events.push(e.name));true`);await delay(800);await count(id,0);const network=(await state()).history;
   await ev(`__floor.enabled=true;testBody=${expression};fetch('/receive?case=wrap-${kind}',{method:'POST',body:testBody,${kind==='json'?"headers:{'Content-Type':'application/json'},":''}${kind==='stream'?"duplex:'half',":''}}).catch(e=>events.push(e.name));true`);await delay(1000);await count('wrap-'+kind,0);
   const wrapper=(await state()).history.filter(e=>e.method==='check.script'&&['held','stream-refused'].includes(e.params.event));assert.ok(wrapper.length,'wrapper body outcome '+kind);
