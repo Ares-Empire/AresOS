@@ -96,7 +96,8 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
   - Every step 1–2 record passed: cloud backups opened online, recovery stick booted, UEFI/Secure Boot off/decrypted/hibernation off, record A in OneDrive, writer cancel trial, "erfolgreich geschrieben", live desktop boot.
   - Afterwards the Windows disk and its four partitions matched record A (read-only check).
   - Private records stay out of the public repo.
-- **Stage B is released.** The owner plans fitting on **2026-11-06**, guided step by step in chat. Claude checks the photos (battery, seating, Crucial label: private, never committed), the F2 screen showing both drives, and record B after-fit.
+- **Stage B (fitting) DONE 2026-11-07,** guided step by step; the maintainer's check of its records is nearly complete. Battery, seating and Crucial-label photos PASSED (checked by a Claude session on the Mac; the photos stay private). The F2 screen listed both Micron and Crucial (owner-confirmed; photo check pending). Record B after-fit PASSED: Windows disk identity, all partition GUIDs/types/boundaries and the original Windows boot target match record A. A broken bottom-cover screw post (front corner, likely the old rattle) was removed, so that one screw stays out. The stage record is `after-fit-20261107-191942-745.json` beside record A in the owner's OneDrive.
+- **Next:** once the F2 photo is checked, the INSTALL-STATUS update (B CHECKED, C RELEASED) as a reviewed PR, then Stage C with the owner (steps 4 onward, each step's record checked before the next).
 - **Owner to-dos:**
   - Shift+Delete `C:\Users\pab\AresOS-delete-me` (115 GB of old replay ISOs).
 
@@ -148,9 +149,9 @@ The baton from the last session. Read it after `STATE.md`. Overwrite it when you
 
 ### Other
 
-- **Hardware arrived 2026-10-26** (SSD, 2 sticks, screwdrivers). Keep it boxed until the guide is released: record A must come before fitting. The SSD return deadline is about **2026-11-09**.
+- **Hardware:** the SSD is fitted (2026-11-07); the two Kingston sticks are the recovery and installer sticks from Stage A.
 - **Package 12** (the companion in the hub): the brief is drafted, waiting for the owner's go (scratchpad draft path in the transcript). Companions live in the private repo `Ares-Empire/companions`.
-- **The CI secret `GHCR_READ_TOKEN`** expires about 2026-11-22.
+- **The CI secret `GHCR_READ_TOKEN`** was renewed on 2026-11-07 and is valid until about 2026-12-07.
 
 ## Watch out
 

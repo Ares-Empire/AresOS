@@ -71,18 +71,16 @@ Updated 2026-11-07. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Waiting on the owner
 
-- **Hardware ARRIVED 2026-10-26.** Record A is done (2026-11-03) and Stage B is released, so fitting is allowed now. Ordered 2026-10-22 (€127.05, delivery Mon 2026-10-26): Crucial P310 500 GB, Kingston 2×64 GB sticks, Wera 2050 PH0 + PH1 screwdrivers. The owner bought the SSD before the slot check because one opening beats two. Evidence the 2280 slot is free: the Windows drive is a Micron 2450 **2242** (MTFDKCD512TFK), and a LaptopMedia teardown of this model shows the factory 2242 in the 2242-only slot with the 2280 slot (by the Wi-Fi card) empty.
-  - **Return window: request within 14 days of delivery (about 2026-11-09).** Before that: open the laptop once following INSTALL.md §3 (Stage B) and fit the SSD if the slot is free; if not, return it sealed.
-  - Pry the cover clips with plastic (card or pick), never metal.
+- **Hardware FITTED 2026-11-07** (Stage B): the Crucial P310 500 GB sits in the free 2280 slot; the Windows drive, a Micron 2450 **2242** (MTFDKCD512TFK), was left alone. Ordered 2026-10-22 (€127.05): Crucial P310 500 GB, Kingston 2×64 GB sticks, Wera 2050 PH0 + PH1 screwdrivers. The SSD is kept, so its return window no longer matters.
 - Hub: the owner explores seeds, picks a spot and builds it in creative later. Nothing is locked until they say so.
 
 ## Next, in order
 
 1. **Physical install, staged (owner decision 2026-11-02; package 16 merged as `4e69540`):**
    - **Stage A (steps 1–2) is DONE and CHECKED (2026-11-05),** recorded in INSTALL-STATUS by PR #1 of the public repo (merged `e0f737b`).
-   - **Stage B (fitting) is RELEASED.** The owner plans to fit the SSD on 2026-11-06, with Claude guiding step by step. Return deadline about 2026-11-09.
+   - **Stage B (fitting) DONE 2026-11-07,** guided step by step; the maintainer's check of its records is nearly complete. Battery, seating and Crucial-label photos PASSED (checked by a Claude session on the Mac; the photos stay private). The F2 screen listed both Micron and Crucial (owner-confirmed; photo check pending). Record B after-fit PASSED: Windows disk identity, all partition GUIDs/types/boundaries and the original Windows boot target match record A. A broken bottom-cover screw post (front corner, likely the old rattle) was removed, so that one screw stays out.
    - **Stage C (install)** needs A and B checked plus a table update. The native mounted-child check is MET (package 16 probe passed).
-2. **First boot:** fit the SSD, install onto it and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
+2. **First boot:** install onto the new SSD and switch to the AresOS image. Plain AresOS (a terminal) boots. Check GPU, Wi-Fi and sound, and that Windows still boots.
 3. **Minecraft inside AresOS** (P2): Prism and Microsoft login, the Nether world, mod ↔ OS helper (interface v1), clean save and shutdown, backups.
 4. **Full trial** (P3): boot → Nether hub → open/close an app → shut down → Windows still fine.
 5. **Later:** a help button in AresOS that opens a terminal with Claude Code (owner idea 2026-10-22, after the first boot works), piglin shops, owner-designed hub, shaders, controlled updates, boot splash, sleep, Brawl Stars theme.
