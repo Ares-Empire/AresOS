@@ -1,10 +1,11 @@
 # The control layer: design
 
-**Status:** draft 5, 2026-11-07. Covers the shared base, Mail and Chrome. Revised after the frontier review
+**Status:** draft 6, 2026-11-07. Covers the shared base, Mail and Chrome. Revised after the frontier review
 ([`2026-11-07-REVIEW.md`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking findings) and its re-check
 and re-checks ([`RECHECK`](../../reviews/control-design/2026-11-07-RECHECK.md),
 [`RECHECK-2`](../../reviews/control-design/2026-11-07-RECHECK-2.md),
-[`RECHECK-3`](../../reviews/control-design/2026-11-07-RECHECK-3.md): one Chrome point left, fixed here). Chrome rests on brief 17's check; points marked *17b* and
+[`RECHECK-3`](../../reviews/control-design/2026-11-07-RECHECK-3.md),
+[`RECHECK-4`](../../reviews/control-design/2026-11-07-RECHECK-4.md): the owner's Chrome confirmation, specified here). Chrome rests on brief 17's check; points marked *17b* and
 *17c* are checked next.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
@@ -384,8 +385,9 @@ prevent it; closing it would take refusing input on such sites or limiting where
 **Other tabs of the same site, and later.** A Claude tab can pass data or queued work to the owner's own tabs of the
 same site through the browser's shared channels (a shared worker, a broadcast channel, storage) or keep it for later
 (an offline outbox that retries after a restart). So once Claude has acted on a site, that site is *guarded*: its
-other tabs and workers are attached, and what they send that isn't plain reading or caused by the owner's own input
-is held like in a Claude tab, listed as background. The guard stays on across browser restarts (the extension keeps
+other tabs and workers are attached, and what they send that isn't plain reading is held like in a Claude tab:
+listed as background when the page sent it by itself, and put to the owner (next paragraph) when his own input
+caused it. The guard stays on across browser restarts (the extension keeps
 the list, and attaches to the site's tabs before their first request) until there is evidence that every operation
 Claude started there is resolved; a held request that was dropped or expired is not such evidence, since the page
 may keep it queued. The owner can end the guard himself. Where a context can't be guarded, the tool refuses to act
@@ -393,12 +395,24 @@ on that site while it exists.
 
 **The owner's own sends on a guarded site.** A request caused by the owner's own input (input the tool didn't
 dispatch) on a guarded site, in the Claude group or outside it, is held too, because it may carry Claude's queued
-work. The extension shows it to the owner in Chrome, on that tab: the address, the method and the data, and anything
-of Claude's still unresolved on the site, with "Send" and "Don't send", and a way to end the guard. Only the owner
-can answer it: the notice is the extension's own, which Claude's tools can't reach (Claude acts only through the
-debugger inside page tabs, extension pages can't be opened in a Claude tab, and the sandbox can't create input; the
-hostile tests check all three). It is the owner deciding about his own click, not an approval of Claude's actions;
-those stay with Claude Code's prompt.
+work. The owner decides it himself, on a surface outside every page:
+
+- **Where it appears:** a desktop notification from the extension (`chrome.notifications`) with "Send" and "Don't
+  send", and a details window that is the extension's own page (address, method, data, and anything of Claude's still
+  unresolved on the site, plus a way to end the guard). Never inside the page: no overlay, no frame embedded in the
+  page, no page dialog, because a content script shares the page's document and Claude can read and click anything
+  there.
+- **Who can answer:** the extension accepts a decision only from the notification's own buttons or from its own
+  details page (checked by the sender being the extension itself, not a tab or a content script). Messages from a
+  page or a content script never release a request or end a guard.
+- **Why Claude can't:** Claude acts only through the debugger in page tabs of the Claude group; `chrome_take_tab` and
+  `chrome_open` refuse extension pages and Chrome's own pages; desktop notifications and extension windows aren't
+  pages it can reach; and its sandboxed terminal can't create input. The hostile tests try each: taking the details
+  window, reading and clicking in every tab, answering a page dialog, forging messages from a page or content
+  script, and creating input from the sandbox. Every attempt must leave the request held and the guard on.
+
+This is the owner deciding about his own click, not an approval of Claude's actions; those stay with Claude Code's
+prompt.
 
 **The trusted list** frees sends only through a site adapter: an entry names a site and operations its adapter
 recognises (for example "post a message in a chat", "add to the basket"). Without an adapter nothing is free, because
