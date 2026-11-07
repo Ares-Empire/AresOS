@@ -241,39 +241,275 @@ password is sent.
 
 ## 6. Chrome
 
-Built on briefs 17, 17b and 17c: branded Chrome stable 157 on GitHub's Linux machines, synthetic profiles and fixture
+Built on briefs 17 to 17e: branded Chrome stable 157 on GitHub's Linux machines, synthetic profiles and fixture
 sites, ten public sites visited without signing in and with every send blocked
-([17 report](../../reviews/17-chrome-check/REPORT.md), PR #3; [17b report](../../reviews/17b-chrome-holds/REPORT.md),
-PR #4; [17c report](../../reviews/17c-chrome-pages/REPORT.md), PR #7). What the checks showed is marked *checked*; what
-brief 17d checks before the build is marked *17d*; what the Chrome build still has to show is marked *brief 20*.
+([17 report](../../reviews/17-chrome-check/REPORT.md), PR #3; [17b](../../reviews/17b-chrome-holds/REPORT.md), PR #4;
+[17c](../../reviews/17c-chrome-pages/REPORT.md), PR #7; [17d](../../reviews/17d-chrome-floor/REPORT.md), PR #8;
+[17e](../../reviews/17e-chrome-checkpoint/REPORT.md), PR #10; re-check
+[7](../../reviews/control-design/2026-11-07-RECHECK-7.md)). What the checks showed is marked *checked*, with the check
+that showed it; what the Chrome build still has to show is marked *brief 20*. None of this qualifies the owner's own
+signed-in browser; that comes after the first boot (the conditions near the end of this section).
+
+**What changed in draft 10.** Draft 9 put Chrome's own blocking rules (`declarativeNetRequest`) under every hold and
+let an approved send through with a one-time allowance for its address ("fail, then repeat"). 17d showed that this
+doesn't hold: WebSockets opened by shared and service workers pass every extension rule (Chrome 157 doesn't show them
+to extensions), and when control ends while an allowed request is paused, a different send to the same address goes
+out (24 of 24 trials). Re-check 7 recommended a checkpoint outside Chrome, and 17e showed that it holds. So every send
+from a guarded place now waits at that checkpoint, outside Chrome, and only the captured send the owner approved goes
+out, once. Chrome's blocking rules no longer protect anything, and fail-then-repeat and URL allowances are gone. The
+extension and the page script stay, for everything except deciding what leaves.
 
 ### How the tool reaches Chrome
 
 - **Our own small extension** (Manifest V3, using `chrome.debugger`), installed and updated by the image through
   Chrome's `ExtensionInstallForcelist` policy with a local update manifest: the owner can't disable or remove it, and
-  a new version arrives through the manifest (*checked*). It has no `management` permission (with it, an extension
-  can disable itself, which released a held request: *checked*), and developer mode is off by policy so nobody
-  reloads it by hand. Chrome starts its **native messaging host**, registered system-wide under
+  a new version arrives through the manifest (*checked*, 17b). It has no `management` permission (with it, an
+  extension can disable itself, which released a held request: *checked*, 17b), and developer mode is off by policy
+  so nobody reloads it by hand. Chrome starts its **native messaging host**, registered system-wide under
   `/etc/opt/chrome/native-messaging-hosts/`, with the `NativeMessagingUserLevelHosts` policy off: otherwise a
-  user-level registration of the same name wins (*checked*). The system manifest and the host program are root-owned
-  in the image. The host only relays between the extension and the service's `chrome.sock`. *Checked:* attaches to
-  a tab that was opened and signed in before the tool started, with no debugging port and Chrome's sandbox on.
-  Claude in Chrome's extension (`fcoeoabgfenejglbffodgkkbkcdhcgfn`) is blocked by `ExtensionInstallBlocklist`
-  (*checked*).
+  user-level registration of the same name wins (*checked*, 17). The system manifest and the host program are
+  root-owned in the image. The host only relays between the extension and the service's `chrome.sock`. *Checked*
+  (17): attaches to a tab that was opened and signed in before the tool started, with no debugging port and Chrome's
+  sandbox on.
+- **Claude in Chrome stays for the owner's own use** (decision 10), so its extension is no longer on Chrome's block
+  list. The central session can't load it (`managed-mcp.json` lists only the control layer's servers; a hostile test
+  checks that), and its connection to Claude Code sessions, a user-level native messaging host, doesn't start because
+  user-level hosts are off by policy (*brief 20*). What it sends goes through the checkpoint like everything else.
 - **Rejected:** Chrome's own consent attach (`chrome://inspect`) opens a debugging listener on port 9222 that stays
-  on after a restart (*checked*), against the owner's no-debugging-port rule. Playwright's bridge extension works,
-  but any local program that finds its endpoint can drive the page (*checked*); our own extension keeps that channel
-  inside the service.
+  on after a restart (*checked*, 17), against the owner's no-debugging-port rule. Playwright's bridge extension
+  works, but any local program that finds its endpoint can drive the page (*checked*, 17); our own extension keeps
+  that channel inside the service.
+- **Chrome runs as its own user** (`aresos-browser`), which holds the owner's profile and sign-ins. The checkpoint
+  needs this: the OS can then let exactly Chrome's connections reach the checkpoint and nothing else (17e did it this
+  way; a cgroup or a network namespace was the alternative it named). It also keeps the profile (cookies, saved
+  passwords) away from the owner's other programs, the assistant and coding sessions. Chrome starts only through a
+  root-owned launcher (the desktop entry, and the default browser for links from other apps), which starts the
+  checkpoint first. A Chrome started any other way, as another user, finds no profile and can't connect: the proxy
+  policy is machine-wide and the checkpoint accepts only the browser user. On Fedora with KDE this needs: the owner's
+  profile moved to that user once, with its sign-ins; the display, sound, camera, microphone, notifications and the
+  file chooser through filtered access to the owner's desktop session (nothing else of it); Chrome's own password and
+  cookie encryption through a keyring of that user, not the plain store 17e used; downloads into the owner's allowed
+  folders. All *brief 20*.
 - **The owner always sees and can stop it.** Chrome hides its "started debugging this browser" bar for a
-  policy-installed extension (*checked*), so the extension shows its own: the Claude tab group's colour, a badge on
-  its toolbar button while Claude is working (the button pinned by policy), and in its popup a **Stop** button that
-  fails everything held, then ends control. Stopping never sends anything (*checked* with the real popup and a real
-  click: badge and group turned to stopped, seven kinds of held sends never arrived). The popup's messages carry no
-  frame or document id in this Chrome version, so Stop accepts the extension's id, the exact popup address and a
-  current popup context; Stop can only end control, never release anything.
-- The host runs as the owner's user, like Chrome. A program running as the owner outside the sandbox could pretend
-  to be it (*checked*); that is the desktop trust model of section 2. Claude can't, because its terminal is
-  sandboxed and its file tools can't write the places that start programs (section 7).
+  policy-installed extension (*checked*, 17b), so the extension shows its own: the Claude tab group's colour, a badge
+  on its toolbar button while Claude is working (the button pinned by policy), and in its popup a **Stop** button
+  that drops everything held for Claude's tabs, then ends control. Stopping never sends anything (*checked* with the
+  real popup and a real click, 17c: badge and group turned to stopped, seven kinds of held sends never arrived). The
+  popup's messages carry no frame or document id in this Chrome version, so Stop accepts the extension's id, the
+  exact popup address and a current popup context; Stop can only end control, never release anything.
+- The host runs as the browser user, like Chrome, and `chrome.sock` is open only to that user. A program running as
+  that user could pretend to be the host (*checked* for the owner's user in 17; the model is the same); only Chrome
+  runs as that user. Claude can't, because it runs as another user (decision 8, section 7), its terminal is
+  sandboxed, and its file tools can't write the places that start programs (section 7).
+
+### The checkpoint
+
+**What it is.** A local service, `aresos-checkpoint`, that every connection Chrome makes passes through: an
+intercepting proxy built on a pinned mitmproxy core (17e's recommendation: no new TLS or HTTP/2 implementation). It is
+part of the tool service's design, runs as its own system user (requirement 1, below), and takes orders only from
+`aresos-toold`, over its own socket `checkpoint.sock`. It decrypts Chrome's HTTPS with a root certificate Chrome
+trusts by policy, so it sees every request and every WebSocket message whole, and it opens its own checked TLS
+connection to the real site.
+
+**Chrome uses it, and nothing else.**
+
+- Chrome's policy (root-owned, in the image) sets one fixed proxy, with no DIRECT entry and with `<-loopback>`, so
+  that localhost and link-local addresses go through it too (`ProxySettings`); QUIC is off (`QuicAllowed: false`);
+  WebRTC may not use UDP outside the proxy (`WebRtcIPHandling: disable_non_proxied_udp`). (*Checked*, 17e.)
+- The OS enforces it: a firewall rule lets the browser user connect only to the checkpoint's port; everything else,
+  IPv4, IPv6 and UDP, is refused. Direct IPv4, IPv6, localhost and link-local probes from Chrome's user delivered
+  nothing with the rule on; with it off they arrived (*checked*, 17e Q1). If the checkpoint is down, pages fail with
+  Chrome's own error; nothing goes direct (*checked*, 17e Q1). The rule has to survive the image's firewall service
+  reloading its own rules (*brief 20*).
+- It decrypts continuously from browser start, never only while Claude works: an interception switched on later
+  can't see into connections Chrome already opened (HTTP/2 connections it reuses, a worker's live socket; re-check 7).
+  Pre-opened HTTP/2 connections and page, dedicated, shared and service-worker sockets stayed visible (*checked*, 17e
+  Q2).
+- WebTransport and WebRTC are refused while a guard is on, not decrypted: WebRTC encrypts end to end, so the
+  checkpoint can't read it, and Chrome's WebTransport rejects a proxy (*checked*, 17e Q8: zero payloads at
+  independent peers). Calls: near the end of this section.
+
+**What it holds.** While a site is guarded (below), the checkpoint holds every complete operation from that site's
+contexts and from Claude's tabs that isn't plain reading: an HTTP request with its request line, headers and complete
+body; a WebSocket handshake; each WebSocket message; a close that carries data. Nothing of a held operation reaches
+the site, not even its first header (*checked*, 17e Q4: binary, gzip, chunked, multipart with a real file from disk,
+25 MiB; a fragmented socket message sent no partial bytes; close reasons held). A held operation is captured once, in
+memory, under its own id. One larger than the limit (32 MiB including its metadata in 17e) or one that never
+completes is refused and never forwarded (*checked*, 17e Q4: incomplete input sent zero headers upstream; an
+oversized upload was drained and answered with an error).
+
+**How an approved send goes out.** The approval names one captured operation by its id and the hash of its bytes.
+The checkpoint first records durably that this capture is consumed, then forwards exactly those captured bytes once.
+There are no URL allowances: nothing is let through because it matches an address; the approved bytes themselves go.
+Two byte-identical competitors get different ids and only the approved one goes; a second decision on the same id
+fails (*checked*, 17e Q5). Before release the service checks that the page's document and signed-in account are
+still the ones the description names; a change means a new approval (*brief 20*: 17e Q5 checked an explicit change
+of context, not an arbitrary site's account). Messages on one live connection keep their order: approving one
+forwards the earlier held messages on that connection with it, and its description lists them (*brief 20*).
+
+**Fail-stop, never replay, unknown stays unknown.** If anything in the checkpoint fails, it stops; it never logs the
+error and carries on (mitmproxy's default for an add-on error is to log and continue; 17e replaced that with stopping
+the process: *checked*, 17e Q6). Stopping drops what it held in memory: those captures are reported as lost, and the
+page sees a failure. After a restart nothing is sent again: a capture recorded as consumed without a recorded outcome
+becomes `unknown` and is never retried. *Checked* (17e Q6): the extension, the native host, the browser and the
+checkpoint were each killed while a send was held, just before consumption, just after it and while forwarding: zero
+arrivals before forwarding, no replay. A send cut off while being forwarded may still have reached the site, in full
+or in part; its outcome is `unknown`, and the owner checks the site before anything is done again (rule 4.3).
+
+**When the extension goes away**, held operations stay held: the checkpoint doesn't need the extension to hold
+(*checked*, 17e Q3 and Q6: extension removed by policy, native host and browser killed). It does lose its attribution
+(next), so it holds every non-reading operation in the whole browser until the extension is back.
+
+**Attribution: whose is an operation.** The checkpoint must know which operations come from guarded places. Its
+evidence, all of it supporting, none of it authorising:
+
+- A **tag** the extension puts on every request it can see (through Chrome's own header rules), naming the browser
+  run, the tab and the document generation. The rule overwrites any value a page set, and the checkpoint strips the
+  tag before forwarding (*checked*, 17e Q3: a page's forged tag was overwritten; a missing tag, a reused earlier
+  token, an opaque origin, a foreign frame and a cross-origin hand-off all stayed held).
+- For a WebSocket handshake, its **`Origin`**, which Chrome sets and pages can't change. Sockets of shared and service
+  workers carry no tag (17d: Chrome doesn't show them to extensions), so their `Origin` names their site.
+- A request's `Origin` and `Sec-Fetch-Site` say how it relates to the page, not who made it (re-check 7); they only
+  add to the picture.
+
+The rule: **uncertainty widens what is held, never the reverse.**
+
+- An operation tagged with a Claude tab Claude acted in is guarded, whatever site its frame belongs to.
+- An operation from a context of a guarded site is guarded, in any tab.
+- A worker's operation without a tab (its `Origin` or initiator a guarded site, or an opaque origin) is guarded.
+  Workers of other sites' frames that were inside Claude's tab carry no tab either, so while that guard lasts, the
+  checkpoint holds those sites' tab-less sends too; that can hold background sends of the owner's own tabs of those
+  sites (counted under condition 1, below).
+- An operation with a stale tag, a tag of an earlier browser run, or no tag where the extension would have set one is
+  uncertain and treated as guarded.
+- Without the extension (not connected, or its tags missing), the whole browser counts as guarded: every non-reading
+  operation in every tab waits, shown to the owner, until the extension is back (*checked* as 17e's fallback).
+- **Claude's typed text, anywhere.** The tool service gives the checkpoint each text Claude typed while its guards
+  last, and the checkpoint holds any operation, in any tab and to any destination, reading included, that carries it
+  (as typed, or URL-, form-, JSON- or base64-encoded). Draft 9 could check this only where the page script was in
+  place; the checkpoint sees everything (*brief 20*; 17c *checked* the match in the page).
+- Requests of other extensions carry that extension's own origin, set by Chrome; they are the owner's own tools, and
+  what he installs is his decision. Claude in Chrome is one of them (decision 10).
+- **Chrome's own services** (Safe Browsing, component updates, sync) make requests no extension sees, so they carry no
+  tag. They are never freed by host name or because an `Origin` is missing (re-check 7). While a guard is on, the
+  checkpoint lets them pass only where an adapter for that Chrome protocol shows that they carry only that service's
+  own data (versions, hash prefixes), never free text; the rest wait as background holds shown to the owner, not to
+  Claude (*brief 20*, with a measured list of which services send what). A page can make Chrome send on its behalf (a
+  push subscription, a passkey, a payment): the page script refuses those calls on a guarded site while Claude works
+  there (honest pages; a hostile page is a residual below).
+
+Plain GET and HEAD stay free in guarded places too, unless they carry Claude's typed text (below), so the
+whole-browser fallback holds non-reading operations and reading that carries Claude's text. 17e held GET and HEAD as
+well in that fallback (and approved a restored page's own document load by hand); draft 10 doesn't, because a GET
+from an uncertain place can carry nothing that a GET from a known guarded page can't, and holding them would stop
+every page from loading (*brief 20* checks this against 17e's cases).
+
+**The guard barrier.** A guard starts before Claude's first acting step on a site (more than reading, scrolling and
+plain links). The tool tells the checkpoint, which records the guard durably, re-checks the connections already open
+(live sockets of that site's contexts now hold their next message; tunnels it can't read are cut: calls, below), and
+only then confirms. Only after that confirmation does the tool send Claude's click or key (*checked*, 17e Q2: under
+concurrent HTTP and socket traffic the guard was recorded and confirmed before input; traffic sent before the barrier
+can still arrive after it, and is not Claude's). The checkpoint loads its guards before it accepts the first
+connection, so after a restart of Chrome or of the checkpoint a restored page's first send is held before the
+extension has attached (*checked*, 17e Q1).
+
+**Cancellation.** A held operation is cancelled when the checkpoint sees it given up before forwarding: the page
+aborts it, the tab or connection closes, its hold expires, or the page script reports an explicit cancel. It is then
+dropped, and a late approval is refused (*checked*, 17e Q7). What can't be seen can't cancel: a page's own JavaScript
+timeout without an abort leaves the request waiting, and a later approval sends it (*checked*, 17e Q7). A reset
+HTTP/2 stream gave zero arrivals in 17e, but its record could still show the operation consumed; brief 20 makes the
+checkpoint see stream resets, and until then such a case reads `unknown`. The promise is: **a cancellation seen
+before forwarding prevents the send**; not "a page that gave up internally never sends later".
+
+### The owner's requirements for the checkpoint (decision 6)
+
+He agreed to the checkpoint "if that's not a security risk", with five hard requirements. Each is a design
+requirement here, with how it is met and how brief 20 tests it.
+
+1. **Its own user.** `aresos-checkpoint` is a system user with no login, no home and no other role: not the tool
+   service's user (which holds the mail password), not the browser's, not the owner's or the assistant's. Its state
+   (the guard list and the record of consumed captures) is in a folder only it can read. `checkpoint.sock` is open
+   only to the tool service. Its listening port accepts connections only from the browser user (a firewall rule), and
+   it is a port below 1024 that only a privileged program can open, which the checkpoint is started with the right to
+   open; so no other program can listen there first and pose as it (17e: taking over the port was not tested). The
+   checkpoint refuses to start if the port is taken or ordinary users may open low ports.
+   *Test:* the owner's, the assistant's and a coding user's programs can't connect to the port or the socket; a
+   program of theirs can't open the port; the checkpoint refuses to start when the port is taken.
+2. **Nothing it sees leaves the machine.** It sends nothing anywhere except the browser's own traffic to the address
+   Chrome asked for: no telemetry, no updates of its own, no remote logs, no web interface (mitmproxy's core only).
+   Captured bytes stay in its memory: no core dumps of its process, its memory kept out of swap, no temporary files.
+   What it tells the tool service about a held operation (site, address, method, decoded data, hash) reaches Claude
+   only for operations from Claude's tabs and guarded sites, which Claude could read on those pages anyway. What it
+   holds only because attribution was uncertain, and anything of the owner's unrelated tabs, is shown to the owner
+   and never described to Claude.
+   *Test:* every outgoing connection of the checkpoint matches one Chrome asked for; it writes no file outside its
+   state folder; core dumps are off; Claude's tools return no content of an unrelated tab's held operation.
+3. **No bodies, cookies or secrets in logs.** Its logs and its record hold ids, lengths, hashes, states, the site and
+   the method; never bodies, header values, cookies, passwords, query strings or socket messages. Messages of the
+   proxy core are filtered the same way (errors only, addresses cut to the site). The record of what was approved
+   (the description the owner saw, as for mail) is the tool service's operation log, in its own private store; it is
+   not a checkpoint log.
+   *Test:* runs with marker strings in cookies, headers, bodies, query strings and socket messages; afterwards no log,
+   journal entry, record, crash output or temporary file contains a marker. (17e did this for its own records and
+   found and fixed one leak of a fixture value: *checked*, 17e Q11.)
+4. **Full upstream TLS checks.** The checkpoint checks every connection to a site itself: the certificate chain
+   against the system's list of roots (the checkpoint's own root is never added to that list), the host name and the
+   dates; current TLS versions only; any failure ends the connection with an error page in Chrome, never a fallback
+   and never "accept anyway" (*checked*, 17e Q9: an invalid upstream certificate gave a failure and zero requests at
+   the receiver; HSTS kept working; a Google address that Chrome pins worked through the local root, as Chrome
+   documents). What moves, named plainly: Chrome's own extra checks on the outside connection (Certificate
+   Transparency, its own revocation list, pinned keys) no longer apply, because Chrome exempts a locally added root
+   from them (re-check 7, Chrome's security FAQ); the checkpoint does the chain, name and date checks, and brief 20
+   adds revocation checks where the core supports them. Sites that ask the browser for a client certificate don't
+   work.
+   *Test:* expired, wrong-name, self-signed, unknown-root and old-protocol upstreams all fail with zero requests;
+   HSTS; the checkpoint's root is absent from the system's list.
+5. **A key that rotates and can issue nothing while the checkpoint is stopped.**
+   - **A fresh root per start.** A root-owned start step runs before the checkpoint: it makes a new root key and
+     certificate (allowed only to sign site certificates, valid a few days at most), writes the certificate into
+     Chrome's policy (`CACertificates`) and into the place Chrome's own services read trust (next part), and hands
+     the key to the checkpoint as a service credential: memory that isn't swapped, readable only by the checkpoint's
+     user, gone when the service stops. The start step deletes its own copy; the key is never on disk.
+   - **Only in memory.** The checkpoint keeps the key and the site certificates it makes only in memory.
+   - **Stopped means nothing can issue.** When the checkpoint stops or crashes, the key is gone with it, and the stop
+     step removes the certificate from Chrome's policy. Nothing can make a certificate Chrome trusts while the
+     checkpoint is stopped: the old key no longer exists, and a new one exists only once a new run starts.
+   - **How Chrome takes a new root.** `CACertificates` is a per-profile policy that Chrome also re-reads while
+     running (Chrome 157's policy definition: `dynamic_refresh: true`, `per_profile: true`), not one read only at
+     start. When the checkpoint restarts with a new root, a running Chrome at first still trusts only the old one, so
+     every new TLS connection fails (the new checkpoint signs with a root Chrome doesn't know yet): that fails
+     closed. Once Chrome re-reads its policy, the new root works and the old one is no longer trusted. How quickly
+     that happens, and what happens to Chrome's own services, which don't read this policy at all (17e Q9), is
+     *brief 20*. The design doesn't rely on it: the launcher starts the checkpoint first and Chrome only once the new
+     root is in place, and when the checkpoint restarts while Chrome runs, the launcher closes Chrome and starts it
+     again with its tabs restored. Typing the owner hadn't sent in his own tabs can be lost; the extension says why
+     Chrome restarted. Brief 20 decides, from measurements, whether the policy refresh is reliable enough to skip
+     that restart.
+   - **Renewal.** Before a root expires, the checkpoint is restarted with a new one at a moment when nothing is held.
+   *Test:* a new root at every start; no key material on disk, in swap or in a crash file; after a stop, the old
+   root is gone from the policy and no certificate it signed is accepted; a running Chrome's behaviour when the root
+   changes, and the launcher's restart.
+
+### Chrome's own services through the checkpoint
+
+17e found some of Chrome's own background connections failing the checkpoint's certificate (component updates,
+Chrome's client services, the optimization guide, a Google static host), because the trust policy is per profile and
+Chrome's own services use a separate network context that doesn't read it (*checked*, 17e Q9; re-check 7). The fix is
+trust, never an exemption: no host is passed through unopened and none is let through by name, because either would
+give a page an unchecked way out. The start step puts the root also where Chrome's own network context reads trust,
+for the browser user only and never in the machine's trust store (on Linux, the candidate is the user's own
+certificate database that Chrome reads for locally added roots; *brief 20* finds and proves the place). Brief 20 then
+shows, through the checkpoint:
+
+- Safe Browsing warning on its official test page, with a positive control: Safe Browsing on by policy and its lists
+  loaded before the test (in 17e even the direct run showed no warning, so the control was missing);
+- a fresh component download, not only "up to date" on a component already there;
+- the extension's own updates, and sync;
+- no certificate failures in Chrome's service connections.
+
+Chrome features that send page text or typed text to a server of Chrome's own (enhanced spell check, page
+translation, search suggestions as Claude types an address) would carry Claude's text past the guard. Brief 20 lists
+them; each is off by policy or held like Chrome's other service sends while a guard is on.
 
 ### Which tabs Claude works in
 
@@ -284,14 +520,14 @@ their first script runs. The service knows the group by Chrome's group id, not b
 puts it back where it was. `chrome_tabs` lists every tab's title and address, so Claude can say what is open and
 pick one.
 
-While a tab is in the group, everything it sends waits for approval, also when the owner clicks there himself (his
-own sends are confirmed by him in Chrome; below). To use a tab freely again, the owner drags it out of the group;
-Claude's control of it ends, anything held is dropped, and the site stays guarded while Claude's work there is
-unresolved.
+While a tab is in the group, everything it sends that isn't plain reading waits for approval, also when the owner
+clicks there himself (his own sends are confirmed by him; below). To use a tab freely again, the owner drags it out of
+the group; Claude's control of it ends, anything held is dropped, and the site stays guarded while Claude's work there
+is unresolved.
 
 Every reference is bound to the browser session, tab, document and element: when the owner switches or opens tabs,
 nothing is redirected; when the page changes, an old reference fails with "stale, read again" instead of hitting
-another element (*checked*); after a Chrome restart all old references are stale. Acting calls carry what Claude
+another element (*checked*, 17); after a Chrome restart all old references are stale. Acting calls carry what Claude
 expects the element to hold (from its last read), and the tool refuses when the owner has changed it in the meantime.
 
 ### Reading a page
@@ -300,7 +536,7 @@ expects the element to hold (from its last read), and the tool refuses when the 
 and layout: one line per element with a short reference (`e12`), role, label, value, states (checked, selected,
 disabled, required, invalid, expanded) and its box in CSS pixels with whether it is on screen; frames (also from
 other sites) and open shadow DOM included; elements behind an open dialog left out. A header names the tab, the
-document, the address, the title, the scroll position and anything held. Measured (*checked*): a long form about
+document, the address, the title, the scroll position and anything held. Measured (*checked*, 17): a long form about
 1,300 tokens, a long article about 15,000; views are paged at about 16,000 characters with a cursor bound to the
 view's revision (it counts changes to the page; a cursor from an older revision fails with "page changed, read
 again"), and `chrome_find` searches a long page for text. `chrome_read_form` shows one form with every field's
@@ -319,165 +555,123 @@ a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../
 | `chrome_navigate` | change | in a Claude tab: an address, back, forward, reload |
 | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll` | change | act on elements by reference, each with what Claude expects it to hold; fill sets text, dates and dropdowns as a person would; `chrome_fill_form` fills several fields in one call |
 | `chrome_dialog` | change | accept, dismiss or answer a page's own dialog (alert, confirm, prompt) |
-| `chrome_upload` | change | put a local file into a file field; the bytes come through the caller's side (rule 4.4), the extension gets no general file access (*checked*) |
+| `chrome_upload` | change | put a local file into a file field; the bytes come through the caller's side (rule 4.4), the extension gets no general file access (*checked*, 17) |
 | `chrome_downloads` | read, change | list downloads; save one into an allowed folder (rule 4.4) |
 | `chrome_bookmarks`, `chrome_history` | read | the owner's bookmarks and history, to find addresses |
 | `chrome_wait` | read | wait for text, an element or the page to settle |
-| `chrome_pending` | read | what is held in a tab: pending sends and background requests |
-| `chrome_submit` | **send** | let one pending send go, with the description and content the service gave (below) |
-| `chrome_submit_input` | **send** | where the message hold can't be in place (below), on a site with an adapter: type and press as one step, after approval |
-| `chrome_submit_trusted` | send, free | as `chrome_submit`, only for an operation a site adapter recognises and the owner's trusted list allows |
+| `chrome_pending` | read | what is held for Claude's tabs and guarded sites: pending sends and background holds |
+| `chrome_submit` | **send** | let one pending send go: the captured operations the service described, by id and hash (below) |
+| `chrome_submit_trusted` | send, free | as `chrome_submit`, only for an operation a site adapter recognises as a kind the owner set to "don't ask again" (below) |
 | `chrome_open_site` | **send** | open an address that isn't free to open (below), with the full address in the input |
-| `chrome_drop` | change | drop held requests; nothing leaves |
+| `chrome_drop` | change | drop held operations; nothing leaves |
 | `chrome_end_guard` | **send** (asks) | end a site's guard where it didn't end by itself; the input shows what of Claude's may be left there and what the page stored; afterwards the owner's own sends there go unchecked |
 | `chrome_operation_status` | read | an operation's stages (rule 4.3) |
-| `chrome_sites` | owner-only | the owner's lists of known and trusted sites |
+| `chrome_sites` | owner-only | the owner's lists: his usual sites, the sites Claude has used, and his "don't ask again" entries, to see and revoke |
+| `chrome_checkpoint` | owner-only | switch the checkpoint to pass-through and back (a way out of a fault: below) |
 
 Every acting result says what happened (new page, dialog, download), the elements that changed, and anything held.
-While a tab has a pending send, it accepts only reading, `chrome_submit…` and `chrome_drop`; background holds
-(below) don't block it.
+While a tab has a pending send, it accepts only reading, `chrome_submit…` and `chrome_drop`; background holds (below)
+don't block it. Draft 9's `chrome_submit_input` (type and press as one step after approval, where the page's message
+hold couldn't be in place) is gone: the checkpoint sees every live message, also on connections opened before the
+tool attached, so typing and Enter are ordinary actions and the message they cause waits like any send.
 
 ### What leaves a Claude tab, and how it is held
 
 **What the hold is for, and what it isn't.** The hold stops a page's own code from sending Claude's work before the
 owner approves it: a click that deletes, typed text that autosaves, a queue that a timer empties, a message on a live
-connection. That is the everyday risk, and against it the tool must be complete. It doesn't make a hostile page safe
-to type into: a page whose own scripts set out to carry off what Claude enters there can put it into plain reading
-traffic, or keep a live connection's original send function away from the wrap (*checked*, 17c: a fixture page that
-kept the browser's own `WebSocket.send` delivered a message the tool never saw; Chrome's network stage doesn't see
-live messages, so no catch-all exists for them). Against a hostile page the protections are where Claude may act at
-all (new sites ask first, below and section 10), and noticing afterwards: the tool compares Chrome's own record of
-each WebSocket's sent messages (connection, content, order) with what it let go (released holds and messages free as
-reading), and any message it didn't let go stops all input on that site and is reported to the owner (*brief 20*).
-That is a diagnosis after the fact, not prevention, and WebRTC data channels and WebTransport have no such record in
-Chrome. A hostile page that sends over ordinary HTTP past the wrap meets Chrome's own blocking rules (the floor,
-below; *checked* at the request stage: zero arrivals before approval).
+connection, also from a worker. Against that the checkpoint is complete for the transports it handles: it doesn't
+rely on the page script, so a page can't get such a send past it by keeping a browser function away from the script
+(17c's counterexample), by sending from a worker (17d's), or because control ended (*checked*, 17e Q2, Q3 and Q6:
+page, dedicated, shared and service-worker sends held, also after the extension was removed). It doesn't make a
+hostile page safe to type into: a page whose own scripts
+set out to carry off what Claude enters can hide it in plain reading traffic. Against a hostile page the protections
+are where Claude may act at all (new sites ask first, below) and the residuals named in "What changes for the owner".
 
-The rule: **nothing Claude caused or entered leaves a Claude tab without approval, and when the tool can't tell, the
-request is held, never let go.** The one exception is plain reading (below), which stays free so that pages load; a
-hostile script on a site the owner uses could abuse it, and that is the owner's decision in section 10. The service
-judges every send the tab and everything it started (frames, popups, workers) makes, before it leaves the browser:
-inside the page where the wrap is in place, at Chrome's request stage for everything else, with Chrome's own blocking
-rules underneath (next part). It sorts each by cause and content, never by timing alone:
+The rule: **nothing Claude caused or entered leaves without approval, and when the tool can't tell, the operation is
+held, never let go.** The one exception is plain reading (below), which stays free so that pages load. The checkpoint
+judges every operation from Claude's tabs and from guarded places (frames, popups, workers) before it reaches the
+site, and the service sorts each by cause and content, never by timing alone:
 
 - **Caused by Claude: held as a pending send.** The tool follows each request's initiator, including the chain of
   timers, promises and callbacks behind it, back to its origin. A request that leads back to a click, key or other
   input Claude made is Claude's, however late it comes: a deletion scheduled twelve seconds after a click, an "undo
-  send" delay, a retry of a dropped send. Requests caused by one action form one pending send, so a form that sends
-  three requests asks once. *Checked* (17c, fixtures): chains through a timer, a promise, a mutation observer and
-  `postMessage` were traced back to Claude's click; a send through a worker stayed unknown and was held; none of
+  send" delay, a retry of a dropped send. Operations caused by one action form one pending send, so a form that
+  sends three requests asks once. *Checked* (17c, fixtures): chains through a timer, a promise, a mutation observer
+  and `postMessage` were traced back to Claude's click; a send through a worker stayed unknown and was held; none of
   Claude's was counted as the page's own. A page's timer that empties a queue Claude's click filled leaves no chain
-  at all, which is why the next rule exists. Tracing is supporting evidence only: no request is ever freed because
+  at all, which is why the next rule exists. Tracing is supporting evidence only: no operation is ever freed because
   its chain looks like the page's or the owner's.
 - **After Claude acted on a page: held, whoever caused it.** Once Claude has done more than read, scroll and follow
-  plain links in a document (clicked a control, typed, chosen, ticked, uploaded), every request from that document
+  plain links in a document (clicked a control, typed, chosen, ticked, uploaded), every operation from that document
   and its site's other guarded contexts that isn't plain reading is held, whatever started it: the page may carry
   Claude's input or effect in any form, also through its own state (a queue filled by Claude's click and sent by a
   timer the page set when it loaded). This holds for the owner's own clicks there too, because his click can flush
-  work Claude queued (below: the owner's own sends). Any request anywhere that carries Claude's typed text (as typed
-  or URL-, form-, JSON- or base64-encoded) is held too.
+  work Claude queued (below: the owner's own sends). Any operation anywhere that carries Claude's typed text is held
+  too (attribution, above).
 - **Plain reading goes:** GET or HEAD without a body and without Claude's text: pages, images, scripts, styles,
   fonts, the data a page loads to show something. Reading has to stay free, or no page would load. Which pages Claude
-  may open at all is the next rule.
+  may open at all is the next part.
 - **The page's own activity goes** only in a document Claude hasn't acted on: requests the page makes by itself
   (when it loads, on its own timers, after the owner's own clicks) that carry none of Claude's text.
 - **Reading through POST.** Many apps load data with POST (GraphQL queries, Notion, Google's apps). A GraphQL request
-  counts as reading only when its operation is written out in the request (not a stored or batched one), is a
-  query, and its variables carry none of Claude's text; everything else about it is judged like any other request
-  (*checked* on fixtures: a stored query, a batch, a mutation and Claude's text inline or in variables were all held).
-  Other apps need a site adapter to tell reading from sending. Without one, their requests after Claude acted are
-  held, so working in those apps asks until their adapter exists. *Checked* on ten public sites without signing in
-  (17c, provisional: workers and live connections were switched off for safety, visits were short, and counts cover
-  the main document; they are what the after-acting rule would hold, not prompts): GitHub, Wikipedia and a news site stayed
-  usable with a few holds at most; Amazon and Google search held about a dozen each, mostly telemetry, which goes to
-  the background list or is dropped as tracking; Notion and Google Docs read through POST and need an adapter;
-  YouTube, Reddit and Stack Overflow showed the test machine a bot check and stay unmeasured. Signed-in use is
+  counts as reading only when its operation is written out in the request (not a stored or batched one), is a query,
+  and its variables carry none of Claude's text; everything else about it is judged like any other request
+  (*checked* on fixtures in the page, 17c: a stored query, a batch, a mutation and Claude's text inline or in
+  variables were all held; the checkpoint applies the same rule to the bytes it captured, *brief 20*). Other apps
+  need a site adapter to tell reading from sending. Without one, their requests after Claude acted are held, so
+  working in those apps asks until their adapter exists. *Checked* on ten public sites without signing in (17c and
+  17d, provisional: workers and live connections were switched off for safety, visits were short, and counts cover
+  the main document; they are what the after-acting rule would hold, not prompts): GitHub, Wikipedia and a news site
+  stayed usable with a few holds at most; Amazon and Google search held about a dozen each, mostly telemetry, which
+  goes to the background list or is dropped as tracking; Notion and Google Docs read through POST and need an
+  adapter; YouTube, Reddit and Stack Overflow showed the test machine a bot check and stay unmeasured. 17e's reading
+  visits gave the same results through the checkpoint as direct (*checked*, 17e Q11). Signed-in use is
   measured in the tool-user rounds, on the owner's usual sites.
-- **Unknown cause: held, in the background.** A request whose cause the tool can't establish is held and listed as
-  *background* in `chrome_pending`. Background holds don't block the tab: Claude can keep reading and acting, drop
-  them (free) or submit them (asks). Each is kept as its own request; only polling an adapter shows to be the same
+- **Unknown cause: held, in the background.** An operation whose cause the tool can't establish is held and listed
+  as *background* in `chrome_pending`. Background holds don't block the tab: Claude can keep reading and acting, drop
+  them (free) or submit them (asks). Each is kept as its own operation; only polling an adapter shows to be the same
   read repeated is merged. Known tracking addresses are dropped without being listed; every background hold expires
   and is dropped, and expired holds stay listed (with what they were) until Claude has seen them.
-- **Dropping is final.** A page that retries a dropped send produces a new held request, marked as a retry; it never
-  goes by itself.
+- **Dropping is final.** The page gets an ordinary failure. A page that retries a dropped send produces a new held
+  operation, marked as a retry; it never goes by itself.
 - **One step at a time.** A request the page builds from the answer to an approved one is a new send and asks again,
   unless a site adapter defines the whole sequence as one operation and the approval covers all of it.
 
 A pending send stops the action; its result reads `held` with the **service's description** (rule 4.1): what Claude
 did (the click on "Delete" in the row "Invoice 42"), the page's address and title, the signed-in name the page shows
-(all marked "as the page shows it"), and every held request: site, full address, method, the data decoded where
-possible and the raw bytes' hash. Claude passes exactly that to `chrome_submit`, and the owner's prompt shows it.
-Before release the service checks that the page, the element and the bytes are still the same, and releases each
-request once. *Checked:* held sends reached the fixture server zero times while held, exactly once after release and
-never after drop, for posted forms, search forms, `fetch` and XHR posts, beacons, autosave, a form posting to another
-site, link pings and a data-bearing image.
+(all marked "as the page shows it"), and every held operation: site, full address, method, the data decoded where
+possible, the capture id and the hash of its bytes. Claude passes exactly that to `chrome_submit`, and the owner's
+prompt shows it. The checkpoint forwards each captured operation once. *Checked*: held sends reached the fixture
+server zero times while held, exactly once after release and never after drop, for posted forms, search forms,
+`fetch` and XHR posts, beacons, autosave, a form posting to another site, link pings and a data-bearing image (17,
+17b, 17c, holding in the page); and at the checkpoint, the exact captured bytes once after approval with competitors
+still held (17e Q4, Q5).
 
-**How a send is held, in practice (17b, 17c, 17d).** Three layers:
+**The page script: descriptions and hints, never authorisation.** The extension's page script still goes into every
+document and frame before the site's own scripts (also `about:blank` and `srcdoc` frames a script creates), and the
+tool's script into every dedicated worker before its first line (*checked*, 17c). It wraps the page's send functions:
+`fetch`, `XMLHttpRequest.send`, `navigator.sendBeacon`, form submission (the submit event, `submit()`,
+`requestSubmit()`), `WebSocket.send`, `RTCDataChannel.send` and WebTransport writers. It no longer holds anything
+itself: a send waits at the checkpoint, and the page sees an ordinary pending request or a queued message. What it
+does:
 
-- **Inside the page: the normal path.** The extension's page script, which Chrome puts into every document and frame
-  before the site's own scripts (also `about:blank` and `srcdoc` frames a script creates), and the tool's script in
-  every dedicated worker before its first line, wrap the page's send functions: `fetch`, `XMLHttpRequest.send`,
-  `navigator.sendBeacon`, form submission (the submit event, `submit()`, `requestSubmit()`), `WebSocket.send`,
-  `RTCDataChannel.send` and WebTransport writers. A send that must be held creates no request: the page simply waits
-  (a form stays on screen, a `fetch` stays pending, a message stays queued). After approval the wrapper performs
-  exactly that call once; after a drop the page gets an ordinary failure (`AbortError` for `fetch`; the XHR's error
-  event is *brief 20*, the check's prototype fired none). *Checked* for all seven kinds in the page itself, and for
-  `fetch` in same-site and other-site frames, `about:blank` and `srcdoc` (the other kinds in frames: *brief 20*):
-  zero arrivals while held, exactly one after release, none after drop; none when control ended while calls were held
-  (page reload, debugger detach, the Stop button, extension reload, update and blocking by policy, the native host
-  killed, Chrome closed and killed). Duplicate decisions, an expired `AbortSignal`, a form changed after the hold
-  and a held call of an earlier document were refused. A call waiting in the page isn't paused inside Chrome, so
-  control breaking has nothing to let go.
-- **Chrome's own blocking rules: the floor.** A request paused at Chrome's request stage is let go when the
-  extension is reloaded, updated, disabled or detached, and a blocking rule added after it was paused doesn't stop it
-  (*checked*, 17b); even failing it at once leaves the instant between Chrome pausing it and the tool's answer
-  (re-check 6). So the hard barrier is Chrome's own blocking rules (`declarativeNetRequest`), which Chrome applies
-  before a request starts, with no pause and without the extension's code running: for every guarded site (rules
-  Chrome keeps across restarts and extension updates, matched by the site that makes the request) and every Claude
-  tab Claude has acted in (also frames of other sites in it), every request that isn't plain reading
-  (any method but GET and HEAD) and every new live connection (WebSocket, WebTransport) is blocked. New live
-  connections are let through only from a tab whose documents and dedicated workers the tool has reached; a worker
-  without a tab (shared, service) gets none. *17d:* the rules act before the request stage, apply to a restored tab's
-  first request at browser start and to every worker's requests (also a worker Chrome updates or starts by itself,
-  with no page attached), and what the tool can see of a request they blocked.
-- **Fail, then repeat, for what the wrap misses.** A page can get around the wrap (a saved original function, one
-  taken from a fresh frame, a worker started from a blob). What it sends that way meets the floor and fails; the
-  tool records what Chrome reports of it, and that is what the owner's prompt shows. After approval the service
-  grants one allowance for exactly that request (method, full address, body and the headers the page set) and
-  Claude repeats the action; the first matching request goes out once. A repeat that differs in anything, including
-  a changing token, is refused, and no field is ever ignored automatically (*checked* at the request stage: hostile
-  fixture pages had zero arrivals before approval, and a public demo form, aborted). The page shows a failed send
-  first, and some sites lose a draft or token on it; sites whose requests change on every attempt need a site
-  adapter or `chrome_submit_input`.
-- **How an approved send passes the floor.** Through a one-time allowance: a rule for exactly that address and
-  method from that tab or site, added right before the release and removed at its first match, when control ends and
-  whenever the extension starts. The gate at the request stage then compares the matching request's body and the
-  headers the page set with the approval and fails any difference. What remains is the instant around an approved
-  release: ending control between Chrome pausing the matching request and the gate's answer can let a request to the
-  approved address and method go unchecked (*17d* measures that window and shows the allowance gone after a reload,
-  update, disable or crash of the extension). The approval also binds the signed-in account the description shows:
-  if the page's account or session for that site changed while it waited, the release is refused (*brief 20*, with
-  changed headers and competing identical requests).
-- **Complete bytes, or no repeat.** The wrapper keeps the complete body as it was when held, files included (a file
-  Claude put into a field is known by its sha256 from `chrome_upload`). A body whose complete bytes the tool can't
-  hold or see (a stream; a request the floor blocked whose body Chrome doesn't report in full, as with the file parts
-  of a form or a large body: *17d*) is refused, unless a site adapter describes the operation. Missing bytes never
-  count as a match. A live message has no request stage: the wrapper sends its own copy of the message as held.
-  Messages on one live connection keep their order: releasing one takes the earlier held messages on that connection
-  with it, and its description lists them (*brief 20*).
-- **Qualified contexts only.** The in-page path is used where the wrap is shown to be in place from the start: the
-  kinds of document, frame and worker above. Where it isn't (a page loaded before the tool attached), only the floor
-  holds and live messages already open can't be held at all, so input there is refused until a reload (below).
-- **Plain GETs stay free, so one gap stays:** a GET that carries Claude's typed text and that the wrap misses is
-  failed at the request stage, which leaves the same instant between pause and answer; and a worker the tool hasn't
-  reached isn't checked for Claude's text at all. GETs can't be blocked wholesale, or no page would load. Both are
-  named here; the wrap catches the honest cases (a search form, a page's own `fetch`).
+- **Describes** which call the page made and from which of Claude's actions (the chain above), so the description can
+  say "the click on Delete in the row Invoice 42" and not only "a POST".
+- **Freezes** the body: it takes an unchangeable copy when the page calls, so the tool can match a capture to that
+  call by its hash and say which file an upload carries (a file Claude put into a field is known by its sha256 from
+  `chrome_upload`; *checked*, 17d: the copy matched the receiver's bytes, a real disk file and 25 MiB included). A
+  capture that matches no call is described from its own bytes.
+- **Cancels:** it passes the page's own explicit cancel (an `AbortSignal`) to the checkpoint, so the capture is
+  dropped before it could be approved.
+
+Everything it reports is the page's claim: a page can forge it or keep functions away from it (17c, 17d). It can make
+a description clearer or hold more; it never frees or releases anything.
 
 Outcomes follow rule 4.3: the site's answer is recorded but doesn't prove the business step worked (`done` means the
-site accepted the request); the page gave up waiting (its own timeout or `AbortSignal`) or the tab closed before
-release is `failed`; the connection broke after release is `unknown`. Pages give up on their own timeouts
-(*checked*); a page that gave up shows its own error, and Claude acts again for a new hold. Under fail-then-repeat
-the owner's approval waits on the captured request, not on the page.
+site accepted the request); a send dropped, expired or cancelled before forwarding is `failed`; a send cut off while
+being forwarded, or whose answer was lost, is `unknown` (*checked*, 17e Q6: a forwarded operation can stay `unknown`
+even when the site completed it). Pages give up on their own timeouts (*checked*, 17c); a page that gave up shows its
+own error, and Claude acts again for a new hold.
 
 **What Claude may open freely, and data leaving.** A *site* is a registrable domain by the Public Suffix List
 (including its private part, so every `*.github.io` page is its own site), and areas of big platforms where anyone
@@ -485,47 +679,52 @@ can publish (public forms, user pages) count as their own sites. Claude follows 
 it was given (by the owner, in a mail, from bookmarks or history) freely, on sites it has used before. These ask
 first, with the full address shown (`chrome_open_site`): an address Claude composed itself (with a path or query of
 its own), the first page on a new site, a redirect that lands on a site that isn't free to open, and anything on the
-local network (the router, other devices, `localhost`). Whether a search on a site the owner uses is free or asks
-is the owner's call (section 10). What remains even then: a hostile script on a site the owner uses can encode what
-Claude types there and send it as plain reading traffic. Approving each typing would only accept that risk, not
-prevent it; closing it would take refusing input on such sites or limiting where their pages may load from.
+local network (the router, other devices, `localhost`). Searches on the owner's usual sites are free (decision 7): a
+search on that same site carrying Claude's text goes without asking; the list of usual sites is the owner's. What
+remains even then: a hostile script on a site the owner uses can encode what Claude types there and send it as plain
+reading traffic. Approving each typing would only accept that risk, not prevent it; closing it would take refusing
+input on such sites or limiting where their pages may load from.
 
-**Other tabs of the same site, and later.** A Claude tab can pass data or queued work to the owner's own tabs of the
-same site through the browser's shared channels (a shared worker, a broadcast channel, storage) or keep it for later
-(an offline outbox that retries after a restart). So a site is *guarded*: its other tabs and workers are attached,
-and what they send that isn't plain reading is held like in a Claude tab: listed as background when the page sent it
-by itself, and put to the owner (next paragraph) when his own input caused it (*checked*, 17c: an owner's click in
-another tab that emptied Claude's queue was held, through local storage and through a worker shared by both tabs).
+### The site guard
 
-- **When it starts:** with Claude's first action on the site (more than reading, scrolling and plain links).
-- **When it ends by itself:** only on evidence that nothing of Claude's can be left there. All of these: every
-  document Claude acted in there is gone (its tab closed; a released tab, or a page kept in Chrome's back-forward
-  cache, still counts); every send Claude caused there was released (none failed, dropped, expired or still held);
-  and from Claude's first action on, nothing in Claude's tab wrote to the browser's storage (web storage, IndexedDB,
-  Cache Storage, cookies set by a script, the origin's private file system), passed data to another context (a
-  broadcast channel, a shared or service worker, another window), or registered a worker or a background sync. An
-  honest page that keeps Claude's work for later has to put it in one of those places (re-check 6: an offline app
-  that records a deletion in IndexedDB and sends it later from another tab). The tool watches these through
-  Chrome's own storage events where Chrome has them and the page script otherwise (*17d*: which of them Chrome
-  reports; *brief 20*). Closing a tab fires the page's own leaving events, where many apps send what they still
-  hold; those sends are held and, dropped with the page, keep the guard on.
-- **Otherwise:** until a site adapter shows that what Claude left there is resolved, or the owner ends it: on the
-  details page, or when Claude asks with `chrome_end_guard` (Claude Code's prompt shows what the page stored and
-  where). A dropped or expired request is not such evidence, since the page may keep it queued (*checked*, 17b: a
-  site's background sync sent a rejected request again five minutes later).
-- **Across restarts:** the guard list and its floor rules are kept by Chrome (*checked* for the list). Restored pages
-  start before the tool has attached (*checked*: a restored page's first request came before the tool was ready), so
-  the page script holds their sends from the first document (*checked*) and the floor blocks what isn't plain
-  reading (*17d*: for a restored tab's first request, other sites a restored page sends to, and workers without a
-  tab). The floor rules of a guarded site are never lifted while the guard lasts, not even while the tool is
-  attached, so a crash while attached leaves them in place. A restored service worker was held once the tool
-  attached (*checked*); that is not proof for a worker Chrome starts by itself, which is why the floor covers
-  workers.
-- **Where a context can't be guarded,** the tool refuses to act on that site while it exists.
+A Claude tab can pass data or queued work to the owner's own tabs of the same site through the browser's shared
+channels (a shared worker, a broadcast channel, storage) or keep it for later (an offline outbox that retries after a
+restart). So a site is *guarded*: every context of it, in any tab and any worker, is held at the checkpoint like a
+Claude tab, and the extension attaches to its tabs for descriptions. What they send that isn't plain reading is held:
+listed as background when the page sent it by itself, and put to the owner (next part) when his own input caused it
+(*checked*, 17c: an owner's click in another tab that emptied Claude's queue was held, through local storage and
+through a worker shared by both tabs; 17e Q10: an IndexedDB outbox, a write to local storage by property name, the
+origin's private file system and a broadcast hand-off kept the guard on, and their later sending was held).
 
-**The owner's own sends on a guarded site.** A request caused by the owner's own input (input the tool didn't
-dispatch) on a guarded site, in the Claude group or outside it, is held too, because it may carry Claude's queued
-work. The owner decides it himself, on a surface outside every page:
+- **When it starts:** with Claude's first action on the site (more than reading, scrolling and plain links), at the
+  barrier above: the checkpoint records it and confirms before Claude's input is sent.
+- **When it ends by itself (strict, decision 12):** only when the tool can see that nothing of Claude's is left
+  there. All of these: every document Claude acted in there is gone (its tab closed; a released tab, or a page kept in
+  Chrome's back-forward cache, still counts); every send Claude caused there was released and its outcome is known
+  (none failed, dropped, expired, `unknown` or still held); and a site adapter has read the places where that site
+  keeps queued work and found nothing of Claude's (17e Q10: a fixture adapter ended the guard only after the queued
+  value had arrived and the site's three known queues read back empty). Without such an adapter the tool can't see
+  it: watching storage and hand-offs misses some writes (17d: a write to local storage by property name went unseen,
+  and Chrome's extension channel doesn't report web storage, worker registrations or background sync), and seeing
+  nothing is not evidence (re-check 7, 17e). So on a site without an adapter the guard stays until the owner ends it.
+  A dropped or expired request is not evidence either, since the page may keep it queued (*checked*, 17b: a site's
+  background sync sent a rejected request again five minutes later).
+- **Otherwise: one click.** When Claude's work on a site is done (its tabs there closed, nothing held), the extension
+  shows a notification, "Claude is done on this site; end the guard?", with its details page: what of Claude's may be
+  left there (the sends that were dropped or failed; what the page stored and where, as far as the tool saw it), and
+  what to check (the site's outbox or drafts). Ending it says plainly that a leftover may now be sent. Claude can ask
+  for it with `chrome_end_guard`, and the approval shows the same. Until then the guard stays on, also across
+  restarts.
+- **Across restarts:** the checkpoint keeps the guard list and loads it before it accepts the first connection
+  (*checked*, 17e Q1 and Q10: a restored document's first send stayed held; guards survived a clean browser restart
+  and a checkpoint restart).
+- **What a guard costs while it lasts:** the owner's own sends on that site are put to him (next part); calls in
+  Chrome don't connect (near the end of this section); and tab-less sends of other sites whose frames were in
+  Claude's tab stay held (attribution, above).
+
+**The owner's own sends on a guarded site.** A send caused by the owner's own input (input the tool didn't dispatch)
+on a guarded site, in the Claude group or outside it, is held too, because it may carry Claude's queued work. The
+owner decides it himself, on a surface outside every page:
 
 - **Where it appears:** a desktop notification from the extension (`chrome.notifications`) with "Send" and "Don't
   send", and a details window that is the extension's own page (address, method, data, and anything of Claude's still
@@ -535,115 +734,246 @@ work. The owner decides it himself, on a surface outside every page:
 - **Who can answer:** the extension accepts a decision only from the notification's own buttons
   (`onButtonClicked`) or from its own details page, checked by what Chrome reports about the sender: the extension's
   own id, the exact details-page address in the extension's origin, and the top-level document (not a frame).
-  Messages from a page or a content script (even the extension's own) never release a request or end a guard. The
-  tests show both sides: the owner's genuine answer works, every forged one is refused (*checked*, 17c: the real
-  notification's Send and Don't send through the desktop's action menu, and the details page, each gave exactly one
-  and zero arrivals; a page, the extension's content script, another extension page and the details page embedded
-  in a frame were refused; taking an extension page and opening Chrome's pages were refused).
+  Messages from a page or a content script (even the extension's own) never release anything or end a guard. The
+  extension passes the decision to the service, which has the checkpoint release that one capture. The tests show both
+  sides: the owner's genuine answer works, every forged one is refused (*checked*, 17c: the real notification's Send
+  and Don't send through the desktop's action menu, and the details page, each gave exactly one and zero arrivals; a
+  page, the extension's content script, another extension page and the details page embedded in a frame were
+  refused; taking an extension page and opening Chrome's pages were refused; 17e Q11: a real notification answered
+  through the desktop's action menu released its named checkpoint capture once).
 - **Why Claude can't:** Claude acts only through the debugger in page tabs of the Claude group; `chrome_take_tab` and
   `chrome_open` refuse extension pages and Chrome's own pages; desktop notifications and extension windows aren't
-  pages it can reach; and its sandboxed terminal can't create input. The hostile tests try each: taking the details
-  window, reading and clicking in every tab, answering a page dialog, forging messages from a page or content
-  script, and creating input from the sandbox. Every attempt must leave the request held and the guard on.
+  pages it can reach; Claude runs as another user than Chrome, and its sandboxed terminal can't create input. The
+  hostile tests try each: taking the details window, reading and clicking in every tab, answering a page dialog,
+  forging messages from a page or content script, and creating input from the sandbox. Every attempt must leave the
+  send held and the guard on.
 - **Sends whose cause can't be seen:** a send from a worker that serves several tabs carries no trace of whose click
-  caused it (*checked*). On a guarded site it is held as background for Claude and, when the owner was using one of
-  the site's tabs just before (input the tool didn't send), also put to him: a guess about his notification, never
+  caused it (*checked*, 17c). On a guarded site it is held as background for Claude and, when the owner was using one
+  of the site's tabs just before (input the tool didn't send), also put to him: a guess about his notification, never
   an exemption. Outside that window it stays visible as unresolved on the details page and in the site's guard. Both
-  places show one operation; the first answer decides it at once, and the same worker send reported through several
-  attached sessions counts once (*brief 20*).
+  places show one operation; the first answer decides it at once, and the same send reported through several attached
+  sessions counts once (*brief 20*).
 
-This is the owner deciding about his own click, not an approval of Claude's actions; those stay with Claude Code's
-prompt.
+This is the owner deciding about his own click, not an approval of Claude's actions; those stay with the approval
+surface (section 7).
 
 **Which of the owner's own sends are put to him (settled with 17c).** Every send of his on a guarded site that isn't
-plain reading, not only those that look like Claude's leftover (same address, Claude's text; proposed in draft 7
-after `mac-capacity` raised the cost). 17c showed why that narrower match isn't safe: a page's timer that empties
-Claude's queue leaves no traceable chain, and a shared worker's send has no trace of whose click caused it, so a page
-can send Claude's queued deletion to another address than the one that was held. What keeps the notifications few is
-that guards end by themselves where the evidence above shows nothing of Claude's can be left (draft 7 kept every
-site Claude acted on guarded). Where a page stored something, the guard stays until the owner ends it: one click on
-the details page, which says what of Claude's is unresolved and what to check (the site's outbox or drafts), or one
-prompt when Claude asks. Known tracking requests are dropped, not asked. The tool-user rounds count these notifications on an ordinary day (section 8); the target is close to zero.
+plain reading, not only those that look like Claude's leftover (same address, Claude's text). 17c showed why that
+narrower match isn't safe: a page's timer that empties Claude's queue leaves no traceable chain, and a shared worker's
+send has no trace of whose click caused it, so a page can send Claude's queued deletion to another address than the
+one that was held. What keeps the notifications few: site adapters for his usual sites that recognise reading and the
+site's own housekeeping, guards that end when an adapter shows nothing is left, and his one click when Claude is done
+on a site without one. Known tracking requests are dropped, not asked. The tool-user rounds count these notifications
+on an ordinary day (section 8); the target is close to zero.
 
-**The trusted list** frees sends only through a site adapter: an entry names a site and operations its adapter
-recognises (for example "post a message in a chat", "add to the basket"). Without an adapter nothing is free, because
-methods and button labels don't say what a request does. Deleting and paying are never free. Pages that can approve
-Claude's own actions or change its settings (claude.ai, the Anthropic console, Aresus, Chrome's settings, password
-and extension pages) can't be opened in a Claude tab at all; that list is fixed in the image.
+### "Don't ask again" (decision 7)
 
-**Site adapters.** Where the generic rules aren't enough to judge or to work smoothly (a request with opaque ids, an
-app that reads through POST, a chat on a live connection, a canvas editor), a small adapter for that site decodes its
-requests into clear operations ("delete the repository X", "send to the conversation Y"), tells reading from
-sending, and binds the approval to the operation. Adapters are written for the owner's usual sites first, after the
-tool-user rounds show where they are needed.
+The owner can free a kind of action from asking, within these limits:
 
-### What can't be held, and what happens there
+- **Only for kinds a site adapter recognises** and names, such as "Deezer: add to playlist" or "GitHub: star". Never
+  for a send the tool doesn't recognise: one POST to `/graphql` looks like any other, so freeing "this address"
+  would free everything sent there. Never for deleting or paying. Never for sending mail: every mail send asks, in the
+  Mail tools and in Gmail in Chrome alike. A kind that sends a message to other people names the conversation
+  ("WhatsApp: send a message to this chat"), never "any chat".
+- **Bound to the site, the signed-in account the adapter establishes, and the kind.** An entry never covers another
+  account or site, and each release still checks that the captured bytes are that kind for that account; anything
+  else asks.
+- **He sets it himself, at or right after an approval, through a channel Claude can't use.** Where exactly depends on
+  the approval surface (section 7, open). Candidates: the extension's details page lists Claude's recently approved
+  sends with "Don't ask again for this kind" (Claude can't open extension pages: *checked*, 17c); the owner command
+  `sudo aresos admin chrome allow …` with his password; a button on the approval screen if approval moves to a
+  surface that has one. Claude Code's own "Yes, and don't ask again" in its prompt is not that channel: under
+  managed-only permission rules it must stay inert (section 7).
+- **The entry goes into the owner-only list** in the tool service, written only through `admin.sock` or the
+  extension's details page; Claude can't write it. `chrome_submit_trusted`, which doesn't ask, checks it at every
+  release and refuses anything not on it.
+- **He sees and revokes entries:** `sudo aresos admin chrome allowed` lists them (when set, how often used, last
+  use), `… revoke <id>` removes one, and the extension's details page shows the same with a Remove button. A
+  revocation applies from the next release.
 
-- **Live connections** (WebSocket, WebTransport, WebRTC): Chrome's request hold doesn't see their messages
-  (*checked* for WebSocket). Many everyday signed-in sites keep one open only for live updates (GitHub, Gmail, Slack,
-  Notion), so asking on every action there would make Chrome tedious. The hold therefore moves to the message: a
-  small script the tool puts into every page, frame and worker before the site's own scripts run wraps the send
-  functions (`WebSocket.send`, `RTCDataChannel.send`, WebTransport writers), and a message that counts as a send is
-  held like a request (*checked*, 17c: all three, zero, one and zero arrivals; WebTransport for datagrams only, its
-  streams still to show in *brief 20*). **Which messages count:** after Claude acted on a page, every message on
-  it, like every request: on a chat fixture one ordinary click sent presence, subscription and typing messages and
-  Enter sent the text, so matching Claude's text alone would have held one message in four (*checked*). Messages
-  without Claude's text are background holds; a site adapter can free the ones it shows to be reading (a
-  subscription). How many everyday sites keep such connections open while signed in couldn't be measured without
-  signing in (17c blocked them on public sites for safety); a 2021 crawl found WebSockets on 6.3% of sites (Web
-  Conference 2021, "WebSocket Adoption and the Landscape of the Real-Time Web"). The tool-user rounds measure it on
-  the owner's usual sites.
-- **Where the message hold can't be in place** (a tab taken from the owner whose connection was opened before the
-  tool attached, until the page reloads; a page where the wrap provably fails), the tool can't see what a key or
-  click sends. There, typing, Enter and clicks other than plain links are refused, unless a site adapter establishes
-  the account, the conversation or target and the text: then `chrome_submit_input` does them as one asking step with
-  that description, after re-checking it right before acting. Usually reloading the page brings the message hold
-  back (*checked*, 17c: Chrome's inventory found a connection opened before the tool attached, a message on it
-  went unheld, and after a reload the same send was held). *Checked:* holding the key press gave zero arrivals until
-  approval and exactly one after.
-- **Service workers:** the tool attaches to the site's service worker itself, which holds what the page sends through
-  the worker, what the worker sends on its own, and background sync (*checked*). Telling the tab to bypass its worker
-  also works but breaks features that only the worker provides (*checked*), so it isn't used. A worker can serve the
-  owner's own tabs too, so its site is guarded as in "Other tabs of the same site". Failing a request doesn't cancel
-  what the site queued: background sync retried a rejected request five minutes later (*checked*), so exact repeats
-  of a dropped request are refused at once, and that list is kept across restarts with the site guard.
-- **Workers that start while Claude works or a site is guarded.** A dedicated worker is reached before its first line
-  (*checked*, 17c). A new shared worker and a newly installed or replaced service worker were not: the tool couldn't
-  reach them in time, and their first send arrived (*checked*). Chrome also updates and starts a site's service
-  worker by itself: on navigation, on push and sync events, or when the page asks for an update (Chrome's service
-  worker lifecycle documentation). So nothing relies on reaching a worker early: the floor blocks every request that
-  isn't plain reading and every new live connection from a worker without a tab, whoever started it and whether or
-  not a page is attached (*17d*). Workers the tool does reach (dedicated ones, and running ones once attached:
-  *checked*) hold as in a page. The page script also refuses to start new shared workers and service worker
-  registrations while Claude works on the site (*checked* on the public sites), so honest pages keep to paths the
-  tool can hold; pages do without offline use and push notifications there while it lasts.
+The pages that can approve Claude's own actions or change its settings (claude.ai, the Anthropic console, Aresus,
+Chrome's settings, password and extension pages) can't be opened in a Claude tab at all; that list is fixed in the
+image.
+
+### Site adapters, and his usual sites (decision 9)
+
+Where the generic rules aren't enough to judge or to work smoothly (a request with opaque ids, an app that reads
+through POST, a chat on a live connection, a canvas editor), a small adapter for that site decodes its operations into
+clear ones ("delete the repository X", "send to the conversation Y"), tells reading from sending, binds the approval
+to the operation and the account, groups what one action causes into one decision, and knows where the site keeps
+queued work (for the guard's end). Adapters are described and tested against fixtures and the owner's test accounts;
+an adapter's reading is supporting evidence for the description, while the checkpoint still holds and releases the
+bytes.
+
+His usual signed-in sites are the first adapter targets: WhatsApp Web, Gemini, Gmail and Deezer (more to come). What
+each likely needs, to be confirmed when its adapter is built:
+
+- **WhatsApp Web.** Messages go over a live connection whose content the page encrypts itself, so the checkpoint can
+  hold each outgoing message but can't read it; its connection may also run in a worker, the kind of send that got
+  past Chrome's own rules in 17d and needed the checkpoint. The description has to come from the adapter's reading
+  of the page: the conversation, the text, the message shown as waiting; the approval binds that to the messages
+  Enter caused. The site also sends things that reach other people without being messages: read receipts when a chat
+  is opened, "typing…" while text is entered, presence. They count as sends; the adapter has to tell them apart by
+  what it can see (timing, size, the page's own state), and where it can't, they ask. The hardest of the four, and
+  possibly a site where Claude fills in and the owner sends.
+- **Gemini.** Google's app talks through POST calls in Google's own format, reading included (loading a chat), like
+  Google Docs in 17c. The adapter decodes the call names to tell reading from sending: asking a question (which sends
+  Claude's text to Google), deleting a chat, sharing one. "Ask a question" is a candidate for "don't ask again".
+- **Gmail.** Also POST calls, reading included. Opening a mail marks it read and saving a draft keeps it in his
+  account (both changes, free); sending is a mail send: always asks, never "don't ask again". The adapter decodes the
+  recipients (Bcc included), subject and text so the approval reads like a mail (decision 11), and follows the "undo
+  send" delay: the send leaves when the delay ends, and is held then. His main mail goes through the Mail tools
+  (section 5).
+- **Deezer.** Its web calls likely name each method in the address, so reading (search, lists, playing) and changing
+  (add to a playlist, like, follow) can be told apart; reports of what was played go to his own account and are
+  marked as the site's housekeeping. "Add to playlist" is a candidate for "don't ask again".
+
+### What the checkpoint can't hold, and what happens there
+
+- **Calls and other peer connections** (WebRTC data and media) and **WebTransport**: refused while a guard is on
+  (*checked*, 17e Q8: zero payloads at independent peers; WebTransport's handshake rejected; WebRTC pages saw
+  candidate errors or a connection that never opened, not a clean "unavailable"). The page script turns them into a
+  clear error on a guarded site where it can (*brief 20*). Calls: below.
 - **A site that changes something with a plain GET** (against the web's rules, rare on reputable sites) can't be told
   from reading without knowing the site; and **a site that hides what it sends** (encrypts typed text before sending
-  it) defeats the typed-text match, though its other requests after Claude typed are still held. Both are why new
-  sites ask first and why site adapters exist.
+  it, as end-to-end encrypted chats do) defeats the typed-text match, though its other sends after Claude acted are
+  still held. Both are why new sites ask first and why site adapters exist.
+- **What a page deletes inside the browser** (an offline draft, a list kept only in the browser) needs no network
+  send, so the checkpoint can't hold it. An adapter can make such a click ask first, before Claude's action; without
+  one, Claude's click there acts at once.
+- **What the page gave up on without saying so** (a JavaScript timeout with no abort): the send still waits and would
+  go if approved later (*checked*, 17e Q7). The description shows how long it has waited and whether the page shows
+  an error.
+- **Workers** are no longer a gap: shared and service workers, also ones Chrome starts or updates by itself, send
+  through the checkpoint like pages, from browser start (*checked*, 17e Q2 and Q3). So the page script no longer
+  refuses new workers. Background sync can retry a dropped request later (*checked*, 17b); exact repeats of a
+  dropped request are dropped at once, and that list is kept with the guard.
 
 ### Fail closed
 
-A held send must never go out because control broke. Held calls wait in the page and requests that aren't plain
-reading are blocked by Chrome's own rules before they start; neither is paused inside Chrome, so a reload, update,
-disable or detach has nothing to release (*checked* for calls held in the page through nine ways control can end,
-17c; *17d* for the floor). The one thing paused is a request the floor lets through for checking (an approved send's
-matching request, a GET checked for Claude's text): the instant named above. Checked separately: when the host or the
-service's socket went away, or the extension's worker crashed, held requests were failed, not sent; Chrome closing
-sent nothing; DevTools opened beside the tool didn't end control. A held request whose page or tab goes away, or
-whose time runs out, is dropped, never sent. Live-connection detection after a re-attach uses Chrome's own event
-stream plus a per-page inventory of open connections (*checked* on fixtures); where that inventory can't be complete,
-the page counts as one where the message hold isn't in place.
+A held send never goes out because control broke. It waits at the checkpoint, outside Chrome, so a reload, update,
+disable, removal or crash of the extension, the native host or Chrome has nothing to release (*checked*, 17e Q3 and
+Q6). If the checkpoint itself fails, it stops: what it held in memory is dropped, browsing stops, and nothing goes
+direct, because Chrome may reach only the checkpoint (*checked*, 17e Q1 and Q6). After a restart nothing is sent
+again; an operation that was being forwarded is `unknown`. A held operation whose page or tab goes away, or whose
+time runs out, is dropped, never sent. If the checkpoint runs out of memory or of room for its record, it refuses new
+captures or stops; it never forwards because of it (*checked*, 17e Q11: two 25 MiB operations fit and a third was
+refused; a full record and an allocation past the memory ceiling stopped it; nothing pending was released). The
+limits in 17e (32 MiB per operation, 64 MiB together, 256 operations, a 90-second expiry) are check settings; brief
+20 sets the product's own, with an expiry long enough for an approval from the phone.
+
+### What changes for the owner
+
+In plain words (re-check 7, section C, and 17e):
+
+- **A website can disguise sending as traffic we permit for reading.** Plain reading stays free so pages load. A page
+  that hides Claude's text in reading traffic, or a site that changes things with a plain GET, isn't stopped by the
+  checkpoint. Asking before new sites and site adapters limit this; for a hostile page it isn't closed.
+- **The tool keeps the approved bytes exact, but doesn't know what the server will do with them.** "Exactly what you
+  approved was sent, once" is guaranteed; "the site did what the description says" is not. Descriptions come from
+  adapters and the page and are marked as such.
+- **Deleting data stored only in the browser isn't a network send,** so the checkpoint can't hold it (above).
+- **If the checkpoint breaks, browsing stops.** Pages fail with Chrome's own error; nothing goes direct. His way out is
+  the pass-through switch (condition 3, below). If the checkpoint restarts, Chrome restarts with its tabs (requirement
+  5).
+- **Cancelling works only when the checkpoint sees it before forwarding.** A page that gave up silently can still have
+  its send go out if it is approved later.
+- **Calls and other live peer connections in Chrome stop while a guard is on** (below).
+- **Sites see a slightly different client.** The checkpoint's TLS and HTTP/2 fingerprints differ from Chrome's
+  (*checked*, 17e Q11). No extra robot checks were seen on 17e's anonymous sample; signed-in sites are untested.
+  Pages were about 0.1 s slower in that small sample, and the checkpoint used about 100 to 260 MB of memory.
+- **Some of Chrome's own certificate checks move to the checkpoint** (requirement 4).
+- **Uploads above the limit fail** rather than going around the checkpoint.
+
+### Before it becomes his everyday browser (PLAN S2e)
+
+Until all five hold, the fallback is the one in the plan: Claude fills in, the owner sends.
+
+1. **Unrelated tabs stall about never.** How often his other tabs wait while Claude works on one site (uncertain
+   attribution, tab-less sends of a frame's site, Chrome's own services) is measured on his usual sites, in the
+   tool-user rounds and after the first boot; the target is zero, and each stall is counted with its cause.
+2. **Chrome's own protection works:** Safe Browsing with a positive control, and component updates with a fresh
+   download, through the checkpoint and with no exemptions (Chrome's own services, above).
+3. **A way out of a fault.** An owner-only switch, `sudo aresos admin chrome checkpoint pass-through` (and a menu
+   entry that runs it with his password), sets Chrome's policy to direct connections, lifts the firewall rule for the
+   browser user and stops the checkpoint, which destroys its key. It works even when the checkpoint is broken. It
+   needs no guard holding leftovers: where leftovers exist, they are shown first (on which site, what of Claude's may
+   be left), and he ends those guards knowingly before the switch goes through. While it is on, Claude's Chrome tools
+   are off ("checkpoint off: Chrome tools off until it is repaired"). Switching back starts the checkpoint with a new
+   root and restarts Chrome, so that no connection opened without the checkpoint survives; Claude's tools return
+   once the guard list is loaded.
+4. **About one decision per real action.** Adapters and grouping for his usual sites bring the 18 separate decisions
+   of 17e's fixture (twelve background requests and six live messages without an adapter) down to about one per real
+   action: one approval for "send this message", not one per frame.
+5. **His real sites.** After the first boot, a short check on his signed-in sites (for example Google, GitHub, his
+   bank, and the four usual sites), browsing them himself through the checkpoint, for robot checks and breakage,
+   before Claude acts there; 17e's sample was anonymous.
+
+**Calls.** Calls in Chrome (voice and video calls, sharing a screen to a peer) work only while no guard is on and
+Claude isn't acting. While nothing is guarded, the checkpoint lets a call's relay connection through as a tunnel it
+doesn't open (it couldn't read it: calls are encrypted end to end), over TCP or TLS through the proxy, since UDP is
+refused; it recognises that connection by its protocol, never by its host (*brief 20*, with call quality measured on
+a real call service). When a guard starts, the barrier cuts every such tunnel, because the checkpoint can't tell which
+tab a call belongs to or what it carries. So:
+
+- A call running when Claude would start acting: Claude's acting step is refused with "the owner is in a call in
+  Chrome; acting now ends it", reading stays free, and Claude asks him. With his OK, Claude acts and the call ends;
+  the extension says why.
+- While a guard stays on (strict, above), new calls in Chrome don't connect; the extension says so and shows the guard
+  he can end.
+- Calls outside Chrome are not affected.
 
 ### Tests
 
-The fixture sites and runner from brief 17, extended with the cases of briefs 17b and 17c (every hold case proven by
-the fixture server's own log, the counterexample of a page that keeps a live send away from the wrap included) and
-the everyday tasks in `PLAN.md` (Chrome tasks 8 to 14), on GitHub's Linux machines with branded Chrome. Every point
-marked *17d* is settled by brief 17d before the build starts, and every point marked *brief 20* is a test there
-before anything relies on it. Hostile tests (section 7) add: reaching
-`chrome.sock` or the host from the sandbox, a user-level native messaging manifest, editing the profile or Chrome's
-policies, and acting in a tab outside the Claude group.
+The fixture sites, receivers and runners of briefs 17 to 17e, ported to the product (every hold proven by an
+independent receiver's own log), and the everyday tasks in `PLAN.md` (Chrome tasks 8 to 14), on GitHub's Linux
+machines with branded Chrome; the whole set runs twice on the recorded Chrome version (re-check 7). Synthetic fixtures
+qualify the mechanism, not arbitrary real sites. Brief 20 must show, building on a pinned mitmproxy core:
+
+1. **No way around it** (17e Q1 again, on the product): IPv4, IPv6, localhost, link-local, redirects, workers, QUIC
+   and the checkpoint down; the firewall rule surviving the image's firewall reloads; a Chrome started without the
+   launcher can't browse; nobody else can listen on the checkpoint's port.
+2. **Connections opened before a guard and the barrier** (17e Q2): pre-opened HTTP/2 and page, dedicated, shared and
+   service-worker sockets; input only after the barrier is confirmed.
+3. **Conservative attribution** (17e Q3): forged, stale and missing tags, opaque origins, foreign frames, hand-offs
+   across origins, the extension removed; tab-less workers of a frame's site; Claude's typed text held in any tab;
+   the page-made Chrome sends (push subscription, passkey, payment) refused on a guarded site.
+4. **Complete operations** (17e Q4) with the product's read, drain and size limits.
+5. **One approval, one capture, and the context still the same** (17e Q5): competitors held; the account and document
+   checked again up to forwarding, on fixtures with a real sign-out and sign-in (17d Q8) and through each usual-site
+   adapter.
+6. **Every crash point** (17e Q6): no arrival before forwarding, no replay, `unknown` after a cut-off forward; the
+   tool service's operation log and the checkpoint's record agree after each crash.
+7. **Cancellation:** an HTTP/2 stream reset seen and recorded as cancelled (open in 17e); abort, tab closing, expiry
+   and the page script's cancel; a late approval refused.
+8. **Other transports and calls:** WebTransport and WebRTC refused while a guard is on, with a clear error where the
+   page script can give one; a call through a relay over TCP and TLS working while no guard is on (positive control
+   on a real call service), cut at the barrier; the acting refusal while a call runs.
+9. **The owner's five requirements** (above), each with its test, including what a running Chrome does when the root
+   changes and the launcher's restart.
+10. **Chrome's own services** (above): trust in Chrome's own network context with no exemptions; Safe Browsing with a
+    positive control; a fresh component download; the extension's update; sync; the list of features that send text.
+11. **The strict guard:** adapter-based ending for the four usual sites; the one-click end; guards across checkpoint
+    and Chrome restarts; storage and hand-offs keeping the guard (17e Q10).
+12. **Bounded resources** (17e Q11): memory, capture count, total size, a full record, the memory ceiling; exhaustion
+    never forwards.
+13. **The pass-through switch** (condition 3): only through the owner's channel; leftovers shown first; Claude's
+    Chrome tools off; Chrome restarted when the checkpoint is back.
+14. **"Don't ask again":** set only through the owner's channels; Claude can't write the list (hostile test);
+    revocation takes effect; refused for unrecognised sends, deleting, paying and mail; Claude Code's own "don't ask
+    again" stays inert.
+15. **The separate browser user on Fedora with KDE,** with the owner's profile and sign-ins moved once: display,
+    sound, camera and microphone, notifications (the owner's own-send notifications reach his desktop), the file
+    chooser, the keyring, downloads; the native host as that user; the launcher always used (desktop entry, links
+    from other apps).
+16. **The cost** for conditions 1 and 4: stalls of unrelated tabs and decisions per action on the test sites, speed,
+    memory, robot checks; then on his own sites after the first boot (condition 5).
+17. **Upgrades:** 17e gates WebSocket control frames at a seam inside mitmproxy 12.2.1 that its public hooks don't
+    offer; that seam and the fail-stop handling are checked again on every upgrade of the core.
+
+Hostile tests (section 7) add: reaching `chrome.sock`, `checkpoint.sock` or the checkpoint's port from the sandbox,
+the assistant's user or a coding user; a user-level native messaging manifest; editing the profile, Chrome's policies
+or the owner's allow list; acting in a tab outside the Claude group; opening extension pages.
 
 ## 7. No way around the tools
 
